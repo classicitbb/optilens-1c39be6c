@@ -1,4 +1,4 @@
-import { Eye, LogOut, User } from "lucide-react";
+import { Eye, LogOut, User, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,15 +47,20 @@ const Header = () => {
             <>
               <CartSheet />
               <Button variant="ghost" size="sm" asChild>
+                <Link to="/orders">
+                  <Package className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Orders</span>
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
                 <Link to="/profile">
                   <User className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">{user.email}</span>
-                  <span className="sm:hidden">Profile</span>
+                  <span className="hidden sm:inline">Profile</span>
                 </Link>
               </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </>
           ) : (

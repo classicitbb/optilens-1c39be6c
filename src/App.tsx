@@ -10,6 +10,7 @@ import Store from "./pages/Store";
 import Knowledge from "./pages/Knowledge";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -47,6 +48,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute>
+                  <Orders />
                 </ProtectedRoute>
               }
             />

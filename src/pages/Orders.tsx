@@ -1,0 +1,172 @@
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { useOrders } from "@/hooks/useOrders";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Package, ShoppingBag, Clock } from "lucide-react";
+import { format } from "date-fns";
+
+const Orders = () => {
+  const { orders, loading } = useOrders();
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-500/10 text-green-500 border-green-500/20";
+      case "pending":
+        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+      case "cancelled":
+        return "bg-red-500/10 text-red-500 border-red-500/20";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <main className="pt-24 pb-16">
+        <div className="container mx-auto px-4 lg:px-8">
+          {/* Page Header */}
+          <div className="mb-12 text-center">
+            <h1 className="mb-4 text-4xl font-bold text-foreground">
+              Order History
+            </h1>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              View your past orders and track their status.
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent" />
+            </div>
+          ) : orders.length === 0 ? (
+            <Card className="mx-auto max-w-md text-center">
+              <CardContent className="py-12">
+                <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-semibold text-foreground">
+                  No orders yet
+                </h3>
+                <p className="text-muted-foreground">
+                  When you complete a purchase, your orders will appear here.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {orders.map((order, index) => (
+                <Card
+                  key={order.id}
+                  className="opacity-0 animate-fade-in"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <CardHeader>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Package className="h-5 w-5" />
+                          Order #{order.id.slice(0, 8).toUpperCase()}
+                        </CardTitle>
+                        <CardDescription className="mt-1 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(order.created_at), "PPP 'at' p")}
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          variant="outline"
+                          className={getStatusColor(order.status)}
+                        >
+                          {order.status.charAt(0).toUpperCase() +
+                            order.status.slice(1)}
+                        </Badge>
+                        <span className="text-xl font-bold text-foreground">
+                          ${order.total_amount.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible>
+                      <AccordionItem value="items" className="border-none">
+                        <AccordionTrigger className="py-2 text-sm hover:no-underline">
+                          View {order.items?.length || 0} item
+                          {(order.items?.length || 0) !== 1 ? "s" : ""}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Product</TableHead>
+                                <TableHead className="text-right">
+                                  Price
+                                </TableHead>
+                                <TableHead className="text-right">
+                                  Qty
+                                </TableHead>
+                                <TableHead className="text-right">
+                                  Total
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {order.items?.map((item) => (
+                                <TableRow key={item.id}>
+                                  <TableCell className="font-medium">
+                                    {item.product_name}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    ${item.product_price.toFixed(2)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {item.quantity}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    $
+                                    {(
+                                      item.product_price * item.quantity
+                                    ).toFixed(2)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Orders;
