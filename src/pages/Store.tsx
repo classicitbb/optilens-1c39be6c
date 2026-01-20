@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShoppingCart, Filter, Search, Eye } from "lucide-react";
 import { useState } from "react";
+import { useCartContext } from "@/contexts/CartContext";
 
 const lensProducts = [
   {
@@ -74,6 +75,7 @@ const Store = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const { addToCart } = useCartContext();
 
   const filteredProducts = lensProducts.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,6 +84,14 @@ const Store = () => {
     const matchesType = typeFilter === "all" || product.type === typeFilter;
     return matchesSearch && matchesCategory && matchesType;
   });
+
+  const handleAddToCart = (product: typeof lensProducts[0]) => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -172,7 +182,7 @@ const Store = () => {
                     ${product.price.toFixed(2)}
                     <span className="text-sm font-normal text-muted-foreground">/lens</span>
                   </div>
-                  <Button variant="hero" size="sm">
+                  <Button variant="hero" size="sm" onClick={() => handleAddToCart(product)}>
                     <ShoppingCart className="h-4 w-4" />
                     Add to Cart
                   </Button>

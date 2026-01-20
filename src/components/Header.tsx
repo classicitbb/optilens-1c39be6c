@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { CartSheet } from "@/components/CartSheet";
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -44,6 +45,7 @@ const Header = () => {
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              <CartSheet />
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/profile">
                   <User className="mr-2 h-4 w-4" />
