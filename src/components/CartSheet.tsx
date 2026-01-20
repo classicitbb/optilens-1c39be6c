@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -7,16 +8,36 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
-import { useCart } from "@/hooks/useCart";
+import { useCartContext } from "@/contexts/CartContext";
+import { useOrders } from "@/hooks/useOrders";
 import { Separator } from "@/components/ui/separator";
+import { CheckoutDialog } from "@/components/CheckoutDialog";
 
 export const CartSheet = () => {
-  const { items, loading, totalItems, totalPrice, updateQuantity, removeFromCart } =
-    useCart();
+  const { items, loading, totalItems, totalPrice, updateQuantity, removeFromCart, clearCart } =
+    useCartContext();
+  const { createOrder } = useOrders();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const handleCheckout = async (): Promise<boolean> => {
+    const order = await createOrder(items, totalPrice);
+    if (order) {
+      await clearCart();
+      return true;
+    }
+    return false;
+  };
+
+  const handleCheckoutComplete = () => {
+    setCheckoutOpen(false);
+    setSheetOpen(false);
+  };
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
+    <>
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
         <Button variant="outline" size="icon" className="relative">
           <ShoppingCart className="h-5 w-5" />
           {totalItems > 0 && (
@@ -115,7 +136,11 @@ export const CartSheet = () => {
                 <span>Total</span>
                 <span>${totalPrice.toFixed(2)}</span>
               </div>
-              <Button variant="hero" className="mt-4 w-full">
+              <Button
+                variant="hero"
+                className="mt-4 w-full"
+                onClick={() => setCheckoutOpen(true)}
+              >
                 Proceed to Checkout
               </Button>
             </div>
@@ -123,5 +148,19 @@ export const CartSheet = () => {
         )}
       </SheetContent>
     </Sheet>
+
+      <CheckoutDialog
+        open={checkoutOpen}
+        onOpenChange={(open) => {
+          setCheckoutOpen(open);
+          if (!open) {
+            handleCheckoutComplete();
+          }
+        }}
+        items={items}
+        totalPrice={totalPrice}
+        onCheckout={handleCheckout}
+      />
+    </>
   );
 };
