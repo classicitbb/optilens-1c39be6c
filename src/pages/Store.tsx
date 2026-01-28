@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ShoppingCart, Filter, Search, Eye } from "lucide-react";
 import { useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
-
+import { LensChatbot } from "@/components/LensChatbot";
 const lensProducts = [
   {
     id: 1,
@@ -200,6 +200,7 @@ const Store = () => {
       </main>
 
       <Footer />
+      <LensChatbot />
     </div>
   );
 };
