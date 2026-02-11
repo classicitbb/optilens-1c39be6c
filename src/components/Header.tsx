@@ -13,7 +13,7 @@ const Header = () => {
     await signOut();
     toast({
       title: "Signed out",
-      description: "You have been successfully signed out.",
+      description: "You have been successfully signed out."
     });
   };
 
@@ -24,7 +24,7 @@ const Header = () => {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-accent">
             <Eye className="h-5 w-5 text-accent-foreground" />
           </div>
-          <span className="text-xl font-bold text-foreground">OptiLens Pro</span>
+          <span className="text-xl font-bold text-foreground">OptiVisionNow</span>
         </Link>
         
         <nav className="hidden items-center gap-8 md:flex">
@@ -43,8 +43,8 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          {user ? (
-            <>
+          {user ?
+          <>
               <CartSheet />
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/orders">
@@ -62,9 +62,9 @@ const Header = () => {
                 <LogOut className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">Sign Out</span>
               </Button>
-            </>
-          ) : (
-            <>
+            </> :
+
+          <>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/auth">
                   <User className="mr-2 h-4 w-4" />
@@ -75,11 +75,11 @@ const Header = () => {
                 <Link to="/store">Shop Now</Link>
               </Button>
             </>
-          )}
+          }
         </div>
       </div>
-    </header>
-  );
+    </header>);
+
 };
 
 export default Header;
