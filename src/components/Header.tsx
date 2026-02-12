@@ -1,10 +1,58 @@
-import { Eye, LogOut, User, Package, Shield } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { CartSheet } from "@/components/CartSheet";
 import { useUserRole } from "@/hooks/useUserRole";
+
+const KB_CATEGORIES = [
+  { icon: Layers, label: "Lens Materials", hash: "lens-materials" },
+  { icon: Lightbulb, label: "Lens Designs", hash: "lens-designs" },
+  { icon: Droplets, label: "Lens Coatings", hash: "lens-coatings" },
+  { icon: Sun, label: "Specialty Lenses", hash: "specialty-lenses" },
+];
+
+const KnowledgeDropdown = () => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        Knowledge Base
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-2 z-50 w-52 rounded-lg border border-border bg-background shadow-lg py-1">
+          {KB_CATEGORIES.map((cat) => (
+            <Link
+              key={cat.hash}
+              to={`/knowledge#${cat.hash}`}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <cat.icon className="h-4 w-4" />
+              {cat.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -33,9 +81,7 @@ const Header = () => {
           <Link to="/store" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             Store
           </Link>
-          <Link to="/knowledge" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            Knowledge Base
-          </Link>
+          <KnowledgeDropdown />
           <a href="#products" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             Products
           </a>

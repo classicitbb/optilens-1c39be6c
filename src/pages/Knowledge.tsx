@@ -136,11 +136,14 @@ const Knowledge = () => {
 
           {/* Categories Grid */}
           <div className="mb-16 grid gap-8 lg:grid-cols-2">
-            {categories.map((category, catIndex) => (
+            {categories.map((category, catIndex) => {
+              const hashId = category.title.toLowerCase().replace(/\s+/g, "-");
+              return (
               <Card 
-                key={category.title} 
+                key={category.title}
+                id={hashId}
                 variant="default"
-                className="opacity-0 animate-fade-in"
+                className="opacity-0 animate-fade-in scroll-mt-24"
                 style={{ animationDelay: `${catIndex * 100}ms` }}
               >
                 <CardHeader>
@@ -173,7 +176,8 @@ const Knowledge = () => {
                   </Accordion>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
 
           {/* FAQs */}
