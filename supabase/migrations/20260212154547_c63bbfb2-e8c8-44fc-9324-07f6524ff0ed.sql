@@ -1,0 +1,1 @@
+ALTER TABLE public.finishtypes ADD CONSTRAINT finishtypes_name_key UNIQUE (name);
