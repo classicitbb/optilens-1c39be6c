@@ -99,10 +99,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
   const isValid = form.name && form.supplier_id && form.brand_id && form.material_id && form.mftype_id && form.lenstype_id;
 
   const RefSelect = ({ label, value, onChange, items }: { label: string; value: string; onChange: (v: string) => void; items: ReferenceItem[] }) => (
-    <div className="space-y-1">
-      <Label className="text-xs">{label}</Label>
+    <div className="space-y-0.5">
+      <Label className="text-[11px]">{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder={`Select ${label}`} /></SelectTrigger>
+        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={`Select ${label}`} /></SelectTrigger>
         <SelectContent>
           {items.map((i) => <SelectItem key={i.id} value={i.id} className="text-xs">{i.name}</SelectItem>)}
         </SelectContent>
@@ -111,85 +111,87 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
   );
 
   const NumInput = ({ label, value, onChange, step = "0.25" }: { label: string; value: number | null; step?: string; onChange: (v: string) => void }) => (
-    <div className="space-y-1">
-      <Label className="text-xs">{label}</Label>
-      <Input type="number" step={step} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="h-8 text-xs" />
+    <div className="space-y-0.5">
+      <Label className="text-[11px]">{label}</Label>
+      <Input type="number" step={step} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="h-7 text-xs" />
     </div>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{lens ? "Edit Lens" : "Add Lens"}</DialogTitle>
+          <DialogTitle className="text-sm">{lens ? "Edit Lens" : "Add Lens"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5">
-          {/* Section 1: Identity */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Identity</h3>
-            <div className="space-y-1">
-              <Label className="text-xs">Name</Label>
-              <Input value={form.name} onChange={(e) => set("name", e.target.value)} className="h-8 text-xs" placeholder="Lens SKU name" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeItems(suppliers.data)} />
-              <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeItems(brands.data)} />
-              <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeItems(materials.data)} />
-              <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeItems(mftypes.data)} />
-              <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeItems(lenstypes.data)} />
-              <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeItems(lensOptions.data)} />
-              {form.option && (
-                <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
-              )}
-            </div>
-          </section>
-
-          {/* Section 2: Specifications */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Specifications</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <NumInput label="Index Value" value={form.index_value} step="0.01" onChange={(v) => setNum("index_value", v)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <NumInput label="SPH Min" value={form.sph_min} onChange={(v) => setNum("sph_min", v)} />
-              <NumInput label="SPH Max" value={form.sph_max} onChange={(v) => setNum("sph_max", v)} />
-              <NumInput label="CYL Min" value={form.cyl_min} onChange={(v) => setNum("cyl_min", v)} />
-              <NumInput label="CYL Max" value={form.cyl_max} onChange={(v) => setNum("cyl_max", v)} />
-            </div>
-            {showAdd && (
-              <div className="grid grid-cols-2 gap-3">
-                <NumInput label="ADD Min" value={form.add_min} onChange={(v) => set("add_min", v === "" ? null : parseFloat(v) as any)} />
-                <NumInput label="ADD Max" value={form.add_max} onChange={(v) => set("add_max", v === "" ? null : parseFloat(v) as any)} />
-              </div>
-            )}
-          </section>
-
-          {/* Section 3: Pricing */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Pricing</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <NumInput label="Base Price" value={form.base_price} step="0.01" onChange={(v) => setNum("base_price", v)} />
-              <NumInput label="Sell Price" value={form.sell_price} step="0.01" onChange={(v) => setNum("sell_price", v)} />
+        <div className="space-y-3">
+          {/* Top row: Identity + Specifications side by side */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Identity */}
+            <section className="space-y-2">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Identity</h3>
               <div className="space-y-1">
-                <Label className="text-xs">Margin</Label>
-                <Input value={margin.toFixed(2)} readOnly className="h-8 text-xs bg-muted" />
+                <Label className="text-[11px]">Name</Label>
+                <Input value={form.name} onChange={(e) => set("name", e.target.value)} className="h-7 text-xs" placeholder="Lens SKU name" />
               </div>
-            </div>
-          </section>
+              <div className="grid grid-cols-2 gap-2">
+                <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeItems(suppliers.data)} />
+                <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeItems(brands.data)} />
+                <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeItems(materials.data)} />
+                <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeItems(mftypes.data)} />
+                <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeItems(lenstypes.data)} />
+                <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeItems(lensOptions.data)} />
+                {form.option && (
+                  <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
+                )}
+              </div>
+            </section>
 
+            {/* Specifications */}
+            <section className="space-y-2">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Specifications</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <NumInput label="Index" value={form.index_value} step="0.01" onChange={(v) => setNum("index_value", v)} />
+                <div /> {/* spacer */}
+                <NumInput label="SPH Min" value={form.sph_min} onChange={(v) => setNum("sph_min", v)} />
+                <NumInput label="SPH Max" value={form.sph_max} onChange={(v) => setNum("sph_max", v)} />
+                <NumInput label="CYL Min" value={form.cyl_min} onChange={(v) => setNum("cyl_min", v)} />
+                <NumInput label="CYL Max" value={form.cyl_max} onChange={(v) => setNum("cyl_max", v)} />
+                {showAdd && (
+                  <>
+                    <NumInput label="ADD Min" value={form.add_min} onChange={(v) => set("add_min", v === "" ? null : parseFloat(v) as any)} />
+                    <NumInput label="ADD Max" value={form.add_max} onChange={(v) => set("add_max", v === "" ? null : parseFloat(v) as any)} />
+                  </>
+                )}
+              </div>
+            </section>
+          </div>
 
-          {/* Section 5: Notes */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Notes</h3>
-            <Textarea
-              value={form.notes ?? ""}
-              onChange={(e) => set("notes", e.target.value || null)}
-              className="text-xs"
-              rows={3}
-              placeholder="Optional notes..."
-            />
-          </section>
+          {/* Bottom row: Pricing + Notes side by side */}
+          <div className="grid grid-cols-2 gap-4">
+            <section className="space-y-2">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Pricing</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <NumInput label="Base Price" value={form.base_price} step="0.01" onChange={(v) => setNum("base_price", v)} />
+                <NumInput label="Sell Price" value={form.sell_price} step="0.01" onChange={(v) => setNum("sell_price", v)} />
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Margin</Label>
+                  <Input value={margin.toFixed(2)} readOnly className="h-7 text-xs bg-muted" />
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Notes</h3>
+              <Textarea
+                value={form.notes ?? ""}
+                onChange={(e) => set("notes", e.target.value || null)}
+                className="text-xs"
+                rows={2}
+                placeholder="Optional notes..."
+              />
+            </section>
+          </div>
         </div>
 
         <DialogFooter className="flex items-center justify-between sm:justify-between">
