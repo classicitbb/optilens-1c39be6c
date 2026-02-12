@@ -17,7 +17,7 @@ interface MenuItem {
 const MENU: MenuItem[] = [
   { label: "Lenses", icon: Glasses, path: "/admin/lenses" },
   { label: "Reference Data", icon: Database, path: "/admin/reference" },
-  { label: "Pricing Profiles", icon: DollarSign, path: "/admin/pricing" },
+  { label: "Lens Prices", icon: DollarSign, path: "/admin/pricing" },
   { label: "Imports", icon: Upload, path: "/admin/imports" },
   { label: "Runs / History", icon: History, path: "/admin/history" },
   { label: "Exports", icon: Download, path: "/admin/exports" },
