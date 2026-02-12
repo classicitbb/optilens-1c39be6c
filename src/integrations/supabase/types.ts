@@ -67,6 +67,7 @@ export type Database = {
           show_on_website: boolean
           sku: string
           sort_order: number
+          supplier_id: string | null
           updated_at: string
         }
         Insert: {
@@ -82,6 +83,7 @@ export type Database = {
           show_on_website?: boolean
           sku?: string
           sort_order?: number
+          supplier_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -97,9 +99,18 @@ export type Database = {
           show_on_website?: boolean
           sku?: string
           sort_order?: number
+          supplier_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "addons_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brands: {
         Row: {
