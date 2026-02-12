@@ -32,14 +32,19 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
   const [form, setForm] = useState<LensFormData>(emptyForm);
   const [nameLocked, setNameLocked] = useState(true);
 
-  const suppliers = useReferenceData("suppliers");
-  const brands = useReferenceData("brands");
-  const materials = useReferenceData("materials");
-  const mftypes = useReferenceData("mftypes");
-  const lenstypes = useReferenceData("lenstypes");
-  const lensOptions = useReferenceData("lens_options");
+  const suppliers = useReferenceData("suppliers", open);
+  const brands = useReferenceData("brands", open);
+  const materials = useReferenceData("materials", open);
+  const mftypes = useReferenceData("mftypes", open);
+  const lenstypes = useReferenceData("lenstypes", open);
+  const lensOptions = useReferenceData("lens_options", open);
 
-  const activeItems = (items: ReferenceItem[] | undefined) => (items ?? []).filter((i) => i.is_active);
+  const activeSuppliers = useMemo(() => (suppliers.data ?? []).filter((i) => i.is_active), [suppliers.data]);
+  const activeBrands = useMemo(() => (brands.data ?? []).filter((i) => i.is_active), [brands.data]);
+  const activeMaterials = useMemo(() => (materials.data ?? []).filter((i) => i.is_active), [materials.data]);
+  const activeMftypes = useMemo(() => (mftypes.data ?? []).filter((i) => i.is_active), [mftypes.data]);
+  const activeLenstypes = useMemo(() => (lenstypes.data ?? []).filter((i) => i.is_active), [lenstypes.data]);
+  const activeLensOptions = useMemo(() => (lensOptions.data ?? []).filter((i) => i.is_active), [lensOptions.data]);
 
   useEffect(() => {
     if (!open) return;
@@ -186,12 +191,12 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeItems(suppliers.data)} />
-                <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeItems(brands.data)} />
-                <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeItems(materials.data)} />
-                <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeItems(mftypes.data)} />
-                <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeItems(lenstypes.data)} />
-                <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeItems(lensOptions.data)} />
+                <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeSuppliers} />
+                <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeBrands} />
+                <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} />
+                <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeMftypes} />
+                <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeLenstypes} />
+                <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} />
                 {form.option && (
                   <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
                 )}

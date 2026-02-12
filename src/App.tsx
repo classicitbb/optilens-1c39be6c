@@ -20,7 +20,14 @@ import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import LensesPage from "./pages/admin/LensesPage";
 import UsersPage from "./pages/admin/UsersPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes — reference data rarely changes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
