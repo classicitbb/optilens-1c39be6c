@@ -18,6 +18,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import ReferenceDataPage from "./pages/admin/ReferenceDataPage";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import LensesPage from "./pages/admin/LensesPage";
+import ImportsPage from "./pages/admin/ImportsPage";
 import UsersPage from "./pages/admin/UsersPage";
 
 const queryClient = new QueryClient({
@@ -51,7 +52,7 @@ const App = () => (
                 <Route path="reference" element={<ReferenceDataPage />} />
                 <Route path="lenses" element={<LensesPage />} />
                 <Route path="pricing" element={<PlaceholderPage />} />
-                <Route path="imports" element={<PlaceholderPage />} />
+                <Route path="imports" element={<ImportsPage />} />
                 <Route path="history" element={<PlaceholderPage />} />
                 <Route path="exports" element={<PlaceholderPage />} />
                 <Route path="parameters" element={<PlaceholderPage />} />
