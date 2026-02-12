@@ -163,3 +163,61 @@
     background: var(--gradient-glass);
   }
 }
+
+/* Admin Tool Design Tokens */
+.admin-tool {
+  --admin-sidebar-bg: 215 28% 12%;
+  --admin-sidebar-fg: 210 20% 85%;
+  --admin-sidebar-active: 215 65% 50%;
+  --admin-sidebar-hover: 215 25% 18%;
+  --admin-content-bg: 210 20% 97%;
+  --admin-content-fg: 215 30% 15%;
+  --admin-border: 215 15% 85%;
+  --admin-accent: 215 65% 50%;
+  --admin-accent-fg: 0 0% 100%;
+  --admin-muted: 215 10% 92%;
+  --admin-muted-fg: 215 15% 50%;
+  --admin-card: 0 0% 100%;
+  --admin-destructive: 0 72% 51%;
+  --admin-success: 142 71% 45%;
+  --admin-warning: 38 92% 50%;
+  --admin-radius: 4px;
+
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.admin-tool * {
+  border-radius: var(--admin-radius);
+}
+
+.admin-tool .admin-sidebar {
+  background: hsl(var(--admin-sidebar-bg));
+  color: hsl(var(--admin-sidebar-fg));
+}
+
+.admin-tool .admin-content {
+  background: hsl(var(--admin-content-bg));
+  color: hsl(var(--admin-content-fg));
+}
+
+.admin-tool table th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--admin-muted-fg));
+  padding: 6px 12px;
+  border-bottom: 1px solid hsl(var(--admin-border));
+}
+
+.admin-tool table td {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid hsl(var(--admin-border));
+}
+
+.admin-tool table tr:hover td {
+  background: hsl(var(--admin-muted));
+}
