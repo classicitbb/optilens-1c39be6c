@@ -7,7 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ShoppingCart, Filter, Search, Eye } from "lucide-react";
 import { useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { LensChatbot } from "@/components/LensChatbot";
+import { Link } from "react-router-dom";
+import { Lock } from "lucide-react";
 const lensProducts = [
   {
     id: 1,
@@ -76,6 +79,7 @@ const Store = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const { addToCart } = useCartContext();
+  const { user } = useAuth();
 
   const filteredProducts = lensProducts.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -178,14 +182,28 @@ const Store = () => {
                   </ul>
                 </CardContent>
                 <CardFooter className="flex items-center justify-between">
-                  <div className="text-2xl font-bold text-foreground">
-                    ${product.price.toFixed(2)}
-                    <span className="text-sm font-normal text-muted-foreground">/lens</span>
-                  </div>
-                  <Button variant="hero" size="sm" onClick={() => handleAddToCart(product)}>
-                    <ShoppingCart className="h-4 w-4" />
-                    Add to Cart
-                  </Button>
+                  {user ? (
+                    <>
+                      <div className="text-2xl font-bold text-foreground">
+                        ${product.price.toFixed(2)}
+                        <span className="text-sm font-normal text-muted-foreground">/lens</span>
+                      </div>
+                      <Button variant="hero" size="sm" onClick={() => handleAddToCart(product)}>
+                        <ShoppingCart className="h-4 w-4" />
+                        Add to Cart
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="flex w-full items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Lock className="h-4 w-4" />
+                        <span className="text-sm font-medium">Sign up to see prices</span>
+                      </div>
+                      <Button variant="hero" size="sm" asChild>
+                        <Link to="/auth">Sign Up</Link>
+                      </Button>
+                    </div>
+                  )}
                 </CardFooter>
               </Card>
             ))}
