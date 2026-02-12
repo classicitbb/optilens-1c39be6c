@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       brands: {
         Row: {
+          abbrev: string
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -23,6 +25,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -30,6 +34,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -73,6 +79,8 @@ export type Database = {
       }
       finishtypes: {
         Row: {
+          abbrev: string
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -80,6 +88,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -87,6 +97,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -133,6 +145,8 @@ export type Database = {
       }
       lens_options: {
         Row: {
+          abbrev: string
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -140,6 +154,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -147,6 +163,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -262,6 +280,8 @@ export type Database = {
       }
       lenstypes: {
         Row: {
+          abbrev: string
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -269,6 +289,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -276,6 +298,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -286,6 +310,8 @@ export type Database = {
       }
       materials: {
         Row: {
+          abbrev: string
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -293,6 +319,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -300,6 +328,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -310,6 +340,8 @@ export type Database = {
       }
       mftypes: {
         Row: {
+          abbrev: string
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -317,6 +349,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -324,6 +358,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -429,6 +465,8 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          abbrev: string
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -436,6 +474,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -443,6 +483,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abbrev?: string
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean

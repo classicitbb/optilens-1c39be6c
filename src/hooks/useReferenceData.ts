@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface ReferenceItem {
   id: string;
   name: string;
+  abbrev: string;
+  code: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -35,11 +37,11 @@ export const useReferenceData = (table: string) => {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async (values: { name: string; abbrev?: string; code?: string }) => {
       if (!safeTable) throw new Error("Invalid table");
       const { data, error } = await supabase
         .from(safeTable)
-        .insert({ name } as any)
+        .insert(values as any)
         .select()
         .single();
       if (error) throw error;
@@ -49,7 +51,7 @@ export const useReferenceData = (table: string) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Pick<ReferenceItem, "name" | "is_active">> }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Pick<ReferenceItem, "name" | "abbrev" | "code" | "is_active">> }) => {
       if (!safeTable) throw new Error("Invalid table");
       const { data, error } = await supabase
         .from(safeTable)
