@@ -17,6 +17,7 @@ import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
 import ReferenceDataPage from "./pages/admin/ReferenceDataPage";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
+import UsersPage from "./pages/admin/UsersPage";
 
 const queryClient = new QueryClient();
 
@@ -46,7 +47,7 @@ const App = () => (
                 <Route path="history" element={<PlaceholderPage />} />
                 <Route path="exports" element={<PlaceholderPage />} />
                 <Route path="parameters" element={<PlaceholderPage />} />
-                <Route path="users" element={<PlaceholderPage />} />
+                <Route path="users" element={<UsersPage />} />
                 <Route path="audit" element={<PlaceholderPage />} />
               </Route>
 
