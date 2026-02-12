@@ -6,14 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Addon, AddonFormData } from "@/hooks/useAddons";
+import type { PricingSheet } from "@/hooks/usePricingSheets";
+import type { AddonPricingSheet } from "@/hooks/useAddonPricingSheets";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   addon: Addon | null;
-  onSubmit: (form: AddonFormData) => void;
+  onSubmit: (form: AddonFormData, sheetAssignments: { pricing_sheet_id: string; price_override: number | null }[]) => void;
   isPending: boolean;
+  pricingSheets: PricingSheet[];
+  addonPricingSheets: AddonPricingSheet[];
 }
 
 const CATEGORIES = [
@@ -27,29 +32,40 @@ const CATEGORIES = [
 
 const defaultForm: AddonFormData = {
   name: "",
+  sku: "",
   category: "other",
   description: "",
   price: 0,
   is_auto: false,
   auto_rule: null,
   is_active: true,
+  show_on_website: false,
   sort_order: 0,
 };
 
-const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending }: Props) => {
+interface SheetAssignment {
+  pricing_sheet_id: string;
+  price_override: string; // keep as string for input
+  checked: boolean;
+}
+
+const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending, pricingSheets, addonPricingSheets }: Props) => {
   const [form, setForm] = useState<AddonFormData>(defaultForm);
   const [ruleText, setRuleText] = useState("");
+  const [sheets, setSheets] = useState<SheetAssignment[]>([]);
 
   useEffect(() => {
     if (addon) {
       setForm({
         name: addon.name,
+        sku: addon.sku,
         category: addon.category,
         description: addon.description,
         price: addon.price,
         is_auto: addon.is_auto,
         auto_rule: addon.auto_rule,
         is_active: addon.is_active,
+        show_on_website: addon.show_on_website,
         sort_order: addon.sort_order,
       });
       setRuleText(addon.auto_rule ? JSON.stringify(addon.auto_rule, null, 2) : "");
@@ -57,7 +73,20 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending }: Pro
       setForm(defaultForm);
       setRuleText("");
     }
-  }, [addon, open]);
+
+    // Build sheet assignments
+    const activeSheets = pricingSheets.filter((s) => s.is_active);
+    setSheets(
+      activeSheets.map((s) => {
+        const existing = addonPricingSheets.find((a) => a.pricing_sheet_id === s.id);
+        return {
+          pricing_sheet_id: s.id,
+          price_override: existing?.price_override != null ? String(existing.price_override) : "",
+          checked: !!existing,
+        };
+      })
+    );
+  }, [addon, open, pricingSheets, addonPricingSheets]);
 
   const set = (key: keyof AddonFormData, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -84,9 +113,19 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending }: Pro
 
   const ruleValid = !form.is_auto || !ruleText.trim() || (() => { try { JSON.parse(ruleText); return true; } catch { return false; } })();
 
+  const updateSheet = (idx: number, patch: Partial<SheetAssignment>) => {
+    setSheets((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(form);
+    const assignments = sheets
+      .filter((s) => s.checked)
+      .map((s) => ({
+        pricing_sheet_id: s.pricing_sheet_id,
+        price_override: s.price_override.trim() ? Number(s.price_override) : null,
+      }));
+    onSubmit(form, assignments);
   };
 
   const inputCls = "h-8 text-xs";
@@ -94,7 +133,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" style={{ borderRadius: "4px" }}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
             {addon ? "Edit Add-On" : "New Add-On"}
@@ -105,6 +144,10 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending }: Pro
             <div className="col-span-2">
               <Label className={labelCls}>Name *</Label>
               <Input className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} required />
+            </div>
+            <div>
+              <Label className={labelCls}>SKU</Label>
+              <Input className={inputCls} value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="e.g. COAT-001" />
             </div>
             <div>
               <Label className={labelCls}>Category</Label>
@@ -135,6 +178,9 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending }: Pro
                 <Switch checked={form.is_active} onCheckedChange={(v) => set("is_active", v)} /> Active
               </label>
               <label className="flex items-center gap-2 text-xs">
+                <Switch checked={form.show_on_website} onCheckedChange={(v) => set("show_on_website", v)} /> Show on Website
+              </label>
+              <label className="flex items-center gap-2 text-xs">
                 <Switch checked={form.is_auto} onCheckedChange={handleAutoToggle} /> Auto-Apply
               </label>
             </div>
@@ -152,6 +198,39 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending }: Pro
               </div>
             )}
           </div>
+
+          {/* Pricing Sheets */}
+          {sheets.length > 0 && (
+            <div>
+              <Label className={labelCls}>Pricing Sheets</Label>
+              <div className="mt-1 space-y-1.5 rounded border p-2" style={{ borderColor: "hsl(215 20% 88%)" }}>
+                {sheets.map((s, idx) => {
+                  const sheet = pricingSheets.find((p) => p.id === s.pricing_sheet_id);
+                  return (
+                    <div key={s.pricing_sheet_id} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={s.checked}
+                        onCheckedChange={(v) => updateSheet(idx, { checked: !!v })}
+                      />
+                      <span className="text-xs flex-1 truncate" style={{ color: "hsl(215 30% 15%)" }}>{sheet?.name ?? s.pricing_sheet_id}</span>
+                      {s.checked && (
+                        <Input
+                          className="h-7 text-xs w-24"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Override $"
+                          value={s.price_override}
+                          onChange={(e) => updateSheet(idx, { price_override: e.target.value })}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] mt-1" style={{ color: "hsl(215 15% 50%)" }}>Leave override blank to use the default price.</p>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
