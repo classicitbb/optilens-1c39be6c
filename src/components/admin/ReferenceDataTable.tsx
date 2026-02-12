@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,10 +29,12 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<ReferenceItem | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir("asc"); }
+    setVisibleCount(50);
   };
 
   const filtered = useMemo(() => {
@@ -46,6 +48,14 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [data, filter, sortKey, sortDir]);
+
+  const visibleItems = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
+
+  const handleFilterChange = useCallback((f: Filter) => {
+    setFilter(f);
+    setVisibleCount(50);
+  }, []);
 
   const handleCreate = (values: { name: string; abbrev: string; code: string }) => {
     createMutation.mutate(values, {
@@ -107,7 +117,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
         {filterTabs.map((t) => (
           <button
             key={t.value}
-            onClick={() => setFilter(t.value)}
+            onClick={() => handleFilterChange(t.value)}
             className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
             style={{
               background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
@@ -118,7 +128,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
           </button>
         ))}
         <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
-          {filtered.length} record{filtered.length !== 1 ? "s" : ""}
+          {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -137,14 +147,14 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {visibleItems.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   No records found.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((item) => (
+              visibleItems.map((item) => (
                 <TableRow
                   key={item.id}
                   className={canEdit ? "cursor-pointer" : ""}
@@ -182,6 +192,21 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                   )}
                 </TableRow>
               ))
+            )}
+            {hasMore && (
+              <TableRow>
+                <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    style={{ color: "hsl(215 65% 50%)" }}
+                    onClick={() => setVisibleCount((v) => v + 50)}
+                  >
+                    Load more ({filtered.length - visibleCount} remaining)
+                  </Button>
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
