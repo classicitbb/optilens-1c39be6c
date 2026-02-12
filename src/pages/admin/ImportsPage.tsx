@@ -93,7 +93,7 @@ const ImportsPage = () => {
             {isValidating ? "Validating…" : "Drop a CSV file here or click to browse"}
           </p>
           <p className="text-xs" style={{ color: "hsl(215 15% 60%)" }}>
-            Required: name, supplier, brand, material, mftype, lenstype, index, base_price, sell_price, sph_min, sph_max, cyl_min, cyl_max, lens_option
+            Columns: ShowInPL, FullLab, Supplier, Material, MFType, LensType, Option, FinishType, Brand, USCost, ShowInWSPL
           </p>
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
         </div>
@@ -136,16 +136,18 @@ const ImportsPage = () => {
               <TableRow>
                 <TableHead className="w-12 text-xs">#</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs">Name</TableHead>
+                <TableHead className="text-xs">Gen. Name</TableHead>
                 <TableHead className="text-xs">Supplier</TableHead>
                 <TableHead className="text-xs">Brand</TableHead>
                 <TableHead className="text-xs">Material</TableHead>
                 <TableHead className="text-xs">MF Type</TableHead>
                 <TableHead className="text-xs">Lens Type</TableHead>
                 <TableHead className="text-xs">Option</TableHead>
-                <TableHead className="text-xs">Index</TableHead>
-                <TableHead className="text-xs">Base</TableHead>
-                <TableHead className="text-xs">Sell</TableHead>
+                <TableHead className="text-xs">Finish</TableHead>
+                <TableHead className="text-xs">USCost</TableHead>
+                <TableHead className="text-xs">PL</TableHead>
+                <TableHead className="text-xs">Lab</TableHead>
+                <TableHead className="text-xs">WSPL</TableHead>
                 <TableHead className="text-xs">Errors</TableHead>
               </TableRow>
             </TableHeader>
@@ -161,16 +163,18 @@ const ImportsPage = () => {
                         {cfg.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-medium">{row.raw.name ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.supplier ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.brand ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.material ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.mftype ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.lenstype ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.lens_option ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.index ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.base_price ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.sell_price ?? ""}</TableCell>
+                    <TableCell className="text-xs font-medium">{row.generatedName || "—"}</TableCell>
+                    <TableCell className="text-xs">{row.raw.supplier ?? row.raw.Supplier ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.brand ?? row.raw.Brand ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.material ?? row.raw.Material ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.mftype ?? row.raw.MFType ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.lenstype ?? row.raw.LensType ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.option ?? row.raw.Option ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.finishtype ?? row.raw.FinishType ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.uscost ?? row.raw.USCost ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.showinpl ?? row.raw.ShowInPL ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.fulllab ?? row.raw.FullLab ?? ""}</TableCell>
+                    <TableCell className="text-xs">{row.raw.showinwspl ?? row.raw.ShowInWSPL ?? ""}</TableCell>
                     <TableCell>
                       {row.errors.length > 0 && (
                         <div className="flex items-start gap-1">

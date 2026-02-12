@@ -1,19 +1,13 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// ── CSV column spec ──
+// ── CSV columns matching the user's actual file ──
 const REQUIRED_COLS = [
-  "name", "supplier", "brand", "material", "mftype", "lenstype",
-  "index", "base_price", "sell_price",
-  "sph_min", "sph_max", "cyl_min", "cyl_max", "lens_option",
+  "showinpl", "fulllab", "supplier", "material", "mftype",
+  "lenstype", "option", "finishtype", "brand", "uscost", "showinwspl",
 ] as const;
 
-const OPTIONAL_COLS = [
-  "add_min", "add_max", "option_extra_cost", "notes",
-  "show_in_pricelist", "full_lab", "show_in_ws_pricelist", "show_on_website",
-] as const;
-
-const ALL_COLS = [...REQUIRED_COLS, ...OPTIONAL_COLS];
+const ALL_COLS = ["ShowInPL", "FullLab", "Supplier", "Material", "MFType", "LensType", "Option", "FinishType", "Brand", "USCost", "ShowInWSPL"];
 
 export type RowStatus = "valid" | "error" | "duplicate" | "imported";
 
@@ -22,6 +16,7 @@ export interface ParsedRow {
   raw: Record<string, string>;
   status: RowStatus;
   errors: string[];
+  generatedName: string;
   resolved: {
     supplier_id?: string;
     brand_id?: string;
@@ -29,6 +24,7 @@ export interface ParsedRow {
     mftype_id?: string;
     lenstype_id?: string;
     lens_option_id?: string;
+    finishtype_id?: string;
   };
   existingLensId?: string;
 }
@@ -41,26 +37,33 @@ export interface ImportSummary {
   imported: number;
 }
 
-type RefMap = Map<string, string>; // lowercase name → id
+type RefEntry = { id: string; name: string; abbrev?: string };
+type RefMap = Map<string, RefEntry>; // lowercase name → { id, name, abbrev }
 
 async function fetchRefMap(table: string): Promise<RefMap> {
   const { data, error } = await (supabase
     .from(table as any)
-    .select("id, name, is_active") as any)
+    .select("id, name, abbrev, is_active") as any)
     .eq("is_active", true);
   if (error) throw error;
-  const map = new Map<string, string>();
-  ((data as any[]) ?? []).forEach((r: any) => map.set(r.name.toLowerCase().trim(), r.id));
+  const map = new Map<string, RefEntry>();
+  ((data as any[]) ?? []).forEach((r: any) =>
+    map.set(r.name.toLowerCase().trim(), { id: r.id, name: r.name, abbrev: r.abbrev ?? "" })
+  );
   return map;
 }
 
 function parseCSVText(text: string): Record<string, string>[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  // Handle tab-separated or comma-separated
+  const sep = lines[0].includes("\t") ? "\t" : ",";
+  const headers = lines[0].split(sep).map((h) => h.trim());
   return lines.slice(1).map((line) => {
-    const values = line.split(",").map((v) => v.trim());
+    const values = line.split(sep).map((v) => v.trim());
     const row: Record<string, string> = {};
+    headers.forEach((h, i) => { row[h.toLowerCase()] = values[i] ?? ""; });
+    // Keep original-case keys too for display
     headers.forEach((h, i) => { row[h] = values[i] ?? ""; });
     return row;
   });
@@ -72,7 +75,19 @@ function isNumeric(v: string): boolean {
 
 function parseBool(v: string): boolean {
   const lower = v.toLowerCase().trim();
-  return lower === "true" || lower === "1" || lower === "yes" || lower === "y";
+  return lower === "true" || lower === "1" || lower === "yes" || lower === "y" || lower === "x";
+}
+
+/** Generate lens name from Material abbrev + MFType abbrev + LensType name + Option name */
+function generateLensName(
+  material?: RefEntry,
+  mftype?: RefEntry,
+  lenstype?: RefEntry,
+  option?: RefEntry,
+): string {
+  return [material?.abbrev, mftype?.abbrev, lenstype?.name, option?.name]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export const useImportLenses = () => {
@@ -105,12 +120,12 @@ export const useImportLenses = () => {
         return;
       }
 
-      // Check headers
-      const headers = Object.keys(rawRows[0]);
+      // Check headers (case-insensitive)
+      const headers = Object.keys(rawRows[0]).map((h) => h.toLowerCase());
       const missingHeaders = REQUIRED_COLS.filter((c) => !headers.includes(c));
       if (missingHeaders.length > 0) {
         setRows([{
-          rowNumber: 0, raw: {}, status: "error",
+          rowNumber: 0, raw: {}, status: "error", generatedName: "",
           errors: [`Missing required columns: ${missingHeaders.join(", ")}`],
           resolved: {},
         }]);
@@ -119,13 +134,14 @@ export const useImportLenses = () => {
       }
 
       // Fetch all reference data
-      const [suppliers, brands, materials, mftypes, lenstypes, lensOptions] = await Promise.all([
+      const [suppliers, brands, materials, mftypes, lenstypes, lensOptions, finishtypes] = await Promise.all([
         fetchRefMap("suppliers"),
         fetchRefMap("brands"),
         fetchRefMap("materials"),
         fetchRefMap("mftypes"),
         fetchRefMap("lenstypes"),
         fetchRefMap("lens_options"),
+        fetchRefMap("finishtypes"),
       ]);
 
       // Fetch existing lenses for duplicate/upsert detection
@@ -133,15 +149,12 @@ export const useImportLenses = () => {
         .from("lenses")
         .select("id, name");
       const lensMap = new Map<string, string>();
-      (existingLenses ?? []).forEach((l: any) => lensMap.set(l.name.toLowerCase().trim(), l.id));
+      ((existingLenses as any[]) ?? []).forEach((l: any) => lensMap.set(l.name.toLowerCase().trim(), l.id));
 
       // Validate each row
       const parsed: ParsedRow[] = rawRows.map((raw, i) => {
         const errors: string[] = [];
         const resolved: ParsedRow["resolved"] = {};
-
-        // Required text fields
-        if (!raw.name?.trim()) errors.push("name is required");
 
         // Resolve references
         const refChecks: { col: string; map: RefMap; key: keyof ParsedRow["resolved"] }[] = [
@@ -150,33 +163,41 @@ export const useImportLenses = () => {
           { col: "material", map: materials, key: "material_id" },
           { col: "mftype", map: mftypes, key: "mftype_id" },
           { col: "lenstype", map: lenstypes, key: "lenstype_id" },
-          { col: "lens_option", map: lensOptions, key: "lens_option_id" },
+          { col: "option", map: lensOptions, key: "lens_option_id" },
+          { col: "finishtype", map: finishtypes, key: "finishtype_id" },
         ];
+
+        let resolvedMaterial: RefEntry | undefined;
+        let resolvedMftype: RefEntry | undefined;
+        let resolvedLenstype: RefEntry | undefined;
+        let resolvedOption: RefEntry | undefined;
 
         for (const { col, map, key } of refChecks) {
           const val = raw[col]?.trim();
           if (!val) {
             errors.push(`${col} is required`);
           } else {
-            const id = map.get(val.toLowerCase());
-            if (!id) errors.push(`${col} "${val}" not found in active records`);
-            else resolved[key] = id;
+            const entry = map.get(val.toLowerCase());
+            if (!entry) errors.push(`${col} "${val}" not found in active records`);
+            else {
+              resolved[key] = entry.id;
+              if (col === "material") resolvedMaterial = entry;
+              if (col === "mftype") resolvedMftype = entry;
+              if (col === "lenstype") resolvedLenstype = entry;
+              if (col === "option") resolvedOption = entry;
+            }
           }
         }
 
-        // Numeric fields
-        const numFields = ["index", "base_price", "sell_price", "sph_min", "sph_max", "cyl_min", "cyl_max"];
-        for (const f of numFields) {
-          if (!isNumeric(raw[f] ?? "")) errors.push(`${f} must be a number`);
-        }
-        // Optional numerics
-        for (const f of ["add_min", "add_max", "option_extra_cost"]) {
-          const v = raw[f]?.trim();
-          if (v && !isNumeric(v)) errors.push(`${f} must be a number if provided`);
-        }
+        // Validate USCost
+        const uscost = raw["uscost"] ?? "";
+        if (!isNumeric(uscost)) errors.push("USCost must be a number");
 
-        // Determine duplicate status
-        const existingId = lensMap.get(raw.name?.toLowerCase().trim());
+        // Auto-generate name
+        const generatedName = generateLensName(resolvedMaterial, resolvedMftype, resolvedLenstype, resolvedOption);
+
+        // Determine duplicate status (by generated name)
+        const existingId = generatedName ? lensMap.get(generatedName.toLowerCase().trim()) : undefined;
 
         const status: RowStatus = errors.length > 0 ? "error" : existingId ? "duplicate" : "valid";
 
@@ -185,6 +206,7 @@ export const useImportLenses = () => {
           raw,
           status,
           errors,
+          generatedName,
           resolved,
           existingLensId: existingId,
         };
@@ -193,7 +215,7 @@ export const useImportLenses = () => {
       setRows(parsed);
     } catch (err: any) {
       setRows([{
-        rowNumber: 0, raw: {}, status: "error",
+        rowNumber: 0, raw: {}, status: "error", generatedName: "",
         errors: [err.message || "Failed to parse file"],
         resolved: {},
       }]);
@@ -209,11 +231,9 @@ export const useImportLenses = () => {
     setIsImporting(true);
 
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Create batch record
       const { data: batch, error: batchErr } = await supabase
         .from("import_batches")
         .insert({
@@ -235,33 +255,32 @@ export const useImportLenses = () => {
         try {
           const raw = row.raw;
           const lensData = {
-            name: raw.name.trim(),
+            name: row.generatedName,
             supplier_id: row.resolved.supplier_id!,
             brand_id: row.resolved.brand_id!,
             material_id: row.resolved.material_id!,
             mftype_id: row.resolved.mftype_id!,
             lenstype_id: row.resolved.lenstype_id!,
-            index_value: Number(raw.index),
-            base_price: Number(raw.base_price),
-            sell_price: Number(raw.sell_price),
-            sph_min: Number(raw.sph_min),
-            sph_max: Number(raw.sph_max),
-            cyl_min: Number(raw.cyl_min),
-            cyl_max: Number(raw.cyl_max),
-            add_min: raw.add_min?.trim() ? Number(raw.add_min) : null,
-            add_max: raw.add_max?.trim() ? Number(raw.add_max) : null,
-            show_in_pricelist: raw.show_in_pricelist ? parseBool(raw.show_in_pricelist) : true,
-            full_lab: raw.full_lab ? parseBool(raw.full_lab) : false,
-            show_in_ws_pricelist: raw.show_in_ws_pricelist ? parseBool(raw.show_in_ws_pricelist) : false,
-            show_on_website: raw.show_on_website ? parseBool(raw.show_on_website) : false,
-            notes: raw.notes?.trim() || null,
+            index_value: 1.5, // default
+            base_price: Number(raw["uscost"] || 0),
+            sell_price: 0, // to be calculated by pricing engine
+            sph_min: -6,
+            sph_max: 6,
+            cyl_min: -4,
+            cyl_max: 0,
+            add_min: null,
+            add_max: null,
+            show_in_pricelist: parseBool(raw["showinpl"] ?? ""),
+            full_lab: parseBool(raw["fulllab"] ?? ""),
+            show_in_ws_pricelist: parseBool(raw["showinwspl"] ?? ""),
+            show_on_website: false,
+            notes: null,
             is_active: true,
           };
 
           let lensId: string;
 
           if (row.existingLensId) {
-            // Upsert: update existing
             const { error } = await supabase
               .from("lenses")
               .update(lensData as any)
@@ -269,7 +288,6 @@ export const useImportLenses = () => {
             if (error) throw error;
             lensId = row.existingLensId;
           } else {
-            // Insert new
             const { data: newLens, error } = await supabase
               .from("lenses")
               .insert(lensData as any)
@@ -279,17 +297,15 @@ export const useImportLenses = () => {
             lensId = newLens.id;
           }
 
-          // Handle lens_option: delete existing, insert new
+          // Handle lens_option
           await supabase.from("lens_lens_options").delete().eq("lens_id", lensId);
-          const extraCost = raw.option_extra_cost?.trim() ? Number(raw.option_extra_cost) : 0;
-          const { error: optErr } = await supabase
-            .from("lens_lens_options")
-            .insert({
+          if (row.resolved.lens_option_id) {
+            await supabase.from("lens_lens_options").insert({
               lens_id: lensId,
-              lens_option_id: row.resolved.lens_option_id!,
-              extra_cost: extraCost,
+              lens_option_id: row.resolved.lens_option_id,
+              extra_cost: 0,
             } as any);
-          if (optErr) throw optErr;
+          }
 
           // Store staging row
           await supabase.from("pricing_input_rows").insert({
@@ -301,12 +317,10 @@ export const useImportLenses = () => {
             lens_id: lensId,
           } as any);
 
-          // Update local state
           const idx = updatedRows.findIndex((r) => r.rowNumber === row.rowNumber);
           if (idx >= 0) updatedRows[idx] = { ...updatedRows[idx], status: "imported" };
           successCount++;
         } catch (err: any) {
-          // Store error row
           try {
             await supabase.from("pricing_input_rows").insert({
               batch_id: batch.id,
@@ -315,7 +329,7 @@ export const useImportLenses = () => {
               status: "error",
               error_messages: [err.message || "Unknown error"],
             } as any);
-          } catch { /* ignore staging error */ }
+          } catch { /* ignore */ }
 
           const idx = updatedRows.findIndex((r) => r.rowNumber === row.rowNumber);
           if (idx >= 0) {
@@ -331,7 +345,6 @@ export const useImportLenses = () => {
 
       setRows(updatedRows);
 
-      // Update batch status
       await supabase.from("import_batches").update({
         status: "completed",
         success_count: successCount,
@@ -363,15 +376,7 @@ export const useImportLenses = () => {
   }, []);
 
   return {
-    rows,
-    summary,
-    isValidating,
-    isImporting,
-    batchId,
-    fileName,
-    parseAndValidate,
-    executeImport,
-    reset,
-    generateTemplate,
+    rows, summary, isValidating, isImporting, batchId, fileName,
+    parseAndValidate, executeImport, reset, generateTemplate,
   };
 };
