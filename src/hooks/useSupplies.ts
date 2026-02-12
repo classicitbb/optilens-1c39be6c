@@ -15,6 +15,8 @@ export interface Supply {
   show_on_website: boolean;
   image_url: string | null;
   notes: string | null;
+  supplier_id: string | null;
+  supplier_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +34,7 @@ export interface SupplyFormData {
   show_on_website: boolean;
   image_url: string | null;
   notes: string | null;
+  supplier_id: string | null;
 }
 
 export const useSupplies = () => {
@@ -42,10 +45,14 @@ export const useSupplies = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("supplies")
-        .select("*")
+        .select("*, supplier:suppliers(id, name)")
         .order("name");
       if (error) throw error;
-      return data as unknown as Supply[];
+      return (data as any[]).map((s) => ({
+        ...s,
+        supplier_id: s.supplier_id ?? null,
+        supplier_name: s.supplier?.name ?? null,
+      })) as Supply[];
     },
   });
 
