@@ -24,7 +24,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
 
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("active");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,9 +69,9 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   };
 
   const filterTabs: { label: string; value: Filter }[] = [
-    { label: "All", value: "all" },
     { label: "Active", value: "active" },
     { label: "Inactive", value: "inactive" },
+    { label: "All", value: "all" },
   ];
 
   const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
