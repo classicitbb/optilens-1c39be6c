@@ -58,10 +58,26 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
     }
   }, [open, lens]);
 
+  const selectedMaterial = (materials.data ?? []).find((m) => m.id === form.material_id);
+  const selectedMftype = (mftypes.data ?? []).find((m) => m.id === form.mftype_id);
   const selectedLensType = (lenstypes.data ?? []).find((lt) => lt.id === form.lenstype_id);
+  const selectedOption = (lensOptions.data ?? []).find((o) => o.id === form.option?.lens_option_id);
   const showAdd = selectedLensType
     ? PROGRESSIVE_KEYWORDS.some((kw) => selectedLensType.name.toLowerCase().includes(kw))
     : false;
+
+  // Auto-generate name from Material abbrev + MFType abbrev + LensType name + Option name
+  useEffect(() => {
+    const parts = [
+      selectedMaterial?.abbrev,
+      selectedMftype?.abbrev,
+      selectedLensType?.name,
+      selectedOption?.name,
+    ].filter(Boolean);
+    if (parts.length > 0) {
+      setForm((prev) => ({ ...prev, name: parts.join(" ") }));
+    }
+  }, [form.material_id, form.mftype_id, form.lenstype_id, form.option?.lens_option_id, selectedMaterial, selectedMftype, selectedLensType, selectedOption]);
 
   const margin = useMemo(() => {
     const m = Number(form.sell_price) - Number(form.base_price);
@@ -131,8 +147,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
             <section className="space-y-2">
               <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Identity</h3>
               <div className="space-y-1">
-                <Label className="text-[11px]">Name</Label>
-                <Input value={form.name} onChange={(e) => set("name", e.target.value)} className="h-7 text-xs" placeholder="Lens SKU name" />
+                <Label className="text-[11px]">Name (auto-generated)</Label>
+                <Input value={form.name} readOnly className="h-7 text-xs bg-muted" />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeItems(suppliers.data)} />
