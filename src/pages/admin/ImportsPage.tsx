@@ -4,7 +4,9 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandItem, CommandGroup } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, Download, Play, RotateCcw, FileText, AlertCircle, Plus, Link2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +40,7 @@ const ResolveRow = ({
   const [options, setOptions] = useState<RefOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
     fetchRefOptions(uRef.table).then(setOptions);
@@ -80,16 +83,29 @@ const ResolveRow = ({
       <span className="text-xs shrink-0" style={{ color: "hsl(215 15% 60%)" }}>({uRef.affectedRows} rows)</span>
 
       <div className="ml-auto flex items-center gap-1.5">
-        <Select onValueChange={handleMap} disabled={loading}>
-          <SelectTrigger className="h-7 text-xs w-[180px]">
-            <SelectValue placeholder="Map to existing…" />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((o) => (
-              <SelectItem key={o.id} value={o.id} className="text-xs">{o.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" role="combobox" disabled={loading} className="h-7 text-xs w-[180px] justify-between font-normal">
+              <span className="text-muted-foreground">Map to existing…</span>
+              <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[220px] p-0 z-50" align="start">
+            <Command>
+              <CommandInput placeholder="Search…" className="h-8 text-xs" />
+              <CommandList>
+                <CommandEmpty className="py-2 text-xs text-center">No results.</CommandEmpty>
+                <CommandGroup>
+                  {options.map((o) => (
+                    <CommandItem key={o.id} value={o.name} onSelect={() => { setPopoverOpen(false); handleMap(o.id); }} className="text-xs">
+                      {o.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         <span className="text-[10px]" style={{ color: "hsl(215 15% 60%)" }}>or</span>
         <Button
           variant="outline"
