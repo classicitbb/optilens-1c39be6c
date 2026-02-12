@@ -3,32 +3,20 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import {
   Glasses, Database, DollarSign, Upload, History, Download,
-  Settings, Users, FileText, ChevronDown, ChevronRight, PanelLeftClose, PanelLeft, ArrowLeft,
+  Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface MenuItem {
   label: string;
   icon: React.ElementType;
-  path?: string;
+  path: string;
   adminOnly?: boolean;
-  children?: { label: string; path: string }[];
 }
 
 const MENU: MenuItem[] = [
   { label: "Lenses", icon: Glasses, path: "/admin/lenses" },
-  {
-    label: "Reference Data",
-    icon: Database,
-    children: [
-      { label: "Suppliers", path: "/admin/reference/suppliers" },
-      { label: "Brands", path: "/admin/reference/brands" },
-      { label: "Materials", path: "/admin/reference/materials" },
-      { label: "MF Types", path: "/admin/reference/mftypes" },
-      { label: "Lens Types", path: "/admin/reference/lenstypes" },
-      { label: "Lens Options", path: "/admin/reference/lens-options" },
-    ],
-  },
+  { label: "Reference Data", icon: Database, path: "/admin/reference" },
   { label: "Pricing Profiles", icon: DollarSign, path: "/admin/pricing" },
   { label: "Imports", icon: Upload, path: "/admin/imports" },
   { label: "Runs / History", icon: History, path: "/admin/history" },
@@ -40,13 +28,9 @@ const MENU: MenuItem[] = [
 
 const AdminSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ "Reference Data": true });
   const { isAdmin } = useAdminRole();
   const location = useLocation();
   const currentPath = location.pathname;
-
-  const toggleGroup = (label: string) =>
-    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
 
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + "/");
 
@@ -66,48 +50,7 @@ const AdminSidebar = () => {
         {MENU.map((item) => {
           if (item.adminOnly && !isAdmin) return null;
 
-          if (item.children) {
-            const isOpen = openGroups[item.label];
-            const hasActiveChild = item.children.some((c) => isActive(c.path));
-            return (
-              <div key={item.label}>
-                <button
-                  onClick={() => !collapsed && toggleGroup(item.label)}
-                  className={`${linkBase} w-full justify-between`}
-                  style={{ color: hasActiveChild ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)" }}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <span className="flex items-center gap-2">
-                    <item.icon className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>{item.label}</span>}
-                  </span>
-                  {!collapsed && (isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />)}
-                </button>
-                {!collapsed && isOpen && (
-                  <div className="ml-6 space-y-0.5">
-                    {item.children.map((child) => {
-                      const active = isActive(child.path);
-                      return (
-                        <RouterNavLink
-                          key={child.path}
-                          to={child.path}
-                          className={`${linkBase} ${active ? "font-medium" : ""}`}
-                          style={{
-                            color: active ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)",
-                            background: active ? "hsl(215 65% 50% / 0.12)" : "transparent",
-                          }}
-                        >
-                          <span>{child.label}</span>
-                        </RouterNavLink>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          const active = isActive(item.path!);
+          const active = isActive(item.path);
           return (
             <RouterNavLink
               key={item.path}
