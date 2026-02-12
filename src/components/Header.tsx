@@ -1,13 +1,15 @@
-import { Eye, LogOut, User, Package } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { CartSheet } from "@/components/CartSheet";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Header = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
 
   const handleSignOut = async () => {
     await signOut();
@@ -46,6 +48,14 @@ const Header = () => {
           {user ?
           <>
               <CartSheet />
+              {isAdmin && (
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/admin">
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </Link>
+                </Button>
+              )}
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/orders">
                   <Package className="mr-2 h-4 w-4" />
