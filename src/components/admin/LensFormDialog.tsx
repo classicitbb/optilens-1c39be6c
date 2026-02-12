@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
 import type { Lens, LensFormData } from "@/hooks/useLenses";
 
@@ -139,37 +140,50 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
               <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeItems(materials.data)} />
               <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeItems(mftypes.data)} />
               <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeItems(lenstypes.data)} />
-              {/* Options inline next to Lens Type */}
+              {/* Options multi-select dropdown next to Lens Type */}
               <div className="space-y-1">
                 <Label className="text-xs">Options</Label>
-                <div className="space-y-1.5 border rounded p-2" style={{ borderColor: "hsl(215 15% 85%)" }}>
-                  {activeItems(lensOptions.data).length === 0 ? (
-                    <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>No options available.</p>
-                  ) : (
-                    activeItems(lensOptions.data).map((opt) => {
-                      const selected = form.options.find((o) => o.lens_option_id === opt.id);
-                      return (
-                        <div key={opt.id} className="flex items-center gap-2">
-                          <Checkbox
-                            checked={!!selected}
-                            onCheckedChange={(checked) => toggleOption(opt.id, !!checked)}
-                          />
-                          <span className="text-xs flex-1">{opt.name}</span>
-                          {selected && (
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={selected.extra_cost}
-                              onChange={(e) => setOptionCost(opt.id, parseFloat(e.target.value) || 0)}
-                              className="h-7 text-xs w-20"
-                              placeholder="Cost"
-                            />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-8 text-xs w-full justify-between font-normal">
+                      <span className="truncate">
+                        {form.options.length === 0
+                          ? "Select options…"
+                          : `${form.options.length} selected`}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2 z-50 bg-background" align="start">
+                    {activeItems(lensOptions.data).length === 0 ? (
+                      <p className="text-xs p-2" style={{ color: "hsl(215 15% 50%)" }}>No options available.</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {activeItems(lensOptions.data).map((opt) => {
+                          const selected = form.options.find((o) => o.lens_option_id === opt.id);
+                          return (
+                            <div key={opt.id} className="flex items-center gap-2">
+                              <Checkbox
+                                checked={!!selected}
+                                onCheckedChange={(checked) => toggleOption(opt.id, !!checked)}
+                              />
+                              <span className="text-xs flex-1">{opt.name}</span>
+                              {selected && (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={selected.extra_cost}
+                                  onChange={(e) => setOptionCost(opt.id, parseFloat(e.target.value) || 0)}
+                                  className="h-7 text-xs w-20"
+                                  placeholder="Cost"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </section>
