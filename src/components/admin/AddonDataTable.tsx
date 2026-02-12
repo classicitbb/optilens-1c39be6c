@@ -1,0 +1,107 @@
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import type { Addon } from "@/hooks/useAddons";
+import { useMemo, useState } from "react";
+
+interface Props {
+  addons: Addon[];
+  search: string;
+  onRowClick: (addon: Addon) => void;
+  onToggleActive: (addon: Addon) => void;
+}
+
+const PAGE_SIZE = 50;
+
+const CATEGORY_LABELS: Record<string, string> = {
+  coating: "Coating",
+  mirror: "Mirror",
+  ar_coating: "AR Coating",
+  prism: "Prism",
+  high_power: "High Power",
+  other: "Other",
+};
+
+const AddonDataTable = ({ addons, search, onRowClick, onToggleActive }: Props) => {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return addons.filter(
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        a.category.toLowerCase().includes(q) ||
+        a.description.toLowerCase().includes(q)
+    );
+  }, [addons, search]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  const thCls = "text-[11px] font-semibold uppercase tracking-wider py-2 px-3 sticky top-0 z-10";
+  const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
+
+  return (
+    <div className="rounded border overflow-auto max-h-[calc(100vh-220px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
+      <Table>
+        <TableHeader>
+          <TableRow style={{ background: "hsl(215 30% 96%)" }}>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Name</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Category</TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Price</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Type</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Order</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {visible.map((a) => (
+            <TableRow
+              key={a.id}
+              className="cursor-pointer hover:bg-blue-50/60"
+              onClick={() => onRowClick(a)}
+            >
+              <TableCell className={`${tdCls} font-medium max-w-[240px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{a.name}</TableCell>
+              <TableCell className={tdCls}>{CATEGORY_LABELS[a.category] || a.category}</TableCell>
+              <TableCell className={`${tdCls} text-right font-medium`}>{a.price.toFixed(2)}</TableCell>
+              <TableCell className={tdCls}>
+                <span
+                  className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded"
+                  style={{
+                    background: a.is_auto ? "hsl(25 90% 92%)" : "hsl(215 30% 93%)",
+                    color: a.is_auto ? "hsl(25 80% 40%)" : "hsl(215 15% 45%)",
+                  }}
+                >
+                  {a.is_auto ? "Auto" : "Optional"}
+                </span>
+              </TableCell>
+              <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{a.sort_order}</TableCell>
+              <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
+                <Switch checked={a.is_active} onCheckedChange={() => onToggleActive(a)} />
+              </TableCell>
+            </TableRow>
+          ))}
+          {visible.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
+                No add-ons found.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      {hasMore && (
+        <div className="flex justify-center py-2 border-t" style={{ borderColor: "hsl(215 20% 88%)" }}>
+          <button
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            className="text-xs font-medium px-3 py-1 rounded hover:bg-blue-50"
+            style={{ color: "hsl(215 65% 50%)" }}
+          >
+            Load more ({filtered.length - visibleCount} remaining)
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AddonDataTable;

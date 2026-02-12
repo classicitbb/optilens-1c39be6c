@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      addons: {
+        Row: {
+          auto_rule: Json | null
+          category: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          is_auto: boolean
+          name: string
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          auto_rule?: Json | null
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          is_auto?: boolean
+          name: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_rule?: Json | null
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          is_auto?: boolean
+          name?: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           abbrev: string

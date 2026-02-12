@@ -22,6 +22,7 @@ import LensPricesPage from "./pages/admin/LensPricesPage";
 import ImportsPage from "./pages/admin/ImportsPage";
 import UsersPage from "./pages/admin/UsersPage";
 import SuppliesPage from "./pages/admin/SuppliesPage";
+import AddonsPage from "./pages/admin/AddonsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="reference" element={<ReferenceDataPage />} />
                 <Route path="lenses" element={<LensesPage />} />
                 <Route path="supplies" element={<SuppliesPage />} />
+                <Route path="addons" element={<AddonsPage />} />
                 <Route path="pricing" element={<LensPricesPage />} />
                 <Route path="imports" element={<ImportsPage />} />
                 <Route path="history" element={<PlaceholderPage />} />
