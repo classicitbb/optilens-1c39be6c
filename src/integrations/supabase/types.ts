@@ -51,6 +51,7 @@ export type Database = {
           product_id: number
           product_name: string
           product_price: number
+          product_type: string
           quantity: number
           updated_at: string
           user_id: string
@@ -61,6 +62,7 @@ export type Database = {
           product_id: number
           product_name: string
           product_price: number
+          product_type?: string
           quantity?: number
           updated_at?: string
           user_id: string
@@ -71,6 +73,7 @@ export type Database = {
           product_id?: number
           product_name?: string
           product_price?: number
+          product_type?: string
           quantity?: number
           updated_at?: string
           user_id?: string
@@ -424,6 +427,7 @@ export type Database = {
           product_id: number
           product_name: string
           product_price: number
+          product_type: string
           quantity: number
         }
         Insert: {
@@ -433,6 +437,7 @@ export type Database = {
           product_id: number
           product_name: string
           product_price: number
+          product_type?: string
           quantity?: number
         }
         Update: {
@@ -442,6 +447,7 @@ export type Database = {
           product_id?: number
           product_name?: string
           product_price?: number
+          product_type?: string
           quantity?: number
         }
         Relationships: [
@@ -618,6 +624,60 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      supplies: {
+        Row: {
+          base_price: number
+          category: string
+          created_at: string
+          description: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          notes: string | null
+          quantity_per_unit: number
+          sell_price: number
+          show_on_website: boolean
+          sku: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          quantity_per_unit?: number
+          sell_price?: number
+          show_on_website?: boolean
+          sku?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          quantity_per_unit?: number
+          sell_price?: number
+          show_on_website?: boolean
+          sku?: string | null
+          unit?: string
           updated_at?: string
         }
         Relationships: []

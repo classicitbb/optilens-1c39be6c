@@ -3,7 +3,7 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import {
   Glasses, Database, DollarSign, Upload, History, Download,
-  Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft,
+  Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Package,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -16,6 +16,7 @@ interface MenuItem {
 
 const MENU: MenuItem[] = [
   { label: "Lenses", icon: Glasses, path: "/admin/lenses" },
+  { label: "Supplies", icon: Package, path: "/admin/supplies" },
   { label: "Reference Data", icon: Database, path: "/admin/reference" },
   { label: "Lens Prices", icon: DollarSign, path: "/admin/pricing" },
   { label: "Imports", icon: Upload, path: "/admin/imports" },
