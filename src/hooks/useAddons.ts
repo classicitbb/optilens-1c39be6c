@@ -14,6 +14,8 @@ export interface Addon {
   is_active: boolean;
   show_on_website: boolean;
   sort_order: number;
+  supplier_id: string | null;
+  supplier_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +31,7 @@ export interface AddonFormData {
   is_active: boolean;
   show_on_website: boolean;
   sort_order: number;
+  supplier_id: string | null;
 }
 
 export const useAddons = () => {
@@ -39,11 +42,15 @@ export const useAddons = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("addons")
-        .select("*")
+        .select("*, supplier:suppliers(id, name)")
         .order("sort_order")
         .order("name");
       if (error) throw error;
-      return data as unknown as Addon[];
+      return (data as any[]).map((a) => ({
+        ...a,
+        supplier_id: a.supplier_id ?? null,
+        supplier_name: a.supplier?.name ?? null,
+      })) as Addon[];
     },
   });
 
@@ -106,6 +113,7 @@ export const useAddons = () => {
         is_active: addon.is_active,
         show_on_website: addon.show_on_website,
         sort_order: addon.sort_order,
+        supplier_id: addon.supplier_id,
       };
       const { data, error } = await supabase
         .from("addons")

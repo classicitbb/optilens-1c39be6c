@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { Addon, AddonFormData } from "@/hooks/useAddons";
 import type { PricingSheet } from "@/hooks/usePricingSheets";
 import type { AddonPricingSheet } from "@/hooks/useAddonPricingSheets";
+import { useReferenceData } from "@/hooks/useReferenceData";
 
 interface Props {
   open: boolean;
@@ -41,6 +42,7 @@ const defaultForm: AddonFormData = {
   is_active: true,
   show_on_website: false,
   sort_order: 0,
+  supplier_id: null,
 };
 
 interface SheetAssignment {
@@ -53,6 +55,8 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending, prici
   const [form, setForm] = useState<AddonFormData>(defaultForm);
   const [ruleText, setRuleText] = useState("");
   const [sheets, setSheets] = useState<SheetAssignment[]>([]);
+  const { data: suppliers } = useReferenceData("suppliers");
+  const activeSuppliers = (suppliers ?? []).filter((s) => s.is_active);
 
   useEffect(() => {
     if (addon) {
@@ -67,6 +71,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending, prici
         is_active: addon.is_active,
         show_on_website: addon.show_on_website,
         sort_order: addon.sort_order,
+        supplier_id: addon.supplier_id,
       });
       setRuleText(addon.auto_rule ? JSON.stringify(addon.auto_rule, null, 2) : "");
     } else {
@@ -155,6 +160,16 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending, prici
                 <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <Label className={labelCls}>Supplier</Label>
+              <Select value={form.supplier_id ?? "__none__"} onValueChange={(v) => set("supplier_id", v === "__none__" ? null : v)}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {activeSuppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

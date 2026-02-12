@@ -36,7 +36,8 @@ const AddonDataTable = ({ addons, search, onRowClick, onToggleActive, onDuplicat
         a.name.toLowerCase().includes(q) ||
         a.sku.toLowerCase().includes(q) ||
         a.category.toLowerCase().includes(q) ||
-        a.description.toLowerCase().includes(q)
+        a.description.toLowerCase().includes(q) ||
+        (a.supplier_name ?? "").toLowerCase().includes(q)
     );
   }, [addons, search]);
 
@@ -53,6 +54,7 @@ const AddonDataTable = ({ addons, search, onRowClick, onToggleActive, onDuplicat
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Name</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>SKU</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Supplier</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Category</TableHead>
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Price</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Type</TableHead>
@@ -71,6 +73,7 @@ const AddonDataTable = ({ addons, search, onRowClick, onToggleActive, onDuplicat
             >
               <TableCell className={`${tdCls} font-medium max-w-[240px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{a.name}</TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{a.sku || "—"}</TableCell>
+              <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{a.supplier_name ?? "—"}</TableCell>
               <TableCell className={tdCls}>{CATEGORY_LABELS[a.category] || a.category}</TableCell>
               <TableCell className={`${tdCls} text-right font-medium`}>{a.price.toFixed(2)}</TableCell>
               <TableCell className={tdCls}>
@@ -107,7 +110,7 @@ const AddonDataTable = ({ addons, search, onRowClick, onToggleActive, onDuplicat
           ))}
           {visible.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
+              <TableCell colSpan={10} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
                 No add-ons found.
               </TableCell>
             </TableRow>
