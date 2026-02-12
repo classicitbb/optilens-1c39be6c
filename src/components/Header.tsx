@@ -17,7 +17,7 @@ const KB_CATEGORIES = [
 
 const ZENVUE_BRANDS = [
   { icon: Sparkles, label: "Brilliance™", url: "https://zvuedemo.lovable.app/brilliance" },
-  { icon: CloudSun, label: "SunDun™", url: "https://zenvue.com/sundun" },
+  { icon: CloudSun, label: "SunDun™", url: "https://zvuedemo.lovable.app/sundun" },
   { icon: Moon, label: "Darkun™", url: "https://zenvue.com/darkun" },
 ];
 
