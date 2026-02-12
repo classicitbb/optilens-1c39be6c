@@ -140,18 +140,22 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
               <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeItems(materials.data)} />
               <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeItems(mftypes.data)} />
               <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeItems(lenstypes.data)} />
-              {/* Options multi-select dropdown next to Lens Type */}
+              {/* Options multi-select next to Lens Type */}
               <div className="space-y-1">
                 <Label className="text-xs">Options</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-8 text-xs w-full justify-between font-normal">
-                      <span className="truncate">
+                    <button
+                      type="button"
+                      className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      <span className="truncate text-muted-foreground">
                         {form.options.length === 0
-                          ? "Select options…"
+                          ? "Select options"
                           : `${form.options.length} selected`}
                       </span>
-                    </Button>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 shrink-0"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-2 z-50 bg-background" align="start">
                     {activeItems(lensOptions.data).length === 0 ? (
