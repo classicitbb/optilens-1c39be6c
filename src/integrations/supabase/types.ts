@@ -71,6 +71,42 @@ export type Database = {
         }
         Relationships: []
       }
+      lens_lens_options: {
+        Row: {
+          extra_cost: number
+          id: string
+          lens_id: string
+          lens_option_id: string
+        }
+        Insert: {
+          extra_cost?: number
+          id?: string
+          lens_id: string
+          lens_option_id: string
+        }
+        Update: {
+          extra_cost?: number
+          id?: string
+          lens_id?: string
+          lens_option_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_lens_options_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_lens_options_lens_option_id_fkey"
+            columns: ["lens_option_id"]
+            isOneToOne: false
+            referencedRelation: "lens_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lens_options: {
         Row: {
           created_at: string
@@ -94,6 +130,111 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lenses: {
+        Row: {
+          add_max: number | null
+          add_min: number | null
+          base_price: number
+          brand_id: string
+          created_at: string
+          cyl_max: number
+          cyl_min: number
+          id: string
+          index_value: number
+          is_active: boolean
+          lenstype_id: string
+          material_id: string
+          mftype_id: string
+          name: string
+          notes: string | null
+          sell_price: number
+          sph_max: number
+          sph_min: number
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          add_max?: number | null
+          add_min?: number | null
+          base_price: number
+          brand_id: string
+          created_at?: string
+          cyl_max: number
+          cyl_min: number
+          id?: string
+          index_value: number
+          is_active?: boolean
+          lenstype_id: string
+          material_id: string
+          mftype_id: string
+          name: string
+          notes?: string | null
+          sell_price: number
+          sph_max: number
+          sph_min: number
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          add_max?: number | null
+          add_min?: number | null
+          base_price?: number
+          brand_id?: string
+          created_at?: string
+          cyl_max?: number
+          cyl_min?: number
+          id?: string
+          index_value?: number
+          is_active?: boolean
+          lenstype_id?: string
+          material_id?: string
+          mftype_id?: string
+          name?: string
+          notes?: string | null
+          sell_price?: number
+          sph_max?: number
+          sph_min?: number
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lenses_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lenses_lenstype_id_fkey"
+            columns: ["lenstype_id"]
+            isOneToOne: false
+            referencedRelation: "lenstypes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lenses_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lenses_mftype_id_fkey"
+            columns: ["mftype_id"]
+            isOneToOne: false
+            referencedRelation: "mftypes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lenses_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lenstypes: {
         Row: {
