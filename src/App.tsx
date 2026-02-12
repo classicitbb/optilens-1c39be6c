@@ -39,8 +39,8 @@ const App = () => (
 
               {/* Admin pricing tool */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
-                <Route index element={<Navigate to="/admin/reference/suppliers" replace />} />
-                <Route path="reference/:entity" element={<ReferenceDataPage />} />
+                <Route index element={<Navigate to="/admin/reference" replace />} />
+                <Route path="reference" element={<ReferenceDataPage />} />
                 <Route path="lenses" element={<PlaceholderPage />} />
                 <Route path="pricing" element={<PlaceholderPage />} />
                 <Route path="imports" element={<PlaceholderPage />} />
