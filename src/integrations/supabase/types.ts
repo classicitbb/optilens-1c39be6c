@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      addon_pricing_sheets: {
+        Row: {
+          addon_id: string
+          created_at: string
+          id: string
+          price_override: number | null
+          pricing_sheet_id: string
+        }
+        Insert: {
+          addon_id: string
+          created_at?: string
+          id?: string
+          price_override?: number | null
+          pricing_sheet_id: string
+        }
+        Update: {
+          addon_id?: string
+          created_at?: string
+          id?: string
+          price_override?: number | null
+          pricing_sheet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_pricing_sheets_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_pricing_sheets_pricing_sheet_id_fkey"
+            columns: ["pricing_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addons: {
         Row: {
           auto_rule: Json | null
@@ -25,6 +64,8 @@ export type Database = {
           is_auto: boolean
           name: string
           price: number
+          show_on_website: boolean
+          sku: string
           sort_order: number
           updated_at: string
         }
@@ -38,6 +79,8 @@ export type Database = {
           is_auto?: boolean
           name: string
           price?: number
+          show_on_website?: boolean
+          sku?: string
           sort_order?: number
           updated_at?: string
         }
@@ -51,6 +94,8 @@ export type Database = {
           is_auto?: boolean
           name?: string
           price?: number
+          show_on_website?: boolean
+          sku?: string
           sort_order?: number
           updated_at?: string
         }

@@ -5,12 +5,14 @@ import type { Json } from "@/integrations/supabase/types";
 export interface Addon {
   id: string;
   name: string;
+  sku: string;
   category: string;
   description: string;
   price: number;
   is_auto: boolean;
   auto_rule: Json | null;
   is_active: boolean;
+  show_on_website: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -18,12 +20,14 @@ export interface Addon {
 
 export interface AddonFormData {
   name: string;
+  sku: string;
   category: string;
   description: string;
   price: number;
   is_auto: boolean;
   auto_rule: Json | null;
   is_active: boolean;
+  show_on_website: boolean;
   sort_order: number;
 }
 
@@ -34,7 +38,7 @@ export const useAddons = () => {
     queryKey: ["addons"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("addons" as any)
+        .from("addons")
         .select("*")
         .order("sort_order")
         .order("name");
@@ -46,7 +50,7 @@ export const useAddons = () => {
   const createMutation = useMutation({
     mutationFn: async (form: AddonFormData) => {
       const { data, error } = await supabase
-        .from("addons" as any)
+        .from("addons")
         .insert(form as any)
         .select("id")
         .single();
@@ -59,7 +63,7 @@ export const useAddons = () => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, form }: { id: string; form: AddonFormData }) => {
       const { error } = await supabase
-        .from("addons" as any)
+        .from("addons")
         .update(form as any)
         .eq("id", id);
       if (error) throw error;
@@ -70,7 +74,7 @@ export const useAddons = () => {
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
       const { error } = await supabase
-        .from("addons" as any)
+        .from("addons")
         .update({ is_active } as any)
         .eq("id", id);
       if (error) throw error;
@@ -78,5 +82,41 @@ export const useAddons = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["addons"] }),
   });
 
-  return { ...query, createMutation, updateMutation, toggleActiveMutation };
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("addons")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["addons"] }),
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (addon: Addon) => {
+      const form: AddonFormData = {
+        name: `${addon.name} (Copy)`,
+        sku: "",
+        category: addon.category,
+        description: addon.description,
+        price: addon.price,
+        is_auto: addon.is_auto,
+        auto_rule: addon.auto_rule,
+        is_active: addon.is_active,
+        show_on_website: addon.show_on_website,
+        sort_order: addon.sort_order,
+      };
+      const { data, error } = await supabase
+        .from("addons")
+        .insert(form as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["addons"] }),
+  });
+
+  return { ...query, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation };
 };
