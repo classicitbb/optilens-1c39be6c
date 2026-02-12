@@ -107,6 +107,42 @@ export type Database = {
         }
         Relationships: []
       }
+      import_batches: {
+        Row: {
+          created_at: string
+          error_count: number
+          file_name: string
+          id: string
+          status: string
+          success_count: number
+          total_rows: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_count?: number
+          file_name: string
+          id?: string
+          status?: string
+          success_count?: number
+          total_rows?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_count?: number
+          file_name?: string
+          id?: string
+          status?: string
+          success_count?: number
+          total_rows?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lens_lens_options: {
         Row: {
           extra_cost: number
@@ -444,6 +480,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      pricing_input_rows: {
+        Row: {
+          batch_id: string
+          created_at: string
+          error_messages: string[]
+          id: string
+          lens_id: string | null
+          raw_data: Json
+          resolved_data: Json | null
+          row_number: number
+          status: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          error_messages?: string[]
+          id?: string
+          lens_id?: string | null
+          raw_data: Json
+          resolved_data?: Json | null
+          row_number: number
+          status?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          error_messages?: string[]
+          id?: string
+          lens_id?: string | null
+          raw_data?: Json
+          resolved_data?: Json | null
+          row_number?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_input_rows_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_input_rows_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
