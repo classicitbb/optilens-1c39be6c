@@ -1,91 +1,129 @@
 
 
-# Test Products and Add-Ons Catalog
+# Enhanced Add-Ons Catalog
 
-## Part 1: Seed Test Products
+## Overview
 
-You already have one lens (`BF Flat Top 28 Activations Gray`) with `show_on_website = true`, so it should appear in the store. We will also insert a test supply product so both product types are visible.
+Upgrade the existing `addons` table and admin UI to support SKU, web visibility, deletion, duplication, and pricing sheet assignments. This turns the add-ons catalog into a full internal pricing tool component.
 
-**Test supply to insert:**
-- Name: "Lens Cleaning Kit"
-- Category: "lab"
-- SKU: "SUPPLY-001"
-- Base price: $8.00, Sell price: $14.99
-- Unit: "box", Quantity per unit: 50
-- `show_on_website = true`, `is_active = true`
-- Description: "Professional-grade lens cleaning wipes, 50 per box"
+## Database Changes
 
-We will also verify the existing lens appears correctly and fix any issues if needed.
+### 1. Alter `addons` table -- add columns
 
----
+| New Column | Type | Default | Purpose |
+|------------|------|---------|---------|
+| sku | text | '' | Internal SKU/code for the add-on |
+| show_on_website | boolean | false | Controls storefront visibility |
 
-## Part 2: Add-Ons Catalog
+### 2. New junction table: `addon_pricing_sheets`
 
-A new `addons` table and admin page to manage lens add-on products (coatings, treatments, surcharges).
-
-### New Database Table: `addons`
+Links add-ons to one or more pricing sheets (many-to-many).
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | uuid | PK |
-| name | text | e.g. "Transitions Gen 8", "AR Coating", "Prism" |
-| category | text | "coating", "mirror", "ar_coating", "prism", "high_power", "other" |
-| description | text | What the add-on does |
-| price | numeric | Extra cost added to the base lens |
-| is_auto | boolean | Whether it auto-applies based on rules |
-| auto_rule | jsonb | Rule definition, e.g. `{"sph_min": -15}` or `{"sph_max": 10}` or `{"has_prism": true}` |
-| is_active | boolean | Admin visibility |
-| sort_order | integer | Display ordering |
-| created_at / updated_at | timestamps | Standard |
+| addon_id | uuid | FK to addons.id, ON DELETE CASCADE |
+| pricing_sheet_id | uuid | FK to pricing_sheets.id, ON DELETE CASCADE |
+| price_override | numeric, nullable | Optional per-sheet price (falls back to addon.price if null) |
+| created_at | timestamp | Standard |
 
-**RLS policies**: Same pattern as other admin tables (editors CRUD, role users SELECT).
+Unique constraint on (addon_id, pricing_sheet_id) to prevent duplicates.
 
-### Auto-Apply Rules (the `auto_rule` JSONB field)
+RLS policies: same editor/role-user pattern as other admin tables.
 
-This flexible field allows defining when an add-on automatically applies:
-- `{"sph_over": 10}` -- auto-add when SPH exceeds +10.00
-- `{"sph_under": -15}` -- auto-add when SPH is below -15.00
-- `{"has_prism": true}` -- auto-add when prism is present
-- `null` -- optional add-on, user chooses manually
+## UI Changes
 
-This keeps the schema simple now while allowing future rule expansion without migrations.
+### Data Table (`AddonDataTable.tsx`)
 
-### Admin Page: `/admin/addons`
+Add columns:
+- **SKU** -- displayed after Name
+- **Web** -- a small globe icon or checkmark indicating `show_on_website`
+- Row-level action buttons (visible on hover or always): **Duplicate** and **Delete**
 
-A new "Add-Ons" page in the admin sidebar (placed after "Supplies"), following the same dense table pattern:
+### Form Dialog (`AddonFormDialog.tsx`)
 
-- **Data table** with columns: Name, Category, Price, Auto/Optional, Active status
-- **Form dialog** for creating/editing add-ons with fields for name, category, price, auto-apply toggle, and rule editor
-- **Active toggle** per row
-- Search/filter by category
+Add fields:
+- **SKU** text input
+- **Show on Website** toggle switch
+- **Pricing Sheets** multi-select checklist showing all active pricing sheets, with optional per-sheet price override
 
-### New Sidebar Entry
+### Page (`AddonsPage.tsx`)
 
-Add "Add-Ons" with a `Layers` icon after "Supplies" in the admin sidebar menu.
+- Add **Duplicate** handler: copies all fields of an add-on (appending " (Copy)" to name, clearing SKU) and creates a new record
+- Add **Delete** handler with confirmation dialog (admin-only, following existing delete patterns)
 
-### New Files
+### Hook (`useAddons.ts`)
 
-| File | Purpose |
-|------|---------|
-| `src/hooks/useAddons.ts` | CRUD hook for addons table |
-| `src/components/admin/AddonDataTable.tsx` | Data table component |
-| `src/components/admin/AddonFormDialog.tsx` | Create/edit form dialog |
-| `src/pages/admin/AddonsPage.tsx` | Admin page |
+- Add `sku` and `show_on_website` to `Addon` and `AddonFormData` interfaces
+- Add `deleteMutation` for removing add-ons
+- Add `duplicateMutation` that reads an existing add-on and inserts a copy
 
-### Modified Files
+### New Hook: `useAddonPricingSheets.ts`
+
+- Fetches assigned pricing sheets for a given addon_id
+- Provides mutations to assign/unassign pricing sheets
+- Supports setting price_override per sheet
+
+## Technical Details
+
+### Migration SQL (single migration)
+
+```sql
+-- Add columns to addons
+ALTER TABLE public.addons
+  ADD COLUMN sku text NOT NULL DEFAULT '',
+  ADD COLUMN show_on_website boolean NOT NULL DEFAULT false;
+
+-- Junction table
+CREATE TABLE public.addon_pricing_sheets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  addon_id uuid NOT NULL REFERENCES public.addons(id) ON DELETE CASCADE,
+  pricing_sheet_id uuid NOT NULL REFERENCES public.pricing_sheets(id) ON DELETE CASCADE,
+  price_override numeric,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(addon_id, pricing_sheet_id)
+);
+
+ALTER TABLE public.addon_pricing_sheets ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies (same pattern as addons)
+CREATE POLICY "Editors can insert addon_pricing_sheets"
+  ON public.addon_pricing_sheets FOR INSERT
+  WITH CHECK (has_edit_role(auth.uid()));
+
+CREATE POLICY "Editors can update addon_pricing_sheets"
+  ON public.addon_pricing_sheets FOR UPDATE
+  USING (has_edit_role(auth.uid()));
+
+CREATE POLICY "Editors can delete addon_pricing_sheets"
+  ON public.addon_pricing_sheets FOR DELETE
+  USING (has_edit_role(auth.uid()));
+
+CREATE POLICY "Role users can select addon_pricing_sheets"
+  ON public.addon_pricing_sheets FOR SELECT
+  USING (has_any_role(auth.uid()));
+```
+
+### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/admin/AdminSidebar.tsx` | Add "Add-Ons" menu item |
-| `src/App.tsx` | Add route for `/admin/addons` |
+| `src/hooks/useAddons.ts` | Add sku, show_on_website fields; add delete + duplicate mutations |
+| `src/hooks/useAddonPricingSheets.ts` | **New** -- CRUD for addon-to-sheet assignments |
+| `src/components/admin/AddonDataTable.tsx` | Add SKU, Web columns; add Duplicate/Delete row actions |
+| `src/components/admin/AddonFormDialog.tsx` | Add SKU input, Show on Website toggle, pricing sheets multi-select |
+| `src/pages/admin/AddonsPage.tsx` | Add duplicate + delete handlers with confirmation |
 
----
+### Duplicate Behavior
 
-## What This Does NOT Include (Future Phases)
+When duplicating an add-on:
+- Copies: name (with " (Copy)" suffix), category, description, price, is_auto, auto_rule, is_active, sort_order, show_on_website
+- Clears: SKU (set to empty -- user must assign a unique one)
+- Does NOT copy pricing sheet assignments (user assigns after creation)
 
-- Storefront add-on configuration UI (building a lens order with add-ons selected)
-- Price calculation engine (base lens + auto add-ons + selected add-ons = total)
-- Linking specific add-ons to specific lens types (e.g., only certain coatings for certain materials)
+### Delete Behavior
 
-These will be built once the catalog of available add-ons exists and has data in it.
+- Admin-only action (matching existing delete patterns)
+- Confirmation dialog before deletion
+- CASCADE deletes related `addon_pricing_sheets` rows automatically
 
