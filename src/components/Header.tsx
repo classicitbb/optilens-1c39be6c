@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun, Sparkles, CloudSun, Moon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -13,6 +13,12 @@ const KB_CATEGORIES = [
   { icon: Lightbulb, label: "Lens Designs", hash: "lens-designs" },
   { icon: Droplets, label: "Lens Coatings", hash: "lens-coatings" },
   { icon: Sun, label: "Specialty Lenses", hash: "specialty-lenses" },
+];
+
+const ZENVUE_BRANDS = [
+  { icon: Sparkles, label: "Brilliance™", url: "https://zenvue.com/brilliance" },
+  { icon: CloudSun, label: "SunDun™", url: "https://zenvue.com/sundun" },
+  { icon: Moon, label: "Darkun™", url: "https://zenvue.com/darkun" },
 ];
 
 const KnowledgeDropdown = () => {
@@ -55,6 +61,49 @@ const KnowledgeDropdown = () => {
   );
 };
 
+const ProductsDropdown = () => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        Products
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-2 z-50 w-48 rounded-lg border border-border bg-background shadow-lg py-1">
+          <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ZenVue Brands</div>
+          {ZENVUE_BRANDS.map((brand) => (
+            <a
+              key={brand.label}
+              href={brand.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <brand.icon className="h-4 w-4" />
+              {brand.label}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Header = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -83,9 +132,7 @@ const Header = () => {
             Store
           </Link>
           <KnowledgeDropdown />
-          <a href="#products" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            Products
-          </a>
+          <ProductsDropdown />
           <a href="#about" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             About
           </a>
