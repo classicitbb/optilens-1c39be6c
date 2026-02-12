@@ -139,6 +139,38 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
               <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeItems(materials.data)} />
               <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeItems(mftypes.data)} />
               <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeItems(lenstypes.data)} />
+              {/* Options inline next to Lens Type */}
+              <div className="space-y-1">
+                <Label className="text-xs">Options</Label>
+                <div className="space-y-1.5 border rounded p-2" style={{ borderColor: "hsl(215 15% 85%)" }}>
+                  {activeItems(lensOptions.data).length === 0 ? (
+                    <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>No options available.</p>
+                  ) : (
+                    activeItems(lensOptions.data).map((opt) => {
+                      const selected = form.options.find((o) => o.lens_option_id === opt.id);
+                      return (
+                        <div key={opt.id} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={!!selected}
+                            onCheckedChange={(checked) => toggleOption(opt.id, !!checked)}
+                          />
+                          <span className="text-xs flex-1">{opt.name}</span>
+                          {selected && (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={selected.extra_cost}
+                              onChange={(e) => setOptionCost(opt.id, parseFloat(e.target.value) || 0)}
+                              className="h-7 text-xs w-20"
+                              placeholder="Cost"
+                            />
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           </section>
 
@@ -175,37 +207,6 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
             </div>
           </section>
 
-          {/* Section 4: Options */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Options</h3>
-            <div className="space-y-2">
-              {activeItems(lensOptions.data).map((opt) => {
-                const selected = form.options.find((o) => o.lens_option_id === opt.id);
-                return (
-                  <div key={opt.id} className="flex items-center gap-3">
-                    <Checkbox
-                      checked={!!selected}
-                      onCheckedChange={(checked) => toggleOption(opt.id, !!checked)}
-                    />
-                    <span className="text-xs flex-1">{opt.name}</span>
-                    {selected && (
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={selected.extra_cost}
-                        onChange={(e) => setOptionCost(opt.id, parseFloat(e.target.value) || 0)}
-                        className="h-7 text-xs w-24"
-                        placeholder="Extra cost"
-                      />
-                    )}
-                  </div>
-                );
-              })}
-              {activeItems(lensOptions.data).length === 0 && (
-                <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>No lens options available.</p>
-              )}
-            </div>
-          </section>
 
           {/* Section 5: Notes */}
           <section className="space-y-3">
