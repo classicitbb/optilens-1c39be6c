@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 // ── CSV columns ──
@@ -125,6 +126,7 @@ function generateLensName(
 }
 
 export const useImportLenses = () => {
+  const queryClient = useQueryClient();
   const [rawData, setRawData] = useState<Record<string, string>[]>([]);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [unresolvedRefs, setUnresolvedRefs] = useState<UnresolvedRef[]>([]);
@@ -419,6 +421,9 @@ export const useImportLenses = () => {
       await supabase.from("import_batches").update({
         status: "completed", success_count: successCount, error_count: errorCount,
       } as any).eq("id", batch.id);
+
+      // Invalidate lens catalog cache so new imports appear immediately
+      queryClient.invalidateQueries({ queryKey: ["lenses"] });
     } catch (err: any) {
       console.error("Import failed:", err);
     } finally {
