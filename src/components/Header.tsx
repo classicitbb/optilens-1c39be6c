@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun, Sparkles, CloudSun, Moon, Menu } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun, Sparkles, CloudSun, Moon, Menu, FlaskConical, Glasses, Watch } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -20,6 +20,12 @@ const ZENVUE_BRANDS = [
   { icon: Sparkles, label: "Brilliance™", url: "https://zvuedemo.lovable.app/brilliance" },
   { icon: CloudSun, label: "SunDun™", url: "https://zvuedemo.lovable.app/sundun" },
   { icon: Moon, label: "Darkun™", url: "https://zvuedemo.lovable.app/darkun" },
+];
+
+const SUPPLIES_CATEGORIES = [
+  { icon: FlaskConical, label: "Lab Supplies" },
+  { icon: Glasses, label: "Optical Supplies" },
+  { icon: Watch, label: "Eyewear Accessories" },
 ];
 
 const KnowledgeDropdown = () => {
@@ -98,6 +104,18 @@ const ProductsDropdown = () => {
               <brand.icon className="h-4 w-4" />
               {brand.label}
             </a>
+          ))}
+          <div className="my-1 h-px bg-border" />
+          <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supplies</div>
+          {SUPPLIES_CATEGORIES.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </button>
           ))}
         </div>
       )}
@@ -181,6 +199,16 @@ const Header = () => {
                     <brand.icon className="h-4 w-4" />
                     {brand.label}
                   </a>
+                ))}
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supplies</div>
+                {SUPPLIES_CATEGORIES.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors pl-5"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </div>
                 ))}
                 <a href="#about" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
                   About
