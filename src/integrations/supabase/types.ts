@@ -182,6 +182,7 @@ export type Database = {
           created_at: string
           cyl_max: number
           cyl_min: number
+          full_lab: boolean
           id: string
           index_value: number
           is_active: boolean
@@ -191,6 +192,9 @@ export type Database = {
           name: string
           notes: string | null
           sell_price: number
+          show_in_pricelist: boolean
+          show_in_ws_pricelist: boolean
+          show_on_website: boolean
           sph_max: number
           sph_min: number
           supplier_id: string
@@ -204,6 +208,7 @@ export type Database = {
           created_at?: string
           cyl_max: number
           cyl_min: number
+          full_lab?: boolean
           id?: string
           index_value: number
           is_active?: boolean
@@ -213,6 +218,9 @@ export type Database = {
           name: string
           notes?: string | null
           sell_price: number
+          show_in_pricelist?: boolean
+          show_in_ws_pricelist?: boolean
+          show_on_website?: boolean
           sph_max: number
           sph_min: number
           supplier_id: string
@@ -226,6 +234,7 @@ export type Database = {
           created_at?: string
           cyl_max?: number
           cyl_min?: number
+          full_lab?: boolean
           id?: string
           index_value?: number
           is_active?: boolean
@@ -235,6 +244,9 @@ export type Database = {
           name?: string
           notes?: string | null
           sell_price?: number
+          show_in_pricelist?: boolean
+          show_in_ws_pricelist?: boolean
+          show_on_website?: boolean
           sph_max?: number
           sph_min?: number
           supplier_id?: string
