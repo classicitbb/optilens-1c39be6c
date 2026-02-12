@@ -260,22 +260,22 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
         <section className="space-y-2">
           <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Flags</h3>
           <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+            <div className="flex items-center gap-1.5 text-xs cursor-pointer" onClick={() => set("show_in_pricelist", !form.show_in_pricelist)}>
               <Checkbox checked={form.show_in_pricelist} onCheckedChange={(v) => set("show_in_pricelist", !!v)} />
-              Show in Pricelist
-            </label>
-            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <span>Show in Pricelist</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs cursor-pointer" onClick={() => set("full_lab", !form.full_lab)}>
               <Checkbox checked={form.full_lab} onCheckedChange={(v) => set("full_lab", !!v)} />
-              Full Lab
-            </label>
-            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <span>Full Lab</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs cursor-pointer" onClick={() => set("show_in_ws_pricelist", !form.show_in_ws_pricelist)}>
               <Checkbox checked={form.show_in_ws_pricelist} onCheckedChange={(v) => set("show_in_ws_pricelist", !!v)} />
-              Show in Wholesale PL
-            </label>
-            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <span>Show in Wholesale PL</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs cursor-pointer" onClick={() => set("show_on_website", !form.show_on_website)}>
               <Checkbox checked={form.show_on_website} onCheckedChange={(v) => set("show_on_website", !!v)} />
-              Show on Website
-            </label>
+              <span>Show on Website</span>
+            </div>
           </div>
         </section>
 
