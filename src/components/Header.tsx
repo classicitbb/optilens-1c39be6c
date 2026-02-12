@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun, Sparkles, CloudSun, Moon } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun, Sparkles, CloudSun, Moon, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { CartSheet } from "@/components/CartSheet";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 const KB_CATEGORIES = [
   { icon: Layers, label: "Lens Materials", hash: "lens-materials" },
@@ -139,6 +140,71 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
+          {/* Mobile menu */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72">
+              <SheetTitle className="flex items-center gap-2 mb-6">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-accent">
+                  <Eye className="h-4 w-4 text-accent-foreground" />
+                </div>
+                <span className="text-lg font-bold text-foreground">OptiVisionNow</span>
+              </SheetTitle>
+              <nav className="flex flex-col gap-1">
+                <Link to="/store" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                  Store
+                </Link>
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Knowledge Base</div>
+                {KB_CATEGORIES.map((cat) => (
+                  <Link
+                    key={cat.hash}
+                    to={`/knowledge#${cat.hash}`}
+                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors pl-5"
+                  >
+                    <cat.icon className="h-4 w-4" />
+                    {cat.label}
+                  </Link>
+                ))}
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ZenVue Brands</div>
+                {ZENVUE_BRANDS.map((brand) => (
+                  <a
+                    key={brand.label}
+                    href={brand.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors pl-5"
+                  >
+                    <brand.icon className="h-4 w-4" />
+                    {brand.label}
+                  </a>
+                ))}
+                <a href="#about" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                  About
+                </a>
+                {user && (
+                  <>
+                    <div className="my-2 h-px bg-border" />
+                    <Link to="/profile" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                      <User className="h-4 w-4" /> Profile
+                    </Link>
+                    <Link to="/orders" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                      <Package className="h-4 w-4" /> Orders
+                    </Link>
+                    {isAdmin && (
+                      <Link to="/admin" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                        <Shield className="h-4 w-4" /> Admin
+                      </Link>
+                    )}
+                  </>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
+
           {user ? (
             <>
               <CartSheet />
@@ -187,7 +253,7 @@ const Header = () => {
                   Sign In
                 </Link>
               </Button>
-              <Button variant="hero" size="sm" asChild>
+              <Button variant="hero" size="sm" asChild className="hidden sm:inline-flex">
                 <Link to="/store">Shop Now</Link>
               </Button>
             </>
