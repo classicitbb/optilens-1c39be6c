@@ -3,8 +3,9 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import {
   Glasses, Database, DollarSign, Upload, History, Download,
-  Settings, Users, FileText, ChevronDown, ChevronRight, PanelLeftClose, PanelLeft,
+  Settings, Users, FileText, ChevronDown, ChevronRight, PanelLeftClose, PanelLeft, ArrowLeft,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface MenuItem {
   label: string;
@@ -124,6 +125,18 @@ const AdminSidebar = () => {
           );
         })}
       </nav>
+
+      <div className="border-t px-3 py-2" style={{ borderColor: "hsl(215 25% 18%)" }}>
+        <Link
+          to="/"
+          className={`${linkBase} w-full`}
+          style={{ color: "hsl(210 15% 65%)" }}
+          title={collapsed ? "Back to Site" : undefined}
+        >
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>Back to Site</span>}
+        </Link>
+      </div>
     </aside>
   );
 };
