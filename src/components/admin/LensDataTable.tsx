@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUpDown } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import type { Lens } from "@/hooks/useLenses";
@@ -113,13 +114,17 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
               <TableHead><SortHeader label="Base" k="base_price" /></TableHead>
               <TableHead><SortHeader label="Sell" k="sell_price" /></TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center text-[10px]">PL</TableHead>
+              <TableHead className="text-center text-[10px]">Lab</TableHead>
+              <TableHead className="text-center text-[10px]">WSPL</TableHead>
+              <TableHead className="text-center text-[10px]">Web</TableHead>
               {canEdit && <TableHead />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {visibleItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 10 : 9} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={canEdit ? 14 : 13} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   No lenses found.
                 </TableCell>
               </TableRow>
@@ -144,6 +149,18 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
                       {lens.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={lens.show_in_pricelist} disabled className="pointer-events-none" />
+                  </TableCell>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={lens.full_lab} disabled className="pointer-events-none" />
+                  </TableCell>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={lens.show_in_ws_pricelist} disabled className="pointer-events-none" />
+                  </TableCell>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={lens.show_on_website} disabled className="pointer-events-none" />
+                  </TableCell>
                   {canEdit && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Switch checked={lens.is_active} onCheckedChange={() => onToggleActive(lens)} className="scale-75" />
@@ -154,7 +171,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
             )}
             {hasMore && (
               <TableRow>
-                <TableCell colSpan={canEdit ? 10 : 9} className="text-center py-2">
+                <TableCell colSpan={canEdit ? 14 : 13} className="text-center py-2">
                   <Button
                     variant="ghost"
                     size="sm"

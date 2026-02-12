@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
 import type { Lens, LensFormData } from "@/hooks/useLenses";
@@ -25,7 +26,7 @@ const emptyForm: LensFormData = {
   index_value: 1.5, base_price: 0, sell_price: 0,
   sph_min: -6, sph_max: 6, cyl_min: -4, cyl_max: 0,
   add_min: null, add_max: null,
-  is_active: true, notes: null, option: null,
+  is_active: true, show_in_pricelist: true, full_lab: false, show_in_ws_pricelist: false, show_on_website: false, notes: null, option: null,
 };
 
 const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props) => {
@@ -55,7 +56,12 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
         index_value: lens.index_value, base_price: lens.base_price, sell_price: lens.sell_price,
         sph_min: lens.sph_min, sph_max: lens.sph_max, cyl_min: lens.cyl_min, cyl_max: lens.cyl_max,
         add_min: lens.add_min, add_max: lens.add_max,
-        is_active: lens.is_active, notes: lens.notes,
+        is_active: lens.is_active,
+        show_in_pricelist: lens.show_in_pricelist ?? true,
+        full_lab: lens.full_lab ?? false,
+        show_in_ws_pricelist: lens.show_in_ws_pricelist ?? false,
+        show_on_website: lens.show_on_website ?? false,
+        notes: lens.notes,
         option: lens.lens_lens_options.length > 0
           ? { lens_option_id: lens.lens_lens_options[0].lens_option_id, extra_cost: lens.lens_lens_options[0].extra_cost }
           : null,
@@ -249,6 +255,29 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
             </section>
           </div>
         </div>
+
+        {/* Flags */}
+        <section className="space-y-2">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Flags</h3>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <Checkbox checked={form.show_in_pricelist} onCheckedChange={(v) => set("show_in_pricelist", !!v)} />
+              Show in Pricelist
+            </label>
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <Checkbox checked={form.full_lab} onCheckedChange={(v) => set("full_lab", !!v)} />
+              Full Lab
+            </label>
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <Checkbox checked={form.show_in_ws_pricelist} onCheckedChange={(v) => set("show_in_ws_pricelist", !!v)} />
+              Show in Wholesale PL
+            </label>
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <Checkbox checked={form.show_on_website} onCheckedChange={(v) => set("show_on_website", !!v)} />
+              Show on Website
+            </label>
+          </div>
+        </section>
 
         <DialogFooter className="flex items-center justify-between sm:justify-between">
           <div className="flex items-center gap-2">

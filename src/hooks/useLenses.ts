@@ -25,6 +25,10 @@ export interface Lens {
   add_min: number | null;
   add_max: number | null;
   is_active: boolean;
+  show_in_pricelist: boolean;
+  full_lab: boolean;
+  show_in_ws_pricelist: boolean;
+  show_on_website: boolean;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -53,6 +57,10 @@ export interface LensFormData {
   add_min: number | null;
   add_max: number | null;
   is_active: boolean;
+  show_in_pricelist: boolean;
+  full_lab: boolean;
+  show_in_ws_pricelist: boolean;
+  show_on_website: boolean;
   notes: string | null;
   option: { lens_option_id: string; extra_cost: number } | null;
 }
