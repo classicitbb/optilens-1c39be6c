@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandItem, CommandGroup } from "@/components/ui/command";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
+import { Check, ChevronsUpDown } from "lucide-react";
 import type { Lens, LensFormData } from "@/hooks/useLenses";
 import { RefreshCw, Lock, LockOpen } from "lucide-react";
 
@@ -132,17 +134,44 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
 
   const isValid = form.name && form.supplier_id && form.brand_id && form.material_id && form.mftype_id && form.lenstype_id;
 
-  const RefSelect = ({ label, value, onChange, items }: { label: string; value: string; onChange: (v: string) => void; items: ReferenceItem[] }) => (
-    <div className="space-y-0.5">
-      <Label className="text-[11px]">{label}</Label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={`Select ${label}`} /></SelectTrigger>
-        <SelectContent>
-          {items.map((i) => <SelectItem key={i.id} value={i.id} className="text-xs">{i.name}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
-  );
+  const RefSelect = ({ label, value, onChange, items }: { label: string; value: string; onChange: (v: string) => void; items: ReferenceItem[] }) => {
+    const [open, setOpen] = useState(false);
+    const selected = items.find((i) => i.id === value);
+    return (
+      <div className="space-y-0.5">
+        <Label className="text-[11px]">{label}</Label>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" role="combobox" aria-expanded={open} className="h-7 w-full justify-between text-xs font-normal">
+              {selected ? selected.name : <span className="text-muted-foreground">Select {label}</span>}
+              <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[220px] p-0 z-50" align="start">
+            <Command>
+              <CommandInput placeholder={`Search ${label.toLowerCase()}…`} className="h-8 text-xs" />
+              <CommandList>
+                <CommandEmpty className="py-2 text-xs text-center">No results.</CommandEmpty>
+                <CommandGroup>
+                  {items.map((i) => (
+                    <CommandItem
+                      key={i.id}
+                      value={i.name}
+                      onSelect={() => { onChange(i.id); setOpen(false); }}
+                      className="text-xs"
+                    >
+                      <Check className={`mr-1.5 h-3 w-3 ${value === i.id ? "opacity-100" : "opacity-0"}`} />
+                      {i.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
+  };
 
   const NumInput = ({ label, value, onChange, step = "0.25" }: { label: string; value: number | null; step?: string; onChange: (v: string) => void }) => (
     <div className="space-y-0.5">
