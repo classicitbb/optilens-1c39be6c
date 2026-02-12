@@ -8,6 +8,7 @@ const ENTITIES = [
   { key: "mftypes", table: "mftypes", label: "MF Types" },
   { key: "lenstypes", table: "lenstypes", label: "Lens Types" },
   { key: "lens_options", table: "lens_options", label: "Lens Options" },
+  { key: "finishtypes", table: "finishtypes", label: "Finish Types" },
 ];
 
 const ReferenceDataPage = () => {
