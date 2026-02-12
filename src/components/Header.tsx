@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { CartSheet } from "@/components/CartSheet";
@@ -91,36 +92,48 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          {user ?
-          <>
+          {user ? (
+            <>
               <CartSheet />
-              {isAdmin && (
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/admin">
-                    <Shield className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Admin</span>
-                  </Link>
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/orders">
-                  <Package className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Orders</span>
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/profile">
-                  <User className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Profile</span>
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </Button>
-            </> :
-
-          <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <User className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Profile</span>
+                    <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/orders" className="flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Orders
+                    </Link>
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/auth">
                   <User className="mr-2 h-4 w-4" />
@@ -131,7 +144,7 @@ const Header = () => {
                 <Link to="/store">Shop Now</Link>
               </Button>
             </>
-          }
+          )}
         </div>
       </div>
     </header>);
