@@ -28,7 +28,8 @@ const SupplyDataTable = ({ supplies, search, onRowClick, onToggleActive }: Props
         s.name.toLowerCase().includes(q) ||
         s.sku.toLowerCase().includes(q) ||
         s.category.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q)
+        s.description.toLowerCase().includes(q) ||
+        (s.supplier_name ?? "").toLowerCase().includes(q)
     );
   }, [supplies, search]);
 
@@ -45,6 +46,7 @@ const SupplyDataTable = ({ supplies, search, onRowClick, onToggleActive }: Props
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Name</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Category</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Supplier</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>SKU</TableHead>
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Base</TableHead>
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell</TableHead>
@@ -62,6 +64,7 @@ const SupplyDataTable = ({ supplies, search, onRowClick, onToggleActive }: Props
             >
               <TableCell className={`${tdCls} font-medium max-w-[200px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{s.name}</TableCell>
               <TableCell className={tdCls}>{CATEGORY_LABELS[s.category] || s.category}</TableCell>
+              <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.supplier_name ?? "—"}</TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.sku}</TableCell>
               <TableCell className={`${tdCls} text-right`}>{s.base_price.toFixed(2)}</TableCell>
               <TableCell className={`${tdCls} text-right font-medium`}>{s.sell_price.toFixed(2)}</TableCell>
@@ -74,7 +77,7 @@ const SupplyDataTable = ({ supplies, search, onRowClick, onToggleActive }: Props
           ))}
           {visible.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
+              <TableCell colSpan={9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
                 No supplies found.
               </TableCell>
             </TableRow>

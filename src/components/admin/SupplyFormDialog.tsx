@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { Supply, SupplyFormData } from "@/hooks/useSupplies";
+import { useReferenceData } from "@/hooks/useReferenceData";
 
 interface Props {
   open: boolean;
@@ -37,10 +38,13 @@ const defaultForm: SupplyFormData = {
   show_on_website: false,
   image_url: null,
   notes: null,
+  supplier_id: null,
 };
 
 const SupplyFormDialog = ({ open, onOpenChange, supply, onSubmit, isPending }: Props) => {
   const [form, setForm] = useState<SupplyFormData>(defaultForm);
+  const { data: suppliers } = useReferenceData("suppliers");
+  const activeSuppliers = (suppliers ?? []).filter((s) => s.is_active);
 
   useEffect(() => {
     if (supply) {
@@ -57,6 +61,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, onSubmit, isPending }: P
         show_on_website: supply.show_on_website,
         image_url: supply.image_url,
         notes: supply.notes,
+        supplier_id: supply.supplier_id,
       });
     } else {
       setForm(defaultForm);
@@ -99,6 +104,16 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, onSubmit, isPending }: P
             <div>
               <Label className={labelCls}>SKU</Label>
               <Input className={inputCls} value={form.sku} onChange={(e) => set("sku", e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <Label className={labelCls}>Supplier</Label>
+              <Select value={form.supplier_id ?? "__none__"} onValueChange={(v) => set("supplier_id", v === "__none__" ? null : v)}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {activeSuppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className={labelCls}>Base Price</Label>

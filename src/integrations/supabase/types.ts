@@ -730,6 +730,7 @@ export type Database = {
           sell_price: number
           show_on_website: boolean
           sku: string | null
+          supplier_id: string | null
           unit: string
           updated_at: string
         }
@@ -747,6 +748,7 @@ export type Database = {
           sell_price?: number
           show_on_website?: boolean
           sku?: string | null
+          supplier_id?: string | null
           unit?: string
           updated_at?: string
         }
@@ -764,10 +766,19 @@ export type Database = {
           sell_price?: number
           show_on_website?: boolean
           sku?: string | null
+          supplier_id?: string | null
           unit?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "supplies_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
