@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
 import type { Lens, LensFormData } from "@/hooks/useLenses";
+import { RefreshCw, Lock, LockOpen } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -29,6 +30,7 @@ const emptyForm: LensFormData = {
 
 const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props) => {
   const [form, setForm] = useState<LensFormData>(emptyForm);
+  const [nameLocked, setNameLocked] = useState(true);
 
   const suppliers = useReferenceData("suppliers");
   const brands = useReferenceData("brands");
@@ -67,17 +69,22 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
     : false;
 
   // Auto-generate name from Material abbrev + MFType abbrev + LensType name + Option name
-  useEffect(() => {
+  const generateName = useCallback(() => {
     const parts = [
       selectedMaterial?.abbrev,
       selectedMftype?.abbrev,
       selectedLensType?.name,
       selectedOption?.name,
     ].filter(Boolean);
-    if (parts.length > 0) {
-      setForm((prev) => ({ ...prev, name: parts.join(" ") }));
-    }
-  }, [form.material_id, form.mftype_id, form.lenstype_id, form.option?.lens_option_id, selectedMaterial, selectedMftype, selectedLensType, selectedOption]);
+    return parts.length > 0 ? parts.join(" ") : "";
+  }, [selectedMaterial, selectedMftype, selectedLensType, selectedOption]);
+
+  // Auto-generate name when locked
+  useEffect(() => {
+    if (!nameLocked) return;
+    const name = generateName();
+    if (name) setForm((prev) => ({ ...prev, name }));
+  }, [nameLocked, generateName]);
 
   const margin = useMemo(() => {
     const m = Number(form.sell_price) - Number(form.base_price);
@@ -147,8 +154,36 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
             <section className="space-y-2">
               <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Identity</h3>
               <div className="space-y-1">
-                <Label className="text-[11px]">Name (auto-generated)</Label>
-                <Input value={form.name} readOnly className="h-7 text-xs bg-muted" />
+                <Label className="text-[11px]">Name</Label>
+                <div className="flex gap-1">
+                  <Input
+                    value={form.name}
+                    readOnly={nameLocked}
+                    onChange={(e) => set("name", e.target.value)}
+                    className={`h-7 text-xs flex-1 ${nameLocked ? "bg-muted" : ""}`}
+                    placeholder="Lens SKU name"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    title="Regenerate name"
+                    onClick={() => { const name = generateName(); if (name) set("name", name); }}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    title={nameLocked ? "Unlock to edit manually" : "Lock to auto-generate"}
+                    onClick={() => setNameLocked((v) => !v)}
+                  >
+                    {nameLocked ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeItems(suppliers.data)} />
