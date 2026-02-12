@@ -4,7 +4,7 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -60,6 +60,19 @@ const LensPricesPage = () => {
         }
       );
     }
+  };
+
+  const handleDuplicate = (sheet: PricingSheet) => {
+    createMutation.mutate(
+      { name: `${sheet.name} (Copy)`, description: sheet.description ?? undefined },
+      {
+        onSuccess: (data: any) => {
+          setActiveTab(data.id);
+          toast({ title: "Sheet duplicated" });
+        },
+        onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+      }
+    );
   };
 
   const handleDelete = (sheet: PricingSheet) => {
@@ -126,6 +139,13 @@ const LensPricesPage = () => {
                   title="Rename"
                 >
                   <Pencil className="h-3 w-3" style={{ color: "hsl(215 15% 50%)" }} />
+                </button>
+                <button
+                  onClick={() => handleDuplicate(sheet)}
+                  className="p-0.5 rounded hover:bg-black/5"
+                  title="Duplicate"
+                >
+                  <Copy className="h-3 w-3" style={{ color: "hsl(215 15% 50%)" }} />
                 </button>
                 {isAdmin && (
                   <button
