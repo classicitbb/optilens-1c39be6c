@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Download, Play, RotateCcw, FileText, AlertCircle, Plus, Link2 } from "lucide-react";
+import { Upload, Download, Play, RotateCcw, FileText, AlertCircle, Plus, Link2, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const statusConfig: Record<string, { label: string; bg: string; fg: string }> = {
   valid:     { label: "New",      bg: "hsl(142 71% 45% / 0.1)", fg: "hsl(142 71% 35%)" },
@@ -140,9 +145,29 @@ const ImportsPage = () => {
     toast({ title: "Import complete", description: `${summary.valid + summary.duplicates} rows processed.` });
   };
 
+  const [isPurging, setIsPurging] = useState(false);
+
   if (!canEdit) {
     return <div className="p-4 text-sm" style={{ color: "hsl(215 15% 50%)" }}>You don't have permission to import data.</div>;
   }
+
+  // purge state moved above early return
+
+  const handlePurge = async () => {
+    setIsPurging(true);
+    try {
+      await supabase.from("lens_lens_options").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("pricing_input_rows").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("import_batches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("lenses").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      reset();
+      toast({ title: "Purged", description: "All lenses and import data cleared." });
+    } catch (err: any) {
+      toast({ title: "Purge failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsPurging(false);
+    }
+  };
 
   const hasRows = rows.length > 0;
   const importable = summary.valid + summary.duplicates;
@@ -162,6 +187,27 @@ const ImportsPage = () => {
               <RotateCcw className="h-3.5 w-3.5" /> Reset
             </Button>
           )}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="h-7 text-xs gap-1">
+                <Trash2 className="h-3.5 w-3.5" /> Purge All Lenses
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Purge all imported lenses?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete ALL lenses, lens options mappings, and import history. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePurge} disabled={isPurging}>
+                  {isPurging ? "Purging…" : "Yes, purge everything"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
