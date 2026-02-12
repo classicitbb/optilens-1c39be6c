@@ -5,9 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
 import type { Lens, LensFormData } from "@/hooks/useLenses";
 
@@ -26,7 +24,7 @@ const emptyForm: LensFormData = {
   index_value: 1.5, base_price: 0, sell_price: 0,
   sph_min: -6, sph_max: 6, cyl_min: -4, cyl_max: 0,
   add_min: null, add_max: null,
-  is_active: true, notes: null, options: [],
+  is_active: true, notes: null, option: null,
 };
 
 const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props) => {
@@ -51,7 +49,9 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
         sph_min: lens.sph_min, sph_max: lens.sph_max, cyl_min: lens.cyl_min, cyl_max: lens.cyl_max,
         add_min: lens.add_min, add_max: lens.add_max,
         is_active: lens.is_active, notes: lens.notes,
-        options: lens.lens_lens_options.map((o) => ({ lens_option_id: o.lens_option_id, extra_cost: o.extra_cost })),
+        option: lens.lens_lens_options.length > 0
+          ? { lens_option_id: lens.lens_lens_options[0].lens_option_id, extra_cost: lens.lens_lens_options[0].extra_cost }
+          : null,
       });
     } else {
       setForm(emptyForm);
@@ -76,19 +76,17 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
     set(key, isNaN(v) ? 0 : v as any);
   };
 
-  const toggleOption = (optionId: string, checked: boolean) => {
+  const setOption = (optionId: string) => {
     setForm((prev) => ({
       ...prev,
-      options: checked
-        ? [...prev.options, { lens_option_id: optionId, extra_cost: 0 }]
-        : prev.options.filter((o) => o.lens_option_id !== optionId),
+      option: optionId ? { lens_option_id: optionId, extra_cost: prev.option?.extra_cost ?? 0 } : null,
     }));
   };
 
-  const setOptionCost = (optionId: string, cost: number) => {
+  const setOptionCost = (cost: number) => {
     setForm((prev) => ({
       ...prev,
-      options: prev.options.map((o) => o.lens_option_id === optionId ? { ...o, extra_cost: cost } : o),
+      option: prev.option ? { ...prev.option, extra_cost: cost } : null,
     }));
   };
 
@@ -140,55 +138,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
               <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeItems(materials.data)} />
               <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeItems(mftypes.data)} />
               <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeItems(lenstypes.data)} />
-              {/* Options multi-select next to Lens Type */}
-              <div className="space-y-1">
-                <Label className="text-xs">Options</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    >
-                      <span className="truncate text-muted-foreground">
-                        {form.options.length === 0
-                          ? "Select options"
-                          : `${form.options.length} selected`}
-                      </span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 shrink-0"><path d="m6 9 6 6 6-6"/></svg>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-2 z-50 bg-background" align="start">
-                    {activeItems(lensOptions.data).length === 0 ? (
-                      <p className="text-xs p-2" style={{ color: "hsl(215 15% 50%)" }}>No options available.</p>
-                    ) : (
-                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                        {activeItems(lensOptions.data).map((opt) => {
-                          const selected = form.options.find((o) => o.lens_option_id === opt.id);
-                          return (
-                            <div key={opt.id} className="flex items-center gap-2">
-                              <Checkbox
-                                checked={!!selected}
-                                onCheckedChange={(checked) => toggleOption(opt.id, !!checked)}
-                              />
-                              <span className="text-xs flex-1">{opt.name}</span>
-                              {selected && (
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={selected.extra_cost}
-                                  onChange={(e) => setOptionCost(opt.id, parseFloat(e.target.value) || 0)}
-                                  className="h-7 text-xs w-20"
-                                  placeholder="Cost"
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </PopoverContent>
-                </Popover>
-              </div>
+              <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeItems(lensOptions.data)} />
+              {form.option && (
+                <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
+              )}
             </div>
           </section>
 

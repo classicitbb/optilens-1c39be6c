@@ -54,7 +54,7 @@ export interface LensFormData {
   add_max: number | null;
   is_active: boolean;
   notes: string | null;
-  options: { lens_option_id: string; extra_cost: number }[];
+  option: { lens_option_id: string; extra_cost: number } | null;
 }
 
 const SELECT_QUERY = `*, supplier:suppliers(name), brand:brands(name), material:materials(name), mftype:mftypes(name), lenstype:lenstypes(name), lens_lens_options(lens_option_id, extra_cost, lens_option:lens_options(name))`;
@@ -76,16 +76,15 @@ export const useLenses = () => {
 
   const createMutation = useMutation({
     mutationFn: async (form: LensFormData) => {
-      const { options, ...lensData } = form;
+      const { option, ...lensData } = form;
       const { data, error } = await supabase
         .from("lenses")
         .insert(lensData as any)
         .select("id")
         .single();
       if (error) throw error;
-      if (options.length > 0) {
-        const rows = options.map((o) => ({ lens_id: data.id, lens_option_id: o.lens_option_id, extra_cost: o.extra_cost }));
-        const { error: optErr } = await supabase.from("lens_lens_options").insert(rows as any);
+      if (option) {
+        const { error: optErr } = await supabase.from("lens_lens_options").insert({ lens_id: data.id, lens_option_id: option.lens_option_id, extra_cost: option.extra_cost } as any);
         if (optErr) throw optErr;
       }
       return data;
@@ -95,18 +94,17 @@ export const useLenses = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, form }: { id: string; form: LensFormData }) => {
-      const { options, ...lensData } = form;
+      const { option, ...lensData } = form;
       const { error } = await supabase
         .from("lenses")
         .update(lensData as any)
         .eq("id", id);
       if (error) throw error;
-      // Replace options
+      // Replace option
       const { error: delErr } = await supabase.from("lens_lens_options").delete().eq("lens_id", id);
       if (delErr) throw delErr;
-      if (options.length > 0) {
-        const rows = options.map((o) => ({ lens_id: id, lens_option_id: o.lens_option_id, extra_cost: o.extra_cost }));
-        const { error: optErr } = await supabase.from("lens_lens_options").insert(rows as any);
+      if (option) {
+        const { error: optErr } = await supabase.from("lens_lens_options").insert({ lens_id: id, lens_option_id: option.lens_option_id, extra_cost: option.extra_cost } as any);
         if (optErr) throw optErr;
       }
     },
