@@ -125,7 +125,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
       {/* Table */}
       <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)", maxHeight: "calc(100vh - 280px)" }}>
         <Table>
-          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)" }}>
+          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
             <TableRow>
               <TableHead className="w-[28%]"><SortHeader label="Name" k="name" /></TableHead>
               <TableHead className="w-[12%]"><SortHeader label="Abbrev" k="abbrev" /></TableHead>
