@@ -1,19 +1,107 @@
-import { useRef, useCallback, useState } from "react";
-import { useImportLenses, ParsedRow } from "@/hooks/useImportLenses";
+import { useRef, useCallback, useState, useEffect } from "react";
+import { useImportLenses, UnresolvedRef, fetchRefOptions, RefOption } from "@/hooks/useImportLenses";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Download, Play, RotateCcw, FileText, AlertCircle } from "lucide-react";
+import { Upload, Download, Play, RotateCcw, FileText, AlertCircle, Plus, Link2 } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; bg: string; fg: string }> = {
-  valid:     { label: "New",       bg: "hsl(142 71% 45% / 0.1)", fg: "hsl(142 71% 35%)" },
-  duplicate: { label: "Upsert",    bg: "hsl(38 92% 50% / 0.12)", fg: "hsl(38 80% 35%)" },
-  error:     { label: "Error",     bg: "hsl(0 84% 60% / 0.1)",   fg: "hsl(0 72% 45%)" },
-  imported:  { label: "Imported",  bg: "hsl(215 65% 50% / 0.1)", fg: "hsl(215 65% 50%)" },
+  valid:     { label: "New",      bg: "hsl(142 71% 45% / 0.1)", fg: "hsl(142 71% 35%)" },
+  duplicate: { label: "Upsert",   bg: "hsl(38 92% 50% / 0.12)", fg: "hsl(38 80% 35%)" },
+  error:     { label: "Error",    bg: "hsl(0 84% 60% / 0.1)",   fg: "hsl(0 72% 45%)" },
+  imported:  { label: "Imported", bg: "hsl(215 65% 50% / 0.1)", fg: "hsl(215 65% 50%)" },
 };
 
+const colLabel: Record<string, string> = {
+  supplier: "Supplier", brand: "Brand", material: "Material",
+  mftype: "MF Type", lenstype: "Lens Type", option: "Option", finishtype: "Finish Type",
+};
+
+/* ── Resolve panel for a single unresolved ref ── */
+const ResolveRow = ({
+  uRef,
+  index,
+  onResolve,
+}: {
+  uRef: UnresolvedRef;
+  index: number;
+  onResolve: (idx: number, action: "map" | "create", mappedId?: string) => Promise<void>;
+}) => {
+  const [options, setOptions] = useState<RefOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    fetchRefOptions(uRef.table).then(setOptions);
+  }, [uRef.table]);
+
+  const handleMap = async (id: string) => {
+    setLoading(true);
+    await onResolve(index, "map", id);
+    setLoading(false);
+  };
+
+  const handleCreate = async () => {
+    setCreating(true);
+    await onResolve(index, "create");
+    setCreating(false);
+  };
+
+  if (uRef.resolution !== null) {
+    return (
+      <div className="flex items-center gap-2 py-1.5 px-3 rounded text-xs" style={{ background: "hsl(142 71% 45% / 0.06)" }}>
+        <Badge variant="outline" className="text-[10px] h-5 border-0 font-medium" style={{ background: "hsl(142 71% 45% / 0.1)", color: "hsl(142 71% 35%)" }}>
+          {uRef.resolution === "create" ? "Created" : "Mapped"}
+        </Badge>
+        <span style={{ color: "hsl(215 15% 40%)" }}>
+          {colLabel[uRef.col] ?? uRef.col}: <strong>"{uRef.originalValue}"</strong>
+        </span>
+        <span style={{ color: "hsl(215 15% 60%)" }}>({uRef.affectedRows} rows)</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 py-1.5 px-3 rounded" style={{ background: "hsl(38 92% 50% / 0.06)" }}>
+      <Badge variant="outline" className="text-[10px] h-5 border-0 font-medium shrink-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 80% 35%)" }}>
+        Not found
+      </Badge>
+      <span className="text-xs shrink-0" style={{ color: "hsl(215 15% 40%)" }}>
+        {colLabel[uRef.col] ?? uRef.col}: <strong>"{uRef.originalValue}"</strong>
+      </span>
+      <span className="text-xs shrink-0" style={{ color: "hsl(215 15% 60%)" }}>({uRef.affectedRows} rows)</span>
+
+      <div className="ml-auto flex items-center gap-1.5">
+        <Select onValueChange={handleMap} disabled={loading}>
+          <SelectTrigger className="h-7 text-xs w-[180px]">
+            <SelectValue placeholder="Map to existing…" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((o) => (
+              <SelectItem key={o.id} value={o.id} className="text-xs">{o.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-[10px]" style={{ color: "hsl(215 15% 60%)" }}>or</span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1"
+          disabled={creating}
+          onClick={handleCreate}
+        >
+          <Plus className="h-3 w-3" />
+          {creating ? "Creating…" : "Create New"}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+/* ── Main page ── */
 const ImportsPage = () => {
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
@@ -21,8 +109,9 @@ const ImportsPage = () => {
   const [dragActive, setDragActive] = useState(false);
 
   const {
-    rows, summary, isValidating, isImporting,
-    fileName, parseAndValidate, executeImport, reset, generateTemplate,
+    rows, summary, unresolvedRefs, hasUnresolved,
+    isValidating, isImporting,
+    fileName, parseAndValidate, resolveRef, executeImport, reset, generateTemplate,
   } = useImportLenses();
 
   const handleFile = useCallback((file: File) => {
@@ -58,6 +147,7 @@ const ImportsPage = () => {
   const hasRows = rows.length > 0;
   const importable = summary.valid + summary.duplicates;
   const allImported = hasRows && summary.imported === rows.length;
+  const pendingUnresolved = unresolvedRefs.filter((u) => u.resolution === null);
 
   return (
     <div className="p-4 space-y-4">
@@ -99,6 +189,28 @@ const ImportsPage = () => {
         </div>
       )}
 
+      {/* Unresolved references panel */}
+      {unresolvedRefs.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-4 w-4" style={{ color: "hsl(38 80% 35%)" }} />
+            <h2 className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+              Resolve References
+            </h2>
+            {pendingUnresolved.length > 0 && (
+              <span className="text-xs" style={{ color: "hsl(38 80% 35%)" }}>
+                {pendingUnresolved.length} unresolved — map or create to continue
+              </span>
+            )}
+          </div>
+          <div className="space-y-1">
+            {unresolvedRefs.map((uRef, i) => (
+              <ResolveRow key={`${uRef.col}:${uRef.originalValue}`} uRef={uRef} index={i} onResolve={resolveRef} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Summary bar */}
       {hasRows && (
         <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "hsl(215 10% 96%)" }}>
@@ -112,7 +224,7 @@ const ImportsPage = () => {
           {summary.imported > 0 && <Badge variant="outline" className="text-[10px] h-5 border-0" style={{ background: statusConfig.imported.bg, color: statusConfig.imported.fg }}>{summary.imported} imported</Badge>}
 
           <div className="ml-auto">
-            {!allImported && importable > 0 && (
+            {!allImported && importable > 0 && !hasUnresolved && (
               <Button
                 size="sm"
                 className="h-7 text-xs gap-1"
@@ -130,7 +242,7 @@ const ImportsPage = () => {
 
       {/* Preview table */}
       {hasRows && (
-        <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)", maxHeight: "calc(100vh - 300px)" }}>
+        <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)", maxHeight: "calc(100vh - 380px)" }}>
           <Table>
             <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
               <TableRow>
