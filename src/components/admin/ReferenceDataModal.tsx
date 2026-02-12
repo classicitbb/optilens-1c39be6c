@@ -11,18 +11,29 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
   initialName?: string;
-  onSubmit: (name: string) => void;
+  initialAbbrev?: string;
+  initialCode?: string;
+  onSubmit: (values: { name: string; abbrev: string; code: string }) => void;
   isPending?: boolean;
   entityLabel: string;
 }
 
-const ReferenceDataModal = ({ open, onOpenChange, mode, initialName = "", onSubmit, isPending, entityLabel }: Props) => {
+const ReferenceDataModal = ({ open, onOpenChange, mode, initialName = "", initialAbbrev = "", initialCode = "", onSubmit, isPending, entityLabel }: Props) => {
   const [name, setName] = useState(initialName);
-  useEffect(() => { if (open) setName(initialName); }, [open, initialName]);
+  const [abbrev, setAbbrev] = useState(initialAbbrev);
+  const [code, setCode] = useState(initialCode);
+
+  useEffect(() => {
+    if (open) {
+      setName(initialName);
+      setAbbrev(initialAbbrev);
+      setCode(initialCode);
+    }
+  }, [open, initialName, initialAbbrev, initialCode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) onSubmit(name.trim());
+    if (name.trim()) onSubmit({ name: name.trim(), abbrev: abbrev.trim(), code: code.trim() });
   };
 
   return (
@@ -43,6 +54,28 @@ const ReferenceDataModal = ({ open, onOpenChange, mode, initialName = "", onSubm
               style={{ borderRadius: "4px" }}
               autoFocus
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Abbrev</Label>
+              <Input
+                value={abbrev}
+                onChange={(e) => setAbbrev(e.target.value)}
+                className="h-8 text-sm mt-1"
+                style={{ borderRadius: "4px" }}
+                placeholder="Optional"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Code</Label>
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="h-8 text-sm mt-1"
+                style={{ borderRadius: "4px" }}
+                placeholder="Optional"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>

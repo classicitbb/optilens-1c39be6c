@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import ReferenceDataModal from "./ReferenceDataModal";
 import { format } from "date-fns";
 
-type SortKey = "name" | "is_active" | "created_at" | "updated_at";
+type SortKey = "name" | "abbrev" | "code" | "is_active" | "created_at" | "updated_at";
 type SortDir = "asc" | "desc";
 type Filter = "all" | "active" | "inactive";
 
@@ -47,16 +47,16 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
     });
   }, [data, filter, sortKey, sortDir]);
 
-  const handleCreate = (name: string) => {
-    createMutation.mutate(name, {
+  const handleCreate = (values: { name: string; abbrev: string; code: string }) => {
+    createMutation.mutate(values, {
       onSuccess: () => { setModalOpen(false); toast({ title: `${entityLabel} created` }); },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
 
-  const handleEdit = (name: string) => {
+  const handleEdit = (values: { name: string; abbrev: string; code: string }) => {
     if (!editItem) return;
-    updateMutation.mutate({ id: editItem.id, updates: { name } }, {
+    updateMutation.mutate({ id: editItem.id, updates: values }, {
       onSuccess: () => { setEditItem(null); toast({ title: `${entityLabel} updated` }); },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
@@ -127,17 +127,19 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40%]"><SortHeader label="Name" k="name" /></TableHead>
-              <TableHead className="w-[15%]"><SortHeader label="Status" k="is_active" /></TableHead>
-              <TableHead className="w-[20%]"><SortHeader label="Created" k="created_at" /></TableHead>
-              <TableHead className="w-[20%]"><SortHeader label="Updated" k="updated_at" /></TableHead>
-              {canEdit && <TableHead className="w-[5%]" />}
+              <TableHead className="w-[28%]"><SortHeader label="Name" k="name" /></TableHead>
+              <TableHead className="w-[12%]"><SortHeader label="Abbrev" k="abbrev" /></TableHead>
+              <TableHead className="w-[12%]"><SortHeader label="Code" k="code" /></TableHead>
+              <TableHead className="w-[12%]"><SortHeader label="Status" k="is_active" /></TableHead>
+              <TableHead className="w-[16%]"><SortHeader label="Created" k="created_at" /></TableHead>
+              <TableHead className="w-[16%]"><SortHeader label="Updated" k="updated_at" /></TableHead>
+              {canEdit && <TableHead className="w-[4%]" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 5 : 4} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   No records found.
                 </TableCell>
               </TableRow>
@@ -149,6 +151,8 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                   onClick={() => canEdit && setEditItem(item)}
                 >
                   <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{item.abbrev || "—"}</TableCell>
+                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{item.code || "—"}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
@@ -197,6 +201,8 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
         onOpenChange={(open) => !open && setEditItem(null)}
         mode="edit"
         initialName={editItem?.name ?? ""}
+        initialAbbrev={editItem?.abbrev ?? ""}
+        initialCode={editItem?.code ?? ""}
         onSubmit={handleEdit}
         isPending={updateMutation.isPending}
         entityLabel={entityLabel}
