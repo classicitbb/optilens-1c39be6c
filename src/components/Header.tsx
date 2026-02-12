@@ -23,9 +23,9 @@ const ZENVUE_BRANDS = [
 ];
 
 const SUPPLIES_CATEGORIES = [
-  { icon: FlaskConical, label: "Lab Supplies" },
-  { icon: Glasses, label: "Optical Supplies" },
-  { icon: Watch, label: "Eyewear Accessories" },
+  { icon: FlaskConical, label: "Lab Supplies", storeUrl: "/store?tab=supplies&category=lab" },
+  { icon: Glasses, label: "Optical Supplies", storeUrl: "/store?tab=supplies&category=optical" },
+  { icon: Watch, label: "Eyewear Accessories", storeUrl: "/store?tab=supplies&category=accessories" },
 ];
 
 const KnowledgeDropdown = () => {
@@ -108,14 +108,15 @@ const ProductsDropdown = () => {
           <div className="my-1 h-px bg-border" />
           <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supplies</div>
           {SUPPLIES_CATEGORIES.map((item) => (
-            <button
+            <Link
               key={item.label}
+              to={item.storeUrl}
               onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <item.icon className="h-4 w-4" />
               {item.label}
-            </button>
+            </Link>
           ))}
         </div>
       )}
@@ -202,13 +203,14 @@ const Header = () => {
                 ))}
                 <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supplies</div>
                 {SUPPLIES_CATEGORIES.map((item) => (
-                  <div
+                  <Link
                     key={item.label}
+                    to={item.storeUrl}
                     className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors pl-5"
                   >
                     <item.icon className="h-4 w-4" />
                     {item.label}
-                  </div>
+                  </Link>
                 ))}
                 <a href="#about" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
                   About
