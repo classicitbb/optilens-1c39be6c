@@ -128,7 +128,7 @@ const Header = () => {
           <span className="text-xl font-bold text-foreground">OptiVisionNow</span>
         </Link>
         
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-8 lg:flex">
           <Link to="/store" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             Store
           </Link>
@@ -143,7 +143,7 @@ const Header = () => {
           {/* Mobile menu */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="md:hidden">
+              <Button variant="ghost" size="sm" className="lg:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
