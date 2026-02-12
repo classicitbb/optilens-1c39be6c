@@ -1,162 +1,180 @@
 
 
-# Phase 1A: Internal Lens Pricing Tool
+# Phase 1B: Lens Catalog and Pricing Engine
 
-This plan builds the foundation of a Retool-style internal pricing tool as a completely separate section of the app, accessible only to authorized users with specific roles.
+Phase 1A delivered the admin shell, RBAC, reference data CRUD, and user management. Phase 1B builds the core of the pricing tool: the **Lens Catalog** -- a master table of lens products composed from the reference data, each with pricing and metadata.
 
 ---
 
 ## Overview
 
-The pricing tool will live under `/admin/*` routes, completely separate from the public-facing OptiVisionNow storefront. It uses its own layout with a dark collapsible sidebar, dense data tables, and role-based access control.
+The Lenses page (currently a placeholder at `/admin/lenses`) becomes a fully functional module where operators define lens SKUs by combining reference data (supplier, brand, material, MF type, lens type) with pricing fields, prescription parameters, and optional lens options. This is the central data model the rest of the tool revolves around.
 
 ---
 
-## 1. Database Changes (Migration)
+## 1. Database: `lenses` Table
 
-### Roles Table
-- `user_roles` table with columns: `id`, `user_id` (FK to auth.users), `role` (enum: admin, operator, viewer)
-- Unique constraint on (user_id, role)
-- RLS policies so users can read their own role
-- `has_role()` security definer function to check roles without RLS recursion
+A new `lenses` table that ties together all reference entities into a single lens product record.
 
-### Reference Data Tables (6 tables, identical structure)
-Each table (`suppliers`, `brands`, `materials`, `mftypes`, `lenstypes`, `lens_options`) will have:
-- `id uuid` (PK, default gen_random_uuid())
-- `name text` (unique, not null)
-- `is_active boolean` (default true)
-- `created_at timestamptz` (default now())
-- `updated_at timestamptz` (default now())
-- `updated_at` trigger for auto-update
-- RLS: authenticated users with any pricing-tool role can SELECT; only admin/operator can INSERT/UPDATE
+### Columns
 
----
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid, PK | Default `gen_random_uuid()` |
+| `supplier_id` | uuid, FK -> suppliers | Required |
+| `brand_id` | uuid, FK -> brands | Required |
+| `material_id` | uuid, FK -> materials | Required |
+| `mftype_id` | uuid, FK -> mftypes | Required (manufacturing type) |
+| `lenstype_id` | uuid, FK -> lenstypes | Required (SV, progressive, bifocal, etc.) |
+| `name` | text | Display name / SKU description |
+| `index_value` | numeric(3,2) | Refractive index (e.g. 1.50, 1.67, 1.74) |
+| `base_price` | numeric(10,2) | Base wholesale cost |
+| `sell_price` | numeric(10,2) | Sell / list price |
+| `sph_min` | numeric(5,2) | Min sphere power (e.g. -12.00) |
+| `sph_max` | numeric(5,2) | Max sphere power (e.g. +8.00) |
+| `cyl_min` | numeric(5,2) | Min cylinder power |
+| `cyl_max` | numeric(5,2) | Max cylinder power |
+| `add_min` | numeric(5,2), nullable | Min ADD power (progressives/bifocals only) |
+| `add_max` | numeric(5,2), nullable | Max ADD power |
+| `is_active` | boolean | Default true |
+| `notes` | text, nullable | Free-text notes |
+| `created_at` | timestamptz | Default now() |
+| `updated_at` | timestamptz | Default now(), auto-updated via trigger |
 
-## 2. Design Tokens and Styling
+### Junction Table: `lens_lens_options`
 
-Add a set of CSS custom properties scoped to the admin tool area for the Retool-inspired aesthetic:
-- Slate-900 sidebar background, slate-50 content area
-- Blue accents (hsl 215 65% 50%) for active states and buttons
-- 4px border radius, subtle borders, tight spacing
-- Compact table rows with minimal padding
-- Monospace-adjacent font sizing for data density
+Many-to-many relationship between lenses and lens_options (coatings, treatments, add-ons).
 
-These will be applied via a wrapping class (e.g., `.admin-tool`) so they don't affect the existing storefront styles.
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid, PK | Default `gen_random_uuid()` |
+| `lens_id` | uuid, FK -> lenses | ON DELETE CASCADE |
+| `lens_option_id` | uuid, FK -> lens_options | |
+| `extra_cost` | numeric(10,2) | Additional cost for this option, default 0 |
+| Unique constraint on (lens_id, lens_option_id) | | |
 
----
+### RLS Policies
 
-## 3. App Shell Components
+- **SELECT**: `has_any_role(auth.uid())` -- any admin tool user can view
+- **INSERT / UPDATE**: `has_edit_role(auth.uid())` -- admin and operator only
+- No DELETE policy (soft-deactivation via `is_active`)
+- Same policies for `lens_lens_options`
 
-### AdminLayout
-- Wraps all `/admin/*` routes
-- Contains the collapsible sidebar (56px when collapsed, 240px expanded)
-- Top bar with: environment label ("Internal Tool"), logged-in user email + role badge, global search input
-- Full-width content area to the right of sidebar
+### Triggers
 
-### AdminSidebar
-Uses the existing Shadcn Sidebar components with dark theme overrides:
-- **Modules (menu items):**
-  - Lenses (placeholder for future phases)
-  - Reference Data (with sub-items: Suppliers, Brands, Materials, MF Types, Lens Types, Lens Options)
-  - Pricing Profiles (placeholder)
-  - Imports (placeholder)
-  - Runs/History (placeholder)
-  - Exports (placeholder)
-  - Parameters/Settings (placeholder)
-  - Users (admin only)
-  - Audit Log (admin only)
-- Active route highlighting using NavLink
-- Icon-only mode when collapsed
+- `update_updated_at_column` trigger on `lenses` (reuse existing function)
 
 ---
 
-## 4. Authentication and Authorization
+## 2. Lenses Page UI (`/admin/lenses`)
 
-### Role-Based Route Protection
-- `AdminProtectedRoute` component: checks if user is authenticated AND has a role in `user_roles`
-- `useUserRole` hook: fetches the current user's role from `user_roles` table
-- Role checks:
-  - **viewer**: read-only access to all non-admin pages
-  - **operator**: can create/edit reference data
-  - **admin**: full access including Users and Audit Log modules
-- Users without any role in `user_roles` cannot access `/admin/*` at all -- they see a "Not Authorized" page
+Replaces the current placeholder with a full data management page.
 
-### Role Context
-- `AdminRoleContext` provider wrapping admin routes, providing `role`, `canEdit`, `isAdmin` helpers
+### Top Section
+- Page title "Lens Catalog"
+- Filter bar: All / Active / Inactive tabs (same pattern as reference data)
+- Search input to filter by name, supplier, or brand
+- "Add Lens" button (operator/admin only)
+- Record count indicator
+
+### Data Grid
+A dense table with the following columns:
+- **Name** (sortable)
+- **Supplier** (display name from FK, sortable)
+- **Brand** (display name from FK, sortable)
+- **Material** (display name)
+- **Lens Type** (display name)
+- **Index** (e.g. "1.67")
+- **Base Price** (formatted currency)
+- **Sell Price** (formatted currency)
+- **Status** (Active/Inactive badge)
+- **Active toggle** (Switch, editors only)
+
+Clicking a row opens the lens detail/edit form.
+
+### Add/Edit Form (Full-Page or Large Modal)
+
+Since lenses have many fields, this will be a larger dialog or slide-over panel with grouped sections:
+
+**Section 1 -- Identity**
+- Name (text input)
+- Supplier (Select dropdown, populated from `suppliers` where `is_active = true`)
+- Brand (Select dropdown from `brands`)
+- Material (Select dropdown from `materials`)
+- MF Type (Select dropdown from `mftypes`)
+- Lens Type (Select dropdown from `lenstypes`)
+
+**Section 2 -- Specifications**
+- Index Value (numeric input, step 0.01)
+- SPH Range: min / max (two numeric inputs side by side)
+- CYL Range: min / max
+- ADD Range: min / max (shown conditionally when lens type is progressive or bifocal)
+
+**Section 3 -- Pricing**
+- Base Price (numeric input)
+- Sell Price (numeric input)
+- Margin display (calculated: sell - base, shown as read-only)
+
+**Section 4 -- Options**
+- Multi-select checklist of active `lens_options`
+- Each selected option shows an "Extra Cost" numeric input beside it
+
+**Section 5 -- Notes**
+- Textarea for free-text notes
+
+**Footer**
+- Cancel / Save buttons
+- Active/Inactive toggle
 
 ---
 
-## 5. Reference Data Pages
+## 3. Data Hook: `useLenses`
 
-### Generic Reference Data Table Component (`ReferenceDataTable`)
-A reusable component used by all 6 entity pages with:
-- **Dense data grid**: compact rows, small font, minimal padding
-- **Sortable columns**: click column header to sort asc/desc (client-side)
-- **Filter tabs**: All / Active / Inactive (filters `is_active`)
-- **Create button**: opens a modal dialog with name input (operator/admin only)
-- **Edit**: click row to open edit modal (operator/admin only)
-- **Soft deactivate**: toggle `is_active` via a switch (operator/admin only)
-- Uses existing Shadcn Table, Dialog, Input, Button, Badge, Switch, Tabs components
+New hook at `src/hooks/useLenses.ts` following the existing react-query pattern:
 
-### Individual Route Pages
-Each is a thin wrapper passing config to `ReferenceDataTable`:
-- `/admin/reference/suppliers`
-- `/admin/reference/brands`
-- `/admin/reference/materials`
-- `/admin/reference/mftypes`
-- `/admin/reference/lenstypes`
-- `/admin/reference/lens-options`
+- **Query**: Fetches lenses with joined reference data names (using Supabase's `select` with foreign key expansion: `supplier:suppliers(name), brand:brands(name), ...`)
+- **Create mutation**: Inserts lens + lens_lens_options rows
+- **Update mutation**: Updates lens fields + upserts lens_lens_options
+- **Toggle active**: Quick mutation for `is_active` toggle
 
 ---
 
-## 6. Routing
-
-New routes added to `App.tsx`:
-
-```text
-/admin                    -> Redirect to /admin/reference/suppliers
-/admin/reference/:entity  -> Reference data pages
-/admin/users              -> Users management (admin only, placeholder)
-/admin/audit              -> Audit log (admin only, placeholder)
-/admin/*                  -> Other modules (placeholder pages)
-```
-
-All wrapped in `AdminProtectedRoute` and `AdminLayout`.
-
----
-
-## 7. File Structure
+## 4. File Structure (new/modified files)
 
 ```text
 src/
-  contexts/
-    AdminRoleContext.tsx
   hooks/
-    useUserRole.ts
-    useReferenceData.ts
+    useLenses.ts              (NEW - react-query hook for lenses CRUD)
   components/admin/
-    AdminLayout.tsx
-    AdminSidebar.tsx
-    AdminTopBar.tsx
-    AdminProtectedRoute.tsx
-    ReferenceDataTable.tsx
-    ReferenceDataModal.tsx
-    NotAuthorized.tsx
+    LensDataTable.tsx          (NEW - dense grid for lens catalog)
+    LensFormDialog.tsx         (NEW - add/edit form dialog)
   pages/admin/
-    AdminDashboard.tsx
-    ReferenceDataPage.tsx
-    UsersPage.tsx (placeholder)
-    AuditLogPage.tsx (placeholder)
-    PlaceholderPage.tsx
-  index.css (additions for .admin-tool scoping)
+    LensesPage.tsx             (NEW - replaces PlaceholderPage for /admin/lenses)
+  App.tsx                      (MODIFIED - swap PlaceholderPage for LensesPage on /admin/lenses route)
 ```
+
+---
+
+## 5. Routing Changes
+
+In `App.tsx`, replace the lenses placeholder:
+
+```text
+Before:  <Route path="lenses" element={<PlaceholderPage />} />
+After:   <Route path="lenses" element={<LensesPage />} />
+```
+
+No other routing changes needed.
 
 ---
 
 ## Technical Notes
 
-- The `has_role()` function uses `SECURITY DEFINER` to bypass RLS and prevent recursive policy checks.
-- An admin must manually insert rows into `user_roles` (via the backend SQL runner) to grant initial access. The Users page (placeholder in this phase) will eventually provide a UI for this.
-- All reference data queries use `@tanstack/react-query` for caching and mutations, following the existing pattern in `useOrders.ts` and `useCart.ts`.
-- The admin tool is entirely client-side rendered with server-side authorization enforced through RLS policies on every table.
+- Foreign key joins via Supabase PostgREST: `supabase.from('lenses').select('*, supplier:suppliers(name), brand:brands(name), material:materials(name), mftype:mftypes(name), lenstype:lenstypes(name), lens_lens_options(lens_option_id, extra_cost, lens_option:lens_options(name))')` to get all related names in a single query.
+- The form dropdowns will query active reference data using the existing `useReferenceData` hook, filtered to `is_active = true`.
+- Numeric fields for prescription ranges use step="0.25" to match standard optical increments.
+- Index value uses step="0.01" for precision.
+- Currency fields display with 2 decimal places.
+- The lens form validates that `sph_min <= sph_max`, `cyl_min <= cyl_max`, and `add_min <= add_max` before submission.
+- The `lens_lens_options` junction table is managed transactionally: on lens save, delete existing options and re-insert the current selection.
 
