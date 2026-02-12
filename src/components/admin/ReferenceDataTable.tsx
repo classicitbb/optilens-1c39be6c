@@ -21,7 +21,7 @@ interface Props {
 
 const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   const { data, isLoading, createMutation, updateMutation, deleteMutation } = useReferenceData(table);
-  const { canEdit } = useAdminRole();
+  const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
 
   const [filter, setFilter] = useState<Filter>("active");
@@ -152,13 +152,13 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
               <TableHead className="w-[16%]"><SortHeader label="Created" k="created_at" /></TableHead>
               <TableHead className="w-[16%]"><SortHeader label="Updated" k="updated_at" /></TableHead>
               {canEdit && <TableHead className="w-[4%]" />}
-              {canEdit && <TableHead className="w-[4%]" />}
+              {isAdmin && <TableHead className="w-[4%]" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {visibleItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 8 : 6} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={(canEdit ? 7 : 6) + (isAdmin ? 1 : 0)} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   No records found.
                 </TableCell>
               </TableRow>
@@ -199,7 +199,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                       />
                     </TableCell>
                   )}
-                  {canEdit && (
+                  {isAdmin && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="ghost"
@@ -218,7 +218,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
             )}
             {hasMore && (
               <TableRow>
-                <TableCell colSpan={canEdit ? 8 : 6} className="text-center py-2">
+                <TableCell colSpan={(canEdit ? 7 : 6) + (isAdmin ? 1 : 0)} className="text-center py-2">
                   <Button
                     variant="ghost"
                     size="sm"
