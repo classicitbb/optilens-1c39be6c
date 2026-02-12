@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ArrowUpDown } from "lucide-react";
+import { Plus, ArrowUpDown, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReferenceDataModal from "./ReferenceDataModal";
 import { format } from "date-fns";
@@ -20,7 +20,7 @@ interface Props {
 }
 
 const ReferenceDataTable = ({ table, entityLabel }: Props) => {
-  const { data, isLoading, createMutation, updateMutation } = useReferenceData(table);
+  const { data, isLoading, createMutation, updateMutation, deleteMutation } = useReferenceData(table);
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
 
@@ -75,6 +75,14 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   const handleToggleActive = (item: ReferenceItem) => {
     updateMutation.mutate({ id: item.id, updates: { is_active: !item.is_active } }, {
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  const handleDelete = (item: ReferenceItem) => {
+    if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+    deleteMutation.mutate(item.id, {
+      onSuccess: () => toast({ title: `${entityLabel} deleted` }),
+      onError: (e: any) => toast({ title: "Error", description: e.message.includes("violates foreign key") ? "Cannot delete — this item is referenced by lenses." : e.message, variant: "destructive" }),
     });
   };
 
@@ -144,12 +152,13 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
               <TableHead className="w-[16%]"><SortHeader label="Created" k="created_at" /></TableHead>
               <TableHead className="w-[16%]"><SortHeader label="Updated" k="updated_at" /></TableHead>
               {canEdit && <TableHead className="w-[4%]" />}
+              {canEdit && <TableHead className="w-[4%]" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {visibleItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={canEdit ? 8 : 6} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   No records found.
                 </TableCell>
               </TableRow>
@@ -190,12 +199,26 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                       />
                     </TableCell>
                   )}
+                  {canEdit && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Delete"
+                        onClick={() => handleDelete(item)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}
             {hasMore && (
               <TableRow>
-                <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-2">
+                <TableCell colSpan={canEdit ? 8 : 6} className="text-center py-2">
                   <Button
                     variant="ghost"
                     size="sm"

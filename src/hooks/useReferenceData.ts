@@ -65,5 +65,17 @@ export const useReferenceData = (table: string, enabled = true) => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reference-data", safeTable] }),
   });
 
-  return { ...query, createMutation, updateMutation };
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!safeTable) throw new Error("Invalid table");
+      const { error } = await supabase
+        .from(safeTable)
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reference-data", safeTable] }),
+  });
+
+  return { ...query, createMutation, updateMutation, deleteMutation };
 };
