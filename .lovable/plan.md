@@ -1,110 +1,91 @@
 
 
-# Unified Store with Database-Driven Products
+# Test Products and Add-Ons Catalog
 
-## Recommendation: One Store, One Product Table, Filtered Views
+## Part 1: Seed Test Products
 
-Rather than separate storefronts, the cleanest approach is a **single unified store page** with a **top-level product type filter** (All / Lenses / Supplies), plus a **single `products` table** in the database that both the admin tool and storefront read from.
+You already have one lens (`BF Flat Top 28 Activations Gray`) with `show_on_website = true`, so it should appear in the store. We will also insert a test supply product so both product types are visible.
 
-Here's why this is better than separate pages:
-- Customers often buy lenses AND supplies together -- one cart, one checkout
-- Simpler navigation: `/store` is your shop, filters handle the rest
-- The admin side already has patterns for managing reference data; supplies fit right in
-- The existing `show_on_website` flag on lenses already controls storefront visibility -- we extend this pattern
+**Test supply to insert:**
+- Name: "Lens Cleaning Kit"
+- Category: "lab"
+- SKU: "SUPPLY-001"
+- Base price: $8.00, Sell price: $14.99
+- Unit: "box", Quantity per unit: 50
+- `show_on_website = true`, `is_active = true`
+- Description: "Professional-grade lens cleaning wipes, 50 per box"
 
-## Architecture Overview
+We will also verify the existing lens appears correctly and fix any issues if needed.
 
-```text
-+------------------+        +------------------+
-|   Admin Tool     |        |   Storefront     |
-|                  |        |                  |
-|  Lens Catalog    |------->|  /store          |
-|  (existing)      |        |  [Lenses tab]    |
-|                  |        |                  |
-|  Supply Catalog  |------->|  [Supplies tab]  |
-|  (new)           |        |                  |
-+------------------+        +------------------+
-        |                           |
-        v                           v
-   lenses table              Both tables queried
-   supplies table             where show_on_website=true
-   (new)
-```
+---
 
-## What Changes
+## Part 2: Add-Ons Catalog
 
-### 1. New `supplies` Database Table
+A new `addons` table and admin page to manage lens add-on products (coatings, treatments, surcharges).
 
-A new table to store supply products, following existing conventions:
+### New Database Table: `addons`
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | uuid | PK |
-| name | text | Product name |
-| category | text | "lab", "optical", or "accessories" |
-| description | text | Product description |
-| sku | text | Optional SKU code |
-| base_price | numeric | Cost price |
-| sell_price | numeric | Customer price |
-| unit | text | "each", "box", "case", etc. |
-| quantity_per_unit | integer | e.g., 100 wipes per box |
+| name | text | e.g. "Transitions Gen 8", "AR Coating", "Prism" |
+| category | text | "coating", "mirror", "ar_coating", "prism", "high_power", "other" |
+| description | text | What the add-on does |
+| price | numeric | Extra cost added to the base lens |
+| is_auto | boolean | Whether it auto-applies based on rules |
+| auto_rule | jsonb | Rule definition, e.g. `{"sph_min": -15}` or `{"sph_max": 10}` or `{"has_prism": true}` |
 | is_active | boolean | Admin visibility |
-| show_on_website | boolean | Storefront visibility |
-| image_url | text | Optional product image |
-| notes | text | Optional |
+| sort_order | integer | Display ordering |
 | created_at / updated_at | timestamps | Standard |
 
-RLS policies will mirror the existing lens table pattern (editors can CRUD, role users can SELECT).
+**RLS policies**: Same pattern as other admin tables (editors CRUD, role users SELECT).
 
-### 2. Admin: New Supply Catalog Page
+### Auto-Apply Rules (the `auto_rule` JSONB field)
 
-A new `/admin/supplies` page following the same pattern as the Lens Catalog:
-- Data table with search/filter by category
-- Form dialog for creating/editing supplies
-- Active toggle
-- Much simpler form than lenses (no prescription ranges, no reference entity combos)
+This flexible field allows defining when an add-on automatically applies:
+- `{"sph_over": 10}` -- auto-add when SPH exceeds +10.00
+- `{"sph_under": -15}` -- auto-add when SPH is below -15.00
+- `{"has_prism": true}` -- auto-add when prism is present
+- `null` -- optional add-on, user chooses manually
 
-A new sidebar entry "Supplies" will be added under the existing "Lens Catalog" link.
+This keeps the schema simple now while allowing future rule expansion without migrations.
 
-### 3. Storefront: Refactored `/store` Page
+### Admin Page: `/admin/addons`
 
-Replace the current hardcoded product array with **database-driven products**:
+A new "Add-Ons" page in the admin sidebar (placed after "Supplies"), following the same dense table pattern:
 
-- **Top-level tabs**: "All Products" | "Lenses" | "Supplies" (or category chips)
-- **Lenses section**: Queries the `lenses` table where `show_on_website = true`, displaying name, material, type, and sell price
-- **Supplies section**: Queries the `supplies` table where `show_on_website = true`, grouped by category (Lab / Optical / Accessories)
-- **Shared filters**: Search works across both; category filter adapts based on active tab
-- **Same cart behavior**: Both product types add to the existing cart (the cart already stores product name + price generically)
+- **Data table** with columns: Name, Category, Price, Auto/Optional, Active status
+- **Form dialog** for creating/editing add-ons with fields for name, category, price, auto-apply toggle, and rule editor
+- **Active toggle** per row
+- Search/filter by category
 
-### 4. Cart Compatibility
+### New Sidebar Entry
 
-The existing `cart_items` table already stores `product_name`, `product_price`, and a generic `product_id` (integer). We'll add a `product_type` column ("lens" or "supply") so checkout and order history can distinguish them. The cart, checkout, and order flows remain otherwise unchanged.
+Add "Add-Ons" with a `Layers` icon after "Supplies" in the admin sidebar menu.
 
-### 5. Navigation Updates
+### New Files
 
-The existing Products dropdown supply links will become real links to `/store?tab=supplies&category=lab` etc., instead of placeholder buttons.
+| File | Purpose |
+|------|---------|
+| `src/hooks/useAddons.ts` | CRUD hook for addons table |
+| `src/components/admin/AddonDataTable.tsx` | Data table component |
+| `src/components/admin/AddonFormDialog.tsx` | Create/edit form dialog |
+| `src/pages/admin/AddonsPage.tsx` | Admin page |
 
-## Implementation Steps
+### Modified Files
 
-1. Create the `supplies` table with a database migration (with RLS policies)
-2. Add `product_type` column to `cart_items` and `order_items` tables
-3. Build the admin Supply Catalog page (table + form dialog)
-4. Add "Supplies" to the admin sidebar
-5. Refactor the Store page to query both tables and add tab/filter UI
-6. Update the Header product links to navigate to filtered store views
-7. Create a `useSupplies` hook following the `useLenses` pattern
-8. Create a `useStoreProducts` hook that merges lens + supply data for the storefront
+| File | Change |
+|------|--------|
+| `src/components/admin/AdminSidebar.tsx` | Add "Add-Ons" menu item |
+| `src/App.tsx` | Add route for `/admin/addons` |
 
-## What We Are NOT Changing
+---
 
-- The existing Lens Catalog admin module stays as-is
-- The lens data model stays as-is
-- Auth, checkout, and order flows remain the same
-- The cart system stays the same (just gets a type discriminator)
+## What This Does NOT Include (Future Phases)
 
-## Future Considerations (Not in This Phase)
+- Storefront add-on configuration UI (building a lens order with add-ons selected)
+- Price calculation engine (base lens + auto add-ons + selected add-ons = total)
+- Linking specific add-ons to specific lens types (e.g., only certain coatings for certain materials)
 
-- Stock lenses with base/add/color variants can be modeled later as a lens sub-type or variant system
-- Quantity-based pricing tiers for supplies (e.g., bulk discounts) can be added as a separate pricing table
-- Product images and richer descriptions can be layered on incrementally
+These will be built once the catalog of available add-ons exists and has data in it.
 
