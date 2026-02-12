@@ -17,6 +17,19 @@ export interface Supply {
   notes: string | null;
   supplier_id: string | null;
   supplier_name: string | null;
+  brand_id: string | null;
+  brand_name: string | null;
+  preferred: boolean;
+  stocked: boolean;
+  show_in_pricelist: boolean;
+  bin: string;
+  detail: string;
+  currency: string;
+  bb_item: boolean;
+  duty_added: boolean;
+  vat_paid: boolean;
+  labour_added: boolean;
+  stk_wspl: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -35,6 +48,18 @@ export interface SupplyFormData {
   image_url: string | null;
   notes: string | null;
   supplier_id: string | null;
+  brand_id: string | null;
+  preferred: boolean;
+  stocked: boolean;
+  show_in_pricelist: boolean;
+  bin: string;
+  detail: string;
+  currency: string;
+  bb_item: boolean;
+  duty_added: boolean;
+  vat_paid: boolean;
+  labour_added: boolean;
+  stk_wspl: boolean;
 }
 
 export const useSupplies = () => {
@@ -45,13 +70,15 @@ export const useSupplies = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("supplies")
-        .select("*, supplier:suppliers(id, name)")
+        .select("*, supplier:suppliers(id, name), brand:brands(id, name)")
         .order("name");
       if (error) throw error;
       return (data as any[]).map((s) => ({
         ...s,
         supplier_id: s.supplier_id ?? null,
         supplier_name: s.supplier?.name ?? null,
+        brand_id: s.brand_id ?? null,
+        brand_name: s.brand?.name ?? null,
       })) as Supply[];
     },
   });

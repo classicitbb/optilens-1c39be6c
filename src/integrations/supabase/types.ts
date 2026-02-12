@@ -178,6 +178,42 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          default_vat: number
+          frames_duty: number
+          id: string
+          import_duty: number
+          import_multiple: number
+          labour_percent: number
+          profit_percent: number
+          updated_at: string
+          wholesale_stock_percentage: number
+        }
+        Insert: {
+          default_vat?: number
+          frames_duty?: number
+          id?: string
+          import_duty?: number
+          import_multiple?: number
+          labour_percent?: number
+          profit_percent?: number
+          updated_at?: string
+          wholesale_stock_percentage?: number
+        }
+        Update: {
+          default_vat?: number
+          frames_duty?: number
+          id?: string
+          import_duty?: number
+          import_multiple?: number
+          labour_percent?: number
+          profit_percent?: number
+          updated_at?: string
+          wholesale_stock_percentage?: number
+        }
+        Relationships: []
+      }
       finishtypes: {
         Row: {
           abbrev: string
@@ -729,59 +765,102 @@ export type Database = {
       supplies: {
         Row: {
           base_price: number
+          bb_item: boolean
+          bin: string
+          brand_id: string | null
           category: string
           created_at: string
+          currency: string
           description: string
+          detail: string
+          duty_added: boolean
           id: string
           image_url: string | null
           is_active: boolean
+          labour_added: boolean
           name: string
           notes: string | null
+          preferred: boolean
           quantity_per_unit: number
           sell_price: number
+          show_in_pricelist: boolean
           show_on_website: boolean
           sku: string | null
+          stk_wspl: boolean
+          stocked: boolean
           supplier_id: string | null
           unit: string
           updated_at: string
+          vat_paid: boolean
         }
         Insert: {
           base_price?: number
+          bb_item?: boolean
+          bin?: string
+          brand_id?: string | null
           category?: string
           created_at?: string
+          currency?: string
           description?: string
+          detail?: string
+          duty_added?: boolean
           id?: string
           image_url?: string | null
           is_active?: boolean
+          labour_added?: boolean
           name: string
           notes?: string | null
+          preferred?: boolean
           quantity_per_unit?: number
           sell_price?: number
+          show_in_pricelist?: boolean
           show_on_website?: boolean
           sku?: string | null
+          stk_wspl?: boolean
+          stocked?: boolean
           supplier_id?: string | null
           unit?: string
           updated_at?: string
+          vat_paid?: boolean
         }
         Update: {
           base_price?: number
+          bb_item?: boolean
+          bin?: string
+          brand_id?: string | null
           category?: string
           created_at?: string
+          currency?: string
           description?: string
+          detail?: string
+          duty_added?: boolean
           id?: string
           image_url?: string | null
           is_active?: boolean
+          labour_added?: boolean
           name?: string
           notes?: string | null
+          preferred?: boolean
           quantity_per_unit?: number
           sell_price?: number
+          show_in_pricelist?: boolean
           show_on_website?: boolean
           sku?: string | null
+          stk_wspl?: boolean
+          stocked?: boolean
           supplier_id?: string | null
           unit?: string
           updated_at?: string
+          vat_paid?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "supplies_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supplies_supplier_id_fkey"
             columns: ["supplier_id"]

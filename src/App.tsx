@@ -23,6 +23,7 @@ import ImportsPage from "./pages/admin/ImportsPage";
 import UsersPage from "./pages/admin/UsersPage";
 import SuppliesPage from "./pages/admin/SuppliesPage";
 import AddonsPage from "./pages/admin/AddonsPage";
+import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,7 +61,7 @@ const App = () => (
                 <Route path="imports" element={<ImportsPage />} />
                 <Route path="history" element={<PlaceholderPage />} />
                 <Route path="exports" element={<PlaceholderPage />} />
-                <Route path="parameters" element={<PlaceholderPage />} />
+                <Route path="parameters" element={<CompanySettingsPage />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="audit" element={<PlaceholderPage />} />
               </Route>
