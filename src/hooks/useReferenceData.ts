@@ -77,5 +77,29 @@ export const useReferenceData = (table: string, enabled = true) => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reference-data", safeTable] }),
   });
 
-  return { ...query, createMutation, updateMutation, deleteMutation };
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<Pick<ReferenceItem, "is_active">> }) => {
+      if (!safeTable) throw new Error("Invalid table");
+      const { error } = await supabase
+        .from(safeTable)
+        .update(updates as any)
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reference-data", safeTable] }),
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!safeTable) throw new Error("Invalid table");
+      const { error } = await supabase
+        .from(safeTable)
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reference-data", safeTable] }),
+  });
+
+  return { ...query, createMutation, updateMutation, deleteMutation, bulkUpdateMutation, bulkDeleteMutation };
 };
