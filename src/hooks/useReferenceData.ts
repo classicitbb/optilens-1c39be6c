@@ -18,7 +18,7 @@ function isValidTable(t: string): t is ReferenceTable {
   return (VALID_TABLES as readonly string[]).includes(t);
 }
 
-export const useReferenceData = (table: string) => {
+export const useReferenceData = (table: string, enabled = true) => {
   const queryClient = useQueryClient();
   const safeTable = isValidTable(table) ? table : null;
 
@@ -33,7 +33,7 @@ export const useReferenceData = (table: string) => {
       if (error) throw error;
       return data as ReferenceItem[];
     },
-    enabled: !!safeTable,
+    enabled: !!safeTable && enabled,
   });
 
   const createMutation = useMutation({
