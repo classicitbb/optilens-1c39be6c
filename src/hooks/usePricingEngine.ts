@@ -40,6 +40,10 @@ export interface PricingEngineResult {
     below_target: boolean;
     exceeds_price_increase: boolean;
   };
+  // Dual-currency fields (computed, not stored)
+  supplier_cost_usd: number;
+  sell_price_usd: number | null;
+  fx_rate_used: number;
 }
 
 // ── Pure calculation function ──────────────────────────
@@ -63,11 +67,11 @@ export function calculatePricingEngine(
   const days = input.avg_days_in_stock ?? settings.avg_days_in_stock;
 
   // 1. Currency conversion
+  const fxRates = settings.fx_rates as Record<string, number>;
   let converted_cost: number;
   if (bb_item) {
     converted_cost = supplier_cost;
   } else {
-    const fxRates = settings.fx_rates as Record<string, number>;
     const rate = fxRates[currency] ?? 1;
     converted_cost = supplier_cost * rate * (1 + settings.fx_risk_buffer);
   }
@@ -140,6 +144,9 @@ export function calculatePricingEngine(
         : false,
   };
 
+  // Dual-currency: compute effective FX rate and USD equivalent of sell price
+  const effectiveRate = bb_item ? 1 : (fxRates[currency] ?? 1) * (1 + settings.fx_risk_buffer);
+
   return {
     converted_cost,
     cif,
@@ -157,6 +164,11 @@ export function calculatePricingEngine(
     margin,
     margin_status,
     governance_flags,
+    supplier_cost_usd: supplier_cost,
+    sell_price_usd: sell_price != null && sell_price > 0 && effectiveRate > 0
+      ? sell_price / effectiveRate
+      : null,
+    fx_rate_used: effectiveRate,
   };
 }
 
