@@ -11,7 +11,7 @@ import type { Lens } from "@/hooks/useLenses";
 
 type SortKey = "name" | "supplier" | "brand" | "index_value" | "base_price" | "sell_price" | "is_active";
 type SortDir = "asc" | "desc";
-type Filter = "all" | "active" | "inactive";
+type Filter = "all" | "active" | "inactive" | "web";
 
 interface Props {
   lenses: Lens[];
@@ -50,7 +50,8 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
   const filtered = useMemo(() => {
     let items = lenses;
     if (filter === "active") items = items.filter((i) => i.is_active);
-    if (filter === "inactive") items = items.filter((i) => !i.is_active);
+    else if (filter === "inactive") items = items.filter((i) => !i.is_active);
+    else if (filter === "web") items = items.filter((i) => i.show_on_website);
     if (search) {
       const q = search.toLowerCase();
       items = items.filter((i) =>
@@ -78,6 +79,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
     { label: "Active", value: "active" },
     { label: "Inactive", value: "inactive" },
     { label: "All", value: "all" },
+    { label: "Web", value: "web" },
   ];
 
   const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (

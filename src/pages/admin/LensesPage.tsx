@@ -35,6 +35,22 @@ const LensesPage = () => {
     const oldData = editLens as any;
     updateMutation.mutate({ id: editLens.id, form }, {
       onSuccess: () => {
+        toast({ title: "Lens updated" });
+        logChange({
+          table_name: "lenses", record_id: editLens.id, action: "update",
+          old_data: oldData, new_data: form as any,
+          change_summary: buildPricingSummary(oldData, form as any),
+        });
+      },
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  const handleUpdateAndClose = (form: LensFormData) => {
+    if (!editLens) return;
+    const oldData = editLens as any;
+    updateMutation.mutate({ id: editLens.id, form }, {
+      onSuccess: () => {
         setEditLens(null);
         toast({ title: "Lens updated" });
         logChange({
@@ -93,7 +109,10 @@ const LensesPage = () => {
         open={!!editLens}
         onOpenChange={(open) => !open && setEditLens(null)}
         lens={editLens}
+        lenses={lenses ?? []}
         onSubmit={handleUpdate}
+        onSubmitAndClose={handleUpdateAndClose}
+        onNavigate={(l) => setEditLens(l)}
         isPending={updateMutation.isPending}
       />
     </div>
