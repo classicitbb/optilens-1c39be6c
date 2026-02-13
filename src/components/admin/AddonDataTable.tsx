@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 interface Props {
   addons: Addon[];
   search: string;
+  canEdit: boolean;
   onRowClick: (addon: Addon) => void;
   onToggleActive: (addon: Addon) => void;
   onDuplicate: (addon: Addon) => void;
@@ -26,7 +27,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-const AddonDataTable = ({ addons, search, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
+const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const filtered = useMemo(() => {
@@ -60,16 +61,16 @@ const AddonDataTable = ({ addons, search, onRowClick, onToggleActive, onDuplicat
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Type</TableHead>
             <TableHead className={`${thCls} text-center`} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Order</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>
+            {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
+            {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {visible.map((a) => (
             <TableRow
               key={a.id}
-              className="cursor-pointer hover:bg-blue-50/60"
-              onClick={() => onRowClick(a)}
+              className={canEdit ? "cursor-pointer hover:bg-blue-50/60" : "hover:bg-blue-50/60"}
+              onClick={() => canEdit && onRowClick(a)}
             >
               <TableCell className={`${tdCls} font-medium max-w-[240px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{a.name}</TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{a.sku || "—"}</TableCell>
@@ -91,26 +92,30 @@ const AddonDataTable = ({ addons, search, onRowClick, onToggleActive, onDuplicat
                 {a.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(150 60% 40%)" }} />}
               </TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{a.sort_order}</TableCell>
-              <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
-                <Switch checked={a.is_active} onCheckedChange={() => onToggleActive(a)} />
-              </TableCell>
-              <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate(a)}>
-                    <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
-                  </Button>
-                  {canDelete && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete(a)}>
-                      <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
+              {canEdit && (
+                <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
+                  <Switch checked={a.is_active} onCheckedChange={() => onToggleActive(a)} />
+                </TableCell>
+              )}
+              {canEdit && (
+                <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate(a)}>
+                      <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
                     </Button>
-                  )}
-                </div>
-              </TableCell>
+                    {canDelete && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete(a)}>
+                        <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
           ))}
           {visible.length === 0 && (
             <TableRow>
-              <TableCell colSpan={10} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
+              <TableCell colSpan={canEdit ? 10 : 8} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
                 No add-ons found.
               </TableCell>
             </TableRow>

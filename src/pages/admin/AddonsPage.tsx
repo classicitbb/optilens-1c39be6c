@@ -106,7 +106,8 @@ const AddonsPage = () => {
       <AddonDataTable
         addons={addons ?? []}
         search={search}
-        onRowClick={(addon) => canEdit && setEditAddon(addon)}
+        canEdit={canEdit}
+        onRowClick={(addon) => setEditAddon(addon)}
         onToggleActive={handleToggle}
         onDuplicate={handleDuplicate}
         onDelete={(addon) => setDeleteTarget(addon)}
