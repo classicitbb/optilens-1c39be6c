@@ -1,86 +1,72 @@
 
 
-# Landscape Supply Form with Navigation and Save Behaviors
+# Tabbed Import Page -- Lenses, Supplies, Add-Ons, Frames
 
 ## Overview
 
-Redesign the SupplyFormDialog to use a wide landscape layout on desktop, add previous/next navigation arrows for moving between supply items, and implement two save behaviors: "Save" (keeps form open) and "Save & Close" (saves and closes).
+Convert the current Imports page into a tabbed interface with four tabs: **Lenses** (existing functionality), **Supplies**, **Add-Ons**, and **Frames** (placeholder for future use). Each tab will have its own independent import workflow.
 
 ## Changes
 
-### 1. SupplyFormDialog.tsx -- Landscape Layout and New Buttons
+### 1. Refactor ImportsPage.tsx into a tabbed wrapper
 
-**Layout changes:**
-- Widen the dialog from `sm:max-w-2xl` to `sm:max-w-5xl` (roughly 1024px)
-- Arrange the form content in a two-column layout using a CSS grid (`grid-cols-2`):
-  - **Left column**: Item Info (name, SKU, category, supplier, brand, description, detail, bin, unit, qty) and Notes
-  - **Right column**: Flags, Pricing and Cost, Calculated Values
-- This eliminates most vertical scrolling and gives the form a landscape/spreadsheet feel
+- Add Radix Tabs at the top of the page with four tabs: Lenses | Supplies | Add-Ons | Frames
+- Extract the current lens import content into a new component `ImportLensesTab.tsx`
+- Each tab panel renders its own import component
 
-**Navigation arrows (prev/next):**
-- Add new props: `supplies` (the full filtered supply list), `onNavigate` (callback receiving a Supply to switch to)
-- In the dialog header, show left/right `ChevronLeft` / `ChevronRight` icon buttons beside the title
-- Determine current index from `supply.id` within the `supplies` array; disable the arrow at either end
-- Clicking an arrow calls `onNavigate(supplies[currentIndex +/- 1])` which the parent uses to set the active supply
-- Navigation arrows only appear when editing (not when creating a new supply)
+### 2. Create new tab components
 
-**Save behavior changes:**
-- **"Save" button** (existing submit): calls `onSubmit(form)` but the form stays open -- the parent no longer closes the dialog on success
-- **"Save & Close" button** (new): calls a new `onSubmitAndClose(form)` prop, where the parent saves AND closes the dialog on success
-- **"Cancel" button**: remains, closes without saving
-- Footer order: Cancel | Save | Save & Close
+| File | Description |
+|------|-------------|
+| `src/components/admin/ImportLensesTab.tsx` | Extracted from current `ImportsPage.tsx` -- all existing lens import logic moves here unchanged |
+| `src/components/admin/ImportSuppliesTab.tsx` | New CSV import for supplies -- drop zone, validation, preview table, import button (columns: Name, SKU, Category, Supplier, Brand, Cost, Sell Price, Currency, etc.) |
+| `src/components/admin/ImportAddonsTab.tsx` | New CSV import for add-ons -- similar pattern (columns: Name, SKU, Category, Price, Supplier, etc.) |
+| `src/components/admin/ImportFramesTab.tsx` | Placeholder tab showing "Coming soon" message |
 
-### 2. SuppliesPage.tsx -- Wire Navigation and Save Behaviors
+### 3. Simplified ImportsPage.tsx
 
-- Pass the filtered supplies list and a navigation handler to the edit dialog
-- Split `handleUpdate` into two:
-  - `handleUpdateKeepOpen`: saves, shows toast, does NOT close the dialog -- but updates `editSupply` to the refreshed version after invalidation
-  - `handleUpdateAndClose`: saves, shows toast, closes dialog (sets `editSupply` to null)
-- The create dialog keeps current behavior (close on save)
-
-## Technical Details
-
-### SupplyFormDialog Props (updated)
-
-```typescript
-interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  supply: Supply | null;
-  supplies?: Supply[];              // NEW: full list for navigation
-  onSubmit: (form: SupplyFormData) => void;          // Save (stay open)
-  onSubmitAndClose?: (form: SupplyFormData) => void; // Save & Close
-  onNavigate?: (supply: Supply) => void;             // NEW: prev/next
-  isPending: boolean;
-}
-```
-
-### Layout Structure (inside DialogContent)
+The page becomes a thin shell:
 
 ```text
-+------------------------------------------------------+
-| [<]  Edit Supply Item                           [>]  |
-+------------------------------------------------------+
-| LEFT COLUMN              | RIGHT COLUMN              |
-|                          |                           |
-| Item Info                | Flags                     |
-|  Name, SKU, Category     |  Active, Website, ...     |
-|  Supplier, Brand         |                           |
-|  Description, Detail     | Pricing & Cost            |
-|  Bin, Unit, Qty          |  Currency, Cost, Sell      |
-|                          |  BB Item, Duty, VAT, ...  |
-| Notes                    |                           |
-|                          | Calculated Values         |
-|                          |  BB Cost, Duty, VAT, ...  |
-+------------------------------------------------------+
-|              Cancel  |  Save  |  Save & Close        |
-+------------------------------------------------------+
++--------------------------------------------------+
+| Import Data                          [Template v] |
++--------------------------------------------------+
+| [Lenses] [Supplies] [Add-Ons] [Frames]           |
++--------------------------------------------------+
+| (active tab content here)                         |
++--------------------------------------------------+
 ```
+
+- The page title stays at the top
+- Template download button becomes tab-specific (each tab has its own template)
+- Tab state is stored locally (no URL changes needed)
+
+### 4. Supplies and Add-Ons import tabs
+
+These will follow the same pattern as the lens import:
+- CSV drop zone with drag-and-drop
+- Client-side validation against expected columns
+- Preview table with status badges (New / Upsert / Error)
+- Upsert logic based on name or SKU matching
+- Template download for the expected CSV format
+
+For the initial implementation, these tabs will show a simpler import flow (drop zone + preview + import button) without the reference resolution panel, since supplies and add-ons have fewer foreign key dependencies.
+
+## Technical Details
 
 ### Files Changed
 
 | File | Action |
 |------|--------|
-| `src/components/admin/SupplyFormDialog.tsx` | Landscape two-column layout, nav arrows, Save vs Save & Close buttons |
-| `src/pages/admin/SuppliesPage.tsx` | Pass supplies list, wire navigation + dual save handlers |
+| `src/pages/admin/ImportsPage.tsx` | Rewrite as tabbed wrapper using Radix Tabs |
+| `src/components/admin/ImportLensesTab.tsx` | **New** -- extracted lens import logic (moved from ImportsPage) |
+| `src/components/admin/ImportSuppliesTab.tsx` | **New** -- CSV import for supplies |
+| `src/components/admin/ImportAddonsTab.tsx` | **New** -- CSV import for add-ons |
+| `src/components/admin/ImportFramesTab.tsx` | **New** -- placeholder "Coming soon" |
+| `src/hooks/useImportSupplies.ts` | **New** -- hook for supply CSV parsing, validation, and upsert |
+| `src/hooks/useImportAddons.ts` | **New** -- hook for add-on CSV parsing, validation, and upsert |
+
+### Tab styling
+
+Tabs will use the existing Radix Tabs component (`@/components/ui/tabs`) styled to match the admin interface aesthetic -- compact, slate tones, blue active indicator.
 
