@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -27,6 +27,7 @@ interface LogChangeInput {
 
 export const useAuditLog = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const logMutation = useMutation({
     mutationFn: async (input: LogChangeInput) => {
@@ -42,6 +43,9 @@ export const useAuditLog = () => {
         reason: input.reason ?? null,
       });
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit_log"] });
     },
   });
 
@@ -88,6 +92,8 @@ export interface AuditLogFilters {
 export const useAuditLogQuery = (filters: AuditLogFilters) => {
   return useQuery<AuditLogEntry[]>({
     queryKey: ["audit_log", filters],
+    staleTime: 0,
+    refetchOnMount: "always" as const,
     queryFn: async () => {
       let query = (supabase.from("audit_log" as any) as any)
         .select("*")
