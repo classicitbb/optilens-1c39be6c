@@ -204,8 +204,8 @@ const PricingSettingsTab = () => {
       <Section title="Barbados Import Defaults">
         <PercentField label="VAT Rate" value={form.vat_rate} onChange={(v) => setField("vat_rate", v)} disabled={disabled} />
         <JsonGrid label="Duty Rates by Category" data={form.duty_rates} fieldKey="duty_rates" disabled={disabled} />
-        <NumField label="Brokerage Fee" value={form.brokerage_fee} onChange={(v) => setField("brokerage_fee", v)} disabled={disabled} />
-        <NumField label="Port Charges" value={form.port_charges} onChange={(v) => setField("port_charges", v)} disabled={disabled} />
+        <NumField label="Brokerage Fee (BBD)" value={form.brokerage_fee} onChange={(v) => setField("brokerage_fee", v)} disabled={disabled} />
+        <NumField label="Port Charges (BBD)" value={form.port_charges} onChange={(v) => setField("port_charges", v)} disabled={disabled} />
         <div className="grid grid-cols-[160px_1fr_1fr] items-center gap-2">
           <Label className="text-xs font-medium">Freight Method</Label>
           <Select value={form.freight_method} onValueChange={(v) => setField("freight_method", v)} disabled={disabled}>
@@ -240,8 +240,8 @@ const PricingSettingsTab = () => {
           <Select value={String(form.rounding_rule)} onValueChange={(v) => setField("rounding_rule", +v)} disabled={disabled}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="0.5">$0.50</SelectItem>
-              <SelectItem value="1">$1.00</SelectItem>
+              <SelectItem value="0.5">BBD 0.50</SelectItem>
+              <SelectItem value="1">BBD 1.00</SelectItem>
             </SelectContent>
           </Select>
           <span />
