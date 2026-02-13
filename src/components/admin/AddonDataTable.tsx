@@ -3,8 +3,10 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Copy, Trash2, Globe } from "lucide-react";
 import type { Addon } from "@/hooks/useAddons";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
+
+type Filter = "active" | "inactive" | "all" | "web";
 
 interface Props {
   addons: Addon[];
@@ -30,24 +32,45 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [filter, setFilter] = useState<Filter>("active");
   const { settings } = usePricingEngine();
+
+  const handleFilterChange = useCallback((f: Filter) => {
+    setFilter(f);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
 
   const fxRate = useMemo(() => {
     if (!settings) return 2;
     const rates = settings.fx_rates as Record<string, number>;
     return (rates["USD"] ?? 1) * (1 + settings.fx_risk_buffer);
   }, [settings]);
+
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return addons.filter(
-      (a) =>
-        a.name.toLowerCase().includes(q) ||
-        a.sku.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q) ||
-        a.description.toLowerCase().includes(q) ||
-        (a.supplier_name ?? "").toLowerCase().includes(q)
-    );
-  }, [addons, search]);
+    let items = addons;
+    if (filter === "active") items = items.filter((i) => i.is_active);
+    else if (filter === "inactive") items = items.filter((i) => !i.is_active);
+    else if (filter === "web") items = items.filter((i) => i.show_on_website);
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          a.sku.toLowerCase().includes(q) ||
+          a.category.toLowerCase().includes(q) ||
+          a.description.toLowerCase().includes(q) ||
+          (a.supplier_name ?? "").toLowerCase().includes(q)
+      );
+    }
+    return items;
+  }, [addons, search, filter]);
+
+  const filterTabs: { label: string; value: Filter }[] = [
+    { label: "Active", value: "active" },
+    { label: "Inactive", value: "inactive" },
+    { label: "All", value: "all" },
+    { label: "Web", value: "web" },
+  ];
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
@@ -56,7 +79,26 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
   const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
 
   return (
-    <div className="rounded border overflow-auto max-h-[calc(100vh-220px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
+    <div className="space-y-3">
+      <div className="flex gap-1">
+        {filterTabs.map((t) => (
+          <button
+            key={t.value}
+            onClick={() => handleFilterChange(t.value)}
+            className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
+            style={{
+              background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
+              color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+        <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+          {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+      <div className="rounded border overflow-auto max-h-[calc(100vh-280px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
       <Table>
         <TableHeader>
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
@@ -144,6 +186,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 };

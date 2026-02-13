@@ -45,7 +45,25 @@ const AddonsPage = () => {
     });
   };
 
-  const handleUpdate = (form: AddonFormData, sheetAssignments: { pricing_sheet_id: string; price_override: number | null }[]) => {
+  const handleUpdate = (form: AddonFormData, sheetAssignments: { pricing_sheet_id: string; price_override: number | null }[], reason?: string) => {
+    if (!editAddon) return;
+    const oldData = editAddon as any;
+    updateMutation.mutate({ id: editAddon.id, form }, {
+      onSuccess: () => {
+        sheetSaveMutation.mutate({ addonId: editAddon.id, assignments: sheetAssignments });
+        toast({ title: "Add-on updated" });
+        logChange({
+          table_name: "addons", record_id: editAddon.id, action: "update",
+          old_data: oldData, new_data: form as any,
+          change_summary: oldData.price !== form.price ? { price: { old: oldData.price, new: form.price } } : undefined,
+          reason,
+        });
+      },
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  const handleUpdateAndClose = (form: AddonFormData, sheetAssignments: { pricing_sheet_id: string; price_override: number | null }[], reason?: string) => {
     if (!editAddon) return;
     const oldData = editAddon as any;
     updateMutation.mutate({ id: editAddon.id, form }, {
@@ -57,6 +75,7 @@ const AddonsPage = () => {
           table_name: "addons", record_id: editAddon.id, action: "update",
           old_data: oldData, new_data: form as any,
           change_summary: oldData.price !== form.price ? { price: { old: oldData.price, new: form.price } } : undefined,
+          reason,
         });
       },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -120,7 +139,18 @@ const AddonsPage = () => {
       <AddonDataTable addons={addons ?? []} search={search} canEdit={canEdit} onRowClick={(addon) => setEditAddon(addon)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(addon) => setDeleteTarget(addon)} canDelete={isAdmin} />
 
       <AddonFormDialog open={formOpen} onOpenChange={setFormOpen} addon={null} onSubmit={handleCreate} isPending={createMutation.isPending} pricingSheets={pricingSheets ?? []} addonPricingSheets={[]} />
-      <AddonFormDialog open={!!editAddon} onOpenChange={(open) => !open && setEditAddon(null)} addon={editAddon} onSubmit={handleUpdate} isPending={updateMutation.isPending} pricingSheets={pricingSheets ?? []} addonPricingSheets={addonSheets ?? []} />
+      <AddonFormDialog
+        open={!!editAddon}
+        onOpenChange={(open) => !open && setEditAddon(null)}
+        addon={editAddon}
+        addons={addons ?? []}
+        onSubmit={handleUpdate}
+        onSubmitAndClose={handleUpdateAndClose}
+        onNavigate={(a) => setEditAddon(a)}
+        isPending={updateMutation.isPending}
+        pricingSheets={pricingSheets ?? []}
+        addonPricingSheets={addonSheets ?? []}
+      />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent style={{ borderRadius: "4px" }}>

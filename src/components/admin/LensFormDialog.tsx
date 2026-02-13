@@ -10,15 +10,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandItem, CommandGroup } from "@/components/ui/command";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Lens, LensFormData } from "@/hooks/useLenses";
 import { RefreshCw, Lock, LockOpen } from "lucide-react";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  lens: Lens | null; // null = create mode
+  lens: Lens | null;
+  lenses?: Lens[];
   onSubmit: (form: LensFormData) => void;
+  onSubmitAndClose?: (form: LensFormData) => void;
+  onNavigate?: (lens: Lens) => void;
   isPending: boolean;
 }
 
@@ -32,7 +35,7 @@ const emptyForm: LensFormData = {
   is_active: true, show_in_pricelist: true, full_lab: false, show_in_ws_pricelist: false, show_on_website: false, notes: null, option: null,
 };
 
-const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props) => {
+const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAndClose, onNavigate, isPending }: Props) => {
   const [form, setForm] = useState<LensFormData>(emptyForm);
   const [nameLocked, setNameLocked] = useState(true);
 
@@ -148,6 +151,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
 
   const isValid = form.name && form.supplier_id && form.brand_id && form.material_id && form.mftype_id && form.lenstype_id;
 
+  const currentIndex = lens && lenses ? lenses.findIndex((l) => l.id === lens.id) : -1;
+  const canGoPrev = currentIndex > 0;
+  const canGoNext = lenses ? currentIndex >= 0 && currentIndex < lenses.length - 1 : false;
+
   const RefSelect = ({ label, value, onChange, items }: { label: string; value: string; onChange: (v: string) => void; items: ReferenceItem[] }) => {
     const [open, setOpen] = useState(false);
     const selected = items.find((i) => i.id === value);
@@ -196,9 +203,25 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
         <DialogHeader>
-          <DialogTitle className="text-sm">{lens ? "Edit Lens" : "Add Lens"}</DialogTitle>
+          <div className="flex items-center gap-2">
+            {lens && onNavigate && (
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoPrev || isPending}
+                onClick={() => canGoPrev && lenses && onNavigate(lenses[currentIndex - 1])}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <DialogTitle className="text-sm font-semibold flex-1" style={{ color: "hsl(215 30% 15%)" }}>
+              {lens ? "Edit Lens" : "Add Lens"}
+            </DialogTitle>
+            {lens && onNavigate && (
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoNext || isPending}
+                onClick={() => canGoNext && lenses && onNavigate(lenses[currentIndex + 1])}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -336,15 +359,22 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
             <Switch checked={form.is_active} onCheckedChange={(v) => set("is_active", v)} />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button
               size="sm"
+              className="h-7 text-xs"
               disabled={!isValid || isPending}
               onClick={handleSubmit}
-              style={{ background: "hsl(215 65% 50%)", color: "white" }}
+              style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }}
             >
               {isPending ? "Saving…" : "Save"}
             </Button>
+            {onSubmitAndClose && (
+              <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }} disabled={!isValid || isPending}
+                onClick={() => { const finalForm = { ...form }; if (!showAdd) { finalForm.add_min = null; finalForm.add_max = null; } onSubmitAndClose(finalForm); }}>
+                Save & Close
+              </Button>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>

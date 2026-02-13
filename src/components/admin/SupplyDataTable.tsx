@@ -1,8 +1,10 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import type { Supply } from "@/hooks/useSupplies";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
+
+type Filter = "active" | "inactive" | "all" | "web";
 
 interface Props {
   supplies: Supply[];
@@ -22,7 +24,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [filter, setFilter] = useState<Filter>("active");
   const { settings } = usePricingEngine();
+
+  const handleFilterChange = useCallback((f: Filter) => {
+    setFilter(f);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
 
   // Compute FX rate for USD conversion (sell_price BBD → USD)
   const fxRate = useMemo(() => {
@@ -32,16 +40,30 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
   }, [settings]);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return supplies.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        (s.sku ?? "").toLowerCase().includes(q) ||
-        s.category.toLowerCase().includes(q) ||
-        (s.description ?? "").toLowerCase().includes(q) ||
-        (s.supplier_name ?? "").toLowerCase().includes(q)
-    );
-  }, [supplies, search]);
+    let items = supplies;
+    if (filter === "active") items = items.filter((i) => i.is_active);
+    else if (filter === "inactive") items = items.filter((i) => !i.is_active);
+    else if (filter === "web") items = items.filter((i) => i.show_on_website);
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          (s.sku ?? "").toLowerCase().includes(q) ||
+          s.category.toLowerCase().includes(q) ||
+          (s.description ?? "").toLowerCase().includes(q) ||
+          (s.supplier_name ?? "").toLowerCase().includes(q)
+      );
+    }
+    return items;
+  }, [supplies, search, filter]);
+
+  const filterTabs: { label: string; value: Filter }[] = [
+    { label: "Active", value: "active" },
+    { label: "Inactive", value: "inactive" },
+    { label: "All", value: "all" },
+    { label: "Web", value: "web" },
+  ];
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
@@ -50,7 +72,26 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
   const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
 
   return (
-    <div className="rounded border overflow-auto max-h-[calc(100vh-220px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
+    <div className="space-y-3">
+      <div className="flex gap-1">
+        {filterTabs.map((t) => (
+          <button
+            key={t.value}
+            onClick={() => handleFilterChange(t.value)}
+            className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
+            style={{
+              background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
+              color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+        <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+          {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+      <div className="rounded border overflow-auto max-h-[calc(100vh-280px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
       <Table>
         <TableHeader>
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
@@ -109,6 +150,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 };

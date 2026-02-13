@@ -4,10 +4,11 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, ArrowUpDown, Trash2, EyeOff } from "lucide-react";
+import { Plus, ArrowUpDown, Trash2, EyeOff, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReferenceDataModal from "./ReferenceDataModal";
 import { format } from "date-fns";
@@ -34,6 +35,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   const { logChange } = useAuditLog();
 
   const [filter, setFilter] = useState<Filter>("active");
+  const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [modalOpen, setModalOpen] = useState(false);
@@ -52,13 +54,21 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
     let items = data ?? [];
     if (filter === "active") items = items.filter((i) => i.is_active);
     if (filter === "inactive") items = items.filter((i) => !i.is_active);
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter((i) =>
+        i.name.toLowerCase().includes(q) ||
+        (i.abbrev ?? "").toLowerCase().includes(q) ||
+        (i.code ?? "").toLowerCase().includes(q)
+      );
+    }
     return [...items].sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : Number(av) - Number(bv);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [data, filter, sortKey, sortDir]);
+  }, [data, filter, search, sortKey, sortDir]);
 
   const visibleItems = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
@@ -67,6 +77,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
     setFilter(f);
     setVisibleCount(PAGE_SIZE);
     setSelected(new Set());
+    setSearch("");
   }, []);
 
   const toggleSelectAll = useCallback(() => {
@@ -194,21 +205,27 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
         )}
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1">
-        {filterTabs.map((t) => (
-          <button
-            key={t.value}
-            onClick={() => handleFilterChange(t.value)}
-            className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
-            style={{
-              background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
-              color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Filter tabs + Search */}
+      <div className="flex items-center gap-2">
+        <div className="flex gap-1">
+          {filterTabs.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => handleFilterChange(t.value)}
+              className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
+              style={{
+                background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
+                color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="relative max-w-[200px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+          <Input value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }} placeholder="Search…" className="h-7 text-xs pl-7" />
+        </div>
         <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
