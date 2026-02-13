@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState, useMemo } from "react";
 import { useImportAddons } from "@/hooks/useImportAddons";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, Download, Play, RotateCcw, FileText, AlertCircle } from "lucide-react";
+import ImportReviewFilters, { type HealthFilter, countByFilter, matchesFilter } from "./ImportReviewFilters";
 
 const statusConfig: Record<string, { label: string; bg: string; fg: string }> = {
   valid:     { label: "New",      bg: "hsl(142 71% 45% / 0.1)", fg: "hsl(142 71% 35%)" },
@@ -14,13 +15,36 @@ const statusConfig: Record<string, { label: string; bg: string; fg: string }> = 
   imported:  { label: "Imported", bg: "hsl(215 65% 50% / 0.1)", fg: "hsl(215 65% 50%)" },
 };
 
+const marginBadge = (status: string | null | undefined) => {
+  if (!status) return null;
+  const map: Record<string, { label: string; bg: string; fg: string }> = {
+    healthy:     { label: "Healthy",     bg: "hsl(142 71% 45% / 0.1)", fg: "hsl(142 71% 35%)" },
+    thin:        { label: "Thin",        bg: "hsl(38 92% 50% / 0.12)", fg: "hsl(38 80% 35%)" },
+    below_floor: { label: "Below Floor", bg: "hsl(0 84% 60% / 0.1)",   fg: "hsl(0 72% 45%)" },
+    loss:        { label: "Loss",        bg: "hsl(0 84% 60% / 0.15)",  fg: "hsl(0 72% 40%)" },
+  };
+  const c = map[status];
+  if (!c) return null;
+  return <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-0 font-medium" style={{ background: c.bg, color: c.fg }}>{c.label}</Badge>;
+};
+
+const fmt = (n: number | null | undefined) => n != null ? n.toFixed(2) : "—";
+const fmtPct = (n: number | null | undefined) => n != null ? `${(n * 100).toFixed(1)}%` : "—";
+
 const ImportAddonsTab = () => {
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
 
   const { rows, summary, isValidating, isImporting, fileName, parseAndValidate, executeImport, reset, generateTemplate } = useImportAddons();
+
+  const filterCounts = useMemo(() => countByFilter(rows), [rows]);
+  const filteredRows = useMemo(
+    () => healthFilter === "all" ? rows : rows.filter((r) => matchesFilter(healthFilter, r.pricing, r.supplierCost)),
+    [rows, healthFilter],
+  );
 
   const handleFile = useCallback((file: File) => {
     if (!file.name.toLowerCase().endsWith(".csv")) {
@@ -99,24 +123,31 @@ const ImportAddonsTab = () => {
         </div>
       )}
 
+      {hasRows && rows.some((r) => r.pricing) && (
+        <ImportReviewFilters active={healthFilter} onChange={setHealthFilter} counts={filterCounts} />
+      )}
+
       {hasRows && (
-        <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)", maxHeight: "calc(100vh - 380px)" }}>
+        <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)", maxHeight: "calc(100vh - 420px)" }}>
           <Table>
             <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
               <TableRow>
                 <TableHead className="w-12 text-xs">#</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
                 <TableHead className="text-xs">Name</TableHead>
-                <TableHead className="text-xs">SKU</TableHead>
                 <TableHead className="text-xs">Category</TableHead>
                 <TableHead className="text-xs">Price</TableHead>
-                <TableHead className="text-xs">Supplier</TableHead>
+                <TableHead className="text-xs">Full Cost</TableHead>
+                <TableHead className="text-xs">Strategic</TableHead>
+                <TableHead className="text-xs">Margin</TableHead>
+                <TableHead className="text-xs">Health</TableHead>
                 <TableHead className="text-xs">Errors</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => {
+              {filteredRows.map((row) => {
                 const cfg = statusConfig[row.status] ?? statusConfig.error;
+                const p = row.pricing;
                 return (
                   <TableRow key={row.rowNumber}>
                     <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{row.rowNumber}</TableCell>
@@ -124,10 +155,12 @@ const ImportAddonsTab = () => {
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-0 font-medium" style={{ background: cfg.bg, color: cfg.fg }}>{cfg.label}</Badge>
                     </TableCell>
                     <TableCell className="text-xs font-medium">{row.raw.name ?? row.raw.Name ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.sku ?? row.raw.SKU ?? ""}</TableCell>
                     <TableCell className="text-xs">{row.raw.category ?? row.raw.Category ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.price ?? row.raw.Price ?? ""}</TableCell>
-                    <TableCell className="text-xs">{row.raw.supplier ?? row.raw.Supplier ?? ""}</TableCell>
+                    <TableCell className="text-xs font-mono">{fmt(row.supplierCost)}</TableCell>
+                    <TableCell className="text-xs font-mono">{fmt(p?.full_cost)}</TableCell>
+                    <TableCell className="text-xs font-mono">{fmt(p?.strategic_price)}</TableCell>
+                    <TableCell className="text-xs font-mono">{fmtPct(p?.margin)}</TableCell>
+                    <TableCell>{marginBadge(p?.margin_status)}</TableCell>
                     <TableCell>
                       {row.errors.length > 0 && (
                         <div className="flex items-start gap-1">
