@@ -57,6 +57,7 @@ export type Database = {
         Row: {
           auto_rule: Json | null
           category: string
+          cost: number
           created_at: string
           description: string
           id: string
@@ -73,6 +74,7 @@ export type Database = {
         Insert: {
           auto_rule?: Json | null
           category?: string
+          cost?: number
           created_at?: string
           description?: string
           id?: string
@@ -89,6 +91,7 @@ export type Database = {
         Update: {
           auto_rule?: Json | null
           category?: string
+          cost?: number
           created_at?: string
           description?: string
           id?: string

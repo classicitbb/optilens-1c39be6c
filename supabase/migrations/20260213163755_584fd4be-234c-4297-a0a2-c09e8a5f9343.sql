@@ -1,0 +1,1 @@
+ALTER TABLE public.addons ADD COLUMN cost numeric NOT NULL DEFAULT 0;
