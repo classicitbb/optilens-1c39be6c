@@ -36,9 +36,9 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
     return supplies.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
-        s.sku.toLowerCase().includes(q) ||
+        (s.sku ?? "").toLowerCase().includes(q) ||
         s.category.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q) ||
+        (s.description ?? "").toLowerCase().includes(q) ||
         (s.supplier_name ?? "").toLowerCase().includes(q)
     );
   }, [supplies, search]);
