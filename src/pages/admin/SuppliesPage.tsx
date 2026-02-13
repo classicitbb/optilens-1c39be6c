@@ -61,7 +61,8 @@ const SuppliesPage = () => {
       <SupplyDataTable
         supplies={supplies ?? []}
         search={search}
-        onRowClick={(supply) => canEdit && setEditSupply(supply)}
+        canEdit={canEdit}
+        onRowClick={(supply) => setEditSupply(supply)}
         onToggleActive={handleToggle}
       />
 

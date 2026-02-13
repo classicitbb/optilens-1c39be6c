@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 interface Props {
   supplies: Supply[];
   search: string;
+  canEdit: boolean;
   onRowClick: (supply: Supply) => void;
   onToggleActive: (supply: Supply) => void;
 }
@@ -18,7 +19,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   accessories: "Accessories",
 };
 
-const SupplyDataTable = ({ supplies, search, onRowClick, onToggleActive }: Props) => {
+const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const filtered = useMemo(() => {
@@ -52,15 +53,15 @@ const SupplyDataTable = ({ supplies, search, onRowClick, onToggleActive }: Props
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Unit</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>
+            {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {visible.map((s) => (
             <TableRow
               key={s.id}
-              className="cursor-pointer hover:bg-blue-50/60"
-              onClick={() => onRowClick(s)}
+              className={canEdit ? "cursor-pointer hover:bg-blue-50/60" : "hover:bg-blue-50/60"}
+              onClick={() => canEdit && onRowClick(s)}
             >
               <TableCell className={`${tdCls} font-medium max-w-[200px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{s.name}</TableCell>
               <TableCell className={tdCls}>{CATEGORY_LABELS[s.category] || s.category}</TableCell>
@@ -70,14 +71,16 @@ const SupplyDataTable = ({ supplies, search, onRowClick, onToggleActive }: Props
               <TableCell className={`${tdCls} text-right font-medium`}>{s.sell_price.toFixed(2)}</TableCell>
               <TableCell className={tdCls}>{s.quantity_per_unit > 1 ? `${s.quantity_per_unit}/${s.unit}` : s.unit}</TableCell>
               <TableCell className={tdCls}>{s.show_on_website ? "✓" : ""}</TableCell>
-              <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
-                <Switch checked={s.is_active} onCheckedChange={() => onToggleActive(s)} />
-              </TableCell>
+              {canEdit && (
+                <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
+                  <Switch checked={s.is_active} onCheckedChange={() => onToggleActive(s)} />
+                </TableCell>
+              )}
             </TableRow>
           ))}
           {visible.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
+              <TableCell colSpan={canEdit ? 9 : 8} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
                 No supplies found.
               </TableCell>
             </TableRow>
