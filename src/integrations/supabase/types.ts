@@ -1031,7 +1031,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      supplies_public: {
+        Row: {
+          category: string | null
+          description: string | null
+          id: string | null
+          image_url: string | null
+          name: string | null
+          quantity_per_unit: number | null
+          sell_price: number | null
+          unit: string | null
+        }
+        Insert: {
+          category?: string | null
+          description?: string | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          quantity_per_unit?: number | null
+          sell_price?: number | null
+          unit?: string | null
+        }
+        Update: {
+          category?: string | null
+          description?: string | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          quantity_per_unit?: number | null
+          sell_price?: number | null
+          unit?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
