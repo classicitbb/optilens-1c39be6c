@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowUpDown } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { usePricingEngine } from "@/hooks/usePricingEngine";
 import type { Lens } from "@/hooks/useLenses";
 
 type SortKey = "name" | "supplier" | "brand" | "index_value" | "base_price" | "sell_price" | "is_active";
@@ -23,10 +24,17 @@ const fkName = (fk: { name: string } | null) => fk?.name ?? "";
 
 const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) => {
   const { canEdit } = useAdminRole();
+  const { settings } = usePricingEngine();
   const [filter, setFilter] = useState<Filter>("active");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [visibleCount, setVisibleCount] = useState(50);
+
+  const fxRate = useMemo(() => {
+    if (!settings) return 2;
+    const rates = settings.fx_rates as Record<string, number>;
+    return (rates["USD"] ?? 1) * (1 + settings.fx_risk_buffer);
+  }, [settings]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -113,6 +121,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
               <TableHead><SortHeader label="Index" k="index_value" /></TableHead>
               <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>
               <TableHead><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
+              <TableHead>Sell (USD)</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-center text-[10px]">PL</TableHead>
               <TableHead className="text-center text-[10px]">Lab</TableHead>
@@ -124,7 +133,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
           <TableBody>
             {visibleItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 14 : 13} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={canEdit ? 16 : 15} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   No lenses found.
                 </TableCell>
               </TableRow>
@@ -139,6 +148,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
                   <TableCell className="text-xs">{Number(lens.index_value).toFixed(2)}</TableCell>
                   <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>
                   <TableCell className="text-xs">{currency(lens.sell_price)}</TableCell>
+                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-0 font-medium"
                       style={{
@@ -171,7 +181,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
             )}
             {hasMore && (
               <TableRow>
-                <TableCell colSpan={canEdit ? 14 : 13} className="text-center py-2">
+                <TableCell colSpan={canEdit ? 16 : 15} className="text-center py-2">
                   <Button
                     variant="ghost"
                     size="sm"

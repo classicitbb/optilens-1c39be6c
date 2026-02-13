@@ -8,6 +8,7 @@ export interface Addon {
   sku: string;
   category: string;
   description: string;
+  cost: number;
   price: number;
   is_auto: boolean;
   auto_rule: Json | null;
@@ -25,6 +26,7 @@ export interface AddonFormData {
   sku: string;
   category: string;
   description: string;
+  cost: number;
   price: number;
   is_auto: boolean;
   auto_rule: Json | null;
@@ -107,6 +109,7 @@ export const useAddons = () => {
         sku: "",
         category: addon.category,
         description: addon.description,
+        cost: addon.cost,
         price: addon.price,
         is_auto: addon.is_auto,
         auto_rule: addon.auto_rule,

@@ -98,7 +98,7 @@ const ImportAddonsTab = () => {
             {isValidating ? "Validating…" : "Drop a CSV file here or click to browse"}
           </p>
           <p className="text-xs" style={{ color: "hsl(215 15% 60%)" }}>
-            Columns: Name, SKU, Category, Description, Price, Supplier, IsActive, ShowOnWebsite, SortOrder
+            Columns: Name, SKU, Category, Description, Cost, Price, Supplier, IsActive, ShowOnWebsite, SortOrder
           </p>
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={onFileChange} />
         </div>
@@ -136,7 +136,8 @@ const ImportAddonsTab = () => {
                 <TableHead className="text-xs">Status</TableHead>
                 <TableHead className="text-xs">Name</TableHead>
                 <TableHead className="text-xs">Category</TableHead>
-                <TableHead className="text-xs">Price (USD)</TableHead>
+                <TableHead className="text-xs">Cost (USD)</TableHead>
+                <TableHead className="text-xs">Price (BBD)</TableHead>
                 <TableHead className="text-xs">Full Cost (BBD)</TableHead>
                 <TableHead className="text-xs">Strategic (BBD)</TableHead>
                 <TableHead className="text-xs">Margin</TableHead>
@@ -157,6 +158,7 @@ const ImportAddonsTab = () => {
                     <TableCell className="text-xs font-medium">{row.raw.name ?? row.raw.Name ?? ""}</TableCell>
                     <TableCell className="text-xs">{row.raw.category ?? row.raw.Category ?? ""}</TableCell>
                     <TableCell className="text-xs font-mono">{fmt(row.supplierCost)}</TableCell>
+                    <TableCell className="text-xs font-mono">{fmt(row.pricing?.strategic_price)}</TableCell>
                     <TableCell className="text-xs font-mono">{fmt(p?.full_cost)}</TableCell>
                     <TableCell className="text-xs font-mono">{fmt(p?.strategic_price)}</TableCell>
                     <TableCell className="text-xs font-mono">{fmtPct(p?.margin)}</TableCell>

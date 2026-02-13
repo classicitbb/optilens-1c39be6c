@@ -36,6 +36,7 @@ const defaultForm: AddonFormData = {
   sku: "",
   category: "other",
   description: "",
+  cost: 0,
   price: 0,
   is_auto: false,
   auto_rule: null,
@@ -65,6 +66,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending, prici
         sku: addon.sku,
         category: addon.category,
         description: addon.description,
+        cost: addon.cost,
         price: addon.price,
         is_auto: addon.is_auto,
         auto_rule: addon.auto_rule,
@@ -172,6 +174,10 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending, prici
                   {activeSuppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label className={labelCls}>Cost (USD)</Label>
+              <Input className={inputCls} type="number" step="0.01" min="0" value={form.cost} onChange={(e) => set("cost", +e.target.value)} />
             </div>
             <div>
               <Label className={labelCls}>Price (BBD)</Label>
