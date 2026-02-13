@@ -111,8 +111,8 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
               <TableHead>Material</TableHead>
               <TableHead>Lens Type</TableHead>
               <TableHead><SortHeader label="Index" k="index_value" /></TableHead>
-              <TableHead><SortHeader label="Base" k="base_price" /></TableHead>
-              <TableHead><SortHeader label="Sell" k="sell_price" /></TableHead>
+              <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>
+              <TableHead><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-center text-[10px]">PL</TableHead>
               <TableHead className="text-center text-[10px]">Lab</TableHead>

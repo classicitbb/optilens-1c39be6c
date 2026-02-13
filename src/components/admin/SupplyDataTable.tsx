@@ -2,6 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import type { Supply } from "@/hooks/useSupplies";
 import { useMemo, useState } from "react";
+import { usePricingEngine } from "@/hooks/usePricingEngine";
 
 interface Props {
   supplies: Supply[];
@@ -21,6 +22,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const { settings } = usePricingEngine();
+
+  // Compute FX rate for USD conversion (sell_price BBD → USD)
+  const fxRate = useMemo(() => {
+    if (!settings) return 2; // fallback
+    const rates = settings.fx_rates as Record<string, number>;
+    return (rates["USD"] ?? 1) * (1 + settings.fx_risk_buffer);
+  }, [settings]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -49,8 +58,9 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Category</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Supplier</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>SKU</TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Base</TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell</TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Cost (USD)</TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell (BBD)</TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell (USD)</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Unit</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
             {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
@@ -69,6 +79,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.sku}</TableCell>
               <TableCell className={`${tdCls} text-right`}>{s.base_price.toFixed(2)}</TableCell>
               <TableCell className={`${tdCls} text-right font-medium`}>{s.sell_price.toFixed(2)}</TableCell>
+              <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? (s.sell_price / fxRate).toFixed(2) : "—"}</TableCell>
               <TableCell className={tdCls}>{s.quantity_per_unit > 1 ? `${s.quantity_per_unit}/${s.unit}` : s.unit}</TableCell>
               <TableCell className={tdCls}>{s.show_on_website ? "✓" : ""}</TableCell>
               {canEdit && (
@@ -80,7 +91,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
           ))}
           {visible.length === 0 && (
             <TableRow>
-              <TableCell colSpan={canEdit ? 9 : 8} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
+              <TableCell colSpan={canEdit ? 10 : 9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
                 No supplies found.
               </TableCell>
             </TableRow>

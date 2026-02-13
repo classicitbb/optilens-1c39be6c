@@ -291,9 +291,9 @@ const ImportLensesTab = () => {
                 <TableHead className="text-xs">Status</TableHead>
                 <TableHead className="text-xs">Gen. Name</TableHead>
                 <TableHead className="text-xs">Supplier</TableHead>
-                <TableHead className="text-xs">USCost</TableHead>
-                <TableHead className="text-xs">Full Cost</TableHead>
-                <TableHead className="text-xs">Strategic</TableHead>
+                <TableHead className="text-xs">Cost (USD)</TableHead>
+                <TableHead className="text-xs">Full Cost (BBD)</TableHead>
+                <TableHead className="text-xs">Strategic (BBD)</TableHead>
                 <TableHead className="text-xs">Margin</TableHead>
                 <TableHead className="text-xs">Health</TableHead>
                 <TableHead className="text-xs">PL</TableHead>

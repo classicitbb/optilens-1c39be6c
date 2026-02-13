@@ -263,8 +263,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
             <section className="space-y-2">
               <h3 className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "hsl(215 15% 50%)" }}>Pricing</h3>
               <div className="grid grid-cols-3 gap-2">
-                <NumInput label="Base Price" value={form.base_price} step="0.01" onChange={(v) => setNum("base_price", v)} />
-                <NumInput label="Sell Price" value={form.sell_price} step="0.01" onChange={(v) => setNum("sell_price", v)} />
+                <NumInput label="Base Price (USD)" value={form.base_price} step="0.01" onChange={(v) => setNum("base_price", v)} />
+                <NumInput label="Sell Price (BBD)" value={form.sell_price} step="0.01" onChange={(v) => setNum("sell_price", v)} />
                 <div className="space-y-1">
                   <Label className="text-[11px]">Margin</Label>
                   <Input value={margin.toFixed(2)} readOnly className="h-7 text-xs bg-muted" />

@@ -272,11 +272,11 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                     </Select>
                   </div>
                   <div>
-                    <Label className={labelCls}>Cost</Label>
+                    <Label className={labelCls}>{form.bb_item ? "Cost (BBD)" : "Cost (USD)"}</Label>
                     <Input className={inputCls} type="number" step="0.01" min="0" value={form.base_price} onChange={(e) => set("base_price", +e.target.value)} />
                   </div>
                   <div>
-                    <Label className={labelCls}>Sell Price</Label>
+                    <Label className={labelCls}>Sell Price (BBD)</Label>
                     <Input className={inputCls} type="number" step="0.01" min="0" value={form.sell_price} onChange={(e) => set("sell_price", +e.target.value)} />
                   </div>
                   <div />
@@ -308,20 +308,22 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                 </div>
                 {calc ? (
                   <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-xs">
-                    <ReadOnly label="Converted" value={fmt(calc.converted_cost)} />
-                    <ReadOnly label="CIF" value={fmt(calc.cif)} />
-                    <ReadOnly label="Duty" value={fmt(calc.duty)} />
-                    <ReadOnly label="Charges" value={fmt(calc.charges)} />
-                    <ReadOnly label="VAT" value={fmt(calc.vat)} />
-                    <ReadOnly label="Landed" value={fmt(calc.landed_cost)} highlight />
-                    <ReadOnly label="Overhead" value={fmt(calc.overhead)} />
-                    <ReadOnly label="Financing" value={fmt(calc.financing)} />
-                    <ReadOnly label="Holding" value={fmt(calc.holding)} />
-                    <ReadOnly label="Shrinkage" value={fmt(calc.shrinkage)} />
-                    <ReadOnly label="Labour" value={fmt(calc.labour)} />
-                    <ReadOnly label="Full Cost" value={fmt(calc.full_cost)} highlight />
-                    <ReadOnly label="Strat. Price" value={fmt(calc.strategic_price)} />
+                    <ReadOnly label="FX Rate" value={calc.fx_rate_used.toFixed(4)} />
+                    <ReadOnly label="Converted (BBD)" value={fmt(calc.converted_cost)} />
+                    <ReadOnly label="CIF (BBD)" value={fmt(calc.cif)} />
+                    <ReadOnly label="Duty (BBD)" value={fmt(calc.duty)} />
+                    <ReadOnly label="Charges (BBD)" value={fmt(calc.charges)} />
+                    <ReadOnly label="VAT (BBD)" value={fmt(calc.vat)} />
+                    <ReadOnly label="Landed (BBD)" value={fmt(calc.landed_cost)} highlight />
+                    <ReadOnly label="Overhead (BBD)" value={fmt(calc.overhead)} />
+                    <ReadOnly label="Financing (BBD)" value={fmt(calc.financing)} />
+                    <ReadOnly label="Holding (BBD)" value={fmt(calc.holding)} />
+                    <ReadOnly label="Shrinkage (BBD)" value={fmt(calc.shrinkage)} />
+                    <ReadOnly label="Labour (BBD)" value={fmt(calc.labour)} />
+                    <ReadOnly label="Full Cost (BBD)" value={fmt(calc.full_cost)} highlight />
+                    <ReadOnly label="Strat. Price (BBD)" value={fmt(calc.strategic_price)} />
                     <ReadOnly label="Margin" value={calc.margin != null ? fmtPct(calc.margin) : "—"} />
+                    <ReadOnly label="Sell (USD)" value={calc.sell_price_usd != null ? fmt(calc.sell_price_usd) : "—"} />
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">Loading pricing settings…</p>

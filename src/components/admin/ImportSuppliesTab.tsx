@@ -137,10 +137,10 @@ const ImportSuppliesTab = () => {
                 <TableHead className="text-xs">Status</TableHead>
                 <TableHead className="text-xs">Name</TableHead>
                 <TableHead className="text-xs">Category</TableHead>
-                <TableHead className="text-xs">Base Cost</TableHead>
-                <TableHead className="text-xs">Full Cost</TableHead>
-                <TableHead className="text-xs">Strategic</TableHead>
-                <TableHead className="text-xs">Sell Price</TableHead>
+                <TableHead className="text-xs">Cost (USD)</TableHead>
+                <TableHead className="text-xs">Full Cost (BBD)</TableHead>
+                <TableHead className="text-xs">Strategic (BBD)</TableHead>
+                <TableHead className="text-xs">Sell (BBD)</TableHead>
                 <TableHead className="text-xs">Margin</TableHead>
                 <TableHead className="text-xs">Health</TableHead>
                 <TableHead className="text-xs">Errors</TableHead>
