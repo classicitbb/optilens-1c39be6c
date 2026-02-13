@@ -17,6 +17,12 @@ const SuppliesPage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editSupply, setEditSupply] = useState<Supply | null>(null);
 
+  const filtered = (supplies ?? []).filter((s) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return s.name.toLowerCase().includes(q) || s.sku?.toLowerCase().includes(q) || s.category.toLowerCase().includes(q);
+  });
+
   const handleCreate = (form: SupplyFormData) => {
     createMutation.mutate(form, {
       onSuccess: () => { setFormOpen(false); toast({ title: "Supply created" }); },
@@ -25,6 +31,14 @@ const SuppliesPage = () => {
   };
 
   const handleUpdate = (form: SupplyFormData) => {
+    if (!editSupply) return;
+    updateMutation.mutate({ id: editSupply.id, form }, {
+      onSuccess: () => { toast({ title: "Supply updated" }); },
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  const handleUpdateAndClose = (form: SupplyFormData) => {
     if (!editSupply) return;
     updateMutation.mutate({ id: editSupply.id, form }, {
       onSuccess: () => { setEditSupply(null); toast({ title: "Supply updated" }); },
@@ -67,7 +81,16 @@ const SuppliesPage = () => {
       />
 
       <SupplyFormDialog open={formOpen} onOpenChange={setFormOpen} supply={null} onSubmit={handleCreate} isPending={createMutation.isPending} />
-      <SupplyFormDialog open={!!editSupply} onOpenChange={(open) => !open && setEditSupply(null)} supply={editSupply} onSubmit={handleUpdate} isPending={updateMutation.isPending} />
+      <SupplyFormDialog
+        open={!!editSupply}
+        onOpenChange={(open) => !open && setEditSupply(null)}
+        supply={editSupply}
+        supplies={filtered}
+        onSubmit={handleUpdate}
+        onSubmitAndClose={handleUpdateAndClose}
+        onNavigate={(s) => setEditSupply(s)}
+        isPending={updateMutation.isPending}
+      />
     </div>
   );
 };
