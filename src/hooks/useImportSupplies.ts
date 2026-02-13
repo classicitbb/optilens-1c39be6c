@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { calculatePricingEngine, type PricingEngineInput, type PricingEngineResult } from "./usePricingEngine";
+import type { PricingSettings } from "./usePricingSettings";
 
 const REQUIRED_COLS = ["name"] as const;
 const ALL_COLS = [
@@ -18,6 +20,8 @@ export interface ParsedRow {
   status: RowStatus;
   errors: string[];
   existingId?: string;
+  pricing?: PricingEngineResult | null;
+  supplierCost: number;
 }
 
 export interface ImportSummary {
@@ -55,12 +59,49 @@ function parseBool(v: string): boolean {
   return lower === "true" || lower === "1" || lower === "yes" || lower === "y" || lower === "x";
 }
 
+function computeRowPricing(raw: Record<string, string>, settings: PricingSettings): { pricing: PricingEngineResult | null; supplierCost: number } {
+  const baseCost = cleanNumber(raw["basecost"] ?? "") ?? 0;
+  const sellPrice = cleanNumber(raw["sellprice"] ?? "") ?? 0;
+  const currency = raw["currency"]?.trim() || "USD";
+  const bbItem = parseBool(raw["bbitem"] ?? "");
+  const dutyAdded = parseBool(raw["dutyadded"] ?? "");
+
+  const input: PricingEngineInput = {
+    component_type: "supplies",
+    supplier_cost: baseCost,
+    currency,
+    bb_item: bbItem,
+    vat_recoverable: false,
+    duty_applicable: dutyAdded,
+    labour_cost: 0,
+    category: "supplies",
+    sell_price: sellPrice > 0 ? sellPrice : undefined,
+  };
+
+  return { pricing: calculatePricingEngine(input, settings), supplierCost: baseCost };
+}
+
 export const useImportSupplies = () => {
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+
+  const { data: pricingSettings } = useQuery<PricingSettings>({
+    queryKey: ["pricing_settings_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pricing_settings")
+        .select("*")
+        .eq("is_active", true)
+        .order("version", { ascending: false })
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data as unknown as PricingSettings;
+    },
+  });
 
   const summary: ImportSummary = {
     total: rows.length,
@@ -82,24 +123,23 @@ export const useImportSupplies = () => {
       const headers = Object.keys(rawRows[0]).map((h) => h.toLowerCase());
       const missing = REQUIRED_COLS.filter((c) => !headers.includes(c));
       if (missing.length > 0) {
-        setRows([{ rowNumber: 0, raw: {}, status: "error", errors: [`Missing required columns: ${missing.join(", ")}`] }]);
+        setRows([{ rowNumber: 0, raw: {}, status: "error", errors: [`Missing required columns: ${missing.join(", ")}`], supplierCost: 0 }]);
         setIsValidating(false);
         return;
       }
 
-      // Fetch existing supplies by name for duplicate detection
       const { data: existing } = await supabase.from("supplies").select("id, name");
       const nameMap = new Map<string, string>();
       ((existing as any[]) ?? []).forEach((s: any) => nameMap.set(s.name.toLowerCase().trim(), s.id));
 
-      // Fetch supplier/brand maps for optional FK resolution
-      const { data: suppliers } = await supabase.from("suppliers").select("id, name").eq("is_active", true);
-      const supplierMap = new Map<string, string>();
-      ((suppliers as any[]) ?? []).forEach((s: any) => supplierMap.set(s.name.toLowerCase().trim(), s.id));
-
-      const { data: brands } = await supabase.from("brands").select("id, name").eq("is_active", true);
-      const brandMap = new Map<string, string>();
-      ((brands as any[]) ?? []).forEach((b: any) => brandMap.set(b.name.toLowerCase().trim(), b.id));
+      // Fetch active pricing settings for computation
+      let settings = pricingSettings;
+      if (!settings) {
+        const { data } = await supabase
+          .from("pricing_settings").select("*").eq("is_active", true)
+          .order("version", { ascending: false }).limit(1).single();
+        settings = data as unknown as PricingSettings;
+      }
 
       const parsed: ParsedRow[] = rawRows.map((raw, i) => {
         const errors: string[] = [];
@@ -109,16 +149,24 @@ export const useImportSupplies = () => {
         const existingId = name ? nameMap.get(name.toLowerCase()) : undefined;
         const status: RowStatus = errors.length > 0 ? "error" : existingId ? "duplicate" : "valid";
 
-        return { rowNumber: i + 1, raw, status, errors, existingId };
+        let pricing: PricingEngineResult | null = null;
+        let supplierCost = 0;
+        if (settings && errors.length === 0) {
+          const computed = computeRowPricing(raw, settings);
+          pricing = computed.pricing;
+          supplierCost = computed.supplierCost;
+        }
+
+        return { rowNumber: i + 1, raw, status, errors, existingId, pricing, supplierCost };
       });
 
       setRows(parsed);
     } catch (err: any) {
-      setRows([{ rowNumber: 0, raw: {}, status: "error", errors: [err.message || "Failed to parse file"] }]);
+      setRows([{ rowNumber: 0, raw: {}, status: "error", errors: [err.message || "Failed to parse file"], supplierCost: 0 }]);
     } finally {
       setIsValidating(false);
     }
-  }, []);
+  }, [pricingSettings]);
 
   const executeImport = useCallback(async () => {
     const importable = rows.filter((r) => r.status === "valid" || r.status === "duplicate");
@@ -126,7 +174,6 @@ export const useImportSupplies = () => {
     setIsImporting(true);
 
     try {
-      // Fetch supplier/brand maps
       const { data: suppliers } = await supabase.from("suppliers").select("id, name").eq("is_active", true);
       const supplierMap = new Map<string, string>();
       ((suppliers as any[]) ?? []).forEach((s: any) => supplierMap.set(s.name.toLowerCase().trim(), s.id));

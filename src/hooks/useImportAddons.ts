@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { calculatePricingEngine, type PricingEngineInput, type PricingEngineResult } from "./usePricingEngine";
+import type { PricingSettings } from "./usePricingSettings";
 
 const REQUIRED_COLS = ["name"] as const;
 const ALL_COLS = ["Name", "SKU", "Category", "Description", "Price", "Supplier", "IsActive", "ShowOnWebsite", "SortOrder"];
@@ -13,6 +15,8 @@ export interface ParsedRow {
   status: RowStatus;
   errors: string[];
   existingId?: string;
+  pricing?: PricingEngineResult | null;
+  supplierCost: number;
 }
 
 export interface ImportSummary {
@@ -50,12 +54,39 @@ function parseBool(v: string): boolean {
   return lower === "true" || lower === "1" || lower === "yes" || lower === "y" || lower === "x";
 }
 
+function computeRowPricing(raw: Record<string, string>, settings: PricingSettings): { pricing: PricingEngineResult | null; supplierCost: number } {
+  const price = cleanNumber(raw["price"] ?? "") ?? 0;
+  const input: PricingEngineInput = {
+    component_type: "addons",
+    supplier_cost: price,
+    currency: "USD",
+    bb_item: false,
+    vat_recoverable: false,
+    duty_applicable: true,
+    labour_cost: 0,
+    category: "addons",
+    sell_price: price > 0 ? price : undefined,
+  };
+  return { pricing: calculatePricingEngine(input, settings), supplierCost: price };
+}
+
 export const useImportAddons = () => {
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+
+  const { data: pricingSettings } = useQuery<PricingSettings>({
+    queryKey: ["pricing_settings_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pricing_settings").select("*").eq("is_active", true)
+        .order("version", { ascending: false }).limit(1).single();
+      if (error) throw error;
+      return data as unknown as PricingSettings;
+    },
+  });
 
   const summary: ImportSummary = {
     total: rows.length,
@@ -77,7 +108,7 @@ export const useImportAddons = () => {
       const headers = Object.keys(rawRows[0]).map((h) => h.toLowerCase());
       const missing = REQUIRED_COLS.filter((c) => !headers.includes(c));
       if (missing.length > 0) {
-        setRows([{ rowNumber: 0, raw: {}, status: "error", errors: [`Missing required columns: ${missing.join(", ")}`] }]);
+        setRows([{ rowNumber: 0, raw: {}, status: "error", errors: [`Missing required columns: ${missing.join(", ")}`], supplierCost: 0 }]);
         setIsValidating(false);
         return;
       }
@@ -85,6 +116,14 @@ export const useImportAddons = () => {
       const { data: existing } = await supabase.from("addons").select("id, name");
       const nameMap = new Map<string, string>();
       ((existing as any[]) ?? []).forEach((a: any) => nameMap.set(a.name.toLowerCase().trim(), a.id));
+
+      let settings = pricingSettings;
+      if (!settings) {
+        const { data } = await supabase
+          .from("pricing_settings").select("*").eq("is_active", true)
+          .order("version", { ascending: false }).limit(1).single();
+        settings = data as unknown as PricingSettings;
+      }
 
       const parsed: ParsedRow[] = rawRows.map((raw, i) => {
         const errors: string[] = [];
@@ -94,16 +133,24 @@ export const useImportAddons = () => {
         const existingId = name ? nameMap.get(name.toLowerCase()) : undefined;
         const status: RowStatus = errors.length > 0 ? "error" : existingId ? "duplicate" : "valid";
 
-        return { rowNumber: i + 1, raw, status, errors, existingId };
+        let pricing: PricingEngineResult | null = null;
+        let supplierCost = 0;
+        if (settings && errors.length === 0) {
+          const computed = computeRowPricing(raw, settings);
+          pricing = computed.pricing;
+          supplierCost = computed.supplierCost;
+        }
+
+        return { rowNumber: i + 1, raw, status, errors, existingId, pricing, supplierCost };
       });
 
       setRows(parsed);
     } catch (err: any) {
-      setRows([{ rowNumber: 0, raw: {}, status: "error", errors: [err.message || "Failed to parse file"] }]);
+      setRows([{ rowNumber: 0, raw: {}, status: "error", errors: [err.message || "Failed to parse file"], supplierCost: 0 }]);
     } finally {
       setIsValidating(false);
     }
-  }, []);
+  }, [pricingSettings]);
 
   const executeImport = useCallback(async () => {
     const importable = rows.filter((r) => r.status === "valid" || r.status === "duplicate");

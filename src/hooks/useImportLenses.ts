@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { calculatePricingEngine, type PricingEngineInput, type PricingEngineResult } from "./usePricingEngine";
+import type { PricingSettings } from "./usePricingSettings";
 
 // ── CSV columns ──
 const REQUIRED_COLS = [
@@ -28,13 +30,15 @@ export interface ParsedRow {
   status: RowStatus;
   errors: string[];
   generatedName: string;
-  resolved: Record<string, string>; // key like "supplier_id" → uuid
+  resolved: Record<string, string>;
   existingLensId?: string;
+  pricing?: PricingEngineResult | null;
+  supplierCost: number;
 }
 
 export interface UnresolvedRef {
-  col: string;       // e.g. "supplier"
-  table: string;     // e.g. "suppliers"
+  col: string;
+  table: string;
   originalValue: string;
   resolution: "map" | "create" | null;
   mappedId?: string;
@@ -106,7 +110,6 @@ function parseCSVText(text: string): Record<string, string>[] {
   });
 }
 
-/** Strip $, commas, whitespace and parse as number */
 function cleanNumber(v: string): number | null {
   const cleaned = v.replace(/[$,\s]/g, "").trim();
   if (cleaned === "" || isNaN(Number(cleaned))) return null;
@@ -125,6 +128,21 @@ function generateLensName(
     .filter(Boolean).join(" ");
 }
 
+function computeRowPricing(raw: Record<string, string>, settings: PricingSettings): { pricing: PricingEngineResult | null; supplierCost: number } {
+  const cost = cleanNumber(raw["uscost"] ?? "") ?? 0;
+  const input: PricingEngineInput = {
+    component_type: "lenses",
+    supplier_cost: cost,
+    currency: "USD",
+    bb_item: false,
+    vat_recoverable: false,
+    duty_applicable: true,
+    labour_cost: 0,
+    category: "lenses",
+  };
+  return { pricing: calculatePricingEngine(input, settings), supplierCost: cost };
+}
+
 export const useImportLenses = () => {
   const queryClient = useQueryClient();
   const [rawData, setRawData] = useState<Record<string, string>[]>([]);
@@ -136,6 +154,17 @@ export const useImportLenses = () => {
   const [batchId, setBatchId] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
+  const { data: pricingSettings } = useQuery<PricingSettings>({
+    queryKey: ["pricing_settings_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pricing_settings").select("*").eq("is_active", true)
+        .order("version", { ascending: false }).limit(1).single();
+      if (error) throw error;
+      return data as unknown as PricingSettings;
+    },
+  });
+
   const summary: ImportSummary = {
     total: rows.length,
     valid: rows.filter((r) => r.status === "valid").length,
@@ -146,14 +175,14 @@ export const useImportLenses = () => {
 
   const hasUnresolved = unresolvedRefs.some((u) => u.resolution === null);
 
-  /** Core validation logic — used on initial parse and after resolutions */
   const validateRows = useCallback(
     (
       rawRows: Record<string, string>[],
       maps: Record<string, RefMap>,
       lensMap: Map<string, string>,
+      settings?: PricingSettings | null,
     ): { parsed: ParsedRow[]; unresolved: UnresolvedRef[] } => {
-      const unresolvedMap = new Map<string, UnresolvedRef>(); // "col:value" → ref
+      const unresolvedMap = new Map<string, UnresolvedRef>();
 
       const parsed: ParsedRow[] = rawRows.map((raw, i) => {
         const errors: string[] = [];
@@ -165,20 +194,14 @@ export const useImportLenses = () => {
 
         for (const { col, table, key } of REF_COLUMNS) {
           const val = raw[col]?.trim();
-          if (!val) {
-            errors.push(`${col} is required`);
-            continue;
-          }
+          if (!val) { errors.push(`${col} is required`); continue; }
           const map = maps[table];
           if (!map) { errors.push(`${col} ref data not loaded`); continue; }
           const entry = map.get(val.toLowerCase());
           if (!entry) {
             const mapKey = `${col}:${val.toLowerCase()}`;
             if (!unresolvedMap.has(mapKey)) {
-              unresolvedMap.set(mapKey, {
-                col, table, originalValue: val,
-                resolution: null, affectedRows: 0,
-              });
+              unresolvedMap.set(mapKey, { col, table, originalValue: val, resolution: null, affectedRows: 0 });
             }
             unresolvedMap.get(mapKey)!.affectedRows++;
             errors.push(`${col} "${val}" not found`);
@@ -191,7 +214,6 @@ export const useImportLenses = () => {
           }
         }
 
-        // Validate USCost
         const cost = cleanNumber(raw["uscost"] ?? "");
         if (cost === null) errors.push("USCost must be a number");
 
@@ -199,7 +221,15 @@ export const useImportLenses = () => {
         const existingId = generatedName ? lensMap.get(generatedName.toLowerCase().trim()) : undefined;
         const status: RowStatus = errors.length > 0 ? "error" : existingId ? "duplicate" : "valid";
 
-        return { rowNumber: i + 1, raw, status, errors, generatedName, resolved, existingLensId: existingId };
+        let pricing: PricingEngineResult | null = null;
+        let supplierCost = 0;
+        if (settings && errors.length === 0) {
+          const computed = computeRowPricing(raw, settings);
+          pricing = computed.pricing;
+          supplierCost = computed.supplierCost;
+        }
+
+        return { rowNumber: i + 1, raw, status, errors, generatedName, resolved, existingLensId: existingId, pricing, supplierCost };
       });
 
       return { parsed, unresolved: Array.from(unresolvedMap.values()) };
@@ -218,58 +248,50 @@ export const useImportLenses = () => {
       const rawRows = parseCSVText(text);
       setRawData(rawRows);
 
-      if (rawRows.length === 0) {
-        setRows([]);
-        setIsValidating(false);
-        return;
-      }
+      if (rawRows.length === 0) { setRows([]); setIsValidating(false); return; }
 
-      // Check headers
       const headers = Object.keys(rawRows[0]).map((h) => h.toLowerCase());
       const missingHeaders = REQUIRED_COLS.filter((c) => !headers.includes(c));
       if (missingHeaders.length > 0) {
         setRows([{
           rowNumber: 0, raw: {}, status: "error", generatedName: "",
           errors: [`Missing required columns: ${missingHeaders.join(", ")}`],
-          resolved: {},
+          resolved: {}, supplierCost: 0,
         }]);
         setIsValidating(false);
         return;
       }
 
-      // Fetch all reference data
       const maps: Record<string, RefMap> = {};
-      await Promise.all(
-        REF_COLUMNS.map(async ({ table }) => {
-          maps[table] = await fetchRefMap(table);
-        }),
-      );
+      await Promise.all(REF_COLUMNS.map(async ({ table }) => { maps[table] = await fetchRefMap(table); }));
       setRefMaps(maps);
 
-      // Fetch existing lenses
       const { data: existingLenses } = await supabase.from("lenses").select("id, name");
       const lensMap = new Map<string, string>();
       ((existingLenses as any[]) ?? []).forEach((l: any) => lensMap.set(l.name.toLowerCase().trim(), l.id));
 
-      const { parsed, unresolved } = validateRows(rawRows, maps, lensMap);
+      let settings = pricingSettings;
+      if (!settings) {
+        const { data } = await supabase
+          .from("pricing_settings").select("*").eq("is_active", true)
+          .order("version", { ascending: false }).limit(1).single();
+        settings = data as unknown as PricingSettings;
+      }
+
+      const { parsed, unresolved } = validateRows(rawRows, maps, lensMap, settings);
       setRows(parsed);
       setUnresolvedRefs(unresolved);
     } catch (err: any) {
       setRows([{
         rowNumber: 0, raw: {}, status: "error", generatedName: "",
-        errors: [err.message || "Failed to parse file"], resolved: {},
+        errors: [err.message || "Failed to parse file"], resolved: {}, supplierCost: 0,
       }]);
     } finally {
       setIsValidating(false);
     }
-  }, [validateRows]);
+  }, [validateRows, pricingSettings]);
 
-  /** Resolve a single unresolved ref — either map to existing ID or create new */
-  const resolveRef = useCallback(async (
-    index: number,
-    action: "map" | "create",
-    mappedId?: string,
-  ) => {
+  const resolveRef = useCallback(async (index: number, action: "map" | "create", mappedId?: string) => {
     const ref = unresolvedRefs[index];
     if (!ref) return;
 
@@ -279,35 +301,28 @@ export const useImportLenses = () => {
     }
     if (!resolvedId) return;
 
-    // Update ref maps with the new mapping
     const updatedMaps = { ...refMaps };
     const map = new Map(updatedMaps[ref.table]);
-    // Fetch the full entry for name generation
     const { data } = await (supabase.from(ref.table as any).select("id, name, abbrev") as any).eq("id", resolvedId).single();
     if (data) {
       map.set(ref.originalValue.toLowerCase().trim(), {
-        id: (data as any).id,
-        name: (data as any).name,
-        abbrev: (data as any).abbrev ?? "",
+        id: (data as any).id, name: (data as any).name, abbrev: (data as any).abbrev ?? "",
       });
     }
     updatedMaps[ref.table] = map;
     setRefMaps(updatedMaps);
 
-    // Update unresolved refs
     const updatedRefs = [...unresolvedRefs];
     updatedRefs[index] = { ...ref, resolution: action, mappedId: resolvedId };
     setUnresolvedRefs(updatedRefs);
 
-    // Re-validate all rows with updated maps
     const { data: existingLenses } = await supabase.from("lenses").select("id, name");
     const lensMap = new Map<string, string>();
     ((existingLenses as any[]) ?? []).forEach((l: any) => lensMap.set(l.name.toLowerCase().trim(), l.id));
 
-    const { parsed, unresolved } = validateRows(rawData, updatedMaps, lensMap);
+    const { parsed, unresolved } = validateRows(rawData, updatedMaps, lensMap, pricingSettings);
     setRows(parsed);
 
-    // Merge: keep resolved ones resolved, add any newly found unresolved
     const resolvedKeys = new Set(
       updatedRefs.filter((r) => r.resolution !== null).map((r) => `${r.col}:${r.originalValue.toLowerCase()}`),
     );
@@ -316,12 +331,11 @@ export const useImportLenses = () => {
       ...unresolved.filter((u) => !resolvedKeys.has(`${u.col}:${u.originalValue.toLowerCase()}`)),
     ];
     setUnresolvedRefs(merged);
-  }, [unresolvedRefs, refMaps, rawData, validateRows]);
+  }, [unresolvedRefs, refMaps, rawData, validateRows, pricingSettings]);
 
   const executeImport = useCallback(async () => {
     const importable = rows.filter((r) => r.status === "valid" || r.status === "duplicate");
     if (importable.length === 0) return;
-
     setIsImporting(true);
 
     try {
@@ -330,14 +344,8 @@ export const useImportLenses = () => {
 
       const { data: batch, error: batchErr } = await supabase
         .from("import_batches")
-        .insert({
-          user_id: user.id,
-          file_name: fileName ?? "unknown.csv",
-          status: "processing",
-          total_rows: importable.length,
-        } as any)
-        .select("id")
-        .single();
+        .insert({ user_id: user.id, file_name: fileName ?? "unknown.csv", status: "processing", total_rows: importable.length } as any)
+        .select("id").single();
       if (batchErr) throw batchErr;
       setBatchId(batch.id);
 
@@ -364,9 +372,7 @@ export const useImportLenses = () => {
             show_in_pricelist: parseBool(raw["showinpl"] ?? ""),
             full_lab: parseBool(raw["fulllab"] ?? ""),
             show_in_ws_pricelist: parseBool(raw["showinwspl"] ?? ""),
-            show_on_website: false,
-            notes: null,
-            is_active: true,
+            show_on_website: false, notes: null, is_active: true,
           };
 
           let lensId: string;
@@ -380,7 +386,6 @@ export const useImportLenses = () => {
             lensId = newLens.id;
           }
 
-          // Handle lens_option
           await supabase.from("lens_lens_options").delete().eq("lens_id", lensId);
           if (row.resolved.lens_option_id) {
             await supabase.from("lens_lens_options").insert({
@@ -422,7 +427,6 @@ export const useImportLenses = () => {
         status: "completed", success_count: successCount, error_count: errorCount,
       } as any).eq("id", batch.id);
 
-      // Invalidate lens catalog cache so new imports appear immediately
       queryClient.invalidateQueries({ queryKey: ["lenses"] });
     } catch (err: any) {
       console.error("Import failed:", err);
@@ -432,20 +436,15 @@ export const useImportLenses = () => {
   }, [rows, fileName]);
 
   const reset = useCallback(() => {
-    setRows([]);
-    setRawData([]);
-    setUnresolvedRefs([]);
-    setRefMaps({});
-    setBatchId(null);
-    setFileName(null);
+    setRows([]); setRawData([]); setUnresolvedRefs([]); setRefMaps({});
+    setBatchId(null); setFileName(null);
   }, []);
 
   const generateTemplate = useCallback(() => {
     const csv = ALL_COLS.join(",") + "\n";
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "lens_import_template.csv"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "lens_import_template.csv"; a.click();
     URL.revokeObjectURL(url);
   }, []);
 
