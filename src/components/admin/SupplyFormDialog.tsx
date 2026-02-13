@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import type { Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useReferenceData } from "@/hooks/useReferenceData";
-import { useCompanySettings, calculateLandedCost } from "@/hooks/useCompanySettings";
+import { usePricingEngine } from "@/hooks/usePricingEngine";
 
 interface Props {
   open: boolean;
@@ -44,11 +45,18 @@ const defaultForm: SupplyFormData = {
 const fmt = (n: number) => n.toFixed(2);
 const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
+const MARGIN_STATUS_COLORS: Record<string, string> = {
+  healthy: "bg-green-100 text-green-800",
+  thin: "bg-yellow-100 text-yellow-800",
+  below_floor: "bg-orange-100 text-orange-800",
+  loss: "bg-red-100 text-red-800",
+};
+
 const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSubmitAndClose, onNavigate, isPending }: Props) => {
   const [form, setForm] = useState<SupplyFormData>(defaultForm);
   const { data: suppliers } = useReferenceData("suppliers");
   const { data: brands } = useReferenceData("brands");
-  const { data: settings } = useCompanySettings();
+  const { calculate } = usePricingEngine();
 
   const activeSuppliers = (suppliers ?? []).filter((s) => s.is_active);
   const activeBrands = (brands ?? []).filter((b) => b.is_active);
@@ -74,7 +82,17 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
     }
   }, [supply, open]);
 
-  const calc = useMemo(() => calculateLandedCost(form, settings), [form, settings]);
+  const calc = useMemo(() => calculate({
+    component_type: "supplies",
+    supplier_cost: form.base_price,
+    currency: form.currency,
+    bb_item: form.bb_item,
+    vat_recoverable: form.vat_paid,
+    duty_applicable: form.duty_added,
+    labour_cost: form.labour_added ? form.base_price * 0.05 : 0, // placeholder labour
+    category: form.category === "lab" || form.category === "optical" ? "supplies" : "addons",
+    sell_price: form.sell_price,
+  }), [form, calculate]);
 
   const set = (key: keyof SupplyFormData, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -102,11 +120,8 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
         <DialogHeader>
           <div className="flex items-center gap-2">
             {supply && onNavigate && (
-              <Button
-                type="button" variant="ghost" size="icon"
-                className="h-7 w-7" disabled={!canGoPrev || isPending}
-                onClick={() => canGoPrev && supplies && onNavigate(supplies[currentIndex - 1])}
-              >
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoPrev || isPending}
+                onClick={() => canGoPrev && supplies && onNavigate(supplies[currentIndex - 1])}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
@@ -114,18 +129,14 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
               {supply ? "Edit Supply Item" : "New Supply"}
             </DialogTitle>
             {supply && onNavigate && (
-              <Button
-                type="button" variant="ghost" size="icon"
-                className="h-7 w-7" disabled={!canGoNext || isPending}
-                onClick={() => canGoNext && supplies && onNavigate(supplies[currentIndex + 1])}
-              >
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoNext || isPending}
+                onClick={() => canGoNext && supplies && onNavigate(supplies[currentIndex + 1])}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             )}
           </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Two-column grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             {/* LEFT COLUMN */}
             <div className="space-y-4">
@@ -196,9 +207,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                   </div>
                 </div>
               </div>
-
               <Separator />
-
               <div>
                 <Label className={labelCls}>Notes</Label>
                 <Textarea className="text-xs min-h-[40px]" value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value || null)} />
@@ -226,7 +235,6 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                   ))}
                 </div>
               </div>
-
               <Separator />
 
               {/* Pricing & Cost */}
@@ -265,26 +273,46 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                   ))}
                 </div>
               </div>
-
               <Separator />
 
               {/* Calculated Values */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Calculated Values</p>
-                <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-xs">
-                  <ReadOnly label="BB Cost" value={fmt(calc.bbCost)} />
-                  <ReadOnly label="+ Duty" value={fmt(calc.duty)} />
-                  <ReadOnly label="+ VAT" value={fmt(calc.vat)} />
-                  <ReadOnly label="+ Labour" value={fmt(calc.labour)} />
-                  <ReadOnly label="Full Cost" value={fmt(calc.fullCost)} highlight />
-                  <ReadOnly label="Profit %" value={fmtPct(calc.profitPercent)} />
-                  <ReadOnly label="AutoPrice" value={fmt(calc.autoPrice)} />
-                  <ReadOnly label="Markup" value={fmt(calc.markup)} />
-                  <ReadOnly label="Sales Tax" value={fmt(calc.salesTax)} />
-                  <ReadOnly label="Plus Sales Tax" value={fmt(calc.plusSalesTax)} />
-                  <ReadOnly label="A/S Profit" value={fmt(calc.afterSalesProfit)} />
-                  {form.stk_wspl && <ReadOnly label="WS Stk Price" value={fmt(calc.wsStkPrice)} />}
+                <div className="flex items-center gap-2 mb-2">
+                  <p className={sectionCls + " mb-0"} style={{ color: "hsl(215 15% 45%)" }}>Calculated Values</p>
+                  {calc?.margin_status && (
+                    <Badge className={`text-[10px] px-1.5 py-0 ${MARGIN_STATUS_COLORS[calc.margin_status]}`}>
+                      {calc.margin_status === "loss" && <AlertTriangle className="h-3 w-3 mr-0.5" />}
+                      {calc.margin_status}
+                    </Badge>
+                  )}
                 </div>
+                {calc ? (
+                  <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-xs">
+                    <ReadOnly label="Converted" value={fmt(calc.converted_cost)} />
+                    <ReadOnly label="CIF" value={fmt(calc.cif)} />
+                    <ReadOnly label="Duty" value={fmt(calc.duty)} />
+                    <ReadOnly label="Charges" value={fmt(calc.charges)} />
+                    <ReadOnly label="VAT" value={fmt(calc.vat)} />
+                    <ReadOnly label="Landed" value={fmt(calc.landed_cost)} highlight />
+                    <ReadOnly label="Overhead" value={fmt(calc.overhead)} />
+                    <ReadOnly label="Financing" value={fmt(calc.financing)} />
+                    <ReadOnly label="Holding" value={fmt(calc.holding)} />
+                    <ReadOnly label="Shrinkage" value={fmt(calc.shrinkage)} />
+                    <ReadOnly label="Labour" value={fmt(calc.labour)} />
+                    <ReadOnly label="Full Cost" value={fmt(calc.full_cost)} highlight />
+                    <ReadOnly label="Strat. Price" value={fmt(calc.strategic_price)} />
+                    <ReadOnly label="Margin" value={calc.margin != null ? fmtPct(calc.margin) : "—"} />
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Loading pricing settings…</p>
+                )}
+                {calc?.governance_flags && (calc.governance_flags.at_loss || calc.governance_flags.below_floor) && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {calc.governance_flags.at_loss && <Badge variant="destructive" className="text-[10px]">At Loss</Badge>}
+                    {calc.governance_flags.below_floor && <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-700">Below Floor</Badge>}
+                    {calc.governance_flags.below_target && <Badge variant="outline" className="text-[10px]">Below Target</Badge>}
+                  </div>
+                )}
               </div>
             </div>
           </div>
