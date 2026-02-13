@@ -17,6 +17,7 @@ import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
 import ReferenceDataPage from "./pages/admin/ReferenceDataPage";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
+import AuditLogPage from "./pages/admin/AuditLogPage";
 import LensesPage from "./pages/admin/LensesPage";
 import LensPricesPage from "./pages/admin/LensPricesPage";
 import ImportsPage from "./pages/admin/ImportsPage";
@@ -63,7 +64,7 @@ const App = () => (
                 <Route path="exports" element={<PlaceholderPage />} />
                 <Route path="parameters" element={<CompanySettingsPage />} />
                 <Route path="users" element={<UsersPage />} />
-                <Route path="audit" element={<PlaceholderPage />} />
+                <Route path="audit" element={<AuditLogPage />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

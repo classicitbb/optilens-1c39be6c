@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePricingSettings, PricingSettings } from "@/hooks/usePricingSettings";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ const PricingSettingsTab = () => {
   const { versions, isLoading, saveNewVersion } = usePricingSettings();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
+  const { logChange } = useAuditLog();
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(DEFAULTS);
 
@@ -83,10 +85,18 @@ const PricingSettingsTab = () => {
   };
 
   const handleSave = () => {
+    const oldData = activeVersion ? { ...activeVersion } : null;
     saveNewVersion.mutate(form, {
       onSuccess: () => {
         toast({ title: "New version saved" });
         setSelectedVersion(null);
+        logChange({
+          table_name: "pricing_settings",
+          record_id: activeVersion?.id ?? "",
+          action: "update",
+          old_data: oldData as any,
+          new_data: { ...form, name: `Pricing Settings v${(activeVersion?.version ?? 0) + 1}` } as any,
+        });
       },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
