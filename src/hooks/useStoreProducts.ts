@@ -24,10 +24,8 @@ export const useStoreProducts = () => {
           .eq("is_active", true)
           .order("name"),
         supabase
-          .from("supplies")
-          .select("*")
-          .eq("show_on_website", true)
-          .eq("is_active", true)
+          .from("supplies_public" as any)
+          .select("id, name, description, sell_price, category, unit, quantity_per_unit, image_url")
           .order("name"),
       ]);
 
