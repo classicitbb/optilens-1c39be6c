@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,6 +104,19 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
     const m = Number(form.sell_price) - Number(form.base_price);
     return isNaN(m) ? 0 : m;
   }, [form.sell_price, form.base_price]);
+
+  const { calculate } = usePricingEngine();
+  const calc = useMemo(() => calculate({
+    component_type: "lenses",
+    supplier_cost: form.base_price,
+    currency: "USD",
+    bb_item: false,
+    vat_recoverable: false,
+    duty_applicable: true,
+    labour_cost: 0,
+    category: "lenses",
+    sell_price: form.sell_price,
+  }), [form.base_price, form.sell_price, calculate]);
 
   const set = <K extends keyof LensFormData>(key: K, value: LensFormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -265,9 +279,17 @@ const LensFormDialog = ({ open, onOpenChange, lens, onSubmit, isPending }: Props
               <div className="grid grid-cols-3 gap-2">
                 <NumInput label="Base Price (USD)" value={form.base_price} step="0.01" onChange={(v) => setNum("base_price", v)} />
                 <NumInput label="Sell Price (BBD)" value={form.sell_price} step="0.01" onChange={(v) => setNum("sell_price", v)} />
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <Label className="text-[11px]">Margin</Label>
                   <Input value={margin.toFixed(2)} readOnly className="h-7 text-xs bg-muted" />
+                </div>
+                <div className="space-y-0.5">
+                  <Label className="text-[11px]">Sell (USD)</Label>
+                  <Input value={calc?.sell_price_usd != null ? calc.sell_price_usd.toFixed(2) : "—"} readOnly className="h-7 text-xs bg-muted" />
+                </div>
+                <div className="space-y-0.5">
+                  <Label className="text-[11px]">FX Rate</Label>
+                  <Input value={calc?.fx_rate_used?.toFixed(4) ?? "—"} readOnly className="h-7 text-xs bg-muted" />
                 </div>
               </div>
             </section>

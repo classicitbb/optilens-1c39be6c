@@ -174,7 +174,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending, prici
               </Select>
             </div>
             <div>
-              <Label className={labelCls}>Price</Label>
+              <Label className={labelCls}>Price (BBD)</Label>
               <Input className={inputCls} type="number" step="0.01" min="0" value={form.price} onChange={(e) => set("price", +e.target.value)} />
             </div>
             <div>
@@ -234,7 +234,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, onSubmit, isPending, prici
                           type="number"
                           step="0.01"
                           min="0"
-                          placeholder="Override $"
+                          placeholder="Override (BBD)"
                           value={s.price_override}
                           onChange={(e) => updateSheet(idx, { price_override: e.target.value })}
                         />
