@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSupplies, Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
+import { useAuditLog, buildPricingSummary } from "@/hooks/useAuditLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
@@ -12,6 +13,7 @@ const SuppliesPage = () => {
   const { data: supplies, isLoading, createMutation, updateMutation, toggleActiveMutation } = useSupplies();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
+  const { logChange } = useAuditLog();
 
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -23,31 +25,62 @@ const SuppliesPage = () => {
     return s.name.toLowerCase().includes(q) || s.sku?.toLowerCase().includes(q) || s.category.toLowerCase().includes(q);
   });
 
-  const handleCreate = (form: SupplyFormData) => {
+  const handleCreate = (form: SupplyFormData, reason?: string) => {
     createMutation.mutate(form, {
-      onSuccess: () => { setFormOpen(false); toast({ title: "Supply created" }); },
+      onSuccess: (data: any) => {
+        setFormOpen(false);
+        toast({ title: "Supply created" });
+        logChange({ table_name: "supplies", record_id: data?.id ?? "", action: "create", new_data: form as any, reason });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
 
-  const handleUpdate = (form: SupplyFormData) => {
+  const handleUpdate = (form: SupplyFormData, reason?: string) => {
     if (!editSupply) return;
+    const oldData = editSupply as any;
     updateMutation.mutate({ id: editSupply.id, form }, {
-      onSuccess: () => { toast({ title: "Supply updated" }); },
+      onSuccess: () => {
+        toast({ title: "Supply updated" });
+        logChange({
+          table_name: "supplies", record_id: editSupply.id, action: "update",
+          old_data: oldData, new_data: form as any,
+          change_summary: buildPricingSummary(oldData, form as any),
+          reason,
+        });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
 
-  const handleUpdateAndClose = (form: SupplyFormData) => {
+  const handleUpdateAndClose = (form: SupplyFormData, reason?: string) => {
     if (!editSupply) return;
+    const oldData = editSupply as any;
     updateMutation.mutate({ id: editSupply.id, form }, {
-      onSuccess: () => { setEditSupply(null); toast({ title: "Supply updated" }); },
+      onSuccess: () => {
+        setEditSupply(null);
+        toast({ title: "Supply updated" });
+        logChange({
+          table_name: "supplies", record_id: editSupply.id, action: "update",
+          old_data: oldData, new_data: form as any,
+          change_summary: buildPricingSummary(oldData, form as any),
+          reason,
+        });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
 
   const handleToggle = (supply: Supply) => {
     toggleActiveMutation.mutate({ id: supply.id, is_active: !supply.is_active }, {
+      onSuccess: () => {
+        logChange({
+          table_name: "supplies", record_id: supply.id, action: "update",
+          old_data: { is_active: supply.is_active },
+          new_data: { is_active: !supply.is_active, name: supply.name },
+          change_summary: { is_active: { old: supply.is_active, new: !supply.is_active } },
+        });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };

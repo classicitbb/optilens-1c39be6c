@@ -21,7 +21,6 @@ const ReferenceDataPage = () => {
         Reference Data
       </h1>
 
-      {/* Tabs */}
       <div className="flex gap-0 border-b" style={{ borderColor: "hsl(215 15% 85%)" }}>
         {ENTITIES.map((e) => (
           <button

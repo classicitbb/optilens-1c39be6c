@@ -12,14 +12,17 @@ import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import type { Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
+import { checkGovernance } from "@/hooks/useGovernanceCheck";
+import GovernanceAlert from "@/components/admin/GovernanceAlert";
+import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   supply: Supply | null;
   supplies?: Supply[];
-  onSubmit: (form: SupplyFormData) => void;
-  onSubmitAndClose?: (form: SupplyFormData) => void;
+  onSubmit: (form: SupplyFormData, reason?: string) => void;
+  onSubmitAndClose?: (form: SupplyFormData, reason?: string) => void;
   onNavigate?: (supply: Supply) => void;
   isPending: boolean;
 }
@@ -54,9 +57,11 @@ const MARGIN_STATUS_COLORS: Record<string, string> = {
 
 const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSubmitAndClose, onNavigate, isPending }: Props) => {
   const [form, setForm] = useState<SupplyFormData>(defaultForm);
+  const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"save" | "saveAndClose" | null>(null);
   const { data: suppliers } = useReferenceData("suppliers");
   const { data: brands } = useReferenceData("brands");
-  const { calculate } = usePricingEngine();
+  const { calculate, settings } = usePricingEngine();
 
   const activeSuppliers = (suppliers ?? []).filter((s) => s.is_active);
   const activeBrands = (brands ?? []).filter((b) => b.is_active);
@@ -89,25 +94,40 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
     bb_item: form.bb_item,
     vat_recoverable: form.vat_paid,
     duty_applicable: form.duty_added,
-    labour_cost: form.labour_added ? form.base_price * 0.05 : 0, // placeholder labour
+    labour_cost: form.labour_added ? form.base_price * 0.05 : 0,
     category: form.category === "lab" || form.category === "optical" ? "supplies" : "addons",
     sell_price: form.sell_price,
   }), [form, calculate]);
 
+  const governance = useMemo(() => checkGovernance(calc, settings, form.base_price), [calc, settings, form.base_price]);
+
   const set = (key: keyof SupplyFormData, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
-  // Navigation
   const currentIndex = supply && supplies ? supplies.findIndex((s) => s.id === supply.id) : -1;
   const canGoPrev = currentIndex > 0;
   const canGoNext = supplies ? currentIndex >= 0 && currentIndex < supplies.length - 1 : false;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
+  const attemptSave = (action: "save" | "saveAndClose") => {
+    if (governance.blocked) return;
+    if (governance.needsReason) {
+      setPendingAction(action);
+      setReasonDialogOpen(true);
+      return;
+    }
+    if (action === "save") onSubmit(form);
+    else onSubmitAndClose?.(form);
   };
 
-  const handleSaveAndClose = () => {
-    onSubmitAndClose?.(form);
+  const handleReasonConfirm = (reason: string) => {
+    setReasonDialogOpen(false);
+    if (pendingAction === "save") onSubmit(form, reason);
+    else onSubmitAndClose?.(form, reason);
+    setPendingAction(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    attemptSave("save");
   };
 
   const inputCls = "h-8 text-xs";
@@ -314,22 +334,31 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                   </div>
                 )}
               </div>
+
+              {/* Governance Alert */}
+              {governance.blocked && <GovernanceAlert reasons={governance.blockReasons} />}
             </div>
           </div>
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name}>
+            <Button type="submit" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || governance.blocked}>
               {isPending ? "Saving…" : "Save"}
             </Button>
             {onSubmitAndClose && (
-              <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name} onClick={handleSaveAndClose}>
+              <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
                 Save & Close
               </Button>
             )}
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <ConcessionReasonDialog
+        open={reasonDialogOpen}
+        onConfirm={handleReasonConfirm}
+        onCancel={() => { setReasonDialogOpen(false); setPendingAction(null); }}
+      />
     </Dialog>
   );
 };

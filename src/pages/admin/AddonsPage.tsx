@@ -4,18 +4,13 @@ import { useAddonPricingSheets } from "@/hooks/useAddonPricingSheets";
 import { usePricingSheets } from "@/hooks/usePricingSheets";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import AddonDataTable from "@/components/admin/AddonDataTable";
 import AddonFormDialog from "@/components/admin/AddonFormDialog";
@@ -25,6 +20,7 @@ const AddonsPage = () => {
   const { data: pricingSheets } = usePricingSheets();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const { logChange } = useAuditLog();
 
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -33,8 +29,6 @@ const AddonsPage = () => {
 
   const editAddonId = editAddon?.id ?? null;
   const { data: addonSheets, saveMutation: sheetSaveMutation } = useAddonPricingSheets(editAddonId);
-
-  // Separate instance for create flow (no addonId yet)
   const { saveMutation: createSheetSaveMutation } = useAddonPricingSheets(null);
 
   const handleCreate = (form: AddonFormData, sheetAssignments: { pricing_sheet_id: string; price_override: number | null }[]) => {
@@ -45,6 +39,7 @@ const AddonsPage = () => {
         }
         setFormOpen(false);
         toast({ title: "Add-on created" });
+        logChange({ table_name: "addons", record_id: data?.id ?? "", action: "create", new_data: form as any });
       },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
@@ -52,11 +47,17 @@ const AddonsPage = () => {
 
   const handleUpdate = (form: AddonFormData, sheetAssignments: { pricing_sheet_id: string; price_override: number | null }[]) => {
     if (!editAddon) return;
+    const oldData = editAddon as any;
     updateMutation.mutate({ id: editAddon.id, form }, {
       onSuccess: () => {
         sheetSaveMutation.mutate({ addonId: editAddon.id, assignments: sheetAssignments });
         setEditAddon(null);
         toast({ title: "Add-on updated" });
+        logChange({
+          table_name: "addons", record_id: editAddon.id, action: "update",
+          old_data: oldData, new_data: form as any,
+          change_summary: oldData.price !== form.price ? { price: { old: oldData.price, new: form.price } } : undefined,
+        });
       },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
@@ -64,6 +65,14 @@ const AddonsPage = () => {
 
   const handleToggle = (addon: Addon) => {
     toggleActiveMutation.mutate({ id: addon.id, is_active: !addon.is_active }, {
+      onSuccess: () => {
+        logChange({
+          table_name: "addons", record_id: addon.id, action: "update",
+          old_data: { is_active: addon.is_active, name: addon.name },
+          new_data: { is_active: !addon.is_active, name: addon.name },
+          change_summary: { is_active: { old: addon.is_active, new: !addon.is_active } },
+        });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
@@ -77,8 +86,13 @@ const AddonsPage = () => {
 
   const handleDelete = () => {
     if (!deleteTarget) return;
+    const old = deleteTarget;
     deleteMutation.mutate(deleteTarget.id, {
-      onSuccess: () => { setDeleteTarget(null); toast({ title: "Add-on deleted" }); },
+      onSuccess: () => {
+        setDeleteTarget(null);
+        toast({ title: "Add-on deleted" });
+        logChange({ table_name: "addons", record_id: old.id, action: "delete", old_data: old as any });
+      },
       onError: (e: any) => { setDeleteTarget(null); toast({ title: "Error", description: e.message, variant: "destructive" }); },
     });
   };
@@ -103,52 +117,22 @@ const AddonsPage = () => {
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, SKU, category…" className="h-8 text-xs pl-8" />
       </div>
 
-      <AddonDataTable
-        addons={addons ?? []}
-        search={search}
-        canEdit={canEdit}
-        onRowClick={(addon) => setEditAddon(addon)}
-        onToggleActive={handleToggle}
-        onDuplicate={handleDuplicate}
-        onDelete={(addon) => setDeleteTarget(addon)}
-        canDelete={isAdmin}
-      />
+      <AddonDataTable addons={addons ?? []} search={search} canEdit={canEdit} onRowClick={(addon) => setEditAddon(addon)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(addon) => setDeleteTarget(addon)} canDelete={isAdmin} />
 
-      <AddonFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        addon={null}
-        onSubmit={handleCreate}
-        isPending={createMutation.isPending}
-        pricingSheets={pricingSheets ?? []}
-        addonPricingSheets={[]}
-      />
-      <AddonFormDialog
-        open={!!editAddon}
-        onOpenChange={(open) => !open && setEditAddon(null)}
-        addon={editAddon}
-        onSubmit={handleUpdate}
-        isPending={updateMutation.isPending}
-        pricingSheets={pricingSheets ?? []}
-        addonPricingSheets={addonSheets ?? []}
-      />
+      <AddonFormDialog open={formOpen} onOpenChange={setFormOpen} addon={null} onSubmit={handleCreate} isPending={createMutation.isPending} pricingSheets={pricingSheets ?? []} addonPricingSheets={[]} />
+      <AddonFormDialog open={!!editAddon} onOpenChange={(open) => !open && setEditAddon(null)} addon={editAddon} onSubmit={handleUpdate} isPending={updateMutation.isPending} pricingSheets={pricingSheets ?? []} addonPricingSheets={addonSheets ?? []} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent style={{ borderRadius: "4px" }}>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm">Delete Add-On</AlertDialogTitle>
             <AlertDialogDescription className="text-xs">
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This will also remove all pricing sheet assignments. This action cannot be undone.
+              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="h-7 text-xs">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="h-7 text-xs"
-              style={{ background: "hsl(0 60% 50%)", color: "white", borderRadius: "4px" }}
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
+            <AlertDialogAction className="h-7 text-xs" style={{ background: "hsl(0 60% 50%)", color: "white", borderRadius: "4px" }} onClick={handleDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? "Deleting…" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>

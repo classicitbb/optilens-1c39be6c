@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +31,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   const { data, isLoading, createMutation, updateMutation, deleteMutation, bulkUpdateMutation, bulkDeleteMutation } = useReferenceData(table);
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const { logChange } = useAuditLog();
 
   const [filter, setFilter] = useState<Filter>("active");
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -110,21 +112,37 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
 
   const handleCreate = (values: { name: string; abbrev: string; code: string }) => {
     createMutation.mutate(values, {
-      onSuccess: () => { setModalOpen(false); toast({ title: `${entityLabel} created` }); },
+      onSuccess: (data: any) => {
+        setModalOpen(false);
+        toast({ title: `${entityLabel} created` });
+        logChange({ table_name: table, record_id: data?.id ?? "", action: "create", new_data: { ...values, name: values.name } });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
 
   const handleEdit = (values: { name: string; abbrev: string; code: string }) => {
     if (!editItem) return;
+    const oldData = { name: editItem.name, abbrev: editItem.abbrev, code: editItem.code };
     updateMutation.mutate({ id: editItem.id, updates: values }, {
-      onSuccess: () => { setEditItem(null); toast({ title: `${entityLabel} updated` }); },
+      onSuccess: () => {
+        setEditItem(null);
+        toast({ title: `${entityLabel} updated` });
+        logChange({ table_name: table, record_id: editItem.id, action: "update", old_data: oldData, new_data: values });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
 
   const handleToggleActive = (item: ReferenceItem) => {
     updateMutation.mutate({ id: item.id, updates: { is_active: !item.is_active } }, {
+      onSuccess: () => {
+        logChange({
+          table_name: table, record_id: item.id, action: "update",
+          old_data: { is_active: item.is_active, name: item.name },
+          new_data: { is_active: !item.is_active, name: item.name },
+        });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
@@ -132,7 +150,10 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
   const handleDelete = (item: ReferenceItem) => {
     if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
     deleteMutation.mutate(item.id, {
-      onSuccess: () => toast({ title: `${entityLabel} deleted` }),
+      onSuccess: () => {
+        toast({ title: `${entityLabel} deleted` });
+        logChange({ table_name: table, record_id: item.id, action: "delete", old_data: { name: item.name, abbrev: item.abbrev, code: item.code } });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message.includes("violates foreign key") ? "Cannot delete — this item is referenced by lenses." : e.message, variant: "destructive" }),
     });
   };

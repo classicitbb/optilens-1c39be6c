@@ -112,6 +112,45 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          change_summary: Json | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          reason: string | null
+          record_id: string
+          table_name: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          change_summary?: Json | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          reason?: string | null
+          record_id: string
+          table_name: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          change_summary?: Json | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          reason?: string | null
+          record_id?: string
+          table_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           abbrev: string

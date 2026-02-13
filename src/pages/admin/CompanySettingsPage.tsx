@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useCompanySettings, CompanySettings } from "@/hooks/useCompanySettings";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,7 @@ const CompanySettingsPage = () => {
   const { data: settings, isLoading, updateMutation } = useCompanySettings();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
+  const { logChange } = useAuditLog();
   const [form, setForm] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -33,8 +35,16 @@ const CompanySettingsPage = () => {
   }, [settings]);
 
   const handleSave = () => {
+    const oldData: Record<string, any> = {};
+    FIELDS.forEach((f) => (oldData[f.key] = (settings as any)?.[f.key] ?? 0));
     updateMutation.mutate(form as any, {
-      onSuccess: () => toast({ title: "Settings saved" }),
+      onSuccess: () => {
+        toast({ title: "Settings saved" });
+        logChange({
+          table_name: "company_settings", record_id: settings?.id ?? "", action: "update",
+          old_data: oldData, new_data: { ...form, name: "Company Settings" },
+        });
+      },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
@@ -60,14 +70,7 @@ const CompanySettingsPage = () => {
                 {FIELDS.map((f) => (
                   <div key={f.key} className="grid grid-cols-[140px_1fr_1fr] items-center gap-2">
                     <Label className="text-xs font-medium">{f.label}</Label>
-                    <Input
-                      className="h-8 text-xs"
-                      type="number"
-                      step="0.001"
-                      value={form[f.key] ?? 0}
-                      onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: +e.target.value }))}
-                      disabled={!canEdit}
-                    />
+                    <Input className="h-8 text-xs" type="number" step="0.001" value={form[f.key] ?? 0} onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: +e.target.value }))} disabled={!canEdit} />
                     <span className="text-[10px] text-muted-foreground">{f.hint}</span>
                   </div>
                 ))}
