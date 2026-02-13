@@ -364,6 +364,7 @@ export const useImportLenses = () => {
             material_id: row.resolved.material_id!,
             mftype_id: row.resolved.mftype_id!,
             lenstype_id: row.resolved.lenstype_id!,
+            finishtype_id: row.resolved.finishtype_id || null,
             index_value: 1.5,
             base_price: cost,
             sell_price: 0,
