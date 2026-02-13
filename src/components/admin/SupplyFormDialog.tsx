@@ -88,7 +88,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, onSubmit, isPending }: P
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
-            {supply ? "Edit Supply" : "New Supply"}
+            {supply ? "Edit Supply Item" : "New Supply"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
