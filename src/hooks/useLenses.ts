@@ -15,6 +15,7 @@ export interface Lens {
   material_id: string;
   mftype_id: string;
   lenstype_id: string;
+  finishtype_id: string | null;
   index_value: number;
   base_price: number;
   sell_price: number;
@@ -37,6 +38,7 @@ export interface Lens {
   material: { name: string } | null;
   mftype: { name: string } | null;
   lenstype: { name: string } | null;
+  finishtype: { name: string } | null;
   lens_lens_options: LensOption[];
 }
 
@@ -47,6 +49,7 @@ export interface LensFormData {
   material_id: string;
   mftype_id: string;
   lenstype_id: string;
+  finishtype_id: string | null;
   index_value: number;
   base_price: number;
   sell_price: number;
@@ -65,7 +68,7 @@ export interface LensFormData {
   option: { lens_option_id: string; extra_cost: number } | null;
 }
 
-const SELECT_QUERY = `*, supplier:suppliers(name), brand:brands(name), material:materials(name), mftype:mftypes(name), lenstype:lenstypes(name), lens_lens_options(lens_option_id, extra_cost, lens_option:lens_options(name))`;
+const SELECT_QUERY = `*, supplier:suppliers(name), brand:brands(name), material:materials(name), mftype:mftypes(name), lenstype:lenstypes(name), finishtype:finishtypes(name), lens_lens_options(lens_option_id, extra_cost, lens_option:lens_options(name))`;
 
 export const useLenses = () => {
   const queryClient = useQueryClient();

@@ -397,6 +397,7 @@ export type Database = {
           created_at: string
           cyl_max: number
           cyl_min: number
+          finishtype_id: string | null
           full_lab: boolean
           id: string
           index_value: number
@@ -423,6 +424,7 @@ export type Database = {
           created_at?: string
           cyl_max: number
           cyl_min: number
+          finishtype_id?: string | null
           full_lab?: boolean
           id?: string
           index_value: number
@@ -449,6 +451,7 @@ export type Database = {
           created_at?: string
           cyl_max?: number
           cyl_min?: number
+          finishtype_id?: string | null
           full_lab?: boolean
           id?: string
           index_value?: number
@@ -473,6 +476,13 @@ export type Database = {
             columns: ["brand_id"]
             isOneToOne: false
             referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lenses_finishtype_id_fkey"
+            columns: ["finishtype_id"]
+            isOneToOne: false
+            referencedRelation: "finishtypes"
             referencedColumns: ["id"]
           },
           {

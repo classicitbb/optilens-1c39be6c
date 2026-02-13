@@ -28,7 +28,7 @@ interface Props {
 const PROGRESSIVE_KEYWORDS = ["progressive", "bifocal", "multifocal"];
 
 const emptyForm: LensFormData = {
-  name: "", supplier_id: "", brand_id: "", material_id: "", mftype_id: "", lenstype_id: "",
+  name: "", supplier_id: "", brand_id: "", material_id: "", mftype_id: "", lenstype_id: "", finishtype_id: null,
   index_value: 1.5, base_price: 0, sell_price: 0,
   sph_min: -6, sph_max: 6, cyl_min: -4, cyl_max: 0,
   add_min: null, add_max: null,
@@ -44,6 +44,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const materials = useReferenceData("materials", open);
   const mftypes = useReferenceData("mftypes", open);
   const lenstypes = useReferenceData("lenstypes", open);
+  const finishtypes = useReferenceData("finishtypes", open);
   const lensOptions = useReferenceData("lens_options", open);
 
   const activeSuppliers = useMemo(() => (suppliers.data ?? []).filter((i) => i.is_active), [suppliers.data]);
@@ -51,6 +52,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const activeMaterials = useMemo(() => (materials.data ?? []).filter((i) => i.is_active), [materials.data]);
   const activeMftypes = useMemo(() => (mftypes.data ?? []).filter((i) => i.is_active), [mftypes.data]);
   const activeLenstypes = useMemo(() => (lenstypes.data ?? []).filter((i) => i.is_active), [lenstypes.data]);
+  const activeFinishtypes = useMemo(() => (finishtypes.data ?? []).filter((i) => i.is_active), [finishtypes.data]);
   const activeLensOptions = useMemo(() => (lensOptions.data ?? []).filter((i) => i.is_active), [lensOptions.data]);
 
   useEffect(() => {
@@ -59,6 +61,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
       setForm({
         name: lens.name, supplier_id: lens.supplier_id, brand_id: lens.brand_id,
         material_id: lens.material_id, mftype_id: lens.mftype_id, lenstype_id: lens.lenstype_id,
+        finishtype_id: lens.finishtype_id ?? null,
         index_value: lens.index_value, base_price: lens.base_price, sell_price: lens.sell_price,
         sph_min: lens.sph_min, sph_max: lens.sph_max, cyl_min: lens.cyl_min, cyl_max: lens.cyl_max,
         add_min: lens.add_min, add_max: lens.add_max,
@@ -268,6 +271,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                 <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} />
                 <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeMftypes} />
                 <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeLenstypes} />
+                <RefSelect label="Finish Type" value={form.finishtype_id ?? ""} onChange={(v) => set("finishtype_id", v || null)} items={activeFinishtypes} />
                 <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} />
                 {form.option && (
                   <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
