@@ -672,6 +672,105 @@ export type Database = {
           },
         ]
       }
+      pricing_settings: {
+        Row: {
+          avg_days_in_stock: number
+          base_currency: string
+          block_below_floor: boolean
+          block_loss: boolean
+          brokerage_fee: number
+          category_margin_floors: Json
+          category_target_margins: Json
+          cost_of_capital: number
+          created_at: string
+          created_by: string | null
+          duty_rates: Json
+          freight_method: string
+          fx_rates: Json
+          fx_risk_buffer: number
+          id: string
+          insurance_percent: number
+          inventory_holding: number
+          is_active: boolean
+          label: string | null
+          max_price_increase: number
+          overhead_percent: number
+          port_charges: number
+          price_reduction_threshold: number
+          psychological_rounding: boolean
+          require_concession_reason: boolean
+          rounding_rule: number
+          shrinkage_percent: number
+          target_margin: number
+          vat_rate: number
+          version: number
+        }
+        Insert: {
+          avg_days_in_stock?: number
+          base_currency?: string
+          block_below_floor?: boolean
+          block_loss?: boolean
+          brokerage_fee?: number
+          category_margin_floors?: Json
+          category_target_margins?: Json
+          cost_of_capital?: number
+          created_at?: string
+          created_by?: string | null
+          duty_rates?: Json
+          freight_method?: string
+          fx_rates?: Json
+          fx_risk_buffer?: number
+          id?: string
+          insurance_percent?: number
+          inventory_holding?: number
+          is_active?: boolean
+          label?: string | null
+          max_price_increase?: number
+          overhead_percent?: number
+          port_charges?: number
+          price_reduction_threshold?: number
+          psychological_rounding?: boolean
+          require_concession_reason?: boolean
+          rounding_rule?: number
+          shrinkage_percent?: number
+          target_margin?: number
+          vat_rate?: number
+          version?: number
+        }
+        Update: {
+          avg_days_in_stock?: number
+          base_currency?: string
+          block_below_floor?: boolean
+          block_loss?: boolean
+          brokerage_fee?: number
+          category_margin_floors?: Json
+          category_target_margins?: Json
+          cost_of_capital?: number
+          created_at?: string
+          created_by?: string | null
+          duty_rates?: Json
+          freight_method?: string
+          fx_rates?: Json
+          fx_risk_buffer?: number
+          id?: string
+          insurance_percent?: number
+          inventory_holding?: number
+          is_active?: boolean
+          label?: string | null
+          max_price_increase?: number
+          overhead_percent?: number
+          port_charges?: number
+          price_reduction_threshold?: number
+          psychological_rounding?: boolean
+          require_concession_reason?: boolean
+          rounding_rule?: number
+          shrinkage_percent?: number
+          target_margin?: number
+          vat_rate?: number
+          version?: number
+        }
+        Relationships: []
+      }
       pricing_sheets: {
         Row: {
           created_at: string
