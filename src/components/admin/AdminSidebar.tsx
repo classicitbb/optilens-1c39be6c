@@ -15,9 +15,7 @@ interface MenuItem {
 }
 
 const MENU: MenuItem[] = [
-  { label: "Lenses", icon: Glasses, path: "/admin/lenses" },
-  { label: "Supplies", icon: Package, path: "/admin/supplies" },
-  { label: "Add-Ons", icon: Layers, path: "/admin/addons" },
+  { label: "Product Catalog", icon: Layers, path: "/admin/catalog" },
   { label: "Reference Data", icon: Database, path: "/admin/reference" },
   { label: "Lens Prices", icon: DollarSign, path: "/admin/pricing" },
   { label: "Imports", icon: Upload, path: "/admin/imports" },
