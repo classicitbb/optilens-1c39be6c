@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";
+import AdminChatbot from "./AdminChatbot";
 
 const AdminLayout = () => {
   return (
@@ -14,6 +15,7 @@ const AdminLayout = () => {
             <Outlet />
           </main>
         </div>
+        <AdminChatbot />
       </div>
     </AdminRoleProvider>
   );

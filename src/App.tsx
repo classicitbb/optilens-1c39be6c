@@ -25,6 +25,7 @@ import UsersPage from "./pages/admin/UsersPage";
 import SuppliesPage from "./pages/admin/SuppliesPage";
 import AddonsPage from "./pages/admin/AddonsPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
+import AdminWikiPage from "./pages/admin/AdminWikiPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,7 @@ const App = () => (
                 <Route path="parameters" element={<CompanySettingsPage />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="audit" element={<AuditLogPage />} />
+                <Route path="wiki" element={<AdminWikiPage />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

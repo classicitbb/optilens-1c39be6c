@@ -3,7 +3,7 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import {
   Glasses, Database, DollarSign, Upload, History, Download,
-  Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Package, Layers,
+  Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Package, Layers, BookOpen,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -71,7 +71,19 @@ const AdminSidebar = () => {
         })}
       </nav>
 
-      <div className="border-t px-3 py-2" style={{ borderColor: "hsl(215 25% 18%)" }}>
+      <div className="border-t px-3 py-2 space-y-0.5" style={{ borderColor: "hsl(215 25% 18%)" }}>
+        <RouterNavLink
+          to="/admin/wiki"
+          className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`}
+          title={collapsed ? "Help / Wiki" : undefined}
+          style={{
+            color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)",
+            background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent",
+          }}
+        >
+          <BookOpen className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>Help / Wiki</span>}
+        </RouterNavLink>
         <Link
           to="/"
           className={`${linkBase} w-full`}
