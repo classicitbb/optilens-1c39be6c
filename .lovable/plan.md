@@ -1,60 +1,86 @@
+# Lens Catalog Table + Modal Alignment with Supplies/Addons
 
-# Persist Lens Import Mappings and Improve Duplicate Handling
-
-## Problem 1: Reference Mappings Are Lost Between Imports
-
-Currently, when you resolve an unmatched reference (e.g., mapping CSV value "Essilor" to an existing supplier), that mapping only lives in browser memory. The moment you reset or reload, you have to redo it all. This is tedious for repeated imports from the same source.
-
-**Solution:** Create a database table `import_ref_mappings` that stores each mapping (CSV value to reference record ID). On subsequent imports, these saved mappings are loaded automatically and applied before showing unresolved items.
-
-### Database Changes
-
-New table: `import_ref_mappings`
-- `id` (uuid, primary key)
-- `ref_table` (text) -- e.g. "suppliers", "brands"
-- `csv_value` (text) -- the original CSV text that didn't match
-- `mapped_id` (uuid) -- the reference record it was mapped to
-- `created_at` (timestamptz)
-- Unique constraint on `(ref_table, csv_value)` so each CSV value only has one mapping per table
-- RLS: editors can select/insert/update/delete
-
-### Hook Changes (`useImportLenses.ts`)
-
-- On `parseAndValidate`: after loading ref maps, also fetch saved mappings from `import_ref_mappings` and inject them into the ref maps before validation runs
-- On `resolveRef`: after resolving, also persist the mapping to `import_ref_mappings` (upsert on the unique constraint)
-- This means the next time the same CSV value appears, it auto-resolves without user action
+This plan covers three areas: (1) updating the lens data table columns, (2) aligning the lens modal flags to use Switch toggles like supplies, and (3) hooking lens pricing into the full pricing engine with governance.
 
 ---
 
-## Problem 2: Smarter Duplicate Detection with Overwrite/Ignore
+## 1. Lens Data Table Column Changes (`LensDataTable.tsx`)
 
-Currently, duplicates are detected only by matching the generated lens name. The user wants broader matching (including price and other variables) and the ability to choose whether to overwrite or ignore duplicates.
+**Current columns:** Name, Supplier, Brand, Material, Lens Type, Index, Cost (USD), Sell (BBD), Sell (USD), Status, PL, Lab, WSPL, Web, [Active switch]
 
-**Solution:** Enhance duplicate detection to match on the composite key of `supplier_id + brand_id + material_id + mftype_id + lenstype_id + lens_option_id + finishtype_id` (the fields that define a unique lens SKU). When duplicates are found, show them clearly and add a global "Overwrite Duplicates" / "Ignore Duplicates" toggle in the import summary bar.
+**New columns:** Name, Supplier, Brand, Material, Lens Type, **Finish Type**, Cost (USD), Sell (BBD), Sell (USD), PL, Lab, WSPL, **Web (Globe icon)**, [Active switch]
 
-### Hook Changes (`useImportLenses.ts`)
+Changes:
 
-- Fetch existing lenses with all their reference IDs (not just name)
-- Build a composite key from `supplier_id|brand_id|material_id|mftype_id|lenstype_id|finishtype_id` for each existing lens
-- During validation, match incoming rows against this composite key (after references are resolved)
-- Add a new state: `duplicateAction` with values `"overwrite"` or `"ignore"` (default: `"overwrite"`)
-- In `executeImport`: if `duplicateAction === "ignore"`, skip rows with status "duplicate"; if "overwrite", update the existing record (current behavior)
-- Export `duplicateAction` and `setDuplicateAction` from the hook
-
-### UI Changes (`ImportLensesTab.tsx`)
-
-- In the summary bar, when duplicates exist, show a toggle/button group: **Overwrite** | **Ignore**
-- When "Ignore" is selected, the import button count excludes duplicates
-- Duplicate rows in the table show the action that will be taken (Overwrite or Skip)
+- **Remove** the "Index" column -- replace with "Finish Type" showing `fkName(lens.finishtype)`
+- **Remove** the "Status" badge column entirely
+- **Replace** PL/Lab/WSPL columns: instead of disabled Checkbox components, show a plain checkmark character or blank (matching the supplies table pattern using `"checkmark" : ""`)
+- **Replace** the Web column: instead of a disabled Checkbox, show a Globe icon when true (matching the addons table pattern)
+- Update the `SortHeader` options to replace `index_value` with a sortable `finishtype` column
+- Update `colSpan` values for empty/load-more rows
 
 ---
 
-## File Summary
+## 2. Lens Form Dialog Alignment (`LensFormDialog.tsx`)
 
-| File | Changes |
-|------|---------|
-| New migration SQL | Create `import_ref_mappings` table with unique constraint and RLS policies |
-| `src/hooks/useImportLenses.ts` | Load saved mappings on validate; persist mappings on resolve; composite-key duplicate detection; add `duplicateAction` state |
-| `src/components/admin/ImportLensesTab.tsx` | Add Overwrite/Ignore toggle for duplicates in summary bar; update import button count based on selection |
+The lens modal currently uses `Checkbox` components for flags (Show in Pricelist, Full Lab, Show in Wholesale PL, Show on Website). The supplies and addons modals use `Switch` toggles in a consistent "Flags" section on the right column.
 
-No changes to existing database tables are needed -- the duplicate detection enhancement is purely application-level logic using existing columns.
+Changes:
+
+- **Replace all Checkbox flag controls with Switch toggles**, matching the supplies modal pattern:
+  ```
+  Flags section with Switch toggles:
+  - Active
+  - Show in Pricelist (PL)
+  - Full Lab
+  - Show in Wholesale PL (WSPL)
+  - Show on Website
+  ```
+- Move the Active toggle from the footer into the Flags section (consistent with supplies/addons where flags are grouped together)
+- Restructure the modal layout to match the supplies two-column pattern:
+  - **Left column**: Item Info (identity fields, specs, notes)
+  - **Right column**: Flags, Pricing and Cost, Calculated Values
+
+---
+
+## 3. Hook Lens Pricing into the Pricing Engine (`LensFormDialog.tsx`)
+
+Currently the lens modal has a basic margin calculation (`sell_price - base_price`) and a minimal pricing engine call that does not account for `full_lab`. The supplies modal shows the full calculated values panel (landed cost, overhead, financing, shrinkage, strategic price, margin status badge, governance flags).
+
+Changes:
+
+- Update the pricing engine call to pass `full_lab` context: when `full_lab` is true, set `labour_cost: 0` and potentially adjust `duty_applicable` and `bb_item` flags (full lab means local processing --  import duty/labour added, if unchecked it means its imported, but not manufactured or stored by us.)
+- Add the **Calculated Values** panel to the lens modal (matching supplies): FX Rate, Converted (BBD), CIF, Duty, Charges, VAT, Landed, Overhead, Financing, Holding, Shrinkage, Labour, Full Cost, Strategic Price, Margin, Sell (USD)
+- Add **margin status badge** display
+- Add **governance flags** display (At Loss, Below Floor, Below Target badges)
+- Integrate **GovernanceAlert** and **ConcessionReasonDialog** components
+- Wire governance blocking into the Save/Save & Close buttons (disable when blocked, require reason when needed)
+- Update `LensesPage.tsx` handlers to accept and pass through the concession reason parameter
+
+---
+
+## Technical Details
+
+### Files to modify:
+
+
+| File                                      | Changes                                                                                                                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/admin/LensDataTable.tsx`  | Remove Index + Status columns; add Finish Type column; replace Checkbox flags with checkmarks; Web column gets Globe icon                                     |
+| `src/components/admin/LensFormDialog.tsx` | Replace Checkbox flags with Switch toggles; restructure to two-column layout matching supplies; add full Calculated Values panel; integrate governance checks |
+| `src/pages/admin/LensesPage.tsx`          | Update handlers to support concession reason parameter from governance flow                                                                                   |
+| `src/hooks/useLenses.ts`                  | Update `LensFormData` to not need changes (already has all flags); no schema changes needed                                                                   |
+
+
+### ReadOnly helper
+
+The `LensFormDialog` will need the same `ReadOnly` display component used in the supplies and addons modals for showing calculated values. This will be added inline (same pattern as the other modals).
+
+### Pricing Engine Integration for Lenses
+
+The `full_lab` flag false or unchecked means local labour and processing is NOT added to lens cost. The engine call will be:
+
+- `labour_cost`: 1 when `full_lab` is true ( local processing), otherwise do not apply a labour factor
+- `bb_item`: false (lenses are imported)
+- `duty_applicable`: true (import duty applies but can be toggled)
+- `category`: "lenses"
