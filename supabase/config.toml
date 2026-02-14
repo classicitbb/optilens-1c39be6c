@@ -2,3 +2,6 @@ project_id = "xstmeirxhfbiyayrrsob"
 
 [functions.admin-assistant]
 verify_jwt = false
+
+[functions.lens-assistant]
+verify_jwt = false
