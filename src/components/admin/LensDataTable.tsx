@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ArrowUpDown, Globe } from "lucide-react";
+import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2 } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import type { Lens } from "@/hooks/useLenses";
@@ -16,17 +16,21 @@ interface Props {
   search: string;
   onRowClick: (lens: Lens) => void;
   onToggleActive: (lens: Lens) => void;
+  onDuplicate?: (lens: Lens) => void;
+  onDelete?: (lens: Lens) => void;
+  canDelete?: boolean;
 }
 
 const fkName = (fk: { name: string } | null) => fk?.name ?? "";
 
-const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) => {
+const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const { canEdit } = useAdminRole();
   const { settings } = usePricingEngine();
   const [filter, setFilter] = useState<Filter>("active");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [visibleCount, setVisibleCount] = useState(50);
+  const [unlocked, setUnlocked] = useState(false);
 
   const fxRate = useMemo(() => {
     if (!settings) return 2;
@@ -88,7 +92,8 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
   );
 
   const currency = (v: number) => `$${Number(v).toFixed(2)}`;
-  const colCount = canEdit ? 14 : 13;
+  const showActions = unlocked && canEdit;
+  const colCount = (canEdit ? 14 : 13) + (showActions ? 1 : 0);
 
   return (
     <div className="space-y-3">
@@ -106,7 +111,16 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
             {t.label}
           </button>
         ))}
-        <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+        <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+          {canEdit && (
+            <button
+              onClick={() => setUnlocked((u) => !u)}
+              className="p-0.5 rounded transition-colors hover:bg-black/5"
+              title={unlocked ? "Lock actions" : "Unlock actions"}
+            >
+              {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(35 80% 50%)" }} /> : <Lock className="h-3.5 w-3.5" />}
+            </button>
+          )}
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -129,6 +143,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
               <TableHead className="text-center text-[10px]">WSPL</TableHead>
               <TableHead className="text-center text-[10px]">Web</TableHead>
               {canEdit && <TableHead />}
+              {showActions && <TableHead className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -140,7 +155,6 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
               </TableRow>
             ) : (
               visibleItems.map((lens, idx) => {
-                // Margin health row coloring
                 const cost = lens.base_price;
                 const sell = lens.sell_price;
                 let rowBg = idx % 2 === 1 ? "hsl(215 20% 97%)" : undefined;
@@ -171,6 +185,20 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
                   {canEdit && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Switch checked={lens.is_active} onCheckedChange={() => onToggleActive(lens)} className="scale-75" />
+                    </TableCell>
+                  )}
+                  {showActions && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(lens)}>
+                          <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+                        </Button>
+                        {canDelete && (
+                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(lens)}>
+                            <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>

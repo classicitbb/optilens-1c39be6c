@@ -118,5 +118,24 @@ export const useSupplies = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["supplies"] }),
   });
 
-  return { ...query, createMutation, updateMutation, toggleActiveMutation };
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("supplies").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["supplies"] }),
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (supply: Supply) => {
+      const { id, created_at, updated_at, supplier_name, brand_name, ...rest } = supply;
+      const newSupply = { ...rest, name: `${supply.name} (Copy)` };
+      const { data, error } = await supabase.from("supplies").insert(newSupply as any).select("id").single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["supplies"] }),
+  });
+
+  return { ...query, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation };
 };

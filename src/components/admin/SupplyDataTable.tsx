@@ -1,5 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Copy, Trash2, Lock, Unlock } from "lucide-react";
 import type { Supply } from "@/hooks/useSupplies";
 import { useMemo, useState, useCallback } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
@@ -12,6 +14,9 @@ interface Props {
   canEdit: boolean;
   onRowClick: (supply: Supply) => void;
   onToggleActive: (supply: Supply) => void;
+  onDuplicate?: (supply: Supply) => void;
+  onDelete?: (supply: Supply) => void;
+  canDelete?: boolean;
 }
 
 const PAGE_SIZE = 50;
@@ -22,9 +27,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   accessories: "Accessories",
 };
 
-const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive }: Props) => {
+const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filter, setFilter] = useState<Filter>("active");
+  const [unlocked, setUnlocked] = useState(false);
   const { settings } = usePricingEngine();
 
   const handleFilterChange = useCallback((f: Filter) => {
@@ -32,9 +38,8 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
     setVisibleCount(PAGE_SIZE);
   }, []);
 
-  // Compute FX rate for USD conversion (sell_price BBD → USD)
   const fxRate = useMemo(() => {
-    if (!settings) return 2; // fallback
+    if (!settings) return 2;
     const rates = settings.fx_rates as Record<string, number>;
     return (rates["USD"] ?? 1) * (1 + settings.fx_risk_buffer);
   }, [settings]);
@@ -67,6 +72,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
+  const showActions = unlocked && canEdit;
 
   const thCls = "text-[11px] font-semibold uppercase tracking-wider py-2 px-3 sticky top-0 z-10";
   const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
@@ -87,7 +93,16 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
             {t.label}
           </button>
         ))}
-        <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+        <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+          {canEdit && (
+            <button
+              onClick={() => setUnlocked((u) => !u)}
+              className="p-0.5 rounded transition-colors hover:bg-black/5"
+              title={unlocked ? "Lock actions" : "Unlock actions"}
+            >
+              {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(35 80% 50%)" }} /> : <Lock className="h-3.5 w-3.5" />}
+            </button>
+          )}
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -105,6 +120,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Unit</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
             {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
+            {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -138,12 +154,26 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
                   <Switch checked={s.is_active} onCheckedChange={() => onToggleActive(s)} />
                 </TableCell>
               )}
+              {showActions && (
+                <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(s)}>
+                      <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+                    </Button>
+                    {canDelete && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(s)}>
+                        <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
             );
           })}
           {visible.length === 0 && (
             <TableRow>
-              <TableCell colSpan={canEdit ? 10 : 9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
+              <TableCell colSpan={canEdit ? (showActions ? 11 : 10) : 9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
                 No supplies found.
               </TableCell>
             </TableRow>
