@@ -1,71 +1,87 @@
 
 
-# Unified Product Catalog Page
+# Add Duplicate/Delete Actions to Lenses & Supplies with Lock/Unlock Guard
 
 ## Overview
-Combine the Lenses, Add-Ons, and Supplies pages into a single **Product Catalog** page that uses tabs (like the Reference Data page), with one shared search bar and consistent table styling across all three.
+Extend the Duplicate and Delete actions (currently only on Add-Ons) to the Lenses and Supplies tables. Add a lock/unlock toggle next to the record count on all three tables so these destructive actions are hidden by default and only revealed when explicitly unlocked.
 
 ## What Changes
 
-### 1. New Unified Page: `src/pages/admin/ProductCatalogPage.tsx`
-- A single page with three tabs: **Lenses**, **Add-Ons**, **Supplies**
-- Tab bar styled identically to the Reference Data page (underline-style tabs)
-- One shared search input at the top (clears when switching tabs)
-- Each tab renders its respective data table and form dialogs
-- All existing CRUD logic (create, update, toggle, duplicate, delete) is preserved inside each tab section -- essentially the current page components become inline sections
-- The "Add" button label changes per tab ("Add Lens", "Add Add-On", "Add Supply")
+### 1. Add `deleteMutation` and `duplicateMutation` to hooks
 
-### 2. Sidebar Update: `src/components/admin/AdminSidebar.tsx`
-- Replace the three separate menu items (Lenses, Supplies, Add-Ons) with a single **Product Catalog** entry
-- Icon: use an existing icon like `Layers` or `Package`
+**`src/hooks/useLenses.ts`** -- add two new mutations:
+- `deleteMutation`: deletes a lens row and its `lens_lens_options` join rows (cascade should handle this, but delete join rows first to be safe)
+- `duplicateMutation`: copies a Lens (with "(Copy)" suffix, blank SKU-equivalent fields, preserves all other fields including lens options)
 
-### 3. Router Update: `src/App.tsx`
-- Replace the three routes (`/admin/lenses`, `/admin/supplies`, `/admin/addons`) with a single `/admin/catalog` route pointing to `ProductCatalogPage`
-- Update the default redirect from `/admin` to `/admin/catalog`
-- Keep old paths redirecting to `/admin/catalog` for bookmarks
+**`src/hooks/useSupplies.ts`** -- add two new mutations:
+- `deleteMutation`: deletes a supply row by ID
+- `duplicateMutation`: copies a Supply with "(Copy)" suffix, preserves all fields except ID
 
-### 4. Remove Old Pages (optional cleanup)
-- `LensesPage.tsx`, `AddonsPage.tsx`, `SuppliesPage.tsx` become unused and can be removed since their logic moves into the unified page
+### 2. Lock/Unlock toggle on all three data tables
 
-### 5. Table Style Consistency
-- All three data tables already use similar styling (sticky headers, alternating rows, margin health colors). Minor alignment will be done:
-  - Ensure identical `thCls` / `tdCls` class strings across all three tables
-  - Same filter tab styling (already matching)
-  - Same record count display format
-  - Same border/background HSL values
+Add a small lock icon button next to the record count (right side of filter bar) on each table:
+- **Locked (default)**: Shows a `Lock` icon. The Actions column (Duplicate/Delete buttons) is hidden.
+- **Unlocked**: Shows an `Unlock` icon with a subtle warning tint. The Actions column appears.
+- This replaces the current always-visible Actions column on the Add-Ons table.
+- Only shown when `canEdit` is true.
+
+**Files affected**: `LensDataTable.tsx`, `AddonDataTable.tsx`, `SupplyDataTable.tsx`
+
+Each table gets:
+- New props: `onDuplicate`, `onDelete`, `canDelete` (Lenses and Supplies gain these; Add-Ons already has them)
+- Local `unlocked` state (`useState(false)`)
+- Lock/Unlock button rendered next to the record count span
+- An "Actions" column that only renders when `unlocked && canEdit`
+
+### 3. Wire up in `ProductCatalogPage.tsx`
+
+**LensesTab**:
+- Import and use `deleteMutation` and `duplicateMutation` from `useLenses`
+- Add `deleteTarget` state and delete confirmation AlertDialog (same pattern as AddonsTab)
+- Pass `onDuplicate`, `onDelete`, `canDelete` to `LensDataTable`
+
+**SuppliesTab**:
+- Import and use `deleteMutation` and `duplicateMutation` from `useSupplies`
+- Add `deleteTarget` state and delete confirmation AlertDialog
+- Pass `onDuplicate`, `onDelete`, `canDelete` to `SupplyDataTable`
+
+**AddonsTab**: No logic changes -- just continues passing the same props.
+
+### 4. Audit logging for new actions
+- Log `delete` and `create` (duplicate) actions for lenses and supplies, same pattern already used for add-ons.
 
 ## What Does NOT Change
-- The data tables themselves (`LensDataTable`, `AddonDataTable`, `SupplyDataTable`) remain as separate components -- they have different columns and different data shapes
-- The form dialogs (`LensFormDialog`, `AddonFormDialog`, `SupplyFormDialog`) remain unchanged
-- All hooks (`useLenses`, `useAddons`, `useSupplies`) remain unchanged
-- All CRUD, audit logging, and navigation guard behavior stays identical
+- Form dialogs remain unchanged
+- Navigation guards unchanged
+- Table columns, styling, margin health colors unchanged
+- The delete confirmation AlertDialog pattern is reused as-is from AddonsTab
 
 ## Technical Details
 
-The unified page structure will look like:
-
+### Lock/Unlock UI (in each data table's filter bar)
 ```text
-ProductCatalogPage
-+-- Tab bar: [Lenses] [Add-Ons] [Supplies]
-+-- Search input + Add button
-+-- Conditional render based on active tab:
-    +-- "lenses"  -> LensDataTable + LensFormDialog (logic from LensesPage)
-    +-- "addons"  -> AddonDataTable + AddonFormDialog (logic from AddonsPage)
-    +-- "supplies"-> SupplyDataTable + SupplyFormDialog (logic from SuppliesPage)
+[Active] [Inactive] [All] [Web]          🔒  245 records
+                                   click: 🔓  245 records  (actions column appears)
 ```
+- The lock icon is a small ghost button: `Lock` or `Unlock` from lucide-react
+- When unlocked, the icon gets an amber/warning tint to signal "advanced mode"
+- Clicking again re-locks and hides the actions column
 
-Each tab section will contain its own state (editItem, formOpen, etc.) via inline hooks, keeping the component manageable. Data is only fetched for the active tab using conditional hook calls or by letting React Query cache handle it.
+### Duplicate logic for Lenses
+Copies all lens fields except `id`, `created_at`, `updated_at`. Sets name to `"Original Name (Copy)"`. Also duplicates `lens_lens_options` rows for the new lens ID.
+
+### Delete restrictions
+- Delete button only appears when `canDelete` is true (Admin role only)
+- Always behind the lock/unlock guard as a second layer of protection
 
 ## Files Changed
+
 | File | Action |
 |------|--------|
-| `src/pages/admin/ProductCatalogPage.tsx` | Create (unified page) |
-| `src/components/admin/AdminSidebar.tsx` | Edit (consolidate 3 items to 1) |
-| `src/App.tsx` | Edit (update routes) |
-| `src/pages/admin/LensesPage.tsx` | Delete |
-| `src/pages/admin/AddonsPage.tsx` | Delete |
-| `src/pages/admin/SuppliesPage.tsx` | Delete |
-| `src/components/admin/LensDataTable.tsx` | Minor style alignment |
-| `src/components/admin/AddonDataTable.tsx` | Minor style alignment |
-| `src/components/admin/SupplyDataTable.tsx` | Minor style alignment |
+| `src/hooks/useLenses.ts` | Add `deleteMutation`, `duplicateMutation` |
+| `src/hooks/useSupplies.ts` | Add `deleteMutation`, `duplicateMutation` |
+| `src/components/admin/LensDataTable.tsx` | Add lock/unlock, Actions column, new props |
+| `src/components/admin/AddonDataTable.tsx` | Add lock/unlock guard (replace always-visible actions) |
+| `src/components/admin/SupplyDataTable.tsx` | Add lock/unlock, Actions column, new props |
+| `src/pages/admin/ProductCatalogPage.tsx` | Wire duplicate/delete for Lenses and Supplies tabs |
 
