@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Layers, Target, FlaskConical, Glasses, Wrench, ArrowRight } from "lucide-react";
+import { Layers, Target, FlaskConical, Glasses, Wrench, Globe, ArrowRight } from "lucide-react";
 
 const products = [
   {
@@ -38,6 +38,14 @@ const products = [
     description: "Professional prescription laboratory services including surfacing, edging, tinting, and specialty coatings.",
     features: ["Custom surfacing", "Precision edging", "Specialty coatings"],
     link: "/store?category=services",
+  },
+  {
+    icon: Globe,
+    title: "Optician Website Design",
+    description: "Professional, modern websites built specifically for opticians and optical retailers. Showcase your practice and drive appointments.",
+    features: ["Custom branding", "Online booking", "Mobile responsive"],
+    link: "#contact",
+    cta: true,
   },
 ];
 
@@ -81,11 +89,22 @@ const Products = () => {
                     </li>
                   ))}
                 </ul>
-                <Button variant="outline" className="group/btn w-full" asChild>
-                  <Link to={product.link}>
-                    View Products
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                  </Link>
+                <Button 
+                  variant={product.cta ? "default" : "outline"} 
+                  className="group/btn w-full" 
+                  asChild
+                >
+                  {product.cta ? (
+                    <a href={product.link}>
+                      Contact Us
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                    </a>
+                  ) : (
+                    <Link to={product.link}>
+                      View Products
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                    </Link>
+                  )}
                 </Button>
               </CardContent>
             </Card>
