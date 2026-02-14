@@ -130,5 +130,33 @@ export const useLenses = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lenses"] }),
   });
 
-  return { ...query, createMutation, updateMutation, toggleActiveMutation };
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Delete join rows first to be safe
+      const { error: joinErr } = await supabase.from("lens_lens_options").delete().eq("lens_id", id);
+      if (joinErr) throw joinErr;
+      const { error } = await supabase.from("lenses").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lenses"] }),
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (lens: Lens) => {
+      const { id, created_at, updated_at, supplier, brand, material, mftype, lenstype, finishtype, lens_lens_options, ...rest } = lens;
+      const newLens = { ...rest, name: `${lens.name} (Copy)` };
+      const { data, error } = await supabase.from("lenses").insert(newLens as any).select("id").single();
+      if (error) throw error;
+      // Duplicate lens options
+      if (lens_lens_options?.length) {
+        const optRows = lens_lens_options.map((o) => ({ lens_id: data.id, lens_option_id: o.lens_option_id, extra_cost: o.extra_cost }));
+        const { error: optErr } = await supabase.from("lens_lens_options").insert(optRows as any);
+        if (optErr) throw optErr;
+      }
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lenses"] }),
+  });
+
+  return { ...query, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation };
 };

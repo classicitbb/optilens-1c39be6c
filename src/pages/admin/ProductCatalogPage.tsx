@@ -105,11 +105,12 @@ const ProductCatalogPage = () => {
 /* ─── Tab wrappers that accept lifted formOpen ─── */
 
 const LensesTab = ({ search, formOpen, setFormOpen }: { search: string; formOpen: boolean; setFormOpen: (v: boolean) => void }) => {
-  const { data: lenses, isLoading, createMutation, updateMutation, toggleActiveMutation } = useLenses();
-  const { canEdit } = useAdminRole();
+  const { data: lenses, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useLenses();
+  const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
   const { logChange } = useAuditLog();
   const [editLens, setEditLens] = useState<Lens | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Lens | null>(null);
 
   const handleCreate = (form: LensFormData, reason?: string) => {
     createMutation.mutate(form, {
@@ -143,13 +144,41 @@ const LensesTab = ({ search, formOpen, setFormOpen }: { search: string; formOpen
     });
   };
 
+  const handleDuplicate = (lens: Lens) => {
+    duplicateMutation.mutate(lens, {
+      onSuccess: (data: any) => { toast({ title: `Duplicated "${lens.name}"` }); logChange({ table_name: "lenses", record_id: data?.id ?? "", action: "create", new_data: { ...lens, name: `${lens.name} (Copy)` } as any }); },
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    const old = deleteTarget;
+    deleteMutation.mutate(deleteTarget.id, {
+      onSuccess: () => { setDeleteTarget(null); toast({ title: "Lens deleted" }); logChange({ table_name: "lenses", record_id: old.id, action: "delete", old_data: old as any }); },
+      onError: (e: any) => { setDeleteTarget(null); toast({ title: "Error", description: e.message, variant: "destructive" }); },
+    });
+  };
+
   if (isLoading) return <Spinner />;
 
   return (
     <>
-      <LensDataTable lenses={lenses ?? []} search={search} onRowClick={(lens) => canEdit && setEditLens(lens)} onToggleActive={handleToggle} />
+      <LensDataTable lenses={lenses ?? []} search={search} onRowClick={(lens) => canEdit && setEditLens(lens)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(lens) => setDeleteTarget(lens)} canDelete={isAdmin} />
       <LensFormDialog open={formOpen} onOpenChange={setFormOpen} lens={null} onSubmit={handleCreate} isPending={createMutation.isPending} />
       <LensFormDialog open={!!editLens} onOpenChange={(open) => !open && setEditLens(null)} lens={editLens} lenses={lenses ?? []} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(l) => setEditLens(l)} isPending={updateMutation.isPending} />
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent style={{ borderRadius: "4px" }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm">Delete Lens</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs" style={{ background: "hsl(0 60% 50%)", color: "white", borderRadius: "4px" }} onClick={handleDelete} disabled={deleteMutation.isPending}>{deleteMutation.isPending ? "Deleting…" : "Delete"}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
@@ -253,11 +282,12 @@ const AddonsTab = ({ search, formOpen, setFormOpen }: { search: string; formOpen
 };
 
 const SuppliesTab = ({ search, formOpen, setFormOpen }: { search: string; formOpen: boolean; setFormOpen: (v: boolean) => void }) => {
-  const { data: supplies, isLoading, createMutation, updateMutation, toggleActiveMutation } = useSupplies();
-  const { canEdit } = useAdminRole();
+  const { data: supplies, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useSupplies();
+  const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
   const { logChange } = useAuditLog();
   const [editSupply, setEditSupply] = useState<Supply | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Supply | null>(null);
 
   const filtered = (supplies ?? []).filter((s) => {
     if (!search) return true;
@@ -297,13 +327,41 @@ const SuppliesTab = ({ search, formOpen, setFormOpen }: { search: string; formOp
     });
   };
 
+  const handleDuplicate = (supply: Supply) => {
+    duplicateMutation.mutate(supply, {
+      onSuccess: (data: any) => { toast({ title: `Duplicated "${supply.name}"` }); logChange({ table_name: "supplies", record_id: data?.id ?? "", action: "create", new_data: { ...supply, name: `${supply.name} (Copy)` } as any }); },
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    const old = deleteTarget;
+    deleteMutation.mutate(deleteTarget.id, {
+      onSuccess: () => { setDeleteTarget(null); toast({ title: "Supply deleted" }); logChange({ table_name: "supplies", record_id: old.id, action: "delete", old_data: old as any }); },
+      onError: (e: any) => { setDeleteTarget(null); toast({ title: "Error", description: e.message, variant: "destructive" }); },
+    });
+  };
+
   if (isLoading) return <Spinner />;
 
   return (
     <>
-      <SupplyDataTable supplies={supplies ?? []} search={search} canEdit={canEdit} onRowClick={(supply) => setEditSupply(supply)} onToggleActive={handleToggle} />
+      <SupplyDataTable supplies={supplies ?? []} search={search} canEdit={canEdit} onRowClick={(supply) => setEditSupply(supply)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(supply) => setDeleteTarget(supply)} canDelete={isAdmin} />
       <SupplyFormDialog open={formOpen} onOpenChange={setFormOpen} supply={null} onSubmit={handleCreate} isPending={createMutation.isPending} />
       <SupplyFormDialog open={!!editSupply} onOpenChange={(open) => !open && setEditSupply(null)} supply={editSupply} supplies={filtered} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(s) => setEditSupply(s)} isPending={updateMutation.isPending} />
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent style={{ borderRadius: "4px" }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm">Delete Supply</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs" style={{ background: "hsl(0 60% 50%)", color: "white", borderRadius: "4px" }} onClick={handleDelete} disabled={deleteMutation.isPending}>{deleteMutation.isPending ? "Deleting…" : "Delete"}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

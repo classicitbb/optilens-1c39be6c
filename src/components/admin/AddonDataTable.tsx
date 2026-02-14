@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Copy, Trash2, Globe } from "lucide-react";
+import { Copy, Trash2, Globe, Lock, Unlock } from "lucide-react";
 import type { Addon } from "@/hooks/useAddons";
 import { useMemo, useState, useCallback } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
@@ -33,6 +33,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filter, setFilter] = useState<Filter>("active");
+  const [unlocked, setUnlocked] = useState(false);
   const { settings } = usePricingEngine();
 
   const handleFilterChange = useCallback((f: Filter) => {
@@ -74,6 +75,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
+  const showActions = unlocked && canEdit;
 
   const thCls = "text-[11px] font-semibold uppercase tracking-wider py-2 px-3 sticky top-0 z-10";
   const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
@@ -94,7 +96,16 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
             {t.label}
           </button>
         ))}
-        <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+        <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+          {canEdit && (
+            <button
+              onClick={() => setUnlocked((u) => !u)}
+              className="p-0.5 rounded transition-colors hover:bg-black/5"
+              title={unlocked ? "Lock actions" : "Unlock actions"}
+            >
+              {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(35 80% 50%)" }} /> : <Lock className="h-3.5 w-3.5" />}
+            </button>
+          )}
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -113,7 +124,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
             <TableHead className={`${thCls} text-center`} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Order</TableHead>
             {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
-            {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
+            {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -160,7 +171,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
                   <Switch checked={a.is_active} onCheckedChange={() => onToggleActive(a)} />
                 </TableCell>
               )}
-              {canEdit && (
+              {showActions && (
                 <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate(a)}>
@@ -179,7 +190,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
           })}
           {visible.length === 0 && (
             <TableRow>
-              <TableCell colSpan={canEdit ? 12 : 10} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
+              <TableCell colSpan={canEdit ? (showActions ? 12 : 11) : 10} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
                 No add-ons found.
               </TableCell>
             </TableRow>
