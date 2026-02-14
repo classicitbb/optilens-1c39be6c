@@ -1,86 +1,78 @@
-# Lens Catalog Table + Modal Alignment with Supplies/Addons
 
-This plan covers three areas: (1) updating the lens data table columns, (2) aligning the lens modal flags to use Switch toggles like supplies, and (3) hooking lens pricing into the full pricing engine with governance.
 
----
+# Admin Help System: Knowledge Wiki + AI Chatbot
 
-## 1. Lens Data Table Column Changes (`LensDataTable.tsx`)
-
-**Current columns:** Name, Supplier, Brand, Material, Lens Type, Index, Cost (USD), Sell (BBD), Sell (USD), Status, PL, Lab, WSPL, Web, [Active switch]
-
-**New columns:** Name, Supplier, Brand, Material, Lens Type, **Finish Type**, Cost (USD), Sell (BBD), Sell (USD), PL, Lab, WSPL, **Web (Globe icon)**, [Active switch]
-
-Changes:
-
-- **Remove** the "Index" column -- replace with "Finish Type" showing `fkName(lens.finishtype)`
-- **Remove** the "Status" badge column entirely
-- **Replace** PL/Lab/WSPL columns: instead of disabled Checkbox components, show a plain checkmark character or blank (matching the supplies table pattern using `"checkmark" : ""`)
-- **Replace** the Web column: instead of a disabled Checkbox, show a Globe icon when true (matching the addons table pattern)
-- Update the `SortHeader` options to replace `index_value` with a sortable `finishtype` column
-- Update `colSpan` values for empty/load-more rows
+Two independent features added to the admin panel to help users understand and navigate the tool.
 
 ---
 
-## 2. Lens Form Dialog Alignment (`LensFormDialog.tsx`)
+## 1. Admin Knowledge Wiki Page
 
-The lens modal currently uses `Checkbox` components for flags (Show in Pricelist, Full Lab, Show in Wholesale PL, Show on Website). The supplies and addons modals use `Switch` toggles in a consistent "Flags" section on the right column.
+A new sidebar menu item **"Help / Wiki"** with a `BookOpen` icon, placed in the sidebar just above the "Back to Site" link. Routes to `/admin/wiki`.
 
-Changes:
+The page will contain structured, searchable help articles organized by category:
 
-- **Replace all Checkbox flag controls with Switch toggles**, matching the supplies modal pattern:
-  ```
-  Flags section with Switch toggles:
-  - Active
-  - Show in Pricelist (PL)
-  - Full Lab
-  - Show in Wholesale PL (WSPL)
-  - Show on Website
-  ```
-- Move the Active toggle from the footer into the Flags section (consistent with supplies/addons where flags are grouped together)
-- Restructure the modal layout to match the supplies two-column pattern:
-  - **Left column**: Item Info (identity fields, specs, notes)
-  - **Right column**: Flags, Pricing and Cost, Calculated Values
+**Categories and articles:**
+- **Getting Started** -- Overview of the admin tool, navigating the sidebar, user roles and permissions
+- **Lens Catalog** -- Adding/editing lenses, understanding flags (PL, Full Lab, WSPL, Web), pricing engine and calculated values, governance rules
+- **Supplies & Add-Ons** -- Managing supplies and addons, pricing and cost fields, flag toggles
+- **Imports** -- How to import lenses/supplies/addons from CSV, resolving reference mappings, handling duplicates (overwrite vs ignore)
+- **Reference Data** -- Managing suppliers, brands, materials, lens types, finish types
+- **Pricing Engine** -- How pricing is calculated (FX, CIF, Duty, Landed, Labour, Strategic Price), what Full Lab means, margin status badges, governance alerts and concession reasons
+- **Users & Audit** -- Managing admin users, viewing audit logs
+
+**UI pattern:** Reuses the same card + accordion pattern from the existing public Knowledge page but styled with the admin tool's color scheme (no Header/Footer chrome). Includes a search input at the top.
+
+### Files:
+| File | Action |
+|------|--------|
+| `src/pages/admin/AdminWikiPage.tsx` | New page with categorized help articles |
+| `src/components/admin/AdminSidebar.tsx` | Add "Help / Wiki" menu item above "Back to Site" |
+| `src/App.tsx` | Add route `/admin/wiki` |
 
 ---
 
-## 3. Hook Lens Pricing into the Pricing Engine (`LensFormDialog.tsx`)
+## 2. Admin AI Chatbot
 
-Currently the lens modal has a basic margin calculation (`sell_price - base_price`) and a minimal pricing engine call that does not account for `full_lab`. The supplies modal shows the full calculated values panel (landed cost, overhead, financing, shrinkage, strategic price, margin status badge, governance flags).
+A floating chat button (bottom-right corner) inside the admin layout, similar to the existing `LensChatbot` on the store page but with an admin-focused system prompt.
 
-Changes:
+**Key differences from the store chatbot:**
+- System prompt focused on admin tool usage (how to import, what flags mean, how pricing works, etc.)
+- Includes the wiki content as context so answers are grounded in your own documentation
+- Only renders inside the admin layout (not on public pages)
+- Styled to match the admin tool aesthetic (neutral colors, smaller)
 
-- Update the pricing engine call to pass `full_lab` context: when `full_lab` is true, set `labour_cost: 0` and potentially adjust `duty_applicable` and `bb_item` flags (full lab means local processing --  import duty/labour added, if unchecked it means its imported, but not manufactured or stored by us.)
-- Add the **Calculated Values** panel to the lens modal (matching supplies): FX Rate, Converted (BBD), CIF, Duty, Charges, VAT, Landed, Overhead, Financing, Holding, Shrinkage, Labour, Full Cost, Strategic Price, Margin, Sell (USD)
-- Add **margin status badge** display
-- Add **governance flags** display (At Loss, Below Floor, Below Target badges)
-- Integrate **GovernanceAlert** and **ConcessionReasonDialog** components
-- Wire governance blocking into the Save/Save & Close buttons (disable when blocked, require reason when needed)
-- Update `LensesPage.tsx` handlers to accept and pass through the concession reason parameter
+**Implementation:** A new edge function `admin-assistant` with a system prompt containing all the wiki article content, so the AI can answer questions accurately about the tool.
+
+### Files:
+| File | Action |
+|------|--------|
+| `supabase/functions/admin-assistant/index.ts` | New edge function with admin-focused system prompt containing wiki content |
+| `src/components/admin/AdminChatbot.tsx` | New floating chatbot component (based on LensChatbot pattern) |
+| `src/components/admin/AdminLayout.tsx` | Add `AdminChatbot` to the layout |
 
 ---
 
 ## Technical Details
 
-### Files to modify:
+### Admin Sidebar Change
+Add a new menu item before the "Back to Site" link:
+```
+{ label: "Help / Wiki", icon: BookOpen, path: "/admin/wiki" }
+```
 
+### Edge Function (`admin-assistant`)
+- Reuses the same Lovable AI Gateway pattern as `lens-assistant`
+- System prompt contains all wiki article text so the AI gives accurate, grounded answers about OptiPricing
+- Model: `google/gemini-3-flash-preview`
+- Handles 429/402 errors
 
-| File                                      | Changes                                                                                                                                                       |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/components/admin/LensDataTable.tsx`  | Remove Index + Status columns; add Finish Type column; replace Checkbox flags with checkmarks; Web column gets Globe icon                                     |
-| `src/components/admin/LensFormDialog.tsx` | Replace Checkbox flags with Switch toggles; restructure to two-column layout matching supplies; add full Calculated Values panel; integrate governance checks |
-| `src/pages/admin/LensesPage.tsx`          | Update handlers to support concession reason parameter from governance flow                                                                                   |
-| `src/hooks/useLenses.ts`                  | Update `LensFormData` to not need changes (already has all flags); no schema changes needed                                                                   |
+### Admin Chatbot Component
+- Floating button in bottom-right corner of admin layout
+- Chat window with streaming responses (same SSE parsing as LensChatbot)
+- Styled with admin neutral colors instead of accent gradients
+- Bot icon and header say "Admin Assistant"
 
+### No database changes needed
+All wiki content is static in the React component. The chatbot uses the existing Lovable AI infrastructure.
 
-### ReadOnly helper
-
-The `LensFormDialog` will need the same `ReadOnly` display component used in the supplies and addons modals for showing calculated values. This will be added inline (same pattern as the other modals).
-
-### Pricing Engine Integration for Lenses
-
-The `full_lab` flag false or unchecked means local labour and processing is NOT added to lens cost. The engine call will be:
-
-- `labour_cost`: 1 when `full_lab` is true ( local processing), otherwise do not apply a labour factor
-- `bb_item`: false (lenses are imported)
-- `duty_applicable`: true (import duty applies but can be toggled)
-- `category`: "lenses"
