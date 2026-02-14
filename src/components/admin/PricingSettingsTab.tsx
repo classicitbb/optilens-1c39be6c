@@ -46,7 +46,7 @@ const toPercent = (v: number) => +(v * 100).toFixed(4);
 const fromPercent = (v: number) => +(v / 100).toFixed(6);
 
 const PricingSettingsTab = () => {
-  const { versions, isLoading, saveNewVersion } = usePricingSettings();
+  const { versions, isLoading, saveNewVersion, saveInPlace } = usePricingSettings();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
   const { logChange } = useAuditLog();
@@ -86,6 +86,24 @@ const PricingSettingsTab = () => {
   };
 
   const handleSave = () => {
+    if (!activeVersion) return;
+    const oldData = { ...activeVersion };
+    saveInPlace.mutate({ id: activeVersion.id, data: form }, {
+      onSuccess: () => {
+        toast({ title: "Settings saved" });
+        logChange({
+          table_name: "pricing_settings",
+          record_id: activeVersion.id,
+          action: "update",
+          old_data: oldData as any,
+          new_data: { ...form, name: `Pricing Settings v${activeVersion.version}` } as any,
+        });
+      },
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    });
+  };
+
+  const handleSaveNewVersion = () => {
     const oldData = activeVersion ? { ...activeVersion } : null;
     saveNewVersion.mutate(form, {
       onSuccess: () => {
@@ -266,8 +284,11 @@ const PricingSettingsTab = () => {
 
       {/* Save */}
       {isEditable && (
-        <div className="flex justify-end">
-          <Button size="sm" className="h-8 text-xs" onClick={handleSave} disabled={saveNewVersion.isPending}>
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleSave} disabled={saveInPlace.isPending}>
+            {saveInPlace.isPending ? "Saving…" : "Save"}
+          </Button>
+          <Button size="sm" className="h-8 text-xs" onClick={handleSaveNewVersion} disabled={saveNewVersion.isPending}>
             {saveNewVersion.isPending ? "Saving…" : "Save as New Version"}
           </Button>
         </div>

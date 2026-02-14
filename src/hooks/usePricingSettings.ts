@@ -84,5 +84,16 @@ export const usePricingSettings = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pricing_settings_versions"] }),
   });
 
-  return { versions: versionsQuery.data ?? [], isLoading: versionsQuery.isLoading, saveNewVersion };
+  const saveInPlace = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Omit<PricingSettings, "id" | "created_at" | "created_by" | "version" | "is_active"> }) => {
+      const { error } = await supabase
+        .from("pricing_settings")
+        .update(data as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pricing_settings_versions"] }),
+  });
+
+  return { versions: versionsQuery.data ?? [], isLoading: versionsQuery.isLoading, saveNewVersion, saveInPlace };
 };
