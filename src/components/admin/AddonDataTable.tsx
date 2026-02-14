@@ -1,12 +1,14 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Copy, Trash2, Globe, Lock, Unlock } from "lucide-react";
+import { Copy, Trash2, Globe, Lock, Unlock, ArrowUpDown } from "lucide-react";
 import type { Addon } from "@/hooks/useAddons";
 import { useMemo, useState, useCallback } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 
 type Filter = "active" | "inactive" | "all" | "web";
+type SortKey = "name" | "sku" | "supplier_name" | "category" | "cost" | "price" | "sell_usd" | "is_auto" | "sort_order";
+type SortDir = "asc" | "desc";
 
 interface Props {
   addons: Addon[];
@@ -34,10 +36,24 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filter, setFilter] = useState<Filter>("active");
   const [unlocked, setUnlocked] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { settings } = usePricingEngine();
 
   const handleFilterChange = useCallback((f: Filter) => {
     setFilter(f);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
+  const toggleSort = useCallback((key: SortKey) => {
+    setSortKey((prev) => {
+      if (prev === key) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      } else {
+        setSortDir("asc");
+      }
+      return key;
+    });
     setVisibleCount(PAGE_SIZE);
   }, []);
 
@@ -63,8 +79,18 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
           (a.supplier_name ?? "").toLowerCase().includes(q)
       );
     }
-    return items;
-  }, [addons, search, filter]);
+    return [...items].sort((a, b) => {
+      let av: string | number, bv: string | number;
+      switch (sortKey) {
+        case "sell_usd": av = fxRate > 0 ? a.price / fxRate : 0; bv = fxRate > 0 ? b.price / fxRate : 0; break;
+        case "supplier_name": av = a.supplier_name ?? ""; bv = b.supplier_name ?? ""; break;
+        case "is_auto": av = a.is_auto ? 1 : 0; bv = b.is_auto ? 1 : 0; break;
+        default: av = a[sortKey] as any; bv = b[sortKey] as any;
+      }
+      const cmp = typeof av === "string" ? av.localeCompare(bv as string) : Number(av) - Number(bv);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [addons, search, filter, sortKey, sortDir, fxRate]);
 
   const filterTabs: { label: string; value: Filter }[] = [
     { label: "Active", value: "active" },
@@ -79,6 +105,12 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
 
   const thCls = "text-[11px] font-semibold uppercase tracking-wider py-2 px-3 sticky top-0 z-10";
   const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
+
+  const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
+    <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort(k)}>
+      {label}<ArrowUpDown className="h-3 w-3" />
+    </button>
+  );
 
   return (
     <div className="space-y-3">
@@ -113,16 +145,16 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
       <Table>
         <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Name</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>SKU</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Supplier</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Category</TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Cost (USD)</TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell (BBD)</TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell (USD)</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Type</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Name" k="name" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="SKU" k="sku" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Supplier" k="supplier_name" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Category" k="category" /></TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="cost" /></TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (BBD)" k="price" /></TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Type" k="is_auto" /></TableHead>
             <TableHead className={`${thCls} text-center`} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Order</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Order" k="sort_order" /></TableHead>
             {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
             {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
           </TableRow>

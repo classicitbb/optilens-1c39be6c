@@ -1,12 +1,14 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Copy, Trash2, Lock, Unlock } from "lucide-react";
+import { Copy, Trash2, Lock, Unlock, ArrowUpDown } from "lucide-react";
 import type { Supply } from "@/hooks/useSupplies";
 import { useMemo, useState, useCallback } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 
 type Filter = "active" | "inactive" | "all" | "web";
+type SortKey = "name" | "category" | "supplier_name" | "sku" | "base_price" | "sell_price" | "sell_usd" | "unit";
+type SortDir = "asc" | "desc";
 
 interface Props {
   supplies: Supply[];
@@ -31,10 +33,24 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filter, setFilter] = useState<Filter>("active");
   const [unlocked, setUnlocked] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { settings } = usePricingEngine();
 
   const handleFilterChange = useCallback((f: Filter) => {
     setFilter(f);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
+  const toggleSort = useCallback((key: SortKey) => {
+    setSortKey((prev) => {
+      if (prev === key) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      } else {
+        setSortDir("asc");
+      }
+      return key;
+    });
     setVisibleCount(PAGE_SIZE);
   }, []);
 
@@ -60,8 +76,19 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
           (s.supplier_name ?? "").toLowerCase().includes(q)
       );
     }
-    return items;
-  }, [supplies, search, filter]);
+    return [...items].sort((a, b) => {
+      let av: string | number, bv: string | number;
+      switch (sortKey) {
+        case "sell_usd": av = fxRate > 0 ? a.sell_price / fxRate : 0; bv = fxRate > 0 ? b.sell_price / fxRate : 0; break;
+        case "supplier_name": av = a.supplier_name ?? ""; bv = b.supplier_name ?? ""; break;
+        case "sku": av = a.sku ?? ""; bv = b.sku ?? ""; break;
+        case "unit": av = a.unit; bv = b.unit; break;
+        default: av = a[sortKey] as any; bv = b[sortKey] as any;
+      }
+      const cmp = typeof av === "string" ? av.localeCompare(bv as string) : Number(av) - Number(bv);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [supplies, search, filter, sortKey, sortDir, fxRate]);
 
   const filterTabs: { label: string; value: Filter }[] = [
     { label: "Active", value: "active" },
@@ -76,6 +103,12 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
 
   const thCls = "text-[11px] font-semibold uppercase tracking-wider py-2 px-3 sticky top-0 z-10";
   const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
+
+  const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
+    <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort(k)}>
+      {label}<ArrowUpDown className="h-3 w-3" />
+    </button>
+  );
 
   return (
     <div className="space-y-3">
@@ -110,14 +143,14 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
       <Table>
         <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Name</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Category</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Supplier</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>SKU</TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Cost (USD)</TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell (BBD)</TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}>Sell (USD)</TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Unit</TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Name" k="name" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Category" k="category" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Supplier" k="supplier_name" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="SKU" k="sku" /></TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="base_price" /></TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
+            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Unit" k="unit" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
             {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
             {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
