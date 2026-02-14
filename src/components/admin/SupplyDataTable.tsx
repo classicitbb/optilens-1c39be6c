@@ -93,7 +93,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
       </div>
       <div className="rounded border overflow-auto max-h-[calc(100vh-280px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Name</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Category</TableHead>
@@ -108,10 +108,20 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
           </TableRow>
         </TableHeader>
         <TableBody>
-          {visible.map((s) => (
+          {visible.map((s, idx) => {
+            let rowBg = idx % 2 === 1 ? "hsl(215 20% 97%)" : undefined;
+            if (s.base_price === 0) rowBg = "hsl(0 70% 96%)";
+            else if (s.sell_price > 0 && s.sell_price <= s.base_price * fxRate) rowBg = "hsl(0 70% 95%)";
+            else if (s.sell_price > 0) {
+              const fullCostApprox = s.base_price * fxRate * 1.15;
+              const margin = (s.sell_price - fullCostApprox) / s.sell_price;
+              if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
+            }
+            return (
             <TableRow
               key={s.id}
               className={canEdit ? "cursor-pointer hover:bg-blue-50/60" : "hover:bg-blue-50/60"}
+              style={rowBg ? { background: rowBg } : undefined}
               onClick={() => canEdit && onRowClick(s)}
             >
               <TableCell className={`${tdCls} font-medium max-w-[200px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{s.name}</TableCell>
@@ -129,7 +139,8 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
                 </TableCell>
               )}
             </TableRow>
-          ))}
+            );
+          })}
           {visible.length === 0 && (
             <TableRow>
               <TableCell colSpan={canEdit ? 10 : 9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>

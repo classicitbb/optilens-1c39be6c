@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { checkGovernance } from "@/hooks/useGovernanceCheck";
 import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
+import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
 
 interface Props {
   open: boolean;
@@ -59,6 +60,9 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
   const [form, setForm] = useState<SupplyFormData>(defaultForm);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"save" | "saveAndClose" | null>(null);
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const [pendingNavTarget, setPendingNavTarget] = useState<Supply | null>(null);
+  const initialFormRef = useRef<string>("");
   const { data: suppliers } = useReferenceData("suppliers");
   const { data: brands } = useReferenceData("brands");
   const { calculate, settings } = usePricingEngine();
@@ -87,6 +91,13 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
     }
   }, [supply, open]);
 
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => { initialFormRef.current = JSON.stringify(form); }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [open, supply]);
+
   const calc = useMemo(() => calculate({
     component_type: "supplies",
     supplier_cost: form.base_price,
@@ -106,6 +117,39 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
   const currentIndex = supply && supplies ? supplies.findIndex((s) => s.id === supply.id) : -1;
   const canGoPrev = currentIndex > 0;
   const canGoNext = supplies ? currentIndex >= 0 && currentIndex < supplies.length - 1 : false;
+
+  const isDirty = () => JSON.stringify(form) !== initialFormRef.current;
+
+  const handleNavigate = (target: Supply) => {
+    if (isDirty()) {
+      setPendingNavTarget(target);
+      setUnsavedDialogOpen(true);
+    } else {
+      onNavigate?.(target);
+    }
+  };
+
+  const handleUnsavedSave = () => {
+    setUnsavedDialogOpen(false);
+    onSubmit(form);
+    if (pendingNavTarget) {
+      setTimeout(() => onNavigate?.(pendingNavTarget), 100);
+      setPendingNavTarget(null);
+    }
+  };
+
+  const handleUnsavedDiscard = () => {
+    setUnsavedDialogOpen(false);
+    if (pendingNavTarget) {
+      onNavigate?.(pendingNavTarget);
+      setPendingNavTarget(null);
+    }
+  };
+
+  const handleUnsavedCancel = () => {
+    setUnsavedDialogOpen(false);
+    setPendingNavTarget(null);
+  };
 
   const attemptSave = (action: "save" | "saveAndClose") => {
     if (governance.blocked) return;
@@ -141,7 +185,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
           <div className="flex items-center gap-2">
             {supply && onNavigate && (
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoPrev || isPending}
-                onClick={() => canGoPrev && supplies && onNavigate(supplies[currentIndex - 1])}>
+                onClick={() => canGoPrev && supplies && handleNavigate(supplies[currentIndex - 1])}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
@@ -150,7 +194,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
             </DialogTitle>
             {supply && onNavigate && (
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoNext || isPending}
-                onClick={() => canGoNext && supplies && onNavigate(supplies[currentIndex + 1])}>
+                onClick={() => canGoNext && supplies && handleNavigate(supplies[currentIndex + 1])}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             )}
@@ -360,6 +404,12 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
         open={reasonDialogOpen}
         onConfirm={handleReasonConfirm}
         onCancel={() => { setReasonDialogOpen(false); setPendingAction(null); }}
+      />
+      <UnsavedChangesDialog
+        open={unsavedDialogOpen}
+        onSave={handleUnsavedSave}
+        onDiscard={handleUnsavedDiscard}
+        onCancel={handleUnsavedCancel}
       />
     </Dialog>
   );
