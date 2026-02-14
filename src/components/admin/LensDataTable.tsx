@@ -7,7 +7,7 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import type { Lens } from "@/hooks/useLenses";
 
-type SortKey = "name" | "supplier" | "brand" | "finishtype" | "base_price" | "sell_price" | "is_active";
+type SortKey = "name" | "supplier" | "brand" | "material" | "lenstype" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
 type SortDir = "asc" | "desc";
 type Filter = "all" | "active" | "inactive" | "web";
 
@@ -67,7 +67,10 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
       switch (sortKey) {
         case "supplier": av = fkName(a.supplier); bv = fkName(b.supplier); break;
         case "brand": av = fkName(a.brand); bv = fkName(b.brand); break;
+        case "material": av = fkName(a.material); bv = fkName(b.material); break;
+        case "lenstype": av = fkName(a.lenstype); bv = fkName(b.lenstype); break;
         case "finishtype": av = fkName(a.finishtype); bv = fkName(b.finishtype); break;
+        case "sell_usd": av = fxRate > 0 ? a.sell_price / fxRate : 0; bv = fxRate > 0 ? b.sell_price / fxRate : 0; break;
         default: av = a[sortKey] as any; bv = b[sortKey] as any;
       }
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : Number(av) - Number(bv);
@@ -132,12 +135,12 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
               <TableHead><SortHeader label="Name" k="name" /></TableHead>
               <TableHead><SortHeader label="Supplier" k="supplier" /></TableHead>
               <TableHead><SortHeader label="Brand" k="brand" /></TableHead>
-              <TableHead>Material</TableHead>
-              <TableHead>Lens Type</TableHead>
+              <TableHead><SortHeader label="Material" k="material" /></TableHead>
+              <TableHead><SortHeader label="Lens Type" k="lenstype" /></TableHead>
               <TableHead><SortHeader label="Finish Type" k="finishtype" /></TableHead>
               <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>
               <TableHead><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
-              <TableHead>Sell (USD)</TableHead>
+              <TableHead><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
               <TableHead className="text-center text-[10px]">PL</TableHead>
               <TableHead className="text-center text-[10px]">Lab</TableHead>
               <TableHead className="text-center text-[10px]">WSPL</TableHead>
