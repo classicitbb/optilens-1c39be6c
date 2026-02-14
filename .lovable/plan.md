@@ -1,73 +1,60 @@
 
-# Catalog UI Standardization: Search, Filters, and Modal Consistency
+# Persist Lens Import Mappings and Improve Duplicate Handling
 
-## 1. Reference Data Tables: Add Search Filter
+## Problem 1: Reference Mappings Are Lost Between Imports
 
-Each reference data table (Suppliers, Brands, Materials, etc.) currently has Active/Inactive/All filter tabs but no search input.
+Currently, when you resolve an unmatched reference (e.g., mapping CSV value "Essilor" to an existing supplier), that mapping only lives in browser memory. The moment you reset or reload, you have to redo it all. This is tedious for repeated imports from the same source.
 
-**Changes to `ReferenceDataTable.tsx`:**
-- Add a `search` state variable and a search input next to the filter tabs
-- Apply text search against `name`, `abbrev`, and `code` fields in the `filtered` useMemo
-- Update `toggleSelectAll` so the "select all" checkbox only selects items visible after BOTH the active/inactive filter AND the search filter are applied (this already works correctly since `visibleItems` is derived from `filtered` -- the search just needs to be added to the filter pipeline)
+**Solution:** Create a database table `import_ref_mappings` that stores each mapping (CSV value to reference record ID). On subsequent imports, these saved mappings are loaded automatically and applied before showing unresolved items.
 
-## 2. Catalog Tables: Add "Web" Filter Tab
+### Database Changes
 
-Currently LensDataTable has Active/Inactive/All. SupplyDataTable and AddonDataTable have no filter tabs at all.
+New table: `import_ref_mappings`
+- `id` (uuid, primary key)
+- `ref_table` (text) -- e.g. "suppliers", "brands"
+- `csv_value` (text) -- the original CSV text that didn't match
+- `mapped_id` (uuid) -- the reference record it was mapped to
+- `created_at` (timestamptz)
+- Unique constraint on `(ref_table, csv_value)` so each CSV value only has one mapping per table
+- RLS: editors can select/insert/update/delete
 
-**Changes to `LensDataTable.tsx`:**
-- Add a "Web" filter option that shows only items where `show_on_website === true`
+### Hook Changes (`useImportLenses.ts`)
 
-**Changes to `SupplyDataTable.tsx`:**
-- Add the same Active/Inactive/All/Web filter tab bar (matching LensDataTable pattern)
-- "Web" filters to `show_on_website === true`
+- On `parseAndValidate`: after loading ref maps, also fetch saved mappings from `import_ref_mappings` and inject them into the ref maps before validation runs
+- On `resolveRef`: after resolving, also persist the mapping to `import_ref_mappings` (upsert on the unique constraint)
+- This means the next time the same CSV value appears, it auto-resolves without user action
 
-**Changes to `AddonDataTable.tsx`:**
-- Add the same Active/Inactive/All/Web filter tab bar
-- "Web" filters to `show_on_website === true`
-- Default to "Active" filter
+---
 
-## 3. Catalog Edit Modals: Match Supply Form Structure
+## Problem 2: Smarter Duplicate Detection with Overwrite/Ignore
 
-The SupplyFormDialog is the gold standard with these features:
-- Wide modal (`sm:max-w-5xl`)
-- Two-column layout (left: item info, right: flags + pricing + calculated values)
-- Item-to-item navigation (prev/next arrows)
-- Dual save buttons ("Save" keeps modal open, "Save & Close" closes it)
-- Governance checks with concession reason dialog
+Currently, duplicates are detected only by matching the generated lens name. The user wants broader matching (including price and other variables) and the ability to choose whether to overwrite or ignore duplicates.
 
-**Changes to `AddonFormDialog.tsx`:**
-- Widen modal from `sm:max-w-lg` to `sm:max-w-5xl`
-- Restructure to two-column layout:
-  - Left: Item Info (name, SKU, category, supplier, description) and Pricing Sheets
-  - Right: Flags, Pricing & Cost (Cost USD, Price BBD, calculated values via usePricingEngine), Auto-Apply Rule
-- Add item-to-item navigation (prev/next arrows in header)
-- Add "Save & Close" button alongside "Save"
-- Add read-only calculated values section (FX Rate, Sell USD, Margin)
+**Solution:** Enhance duplicate detection to match on the composite key of `supplier_id + brand_id + material_id + mftype_id + lenstype_id + lens_option_id + finishtype_id` (the fields that define a unique lens SKU). When duplicates are found, show them clearly and add a global "Overwrite Duplicates" / "Ignore Duplicates" toggle in the import summary bar.
 
-**Changes to `AddonsPage.tsx`:**
-- Add `handleUpdateAndClose` handler (save + close modal)
-- Pass `addons` list and `onNavigate` to `AddonFormDialog` for prev/next navigation
+### Hook Changes (`useImportLenses.ts`)
 
-**Changes to `LensFormDialog.tsx`:**
-- Widen modal from `max-w-4xl` to `sm:max-w-5xl`
-- Add item-to-item navigation (prev/next arrows in header)
-- Add "Save & Close" button alongside "Save"
+- Fetch existing lenses with all their reference IDs (not just name)
+- Build a composite key from `supplier_id|brand_id|material_id|mftype_id|lenstype_id|finishtype_id` for each existing lens
+- During validation, match incoming rows against this composite key (after references are resolved)
+- Add a new state: `duplicateAction` with values `"overwrite"` or `"ignore"` (default: `"overwrite"`)
+- In `executeImport`: if `duplicateAction === "ignore"`, skip rows with status "duplicate"; if "overwrite", update the existing record (current behavior)
+- Export `duplicateAction` and `setDuplicateAction` from the hook
 
-**Changes to `LensesPage.tsx`:**
-- Add `handleUpdateAndClose` handler
-- Pass `lenses` list and `onNavigate` to `LensFormDialog` for prev/next navigation
+### UI Changes (`ImportLensesTab.tsx`)
 
-## Technical Summary
+- In the summary bar, when duplicates exist, show a toggle/button group: **Overwrite** | **Ignore**
+- When "Ignore" is selected, the import button count excludes duplicates
+- Duplicate rows in the table show the action that will be taken (Overwrite or Skip)
+
+---
+
+## File Summary
 
 | File | Changes |
 |------|---------|
-| `ReferenceDataTable.tsx` | Add search input + apply to filter pipeline |
-| `LensDataTable.tsx` | Add "Web" filter tab |
-| `SupplyDataTable.tsx` | Add Active/Inactive/All/Web filter tabs |
-| `AddonDataTable.tsx` | Add Active/Inactive/All/Web filter tabs, default to Active |
-| `AddonFormDialog.tsx` | Widen to 5xl, two-column layout, nav arrows, Save & Close, calculated pricing section |
-| `AddonsPage.tsx` | Add handleUpdateAndClose, pass navigation props |
-| `LensFormDialog.tsx` | Widen to 5xl, add nav arrows, Save & Close |
-| `LensesPage.tsx` | Add handleUpdateAndClose, pass navigation props |
+| New migration SQL | Create `import_ref_mappings` table with unique constraint and RLS policies |
+| `src/hooks/useImportLenses.ts` | Load saved mappings on validate; persist mappings on resolve; composite-key duplicate detection; add `duplicateAction` state |
+| `src/components/admin/ImportLensesTab.tsx` | Add Overwrite/Ignore toggle for duplicates in summary bar; update import button count based on selection |
 
-No database changes required.
+No changes to existing database tables are needed -- the duplicate detection enhancement is purely application-level logic using existing columns.
