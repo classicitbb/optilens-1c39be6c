@@ -19,18 +19,18 @@ const LensesPage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editLens, setEditLens] = useState<Lens | null>(null);
 
-  const handleCreate = (form: LensFormData) => {
+  const handleCreate = (form: LensFormData, reason?: string) => {
     createMutation.mutate(form, {
       onSuccess: (data: any) => {
         setFormOpen(false);
         toast({ title: "Lens created" });
-        logChange({ table_name: "lenses", record_id: data?.id ?? "", action: "create", new_data: form as any });
+        logChange({ table_name: "lenses", record_id: data?.id ?? "", action: "create", new_data: form as any, reason });
       },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
 
-  const handleUpdate = (form: LensFormData) => {
+  const handleUpdate = (form: LensFormData, reason?: string) => {
     if (!editLens) return;
     const oldData = editLens as any;
     updateMutation.mutate({ id: editLens.id, form }, {
@@ -40,13 +40,14 @@ const LensesPage = () => {
           table_name: "lenses", record_id: editLens.id, action: "update",
           old_data: oldData, new_data: form as any,
           change_summary: buildPricingSummary(oldData, form as any),
+          reason,
         });
       },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
 
-  const handleUpdateAndClose = (form: LensFormData) => {
+  const handleUpdateAndClose = (form: LensFormData, reason?: string) => {
     if (!editLens) return;
     const oldData = editLens as any;
     updateMutation.mutate({ id: editLens.id, form }, {
@@ -57,6 +58,7 @@ const LensesPage = () => {
           table_name: "lenses", record_id: editLens.id, action: "update",
           old_data: oldData, new_data: form as any,
           change_summary: buildPricingSummary(oldData, form as any),
+          reason,
         });
       },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
