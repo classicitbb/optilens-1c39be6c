@@ -18,12 +18,10 @@ import AdminLayout from "./components/admin/AdminLayout";
 import ReferenceDataPage from "./pages/admin/ReferenceDataPage";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
-import LensesPage from "./pages/admin/LensesPage";
+import ProductCatalogPage from "./pages/admin/ProductCatalogPage";
 import LensPricesPage from "./pages/admin/LensPricesPage";
 import ImportsPage from "./pages/admin/ImportsPage";
 import UsersPage from "./pages/admin/UsersPage";
-import SuppliesPage from "./pages/admin/SuppliesPage";
-import AddonsPage from "./pages/admin/AddonsPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
 import AdminWikiPage from "./pages/admin/AdminWikiPage";
 
@@ -54,11 +52,13 @@ const App = () => (
 
               {/* Admin pricing tool */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
-                <Route index element={<Navigate to="/admin/lenses" replace />} />
+                <Route index element={<Navigate to="/admin/catalog" replace />} />
+                <Route path="catalog" element={<ProductCatalogPage />} />
                 <Route path="reference" element={<ReferenceDataPage />} />
-                <Route path="lenses" element={<LensesPage />} />
-                <Route path="supplies" element={<SuppliesPage />} />
-                <Route path="addons" element={<AddonsPage />} />
+                {/* Redirects for old bookmarks */}
+                <Route path="lenses" element={<Navigate to="/admin/catalog" replace />} />
+                <Route path="supplies" element={<Navigate to="/admin/catalog" replace />} />
+                <Route path="addons" element={<Navigate to="/admin/catalog" replace />} />
                 <Route path="pricing" element={<LensPricesPage />} />
                 <Route path="imports" element={<ImportsPage />} />
                 <Route path="history" element={<PlaceholderPage />} />
