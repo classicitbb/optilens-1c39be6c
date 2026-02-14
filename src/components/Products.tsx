@@ -63,7 +63,7 @@ const Products = () => {
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 border">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 border-0">
           {products.map((product, index) =>
           <Card
             key={product.title}
