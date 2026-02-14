@@ -1,12 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Layers, Target, ArrowRight } from "lucide-react";
+import { Layers, Target, FlaskConical, Glasses, Wrench, ArrowRight } from "lucide-react";
 
 const products = [
   {
     icon: Layers,
-    title: "Surfaced Lenses",
+    title: "Semi-Finished Lenses",
     description: "Custom-surfaced prescription lenses tailored to your exact specifications. Available in single vision, bifocal, and progressive designs.",
     features: ["Custom prescriptions", "Multiple materials", "AR coatings available"],
     link: "/store?category=surfaced",
@@ -17,6 +17,27 @@ const products = [
     description: "Ready-to-edge stock lenses for quick turnaround. High-quality finished lenses in popular prescriptions and designs.",
     features: ["Fast delivery", "Bulk pricing", "Wide Rx range"],
     link: "/store?category=finished",
+  },
+  {
+    icon: FlaskConical,
+    title: "Lab Supplies",
+    description: "Essential consumables and equipment for your surfacing and finishing lab. Blocks, pads, polishing compounds, and more.",
+    features: ["Surfacing consumables", "Finishing supplies", "Equipment parts"],
+    link: "/store?category=lab",
+  },
+  {
+    icon: Glasses,
+    title: "Optical Supplies",
+    description: "Retail and dispensary essentials including frames, cases, cleaning solutions, and display accessories.",
+    features: ["Frames & accessories", "Cleaning products", "Display solutions"],
+    link: "/store?category=optical",
+  },
+  {
+    icon: Wrench,
+    title: "Rx Lab Services",
+    description: "Professional prescription laboratory services including surfacing, edging, tinting, and specialty coatings.",
+    features: ["Custom surfacing", "Precision edging", "Specialty coatings"],
+    link: "/store?category=services",
   },
 ];
 
@@ -34,7 +55,7 @@ const Products = () => {
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {products.map((product, index) => (
             <Card 
               key={product.title} 
