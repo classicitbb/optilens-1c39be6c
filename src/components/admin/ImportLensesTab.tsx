@@ -130,6 +130,7 @@ const ImportLensesTab = () => {
     rows, summary, unresolvedRefs, hasUnresolved,
     isValidating, isImporting,
     fileName, parseAndValidate, resolveRef, executeImport, reset, generateTemplate,
+    duplicateAction, setDuplicateAction,
   } = useImportLenses();
 
   const filterCounts = useMemo(() => countByFilter(rows), [rows]);
@@ -151,7 +152,8 @@ const ImportLensesTab = () => {
 
   const handleImport = async () => {
     await executeImport();
-    toast({ title: "Import complete", description: `${summary.valid + summary.duplicates} rows processed.` });
+    const count = duplicateAction === "overwrite" ? summary.valid + summary.duplicates : summary.valid;
+    toast({ title: "Import complete", description: `${count} rows processed.` });
   };
 
   const [isPurging, setIsPurging] = useState(false);
@@ -177,7 +179,7 @@ const ImportLensesTab = () => {
   };
 
   const hasRows = rows.length > 0;
-  const importable = summary.valid + summary.duplicates;
+  const importable = duplicateAction === "overwrite" ? summary.valid + summary.duplicates : summary.valid;
   const allImported = hasRows && summary.imported === rows.length;
   const pendingUnresolved = unresolvedRefs.filter((u) => u.resolution === null);
 
@@ -267,6 +269,29 @@ const ImportLensesTab = () => {
           {summary.duplicates > 0 && <Badge variant="outline" className="text-[10px] h-5 border-0" style={{ background: statusConfig.duplicate.bg, color: statusConfig.duplicate.fg }}>{summary.duplicates} upsert</Badge>}
           {summary.errors > 0 && <Badge variant="outline" className="text-[10px] h-5 border-0" style={{ background: statusConfig.error.bg, color: statusConfig.error.fg }}>{summary.errors} errors</Badge>}
           {summary.imported > 0 && <Badge variant="outline" className="text-[10px] h-5 border-0" style={{ background: statusConfig.imported.bg, color: statusConfig.imported.fg }}>{summary.imported} imported</Badge>}
+          {summary.duplicates > 0 && (
+            <div className="flex items-center gap-1 ml-2 border rounded px-1" style={{ borderColor: "hsl(215 15% 80%)" }}>
+              <span className="text-[10px] font-medium" style={{ color: "hsl(215 15% 50%)" }}>Duplicates:</span>
+              <Button
+                variant="ghost" size="sm"
+                className={`h-5 text-[10px] px-1.5 rounded-sm ${duplicateAction === "overwrite" ? "font-semibold" : "font-normal"}`}
+                style={{
+                  background: duplicateAction === "overwrite" ? "hsl(38 92% 50% / 0.12)" : "transparent",
+                  color: duplicateAction === "overwrite" ? "hsl(38 80% 35%)" : "hsl(215 15% 50%)",
+                }}
+                onClick={() => setDuplicateAction("overwrite")}
+              >Overwrite</Button>
+              <Button
+                variant="ghost" size="sm"
+                className={`h-5 text-[10px] px-1.5 rounded-sm ${duplicateAction === "ignore" ? "font-semibold" : "font-normal"}`}
+                style={{
+                  background: duplicateAction === "ignore" ? "hsl(215 65% 50% / 0.1)" : "transparent",
+                  color: duplicateAction === "ignore" ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
+                }}
+                onClick={() => setDuplicateAction("ignore")}
+              >Ignore</Button>
+            </div>
+          )}
           <div className="ml-auto">
             {!allImported && importable > 0 && !hasUnresolved && (
               <Button size="sm" className="h-7 text-xs gap-1" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} disabled={isImporting} onClick={handleImport}>

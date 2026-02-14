@@ -23,6 +23,7 @@ const REF_COLUMNS = [
 ] as const;
 
 export type RowStatus = "valid" | "error" | "duplicate" | "imported";
+export type DuplicateAction = "overwrite" | "ignore";
 
 export interface ParsedRow {
   rowNumber: number;
@@ -72,6 +73,39 @@ async function fetchRefMap(table: string): Promise<RefMap> {
     map.set(r.name.toLowerCase().trim(), { id: r.id, name: r.name, abbrev: r.abbrev ?? "" })
   );
   return map;
+}
+
+/** Load saved mappings from import_ref_mappings and inject into ref maps */
+async function loadSavedMappings(maps: Record<string, RefMap>): Promise<void> {
+  const { data, error } = await supabase
+    .from("import_ref_mappings" as any)
+    .select("ref_table, csv_value, mapped_id") as any;
+  if (error || !data) return;
+
+  for (const mapping of data as { ref_table: string; csv_value: string; mapped_id: string }[]) {
+    const map = maps[mapping.ref_table];
+    if (!map) continue;
+    const key = mapping.csv_value.toLowerCase().trim();
+    if (map.has(key)) continue; // already resolved by direct name match
+
+    // Fetch the actual record to get name/abbrev
+    const { data: record } = await (supabase
+      .from(mapping.ref_table as any)
+      .select("id, name, abbrev") as any)
+      .eq("id", mapping.mapped_id)
+      .single();
+    if (record) {
+      map.set(key, { id: (record as any).id, name: (record as any).name, abbrev: (record as any).abbrev ?? "" });
+    }
+  }
+}
+
+/** Persist a mapping to import_ref_mappings (upsert) */
+async function persistMapping(refTable: string, csvValue: string, mappedId: string): Promise<void> {
+  await supabase.from("import_ref_mappings" as any).upsert(
+    { ref_table: refTable, csv_value: csvValue.toLowerCase().trim(), mapped_id: mappedId } as any,
+    { onConflict: "ref_table,csv_value" } as any,
+  );
 }
 
 export async function fetchRefOptions(table: string): Promise<RefOption[]> {
@@ -143,6 +177,18 @@ function computeRowPricing(raw: Record<string, string>, settings: PricingSetting
   return { pricing: calculatePricingEngine(input, settings), supplierCost: cost };
 }
 
+/** Build a composite key for duplicate detection */
+function compositeKey(resolved: Record<string, string>): string {
+  return [
+    resolved.supplier_id ?? "",
+    resolved.brand_id ?? "",
+    resolved.material_id ?? "",
+    resolved.mftype_id ?? "",
+    resolved.lenstype_id ?? "",
+    resolved.finishtype_id ?? "",
+  ].join("|");
+}
+
 export const useImportLenses = () => {
   const queryClient = useQueryClient();
   const [rawData, setRawData] = useState<Record<string, string>[]>([]);
@@ -153,6 +199,7 @@ export const useImportLenses = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [duplicateAction, setDuplicateAction] = useState<DuplicateAction>("overwrite");
 
   const { data: pricingSettings } = useQuery<PricingSettings>({
     queryKey: ["pricing_settings_active"],
@@ -179,7 +226,7 @@ export const useImportLenses = () => {
     (
       rawRows: Record<string, string>[],
       maps: Record<string, RefMap>,
-      lensMap: Map<string, string>,
+      existingCompositeKeys: Map<string, string>,
       settings?: PricingSettings | null,
     ): { parsed: ParsedRow[]; unresolved: UnresolvedRef[] } => {
       const unresolvedMap = new Map<string, UnresolvedRef>();
@@ -218,7 +265,10 @@ export const useImportLenses = () => {
         if (cost === null) errors.push("USCost must be a number");
 
         const generatedName = generateLensName(resolvedMaterial, resolvedMftype, resolvedLenstype, resolvedOption);
-        const existingId = generatedName ? lensMap.get(generatedName.toLowerCase().trim()) : undefined;
+
+        // Composite-key duplicate detection
+        const key = errors.length === 0 ? compositeKey(resolved) : "";
+        const existingId = key ? existingCompositeKeys.get(key) : undefined;
         const status: RowStatus = errors.length > 0 ? "error" : existingId ? "duplicate" : "valid";
 
         let pricing: PricingEngineResult | null = null;
@@ -236,6 +286,22 @@ export const useImportLenses = () => {
     },
     [],
   );
+
+  /** Fetch existing lenses and build composite key map */
+  const fetchExistingCompositeKeys = useCallback(async (): Promise<Map<string, string>> => {
+    const { data } = await supabase
+      .from("lenses")
+      .select("id, supplier_id, brand_id, material_id, mftype_id, lenstype_id, finishtype_id");
+    const map = new Map<string, string>();
+    ((data as any[]) ?? []).forEach((l: any) => {
+      const key = [
+        l.supplier_id ?? "", l.brand_id ?? "", l.material_id ?? "",
+        l.mftype_id ?? "", l.lenstype_id ?? "", l.finishtype_id ?? "",
+      ].join("|");
+      map.set(key, l.id);
+    });
+    return map;
+  }, []);
 
   const parseAndValidate = useCallback(async (file: File) => {
     setIsValidating(true);
@@ -264,11 +330,12 @@ export const useImportLenses = () => {
 
       const maps: Record<string, RefMap> = {};
       await Promise.all(REF_COLUMNS.map(async ({ table }) => { maps[table] = await fetchRefMap(table); }));
+
+      // Load saved mappings and inject into ref maps
+      await loadSavedMappings(maps);
       setRefMaps(maps);
 
-      const { data: existingLenses } = await supabase.from("lenses").select("id, name");
-      const lensMap = new Map<string, string>();
-      ((existingLenses as any[]) ?? []).forEach((l: any) => lensMap.set(l.name.toLowerCase().trim(), l.id));
+      const existingCompositeKeys = await fetchExistingCompositeKeys();
 
       let settings = pricingSettings;
       if (!settings) {
@@ -278,7 +345,7 @@ export const useImportLenses = () => {
         settings = data as unknown as PricingSettings;
       }
 
-      const { parsed, unresolved } = validateRows(rawRows, maps, lensMap, settings);
+      const { parsed, unresolved } = validateRows(rawRows, maps, existingCompositeKeys, settings);
       setRows(parsed);
       setUnresolvedRefs(unresolved);
     } catch (err: any) {
@@ -289,7 +356,7 @@ export const useImportLenses = () => {
     } finally {
       setIsValidating(false);
     }
-  }, [validateRows, pricingSettings]);
+  }, [validateRows, pricingSettings, fetchExistingCompositeKeys]);
 
   const resolveRef = useCallback(async (index: number, action: "map" | "create", mappedId?: string) => {
     const ref = unresolvedRefs[index];
@@ -300,6 +367,9 @@ export const useImportLenses = () => {
       resolvedId = await createRefRecord(ref.table, ref.originalValue);
     }
     if (!resolvedId) return;
+
+    // Persist mapping to database for future imports
+    await persistMapping(ref.table, ref.originalValue, resolvedId);
 
     const updatedMaps = { ...refMaps };
     const map = new Map(updatedMaps[ref.table]);
@@ -316,11 +386,9 @@ export const useImportLenses = () => {
     updatedRefs[index] = { ...ref, resolution: action, mappedId: resolvedId };
     setUnresolvedRefs(updatedRefs);
 
-    const { data: existingLenses } = await supabase.from("lenses").select("id, name");
-    const lensMap = new Map<string, string>();
-    ((existingLenses as any[]) ?? []).forEach((l: any) => lensMap.set(l.name.toLowerCase().trim(), l.id));
+    const existingCompositeKeys = await fetchExistingCompositeKeys();
 
-    const { parsed, unresolved } = validateRows(rawData, updatedMaps, lensMap, pricingSettings);
+    const { parsed, unresolved } = validateRows(rawData, updatedMaps, existingCompositeKeys, pricingSettings);
     setRows(parsed);
 
     const resolvedKeys = new Set(
@@ -331,10 +399,14 @@ export const useImportLenses = () => {
       ...unresolved.filter((u) => !resolvedKeys.has(`${u.col}:${u.originalValue.toLowerCase()}`)),
     ];
     setUnresolvedRefs(merged);
-  }, [unresolvedRefs, refMaps, rawData, validateRows, pricingSettings]);
+  }, [unresolvedRefs, refMaps, rawData, validateRows, pricingSettings, fetchExistingCompositeKeys]);
 
   const executeImport = useCallback(async () => {
-    const importable = rows.filter((r) => r.status === "valid" || r.status === "duplicate");
+    const importable = rows.filter((r) => {
+      if (r.status === "valid") return true;
+      if (r.status === "duplicate") return duplicateAction === "overwrite";
+      return false;
+    });
     if (importable.length === 0) return;
     setIsImporting(true);
 
@@ -434,11 +506,11 @@ export const useImportLenses = () => {
     } finally {
       setIsImporting(false);
     }
-  }, [rows, fileName]);
+  }, [rows, fileName, duplicateAction]);
 
   const reset = useCallback(() => {
     setRows([]); setRawData([]); setUnresolvedRefs([]); setRefMaps({});
-    setBatchId(null); setFileName(null);
+    setBatchId(null); setFileName(null); setDuplicateAction("overwrite");
   }, []);
 
   const generateTemplate = useCallback(() => {
@@ -452,6 +524,7 @@ export const useImportLenses = () => {
   return {
     rows, summary, unresolvedRefs, hasUnresolved,
     isValidating, isImporting, batchId, fileName,
+    duplicateAction, setDuplicateAction,
     parseAndValidate, resolveRef, executeImport, reset, generateTemplate,
   };
 };
