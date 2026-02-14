@@ -10,13 +10,14 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
+import CurrencyFxSection from "./CurrencyFxSection";
 
 type FormData = Omit<PricingSettings, "id" | "created_at" | "created_by" | "version" | "is_active">;
 
 const DEFAULTS: FormData = {
   label: null,
   base_currency: "BBD",
-  fx_rates: { USD: 1, BBD: 2 },
+  fx_rates: { USD: 2, BBD: 1 },
   fx_risk_buffer: 0.02,
   vat_rate: 0.175,
   duty_rates: { lenses: 0.20, frames: 0.30, supplies: 0.20, addons: 0.15 },
@@ -184,21 +185,15 @@ const PricingSettingsTab = () => {
       </div>
 
       {/* Currency & FX */}
-      <Section title="Currency & FX">
-        <div className="grid grid-cols-[160px_1fr_1fr] items-center gap-2">
-          <Label className="text-xs font-medium">Base Currency</Label>
-          <Select value={form.base_currency} onValueChange={(v) => setField("base_currency", v)} disabled={disabled}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="BBD">BBD</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-            </SelectContent>
-          </Select>
-          <span />
-        </div>
-        <JsonGrid label="FX Rates" data={form.fx_rates} fieldKey="fx_rates" disabled={disabled} />
-        <PercentField label="FX Risk Buffer" value={form.fx_risk_buffer} onChange={(v) => setField("fx_risk_buffer", v)} disabled={disabled} />
-      </Section>
+      <CurrencyFxSection
+        baseCurrency={form.base_currency}
+        fxRates={form.fx_rates}
+        fxRiskBuffer={form.fx_risk_buffer}
+        disabled={disabled}
+        onBaseCurrencyChange={(v) => setField("base_currency", v)}
+        onFxRateChange={(currency, engineRate) => setJsonField("fx_rates", currency, engineRate)}
+        onFxRiskBufferChange={(v) => setField("fx_risk_buffer", v)}
+      />
 
       {/* Import Defaults */}
       <Section title="Barbados Import Defaults">
