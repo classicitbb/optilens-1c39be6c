@@ -1,25 +1,71 @@
 
 
-# Fix: Disable Duty and VAT in Lens Pricing Calculation
+# Unified Product Catalog Page
 
-Lenses do not have import duty or VAT applied to their pricing. The current integration passes `duty_applicable: true` and `vat_recoverable: false` to the pricing engine, which causes duty, charges, and VAT to be calculated incorrectly.
+## Overview
+Combine the Lenses, Add-Ons, and Supplies pages into a single **Product Catalog** page that uses tabs (like the Reference Data page), with one shared search bar and consistent table styling across all three.
 
-## Change
+## What Changes
 
-In `src/components/admin/LensFormDialog.tsx`, update the pricing engine input:
+### 1. New Unified Page: `src/pages/admin/ProductCatalogPage.tsx`
+- A single page with three tabs: **Lenses**, **Add-Ons**, **Supplies**
+- Tab bar styled identically to the Reference Data page (underline-style tabs)
+- One shared search input at the top (clears when switching tabs)
+- Each tab renders its respective data table and form dialogs
+- All existing CRUD logic (create, update, toggle, duplicate, delete) is preserved inside each tab section -- essentially the current page components become inline sections
+- The "Add" button label changes per tab ("Add Lens", "Add Add-On", "Add Supply")
 
-- Set `duty_applicable: false` (no duty on lenses)
-- Set `vat_recoverable: true` (effectively zeroes out VAT impact)
+### 2. Sidebar Update: `src/components/admin/AdminSidebar.tsx`
+- Replace the three separate menu items (Lenses, Supplies, Add-Ons) with a single **Product Catalog** entry
+- Icon: use an existing icon like `Layers` or `Package`
 
-This means the pricing engine will skip the entire CIF/duty/charges/VAT block and use the converted cost directly as the landed cost, which is the correct behavior for lenses.
+### 3. Router Update: `src/App.tsx`
+- Replace the three routes (`/admin/lenses`, `/admin/supplies`, `/admin/addons`) with a single `/admin/catalog` route pointing to `ProductCatalogPage`
+- Update the default redirect from `/admin` to `/admin/catalog`
+- Keep old paths redirecting to `/admin/catalog` for bookmarks
 
-## Technical Detail
+### 4. Remove Old Pages (optional cleanup)
+- `LensesPage.tsx`, `AddonsPage.tsx`, `SuppliesPage.tsx` become unused and can be removed since their logic moves into the unified page
 
-In `usePricingEngine.ts`, when `duty_applicable` is false (or `bb_item` is true), the engine skips duty/CIF calculation and sets `landed_cost = converted_cost`. Setting `duty_applicable: false` achieves this. The calculated values panel will then show 0 for CIF, Duty, Charges, and VAT fields.
+### 5. Table Style Consistency
+- All three data tables already use similar styling (sticky headers, alternating rows, margin health colors). Minor alignment will be done:
+  - Ensure identical `thCls` / `tdCls` class strings across all three tables
+  - Same filter tab styling (already matching)
+  - Same record count display format
+  - Same border/background HSL values
 
-### File to modify
+## What Does NOT Change
+- The data tables themselves (`LensDataTable`, `AddonDataTable`, `SupplyDataTable`) remain as separate components -- they have different columns and different data shapes
+- The form dialogs (`LensFormDialog`, `AddonFormDialog`, `SupplyFormDialog`) remain unchanged
+- All hooks (`useLenses`, `useAddons`, `useSupplies`) remain unchanged
+- All CRUD, audit logging, and navigation guard behavior stays identical
 
-| File | Change |
+## Technical Details
+
+The unified page structure will look like:
+
+```text
+ProductCatalogPage
++-- Tab bar: [Lenses] [Add-Ons] [Supplies]
++-- Search input + Add button
++-- Conditional render based on active tab:
+    +-- "lenses"  -> LensDataTable + LensFormDialog (logic from LensesPage)
+    +-- "addons"  -> AddonDataTable + AddonFormDialog (logic from AddonsPage)
+    +-- "supplies"-> SupplyDataTable + SupplyFormDialog (logic from SuppliesPage)
+```
+
+Each tab section will contain its own state (editItem, formOpen, etc.) via inline hooks, keeping the component manageable. Data is only fetched for the active tab using conditional hook calls or by letting React Query cache handle it.
+
+## Files Changed
+| File | Action |
 |------|--------|
-| `src/components/admin/LensFormDialog.tsx` | Change `duty_applicable: true` to `duty_applicable: false` in the pricing engine call (~line 131) |
+| `src/pages/admin/ProductCatalogPage.tsx` | Create (unified page) |
+| `src/components/admin/AdminSidebar.tsx` | Edit (consolidate 3 items to 1) |
+| `src/App.tsx` | Edit (update routes) |
+| `src/pages/admin/LensesPage.tsx` | Delete |
+| `src/pages/admin/AddonsPage.tsx` | Delete |
+| `src/pages/admin/SuppliesPage.tsx` | Delete |
+| `src/components/admin/LensDataTable.tsx` | Minor style alignment |
+| `src/components/admin/AddonDataTable.tsx` | Minor style alignment |
+| `src/components/admin/SupplyDataTable.tsx` | Minor style alignment |
 
