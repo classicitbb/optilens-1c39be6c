@@ -26,8 +26,8 @@
     --muted: 210 15% 93%;
     --muted-foreground: 215 20% 45%;
 
-    /* Golden yellow - accent for CTAs */
-    --accent: 45 85% 50%;
+    /* Golden yellow - accent for CTAs (darkened for WCAG AA contrast) */
+    --accent: 45 85% 37%;
     --accent-foreground: 215 35% 15%;
 
     /* Success green */
