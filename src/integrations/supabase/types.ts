@@ -322,6 +322,30 @@ export type Database = {
         }
         Relationships: []
       }
+      import_ref_mappings: {
+        Row: {
+          created_at: string
+          csv_value: string
+          id: string
+          mapped_id: string
+          ref_table: string
+        }
+        Insert: {
+          created_at?: string
+          csv_value: string
+          id?: string
+          mapped_id: string
+          ref_table: string
+        }
+        Update: {
+          created_at?: string
+          csv_value?: string
+          id?: string
+          mapped_id?: string
+          ref_table?: string
+        }
+        Relationships: []
+      }
       lens_lens_options: {
         Row: {
           extra_cost: number
