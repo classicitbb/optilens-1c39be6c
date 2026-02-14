@@ -320,17 +320,17 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                   )}
                 </div>
               </div>
-              <Separator />
+            </div>
 
+            {/* RIGHT COLUMN - Notes, Flags, Pricing, Calculated Values */}
+            <div className="space-y-4">
               {/* Notes */}
               <div>
                 <Label className={labelCls}>Notes</Label>
                 <Textarea value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value || null)} className="text-xs min-h-[40px]" placeholder="Optional notes..." />
               </div>
-            </div>
+              <Separator />
 
-            {/* RIGHT COLUMN - Flags, Pricing, Calculated Values */}
-            <div className="space-y-4">
               {/* Flags */}
               <div>
                 <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Flags</p>
