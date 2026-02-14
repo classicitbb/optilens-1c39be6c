@@ -139,8 +139,20 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
                 </TableCell>
               </TableRow>
             ) : (
-              visibleItems.map((lens) => (
-                <TableRow key={lens.id} className="cursor-pointer" onClick={() => onRowClick(lens)}>
+              visibleItems.map((lens, idx) => {
+                // Margin health row coloring
+                const cost = lens.base_price;
+                const sell = lens.sell_price;
+                let rowBg = idx % 2 === 1 ? "hsl(215 20% 97%)" : undefined;
+                if (cost === 0) rowBg = "hsl(0 70% 96%)";
+                else if (sell > 0 && sell <= cost * fxRate) rowBg = "hsl(0 70% 95%)";
+                else if (sell > 0) {
+                  const fullCostApprox = cost * fxRate * 1.15;
+                  const margin = (sell - fullCostApprox) / sell;
+                  if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
+                }
+                return (
+                <TableRow key={lens.id} className="cursor-pointer" style={rowBg ? { background: rowBg } : undefined} onClick={() => onRowClick(lens)}>
                   <TableCell className="font-medium text-xs">{lens.name}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.supplier)}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.brand)}</TableCell>
@@ -162,7 +174,8 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive }: Props) =>
                     </TableCell>
                   )}
                 </TableRow>
-              ))
+                );
+              })
             )}
             {hasMore && (
               <TableRow>

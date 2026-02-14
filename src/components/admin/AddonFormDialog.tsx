@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { checkGovernance } from "@/hooks/useGovernanceCheck";
 import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
+import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
 
 interface Props {
   open: boolean;
@@ -78,6 +79,9 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
   const [sheets, setSheets] = useState<SheetAssignment[]>([]);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"save" | "saveAndClose" | null>(null);
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const [pendingNavTarget, setPendingNavTarget] = useState<Addon | null>(null);
+  const initialFormRef = useRef<string>("");
   const { data: suppliers } = useReferenceData("suppliers");
   const activeSuppliers = (suppliers ?? []).filter((s) => s.is_active);
   const { calculate, settings } = usePricingEngine();
@@ -107,6 +111,13 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
       })
     );
   }, [addon, open, pricingSheets, addonPricingSheets]);
+
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => { initialFormRef.current = JSON.stringify(form); }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [open, addon]);
 
   const calc = useMemo(() => calculate({
     component_type: "addons",
@@ -150,6 +161,40 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
   const canGoPrev = currentIndex > 0;
   const canGoNext = addons ? currentIndex >= 0 && currentIndex < addons.length - 1 : false;
 
+  const isDirty = () => JSON.stringify(form) !== initialFormRef.current;
+
+  const handleNavigate = (target: Addon) => {
+    if (isDirty()) {
+      setPendingNavTarget(target);
+      setUnsavedDialogOpen(true);
+    } else {
+      onNavigate?.(target);
+    }
+  };
+
+  const handleUnsavedSave = () => {
+    setUnsavedDialogOpen(false);
+    const assignments = getAssignments();
+    onSubmit(form, assignments);
+    if (pendingNavTarget) {
+      setTimeout(() => onNavigate?.(pendingNavTarget), 100);
+      setPendingNavTarget(null);
+    }
+  };
+
+  const handleUnsavedDiscard = () => {
+    setUnsavedDialogOpen(false);
+    if (pendingNavTarget) {
+      onNavigate?.(pendingNavTarget);
+      setPendingNavTarget(null);
+    }
+  };
+
+  const handleUnsavedCancel = () => {
+    setUnsavedDialogOpen(false);
+    setPendingNavTarget(null);
+  };
+
   const attemptSave = (action: "save" | "saveAndClose") => {
     if (governance.blocked) return;
     if (governance.needsReason) {
@@ -186,7 +231,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
           <div className="flex items-center gap-2">
             {addon && onNavigate && (
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoPrev || isPending}
-                onClick={() => canGoPrev && addons && onNavigate(addons[currentIndex - 1])}>
+                onClick={() => canGoPrev && addons && handleNavigate(addons[currentIndex - 1])}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
@@ -195,7 +240,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
             </DialogTitle>
             {addon && onNavigate && (
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoNext || isPending}
-                onClick={() => canGoNext && addons && onNavigate(addons[currentIndex + 1])}>
+                onClick={() => canGoNext && addons && handleNavigate(addons[currentIndex + 1])}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             )}
@@ -372,6 +417,12 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
         open={reasonDialogOpen}
         onConfirm={handleReasonConfirm}
         onCancel={() => { setReasonDialogOpen(false); setPendingAction(null); }}
+      />
+      <UnsavedChangesDialog
+        open={unsavedDialogOpen}
+        onSave={handleUnsavedSave}
+        onDiscard={handleUnsavedDiscard}
+        onCancel={handleUnsavedCancel}
       />
     </Dialog>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { checkGovernance } from "@/hooks/useGovernanceCheck";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
 import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Lock, LockOpen } from "lucide-react";
 import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
+import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
 import type { Lens, LensFormData } from "@/hooks/useLenses";
 
 interface Props {
@@ -53,6 +54,9 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const [nameLocked, setNameLocked] = useState(true);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"save" | "saveAndClose" | null>(null);
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const [pendingNavTarget, setPendingNavTarget] = useState<Lens | null>(null);
+  const initialFormRef = useRef<string>("");
 
   const suppliers = useReferenceData("suppliers", open);
   const brands = useReferenceData("brands", open);
@@ -94,6 +98,14 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
       });
     } else {
       setForm(emptyForm);
+    }
+  }, [open, lens]);
+
+  useEffect(() => {
+    // Snapshot form state after initialization for dirty checking
+    if (open) {
+      const timer = setTimeout(() => { initialFormRef.current = JSON.stringify(form); }, 0);
+      return () => clearTimeout(timer);
     }
   }, [open, lens]);
 
@@ -195,6 +207,40 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const canGoPrev = currentIndex > 0;
   const canGoNext = lenses ? currentIndex >= 0 && currentIndex < lenses.length - 1 : false;
 
+  const isDirty = () => JSON.stringify(form) !== initialFormRef.current;
+
+  const handleNavigate = (target: Lens) => {
+    if (isDirty()) {
+      setPendingNavTarget(target);
+      setUnsavedDialogOpen(true);
+    } else {
+      onNavigate?.(target);
+    }
+  };
+
+  const handleUnsavedSave = () => {
+    setUnsavedDialogOpen(false);
+    const finalForm = buildFinalForm();
+    onSubmit(finalForm);
+    if (pendingNavTarget) {
+      setTimeout(() => onNavigate?.(pendingNavTarget), 100);
+      setPendingNavTarget(null);
+    }
+  };
+
+  const handleUnsavedDiscard = () => {
+    setUnsavedDialogOpen(false);
+    if (pendingNavTarget) {
+      onNavigate?.(pendingNavTarget);
+      setPendingNavTarget(null);
+    }
+  };
+
+  const handleUnsavedCancel = () => {
+    setUnsavedDialogOpen(false);
+    setPendingNavTarget(null);
+  };
+
   const inputCls = "h-7 text-xs";
   const labelCls = "text-xs font-medium";
   const sectionCls = "text-[11px] font-semibold uppercase tracking-wider mb-2";
@@ -247,7 +293,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
           <div className="flex items-center gap-2">
             {lens && onNavigate && (
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoPrev || isPending}
-                onClick={() => canGoPrev && lenses && onNavigate(lenses[currentIndex - 1])}>
+                onClick={() => canGoPrev && lenses && handleNavigate(lenses[currentIndex - 1])}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
@@ -256,7 +302,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
             </DialogTitle>
             {lens && onNavigate && (
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoNext || isPending}
-                onClick={() => canGoNext && lenses && onNavigate(lenses[currentIndex + 1])}>
+                onClick={() => canGoNext && lenses && handleNavigate(lenses[currentIndex + 1])}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             )}
@@ -435,6 +481,12 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
         open={reasonDialogOpen}
         onConfirm={handleReasonConfirm}
         onCancel={() => { setReasonDialogOpen(false); setPendingAction(null); }}
+      />
+      <UnsavedChangesDialog
+        open={unsavedDialogOpen}
+        onSave={handleUnsavedSave}
+        onDiscard={handleUnsavedDiscard}
+        onCancel={handleUnsavedCancel}
       />
     </Dialog>
   );

@@ -100,7 +100,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
       </div>
       <div className="rounded border overflow-auto max-h-[calc(100vh-280px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Name</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>SKU</TableHead>
@@ -117,10 +117,20 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
           </TableRow>
         </TableHeader>
         <TableBody>
-          {visible.map((a) => (
+          {visible.map((a, idx) => {
+            let rowBg = idx % 2 === 1 ? "hsl(215 20% 97%)" : undefined;
+            if (a.cost === 0) rowBg = "hsl(0 70% 96%)";
+            else if (a.price > 0 && a.price <= a.cost * fxRate) rowBg = "hsl(0 70% 95%)";
+            else if (a.price > 0) {
+              const fullCostApprox = a.cost * fxRate * 1.15;
+              const margin = (a.price - fullCostApprox) / a.price;
+              if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
+            }
+            return (
             <TableRow
               key={a.id}
               className={canEdit ? "cursor-pointer hover:bg-blue-50/60" : "hover:bg-blue-50/60"}
+              style={rowBg ? { background: rowBg } : undefined}
               onClick={() => canEdit && onRowClick(a)}
             >
               <TableCell className={`${tdCls} font-medium max-w-[240px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{a.name}</TableCell>
@@ -165,7 +175,8 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
                 </TableCell>
               )}
             </TableRow>
-          ))}
+            );
+          })}
           {visible.length === 0 && (
             <TableRow>
               <TableCell colSpan={canEdit ? 12 : 10} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
