@@ -72,8 +72,12 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
           s.name.toLowerCase().includes(q) ||
           (s.sku ?? "").toLowerCase().includes(q) ||
           s.category.toLowerCase().includes(q) ||
+          (CATEGORY_LABELS[s.category] ?? "").toLowerCase().includes(q) ||
           (s.description ?? "").toLowerCase().includes(q) ||
-          (s.supplier_name ?? "").toLowerCase().includes(q)
+          (s.supplier_name ?? "").toLowerCase().includes(q) ||
+          s.unit.toLowerCase().includes(q) ||
+          s.bin.toLowerCase().includes(q) ||
+          s.detail.toLowerCase().includes(q)
       );
     }
     return [...items].sort((a, b) => {

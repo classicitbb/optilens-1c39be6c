@@ -75,6 +75,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
           a.name.toLowerCase().includes(q) ||
           a.sku.toLowerCase().includes(q) ||
           a.category.toLowerCase().includes(q) ||
+          (CATEGORY_LABELS[a.category] ?? "").toLowerCase().includes(q) ||
           a.description.toLowerCase().includes(q) ||
           (a.supplier_name ?? "").toLowerCase().includes(q)
       );

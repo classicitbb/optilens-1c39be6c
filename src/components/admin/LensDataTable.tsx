@@ -7,7 +7,7 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import type { Lens } from "@/hooks/useLenses";
 
-type SortKey = "name" | "supplier" | "brand" | "material" | "lenstype" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
+type SortKey = "name" | "supplier" | "brand" | "material" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
 type SortDir = "asc" | "desc";
 type Filter = "all" | "active" | "inactive" | "web";
 
@@ -22,6 +22,11 @@ interface Props {
 }
 
 const fkName = (fk: { name: string } | null) => fk?.name ?? "";
+const optionNames = (lens: Lens) =>
+  (lens.lens_lens_options ?? [])
+    .map((o) => o.lens_option?.name ?? "")
+    .filter(Boolean)
+    .join(", ");
 
 const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const { canEdit } = useAdminRole();
@@ -59,7 +64,13 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
       items = items.filter((i) =>
         i.name.toLowerCase().includes(q) ||
         fkName(i.supplier).toLowerCase().includes(q) ||
-        fkName(i.brand).toLowerCase().includes(q)
+        fkName(i.brand).toLowerCase().includes(q) ||
+        fkName(i.material).toLowerCase().includes(q) ||
+        fkName(i.lenstype).toLowerCase().includes(q) ||
+        fkName(i.finishtype).toLowerCase().includes(q) ||
+        fkName(i.mftype).toLowerCase().includes(q) ||
+        optionNames(i).toLowerCase().includes(q) ||
+        (i.notes ?? "").toLowerCase().includes(q)
       );
     }
     return [...items].sort((a, b) => {
@@ -69,6 +80,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
         case "brand": av = fkName(a.brand); bv = fkName(b.brand); break;
         case "material": av = fkName(a.material); bv = fkName(b.material); break;
         case "lenstype": av = fkName(a.lenstype); bv = fkName(b.lenstype); break;
+        case "option": av = optionNames(a); bv = optionNames(b); break;
         case "finishtype": av = fkName(a.finishtype); bv = fkName(b.finishtype); break;
         case "sell_usd": av = fxRate > 0 ? a.sell_price / fxRate : 0; bv = fxRate > 0 ? b.sell_price / fxRate : 0; break;
         default: av = a[sortKey] as any; bv = b[sortKey] as any;
@@ -96,7 +108,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
 
   const currency = (v: number) => `$${Number(v).toFixed(2)}`;
   const showActions = unlocked && canEdit;
-  const colCount = (canEdit ? 14 : 13) + (showActions ? 1 : 0);
+  const colCount = (canEdit ? 15 : 14) + (showActions ? 1 : 0);
 
   return (
     <div className="space-y-3">
@@ -137,6 +149,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
               <TableHead><SortHeader label="Brand" k="brand" /></TableHead>
               <TableHead><SortHeader label="Material" k="material" /></TableHead>
               <TableHead><SortHeader label="Lens Type" k="lenstype" /></TableHead>
+              <TableHead><SortHeader label="Option" k="option" /></TableHead>
               <TableHead><SortHeader label="Finish Type" k="finishtype" /></TableHead>
               <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>
               <TableHead><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
@@ -175,6 +188,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
                   <TableCell className="text-xs">{fkName(lens.brand)}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.material)}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.lenstype)}</TableCell>
+                  <TableCell className="text-xs">{optionNames(lens) || "—"}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
                   <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>
                   <TableCell className="text-xs">{currency(lens.sell_price)}</TableCell>
