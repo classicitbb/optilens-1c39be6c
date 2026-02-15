@@ -1,87 +1,86 @@
-
-
-# Add Duplicate/Delete Actions to Lenses & Supplies with Lock/Unlock Guard
+# Expand Search Fields and Add Lens Option Column
 
 ## Overview
-Extend the Duplicate and Delete actions (currently only on Add-Ons) to the Lenses and Supplies tables. Add a lock/unlock toggle next to the record count on all three tables so these destructive actions are hidden by default and only revealed when explicitly unlocked.
 
-## What Changes
+Improve the search functionality across all three product catalog tables to cover more fields, and add a sortable "Lens Option" column to the Lenses table.
 
-### 1. Add `deleteMutation` and `duplicateMutation` to hooks
+## Changes
 
-**`src/hooks/useLenses.ts`** -- add two new mutations:
-- `deleteMutation`: deletes a lens row and its `lens_lens_options` join rows (cascade should handle this, but delete join rows first to be safe)
-- `duplicateMutation`: copies a Lens (with "(Copy)" suffix, blank SKU-equivalent fields, preserves all other fields including lens options)
+### 1. Lenses Table (`LensDataTable.tsx`)
 
-**`src/hooks/useSupplies.ts`** -- add two new mutations:
-- `deleteMutation`: deletes a supply row by ID
-- `duplicateMutation`: copies a Supply with "(Copy)" suffix, preserves all fields except ID
+**Search expansion** -- currently only searches `name`, `supplier`, `brand`. Will add:
 
-### 2. Lock/Unlock toggle on all three data tables
+- Material name
+- Lens Type name
+- Finish Type name
+- MF Type name
+- Lens Option names (from `lens_lens_options` array)
+- Notes
 
-Add a small lock icon button next to the record count (right side of filter bar) on each table:
-- **Locked (default)**: Shows a `Lock` icon. The Actions column (Duplicate/Delete buttons) is hidden.
-- **Unlocked**: Shows an `Unlock` icon with a subtle warning tint. The Actions column appears.
-- This replaces the current always-visible Actions column on the Add-Ons table.
-- Only shown when `canEdit` is true.
+**New "Option" column** -- displays the lens option name(s) from `lens_lens_options` as a comma-joined string. Placed before the Finish Type column. Sortable alphabetically by the first option name.
 
-**Files affected**: `LensDataTable.tsx`, `AddonDataTable.tsx`, `SupplyDataTable.tsx`
+- Add `"option"` to the `SortKey` type
+- Render lens option names via `lens.lens_lens_options.map(o => o.lens_option?.name).join(", ")`
+- Sort by flattened option name string
 
-Each table gets:
-- New props: `onDuplicate`, `onDelete`, `canDelete` (Lenses and Supplies gain these; Add-Ons already has them)
-- Local `unlocked` state (`useState(false)`)
-- Lock/Unlock button rendered next to the record count span
-- An "Actions" column that only renders when `unlocked && canEdit`
+### 2. Add-Ons Table (`AddonDataTable.tsx`)
 
-### 3. Wire up in `ProductCatalogPage.tsx`
+**Search expansion** -- already searches name, sku, category, description, supplier. Will add:
 
-**LensesTab**:
-- Import and use `deleteMutation` and `duplicateMutation` from `useLenses`
-- Add `deleteTarget` state and delete confirmation AlertDialog (same pattern as AddonsTab)
-- Pass `onDuplicate`, `onDelete`, `canDelete` to `LensDataTable`
+- Category label (human-readable, e.g. "AR Coating" matches even though raw value is "ar_coating")
 
-**SuppliesTab**:
-- Import and use `deleteMutation` and `duplicateMutation` from `useSupplies`
-- Add `deleteTarget` state and delete confirmation AlertDialog
-- Pass `onDuplicate`, `onDelete`, `canDelete` to `SupplyDataTable`
+This table is already well covered.
 
-**AddonsTab**: No logic changes -- just continues passing the same props.
+### 3. Supplies Table (`SupplyDataTable.tsx`)
 
-### 4. Audit logging for new actions
-- Log `delete` and `create` (duplicate) actions for lenses and supplies, same pattern already used for add-ons.
+**Search expansion** -- already searches name, sku, category, description, supplier. Will add:
 
-## What Does NOT Change
-- Form dialogs remain unchanged
-- Navigation guards unchanged
-- Table columns, styling, margin health colors unchanged
-- The delete confirmation AlertDialog pattern is reused as-is from AddonsTab
+- Category label (human-readable)
+- Unit
+- Bin
+- Detail
 
 ## Technical Details
 
-### Lock/Unlock UI (in each data table's filter bar)
-```text
-[Active] [Inactive] [All] [Web]          🔒  245 records
-                                   click: 🔓  245 records  (actions column appears)
+### Lens Option helper function
+
+```typescript
+const optionNames = (lens: Lens) =>
+  (lens.lens_lens_options ?? [])
+    .map((o) => o.lens_option?.name ?? "")
+    .filter(Boolean)
+    .join(", ");
 ```
-- The lock icon is a small ghost button: `Lock` or `Unlock` from lucide-react
-- When unlocked, the icon gets an amber/warning tint to signal "advanced mode"
-- Clicking again re-locks and hides the actions column
 
-### Duplicate logic for Lenses
-Copies all lens fields except `id`, `created_at`, `updated_at`. Sets name to `"Original Name (Copy)"`. Also duplicates `lens_lens_options` rows for the new lens ID.
+### Sort key addition for Lenses
 
-### Delete restrictions
-- Delete button only appears when `canDelete` is true (Admin role only)
-- Always behind the lock/unlock guard as a second layer of protection
+```typescript
+type SortKey = ... | "option";
+// In sort logic:
+case "option": av = optionNames(a); bv = optionNames(b); break;
+```
+
+### Search addition for Lenses
+
+```typescript
+items = items.filter((i) =>
+  i.name.toLowerCase().includes(q) ||
+  fkName(i.supplier).toLowerCase().includes(q) ||
+  fkName(i.brand).toLowerCase().includes(q) ||
+  fkName(i.material).toLowerCase().includes(q) ||
+  fkName(i.lenstype).toLowerCase().includes(q) ||
+  fkName(i.finishtype).toLowerCase().includes(q) ||
+  fkName(i.mftype).toLowerCase().includes(q) ||
+  optionNames(i).toLowerCase().includes(q) ||
+  (i.notes ?? "").toLowerCase().includes(q)
+);
+```
 
 ## Files Changed
 
-| File | Action |
-|------|--------|
-| `src/hooks/useLenses.ts` | Add `deleteMutation`, `duplicateMutation` |
-| `src/hooks/useSupplies.ts` | Add `deleteMutation`, `duplicateMutation` |
-| `src/components/admin/LensDataTable.tsx` | Add lock/unlock, Actions column, new props |
-| `src/components/admin/AddonDataTable.tsx` | Add lock/unlock guard (replace always-visible actions) |
-| `src/components/admin/SupplyDataTable.tsx` | Add lock/unlock, Actions column, new props |
-| `src/pages/admin/ProductCatalogPage.tsx` | Wire duplicate/delete for Lenses and Supplies tabs |
 
+| File                                       | Action                                                    |
+| ------------------------------------------ | --------------------------------------------------------- |
+| `src/components/admin/LensDataTable.tsx`   | Add Option column, expand search to all FK fields + notes |
+| `src/components/admin/AddonDataTable.tsx`  | Add category label to search                              |
+| `src/components/admin/SupplyDataTable.tsx` | Add category label, unit, bin, detail to search           |
