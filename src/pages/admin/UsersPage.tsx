@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAdminUsers, type AdminUser } from "@/hooks/useAdminUsers";
 import type { AppRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, Edit2 } from "lucide-react";
+import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search } from "lucide-react";
+import { format } from "date-fns";
 
 const ROLES: AppRole[] = ["admin", "operator", "viewer"];
 
@@ -16,10 +18,22 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 };
 
 const UsersPage = () => {
-  const { users, isLoading, assignRole, removeRole } = useAdminUsers();
+  const { users, isLoading, assignRole, removeRole, resetPassword } = useAdminUsers();
   const { toast } = useToast();
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("viewer");
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        (u.display_name ?? "").toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.role ?? "").toLowerCase().includes(q)
+    );
+  }, [users, search]);
 
   const handleAssign = async (userId: string, role: AppRole) => {
     try {
@@ -41,6 +55,19 @@ const UsersPage = () => {
     }
   };
 
+  const handleResetPassword = async (user: AdminUser) => {
+    if (!user.email) {
+      toast({ title: "Error", description: "No email available for this user.", variant: "destructive" });
+      return;
+    }
+    try {
+      await resetPassword.mutateAsync(user.email);
+      toast({ title: "Password reset sent", description: `Recovery email sent to ${user.email}.` });
+    } catch {
+      toast({ title: "Error", description: "Failed to send password reset.", variant: "destructive" });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -54,11 +81,21 @@ const UsersPage = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5" style={{ color: "hsl(215 65% 50%)" }} />
-          <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>User Roles</h1>
+          <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>User Management</h1>
         </div>
         <span className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
-          {users.length} user{users.length !== 1 ? "s" : ""}
+          {filtered.length} of {users.length} user{users.length !== 1 ? "s" : ""}
         </span>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by name, email or role…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 h-9 text-sm"
+        />
       </div>
 
       <div className="border rounded" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)" }}>
@@ -66,22 +103,24 @@ const UsersPage = () => {
           <thead>
             <tr className="border-b" style={{ borderColor: "hsl(215 15% 90%)", background: "hsl(210 20% 97%)" }}>
               <th className="text-left px-3 py-2 font-medium text-xs" style={{ color: "hsl(215 15% 50%)" }}>User</th>
+              <th className="text-left px-3 py-2 font-medium text-xs" style={{ color: "hsl(215 15% 50%)" }}>Email</th>
               <th className="text-left px-3 py-2 font-medium text-xs" style={{ color: "hsl(215 15% 50%)" }}>Role</th>
-              <th className="text-right px-3 py-2 font-medium text-xs w-32" style={{ color: "hsl(215 15% 50%)" }}>Actions</th>
+              <th className="text-left px-3 py-2 font-medium text-xs" style={{ color: "hsl(215 15% 50%)" }}>Created</th>
+              <th className="text-right px-3 py-2 font-medium text-xs w-36" style={{ color: "hsl(215 15% 50%)" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {filtered.map((user) => (
               <tr key={user.user_id} className="border-b last:border-b-0" style={{ borderColor: "hsl(215 15% 92%)" }}>
                 <td className="px-3 py-2">
-                  <div>
-                    <span className="text-[13px] font-medium" style={{ color: "hsl(215 30% 15%)" }}>
-                      {user.display_name || "Unnamed user"}
-                    </span>
-                    <div className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
-                      {user.user_id.slice(0, 8)}…
-                    </div>
-                  </div>
+                  <span className="text-[13px] font-medium" style={{ color: "hsl(215 30% 15%)" }}>
+                    {user.display_name || "Unnamed user"}
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  <span className="text-xs" style={{ color: "hsl(215 15% 40%)" }}>
+                    {user.email || <span className="italic" style={{ color: "hsl(215 15% 65%)" }}>{user.user_id.slice(0, 8)}…</span>}
+                  </span>
                 </td>
                 <td className="px-3 py-2">
                   {editingUser === user.user_id ? (
@@ -96,30 +135,17 @@ const UsersPage = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs px-3"
-                        onClick={() => handleAssign(user.user_id, selectedRole)}
-                        disabled={assignRole.isPending}
-                      >
+                      <Button size="sm" className="h-7 text-xs px-3" onClick={() => handleAssign(user.user_id, selectedRole)} disabled={assignRole.isPending}>
                         Save
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => setEditingUser(null)}
-                      >
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditingUser(null)}>
                         Cancel
                       </Button>
                     </div>
                   ) : user.role ? (
                     <Badge
                       className="text-[10px] px-1.5 py-0 h-5 font-medium border-0"
-                      style={{
-                        background: roleBadgeStyle[user.role]?.bg,
-                        color: roleBadgeStyle[user.role]?.color,
-                      }}
+                      style={{ background: roleBadgeStyle[user.role]?.bg, color: roleBadgeStyle[user.role]?.color }}
                     >
                       {user.role}
                     </Badge>
@@ -127,9 +153,24 @@ const UsersPage = () => {
                     <span className="text-xs italic" style={{ color: "hsl(215 15% 65%)" }}>No role</span>
                   )}
                 </td>
+                <td className="px-3 py-2">
+                  <span className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                    {user.created_at ? format(new Date(user.created_at), "dd MMM yyyy") : "—"}
+                  </span>
+                </td>
                 <td className="px-3 py-2 text-right">
                   {editingUser !== user.user_id && (
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Send password reset"
+                        onClick={() => handleResetPassword(user)}
+                        disabled={resetPassword.isPending || !user.email}
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -159,10 +200,10 @@ const UsersPage = () => {
                 </td>
               </tr>
             ))}
-            {users.length === 0 && (
+            {filtered.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-3 py-8 text-center text-xs" style={{ color: "hsl(215 15% 50%)" }}>
-                  No users found.
+                <td colSpan={5} className="px-3 py-8 text-center text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  {search ? "No users match your search." : "No users found."}
                 </td>
               </tr>
             )}

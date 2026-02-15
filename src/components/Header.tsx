@@ -127,7 +127,7 @@ const ProductsDropdown = () => {
 const Header = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { isAdmin } = useUserRole();
+  const { hasAccess } = useUserRole();
 
   const handleSignOut = async () => {
     await signOut();
@@ -224,7 +224,7 @@ const Header = () => {
                     <Link to="/orders" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
                       <Package className="h-4 w-4" /> Orders
                     </Link>
-                    {isAdmin && (
+                    {hasAccess && (
                       <Link to="/admin" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
                         <Shield className="h-4 w-4" /> Admin
                       </Link>
@@ -259,7 +259,7 @@ const Header = () => {
                       Orders
                     </Link>
                   </DropdownMenuItem>
-                  {isAdmin && (
+                  {hasAccess && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin" className="flex items-center gap-2">
                         <Shield className="h-4 w-4" />
