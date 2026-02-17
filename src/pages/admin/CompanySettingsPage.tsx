@@ -50,7 +50,7 @@ const CompanySettingsPage = () => {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="h-full overflow-auto p-4 space-y-4">
       <h1 className="text-lg font-semibold text-foreground">Parameters</h1>
       <Tabs defaultValue="company" className="w-full">
         <TabsList className="h-9">
