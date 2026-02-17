@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Trash2, Lock, Unlock, ArrowUpDown } from "lucide-react";
 import type { Supply } from "@/hooks/useSupplies";
 import { useMemo, useState, useCallback } from "react";
+import MultiSelectFilter from "./MultiSelectFilter";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 
@@ -36,6 +37,12 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
   const [unlocked, setUnlocked] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [colFilters, setColFilters] = useState<{ supplier: Set<string>; category: Set<string> }>({ supplier: new Set(), category: new Set() });
+
+  const setColFilter = useCallback((key: "supplier" | "category", values: Set<string>) => {
+    setColFilters((prev) => ({ ...prev, [key]: values }));
+    setVisibleCount(PAGE_SIZE);
+  }, []);
   const { settings } = usePricingEngine();
   const { canEditFeature } = useRolePermissions();
   const showCost = canEdit;
@@ -68,6 +75,8 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
     if (filter === "active") items = items.filter((i) => i.is_active);
     else if (filter === "inactive") items = items.filter((i) => !i.is_active);
     else if (filter === "web") items = items.filter((i) => i.show_on_website);
+    if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(i.supplier_name ?? "—"));
+    if (colFilters.category.size > 0) items = items.filter((i) => colFilters.category.has(CATEGORY_LABELS[i.category] || i.category));
     if (search) {
       const q = search.toLowerCase();
       items = items.filter(
@@ -95,7 +104,10 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : Number(av) - Number(bv);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [supplies, search, filter, sortKey, sortDir, fxRate]);
+  }, [supplies, search, filter, sortKey, sortDir, fxRate, colFilters]);
+
+  const supplierOptions = useMemo(() => [...new Set(supplies.map((s) => s.supplier_name ?? "—"))].sort().map((v) => ({ value: v, label: v })), [supplies]);
+  const categoryOptions = useMemo(() => [...new Set(supplies.map((s) => CATEGORY_LABELS[s.category] || s.category))].sort().map((v) => ({ value: v, label: v })), [supplies]);
 
   const filterTabs: { label: string; value: Filter }[] = [
     { label: "Active", value: "active" },
@@ -151,8 +163,12 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
         <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
           <TableRow style={{ background: "hsl(215 30% 96%)" }}>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Name" k="name" /></TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Category" k="category" /></TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Supplier" k="supplier_name" /></TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>
+              <MultiSelectFilter label="Category" options={categoryOptions} selected={colFilters.category} onChange={(v) => setColFilter("category", v)} />
+            </TableHead>
+            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>
+              <MultiSelectFilter label="Supplier" options={supplierOptions} selected={colFilters.supplier} onChange={(v) => setColFilter("supplier", v)} />
+            </TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="SKU" k="sku" /></TableHead>
             {showCost && <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
