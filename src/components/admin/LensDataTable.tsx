@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2 } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 import type { Lens } from "@/hooks/useLenses";
 
 type SortKey = "name" | "supplier" | "brand" | "material" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
@@ -30,6 +31,9 @@ const optionNames = (lens: Lens) =>
 
 const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const { canEdit } = useAdminRole();
+  const { canEditFeature } = useRolePermissions();
+  const canEditCatalog = canEditFeature("catalog");
+  const showCost = canEdit; // Only admin/operator see cost
   const { settings } = usePricingEngine();
   const [filter, setFilter] = useState<Filter>("active");
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -107,8 +111,9 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
   );
 
   const currency = (v: number) => `$${Number(v).toFixed(2)}`;
-  const showActions = unlocked && canEdit;
-  const colCount = (canEdit ? 15 : 14) + (showActions ? 1 : 0);
+  const showActions = unlocked && canEditCatalog;
+  const costCols = showCost ? 1 : 0;
+  const colCount = 13 + costCols + (canEditCatalog ? 1 : 0) + (showActions ? 1 : 0);
 
   return (
     <div className="space-y-3">
@@ -127,7 +132,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
           </button>
         ))}
         <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
-          {canEdit && (
+          {canEditCatalog && (
             <button
               onClick={() => setUnlocked((u) => !u)}
               className="p-0.5 rounded transition-colors hover:bg-black/5"
@@ -151,14 +156,14 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
               <TableHead><SortHeader label="Lens Type" k="lenstype" /></TableHead>
               <TableHead><SortHeader label="Option" k="option" /></TableHead>
               <TableHead><SortHeader label="Finish Type" k="finishtype" /></TableHead>
-              <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>
+              {showCost && <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
               <TableHead><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
               <TableHead><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
               <TableHead className="text-center text-[10px]">PL</TableHead>
               <TableHead className="text-center text-[10px]">Lab</TableHead>
               <TableHead className="text-center text-[10px]">WSPL</TableHead>
               <TableHead className="text-center text-[10px]">Web</TableHead>
-              {canEdit && <TableHead />}
+              {canEditCatalog && <TableHead />}
               {showActions && <TableHead className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -182,7 +187,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
                   if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
                 }
                 return (
-                <TableRow key={lens.id} className="cursor-pointer" style={rowBg ? { background: rowBg } : undefined} onClick={() => onRowClick(lens)}>
+                <TableRow key={lens.id} className={canEditCatalog ? "cursor-pointer" : ""} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEditCatalog && onRowClick(lens)}>
                   <TableCell className="font-medium text-xs">{lens.name}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.supplier)}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.brand)}</TableCell>
@@ -190,7 +195,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
                   <TableCell className="text-xs">{fkName(lens.lenstype)}</TableCell>
                   <TableCell className="text-xs">{optionNames(lens) || "—"}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
-                  <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>
+                  {showCost && <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>}
                   <TableCell className="text-xs">{currency(lens.sell_price)}</TableCell>
                   <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
                   <TableCell className="text-center text-xs">{lens.show_in_pricelist ? "✓" : ""}</TableCell>
@@ -199,7 +204,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
                   <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     {lens.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(215 65% 50%)" }} />}
                   </TableCell>
-                  {canEdit && (
+                  {canEditCatalog && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Switch checked={lens.is_active} onCheckedChange={() => onToggleActive(lens)} className="scale-75" />
                     </TableCell>

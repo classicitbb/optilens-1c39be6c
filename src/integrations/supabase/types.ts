@@ -256,6 +256,35 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_pricing_access: {
+        Row: {
+          created_at: string
+          id: string
+          pricing_sheet_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pricing_sheet_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pricing_sheet_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_pricing_access_pricing_sheet_id_fkey"
+            columns: ["pricing_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finishtypes: {
         Row: {
           abbrev: string
@@ -907,6 +936,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissions: {
+        Row: {
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          feature: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          feature: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          feature?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           abbrev: string
@@ -1111,7 +1170,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "operator" | "viewer"
+      app_role: "admin" | "operator" | "viewer" | "customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1239,7 +1298,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "operator", "viewer"],
+      app_role: ["admin", "operator", "viewer", "customer"],
     },
   },
 } as const

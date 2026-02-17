@@ -5,6 +5,7 @@ import { Copy, Trash2, Lock, Unlock, ArrowUpDown } from "lucide-react";
 import type { Supply } from "@/hooks/useSupplies";
 import { useMemo, useState, useCallback } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 
 type Filter = "active" | "inactive" | "all" | "web";
 type SortKey = "name" | "category" | "supplier_name" | "sku" | "base_price" | "sell_price" | "sell_usd" | "unit";
@@ -36,6 +37,8 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { settings } = usePricingEngine();
+  const { canEditFeature } = useRolePermissions();
+  const showCost = canEdit;
 
   const handleFilterChange = useCallback((f: Filter) => {
     setFilter(f);
@@ -151,7 +154,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Category" k="category" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Supplier" k="supplier_name" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="SKU" k="sku" /></TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="base_price" /></TableHead>
+            {showCost && <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Unit" k="unit" /></TableHead>
@@ -181,7 +184,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
               <TableCell className={tdCls}>{CATEGORY_LABELS[s.category] || s.category}</TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.supplier_name ?? "—"}</TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.sku}</TableCell>
-              <TableCell className={`${tdCls} text-right`}>{s.base_price.toFixed(2)}</TableCell>
+              {showCost && <TableCell className={`${tdCls} text-right`}>{s.base_price.toFixed(2)}</TableCell>}
               <TableCell className={`${tdCls} text-right font-medium`}>{s.sell_price.toFixed(2)}</TableCell>
               <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? (s.sell_price / fxRate).toFixed(2) : "—"}</TableCell>
               <TableCell className={tdCls}>{s.quantity_per_unit > 1 ? `${s.quantity_per_unit}/${s.unit}` : s.unit}</TableCell>

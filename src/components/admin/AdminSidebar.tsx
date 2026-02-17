@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import {
   Glasses, Database, DollarSign, Upload, History, Download,
   Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Package, Layers, BookOpen,
@@ -11,24 +12,24 @@ interface MenuItem {
   label: string;
   icon: React.ElementType;
   path: string;
-  adminOnly?: boolean;
+  feature: Feature;
 }
 
 const MENU: MenuItem[] = [
-  { label: "Product Catalog", icon: Layers, path: "/admin/catalog" },
-  { label: "Reference Data", icon: Database, path: "/admin/reference" },
-  { label: "Lens Prices", icon: DollarSign, path: "/admin/pricing" },
-  { label: "Imports", icon: Upload, path: "/admin/imports" },
-  { label: "Runs / History", icon: History, path: "/admin/history" },
-  { label: "Exports", icon: Download, path: "/admin/exports" },
-  { label: "Parameters", icon: Settings, path: "/admin/parameters" },
-  { label: "Users", icon: Users, path: "/admin/users", adminOnly: true },
-  { label: "Audit Log", icon: FileText, path: "/admin/audit", adminOnly: true },
+  { label: "Product Catalog", icon: Layers, path: "/admin/catalog", feature: "catalog" },
+  { label: "Reference Data", icon: Database, path: "/admin/reference", feature: "reference" },
+  { label: "Lens Prices", icon: DollarSign, path: "/admin/pricing", feature: "pricing" },
+  { label: "Imports", icon: Upload, path: "/admin/imports", feature: "imports" },
+  { label: "Runs / History", icon: History, path: "/admin/history", feature: "history" },
+  { label: "Exports", icon: Download, path: "/admin/exports", feature: "exports" },
+  { label: "Parameters", icon: Settings, path: "/admin/parameters", feature: "parameters" },
+  { label: "Users", icon: Users, path: "/admin/users", feature: "users" },
+  { label: "Audit Log", icon: FileText, path: "/admin/audit", feature: "audit" },
 ];
 
 const AdminSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const { isAdmin } = useAdminRole();
+  const { canView } = useRolePermissions();
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -48,13 +49,13 @@ const AdminSidebar = () => {
 
       <nav className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {MENU.map((item) => {
-          if (item.adminOnly && !isAdmin) return null;
+          if (!canView(item.feature)) return null;
 
           const active = isActive(item.path);
           return (
             <RouterNavLink
               key={item.path}
-              to={item.path!}
+              to={item.path}
               className={`${linkBase} ${active ? "font-medium" : ""}`}
               title={collapsed ? item.label : undefined}
               style={{
@@ -70,18 +71,20 @@ const AdminSidebar = () => {
       </nav>
 
       <div className="border-t px-3 py-2 space-y-0.5" style={{ borderColor: "hsl(215 25% 18%)" }}>
-        <RouterNavLink
-          to="/admin/wiki"
-          className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`}
-          title={collapsed ? "Help / Wiki" : undefined}
-          style={{
-            color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)",
-            background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent",
-          }}
-        >
-          <BookOpen className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Help / Wiki</span>}
-        </RouterNavLink>
+        {canView("wiki") && (
+          <RouterNavLink
+            to="/admin/wiki"
+            className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`}
+            title={collapsed ? "Help / Wiki" : undefined}
+            style={{
+              color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)",
+              background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent",
+            }}
+          >
+            <BookOpen className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Help / Wiki</span>}
+          </RouterNavLink>
+        )}
         <Link
           to="/"
           className={`${linkBase} w-full`}
