@@ -3,7 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Copy, Trash2, Globe, Lock, Unlock, ArrowUpDown } from "lucide-react";
 import type { Addon } from "@/hooks/useAddons";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import MultiSelectFilter from "./MultiSelectFilter";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
@@ -16,6 +16,7 @@ interface Props {
   addons: Addon[];
   search: string;
   canEdit: boolean;
+  filterVersion?: number;
   onRowClick: (addon: Addon) => void;
   onToggleActive: (addon: Addon) => void;
   onDuplicate: (addon: Addon) => void;
@@ -34,13 +35,17 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: "Other"
 };
 
-const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
+const AddonDataTable = ({ addons, search, canEdit, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filter, setFilter] = useState<Filter>("active");
   const [unlocked, setUnlocked] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [colFilters, setColFilters] = useState<{ supplier: Set<string>; category: Set<string> }>({ supplier: new Set(), category: new Set() });
+
+  useEffect(() => {
+    if (filterVersion !== undefined) setColFilters({ supplier: new Set(), category: new Set() });
+  }, [filterVersion]);
 
   const setColFilter = useCallback((key: "supplier" | "category", values: Set<string>) => {
     setColFilters((prev) => ({ ...prev, [key]: values }));
