@@ -6,6 +6,7 @@ import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2 } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import MultiSelectFilter from "./MultiSelectFilter";
 import type { Lens } from "@/hooks/useLenses";
 
 type SortKey = "name" | "supplier" | "brand" | "material" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
@@ -23,23 +24,46 @@ interface Props {
 }
 
 const fkName = (fk: { name: string } | null) => fk?.name ?? "";
+const fkAbbrev = (fk: { abbrev?: string } | null) => fk?.abbrev ?? "";
 const optionNames = (lens: Lens) =>
   (lens.lens_lens_options ?? [])
     .map((o) => o.lens_option?.name ?? "")
     .filter(Boolean)
     .join(", ");
+const optionAbbrevs = (lens: Lens) =>
+  (lens.lens_lens_options ?? [])
+    .map((o) => o.lens_option?.abbrev ?? "")
+    .filter(Boolean)
+    .join(", ");
+
+type ColumnFilterKey = "supplier" | "brand" | "material" | "lenstype" | "option" | "finishtype";
 
 const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const { canEdit } = useAdminRole();
   const { canEditFeature } = useRolePermissions();
   const canEditCatalog = canEditFeature("catalog");
-  const showCost = canEdit; // Only admin/operator see cost
+  const showCost = canEdit;
   const { settings } = usePricingEngine();
   const [filter, setFilter] = useState<Filter>("active");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [visibleCount, setVisibleCount] = useState(50);
   const [unlocked, setUnlocked] = useState(false);
+
+  // Column filters: empty set = no filter (show all)
+  const [colFilters, setColFilters] = useState<Record<ColumnFilterKey, Set<string>>>({
+    supplier: new Set(),
+    brand: new Set(),
+    material: new Set(),
+    lenstype: new Set(),
+    option: new Set(),
+    finishtype: new Set(),
+  });
+
+  const setColFilter = useCallback((key: ColumnFilterKey, val: Set<string>) => {
+    setColFilters((prev) => ({ ...prev, [key]: val }));
+    setVisibleCount(50);
+  }, []);
 
   const fxRate = useMemo(() => {
     if (!settings) return 2;
@@ -58,22 +82,71 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
     setVisibleCount(50);
   }, []);
 
+  // Build unique options for each column filter
+  const columnOptions = useMemo(() => {
+    const collect = (key: ColumnFilterKey) => {
+      const map = new Map<string, string>();
+      for (const l of lenses) {
+        let name = "";
+        if (key === "option") {
+          for (const o of l.lens_lens_options ?? []) {
+            const n = o.lens_option?.name ?? "";
+            if (n && !map.has(n)) map.set(n, n);
+          }
+          continue;
+        }
+        name = fkName(l[key]);
+        if (name && !map.has(name)) map.set(name, name);
+      }
+      return Array.from(map.entries())
+        .map(([value, label]) => ({ value, label }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    };
+    return {
+      supplier: collect("supplier"),
+      brand: collect("brand"),
+      material: collect("material"),
+      lenstype: collect("lenstype"),
+      option: collect("option"),
+      finishtype: collect("finishtype"),
+    };
+  }, [lenses]);
+
   const filtered = useMemo(() => {
     let items = lenses;
     if (filter === "active") items = items.filter((i) => i.is_active);
     else if (filter === "inactive") items = items.filter((i) => !i.is_active);
     else if (filter === "web") items = items.filter((i) => i.show_on_website);
+
+    // Apply column filters
+    if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(fkName(i.supplier)));
+    if (colFilters.brand.size > 0) items = items.filter((i) => colFilters.brand.has(fkName(i.brand)));
+    if (colFilters.material.size > 0) items = items.filter((i) => colFilters.material.has(fkName(i.material)));
+    if (colFilters.lenstype.size > 0) items = items.filter((i) => colFilters.lenstype.has(fkName(i.lenstype)));
+    if (colFilters.finishtype.size > 0) items = items.filter((i) => colFilters.finishtype.has(fkName(i.finishtype)));
+    if (colFilters.option.size > 0) items = items.filter((i) => {
+      const names = (i.lens_lens_options ?? []).map((o) => o.lens_option?.name ?? "");
+      return names.some((n) => colFilters.option.has(n));
+    });
+
     if (search) {
       const q = search.toLowerCase();
       items = items.filter((i) =>
         i.name.toLowerCase().includes(q) ||
         fkName(i.supplier).toLowerCase().includes(q) ||
+        fkAbbrev(i.supplier).toLowerCase().includes(q) ||
         fkName(i.brand).toLowerCase().includes(q) ||
+        fkAbbrev(i.brand).toLowerCase().includes(q) ||
         fkName(i.material).toLowerCase().includes(q) ||
+        fkAbbrev(i.material).toLowerCase().includes(q) ||
         fkName(i.lenstype).toLowerCase().includes(q) ||
+        fkAbbrev(i.lenstype).toLowerCase().includes(q) ||
         fkName(i.finishtype).toLowerCase().includes(q) ||
+        fkAbbrev(i.finishtype).toLowerCase().includes(q) ||
         fkName(i.mftype).toLowerCase().includes(q) ||
+        fkAbbrev(i.mftype).toLowerCase().includes(q) ||
         optionNames(i).toLowerCase().includes(q) ||
+        optionAbbrevs(i).toLowerCase().includes(q) ||
         (i.notes ?? "").toLowerCase().includes(q)
       );
     }
@@ -92,7 +165,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : Number(av) - Number(bv);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [lenses, filter, search, sortKey, sortDir]);
+  }, [lenses, filter, search, sortKey, sortDir, colFilters]);
 
   const visibleItems = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
@@ -108,6 +181,20 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
     <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort(k)}>
       {label}<ArrowUpDown className="h-3 w-3" />
     </button>
+  );
+
+  const FilterHeader = ({ label, k, sortK }: { label: string; k: ColumnFilterKey; sortK: SortKey }) => (
+    <div className="flex items-center gap-1">
+      <button className="flex items-center gap-0.5 hover:text-foreground" onClick={() => toggleSort(sortK)}>
+        {label}<ArrowUpDown className="h-3 w-3" />
+      </button>
+      <MultiSelectFilter
+        label=""
+        options={columnOptions[k]}
+        selected={colFilters[k]}
+        onChange={(v) => setColFilter(k, v)}
+      />
+    </div>
   );
 
   const currency = (v: number) => `$${Number(v).toFixed(2)}`;
@@ -150,12 +237,12 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
           <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
             <TableRow>
               <TableHead><SortHeader label="Name" k="name" /></TableHead>
-              <TableHead><SortHeader label="Supplier" k="supplier" /></TableHead>
-              <TableHead><SortHeader label="Brand" k="brand" /></TableHead>
-              <TableHead><SortHeader label="Material" k="material" /></TableHead>
-              <TableHead><SortHeader label="Lens Type" k="lenstype" /></TableHead>
-              <TableHead><SortHeader label="Option" k="option" /></TableHead>
-              <TableHead><SortHeader label="Finish Type" k="finishtype" /></TableHead>
+              <TableHead><FilterHeader label="Supplier" k="supplier" sortK="supplier" /></TableHead>
+              <TableHead><FilterHeader label="Brand" k="brand" sortK="brand" /></TableHead>
+              <TableHead><FilterHeader label="Material" k="material" sortK="material" /></TableHead>
+              <TableHead><FilterHeader label="Lens Type" k="lenstype" sortK="lenstype" /></TableHead>
+              <TableHead><FilterHeader label="Option" k="option" sortK="option" /></TableHead>
+              <TableHead><FilterHeader label="Finish Type" k="finishtype" sortK="finishtype" /></TableHead>
               {showCost && <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
               <TableHead><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
               <TableHead><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>

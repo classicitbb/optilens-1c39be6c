@@ -1,10 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface RefFK {
+  name: string;
+  abbrev?: string;
+}
+
 export interface LensOption {
   lens_option_id: string;
   extra_cost: number;
-  lens_option: { name: string } | null;
+  lens_option: RefFK | null;
 }
 
 export interface Lens {
@@ -33,12 +38,12 @@ export interface Lens {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  supplier: { name: string } | null;
-  brand: { name: string } | null;
-  material: { name: string } | null;
-  mftype: { name: string } | null;
-  lenstype: { name: string } | null;
-  finishtype: { name: string } | null;
+  supplier: RefFK | null;
+  brand: RefFK | null;
+  material: RefFK | null;
+  mftype: RefFK | null;
+  lenstype: RefFK | null;
+  finishtype: RefFK | null;
   lens_lens_options: LensOption[];
 }
 
@@ -68,7 +73,7 @@ export interface LensFormData {
   option: { lens_option_id: string; extra_cost: number } | null;
 }
 
-const SELECT_QUERY = `*, supplier:suppliers(name), brand:brands(name), material:materials(name), mftype:mftypes(name), lenstype:lenstypes(name), finishtype:finishtypes(name), lens_lens_options(lens_option_id, extra_cost, lens_option:lens_options(name))`;
+const SELECT_QUERY = `*, supplier:suppliers(name,abbrev), brand:brands(name,abbrev), material:materials(name,abbrev), mftype:mftypes(name,abbrev), lenstype:lenstypes(name,abbrev), finishtype:finishtypes(name,abbrev), lens_lens_options(lens_option_id, extra_cost, lens_option:lens_options(name,abbrev))`;
 
 export const useLenses = () => {
   const queryClient = useQueryClient();
