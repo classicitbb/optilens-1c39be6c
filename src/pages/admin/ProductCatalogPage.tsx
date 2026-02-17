@@ -61,8 +61,8 @@ const ProductCatalogPage = () => {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col overflow-hidden p-4 gap-4">
+      <div className="flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Product Catalog</h1>
         {canEdit && (
           <Button size="sm" className="h-7 text-xs gap-1" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} onClick={handleAdd}>
@@ -71,8 +71,8 @@ const ProductCatalogPage = () => {
         )}
       </div>
 
-      {/* Tab bar – matches Reference Data style */}
-      <div className="flex gap-0 border-b" style={{ borderColor: "hsl(215 15% 85%)" }}>
+      {/* Tab bar */}
+      <div className="flex gap-0 border-b shrink-0" style={{ borderColor: "hsl(215 15% 85%)" }}>
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -89,15 +89,17 @@ const ProductCatalogPage = () => {
       </div>
 
       {/* Shared search */}
-      <div className="relative max-w-xs">
+      <div className="relative max-w-xs shrink-0">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={currentTab.placeholder} className="h-8 text-xs pl-8" />
       </div>
 
-      {/* Tab content */}
-      {activeTab === "lenses" && <LensesTab search={search} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} />}
-      {activeTab === "addons" && <AddonsTab search={search} formOpen={addonFormOpen} setFormOpen={setAddonFormOpen} />}
-      {activeTab === "supplies" && <SuppliesTab search={search} formOpen={supplyFormOpen} setFormOpen={setSupplyFormOpen} />}
+      {/* Tab content – fills remaining height */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        {activeTab === "lenses" && <LensesTab search={search} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} />}
+        {activeTab === "addons" && <AddonsTab search={search} formOpen={addonFormOpen} setFormOpen={setAddonFormOpen} />}
+        {activeTab === "supplies" && <SuppliesTab search={search} formOpen={supplyFormOpen} setFormOpen={setSupplyFormOpen} />}
+      </div>
     </div>
   );
 };
