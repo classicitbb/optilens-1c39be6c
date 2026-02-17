@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type AppRole = "admin" | "operator" | "viewer";
+export type AppRole = "admin" | "operator" | "viewer" | "customer";
 
 export const useUserRole = () => {
   const { user } = useAuth();
@@ -28,6 +28,7 @@ export const useUserRole = () => {
     error,
     canEdit: role === "admin" || role === "operator",
     isAdmin: role === "admin",
+    isCustomer: role === "customer",
     hasAccess: !!role,
   };
 };

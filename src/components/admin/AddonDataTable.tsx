@@ -5,6 +5,7 @@ import { Copy, Trash2, Globe, Lock, Unlock, ArrowUpDown } from "lucide-react";
 import type { Addon } from "@/hooks/useAddons";
 import { useMemo, useState, useCallback } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 
 type Filter = "active" | "inactive" | "all" | "web";
 type SortKey = "name" | "sku" | "supplier_name" | "category" | "cost" | "price" | "sell_usd" | "is_auto" | "sort_order";
@@ -39,6 +40,8 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { settings } = usePricingEngine();
+  const { canEditFeature } = useRolePermissions();
+  const showCost = canEdit;
 
   const handleFilterChange = useCallback((f: Filter) => {
     setFilter(f);
@@ -150,7 +153,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="SKU" k="sku" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Supplier" k="supplier_name" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Category" k="category" /></TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="cost" /></TableHead>
+            {showCost && <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="cost" /></TableHead>}
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (BBD)" k="price" /></TableHead>
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Type" k="is_auto" /></TableHead>
@@ -181,7 +184,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{a.sku || "—"}</TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{a.supplier_name ?? "—"}</TableCell>
               <TableCell className={tdCls}>{CATEGORY_LABELS[a.category] || a.category}</TableCell>
-              <TableCell className={`${tdCls} text-right`}>{a.cost.toFixed(2)}</TableCell>
+              {showCost && <TableCell className={`${tdCls} text-right`}>{a.cost.toFixed(2)}</TableCell>}
               <TableCell className={`${tdCls} text-right font-medium`}>{a.price.toFixed(2)}</TableCell>
               <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? (a.price / fxRate).toFixed(2) : "—"}</TableCell>
               <TableCell className={tdCls}>

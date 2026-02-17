@@ -34,6 +34,7 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
   admin: { bg: "hsl(0 72% 51% / 0.12)", color: "hsl(0 72% 51%)" },
   operator: { bg: "hsl(215 65% 50% / 0.12)", color: "hsl(215 65% 50%)" },
   viewer: { bg: "hsl(215 15% 50% / 0.12)", color: "hsl(215 15% 50%)" },
+  customer: { bg: "hsl(150 60% 40% / 0.12)", color: "hsl(150 60% 40%)" },
 };
 
 const Profile = () => {
