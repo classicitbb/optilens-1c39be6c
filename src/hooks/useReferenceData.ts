@@ -11,7 +11,7 @@ export interface ReferenceItem {
   updated_at: string;
 }
 
-const VALID_TABLES = ["suppliers", "brands", "materials", "mftypes", "lenstypes", "lens_options", "finishtypes"] as const;
+const VALID_TABLES = ["suppliers", "brands", "materials", "mftypes", "lenstypes", "lens_options", "finishtypes", "supply_categories"] as const;
 export type ReferenceTable = (typeof VALID_TABLES)[number];
 
 function isValidTable(t: string): t is ReferenceTable {

@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, Settings2 } from "lucide-react";
 import type { Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
@@ -16,6 +16,7 @@ import { checkGovernance } from "@/hooks/useGovernanceCheck";
 import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
 import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
+import ReferenceDataModal from "@/components/admin/ReferenceDataModal";
 
 interface Props {
   open: boolean;
@@ -28,11 +29,7 @@ interface Props {
   isPending: boolean;
 }
 
-const CATEGORIES = [
-  { value: "lab", label: "Lab Supplies" },
-  { value: "optical", label: "Optical Supplies" },
-  { value: "accessories", label: "Eyewear Accessories" },
-];
+/* Categories are now loaded from supply_categories reference table */
 
 const UNITS = ["each", "box", "case", "pack", "roll", "bottle", "pair"];
 
@@ -62,13 +59,17 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
   const [pendingAction, setPendingAction] = useState<"save" | "saveAndClose" | null>(null);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<Supply | null>(null);
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [catEditItem, setCatEditItem] = useState<{ id: string; name: string; abbrev: string; code: string } | null>(null);
   const initialFormRef = useRef<string>("");
   const { data: suppliers } = useReferenceData("suppliers");
   const { data: brands } = useReferenceData("brands");
+  const { data: supplyCategories, createMutation: createCat, updateMutation: updateCat } = useReferenceData("supply_categories");
   const { calculate, settings } = usePricingEngine();
 
   const activeSuppliers = (suppliers ?? []).filter((s) => s.is_active);
   const activeBrands = (brands ?? []).filter((b) => b.is_active);
+  const activeCategories = (supplyCategories ?? []).filter((c) => c.is_active);
 
   useEffect(() => {
     if (supply) {
@@ -216,11 +217,16 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                     <Input className={inputCls} value={form.sku} onChange={(e) => set("sku", e.target.value)} />
                   </div>
                   <div>
-                    <Label className={labelCls}>Category</Label>
+                    <div className="flex items-center gap-1">
+                      <Label className={labelCls}>Category</Label>
+                      <button type="button" className="p-0.5 rounded hover:bg-black/5" title="Manage categories" onClick={() => { setCatEditItem(null); setCatModalOpen(true); }}>
+                        <Settings2 className="h-3 w-3" style={{ color: "hsl(215 15% 50%)" }} />
+                      </button>
+                    </div>
                     <Select value={form.category} onValueChange={(v) => set("category", v)}>
                       <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                        {activeCategories.map((c) => <SelectItem key={c.code || c.id} value={c.code || c.id}>{c.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -410,6 +416,23 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
         onSave={handleUnsavedSave}
         onDiscard={handleUnsavedDiscard}
         onCancel={handleUnsavedCancel}
+      />
+      <ReferenceDataModal
+        open={catModalOpen}
+        onOpenChange={(o) => { setCatModalOpen(o); if (!o) setCatEditItem(null); }}
+        mode={catEditItem ? "edit" : "create"}
+        initialName={catEditItem?.name ?? ""}
+        initialAbbrev={catEditItem?.abbrev ?? ""}
+        initialCode={catEditItem?.code ?? ""}
+        entityLabel="Supply Category"
+        isPending={createCat.isPending || updateCat.isPending}
+        onSubmit={(vals) => {
+          if (catEditItem) {
+            updateCat.mutate({ id: catEditItem.id, updates: vals }, { onSuccess: () => { setCatModalOpen(false); setCatEditItem(null); } });
+          } else {
+            createCat.mutate(vals, { onSuccess: () => { setCatModalOpen(false); } });
+          }
+        }}
       />
     </Dialog>
   );
