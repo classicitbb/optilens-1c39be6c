@@ -36,14 +36,14 @@ const ZenvueSunDun = () => {
       {/* Use Cases */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             Built for Every Outdoor Moment
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
             {USE_CASES.map((item) => (
               <div key={item.title} className="border border-border bg-card p-6">
                 <item.icon className="h-8 w-8 text-accent" />
-                <h3 className="mt-4 text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>{item.title}</h3>
+                <h3 className="mt-4 text-lg font-semibold text-foreground">{item.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
               </div>
             ))}
@@ -54,7 +54,7 @@ const ZenvueSunDun = () => {
       {/* Specs */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             Features & Specifications
           </h2>
           <div className="mx-auto max-w-xl space-y-0 border border-border">
@@ -72,7 +72,7 @@ const ZenvueSunDun = () => {
       <section className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-16 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+            <h2 className="text-3xl font-bold text-foreground">
               Why Gray?
             </h2>
             <p className="mt-4 text-muted-foreground">

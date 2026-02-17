@@ -34,7 +34,7 @@ const ZenvueSingleVision = () => {
       {/* Options */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             Available Options
           </h2>
           <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
@@ -42,14 +42,14 @@ const ZenvueSingleVision = () => {
               <div className="mb-3 flex h-10 w-10 items-center justify-center bg-muted">
                 <Eye className="h-5 w-5 text-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>Clear</h3>
+              <h3 className="text-lg font-semibold text-foreground">Clear</h3>
               <p className="mt-2 text-sm text-muted-foreground">Standard transparent lenses. The go-to choice for dedicated-use eyewear.</p>
             </div>
             <div className="border border-border bg-card p-6">
               <div className="mb-3 flex h-10 w-10 items-center justify-center bg-primary">
                 <Sparkles className="h-5 w-5 text-primary-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+              <h3 className="text-lg font-semibold text-foreground">
                 Darkun™ Photochromic
               </h3>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -64,7 +64,7 @@ const ZenvueSingleVision = () => {
       {/* Specs */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             Materials & Specifications
           </h2>
           <div className="mx-auto max-w-2xl overflow-hidden border border-border">
@@ -93,14 +93,14 @@ const ZenvueSingleVision = () => {
       {/* Ideal For */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             Ideal For
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
             {IDEAL_FOR.map((item) => (
               <div key={item.title} className="border border-border bg-card p-6">
                 <item.icon className="h-8 w-8 text-accent" />
-                <h3 className="mt-4 text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>{item.title}</h3>
+                <h3 className="mt-4 text-lg font-semibold text-foreground">{item.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
               </div>
             ))}

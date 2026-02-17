@@ -28,7 +28,7 @@ const ZenvueHero = ({ title, subtitle, description, ctas = [], badge }: ZenvueHe
               {badge}
             </span>
           )}
-          <h1 className="text-4xl font-bold text-white md:text-5xl lg:text-6xl" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h1 className="text-4xl font-bold text-white md:text-5xl lg:text-6xl">
             {title}
           </h1>
           <p className="mt-4 text-lg text-white/70 md:text-xl">{subtitle}</p>

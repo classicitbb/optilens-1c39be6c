@@ -23,7 +23,7 @@ const ZenvueProductCard = ({ title, description, features, to, icon: Icon, accen
       >
         <Icon className="h-6 w-6 text-white" />
       </div>
-      <h3 className="text-xl font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+      <h3 className="text-xl font-semibold text-foreground">
         {title}
       </h3>
       <p className="mt-2 text-sm text-muted-foreground">{description}</p>

@@ -34,7 +34,7 @@ const ZenvueDarkun = () => {
       {/* How It Works */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             How It Works
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
@@ -43,7 +43,7 @@ const ZenvueDarkun = () => {
                 <div className="mb-3 flex h-10 w-10 items-center justify-center bg-primary text-primary-foreground text-sm font-bold">
                   {i + 1}
                 </div>
-                <h3 className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>{item.title}</h3>
+                <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
               </div>
             ))}
@@ -54,14 +54,14 @@ const ZenvueDarkun = () => {
       {/* Benefits */}
       <section className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             Benefits
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
             {BENEFITS.map((item) => (
               <div key={item.title} className="border border-border bg-card p-6">
                 <item.icon className="h-8 w-8 text-accent" />
-                <h3 className="mt-4 text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>{item.title}</h3>
+                <h3 className="mt-4 text-lg font-semibold text-foreground">{item.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
               </div>
             ))}
@@ -72,20 +72,20 @@ const ZenvueDarkun = () => {
       {/* Available With */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             Available With
           </h2>
           <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
             <Link to="/zenvue/brilliance" className="group border border-border bg-card p-6 transition-colors hover:border-accent/40">
               <Sparkles className="h-8 w-8 text-accent" />
-              <h3 className="mt-4 text-lg font-semibold text-foreground group-hover:text-accent transition-colors" style={{ fontFamily: "'Crimson Pro', serif" }}>
+              <h3 className="mt-4 text-lg font-semibold text-foreground group-hover:text-accent transition-colors">
                 Brilliance™ Progressive
               </h3>
               <p className="mt-2 text-sm text-muted-foreground">Progressive lenses with photochromic capability for ultimate versatility.</p>
             </Link>
             <Link to="/zenvue/single-vision" className="group border border-border bg-card p-6 transition-colors hover:border-accent/40">
               <Eye className="h-8 w-8 text-accent" />
-              <h3 className="mt-4 text-lg font-semibold text-foreground group-hover:text-accent transition-colors" style={{ fontFamily: "'Crimson Pro', serif" }}>
+              <h3 className="mt-4 text-lg font-semibold text-foreground group-hover:text-accent transition-colors">
                 Single Vision
               </h3>
               <p className="mt-2 text-sm text-muted-foreground">Single focus lenses that darken in sunlight — perfect for one-pair patients.</p>

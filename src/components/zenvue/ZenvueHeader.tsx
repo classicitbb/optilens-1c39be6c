@@ -24,9 +24,9 @@ const ZenvueHeader = () => {
         {/* Logo */}
         <Link to="/zenvue" className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center bg-primary">
-            <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>Z</span>
+            <span className="text-lg font-bold text-primary-foreground">Z</span>
           </div>
-          <span className="text-xl font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>ZenVue</span>
+          <span className="text-xl font-semibold text-foreground">ZenVue</span>
         </Link>
 
         {/* Desktop nav */}
@@ -76,9 +76,9 @@ const ZenvueHeader = () => {
             <SheetContent side="left" className="w-72 bg-background">
               <SheetTitle className="flex items-center gap-2 mb-6">
                 <div className="flex h-8 w-8 items-center justify-center bg-primary">
-                  <span className="text-base font-bold text-primary-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>Z</span>
+                  <span className="text-base font-bold text-primary-foreground">Z</span>
                 </div>
-                <span className="text-lg font-semibold" style={{ fontFamily: "'Crimson Pro', serif" }}>ZenVue</span>
+                <span className="text-lg font-semibold">ZenVue</span>
               </SheetTitle>
               <nav className="flex flex-col gap-1">
                 {NAV_LINKS.map((link) => (
