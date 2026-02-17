@@ -7,7 +7,7 @@ import AdminChatbot from "./AdminChatbot";
 const AdminLayout = () => {
   return (
     <AdminRoleProvider>
-      <div className="admin-tool flex min-h-screen w-full">
+      <div className="admin-tool flex h-screen overflow-hidden w-full">
         <AdminSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <AdminTopBar />
