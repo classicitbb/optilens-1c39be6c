@@ -113,7 +113,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
   const currency = (v: number) => `$${Number(v).toFixed(2)}`;
   const showActions = unlocked && canEditCatalog;
   const costCols = showCost ? 1 : 0;
-  const colCount = 13 + costCols + (canEditCatalog ? 1 : 0) + (showActions ? 1 : 0);
+  const colCount = 13 + costCols + (showActions ? 2 : 0);
 
   return (
     <div className="space-y-3">
@@ -163,7 +163,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
               <TableHead className="text-center text-[10px]">Lab</TableHead>
               <TableHead className="text-center text-[10px]">WSPL</TableHead>
               <TableHead className="text-center text-[10px]">Web</TableHead>
-              {canEditCatalog && <TableHead />}
+              {showActions && <TableHead />}
               {showActions && <TableHead className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -204,7 +204,7 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
                   <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     {lens.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(215 65% 50%)" }} />}
                   </TableCell>
-                  {canEditCatalog && (
+                  {showActions && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Switch checked={lens.is_active} onCheckedChange={() => onToggleActive(lens)} className="scale-75" />
                     </TableCell>
