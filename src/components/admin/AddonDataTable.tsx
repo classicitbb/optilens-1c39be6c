@@ -159,7 +159,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Type" k="is_auto" /></TableHead>
             <TableHead className={`${thCls} text-center`} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Order" k="sort_order" /></TableHead>
-            {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
+            {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
             {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
           </TableRow>
         </TableHeader>
@@ -202,7 +202,7 @@ const AddonDataTable = ({ addons, search, canEdit, onRowClick, onToggleActive, o
                 {a.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(150 60% 40%)" }} />}
               </TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{a.sort_order}</TableCell>
-              {canEdit && (
+              {showActions && (
                 <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
                   <Switch checked={a.is_active} onCheckedChange={() => onToggleActive(a)} />
                 </TableCell>

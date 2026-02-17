@@ -159,7 +159,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
             <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Unit" k="unit" /></TableHead>
             <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
-            {canEdit && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
+            {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
             {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
           </TableRow>
         </TableHeader>
@@ -189,7 +189,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, onRowClick, onToggleActive
               <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? (s.sell_price / fxRate).toFixed(2) : "—"}</TableCell>
               <TableCell className={tdCls}>{s.quantity_per_unit > 1 ? `${s.quantity_per_unit}/${s.unit}` : s.unit}</TableCell>
               <TableCell className={tdCls}>{s.show_on_website ? "✓" : ""}</TableCell>
-              {canEdit && (
+              {showActions && (
                 <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
                   <Switch checked={s.is_active} onCheckedChange={() => onToggleActive(s)} />
                 </TableCell>
