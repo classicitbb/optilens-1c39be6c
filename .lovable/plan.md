@@ -1,128 +1,54 @@
 
-# ZenVue Brand Microsite — Integrated Subsite
 
-## Overview
-Build ZenVue as an embedded "parasite" microsite within the existing app. All ZenVue pages live under `/zenvue/*` routes, share the main app's Footer but have their own Header, design system (obsidian/steel-blue theme, DM Sans + Crimson Pro fonts, 0rem border-radius), and internal navigation. The main site's Header gets a "ZenVue" link replacing the current external brand links.
+# Fix: Viewport-Locked Layout with Contained Scrolling
 
-## Architecture
+## Problem
+The admin layout's outer container uses `min-h-screen`, allowing it to grow beyond the viewport and producing a browser-level scrollbar. This also causes sticky table headers to scroll out of sight because the scroll happens on the window, not on the table's own container.
 
-The ZenVue subsite is a self-contained section with:
-- Its own layout wrapper (`ZenvueLayout`) providing a dedicated Header, Footer reuse, and floating LensAdvisor chatbot
-- Its own CSS variables scoped under a `.zenvue` class (similar to how `.admin-tool` works today)
-- Routes nested under `/zenvue/*` in App.tsx
-- Discreet "Back to OptiLens" link in the ZenVue header
+## Terminology
+- **Sticky headers**: Table headers that remain pinned at the top of their scroll container while rows scroll beneath them.
+- **Viewport-locked layout** (or "contained scrolling"): The entire UI fits exactly within the browser window; only designated inner areas (tables, content panels) scroll.
 
-## Routes
+## Solution
 
-| Route | Page | Component |
-|-------|------|-----------|
-| `/zenvue` | Home / Landing | `ZenvueHome` |
-| `/zenvue/brilliance` | Brilliance Progressive | `ZenvueBrilliance` |
-| `/zenvue/single-vision` | Single Vision Lenses | `ZenvueSingleVision` |
-| `/zenvue/sundun` | SunDun Polarized | `ZenvueSunDun` |
-| `/zenvue/darkun` | Darkun Photochromic | `ZenvueDarkun` |
-| `/zenvue/compare` | Compare Products | `ZenvueCompare` |
-| `/zenvue/wholesale` | Become a Partner | `ZenvueWholesale` |
+### 1. AdminLayout.tsx — Lock to viewport
 
-## Design System (CSS)
+Change the outer wrapper from `min-h-screen` to `h-screen overflow-hidden`. Change the main content area from `flex-1 overflow-auto` to `flex-1 overflow-auto` (keep) but ensure the parent is height-constrained:
 
-A `.zenvue` scoped block in `index.css` overrides CSS variables:
-
-- Primary: steel-blue `216 19% 26%`
-- Background: near-white / obsidian-dark
-- Fonts: DM Sans (body) + Crimson Pro (headings) via Google Fonts import
-- Border-radius: `0rem` (sharp corners)
-- Full light/dark mode support
-- Custom gradients and shadows matching the obsidian aesthetic
-
-## Changes to Existing Code
-
-### 1. Main Site Header (`Header.tsx`)
-- Replace the external `ZENVUE_BRANDS` links (currently pointing to `zvuedemo.lovable.app`) with internal `/zenvue/*` routes
-- Add a top-level "ZenVue" nav link pointing to `/zenvue`
-- Update mobile menu similarly
-
-### 2. App Router (`App.tsx`)
-- Add `/zenvue/*` route group using `ZenvueLayout` as the parent
-- Nest all 7 ZenVue page routes inside
-
-## New Files
-
-### Layout and Navigation
-| File | Purpose |
-|------|---------|
-| `src/components/zenvue/ZenvueLayout.tsx` | Layout wrapper with ZenVue header, outlet, shared footer, LensAdvisor |
-| `src/components/zenvue/ZenvueHeader.tsx` | Sticky header: ZenVue logo, nav links (Home, Brilliance, Single Vision, SunDun, Darkun, Compare), "Shop Now" button (links to `/store`), "Become a Partner" button, hamburger menu, discreet "Back to OptiLens" icon-link |
-
-### Pages
-| File | Purpose |
-|------|---------|
-| `src/pages/zenvue/ZenvueHome.tsx` | Landing: Hero ("Clarity, Comfort, Confidence"), Availability Banner, Brand Story, Products grid (3 cards), Why ZenVue benefits (4 cards), CTA |
-| `src/pages/zenvue/ZenvueBrilliance.tsx` | Brilliance Progressive product page: hero, Clear/Darkun options, features/specs table, coatings list, ideal-for cards, CTA |
-| `src/pages/zenvue/ZenvueSingleVision.tsx` | Single Vision product page: hero, Clear/Darkun options, features/specs, ideal-for cards (Distance/Reading/Computer), CTA |
-| `src/pages/zenvue/ZenvueSunDun.tsx` | SunDun Polarized product page: hero, use cases (Driving/Water/Outdoor), features/specs, "Why Gray?" explainer, CTA |
-| `src/pages/zenvue/ZenvueDarkun.tsx` | Darkun Photochromic technology page: hero with cross-links to Brilliance and SV, "How It Works" section, benefits, "Available With" links, CTA |
-| `src/pages/zenvue/ZenvueCompare.tsx` | Comparison table (13 features across 3 product lines), quick recommendation cards, CTA |
-| `src/pages/zenvue/ZenvueWholesale.tsx` | Partner application form with validation, "What Happens Next" 3-step process |
-
-### Shared ZenVue Components
-| File | Purpose |
-|------|---------|
-| `src/components/zenvue/ZenvueHero.tsx` | Reusable hero section with configurable title, subtitle, CTA buttons |
-| `src/components/zenvue/ZenvueProductCard.tsx` | Product card with features list and "Learn More" link |
-| `src/components/zenvue/ZenvueCTA.tsx` | Reusable CTA section with partner/shop buttons |
-| `src/components/zenvue/AvailabilityBanner.tsx` | "All lenses available as finished stock" banner |
-
-### Backend
-| File | Purpose |
-|------|---------|
-| `supabase/functions/lens-advisor/index.ts` | New edge function for ZenVue's LensAdvisor chatbot with ZenVue-specific system prompt and product knowledge |
-
-### Database
-- New `wholesale_inquiries` table to persist partner application form submissions (business_name, business_type, volume, location, contact_name, email, phone, referral_source, comments, created_at)
-- RLS policy: insert allowed for anonymous/authenticated users; select restricted to admin role users
-
-## Implementation Sequence
-
-1. **CSS**: Add `.zenvue` design tokens and font imports to `index.css`
-2. **Layout**: Create `ZenvueHeader` and `ZenvueLayout`
-3. **Pages**: Build all 7 pages, starting with Home, then product pages, Compare, Wholesale
-4. **Shared components**: Extract reusable Hero, ProductCard, CTA, AvailabilityBanner
-5. **Router**: Wire routes in `App.tsx`
-6. **Header update**: Replace external ZenVue links with internal routes
-7. **Database**: Create `wholesale_inquiries` table and RLS
-8. **Edge function**: Create `lens-advisor` for ZenVue chatbot
-9. **Image placeholders**: Use gradient backgrounds and icons until real product images are provided
-
-## Technical Details
-
-### CSS Scoping Strategy
-```text
-.zenvue {
-  --background: 220 15% 97%;
-  --foreground: 216 19% 26%;
-  --primary: 216 19% 26%;
-  --radius: 0rem;
-  font-family: 'DM Sans', sans-serif;
-}
-.zenvue .dark {
-  --background: 220 15% 8%;
-  --foreground: 220 15% 90%;
-}
+```
+Before:  <div className="admin-tool flex min-h-screen w-full">
+After:   <div className="admin-tool flex h-screen w-full overflow-hidden">
 ```
 
-### ZenVue Header Navigation
-- Desktop: horizontal nav with product links + "Shop Now" (accent button linking to `/store`) + "Become a Partner" (outline button)
-- Mobile: hamburger slide-out with all nav items
-- Top-right corner: small "OptiLens" text link back to `/`
+This single change ensures:
+- The sidebar, top bar, and main area never exceed the viewport
+- Only `<main>` (with `overflow-auto`) scrolls internally
+- Sticky headers inside tables now work because the scroll container is the `<main>` or the table wrapper, not the window
 
-### Wholesale Form Fields
-- Business Name, Business Type (dropdown: Optical Shop, Chain, Hospital, Other), Monthly Volume (dropdown), Country/Location
-- Contact Name, Email, Phone
-- How did you hear about us? (dropdown), Additional Comments (textarea)
-- Submissions saved to `wholesale_inquiries` table
+### 2. ProductCatalogPage.tsx — Fill available height
 
-### Lens Advisor Chatbot
-- Reuses the streaming chat UI pattern from `LensChatbot.tsx`
-- New edge function `lens-advisor` with ZenVue-specific system prompt covering Brilliance, Single Vision, SunDun, and Darkun products
-- Does NOT require authentication (public-facing brand site)
+Change the outer div from `p-4 space-y-4` to also include `h-full flex flex-col overflow-hidden`, and wrap the tab content area in a `flex-1 overflow-auto min-h-0` container so the table's own scroll wrapper works correctly within the available space.
+
+### 3. CompanySettingsPage.tsx — Fill available height
+
+Same pattern: make the page container `h-full overflow-auto` so if content exceeds the main area, it scrolls within the page, not the window.
+
+### 4. Table max-height cleanup
+
+The data tables currently use `maxHeight: "calc(100vh - 280px)"` which is a rough estimate. With the viewport-locked layout, we can change this to `flex-1 overflow-auto` on the table wrapper and let CSS flexbox handle the height naturally, or keep the calc but it will now work correctly since the parent is properly constrained.
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/admin/AdminLayout.tsx` | `min-h-screen` to `h-screen overflow-hidden` |
+| `src/pages/admin/ProductCatalogPage.tsx` | Make page fill height with flex column layout |
+| `src/pages/admin/CompanySettingsPage.tsx` | Add `h-full overflow-auto` to outer div |
+
+## Result
+- No browser-level scrollbar on any admin page
+- Sidebar, top bar, and footer links always visible
+- Table headers stick to the top of their scroll area
+- Horizontal scrolling works within the table container
+- Pattern applies site-wide since it's fixed at the layout level
+
