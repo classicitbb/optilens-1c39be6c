@@ -7,6 +7,7 @@ import { useMemo, useState, useCallback, useEffect } from "react";
 import MultiSelectFilter from "./MultiSelectFilter";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useReferenceData } from "@/hooks/useReferenceData";
 
 type Filter = "active" | "inactive" | "all" | "web";
 type SortKey = "name" | "category" | "supplier_name" | "sku" | "base_price" | "sell_price" | "sell_usd" | "unit";
@@ -26,11 +27,7 @@ interface Props {
 
 const PAGE_SIZE = 50;
 
-const CATEGORY_LABELS: Record<string, string> = {
-  lab: "Lab",
-  optical: "Optical",
-  accessories: "Accessories",
-};
+/* Category labels are now loaded dynamically from supply_categories */
 
 const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -50,6 +47,12 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
   }, []);
   const { settings } = usePricingEngine();
   const { canEditFeature } = useRolePermissions();
+  const { data: supplyCategories } = useReferenceData("supply_categories");
+  const catLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    (supplyCategories ?? []).forEach((c) => { if (c.code) map[c.code] = c.name; });
+    return map;
+  }, [supplyCategories]);
   const showCost = canEdit;
 
   const handleFilterChange = useCallback((f: Filter) => {
@@ -81,7 +84,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
     else if (filter === "inactive") items = items.filter((i) => !i.is_active);
     else if (filter === "web") items = items.filter((i) => i.show_on_website);
     if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(i.supplier_name ?? "—"));
-    if (colFilters.category.size > 0) items = items.filter((i) => colFilters.category.has(CATEGORY_LABELS[i.category] || i.category));
+    if (colFilters.category.size > 0) items = items.filter((i) => colFilters.category.has(catLabels[i.category] || i.category));
     if (search) {
       const q = search.toLowerCase();
       items = items.filter(
@@ -89,7 +92,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
           s.name.toLowerCase().includes(q) ||
           (s.sku ?? "").toLowerCase().includes(q) ||
           s.category.toLowerCase().includes(q) ||
-          (CATEGORY_LABELS[s.category] ?? "").toLowerCase().includes(q) ||
+          (catLabels[s.category] ?? "").toLowerCase().includes(q) ||
           (s.description ?? "").toLowerCase().includes(q) ||
           (s.supplier_name ?? "").toLowerCase().includes(q) ||
           s.unit.toLowerCase().includes(q) ||
@@ -112,7 +115,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
   }, [supplies, search, filter, sortKey, sortDir, fxRate, colFilters]);
 
   const supplierOptions = useMemo(() => [...new Set(supplies.map((s) => s.supplier_name ?? "—"))].sort().map((v) => ({ value: v, label: v })), [supplies]);
-  const categoryOptions = useMemo(() => [...new Set(supplies.map((s) => CATEGORY_LABELS[s.category] || s.category))].sort().map((v) => ({ value: v, label: v })), [supplies]);
+  const categoryOptions = useMemo(() => [...new Set(supplies.map((s) => catLabels[s.category] || s.category))].sort().map((v) => ({ value: v, label: v })), [supplies, catLabels]);
 
   const filterTabs: { label: string; value: Filter }[] = [
     { label: "Active", value: "active" },
@@ -202,7 +205,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
               onClick={() => canEdit && onRowClick(s)}
             >
               <TableCell className={`${tdCls} font-medium max-w-[200px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{s.name}</TableCell>
-              <TableCell className={tdCls}>{CATEGORY_LABELS[s.category] || s.category}</TableCell>
+              <TableCell className={tdCls}>{catLabels[s.category] || s.category}</TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.supplier_name ?? "—"}</TableCell>
               <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.sku}</TableCell>
               {showCost && <TableCell className={`${tdCls} text-right`}>{s.base_price.toFixed(2)}</TableCell>}
