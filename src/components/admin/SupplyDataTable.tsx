@@ -50,7 +50,12 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
   const { data: supplyCategories } = useReferenceData("supply_categories");
   const catLabels = useMemo(() => {
     const map: Record<string, string> = {};
-    (supplyCategories ?? []).forEach((c) => { if (c.code) map[c.code] = c.name; });
+    (supplyCategories ?? []).forEach((c) => {
+      if (c.code) map[c.code] = c.name;
+      map[c.id] = c.name;
+      map[c.name] = c.name;
+      if (c.name) map[c.name.toLowerCase()] = c.name;
+    });
     return map;
   }, [supplyCategories]);
   const showCost = canEdit;
