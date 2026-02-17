@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Crimson+Pro:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -220,4 +221,77 @@
 
 .admin-tool table tr:hover td {
   background: hsl(var(--admin-muted));
+}
+
+/* ──────────────────────────────────────────
+   ZenVue Brand Microsite Design Tokens
+   ────────────────────────────────────────── */
+.zenvue {
+  --background: 220 15% 97%;
+  --foreground: 216 19% 16%;
+  --card: 0 0% 100%;
+  --card-foreground: 216 19% 16%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 216 19% 16%;
+  --primary: 216 19% 26%;
+  --primary-foreground: 220 15% 97%;
+  --secondary: 216 12% 84%;
+  --secondary-foreground: 216 19% 16%;
+  --muted: 220 10% 92%;
+  --muted-foreground: 216 10% 45%;
+  --accent: 200 60% 42%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 216 12% 86%;
+  --input: 216 12% 86%;
+  --ring: 200 60% 42%;
+  --radius: 0rem;
+
+  --zv-steel: 216 19% 26%;
+  --zv-steel-light: 216 15% 40%;
+  --zv-sky: 200 60% 42%;
+  --zv-gold: 42 80% 50%;
+  --zv-obsidian: 220 20% 10%;
+
+  --gradient-zv-hero: linear-gradient(160deg, hsl(216 19% 22%) 0%, hsl(220 20% 10%) 100%);
+  --gradient-zv-accent: linear-gradient(135deg, hsl(200 60% 42%) 0%, hsl(200 50% 52%) 100%);
+  --shadow-zv: 0 4px 24px -4px hsl(216 19% 16% / 0.12);
+
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.zenvue * {
+  border-radius: 0;
+}
+
+.zenvue h1,
+.zenvue h2,
+.zenvue h3 {
+  font-family: 'Crimson Pro', serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.zenvue.dark,
+.zenvue .dark {
+  --background: 220 20% 8%;
+  --foreground: 220 15% 90%;
+  --card: 220 18% 12%;
+  --card-foreground: 220 15% 90%;
+  --popover: 220 18% 12%;
+  --popover-foreground: 220 15% 90%;
+  --primary: 200 55% 55%;
+  --primary-foreground: 220 20% 8%;
+  --secondary: 216 15% 25%;
+  --secondary-foreground: 220 15% 90%;
+  --muted: 220 15% 16%;
+  --muted-foreground: 216 10% 60%;
+  --accent: 200 55% 55%;
+  --accent-foreground: 220 20% 8%;
+  --border: 220 15% 20%;
+  --input: 220 15% 20%;
+  --ring: 200 55% 55%;
 }

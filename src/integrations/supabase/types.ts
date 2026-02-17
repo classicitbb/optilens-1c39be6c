@@ -1122,6 +1122,51 @@ export type Database = {
         }
         Relationships: []
       }
+      wholesale_inquiries: {
+        Row: {
+          business_name: string
+          business_type: string
+          comments: string | null
+          contact_name: string
+          created_at: string
+          email: string
+          id: string
+          location: string | null
+          monthly_volume: string | null
+          phone: string | null
+          referral_source: string | null
+          status: string
+        }
+        Insert: {
+          business_name: string
+          business_type?: string
+          comments?: string | null
+          contact_name: string
+          created_at?: string
+          email: string
+          id?: string
+          location?: string | null
+          monthly_volume?: string | null
+          phone?: string | null
+          referral_source?: string | null
+          status?: string
+        }
+        Update: {
+          business_name?: string
+          business_type?: string
+          comments?: string | null
+          contact_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          location?: string | null
+          monthly_volume?: string | null
+          phone?: string | null
+          referral_source?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       supplies_public: {

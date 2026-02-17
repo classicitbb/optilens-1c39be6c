@@ -25,6 +25,16 @@ import UsersPage from "./pages/admin/UsersPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
 import AdminWikiPage from "./pages/admin/AdminWikiPage";
 
+// ZenVue microsite
+import ZenvueLayout from "./components/zenvue/ZenvueLayout";
+import ZenvueHome from "./pages/zenvue/ZenvueHome";
+import ZenvueBrilliance from "./pages/zenvue/ZenvueBrilliance";
+import ZenvueSingleVision from "./pages/zenvue/ZenvueSingleVision";
+import ZenvueSunDun from "./pages/zenvue/ZenvueSunDun";
+import ZenvueDarkun from "./pages/zenvue/ZenvueDarkun";
+import ZenvueCompare from "./pages/zenvue/ZenvueCompare";
+import ZenvueWholesale from "./pages/zenvue/ZenvueWholesale";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -67,6 +77,17 @@ const App = () => (
                 <Route path="users" element={<UsersPage />} />
                 <Route path="audit" element={<AuditLogPage />} />
                 <Route path="wiki" element={<AdminWikiPage />} />
+              </Route>
+
+              {/* ZenVue brand microsite */}
+              <Route path="/zenvue" element={<ZenvueLayout />}>
+                <Route index element={<ZenvueHome />} />
+                <Route path="brilliance" element={<ZenvueBrilliance />} />
+                <Route path="single-vision" element={<ZenvueSingleVision />} />
+                <Route path="sundun" element={<ZenvueSunDun />} />
+                <Route path="darkun" element={<ZenvueDarkun />} />
+                <Route path="compare" element={<ZenvueCompare />} />
+                <Route path="wholesale" element={<ZenvueWholesale />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

@@ -17,9 +17,9 @@ const KB_CATEGORIES = [
 ];
 
 const ZENVUE_BRANDS = [
-  { icon: Sparkles, label: "Brilliance™", url: "https://zvuedemo.lovable.app/brilliance" },
-  { icon: CloudSun, label: "SunDun™", url: "https://zvuedemo.lovable.app/sundun" },
-  { icon: Moon, label: "Darkun™", url: "https://zvuedemo.lovable.app/darkun" },
+  { icon: Sparkles, label: "Brilliance™", to: "/zenvue/brilliance" },
+  { icon: CloudSun, label: "SunDun™", to: "/zenvue/sundun" },
+  { icon: Moon, label: "Darkun™", to: "/zenvue/darkun" },
 ];
 
 const SUPPLIES_CATEGORIES = [
@@ -93,17 +93,15 @@ const ProductsDropdown = () => {
         <div className="absolute left-0 top-full mt-2 z-50 w-48 rounded-lg border border-border bg-background shadow-lg py-1">
           <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ZenVue Brands</div>
           {ZENVUE_BRANDS.map((brand) => (
-            <a
+            <Link
               key={brand.label}
-              href={brand.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              to={brand.to}
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <brand.icon className="h-4 w-4" />
               {brand.label}
-            </a>
+            </Link>
           ))}
           <div className="my-1 h-px bg-border" />
           <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supplies</div>
@@ -153,6 +151,9 @@ const Header = () => {
           </Link>
           <KnowledgeDropdown />
           <ProductsDropdown />
+          <Link to="/zenvue" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            ZenVue
+          </Link>
           <a href="#about" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             About
           </a>
@@ -190,16 +191,14 @@ const Header = () => {
                 ))}
                 <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ZenVue Brands</div>
                 {ZENVUE_BRANDS.map((brand) => (
-                  <a
+                  <Link
                     key={brand.label}
-                    href={brand.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    to={brand.to}
                     className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors pl-5"
                   >
                     <brand.icon className="h-4 w-4" />
                     {brand.label}
-                  </a>
+                  </Link>
                 ))}
                 <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supplies</div>
                 {SUPPLIES_CATEGORIES.map((item) => (
