@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +16,7 @@ type Filter = "all" | "active" | "inactive" | "web";
 interface Props {
   lenses: Lens[];
   search: string;
+  filterVersion?: number;
   onRowClick: (lens: Lens) => void;
   onToggleActive: (lens: Lens) => void;
   onDuplicate?: (lens: Lens) => void;
@@ -38,7 +39,7 @@ const optionAbbrevs = (lens: Lens) =>
 
 type ColumnFilterKey = "supplier" | "brand" | "material" | "lenstype" | "option" | "finishtype";
 
-const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
+const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const { canEdit } = useAdminRole();
   const { canEditFeature } = useRolePermissions();
   const canEditCatalog = canEditFeature("catalog");
@@ -50,15 +51,12 @@ const LensDataTable = ({ lenses, search, onRowClick, onToggleActive, onDuplicate
   const [visibleCount, setVisibleCount] = useState(50);
   const [unlocked, setUnlocked] = useState(false);
 
-  // Column filters: empty set = no filter (show all)
-  const [colFilters, setColFilters] = useState<Record<ColumnFilterKey, Set<string>>>({
-    supplier: new Set(),
-    brand: new Set(),
-    material: new Set(),
-    lenstype: new Set(),
-    option: new Set(),
-    finishtype: new Set(),
-  });
+  const emptyColFilters: Record<ColumnFilterKey, Set<string>> = { supplier: new Set(), brand: new Set(), material: new Set(), lenstype: new Set(), option: new Set(), finishtype: new Set() };
+  const [colFilters, setColFilters] = useState<Record<ColumnFilterKey, Set<string>>>(emptyColFilters);
+
+  useEffect(() => {
+    if (filterVersion !== undefined) setColFilters({ supplier: new Set(), brand: new Set(), material: new Set(), lenstype: new Set(), option: new Set(), finishtype: new Set() });
+  }, [filterVersion]);
 
   const setColFilter = useCallback((key: ColumnFilterKey, val: Set<string>) => {
     setColFilters((prev) => ({ ...prev, [key]: val }));
