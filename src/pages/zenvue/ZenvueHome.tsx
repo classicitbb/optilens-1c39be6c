@@ -24,7 +24,7 @@ const ZenvueHome = () => {
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:py-20 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl" style={{ fontFamily: "'Crimson Pro', serif" }}>
+            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
               Caribbean Craftsmanship, Global Standards
             </h2>
             <p className="mt-4 text-base text-muted-foreground leading-relaxed">
@@ -41,7 +41,7 @@ const ZenvueHome = () => {
       <section id="products" className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:py-20 lg:px-8">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl" style={{ fontFamily: "'Crimson Pro', serif" }}>
+            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
               Our Product Range
             </h2>
             <p className="mt-3 text-muted-foreground">Three product lines designed for every patient need.</p>
@@ -77,7 +77,7 @@ const ZenvueHome = () => {
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:py-20 lg:px-8">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl" style={{ fontFamily: "'Crimson Pro', serif" }}>
+            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
               Why ZenVue?
             </h2>
           </div>
@@ -90,7 +90,7 @@ const ZenvueHome = () => {
             ].map((item) => (
               <div key={item.title} className="border border-border bg-card p-6" style={{ boxShadow: "var(--shadow-zv)" }}>
                 <item.icon className="h-8 w-8 text-accent" />
-                <h3 className="mt-4 text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+                <h3 className="mt-4 text-lg font-semibold text-foreground">
                   {item.title}
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>

@@ -80,14 +80,14 @@ const ZenvueCompare = () => {
       {/* Quick Recommendations */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             Quick Recommendations
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
             {RECS.map((r) => (
               <Link key={r.title} to={r.to} className="group border border-border bg-card p-6 transition-colors hover:border-accent/40">
                 <span className="text-xs font-medium uppercase tracking-wider text-accent">{r.title}</span>
-                <h3 className="mt-2 text-lg font-semibold text-foreground group-hover:text-accent transition-colors" style={{ fontFamily: "'Crimson Pro', serif" }}>
+                <h3 className="mt-2 text-lg font-semibold text-foreground group-hover:text-accent transition-colors">
                   {r.product}
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground">{r.desc}</p>

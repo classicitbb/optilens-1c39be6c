@@ -56,7 +56,7 @@ const ZenvueWholesale = () => {
         <section className="border-b border-border">
           <div className="container mx-auto px-4 py-16 lg:px-8 text-center">
             <CheckCircle className="mx-auto h-16 w-16 text-accent" />
-            <h2 className="mt-6 text-2xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+            <h2 className="mt-6 text-2xl font-bold text-foreground">
               Application Submitted Successfully
             </h2>
             <p className="mt-3 text-muted-foreground">
@@ -82,7 +82,7 @@ const ZenvueWholesale = () => {
           <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-8">
             {/* Business Info */}
             <div>
-              <h3 className="mb-4 text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+              <h3 className="mb-4 text-lg font-semibold text-foreground">
                 Business Information
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -123,7 +123,7 @@ const ZenvueWholesale = () => {
 
             {/* Contact Info */}
             <div>
-              <h3 className="mb-4 text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+              <h3 className="mb-4 text-lg font-semibold text-foreground">
                 Contact Information
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -144,7 +144,7 @@ const ZenvueWholesale = () => {
 
             {/* Additional */}
             <div>
-              <h3 className="mb-4 text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+              <h3 className="mb-4 text-lg font-semibold text-foreground">
                 Additional Information
               </h3>
               <div className="space-y-4">
@@ -179,7 +179,7 @@ const ZenvueWholesale = () => {
       {/* What Happens Next */}
       <section className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             What Happens Next?
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
@@ -188,7 +188,7 @@ const ZenvueWholesale = () => {
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center bg-primary text-primary-foreground text-lg font-bold">
                   {i + 1}
                 </div>
-                <h3 className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Crimson Pro', serif" }}>{step.title}</h3>
+                <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{step.desc}</p>
               </div>
             ))}

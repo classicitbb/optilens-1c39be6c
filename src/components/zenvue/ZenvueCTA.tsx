@@ -14,7 +14,7 @@ const ZenvueCTA = ({
   return (
     <section className="border-t border-border bg-primary">
       <div className="container mx-auto px-4 py-16 text-center lg:py-20 lg:px-8">
-        <h2 className="text-3xl font-bold text-primary-foreground md:text-4xl" style={{ fontFamily: "'Crimson Pro', serif" }}>
+        <h2 className="text-3xl font-bold text-primary-foreground md:text-4xl">
           {title}
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-base text-primary-foreground/70">{subtitle}</p>
