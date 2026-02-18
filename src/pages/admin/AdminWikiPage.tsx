@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Search, BookOpen, Glasses, Package, Layers, Upload, Database, DollarSign, Users } from "lucide-react";
+import { Search, BookOpen, Glasses, Package, Layers, Upload, Database, DollarSign, Users, Ship } from "lucide-react";
 
 const categories = [
 {
@@ -135,6 +135,51 @@ const categories = [
     "When a sell price is set below the calculated floor, a governance alert warns the user. If 'Require Concession Reason' is enabled in settings, the user must select or type a reason before saving. If 'Block Below Floor' is enabled, saving is prevented entirely. These controls are configured on the Parameters page."
   }]
 
+},
+{
+  icon: Layers,
+  title: "Import Costings",
+  articles: [
+  {
+    title: "Module Overview",
+    content:
+    "Import Costings tracks landed costs for shipments of lenses and non-lens items (supplies, add-ons). Navigate via the sidebar: Import Costings > Shipments (all), Lens Shipments, Non-Lens Shipments, or Reports. Each shipment records the supplier, invoice details, FOB and invoice totals in foreign currency (usually USD), and an exchange rate (BBD per 1 USD). All local costs are in BBD."
+  },
+  {
+    title: "Creating a Shipment",
+    content:
+    "Click '+ New Shipment' on any list page. Fill in the required fields: Type, Supplier, Commodity, Date Received, Invoice Number, Invoice Date, Currency, Exchange Rate, FOB (Foreign), and Invoice Total (Foreign). Click 'Create' to save. After saving, the Charges and Line Items tabs become available."
+  },
+  {
+    title: "Charges Tab",
+    content:
+    "Charges are local costs entered in BBD only. Pick a charge type from the dropdown (Shipping, Landing, Duties & VAT, Brokerage, Local Freight, Courier, Bank Expenses, Misc, Storage). Enter Amount (BBD), optional VAT (BBD). The Duty and VAT Reclaimable fields only appear for the 'Duties & VAT' charge type. The Row Total and overall Total Charges (BBD) are computed automatically."
+  },
+  {
+    title: "Line Items Tab",
+    content:
+    "Line items represent individual products in the shipment. For Lens shipments, lines link to Lens catalog records via a product selector dropdown. For Non-Lens shipments, choose Supply, Add-On, or Free item. Enter Quantity and Unit FOB (Foreign) — Line FOB auto-calculates. Computed columns show Line FOB (BBD), Landed Unit Cost (BBD and USD using the multiplier), and optional Sell prices with a markup percentage."
+  },
+  {
+    title: "Cost Allocation & Multiplier",
+    content:
+    "The multiplier distributes local charges across line items proportionally by FOB value. Formula: Multiplier = (FOB_BBD + Total_Charges_BBD) / FOB_BBD. Each line's Landed Cost = Line_FOB_BBD × Multiplier. Landed Unit Cost = Landed Line / Quantity. USD outputs divide BBD by the exchange rate and are read-only."
+  },
+  {
+    title: "Status Workflow",
+    content:
+    "Shipments follow a Draft → Reviewed → Locked workflow. Draft: fully editable. Reviewed: can still be edited or sent back to Draft (admin only). Locked: no edits allowed — admins can create a Revision (clone to a new version) from a locked shipment."
+  },
+  {
+    title: "Exports",
+    content:
+    "The Exports tab on each shipment provides CSV downloads for the shipment summary, charges, and line items — all include both BBD and USD values."
+  },
+  {
+    title: "Reports",
+    content:
+    "The Reports page shows KPI cards (total shipments, total FOB BBD, average exchange rate, locked count), monthly shipment volume charts, exchange rate trends, FOB summary by supplier, and status breakdown."
+  }]
 },
 {
   icon: Users,

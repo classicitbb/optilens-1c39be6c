@@ -82,6 +82,7 @@ const App = () => (
                 <Route path="wiki" element={<AdminWikiPage />} />
                 {/* Import Costings */}
                 <Route path="costings/shipments" element={<ShipmentListPage title="All Shipments" />} />
+                <Route path="costings/shipments/new" element={<ShipmentDetailPage />} />
                 <Route path="costings/shipments/:id" element={<ShipmentDetailPage />} />
                 <Route path="costings/lens-shipments" element={<ShipmentListPage typeFilter="lens" title="Lens Shipments" />} />
                 <Route path="costings/non-lens-shipments" element={<ShipmentListPage typeFilter="non-lens" title="Non-Lens Shipments" />} />
