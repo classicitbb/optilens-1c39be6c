@@ -48,28 +48,10 @@ const ShipmentListPage = ({ typeFilter, title }: Props) => {
     );
   }, [shipments, search]);
 
-  const handleCreate = async () => {
-    try {
-      const res = await createMutation.mutateAsync({
-        type: typeFilter || "lens",
-        supplier_id: "", // will be set in form
-        commodity: "",
-        date_received: new Date().toISOString().split("T")[0],
-        invoice_number: "",
-        invoice_date: new Date().toISOString().split("T")[0],
-        currency: "USD",
-        exchange_rate: 2,
-        fob_foreign: 0,
-        invoice_total_foreign: 0,
-        status: "draft",
-        version: 1,
-        parent_id: null,
-      } as any);
-      logChange({ table_name: "shipments", record_id: res.id, action: "create", new_data: res });
-      navigate(`/admin/costings/shipments/${res.id}`);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    }
+  const handleCreate = () => {
+    // Navigate to new shipment form — no DB insert until user saves
+    const typePath = typeFilter === "lens" ? "?type=lens" : typeFilter === "non-lens" ? "?type=non-lens" : "";
+    navigate(`/admin/costings/shipments/new${typePath}`);
   };
 
   const handleDelete = async () => {
