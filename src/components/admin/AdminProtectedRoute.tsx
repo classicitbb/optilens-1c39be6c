@@ -17,7 +17,8 @@ const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    const redirect = location.pathname + location.search + location.hash;
+    return <Navigate to={`/auth?redirect=${encodeURIComponent(redirect)}`} replace />;
   }
 
   if (!hasAccess) {
