@@ -169,8 +169,8 @@ const ProductCombobox = ({
                   }}
                   className="text-xs"
                 >
-                  <Check className={cn("mr-1 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
-                  {o.label}
+                  <Check className={cn("mr-1 h-3 w-3 shrink-0", value === o.id ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{o.label}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
