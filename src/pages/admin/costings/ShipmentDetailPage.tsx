@@ -320,9 +320,13 @@ const ShipmentDetailPage = () => {
   };
 
   // Product selector options — for non-lens, combine supplies + addons
-  const lensOptions = useMemo(() => lenses.filter(l => l.is_active).map(l => ({ id: l.id, label: l.name })), [lenses]);
-  const supplyOptions = useMemo(() => supplies.filter(s => s.is_active).map(s => ({ id: s.id, label: s.name })), [supplies]);
-  const addonOptions = useMemo(() => addons.filter(a => a.is_active).map(a => ({ id: a.id, label: a.name })), [addons]);
+  const dedup = (items: { id: string; label: string }[]) => {
+    const seen = new Set<string>();
+    return items.filter(i => { if (seen.has(i.label)) return false; seen.add(i.label); return true; });
+  };
+  const lensOptions = useMemo(() => dedup(lenses.filter(l => l.is_active).map(l => ({ id: l.id, label: l.name }))), [lenses]);
+  const supplyOptions = useMemo(() => dedup(supplies.filter(s => s.is_active).map(s => ({ id: s.id, label: s.name }))), [supplies]);
+  const addonOptions = useMemo(() => dedup(addons.filter(a => a.is_active).map(a => ({ id: a.id, label: a.name }))), [addons]);
 
   const getProductOptions = (type: string) => {
     switch (type) {
