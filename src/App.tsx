@@ -27,6 +27,8 @@ import AdminWikiPage from "./pages/admin/AdminWikiPage";
 import ShipmentListPage from "./pages/admin/costings/ShipmentListPage";
 import ShipmentDetailPage from "./pages/admin/costings/ShipmentDetailPage";
 import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
+import QuotationsListPage from "./pages/admin/QuotationsListPage";
+import QuoteEditorPage from "./pages/admin/QuoteEditorPage";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
@@ -80,6 +82,8 @@ const App = () => (
                 <Route path="users" element={<UsersPage />} />
                 <Route path="audit" element={<AuditLogPage />} />
                 <Route path="wiki" element={<AdminWikiPage />} />
+                <Route path="quotations" element={<QuotationsListPage />} />
+                <Route path="quotations/:id" element={<QuoteEditorPage />} />
                 {/* Import Costings */}
                 <Route path="costings/shipments" element={<ShipmentListPage title="All Shipments" />} />
                 <Route path="costings/shipments/new" element={<ShipmentDetailPage />} />

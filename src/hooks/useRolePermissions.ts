@@ -22,6 +22,7 @@ export const FEATURES = [
   "audit",
   "wiki",
   "costings",
+  "quotations",
 ] as const;
 
 export type Feature = (typeof FEATURES)[number];
@@ -43,6 +44,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/costings/lens-shipments": "costings",
   "/admin/costings/non-lens-shipments": "costings",
   "/admin/costings/reports": "costings",
+  "/admin/quotations": "quotations",
 };
 
 export const useRolePermissions = () => {
