@@ -367,7 +367,7 @@ const ShipmentDetailPage = () => {
   const xr = shipment.exchange_rate || 1;
 
   return (
-    <div className="p-4 space-y-4 max-w-6xl">
+    <div className="p-4 space-y-4 max-w-[1220px]">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
