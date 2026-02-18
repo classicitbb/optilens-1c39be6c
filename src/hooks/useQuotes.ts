@@ -70,6 +70,43 @@ export interface RxDetail {
   seg_height: string | null;
   fitting_height: string | null;
   rx_notes: string | null;
+  // Extended fields
+  od_fpd: number | null;
+  od_npd: number | null;
+  os_fpd: number | null;
+  os_npd: number | null;
+  od_oc: number | null;
+  os_oc: number | null;
+  od_bc: number | null;
+  os_bc: number | null;
+  od_prism_value: number | null;
+  od_prism_dir: string | null;
+  od_prism2_value: number | null;
+  od_prism2_dir: string | null;
+  os_prism_value: number | null;
+  os_prism_dir: string | null;
+  os_prism2_value: number | null;
+  os_prism2_dir: string | null;
+  od_slab_off: number | null;
+  os_slab_off: number | null;
+  od_special_thickness: string | null;
+  os_special_thickness: string | null;
+  od_face_form_angle: number | null;
+  od_panto: number | null;
+  od_object_distance: number | null;
+  od_vertex_refracted: number | null;
+  od_vertex_fitted: number | null;
+  od_eye_level: number | null;
+  od_inset: number | null;
+  od_ercd: number | null;
+  os_face_form_angle: number | null;
+  os_panto: number | null;
+  os_object_distance: number | null;
+  os_vertex_refracted: number | null;
+  os_vertex_fitted: number | null;
+  os_eye_level: number | null;
+  os_inset: number | null;
+  os_ercd: number | null;
 }
 
 export const OVERRIDE_REASONS = [

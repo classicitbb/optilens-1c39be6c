@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuotes, useQuoteLines, Quote, QuoteLine, computeLineProfit, QUOTE_STATUSES, OVERRIDE_REASONS } from "@/hooks/useQuotes";
+import { useQuotes, useQuoteLines, useRxDetails, Quote, QuoteLine, RxDetail, computeLineProfit, QUOTE_STATUSES, OVERRIDE_REASONS } from "@/hooks/useQuotes";
 import { useLenses, Lens } from "@/hooks/useLenses";
 import { useAddons, Addon } from "@/hooks/useAddons";
 import { useSupplies, Supply } from "@/hooks/useSupplies";
@@ -62,6 +62,7 @@ const QuoteEditorPage = () => {
 
   // Local quote header state
   const [headerForm, setHeaderForm] = useState<Partial<Quote>>({});
+  const [emailError, setEmailError] = useState("");
   const [rxDialogLineId, setRxDialogLineId] = useState<string | null>(null);
   const [overrideDialogLine, setOverrideDialogLine] = useState<QuoteLine | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
@@ -70,6 +71,26 @@ const QuoteEditorPage = () => {
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTab, setPickerTab] = useState<"Stock" | "Lens" | "AddOn" | "Supply">("Stock");
   const [showInternalExport, setShowInternalExport] = useState(false);
+
+  // Fetch Rx details for all lens lines
+  const lensLineIds = useMemo(() => lines.filter(l => l.line_type === "Lens").map(l => l.id), [lines]);
+  const [rxMap, setRxMap] = useState<Record<string, RxDetail>>({});
+
+  useEffect(() => {
+    if (lensLineIds.length === 0) { setRxMap({}); return; }
+    const fetchAll = async () => {
+      const { data, error } = await (await import("@/integrations/supabase/client")).supabase
+        .from("rx_details")
+        .select("*")
+        .in("quote_line_id", lensLineIds);
+      if (!error && data) {
+        const map: Record<string, RxDetail> = {};
+        data.forEach((r: any) => { map[r.quote_line_id] = r as RxDetail; });
+        setRxMap(map);
+      }
+    };
+    fetchAll();
+  }, [lensLineIds.join(",")]); // re-fetch when lens line IDs change
 
   useEffect(() => {
     if (quote) {
@@ -105,9 +126,18 @@ const QuoteEditorPage = () => {
     return { subtotalSell, totalLandedCost, gpAmount, gpPercent, grandTotal: subtotalSell, belowCostCount, belowThresholdCount, editedCount, noCostCount };
   }, [lines]);
 
-  // Save header
+  // Save header with email validation
+  const validateEmail = (email: string) => {
+    if (!email) return "";
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email) ? "" : "Invalid email address";
+  };
+
   const saveHeader = useCallback(() => {
     if (!id || !quote) return;
+    const emailErr = validateEmail(headerForm.contact_email || "");
+    setEmailError(emailErr);
+    if (emailErr) return;
     updateMutation.mutate({
       id,
       updates: {
@@ -362,12 +392,17 @@ const QuoteEditorPage = () => {
           <div>
             <label className="text-[11px] font-medium mb-0.5 block" style={{ color: "hsl(215 15% 40%)" }}>Email</label>
             <Input
+              type="email"
               value={headerForm.contact_email ?? ""}
-              onChange={(e) => setHeaderForm((p) => ({ ...p, contact_email: e.target.value }))}
+              onChange={(e) => {
+                setHeaderForm((p) => ({ ...p, contact_email: e.target.value }));
+                if (emailError) setEmailError(validateEmail(e.target.value));
+              }}
               onBlur={saveHeader}
-              className="h-7 text-xs"
+              className={`h-7 text-xs ${emailError ? "border-destructive" : ""}`}
               disabled={!canEdit}
             />
+            {emailError && <p className="text-[10px] text-destructive mt-0.5">{emailError}</p>}
           </div>
           <div>
             <label className="text-[11px] font-medium mb-0.5 block" style={{ color: "hsl(215 15% 40%)" }}>Phone</label>
@@ -659,10 +694,36 @@ const QuoteEditorPage = () => {
           )}
         </div>
 
+        {/* Rx Summary (for RX quotes with lens lines) */}
+        {quote.quote_type === "RX" && Object.keys(rxMap).length > 0 && (
+          <div className="border rounded p-3 space-y-2" style={{ borderColor: "hsl(215 15% 85%)" }}>
+            <h3 className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Rx Summary</h3>
+            {lines.filter(l => l.line_type === "Lens" && rxMap[l.id]).map(line => {
+              const rx = rxMap[line.id];
+              return (
+                <div key={line.id} className="space-y-1">
+                  <div className="text-[10px] font-semibold truncate" style={{ color: "hsl(215 65% 50%)" }}>{line.item_name}</div>
+                  <div className="grid grid-cols-[28px_1fr] gap-x-1 text-[10px]">
+                    <span className="font-semibold text-muted-foreground">OD</span>
+                    <span className="font-mono truncate">
+                      {[rx.od_sph && `S${rx.od_sph > 0 ? "+" : ""}${rx.od_sph}`, rx.od_cyl && `C${rx.od_cyl}`, rx.od_axis && `A${rx.od_axis}`, rx.od_add && `Add${rx.od_add > 0 ? "+" : ""}${rx.od_add}`].filter(Boolean).join(" ") || "—"}
+                    </span>
+                    <span className="font-semibold text-muted-foreground">OS</span>
+                    <span className="font-mono truncate">
+                      {[rx.os_sph && `S${rx.os_sph > 0 ? "+" : ""}${rx.os_sph}`, rx.os_cyl && `C${rx.os_cyl}`, rx.os_axis && `A${rx.os_axis}`, rx.os_add && `Add${rx.os_add > 0 ? "+" : ""}${rx.os_add}`].filter(Boolean).join(" ") || "—"}
+                    </span>
+                  </div>
+                  {rx.pd && <div className="text-[10px] text-muted-foreground">PD: {rx.pd}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Export buttons */}
         <div className="border rounded p-3 space-y-1.5" style={{ borderColor: "hsl(215 15% 85%)" }}>
           <h3 className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Export</h3>
-          <QuotePdfExport quote={quote} lines={lines} totals={totals} showInternal={showInternalExport} />
+          <QuotePdfExport quote={quote} lines={lines} totals={totals} showInternal={showInternalExport} rxMap={rxMap} />
           <label className="flex items-center gap-1.5 text-[10px] cursor-pointer" style={{ color: "hsl(215 15% 50%)" }}>
             <input
               type="checkbox"
