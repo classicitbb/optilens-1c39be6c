@@ -966,6 +966,224 @@ export type Database = {
         }
         Relationships: []
       }
+      shipment_charges: {
+        Row: {
+          amount_bbd: number
+          charge_type: string
+          created_at: string
+          duty_bbd: number | null
+          id: string
+          notes: string | null
+          shipment_id: string
+          sort_order: number
+          updated_at: string
+          vat_bbd: number | null
+          vat_reclaimable: boolean | null
+        }
+        Insert: {
+          amount_bbd?: number
+          charge_type: string
+          created_at?: string
+          duty_bbd?: number | null
+          id?: string
+          notes?: string | null
+          shipment_id: string
+          sort_order?: number
+          updated_at?: string
+          vat_bbd?: number | null
+          vat_reclaimable?: boolean | null
+        }
+        Update: {
+          amount_bbd?: number
+          charge_type?: string
+          created_at?: string
+          duty_bbd?: number | null
+          id?: string
+          notes?: string | null
+          shipment_id?: string
+          sort_order?: number
+          updated_at?: string
+          vat_bbd?: number | null
+          vat_reclaimable?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_charges_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_lines: {
+        Row: {
+          addon_id: string | null
+          created_at: string
+          description: string
+          id: string
+          lens_id: string | null
+          line_fob_foreign: number
+          markup_percent: number
+          product_type: string
+          quantity: number
+          shipment_id: string
+          sort_order: number
+          supply_id: string | null
+          unit_fob_foreign: number
+          updated_at: string
+        }
+        Insert: {
+          addon_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          lens_id?: string | null
+          line_fob_foreign?: number
+          markup_percent?: number
+          product_type?: string
+          quantity?: number
+          shipment_id: string
+          sort_order?: number
+          supply_id?: string | null
+          unit_fob_foreign?: number
+          updated_at?: string
+        }
+        Update: {
+          addon_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          lens_id?: string | null
+          line_fob_foreign?: number
+          markup_percent?: number
+          product_type?: string
+          quantity?: number
+          shipment_id?: string
+          sort_order?: number
+          supply_id?: string | null
+          unit_fob_foreign?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_lines_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_supply_id_fkey"
+            columns: ["supply_id"]
+            isOneToOne: false
+            referencedRelation: "supplies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_supply_id_fkey"
+            columns: ["supply_id"]
+            isOneToOne: false
+            referencedRelation: "supplies_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          commodity: string
+          created_at: string
+          created_by: string
+          currency: string
+          date_ordered: string | null
+          date_received: string
+          exchange_rate: number
+          fob_foreign: number
+          id: string
+          invoice_date: string
+          invoice_number: string
+          invoice_total_foreign: number
+          parent_id: string | null
+          po_ref: string | null
+          status: Database["public"]["Enums"]["shipment_status"]
+          supplier_id: string
+          type: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          commodity?: string
+          created_at?: string
+          created_by: string
+          currency?: string
+          date_ordered?: string | null
+          date_received: string
+          exchange_rate?: number
+          fob_foreign?: number
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          invoice_total_foreign?: number
+          parent_id?: string | null
+          po_ref?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          supplier_id: string
+          type: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          commodity?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          date_ordered?: string | null
+          date_received?: string
+          exchange_rate?: number
+          fob_foreign?: number
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          invoice_total_foreign?: number
+          parent_id?: string | null
+          po_ref?: string | null
+          status?: Database["public"]["Enums"]["shipment_status"]
+          supplier_id?: string
+          type?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           abbrev: string
@@ -1246,6 +1464,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "operator" | "viewer" | "customer"
+      shipment_status: "draft" | "reviewed" | "locked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1374,6 +1593,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator", "viewer", "customer"],
+      shipment_status: ["draft", "reviewed", "locked"],
     },
   },
 } as const
