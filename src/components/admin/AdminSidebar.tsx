@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
-import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import {
-  Glasses, Database, DollarSign, Upload, History, Download,
-  Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Package, Layers, BookOpen,
+  Database, DollarSign, Upload, History, Download,
+  Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
+  ChevronDown, ChevronRight, Ship, Glasses, Package, BarChart3,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -13,6 +13,13 @@ interface MenuItem {
   icon: React.ElementType;
   path: string;
   feature: Feature;
+}
+
+interface MenuGroup {
+  label: string;
+  icon: React.ElementType;
+  feature: Feature;
+  children: MenuItem[];
 }
 
 const MENU: MenuItem[] = [
@@ -27,13 +34,40 @@ const MENU: MenuItem[] = [
   { label: "Audit Log", icon: FileText, path: "/admin/audit", feature: "audit" },
 ];
 
+const GROUPS: MenuGroup[] = [
+  {
+    label: "Import Costings",
+    icon: Ship,
+    feature: "costings",
+    children: [
+      { label: "Shipments", icon: Ship, path: "/admin/costings/shipments", feature: "costings" },
+      { label: "Lens Shipments", icon: Glasses, path: "/admin/costings/lens-shipments", feature: "costings" },
+      { label: "Non-Lens Shipments", icon: Package, path: "/admin/costings/non-lens-shipments", feature: "costings" },
+      { label: "Reports", icon: BarChart3, path: "/admin/costings/reports", feature: "costings" },
+    ],
+  },
+];
+
 const AdminSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const { canView } = useRolePermissions();
   const location = useLocation();
   const currentPath = location.pathname;
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const s = new Set<string>();
+    if (currentPath.startsWith("/admin/costings")) s.add("Import Costings");
+    return s;
+  });
 
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + "/");
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label); else next.add(label);
+      return next;
+    });
+  };
 
   const w = collapsed ? "w-14" : "w-60";
   const linkBase = "flex items-center gap-2 px-3 py-1.5 text-[13px] rounded transition-colors";
@@ -50,7 +84,6 @@ const AdminSidebar = () => {
       <nav className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {MENU.map((item) => {
           if (!canView(item.feature)) return null;
-
           const active = isActive(item.path);
           return (
             <RouterNavLink
@@ -66,6 +99,56 @@ const AdminSidebar = () => {
               <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span>{item.label}</span>}
             </RouterNavLink>
+          );
+        })}
+
+        {/* Collapsible groups */}
+        {GROUPS.map((group) => {
+          if (!canView(group.feature)) return null;
+          const isOpen = openGroups.has(group.label);
+          const groupActive = group.children.some((c) => isActive(c.path));
+
+          return (
+            <div key={group.label}>
+              <button
+                onClick={() => collapsed ? undefined : toggleGroup(group.label)}
+                className={`${linkBase} w-full ${groupActive ? "font-medium" : ""}`}
+                title={collapsed ? group.label : undefined}
+                style={{
+                  color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)",
+                  background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent",
+                }}
+              >
+                <group.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">{group.label}</span>
+                    {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </>
+                )}
+              </button>
+              {!collapsed && isOpen && (
+                <div className="ml-4 space-y-0.5">
+                  {group.children.map((child) => {
+                    const active = isActive(child.path);
+                    return (
+                      <RouterNavLink
+                        key={child.path}
+                        to={child.path}
+                        className={`${linkBase} ${active ? "font-medium" : ""}`}
+                        style={{
+                          color: active ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)",
+                          background: active ? "hsl(215 65% 50% / 0.12)" : "transparent",
+                        }}
+                      >
+                        <child.icon className="h-3.5 w-3.5 shrink-0" />
+                        <span>{child.label}</span>
+                      </RouterNavLink>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>
