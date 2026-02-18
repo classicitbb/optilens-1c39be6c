@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useShipmentCharges, useShipmentLines, computeShipmentTotals, computeLineCosts, CHARGE_TYPES, type Shipment, type ShipmentCharge, type ShipmentLine } from "@/hooks/useShipments";
@@ -19,9 +19,179 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, Plus, Trash2, Download } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** A text input for numeric values that only saves on blur */
+const NumericInput = ({
+  value,
+  onChange,
+  disabled,
+  className,
+  onAdvance,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  disabled?: boolean;
+  className?: string;
+  onAdvance?: () => void;
+}) => {
+  const [local, setLocal] = useState(String(value));
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (document.activeElement !== ref.current) {
+      setLocal(String(value));
+    }
+  }, [value]);
+
+  const commit = () => {
+    const parsed = parseFloat(local);
+    if (!isNaN(parsed) && parsed !== value) {
+      onChange(parsed);
+    } else if (local === "" || isNaN(parseFloat(local))) {
+      setLocal(String(value));
+    }
+  };
+
+  return (
+    <Input
+      ref={ref}
+      type="text"
+      inputMode="decimal"
+      className={className}
+      value={local}
+      disabled={disabled}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          commit();
+          onAdvance?.();
+        }
+      }}
+    />
+  );
+};
+
+/** A text input that only saves on blur */
+const TextInput = ({
+  value,
+  onChange,
+  disabled,
+  className,
+  onAdvance,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  className?: string;
+  onAdvance?: () => void;
+}) => {
+  const [local, setLocal] = useState(value);
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (document.activeElement !== ref.current) {
+      setLocal(value);
+    }
+  }, [value]);
+
+  const commit = () => {
+    if (local !== value) onChange(local);
+  };
+
+  return (
+    <Input
+      ref={ref}
+      type="text"
+      className={className}
+      value={local}
+      disabled={disabled}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          commit();
+          onAdvance?.();
+        }
+      }}
+    />
+  );
+};
+
+/** Searchable product combobox */
+const ProductCombobox = ({
+  options,
+  value,
+  onSelect,
+  disabled,
+}: {
+  options: { id: string; label: string }[];
+  value: string;
+  onSelect: (id: string) => void;
+  disabled?: boolean;
+}) => {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className="h-7 text-xs w-44 justify-between font-normal px-2"
+        >
+          <span className="truncate">{selected?.label ?? "Select…"}</span>
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search products…" className="h-8 text-xs" />
+          <CommandList>
+            <CommandEmpty className="py-2 text-xs">No results</CommandEmpty>
+            <CommandGroup>
+              {options.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={o.label}
+                  onSelect={() => {
+                    onSelect(o.id);
+                    setOpen(false);
+                  }}
+                  className="text-xs"
+                >
+                  <Check className={cn("mr-1 h-3 w-3", value === o.id ? "opacity-100" : "opacity-0")} />
+                  {o.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+/** Focus next tabbable input in the table */
+const focusNextInput = (current: EventTarget) => {
+  const el = current as HTMLElement;
+  const table = el.closest("table");
+  if (!table) return;
+  const inputs = Array.from(table.querySelectorAll<HTMLInputElement>("input:not([disabled]), button:not([disabled])"));
+  const idx = inputs.indexOf(el as HTMLInputElement);
+  if (idx >= 0 && idx < inputs.length - 1) {
+    inputs[idx + 1].focus();
+  }
+};
 
 const ShipmentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -149,7 +319,7 @@ const ShipmentDetailPage = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Product selector options
+  // Product selector options — for non-lens, combine supplies + addons
   const lensOptions = useMemo(() => lenses.filter(l => l.is_active).map(l => ({ id: l.id, label: l.name })), [lenses]);
   const supplyOptions = useMemo(() => supplies.filter(s => s.is_active).map(s => ({ id: s.id, label: s.name })), [supplies]);
   const addonOptions = useMemo(() => addons.filter(a => a.is_active).map(a => ({ id: a.id, label: a.name })), [addons]);
@@ -171,7 +341,6 @@ const ShipmentDetailPage = () => {
     else if (line.product_type === "supply") updates.supply_id = productId;
     else if (line.product_type === "addon") updates.addon_id = productId;
 
-    // Auto-fill description from product name
     const opts = getProductOptions(line.product_type);
     const match = opts.find(o => o.id === productId);
     if (match) updates.description = match.label;
@@ -182,6 +351,16 @@ const ShipmentDetailPage = () => {
   const handleProductTypeChange = (line: ShipmentLine, newType: string) => {
     upsertLine.mutate({ ...line, product_type: newType as any, lens_id: null, supply_id: null, addon_id: null });
   };
+
+  // Charge field updater (blur-based)
+  const updateCharge = useCallback((charge: ShipmentCharge, field: string, value: any) => {
+    upsertCharge.mutate({ ...charge, [field]: value });
+  }, [upsertCharge]);
+
+  // Line field updater (blur-based)
+  const updateLine = useCallback((line: ShipmentLine, updates: Partial<ShipmentLine>) => {
+    upsertLine.mutate({ ...line, ...updates });
+  }, [upsertLine]);
 
   if (loading || !shipment) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
 
@@ -266,13 +445,13 @@ const ShipmentDetailPage = () => {
           </Select>
         </Field>
         <Field label="Exchange Rate (BBD per 1 FX) *">
-          <Input type="number" step="0.01" className="h-8 text-xs" value={shipment.exchange_rate} onChange={(e) => updateField("exchange_rate", +e.target.value)} disabled={!editable} />
+          <NumericInput value={shipment.exchange_rate} onChange={(v) => updateField("exchange_rate", v)} disabled={!editable} className="h-8 text-xs" />
         </Field>
         <Field label={`FOB (${shipment.currency}) *`}>
-          <Input type="number" step="0.01" className="h-8 text-xs" value={shipment.fob_foreign} onChange={(e) => updateField("fob_foreign", +e.target.value)} disabled={!editable} />
+          <NumericInput value={shipment.fob_foreign} onChange={(v) => updateField("fob_foreign", v)} disabled={!editable} className="h-8 text-xs" />
         </Field>
         <Field label={`Invoice Total (${shipment.currency}) *`}>
-          <Input type="number" step="0.01" className="h-8 text-xs" value={shipment.invoice_total_foreign} onChange={(e) => updateField("invoice_total_foreign", +e.target.value)} disabled={!editable} />
+          <NumericInput value={shipment.invoice_total_foreign} onChange={(v) => updateField("invoice_total_foreign", v)} disabled={!editable} className="h-8 text-xs" />
         </Field>
       </div>
 
@@ -321,34 +500,34 @@ const ShipmentDetailPage = () => {
                     return (
                       <TableRow key={c.id} className="text-xs">
                         <TableCell className="py-1">
-                          <Select value={c.charge_type} disabled={!editable} onValueChange={(v) => upsertCharge.mutate({ ...c, charge_type: v })}>
+                          <Select value={c.charge_type} disabled={!editable} onValueChange={(v) => updateCharge(c, "charge_type", v)}>
                             <SelectTrigger className="h-7 text-xs border-0 shadow-none"><SelectValue /></SelectTrigger>
                             <SelectContent>{CHARGE_TYPES.map((ct) => <SelectItem key={ct} value={ct}>{ct}</SelectItem>)}</SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell className="py-1">
-                          <Input type="number" step="0.01" className="h-7 text-xs text-right w-24" value={c.amount_bbd} disabled={!editable}
-                            onChange={(e) => upsertCharge.mutate({ ...c, amount_bbd: +e.target.value })} />
+                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-24"
+                            onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <Input type="number" step="0.01" className="h-7 text-xs text-right w-24" value={c.vat_bbd ?? 0} disabled={!editable}
-                            onChange={(e) => upsertCharge.mutate({ ...c, vat_bbd: +e.target.value })} />
+                          <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-24"
+                            onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
                           {isDutyRow ? (
-                            <Input type="number" step="0.01" className="h-7 text-xs text-right w-24" value={c.duty_bbd ?? 0} disabled={!editable}
-                              onChange={(e) => upsertCharge.mutate({ ...c, duty_bbd: +e.target.value })} />
+                            <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-24"
+                              onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => {}} />
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="py-1">
                           {isDutyRow ? (
                             <Switch checked={c.vat_reclaimable} disabled={!editable}
-                              onCheckedChange={(v) => upsertCharge.mutate({ ...c, vat_reclaimable: v })} />
+                              onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} />
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="py-1">
-                          <Input className="h-7 text-xs w-32" value={c.notes} disabled={!editable}
-                            onChange={(e) => upsertCharge.mutate({ ...c, notes: e.target.value })} />
+                          <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-32"
+                            onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(rowTotal)}</TableCell>
                         {editable && (
@@ -367,7 +546,12 @@ const ShipmentDetailPage = () => {
                 </TableBody>
               </Table>
             </div>
-            <div className="text-right text-xs font-medium">Total Charges (BBD): <span className="font-mono">{fmt(totals.totalChargesBbd)}</span></div>
+            <div className="flex items-center justify-between">
+              <div>
+                {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addCharge}><Plus className="h-3 w-3" /> Add Charge</Button>}
+              </div>
+              <span className="text-xs font-medium">Total Charges (BBD): <span className="font-mono">{fmt(totals.totalChargesBbd)}</span></span>
+            </div>
           </TabsContent>
 
           {/* Line Items Tab */}
@@ -420,47 +604,38 @@ const ShipmentDetailPage = () => {
                         </TableCell>
                         <TableCell className="py-1">
                           {l.product_type !== "free" && productOpts.length > 0 ? (
-                            <Select value={selectedProductId} disabled={!editable} onValueChange={(v) => handleProductSelect(l, v)}>
-                              <SelectTrigger className="h-7 text-xs w-40"><SelectValue placeholder="Select…" /></SelectTrigger>
-                              <SelectContent className="max-h-60">
-                                {productOpts.map((o) => (
-                                  <SelectItem key={o.id} value={o.id} className="text-xs">{o.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <ProductCombobox
+                              options={productOpts}
+                              value={selectedProductId}
+                              onSelect={(pid) => handleProductSelect(l, pid)}
+                              disabled={!editable}
+                            />
                           ) : (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}
                         </TableCell>
                         <TableCell className="py-1">
-                          <Input className="h-7 text-xs w-36" value={l.description} disabled={!editable}
-                            onChange={(e) => upsertLine.mutate({ ...l, description: e.target.value })} />
+                          <TextInput value={l.description} disabled={!editable} className="h-7 text-xs w-36"
+                            onChange={(v) => updateLine(l, { description: v })} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <Input type="number" className="h-7 text-xs text-right w-16" value={l.quantity} disabled={!editable}
-                            onChange={(e) => {
-                              const qty = +e.target.value;
-                              const lineFob = l.unit_fob_foreign * qty;
-                              upsertLine.mutate({ ...l, quantity: qty, line_fob_foreign: lineFob });
-                            }} />
+                          <NumericInput value={l.quantity} disabled={!editable} className="h-7 text-xs text-right w-16"
+                            onChange={(qty) => updateLine(l, { quantity: qty, line_fob_foreign: l.unit_fob_foreign * qty })} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <Input type="number" step="0.01" className="h-7 text-xs text-right w-20" value={l.unit_fob_foreign} disabled={!editable}
-                            onChange={(e) => {
-                              const unitFob = +e.target.value;
-                              upsertLine.mutate({ ...l, unit_fob_foreign: unitFob, line_fob_foreign: unitFob * l.quantity });
-                            }} />
+                          <NumericInput value={l.unit_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-20"
+                            onChange={(unitFob) => updateLine(l, { unit_fob_foreign: unitFob, line_fob_foreign: unitFob * l.quantity })} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <Input type="number" step="0.01" className="h-7 text-xs text-right w-20" value={l.line_fob_foreign} disabled={!editable}
-                            onChange={(e) => upsertLine.mutate({ ...l, line_fob_foreign: +e.target.value })} />
+                          <NumericInput value={l.line_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-20"
+                            onChange={(v) => updateLine(l, { line_fob_foreign: v })} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.lineFobBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.landedUnitBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.landedUnitUsd)}</TableCell>
                         <TableCell className="py-1">
-                          <Input type="number" step="1" className="h-7 text-xs text-right w-16" value={l.markup_percent} disabled={!editable}
-                            onChange={(e) => upsertLine.mutate({ ...l, markup_percent: +e.target.value })} />
+                          <NumericInput value={l.markup_percent} disabled={!editable} className="h-7 text-xs text-right w-16"
+                            onChange={(v) => updateLine(l, { markup_percent: v })} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.sellBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.sellUsd)}</TableCell>
@@ -480,6 +655,11 @@ const ShipmentDetailPage = () => {
                 </TableBody>
               </Table>
             </div>
+            {editable && (
+              <div>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addLine}><Plus className="h-3 w-3" /> Add Line</Button>
+              </div>
+            )}
           </TabsContent>
 
           {/* Exports Tab */}
