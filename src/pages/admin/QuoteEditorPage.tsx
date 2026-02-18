@@ -24,6 +24,7 @@ import {
   ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle, Eye,
 } from "lucide-react";
 import RxDetailsDialog from "@/components/admin/RxDetailsDialog";
+import QuotePdfExport from "@/components/admin/QuotePdfExport";
 
 const profitBadge = (status: string) => {
   switch (status) {
@@ -68,6 +69,7 @@ const QuoteEditorPage = () => {
   const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTab, setPickerTab] = useState<"Stock" | "Lens" | "AddOn" | "Supply">("Stock");
+  const [showInternalExport, setShowInternalExport] = useState(false);
 
   useEffect(() => {
     if (quote) {
@@ -660,14 +662,16 @@ const QuoteEditorPage = () => {
         {/* Export buttons */}
         <div className="border rounded p-3 space-y-1.5" style={{ borderColor: "hsl(215 15% 85%)" }}>
           <h3 className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Export</h3>
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full h-7 text-[11px]"
-            onClick={() => window.print()}
-          >
-            Print / PDF
-          </Button>
+          <QuotePdfExport quote={quote} lines={lines} totals={totals} showInternal={showInternalExport} />
+          <label className="flex items-center gap-1.5 text-[10px] cursor-pointer" style={{ color: "hsl(215 15% 50%)" }}>
+            <input
+              type="checkbox"
+              checked={showInternalExport}
+              onChange={(e) => setShowInternalExport(e.target.checked)}
+              className="h-3 w-3 rounded"
+            />
+            Include internal data
+          </label>
           <Button
             size="sm"
             variant="outline"

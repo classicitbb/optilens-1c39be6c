@@ -1,4 +1,4 @@
-import { BookOpen, Glasses, Package, Upload, Database, DollarSign, Users, Ship } from "lucide-react";
+import { BookOpen, Glasses, Package, Upload, Database, DollarSign, Users, Ship, FileSpreadsheet } from "lucide-react";
 
 export interface WikiArticle {
   id: string;
@@ -228,6 +228,61 @@ export const wikiCategories: WikiCategory[] = [
         title: "Exports",
         content:
           "Each shipment has an **Exports** tab that provides CSV downloads for three datasets:\n\n**Shipment Summary** — Header fields including supplier, dates, FOB, invoice total, exchange rate, total charges, multiplier, and status. Both BBD and USD values are included.\n\n**Charges** — All charge rows with type, amount, VAT, duty (where applicable), and row totals in BBD.\n\n**Line Items** — All line items with product details, quantity, unit FOB (foreign and BBD), line FOB, landed line, landed unit cost (BBD and USD), and markup/sell values if set.\n\n**Handing off to finance/pricing:**\nExport the Line Items CSV to share per-unit landed costs with your pricing team. The Landed Unit Cost (BBD) column is the key value for updating sell prices. Export the Charges CSV for finance to reconcile import expenses against invoices and payments.",
+      },
+    ],
+  },
+  {
+    id: "quotations",
+    icon: FileSpreadsheet,
+    title: "Quotations",
+    articles: [
+      {
+        id: "qt-overview",
+        title: "Quotations Overview",
+        content:
+          "The Quotations module lets you build, save, and export customer quotes. Quotes pull products directly from the Product Catalog and snapshot pricing at creation time so historical quotes are never affected by later price changes.\n\nThere are two quote types:\n\n• **Stock Quote** — For wholesale stock items. GP% threshold is **28%**.\n• **Rx Quote** — For prescription lens orders including add-ons and supplies. GP% threshold is **48%**.\n\nQuotes follow a lifecycle: **Draft → Sent → Accepted / Rejected / Expired / Void**.",
+      },
+      {
+        id: "qt-creating",
+        title: "Creating a Quote",
+        content:
+          "**Step-by-step:**\n1. Navigate to **Quotations** in the sidebar.\n2. Click **New Quote**.\n3. Choose **Stock Quote** or **Rx Quote**. A new Draft quote is created with an auto-generated number (e.g. Q-000001).\n4. Fill in the header: Customer name, contact details, currency (default BBD), validity date, and lead time.\n5. Add **Customer Notes** (visible on the exported quote) and **Internal Notes** (for your team only).\n\n**Important:** The quote type cannot be changed after creation. If you need a different type, create a new quote.",
+      },
+      {
+        id: "qt-adding-lines",
+        title: "Adding Line Items",
+        content:
+          "Click **Add Line** to open the product picker.\n\n**Stock Quotes** show all active supplies from the catalog.\n\n**Rx Quotes** show three tabs:\n• **Lenses** — Select from active lenses. After adding a lens, click the eye icon to enter Rx Details (OD/OS SPH, CYL, Axis, Add, PD, fitting height).\n• **Add-Ons** — Coatings, tints, and other extras.\n• **Supplies** — Cases, cloths, and accessories.\n\nEach line item snapshots:\n• **Unit Cost (Landed)** — The landed cost in BBD from the catalog. This is the cost floor.\n• **Unit Base Price** — The default sell price from the catalog.\n• **Unit Sell Price** — Editable. Defaults to the base price.\n\nQuantity defaults to 1 and can be changed inline.",
+      },
+      {
+        id: "qt-pricing-profitability",
+        title: "Pricing & Profitability",
+        content:
+          "**Core rule:** Profitability is always calculated against Landed (BBD) — never hidden.\n\n**GP Calculation:**\n• Line Sell Total = Qty × Unit Sell\n• Line Cost Total = Qty × Unit Cost (Landed)\n• GP $ = Line Sell Total − Line Cost Total\n• GP % = (GP $ ÷ Line Sell Total) × 100\n\n**Profit Status per line:**\n• **Profitable** (green ✓) — Selling above landed cost\n• **AtCost** (amber =) — Selling at exactly landed cost\n• **BelowCost** (red ↓) — Selling below landed cost\n• **NoCost** (grey ?) — No landed cost available\n\n**Threshold Status:**\nCompares GP% against the quote-type threshold (28% Stock / 48% Rx):\n• **AboveThreshold** (green) — Healthy margin\n• **BelowThreshold** (amber) — Margin below target but still profitable",
+      },
+      {
+        id: "qt-price-overrides",
+        title: "Price Overrides",
+        content:
+          "When you edit the Unit Sell price, the line is marked as **Edited** with an amber badge.\n\nIf the edited price falls **below landed cost**, the system forces you to provide an override reason before the change is saved. Available reasons:\n• Match competitor\n• Strategic account/relationship\n• Clearance/aging stock\n• Pricing error correction\n• Bundle/package deal\n• Warranty/remake/service recovery\n• Other (requires a written note)\n\n**Important:** You can still save a Draft with below-cost lines, but the override reason is required before the quote can be marked as Sent.\n\nThe right-side summary panel shows risk flag counters: below-cost lines, below-threshold lines, edited lines, and no-cost lines.",
+      },
+      {
+        id: "qt-rounding",
+        title: "Rounding Tools",
+        content:
+          "Use the rounding buttons next to the line items header to round the **grand total** up to the nearest 1, 5, or 10 BBD.\n\nWhen you round, the system adds a **Rounding Adjustment** fee line for the difference. For example, if your total is 247.30 and you round to nearest 10, a fee line of 2.70 is added, bringing the total to 250.00.\n\nThis keeps the quote auditable — you can always see how the rounding was applied.",
+      },
+      {
+        id: "qt-rx-details",
+        title: "Rx Details (Prescription)",
+        content:
+          "For Rx Quotes, each lens line has an **Rx Details** button (eye icon) that opens a prescription form.\n\n**Fields available:**\n• **OD** (Right Eye): SPH, CYL, Axis, Add\n• **OS** (Left Eye): SPH, CYL, Axis, Add\n• **PD** (Pupillary Distance)\n• **Seg Height** and **Fitting Height**\n• **Rx Notes** — Free text for special instructions\n\n**Validation:** If CYL is entered without an Axis value, a warning is shown (but saving is not blocked).\n\nRx details are stored separately and linked to the lens line item.",
+      },
+      {
+        id: "qt-exporting",
+        title: "Exporting Quotes",
+        content:
+          "The quote editor provides three export options in the right sidebar:\n\n• **Download PDF** — Generates a branded PDF with company logo, quote details, line items table, and totals. The customer-facing version shows only descriptions, quantities, unit sell prices, and line totals.\n• **Print** — Opens the browser print dialog for the PDF view.\n• **Copy Summary** — Copies a plain-text summary of the quote to your clipboard.\n\n**Customer-facing exports include:** Quote number, date, customer name, validity, lead time, line items (description, qty, unit sell, line total), subtotal, and grand total, plus customer notes.\n\n**Internal exports** (toggle) additionally show: landed costs, margins, GP%, override reasons, and internal notes.",
       },
     ],
   },

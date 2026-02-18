@@ -44,6 +44,7 @@ const NAV: NavItem[] = [
   {
     label: "Import Costings",
     icon: Ship,
+    path: "/admin/costings/shipments",
     feature: "costings",
     children: [
       { label: "Shipments", icon: Ship, path: "/admin/costings/shipments", feature: "costings" },
