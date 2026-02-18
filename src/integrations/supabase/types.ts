@@ -936,6 +936,180 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_lines: {
+        Row: {
+          created_at: string
+          description_override: string | null
+          gp_amount: number
+          gp_percent: number
+          group_key: string | null
+          id: string
+          item_name: string
+          line_type: string
+          override_note: string | null
+          override_reason: string | null
+          parent_line_id: string | null
+          price_override: boolean
+          product_id: string | null
+          profit_status: string
+          qty: number
+          quote_id: string
+          sku: string
+          sort_order: number
+          threshold_percent: number
+          threshold_status: string
+          unit_base_price_bbd: number
+          unit_cost_landed_bbd: number
+          unit_sell_price_bbd: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_override?: string | null
+          gp_amount?: number
+          gp_percent?: number
+          group_key?: string | null
+          id?: string
+          item_name?: string
+          line_type?: string
+          override_note?: string | null
+          override_reason?: string | null
+          parent_line_id?: string | null
+          price_override?: boolean
+          product_id?: string | null
+          profit_status?: string
+          qty?: number
+          quote_id: string
+          sku?: string
+          sort_order?: number
+          threshold_percent?: number
+          threshold_status?: string
+          unit_base_price_bbd?: number
+          unit_cost_landed_bbd?: number
+          unit_sell_price_bbd?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_override?: string | null
+          gp_amount?: number
+          gp_percent?: number
+          group_key?: string | null
+          id?: string
+          item_name?: string
+          line_type?: string
+          override_note?: string | null
+          override_reason?: string | null
+          parent_line_id?: string | null
+          price_override?: boolean
+          product_id?: string | null
+          profit_status?: string
+          qty?: number
+          quote_id?: string
+          sku?: string
+          sort_order?: number
+          threshold_percent?: number
+          threshold_status?: string
+          unit_base_price_bbd?: number
+          unit_cost_landed_bbd?: number
+          unit_sell_price_bbd?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_parent_line_id_fkey"
+            columns: ["parent_line_id"]
+            isOneToOne: false
+            referencedRelation: "quote_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          account_id: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          customer_name: string
+          gp_amount: number
+          gp_percent: number
+          grand_total: number
+          id: string
+          lead_time_days: number | null
+          notes_customer: string | null
+          notes_internal: string | null
+          price_profile_id: string | null
+          quote_number: string
+          quote_type: string
+          status: string
+          subtotal_sell: number
+          total_landed_cost: number
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          customer_name?: string
+          gp_amount?: number
+          gp_percent?: number
+          grand_total?: number
+          id?: string
+          lead_time_days?: number | null
+          notes_customer?: string | null
+          notes_internal?: string | null
+          price_profile_id?: string | null
+          quote_number: string
+          quote_type: string
+          status?: string
+          subtotal_sell?: number
+          total_landed_cost?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          customer_name?: string
+          gp_amount?: number
+          gp_percent?: number
+          grand_total?: number
+          id?: string
+          lead_time_days?: number | null
+          notes_customer?: string | null
+          notes_internal?: string | null
+          price_profile_id?: string | null
+          quote_number?: string
+          quote_type?: string
+          status?: string
+          subtotal_sell?: number
+          total_landed_cost?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           can_edit: boolean
@@ -965,6 +1139,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rx_details: {
+        Row: {
+          created_at: string
+          fitting_height: string | null
+          id: string
+          od_add: number | null
+          od_axis: number | null
+          od_cyl: number | null
+          od_sph: number | null
+          os_add: number | null
+          os_axis: number | null
+          os_cyl: number | null
+          os_sph: number | null
+          pd: string | null
+          quote_line_id: string
+          rx_notes: string | null
+          seg_height: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fitting_height?: string | null
+          id?: string
+          od_add?: number | null
+          od_axis?: number | null
+          od_cyl?: number | null
+          od_sph?: number | null
+          os_add?: number | null
+          os_axis?: number | null
+          os_cyl?: number | null
+          os_sph?: number | null
+          pd?: string | null
+          quote_line_id: string
+          rx_notes?: string | null
+          seg_height?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fitting_height?: string | null
+          id?: string
+          od_add?: number | null
+          od_axis?: number | null
+          od_cyl?: number | null
+          od_sph?: number | null
+          os_add?: number | null
+          os_axis?: number | null
+          os_cyl?: number | null
+          os_sph?: number | null
+          pd?: string | null
+          quote_line_id?: string
+          rx_notes?: string | null
+          seg_height?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_details_quote_line_id_fkey"
+            columns: ["quote_line_id"]
+            isOneToOne: true
+            referencedRelation: "quote_lines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shipment_charges: {
         Row: {
