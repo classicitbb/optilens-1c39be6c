@@ -40,8 +40,8 @@ const AdminWikiPage = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b" style={{ borderColor: "hsl(215 25% 20%)" }}>
-        <h1 className="text-sm font-semibold" style={{ color: "hsl(0 0% 100%)" }}>
+      <div className="px-4 py-3 border-b border-slate-700/60 bg-slate-950">
+        <h1 className="text-sm font-semibold text-white">
           Help / Wiki
         </h1>
       </div>
