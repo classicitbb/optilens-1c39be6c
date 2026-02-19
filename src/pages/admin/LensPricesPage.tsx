@@ -1,17 +1,23 @@
 import { useState } from "react";
 import { usePricingSheets, PricingSheet } from "@/hooks/usePricingSheets";
+import { useBBDUSDRate } from "@/hooks/usePricelistVersions";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Copy } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import PriceMatrixEditor from "@/components/admin/PriceMatrixEditor";
+import PricelistVersionsSection from "@/components/admin/PricelistVersionsSection";
+
+const BLUE = "hsl(215 65% 50%)";
 
 const LensPricesPage = () => {
   const { data: sheets, isLoading, createMutation, updateMutation, deleteMutation } = usePricingSheets();
+  const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
 
@@ -20,6 +26,7 @@ const LensPricesPage = () => {
   const [editSheet, setEditSheet] = useState<PricingSheet | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [showUSD, setShowUSD] = useState(false);
 
   // Auto-select first tab
   const resolvedTab = activeTab ?? sheets?.[0]?.id ?? null;
@@ -90,7 +97,7 @@ const LensPricesPage = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "hsl(215 65% 50%)", borderTopColor: "transparent" }} />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: BLUE, borderTopColor: "transparent" }} />
       </div>
     );
   }
@@ -99,13 +106,14 @@ const LensPricesPage = () => {
 
   return (
     <div className="p-4 space-y-4">
+      {/* Page title + sheet manager */}
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Lens Prices</h1>
         {canEdit && (
           <Button
             size="sm"
             className="h-7 text-xs gap-1"
-            style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }}
+            style={{ background: BLUE, color: "white", borderRadius: "4px" }}
             onClick={openCreate}
           >
             <Plus className="h-3.5 w-3.5" /> New Sheet
@@ -128,32 +136,20 @@ const LensPricesPage = () => {
               {resolvedTab === sheet.id && (
                 <span
                   className="absolute bottom-0 left-0 right-0 h-0.5"
-                  style={{ background: "hsl(215 65% 50%)" }}
+                  style={{ background: BLUE }}
                 />
               )}
             </button>
             {canEdit && resolvedTab === sheet.id && (
               <div className="flex gap-0.5 pb-2 pr-1">
-                <button
-                  onClick={() => openEdit(sheet)}
-                  className="p-0.5 rounded hover:bg-black/5"
-                  title="Rename"
-                >
+                <button onClick={() => openEdit(sheet)} className="p-0.5 rounded hover:bg-black/5" title="Rename">
                   <Pencil className="h-3 w-3" style={{ color: "hsl(215 15% 50%)" }} />
                 </button>
-                <button
-                  onClick={() => handleDuplicate(sheet)}
-                  className="p-0.5 rounded hover:bg-black/5"
-                  title="Duplicate"
-                >
+                <button onClick={() => handleDuplicate(sheet)} className="p-0.5 rounded hover:bg-black/5" title="Duplicate">
                   <Copy className="h-3 w-3" style={{ color: "hsl(215 15% 50%)" }} />
                 </button>
                 {isAdmin && (
-                  <button
-                    onClick={() => handleDelete(sheet)}
-                    className="p-0.5 rounded hover:bg-red-50"
-                    title="Delete"
-                  >
+                  <button onClick={() => handleDelete(sheet)} className="p-0.5 rounded hover:bg-red-50" title="Delete">
                     <Trash2 className="h-3 w-3" style={{ color: "hsl(0 60% 50%)" }} />
                   </button>
                 )}
@@ -170,12 +166,43 @@ const LensPricesPage = () => {
 
       {/* Sheet content */}
       {activeSheet && (
-        <div className="border border-border rounded-md p-4 bg-background">
-          <PriceMatrixEditor />
+        <div className="space-y-6">
+          {/* Pricelist Versions */}
+          <PricelistVersionsSection />
+
+          {/* Separator */}
+          <div className="border-t border-border" />
+
+          {/* BBD / USD display toggle */}
+          <div className="flex items-center gap-3">
+            <span
+              className="text-xs font-medium"
+              style={{ color: showUSD ? "hsl(215 15% 55%)" : "hsl(215 65% 45%)" }}
+            >
+              BBD
+            </span>
+            <Switch
+              checked={showUSD}
+              onCheckedChange={setShowUSD}
+              aria-label="Toggle price currency display"
+            />
+            <span
+              className="text-xs font-medium"
+              style={{ color: showUSD ? "hsl(215 65% 45%)" : "hsl(215 15% 55%)" }}
+            >
+              USD
+            </span>
+            <span className="text-[10px] ml-1" style={{ color: "hsl(215 15% 60%)" }}>
+              (rate: 1 BBD = {fxRate} USD)
+            </span>
+          </div>
+
+          {/* Price Matrix */}
+          <PriceMatrixEditor showUSD={showUSD} fxRate={fxRate} />
         </div>
       )}
 
-      {/* Create / Edit dialog */}
+      {/* Create / Edit sheet dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -198,7 +225,7 @@ const LensPricesPage = () => {
             <Button
               size="sm"
               className="h-7 text-xs"
-              style={{ background: "hsl(215 65% 50%)", color: "white" }}
+              style={{ background: BLUE, color: "white" }}
               onClick={handleSave}
               disabled={!name.trim() || createMutation.isPending || updateMutation.isPending}
             >

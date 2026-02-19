@@ -4,7 +4,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Save, Loader2 } from "lucide-react";
 
-const PriceMatrixEditor = () => {
+interface PriceMatrixEditorProps {
+  showUSD: boolean;
+  fxRate: number; // bbd_to_usd e.g. 0.5 → 1 BBD = 0.5 USD
+}
+
+const fmt = (val: number | null, showUSD: boolean, fxRate: number): string => {
+  if (val === null || val === undefined) return "";
+  const display = showUSD ? val * fxRate : val;
+  return display === 0 ? "" : display.toFixed(2);
+};
+
+const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
   const { data: rows, isLoading, saveMutation } = usePriceMatrix();
   const { toast } = useToast();
 
@@ -19,13 +30,19 @@ const PriceMatrixEditor = () => {
 
   const handleCellChange = useCallback(
     (id: number, col: keyof PriceMatrixRow, raw: string) => {
-      const val = raw.trim() === "" ? null : parseFloat(raw);
-      setLocalRows((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, [col]: isNaN(val as number) ? null : val } : r))
-      );
+      if (raw.trim() === "") {
+        setLocalRows((prev) => prev.map((r) => (r.id === id ? { ...r, [col]: null } : r)));
+        setDirty(true);
+        return;
+      }
+      const displayVal = parseFloat(raw);
+      if (isNaN(displayVal)) return;
+      // Convert back to BBD for storage
+      const storedVal = showUSD ? displayVal / fxRate : displayVal;
+      setLocalRows((prev) => prev.map((r) => (r.id === id ? { ...r, [col]: storedVal } : r)));
       setDirty(true);
     },
-    []
+    [showUSD, fxRate]
   );
 
   const handleSave = () => {
@@ -60,16 +77,22 @@ const PriceMatrixEditor = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">
-            Simple Base Pricing Matrix – BBD (all add-ons extra)
+          <h2 className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+            Simple Base Pricing Matrix –{" "}
+            <span style={{ color: "hsl(215 65% 50%)" }}>{showUSD ? "USD" : "BBD"}</span>{" "}
+            (all add-ons extra)
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Click any cell to edit. Press Tab or Enter to advance.
+          <p className="text-xs mt-0.5" style={{ color: "hsl(215 15% 40%)" }}>
+            Click any cell to edit.{" "}
+            {showUSD
+              ? "Displaying in USD — values auto-convert on save."
+              : "Displaying in BBD (base currency)."}
           </p>
         </div>
         <Button
           size="sm"
           className="h-7 text-xs gap-1.5"
+          style={{ background: "hsl(215 65% 50%)", color: "white" }}
           onClick={handleSave}
           disabled={!dirty || saveMutation.isPending}
         >
@@ -86,18 +109,18 @@ const PriceMatrixEditor = () => {
       <div className="overflow-auto border border-border rounded-md">
         <table className="w-full text-xs border-collapse bg-background">
           <thead>
-            <tr className="bg-muted/60 border-b border-border">
+            <tr style={{ background: "hsl(215 15% 96%)" }} className="border-b border-border">
               <th
-                className="px-3 py-2 text-left font-bold text-foreground border-r border-border"
-                style={{ minWidth: 220 }}
+                className="px-3 py-2 text-left font-bold border-r border-border"
+                style={{ minWidth: 220, color: "hsl(215 30% 15%)" }}
               >
                 Category
               </th>
               {INDEX_COLUMNS.map((col) => (
                 <th
                   key={col.key}
-                  className="px-3 py-2 text-center font-bold text-foreground border-r border-border last:border-r-0"
-                  style={{ minWidth: 90 }}
+                  className="px-3 py-2 text-center font-bold border-r border-border last:border-r-0"
+                  style={{ minWidth: 90, color: "hsl(215 30% 15%)" }}
                 >
                   {col.label}
                 </th>
@@ -114,24 +137,21 @@ const PriceMatrixEditor = () => {
                     : "bg-muted/20 hover:bg-muted/40 transition-colors"
                 }
               >
-                {/* Category label */}
-                <td className="px-3 py-1.5 font-semibold text-foreground border-r border-border whitespace-nowrap">
+                <td
+                  className="px-3 py-1.5 font-semibold border-r border-border whitespace-nowrap"
+                  style={{ color: "hsl(215 30% 15%)" }}
+                >
                   {row.category}
                 </td>
-
-                {/* Editable price cells */}
                 {INDEX_COLUMNS.map((col) => {
                   const val = row[col.key];
                   return (
-                    <td
-                      key={col.key}
-                      className="border-r border-border last:border-r-0 p-0"
-                    >
+                    <td key={col.key} className="border-r border-border last:border-r-0 p-0">
                       <input
                         type="number"
                         step="0.01"
                         min="0"
-                        value={val ?? ""}
+                        value={fmt(val, showUSD, fxRate)}
                         placeholder="–"
                         onChange={(e) => handleCellChange(row.id, col.key, e.target.value)}
                         onKeyDown={(e) => {
