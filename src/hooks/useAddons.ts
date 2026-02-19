@@ -42,6 +42,11 @@ export const useAddons = () => {
   const query = useQuery<Addon[]>({
     queryKey: ["addons"],
     queryFn: async () => {
+      // Use server-side safe RPC that strips cost for viewer/customer roles
+      const { data: safeRows, error: safeErr } = await supabase.rpc("get_addons_safe" as any);
+      if (safeErr) throw safeErr;
+      if (!safeRows || (safeRows as any[]).length === 0) return [];
+      const safeMap = new Map((safeRows as any[]).map((r: any) => [r.id, r.cost]));
       const { data, error } = await supabase
         .from("addons")
         .select("*, supplier:suppliers(id, name)")
@@ -50,6 +55,7 @@ export const useAddons = () => {
       if (error) throw error;
       return (data as any[]).map((a) => ({
         ...a,
+        cost: safeMap.has(a.id) ? safeMap.get(a.id) : a.cost,
         supplier_id: a.supplier_id ?? null,
         supplier_name: a.supplier?.name ?? null,
       })) as Addon[];

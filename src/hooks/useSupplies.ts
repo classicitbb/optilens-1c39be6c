@@ -68,6 +68,11 @@ export const useSupplies = () => {
   const query = useQuery<Supply[]>({
     queryKey: ["supplies"],
     queryFn: async () => {
+      // Use server-side safe RPC that strips base_price for viewer/customer roles
+      const { data: safeRows, error: safeErr } = await supabase.rpc("get_supplies_safe" as any);
+      if (safeErr) throw safeErr;
+      if (!safeRows || (safeRows as any[]).length === 0) return [];
+      const safeMap = new Map((safeRows as any[]).map((r: any) => [r.id, r.base_price]));
       const { data, error } = await supabase
         .from("supplies")
         .select("*, supplier:suppliers(id, name), brand:brands(id, name)")
@@ -75,6 +80,7 @@ export const useSupplies = () => {
       if (error) throw error;
       return (data as any[]).map((s) => ({
         ...s,
+        base_price: safeMap.has(s.id) ? safeMap.get(s.id) : s.base_price,
         supplier_id: s.supplier_id ?? null,
         supplier_name: s.supplier?.name ?? null,
         brand_id: s.brand_id ?? null,
