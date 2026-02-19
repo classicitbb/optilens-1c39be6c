@@ -2,12 +2,24 @@ import { useState, useCallback, useEffect } from "react";
 import { usePriceMatrix, PriceMatrixRow, INDEX_COLUMNS } from "@/hooks/usePriceMatrix";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Search } from "lucide-react";
+import { LensPickerPopover, PickedItem } from "@/components/admin/LensPickerPopover";
 
 interface PriceMatrixEditorProps {
   showUSD: boolean;
-  fxRate: number; // bbd_to_usd e.g. 0.5 → 1 BBD = 0.5 USD
+  fxRate: number;
 }
+
+// Assignment: matrixRowId + colKey → { lensId, lensName, sellPriceBBD }
+interface CellAssignment {
+  lensId: string;
+  lensName: string;
+  sellPriceBBD: number;
+}
+
+type AssignmentMap = Record<string, CellAssignment>; // key = `${rowId}_${colKey}`
+
+const cellKey = (rowId: number, colKey: string) => `${rowId}_${colKey}`;
 
 const fmt = (val: number | null, showUSD: boolean, fxRate: number): string => {
   if (val === null || val === undefined) return "";
@@ -21,6 +33,11 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
 
   const [localRows, setLocalRows] = useState<PriceMatrixRow[]>([]);
   const [dirty, setDirty] = useState(false);
+  const [assignments, setAssignments] = useState<AssignmentMap>({});
+
+  // Picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<{ rowId: number; colKey: string } | null>(null);
 
   useEffect(() => {
     if (rows && !dirty) {
@@ -37,13 +54,50 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
       }
       const displayVal = parseFloat(raw);
       if (isNaN(displayVal)) return;
-      // Convert back to BBD for storage
       const storedVal = showUSD ? displayVal / fxRate : displayVal;
       setLocalRows((prev) => prev.map((r) => (r.id === id ? { ...r, [col]: storedVal } : r)));
       setDirty(true);
     },
     [showUSD, fxRate]
   );
+
+  const openPicker = (rowId: number, colKey: string) => {
+    setPickerTarget({ rowId, colKey });
+    setPickerOpen(true);
+  };
+
+  const handlePick = (item: PickedItem) => {
+    if (!pickerTarget || item.type !== "lens") return;
+    const { rowId, colKey } = pickerTarget;
+    const sellBBD = item.sell_price;
+
+    // Write price into the matrix cell (BBD stored value)
+    setLocalRows((prev) =>
+      prev.map((r) => (r.id === rowId ? { ...r, [colKey]: sellBBD } : r))
+    );
+    setAssignments((prev) => ({
+      ...prev,
+      [cellKey(rowId, colKey)]: {
+        lensId: item.id,
+        lensName: item.name,
+        sellPriceBBD: sellBBD,
+      },
+    }));
+    setDirty(true);
+    toast({
+      title: "Lens assigned",
+      description: `${item.name} → $${sellBBD.toFixed(2)} BBD`,
+    });
+  };
+
+  const clearAssignment = (rowId: number, colKey: string) => {
+    const k = cellKey(rowId, colKey);
+    setAssignments((prev) => {
+      const next = { ...prev };
+      delete next[k];
+      return next;
+    });
+  };
 
   const handleSave = () => {
     saveMutation.mutate(localRows, {
@@ -72,6 +126,10 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
     );
   }
 
+  const currentCellId = pickerTarget
+    ? assignments[cellKey(pickerTarget.rowId, pickerTarget.colKey)]?.lensId ?? null
+    : null;
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -83,7 +141,8 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
             (all add-ons extra)
           </h2>
           <p className="text-xs mt-0.5" style={{ color: "hsl(215 15% 40%)" }}>
-            Click any cell to edit.{" "}
+            Click any cell to edit manually, or click{" "}
+            <Search className="inline h-3 w-3" /> to link a pricelist lens.{" "}
             {showUSD
               ? "Displaying in USD — values auto-convert on save."
               : "Displaying in BBD (base currency)."}
@@ -120,7 +179,7 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
                 <th
                   key={col.key}
                   className="px-3 py-2 text-center font-bold border-r border-border last:border-r-0"
-                  style={{ minWidth: 90, color: "hsl(215 30% 15%)" }}
+                  style={{ minWidth: 110, color: "hsl(215 30% 15%)" }}
                 >
                   {col.label}
                 </th>
@@ -145,20 +204,57 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
                 </td>
                 {INDEX_COLUMNS.map((col) => {
                   const val = row[col.key];
+                  const k = cellKey(row.id, col.key);
+                  const assignment = assignments[k];
+
                   return (
                     <td key={col.key} className="border-r border-border last:border-r-0 p-0">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={fmt(val, showUSD, fxRate)}
-                        placeholder="–"
-                        onChange={(e) => handleCellChange(row.id, col.key, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                        }}
-                        className="w-full h-full px-2 py-1.5 text-right bg-transparent outline-none focus:bg-primary/5 focus:ring-1 focus:ring-primary/30 rounded-sm placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
+                      <div className="flex flex-col">
+                        {/* Input row + picker button */}
+                        <div className="flex items-center">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={fmt(val, showUSD, fxRate)}
+                            placeholder="–"
+                            onChange={(e) => {
+                              handleCellChange(row.id, col.key, e.target.value);
+                              // Manual edit clears any assignment
+                              clearAssignment(row.id, col.key);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                            }}
+                            className="flex-1 min-w-0 px-2 py-1.5 text-right bg-transparent outline-none focus:bg-primary/5 focus:ring-1 focus:ring-primary/30 rounded-sm placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button
+                            onClick={() => openPicker(row.id, col.key)}
+                            className="shrink-0 px-1 py-1 hover:bg-primary/10 rounded transition-colors"
+                            title="Link a pricelist lens to this cell"
+                          >
+                            <Search
+                              className="h-3 w-3"
+                              style={{
+                                color: assignment
+                                  ? "hsl(215 65% 50%)"
+                                  : "hsl(215 15% 65%)",
+                              }}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Linked lens label */}
+                        {assignment && (
+                          <div
+                            className="px-2 pb-0.5 text-[9px] truncate max-w-full"
+                            style={{ color: "hsl(215 65% 45%)" }}
+                            title={assignment.lensName}
+                          >
+                            ↳ {assignment.lensName}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   );
                 })}
@@ -173,6 +269,15 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
           You have unsaved changes — click "Save All Changes" to persist.
         </p>
       )}
+
+      {/* Lens Picker */}
+      <LensPickerPopover
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onPick={handlePick}
+        currentId={currentCellId}
+        mode="lens-only"
+      />
     </div>
   );
 };

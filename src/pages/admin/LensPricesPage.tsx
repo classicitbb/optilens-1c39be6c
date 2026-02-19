@@ -14,7 +14,6 @@ import PriceMatrixEditor from "@/components/admin/PriceMatrixEditor";
 import PricelistVersionsSection from "@/components/admin/PricelistVersionsSection";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import MaterialUpgradesGrid from "@/components/admin/MaterialUpgradesGrid";
-import FlatAddonsPanel from "@/components/admin/FlatAddonsPanel";
 import MatrixExportBar from "@/components/admin/MatrixExportBar";
 
 const BLUE = "hsl(215 65% 50%)";
@@ -34,7 +33,6 @@ const LensPricesPage = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showUSD, setShowUSD] = useState(false);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
 
   const resolvedTab = activeSheetTab ?? sheets?.[0]?.id ?? null;
 
@@ -261,13 +259,6 @@ const LensPricesPage = () => {
               <MaterialUpgradesGrid />
             </div>
 
-            {/* Bottom panel: Flat Add-ons */}
-            <div className="border border-border rounded-md p-4">
-              <FlatAddonsPanel
-                selected={selectedAddons}
-                onSelectionChange={setSelectedAddons}
-              />
-            </div>
           </div>
         </div>
       )}
