@@ -5,6 +5,7 @@ import {
   Database, DollarSign, Upload, Download,
   Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
   ChevronDown, ChevronRight, Ship, Glasses, Package, BarChart3, FileSpreadsheet,
+  FlaskConical, ShoppingCart,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -35,11 +36,13 @@ const NAV: NavItem[] = [
     feature: "catalog",
     children: [
       { label: "Reference Data", icon: Database, path: "/admin/reference", feature: "reference" },
-      { label: "Lens Prices", icon: DollarSign, path: "/admin/pricing", feature: "pricing" },
       { label: "Imports", icon: Upload, path: "/admin/imports", feature: "imports" },
       { label: "Exports", icon: Download, path: "/admin/exports", feature: "exports" },
     ],
   } as MenuGroup,
+  { label: "RX Lens Prices", icon: FlaskConical, path: "/admin/rx-lens-prices", feature: "rx-lens-prices" } as MenuItem,
+  { label: "Stock Lens Prices", icon: Glasses, path: "/admin/stock-lens-prices", feature: "stock-lens-prices" } as MenuItem,
+  { label: "Buy / Sell Prices", icon: ShoppingCart, path: "/admin/buy-sell-prices", feature: "buy-sell-prices" } as MenuItem,
   { label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", feature: "quotations" } as MenuItem,
   {
     label: "Import Costings",
