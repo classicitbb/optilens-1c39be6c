@@ -8,6 +8,7 @@ import { Plus, Pencil, Trash2, Copy } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import PriceMatrixEditor from "@/components/admin/PriceMatrixEditor";
 
 const LensPricesPage = () => {
   const { data: sheets, isLoading, createMutation, updateMutation, deleteMutation } = usePricingSheets();
@@ -167,15 +168,10 @@ const LensPricesPage = () => {
         )}
       </div>
 
-      {/* Sheet content placeholder */}
+      {/* Sheet content */}
       {activeSheet && (
-        <div className="border rounded p-6 text-center" style={{ borderColor: "hsl(215 15% 85%)", color: "hsl(215 15% 50%)" }}>
-          <p className="text-sm">
-            Pricing sheet <strong>"{activeSheet.name}"</strong> content will go here.
-          </p>
-          {activeSheet.description && (
-            <p className="text-xs mt-1">{activeSheet.description}</p>
-          )}
+        <div className="border border-border rounded-md p-4 bg-background">
+          <PriceMatrixEditor />
         </div>
       )}
 
