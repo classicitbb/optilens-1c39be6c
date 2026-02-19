@@ -202,7 +202,7 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
   const currency = (v: number) => `$${Number(v).toFixed(2)}`;
   const showActions = unlocked && canEditCatalog;
   const costCols = showCost ? 1 : 0;
-  const colCount = 13 + costCols + (showActions ? 2 : 0);
+  const colCount = 14 + costCols + (showActions ? 2 : 0);
 
   return (
     <div className="space-y-3">
@@ -245,6 +245,7 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
               <TableHead><FilterHeader label="Lens Type" k="lenstype" sortK="lenstype" /></TableHead>
               <TableHead><FilterHeader label="Option" k="option" sortK="option" /></TableHead>
               <TableHead><FilterHeader label="Finish Type" k="finishtype" sortK="finishtype" /></TableHead>
+              <TableHead className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(215 15% 45%)" }}>MF Type</TableHead>
               {showCost && <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
               <TableHead><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
               <TableHead><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
@@ -283,8 +284,9 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
                   <TableCell className="text-xs">{fkName(lens.material)}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.lenstype)}</TableCell>
                   <TableCell className="text-xs">{optionNames(lens) || "—"}</TableCell>
-                  <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
-                  {showCost && <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>}
+                   <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
+                   <TableCell className="text-xs">{fkName(lens.mftype)}</TableCell>
+                   {showCost && <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>}
                   <TableCell className="text-xs font-semibold">{currency(lens.sell_price)}</TableCell>
                   <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
                   <TableCell className="text-center text-xs">{lens.show_in_pricelist ? "✓" : ""}</TableCell>
