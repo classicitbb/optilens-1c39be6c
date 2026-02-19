@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Send, CheckCircle, FileText, PhoneCall, Package } from "lucide-react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
+
+const inquirySchema = z.object({
+  business_name: z.string().trim().min(1, "Business name is required").max(200),
+  business_type: z.string().max(100).optional(),
+  monthly_volume: z.string().max(50).optional(),
+  location: z.string().max(200).optional(),
+  contact_name: z.string().trim().min(1, "Contact name is required").max(200),
+  email: z.string().trim().email("Please enter a valid email address").max(255),
+  phone: z.string().max(50).optional(),
+  referral_source: z.string().max(100).optional(),
+  comments: z.string().max(2000).optional(),
+});
 
 const STEPS = [
   { icon: FileText, title: "Submit Application", desc: "Fill out the form with your business details." },
@@ -29,17 +42,35 @@ const ZenvueWholesale = () => {
     referral_source: "",
     comments: "",
   });
+  // Honeypot field — must remain empty for real submissions
+  const [honeypot, setHoneypot] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const update = (field: string, value: string) => setForm((p) => ({ ...p, [field]: value }));
+  const update = (field: string, value: string) => {
+    setForm((p) => ({ ...p, [field]: value }));
+    setValidationErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.business_name || !form.contact_name || !form.email) {
-      toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" });
+
+    // Honeypot check — bots fill hidden fields
+    if (honeypot) return;
+
+    // Validate with Zod
+    const result = inquirySchema.safeParse(form);
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) errors[String(err.path[0])] = err.message;
+      });
+      setValidationErrors(errors);
+      toast({ title: "Please fix the highlighted fields.", variant: "destructive" });
       return;
     }
+
     setLoading(true);
-    const { error } = await supabase.from("wholesale_inquiries").insert(form as any);
+    const { error } = await supabase.from("wholesale_inquiries").insert(result.data as any);
     setLoading(false);
     if (error) {
       toast({ title: "Submission failed", description: "Please try again later.", variant: "destructive" });
@@ -80,6 +111,10 @@ const ZenvueWholesale = () => {
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 lg:px-8">
           <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-8">
+            {/* Honeypot — hidden from real users, bots fill it */}
+            <div style={{ display: "none" }} aria-hidden="true">
+              <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+            </div>
             {/* Business Info */}
             <div>
               <h3 className="mb-4 text-lg font-semibold text-foreground">
@@ -88,10 +123,11 @@ const ZenvueWholesale = () => {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-foreground">Business Name *</label>
-                  <Input value={form.business_name} onChange={(e) => update("business_name", e.target.value)} required />
+                  <Input value={form.business_name} onChange={(e) => update("business_name", e.target.value)} className={validationErrors.business_name ? "border-destructive" : ""} />
+                  {validationErrors.business_name && <p className="mt-1 text-xs text-destructive">{validationErrors.business_name}</p>}
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Business Type *</label>
+                  <label className="mb-1 block text-sm font-medium text-foreground">Business Type</label>
                   <Select value={form.business_type} onValueChange={(v) => update("business_type", v)}>
                     <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                     <SelectContent>
@@ -129,11 +165,13 @@ const ZenvueWholesale = () => {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-foreground">Contact Name *</label>
-                  <Input value={form.contact_name} onChange={(e) => update("contact_name", e.target.value)} required />
+                  <Input value={form.contact_name} onChange={(e) => update("contact_name", e.target.value)} className={validationErrors.contact_name ? "border-destructive" : ""} />
+                  {validationErrors.contact_name && <p className="mt-1 text-xs text-destructive">{validationErrors.contact_name}</p>}
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-foreground">Email *</label>
-                  <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} required />
+                  <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} className={validationErrors.email ? "border-destructive" : ""} />
+                  {validationErrors.email && <p className="mt-1 text-xs text-destructive">{validationErrors.email}</p>}
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-foreground">Phone</label>
