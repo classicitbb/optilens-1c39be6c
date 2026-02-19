@@ -85,6 +85,9 @@ Deno.serve(async (req) => {
       const { error } = await adminClient.auth.admin.generateLink({
         type: "recovery",
         email,
+        options: {
+          redirectTo: "https://optilens.lovable.app/reset-password",
+        },
       });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {
