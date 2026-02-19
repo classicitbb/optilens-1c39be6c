@@ -21,9 +21,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle, Eye,
+  ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle,
 } from "lucide-react";
-import RxDetailsDialog from "@/components/admin/RxDetailsDialog";
+import RxSection from "@/components/admin/RxSection";
 import QuotePdfExport from "@/components/admin/QuotePdfExport";
 
 const profitBadge = (status: string) => {
@@ -63,7 +63,6 @@ const QuoteEditorPage = () => {
   // Local quote header state
   const [headerForm, setHeaderForm] = useState<Partial<Quote>>({});
   const [emailError, setEmailError] = useState("");
-  const [rxDialogLineId, setRxDialogLineId] = useState<string | null>(null);
   const [overrideDialogLine, setOverrideDialogLine] = useState<QuoteLine | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [overrideNote, setOverrideNote] = useState("");
@@ -600,15 +599,6 @@ const QuoteEditorPage = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-0.5">
-                        {line.line_type === "Lens" && quote.quote_type === "RX" && (
-                          <button
-                            onClick={() => setRxDialogLineId(line.id)}
-                            className="p-0.5 rounded hover:bg-black/5"
-                            title="Rx Details"
-                          >
-                            <Eye className="h-3.5 w-3.5" style={{ color: "hsl(215 65% 50%)" }} />
-                          </button>
-                        )}
                         {canEdit && (
                           <button
                             onClick={() => deleteLineMutation.mutate(line.id)}
@@ -626,6 +616,11 @@ const QuoteEditorPage = () => {
             </TableBody>
           </Table>
         </div>
+
+        {/* Rx Section – only for RX quotes */}
+        {quote.quote_type === "RX" && (
+          <RxSection lensLines={lines.filter(l => l.line_type === "Lens")} />
+        )}
       </div>
 
       {/* Right summary panel */}
@@ -849,15 +844,6 @@ const QuoteEditorPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Rx Details dialog */}
-      {rxDialogLineId && (
-        <RxDetailsDialog
-          lineId={rxDialogLineId}
-          open={!!rxDialogLineId}
-          onOpenChange={() => setRxDialogLineId(null)}
-        />
-      )}
     </div>
   );
 };
