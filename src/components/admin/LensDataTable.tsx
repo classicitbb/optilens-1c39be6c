@@ -9,7 +9,7 @@ import { useRolePermissions } from "@/hooks/useRolePermissions";
 import MultiSelectFilter from "./MultiSelectFilter";
 import type { Lens } from "@/hooks/useLenses";
 
-type SortKey = "name" | "supplier" | "brand" | "material" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
+type SortKey = "name" | "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
 type SortDir = "asc" | "desc";
 type Filter = "all" | "active" | "inactive" | "web" | "zero_cost" | "zero_sell";
 
@@ -37,7 +37,7 @@ const optionAbbrevs = (lens: Lens) =>
     .filter(Boolean)
     .join(", ");
 
-type ColumnFilterKey = "supplier" | "brand" | "material" | "lenstype" | "option" | "finishtype";
+type ColumnFilterKey = "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype";
 
 const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
   const { canEdit } = useAdminRole();
@@ -51,11 +51,11 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
   const [visibleCount, setVisibleCount] = useState(50);
   const [unlocked, setUnlocked] = useState(false);
 
-  const emptyColFilters: Record<ColumnFilterKey, Set<string>> = { supplier: new Set(), brand: new Set(), material: new Set(), lenstype: new Set(), option: new Set(), finishtype: new Set() };
+  const emptyColFilters: Record<ColumnFilterKey, Set<string>> = { supplier: new Set(), brand: new Set(), material: new Set(), mftype: new Set(), lenstype: new Set(), option: new Set(), finishtype: new Set() };
   const [colFilters, setColFilters] = useState<Record<ColumnFilterKey, Set<string>>>(emptyColFilters);
 
   useEffect(() => {
-    if (filterVersion !== undefined) setColFilters({ supplier: new Set(), brand: new Set(), material: new Set(), lenstype: new Set(), option: new Set(), finishtype: new Set() });
+    if (filterVersion !== undefined) setColFilters({ supplier: new Set(), brand: new Set(), material: new Set(), mftype: new Set(), lenstype: new Set(), option: new Set(), finishtype: new Set() });
   }, [filterVersion]);
 
   const setColFilter = useCallback((key: ColumnFilterKey, val: Set<string>) => {
@@ -104,6 +104,7 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
       supplier: collect("supplier"),
       brand: collect("brand"),
       material: collect("material"),
+      mftype: collect("mftype"),
       lenstype: collect("lenstype"),
       option: collect("option"),
       finishtype: collect("finishtype"),
@@ -122,6 +123,7 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
     if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(fkName(i.supplier)));
     if (colFilters.brand.size > 0) items = items.filter((i) => colFilters.brand.has(fkName(i.brand)));
     if (colFilters.material.size > 0) items = items.filter((i) => colFilters.material.has(fkName(i.material)));
+    if (colFilters.mftype.size > 0) items = items.filter((i) => colFilters.mftype.has(fkName(i.mftype)));
     if (colFilters.lenstype.size > 0) items = items.filter((i) => colFilters.lenstype.has(fkName(i.lenstype)));
     if (colFilters.finishtype.size > 0) items = items.filter((i) => colFilters.finishtype.has(fkName(i.finishtype)));
     if (colFilters.option.size > 0) items = items.filter((i) => {
@@ -156,6 +158,7 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
         case "supplier": av = fkName(a.supplier); bv = fkName(b.supplier); break;
         case "brand": av = fkName(a.brand); bv = fkName(b.brand); break;
         case "material": av = fkName(a.material); bv = fkName(b.material); break;
+        case "mftype": av = fkName(a.mftype); bv = fkName(b.mftype); break;
         case "lenstype": av = fkName(a.lenstype); bv = fkName(b.lenstype); break;
         case "option": av = optionNames(a); bv = optionNames(b); break;
         case "finishtype": av = fkName(a.finishtype); bv = fkName(b.finishtype); break;
@@ -242,10 +245,10 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
               <TableHead><FilterHeader label="Supplier" k="supplier" sortK="supplier" /></TableHead>
               <TableHead><FilterHeader label="Brand" k="brand" sortK="brand" /></TableHead>
               <TableHead><FilterHeader label="Material" k="material" sortK="material" /></TableHead>
+              <TableHead><FilterHeader label="MF Type" k="mftype" sortK="mftype" /></TableHead>
               <TableHead><FilterHeader label="Lens Type" k="lenstype" sortK="lenstype" /></TableHead>
               <TableHead><FilterHeader label="Option" k="option" sortK="option" /></TableHead>
               <TableHead><FilterHeader label="Finish Type" k="finishtype" sortK="finishtype" /></TableHead>
-              <TableHead className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(215 15% 45%)" }}>MF Type</TableHead>
               {showCost && <TableHead><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
               <TableHead><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
               <TableHead><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
@@ -282,10 +285,10 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
                   <TableCell className="text-xs">{fkName(lens.supplier)}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.brand)}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.material)}</TableCell>
+                  <TableCell className="text-xs">{fkName(lens.mftype)}</TableCell>
                   <TableCell className="text-xs">{fkName(lens.lenstype)}</TableCell>
                   <TableCell className="text-xs">{optionNames(lens) || "—"}</TableCell>
-                   <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
-                   <TableCell className="text-xs">{fkName(lens.mftype)}</TableCell>
+                  <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
                    {showCost && <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>}
                   <TableCell className="text-xs font-semibold">{currency(lens.sell_price)}</TableCell>
                   <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
