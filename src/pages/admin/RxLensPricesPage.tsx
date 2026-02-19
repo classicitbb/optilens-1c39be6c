@@ -14,7 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ChevronDown, ChevronRight, Plus, Pencil, Trash2, Copy, Save, Loader2, CalendarDays, Clock,
+  ChevronDown, ChevronRight, Plus, Pencil, Trash2, Copy, Loader2, CalendarDays, Clock,
 } from "lucide-react";
 import { format } from "date-fns";
 import PriceMatrixEditor from "@/components/admin/PriceMatrixEditor";
@@ -33,15 +33,12 @@ const RxLensPricesPage = () => {
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
 
-  // Which version is selected for editing
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
-  // Whether the version selector panel is collapsed
   const [selectorCollapsed, setSelectorCollapsed] = useState(false);
-
   const [contentTab, setContentTab] = useState<ContentTab>("catalog");
   const [showUSD, setShowUSD] = useState(false);
 
-  // Dialog state for create/edit
+  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState<PricelistVersion | null>(null);
   const [name, setName] = useState("");
@@ -143,7 +140,6 @@ const RxLensPricesPage = () => {
 
       {/* ── Version Selector Panel ── */}
       <div className="border border-border rounded-md overflow-hidden">
-        {/* Collapsible header */}
         <button
           className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors"
           style={{ background: "hsl(215 15% 96%)" }}
@@ -236,7 +232,7 @@ const RxLensPricesPage = () => {
         >
           <div className="flex-1 space-y-0.5">
             <p className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
-              Editing:{" "}
+              You are editing:{" "}
               <span style={{ color: BLUE }}>{activeVersion.name}</span>
             </p>
             <div className="flex items-center gap-4 text-[10px]" style={{ color: LABEL_COLOR }}>
@@ -256,7 +252,7 @@ const RxLensPricesPage = () => {
               )}
             </div>
           </div>
-          {/* BBD/USD toggle in banner */}
+          {/* BBD/USD toggle */}
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] font-medium" style={{ color: showUSD ? LABEL_COLOR : BLUE }}>BBD</span>
             <Switch checked={showUSD} onCheckedChange={setShowUSD} aria-label="Toggle currency" />
@@ -268,7 +264,7 @@ const RxLensPricesPage = () => {
       {/* ── Content ── */}
       {activeVersion ? (
         <div className="space-y-4">
-          {/* Sub-tabs */}
+          {/* Sub-tabs: Matrix vs List Catalog */}
           <div className="flex items-center gap-0 border-b border-border">
             {(["matrix", "catalog"] as ContentTab[]).map((tab) => (
               <button
@@ -285,7 +281,7 @@ const RxLensPricesPage = () => {
             ))}
           </div>
 
-          {/* Matrix tab */}
+          {/* Matrix tab — lenses only, no treatments */}
           {contentTab === "matrix" && (
             <div className="space-y-4">
               <MatrixExportBar showUSD={showUSD} fxRate={fxRate} />
@@ -293,14 +289,35 @@ const RxLensPricesPage = () => {
             </div>
           )}
 
-          {/* List Catalog tab */}
+          {/* List Catalog tab — lenses only, no treatments inline */}
           {contentTab === "catalog" && (
             <ListCatalogTab
               fxRate={fxRate}
               showUSD={showUSD}
-              groupByFinishThenMf={true}
+              groupByFinishThenMf={false}
+              lensFilter="pricelist"
+              showTreatmentsAddons={false}
+              pageTitle={activeVersion.name}
             />
           )}
+
+          {/* ── Treatments & Add Ons — always visible below matrix/catalog ── */}
+          <div className="border-t-2 border-dashed border-border pt-4 mt-2">
+            <div
+              className="px-4 py-2 mb-3 rounded-sm text-xs font-bold tracking-wide"
+              style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}
+            >
+              TREATMENTS &amp; ADD ONS — shared across Matrix and List Catalog
+            </div>
+            <ListCatalogTab
+              fxRate={fxRate}
+              showUSD={showUSD}
+              groupByFinishThenMf={false}
+              lensFilter="none"
+              showTreatmentsAddons={true}
+              pageTitle={`${activeVersion.name} — Treatments & Add Ons`}
+            />
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
