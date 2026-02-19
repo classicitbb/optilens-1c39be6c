@@ -263,6 +263,17 @@
   line-height: 1.6;
 }
 
+/* ── Print styles for catalog/matrix export ── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; font-size: 11px; }
+  .catalog-print-area { break-inside: avoid; }
+  .catalog-print-area table { page-break-inside: avoid; }
+  /* Hide admin sidebar/topbar when printing */
+  aside, nav, header { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; }
+}
+
 .zenvue * {
   border-radius: 0;
 }

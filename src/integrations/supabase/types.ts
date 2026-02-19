@@ -745,6 +745,36 @@ export type Database = {
         }
         Relationships: []
       }
+      material_upgrades: {
+        Row: {
+          delta_bbd: number | null
+          full_price_bbd: number | null
+          id: number
+          material: string
+          notes: string | null
+          updated_at: string | null
+          upgrade_name: string
+        }
+        Insert: {
+          delta_bbd?: number | null
+          full_price_bbd?: number | null
+          id?: number
+          material: string
+          notes?: string | null
+          updated_at?: string | null
+          upgrade_name: string
+        }
+        Update: {
+          delta_bbd?: number | null
+          full_price_bbd?: number | null
+          id?: number
+          material?: string
+          notes?: string | null
+          updated_at?: string | null
+          upgrade_name?: string
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           abbrev: string
