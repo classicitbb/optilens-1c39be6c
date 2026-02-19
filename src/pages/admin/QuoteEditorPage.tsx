@@ -477,6 +477,11 @@ const QuoteEditorPage = () => {
           </div>
         </div>
 
+        {/* Rx Section – above line items for RX quotes */}
+        {quote.quote_type === "RX" && (
+          <RxSection lensLines={lines.filter(l => l.line_type === "Lens")} />
+        )}
+
         {/* Line items */}
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Line Items</h2>
@@ -616,11 +621,6 @@ const QuoteEditorPage = () => {
             </TableBody>
           </Table>
         </div>
-
-        {/* Rx Section – only for RX quotes */}
-        {quote.quote_type === "RX" && (
-          <RxSection lensLines={lines.filter(l => l.line_type === "Lens")} />
-        )}
       </div>
 
       {/* Right summary panel */}
