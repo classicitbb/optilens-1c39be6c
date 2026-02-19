@@ -77,12 +77,20 @@ export interface CatalogRow {
 interface ListCatalogTabProps {
   fxRate: number;
   showUSD: boolean;
+  /** If true, groups by Finish Type then MF Type instead of lens type keywords */
+  groupByFinishThenMf?: boolean;
+  /** "wspl" = show_in_ws_pricelist lenses only, "web" = show_on_website, "none" = no lenses */
+  lensFilter?: "wspl" | "web" | "pricelist" | "none";
+  /** If true, shows supplies sections instead of lenses */
+  suppliesOnly?: boolean;
+  /** Page title for exports */
+  pageTitle?: string;
 }
 
 /* ─────────────────────────────────────────────────────────
    Component
    ───────────────────────────────────────────────────────── */
-const ListCatalogTab = ({ fxRate, showUSD }: ListCatalogTabProps) => {
+const ListCatalogTab = ({ fxRate, showUSD, groupByFinishThenMf = false, lensFilter = "pricelist", suppliesOnly = false, pageTitle = "Custom Catalog" }: ListCatalogTabProps) => {
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: notes = [] } = usePricelistNotes();

@@ -21,6 +21,9 @@ import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import ProductCatalogPage from "./pages/admin/ProductCatalogPage";
 import LensPricesPage from "./pages/admin/LensPricesPage";
+import RxLensPricesPage from "./pages/admin/RxLensPricesPage";
+import StockLensPricesPage from "./pages/admin/StockLensPricesPage";
+import BuySellPricesPage from "./pages/admin/BuySellPricesPage";
 import ImportsPage from "./pages/admin/ImportsPage";
 import UsersPage from "./pages/admin/UsersPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
@@ -44,7 +47,7 @@ import ZenvueWholesale from "./pages/zenvue/ZenvueWholesale";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes — reference data rarely changes
+      staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
     },
   },
@@ -77,6 +80,10 @@ const App = () => (
                 <Route path="supplies" element={<Navigate to="/admin/catalog" replace />} />
                 <Route path="addons" element={<Navigate to="/admin/catalog" replace />} />
                 <Route path="pricing" element={<LensPricesPage />} />
+                {/* New dedicated price modules */}
+                <Route path="rx-lens-prices" element={<RxLensPricesPage />} />
+                <Route path="stock-lens-prices" element={<StockLensPricesPage />} />
+                <Route path="buy-sell-prices" element={<BuySellPricesPage />} />
                 <Route path="imports" element={<ImportsPage />} />
                 <Route path="history" element={<PlaceholderPage />} />
                 <Route path="exports" element={<PlaceholderPage />} />
