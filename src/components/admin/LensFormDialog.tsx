@@ -121,10 +121,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const generateName = useCallback(() => {
     const parts = [
       selectedMaterial?.abbrev,
+      selectedFinishType?.abbrev,
       selectedMftype?.abbrev,
       selectedLensType?.name,
-      selectedFinishType?.abbrev,
-      selectedOption?.abbrev,
+      selectedOption?.name,
     ].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "";
   }, [selectedMaterial, selectedMftype, selectedLensType, selectedFinishType, selectedOption]);
