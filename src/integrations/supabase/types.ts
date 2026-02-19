@@ -1940,8 +1940,121 @@ export type Database = {
       }
     }
     Functions: {
+      get_addons_safe: {
+        Args: never
+        Returns: {
+          auto_rule: Json
+          category: string
+          cost: number
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          is_auto: boolean
+          name: string
+          price: number
+          show_on_website: boolean
+          sku: string
+          sort_order: number
+          supplier_id: string
+          updated_at: string
+        }[]
+      }
+      get_lenses_safe: {
+        Args: never
+        Returns: {
+          add_max: number
+          add_min: number
+          base_price: number
+          brand_id: string
+          created_at: string
+          cyl_max: number
+          cyl_min: number
+          finishtype_id: string
+          full_lab: boolean
+          id: string
+          index_value: number
+          is_active: boolean
+          lenstype_id: string
+          material_id: string
+          mftype_id: string
+          name: string
+          notes: string
+          sell_price: number
+          show_in_pricelist: boolean
+          show_in_ws_pricelist: boolean
+          show_on_website: boolean
+          sph_max: number
+          sph_min: number
+          supplier_id: string
+          updated_at: string
+        }[]
+      }
+      get_quote_lines_safe: {
+        Args: { p_quote_id: string }
+        Returns: {
+          created_at: string
+          description_override: string
+          gp_amount: number
+          gp_percent: number
+          group_key: string
+          id: string
+          item_name: string
+          line_type: string
+          override_note: string
+          override_reason: string
+          parent_line_id: string
+          price_override: boolean
+          product_id: string
+          profit_status: string
+          qty: number
+          quote_id: string
+          sku: string
+          sort_order: number
+          threshold_percent: number
+          threshold_status: string
+          unit_base_price_bbd: number
+          unit_cost_landed_bbd: number
+          unit_sell_price_bbd: number
+          updated_at: string
+        }[]
+      }
+      get_supplies_safe: {
+        Args: never
+        Returns: {
+          base_price: number
+          bb_item: boolean
+          bin: string
+          brand_id: string
+          category: string
+          created_at: string
+          currency: string
+          description: string
+          detail: string
+          duty_added: boolean
+          id: string
+          image_url: string
+          is_active: boolean
+          labour_added: boolean
+          name: string
+          notes: string
+          preferred: boolean
+          quantity_per_unit: number
+          sell_price: number
+          show_in_pricelist: boolean
+          show_on_website: boolean
+          sku: string
+          stk_wspl: boolean
+          stocked: boolean
+          supplier_id: string
+          unit: string
+          updated_at: string
+          vat_paid: boolean
+        }[]
+      }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_edit_role: { Args: { _user_id: string }; Returns: boolean }
+      has_restricted_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

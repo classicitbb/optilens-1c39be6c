@@ -81,12 +81,22 @@ export const useLenses = () => {
   const query = useQuery<Lens[]>({
     queryKey: ["lenses"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Use server-side safe RPC that strips base_price for viewer/customer roles
+      const { data: lensRows, error } = await supabase.rpc("get_lenses_safe" as any);
+      if (error) throw error;
+      if (!lensRows || lensRows.length === 0) return [];
+      // Fetch related data for joined fields
+      const { data: joinedData, error: joinError } = await supabase
         .from("lenses")
         .select(SELECT_QUERY)
         .order("name");
-      if (error) throw error;
-      return data as unknown as Lens[];
+      if (joinError) throw joinError;
+      // Merge: use base_price from safe RPC, rest from joined query
+      const safeMap = new Map((lensRows as any[]).map((r: any) => [r.id, r.base_price]));
+      return (joinedData as unknown as Lens[]).map((l) => ({
+        ...l,
+        base_price: safeMap.has(l.id) ? safeMap.get(l.id) : l.base_price,
+      }));
     },
   });
 
