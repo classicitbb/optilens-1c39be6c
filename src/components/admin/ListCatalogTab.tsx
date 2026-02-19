@@ -65,7 +65,7 @@ const ListCatalogTab = ({
   lensFilter = "pricelist",
   suppliesOnly = false,
   pageTitle = "Custom Catalog",
-  showTreatmentsAddons = true,
+  showTreatmentsAddons = true
 }: ListCatalogTabProps) => {
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
@@ -80,7 +80,7 @@ const ListCatalogTab = ({
   const [supplyRows, setSupplyRows] = useState<Map<string, CatalogRow[]>>(new Map());
 
   // Sort state: section → { col, dir }
-  const [sortState, setSortState] = useState<Map<string, { col: string; dir: SortDir }>>(new Map());
+  const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
 
   // Dirty state for save button
   const [isDirty, setIsDirty] = useState(false);
@@ -116,10 +116,10 @@ const ListCatalogTab = ({
         description: s.name + (s.description ? ` — ${s.description}` : ""),
         bbd: s.sell_price,
         usd: s.sell_price * fxRate,
-        margin: s.base_price > 0
-          ? parseFloat((((s.sell_price - s.base_price * 2) / s.sell_price) * 100).toFixed(1))
-          : null,
-        supplyId: s.id,
+        margin: s.base_price > 0 ?
+        parseFloat(((s.sell_price - s.base_price * 2) / s.sell_price * 100).toFixed(1)) :
+        null,
+        supplyId: s.id
       }));
       map.set(cat, rows);
     }
@@ -159,10 +159,10 @@ const ListCatalogTab = ({
             bbd: l.sell_price,
             usd: l.sell_price * fxRate,
             margin:
-              l.base_price > 0
-                ? parseFloat((((l.sell_price - l.base_price * 2) / l.sell_price) * 100).toFixed(1))
-                : null,
-            lensId: l.id,
+            l.base_price > 0 ?
+            parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) :
+            null,
+            lensId: l.id
           }));
           map.set(sectionKey, rows);
         }
@@ -170,10 +170,10 @@ const ListCatalogTab = ({
     } else {
       // Legacy: group by lens type keywords
       const LENS_SECTIONS = [
-        { title: "Single Vision Regular", test: (l: any) => /single|sv\b/i.test(l.name) && !/bifocal|ft|prog/i.test(l.name) },
-        { title: "FT Regular", test: (l: any) => /bifocal|flat top|ft\b|kryptok/i.test(l.name) },
-        { title: "Progressive Regular", test: (l: any) => /prog|varifocal/i.test(l.name) },
-      ];
+      { title: "Single Vision Regular", test: (l: any) => /single|sv\b/i.test(l.name) && !/bifocal|ft|prog/i.test(l.name) },
+      { title: "FT Regular", test: (l: any) => /bifocal|flat top|ft\b|kryptok/i.test(l.name) },
+      { title: "Progressive Regular", test: (l: any) => /prog|varifocal/i.test(l.name) }];
+
       const used = new Set<string>();
       for (const sec of LENS_SECTIONS) {
         const matched = plLenses.filter((l) => !used.has(l.id) && sec.test(l));
@@ -185,10 +185,10 @@ const ListCatalogTab = ({
           description: l.name,
           bbd: l.sell_price,
           usd: l.sell_price * fxRate,
-          margin: l.base_price > 0
-            ? parseFloat((((l.sell_price - l.base_price * 2) / l.sell_price) * 100).toFixed(1))
-            : null,
-          lensId: l.id,
+          margin: l.base_price > 0 ?
+          parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) :
+          null,
+          lensId: l.id
         })));
       }
       const remaining = plLenses.filter((l) => !used.has(l.id));
@@ -200,7 +200,7 @@ const ListCatalogTab = ({
           bbd: l.sell_price,
           usd: l.sell_price * fxRate,
           margin: null,
-          lensId: l.id,
+          lensId: l.id
         })));
       }
     }
@@ -213,9 +213,9 @@ const ListCatalogTab = ({
     if (suppliesOnly || !showTreatmentsAddons) return map;
     const active = (allAddons ?? []).filter((a) => a.is_active);
     const ADDON_SECTIONS = [
-      { title: "Treatments", test: (a: any) => /treat|coat|hmc|ar\b|uv|tint|mirr|antireflect/i.test(`${a.category} ${a.name}`) },
-      { title: "ADD ONS", test: () => true },
-    ];
+    { title: "Treatments", test: (a: any) => /treat|coat|hmc|ar\b|uv|tint|mirr|antireflect/i.test(`${a.category} ${a.name}`) },
+    { title: "ADD ONS", test: () => true }];
+
     const used = new Set<string>();
     for (const sec of ADDON_SECTIONS) {
       const matched = active.filter((a) => !used.has(a.id) && sec.test(a));
@@ -227,10 +227,10 @@ const ListCatalogTab = ({
         description: a.name + (a.description ? ` — ${a.description}` : ""),
         bbd: a.price,
         usd: a.price * fxRate,
-        margin: a.cost > 0
-          ? parseFloat((((a.price - a.cost) / a.price) * 100).toFixed(1))
-          : null,
-        addonId: a.id,
+        margin: a.cost > 0 ?
+        parseFloat(((a.price - a.cost) / a.price * 100).toFixed(1)) :
+        null,
+        addonId: a.id
       })));
     }
     return map;
@@ -277,11 +277,11 @@ const ListCatalogTab = ({
       if (!s || !s.dir || !s.col) return rows;
       return [...rows].sort((a, b) => {
         let aVal: any, bVal: any;
-        if (s.col === "description") { aVal = a.description; bVal = b.description; }
-        else if (s.col === "bbd") { aVal = a.bbd ?? -Infinity; bVal = b.bbd ?? -Infinity; }
-        else if (s.col === "usd") { aVal = a.usd ?? -Infinity; bVal = b.usd ?? -Infinity; }
-        else if (s.col === "margin") { aVal = a.margin ?? -Infinity; bVal = b.margin ?? -Infinity; }
-        else return 0;
+        if (s.col === "description") {aVal = a.description;bVal = b.description;} else
+        if (s.col === "bbd") {aVal = a.bbd ?? -Infinity;bVal = b.bbd ?? -Infinity;} else
+        if (s.col === "usd") {aVal = a.usd ?? -Infinity;bVal = b.usd ?? -Infinity;} else
+        if (s.col === "margin") {aVal = a.margin ?? -Infinity;bVal = b.margin ?? -Infinity;} else
+        return 0;
         if (typeof aVal === "string") return s.dir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         return s.dir === "asc" ? aVal - bVal : bVal - aVal;
       });
@@ -314,7 +314,7 @@ const ListCatalogTab = ({
         bbd: item.sell_price,
         usd: item.sell_price * fxRate,
         margin: null,
-        lensId: item.id,
+        lensId: item.id
       };
       setLensRows((prev) => {
         const next = new Map(prev);
@@ -331,7 +331,7 @@ const ListCatalogTab = ({
         bbd: item.price,
         usd: item.price * fxRate,
         margin: null,
-        addonId: item.id,
+        addonId: item.id
       };
       setAddonRows((prev) => {
         const next = new Map(prev);
@@ -353,7 +353,7 @@ const ListCatalogTab = ({
       bbd: item.sell_price,
       usd: item.sell_price * fxRate,
       margin: null,
-      supplyId: item.id,
+      supplyId: item.id
     };
     setSupplyRows((prev) => {
       const next = new Map(prev);
@@ -398,28 +398,28 @@ const ListCatalogTab = ({
 
   /* ── Exports ── */
   const allExportRows = [
-    ...[...effectiveSupplyRows.entries()].flatMap(([sec, rows]) =>
-      [{ isHeader: true, title: sec }, ...rows]
-    ),
-    ...[...effectiveLensRows.entries()].flatMap(([sec, rows]) =>
-      [{ isHeader: true, title: sec }, ...rows]
-    ),
-    ...[...effectiveAddonRows.entries()].flatMap(([sec, rows]) =>
-      [{ isHeader: true, title: sec }, ...rows]
-    ),
-  ];
+  ...[...effectiveSupplyRows.entries()].flatMap(([sec, rows]) =>
+  [{ isHeader: true, title: sec }, ...rows]
+  ),
+  ...[...effectiveLensRows.entries()].flatMap(([sec, rows]) =>
+  [{ isHeader: true, title: sec }, ...rows]
+  ),
+  ...[...effectiveAddonRows.entries()].flatMap(([sec, rows]) =>
+  [{ isHeader: true, title: sec }, ...rows]
+  )];
+
 
   const handleExcelExport = () => {
     const wb = XLSX.utils.book_new();
     const data: any[][] = [
-      [pageTitle, "", "", ""],
-      ["Description", "BBD $ COST", "USD $ COST", "Margin %"],
-      ...allExportRows.map((r: any) =>
-        r.isHeader
-          ? [r.title, "", "", ""]
-          : [r.description, r.bbd ?? "", r.usd !== null ? parseFloat(r.usd.toFixed(2)) : "", r.margin ?? ""]
-      ),
-    ];
+    [pageTitle, "", "", ""],
+    ["Description", "BBD $ COST", "USD $ COST", "Margin %"],
+    ...allExportRows.map((r: any) =>
+    r.isHeader ?
+    [r.title, "", "", ""] :
+    [r.description, r.bbd ?? "", r.usd !== null ? parseFloat(r.usd.toFixed(2)) : "", r.margin ?? ""]
+    )];
+
     const ws = XLSX.utils.aoa_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, "Catalog");
     XLSX.writeFile(wb, `${pageTitle.replace(/\s+/g, "_")}.xlsx`);
@@ -428,13 +428,13 @@ const ListCatalogTab = ({
 
   const handleCSVExport = () => {
     const lines = [
-      "Description,BBD $ COST,USD $ COST,Margin %",
-      ...allExportRows
-        .filter((r: any) => !r.isHeader)
-        .map((r: any) =>
-          [`"${(r as CatalogRow).description}"`, (r as CatalogRow).bbd ?? "", (r as CatalogRow).usd !== null ? (r as CatalogRow).usd!.toFixed(2) : "", (r as CatalogRow).margin ?? ""].join(",")
-        ),
-    ];
+    "Description,BBD $ COST,USD $ COST,Margin %",
+    ...allExportRows.
+    filter((r: any) => !r.isHeader).
+    map((r: any) =>
+    [`"${(r as CatalogRow).description}"`, (r as CatalogRow).bbd ?? "", (r as CatalogRow).usd !== null ? (r as CatalogRow).usd!.toFixed(2) : "", (r as CatalogRow).margin ?? ""].join(",")
+    )];
+
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -458,49 +458,49 @@ const ListCatalogTab = ({
     return (
       <div className="flex items-center justify-center h-40">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    );
+      </div>);
+
   }
 
   const today = format(new Date(), "dd MMMM yyyy");
 
   /* ── Render a section table ── */
   const renderSection = (
-    title: string,
-    rows: CatalogRow[],
-    rowType: "lens" | "addon" | "supply",
-    /** Extra heading for Finish→MF grouping: render parent group as collapsible label */
-    parentLabel?: string
-  ) => {
+  title: string,
+  rows: CatalogRow[],
+  rowType: "lens" | "addon" | "supply",
+
+  parentLabel?: string) =>
+  {
     const displayRows = sortedRows(title, rows);
     const sort = sortState.get(title);
-    const SortIcon = ({ col }: { col: string }) => (
-      <button
-        className="ml-1 opacity-50 hover:opacity-100 transition-opacity no-print"
-        onClick={(e) => { e.stopPropagation(); toggleSort(title, col); }}
-        title={`Sort by ${col}`}
-      >
+    const SortIcon = ({ col }: {col: string;}) =>
+    <button
+      className="ml-1 opacity-50 hover:opacity-100 transition-opacity no-print"
+      onClick={(e) => {e.stopPropagation();toggleSort(title, col);}}
+      title={`Sort by ${col}`}>
+
         <ArrowUpDown
-          className="h-2.5 w-2.5 inline"
-          style={{ color: sort?.col === col && sort.dir ? "hsl(215 65% 50%)" : "inherit" }}
-        />
-      </button>
-    );
+        className="h-2.5 w-2.5 inline"
+        style={{ color: sort?.col === col && sort.dir ? "hsl(215 65% 50%)" : "inherit" }} />
+
+      </button>;
+
 
     return (
-      <div key={title} className="mt-5 px-2">
-        {parentLabel && (
-          <div
-            className="px-4 py-1.5 mb-0.5 font-bold text-xs uppercase tracking-wider"
-            style={{ background: "hsl(215 30% 20%)", color: "hsl(215 80% 85%)" }}
-          >
+      <div key={title} className="mt-5 px-2 py-[5px]">
+        {parentLabel &&
+        <div
+          className="px-4 py-1.5 mb-0.5 font-bold text-xs uppercase tracking-wider"
+          style={{ background: "hsl(215 30% 20%)", color: "hsl(215 80% 85%)" }}>
+
             {parentLabel}
           </div>
-        )}
+        }
         <div
           className="px-4 py-2 rounded-sm mb-0.5 font-bold text-sm flex items-center justify-between"
-          style={{ background: BLUE_BG, color: "white" }}
-        >
+          style={{ background: BLUE_BG, color: "white" }}>
+
           <span>{parentLabel ? `└ ${title.split(" — ")[1] || title}` : title}</span>
           <button
             className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
@@ -509,122 +509,122 @@ const ListCatalogTab = ({
                 section: title,
                 rowKey: "",
                 mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens",
-                addonSection: rowType === "addon" ? title : undefined,
+                addonSection: rowType === "addon" ? title : undefined
               });
-              if (rowType === "supply") setSupplyPickerOpen(true);
-              else setLensPickerOpen(true);
-            }}
-          >
+              if (rowType === "supply") setSupplyPickerOpen(true);else
+              setLensPickerOpen(true);
+            }}>
+
             <Plus className="h-3 w-3" /> Add Line
           </button>
         </div>
 
-        {displayRows.length === 0 ? (
-          <p className="text-xs text-muted-foreground px-3 py-3 italic">
+        {displayRows.length === 0 ?
+        <p className="text-xs text-muted-foreground px-3 py-3 italic">
             No items — click "Add Line" to add.
-          </p>
-        ) : (
-          <table className="w-full text-xs border-collapse">
+          </p> :
+
+        <table className="w-full text-xs border-collapse">
             <thead>
               <tr>
                 <th
-                  className="px-3 py-2 text-left font-semibold border border-slate-300 cursor-pointer select-none"
-                  style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}
-                >
+                className="px-3 py-2 text-left font-semibold border border-slate-300 cursor-pointer select-none"
+                style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>
+
                   Description <SortIcon col="description" />
                 </th>
                 <th
-                  className="px-3 py-2 text-right font-semibold border border-slate-300 w-28 cursor-pointer"
-                  style={{ background: BLUE_BG, color: BLUE_TEXT }}
-                >
+                className="px-3 py-2 text-right font-semibold border border-slate-300 w-28 cursor-pointer"
+                style={{ background: BLUE_BG, color: BLUE_TEXT }}>
+
                   BBD $ COST <SortIcon col="bbd" />
                 </th>
                 <th
-                  className="px-3 py-2 text-right font-semibold border border-slate-300 w-28 cursor-pointer"
-                  style={{ background: GREEN_BG, color: GREEN_TEXT }}
-                >
+                className="px-3 py-2 text-right font-semibold border border-slate-300 w-28 cursor-pointer"
+                style={{ background: GREEN_BG, color: GREEN_TEXT }}>
+
                   USD $ COST <SortIcon col="usd" />
                 </th>
                 <th
-                  className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print"
-                  style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}
-                >
+                className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print"
+                style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>
+
                   Margin % <SortIcon col="margin" />
                 </th>
                 <th className="w-6 no-print border border-slate-300" />
               </tr>
             </thead>
             <tbody>
-              {displayRows.map((row, i) => (
-                <tr key={row.key} style={{ background: i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
+              {displayRows.map((row, i) =>
+            <tr key={row.key} style={{ background: i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
                   <td
-                    className="px-3 py-1.5 border border-slate-200 group relative"
-                    style={{ color: "hsl(215 30% 15%)" }}
-                  >
+                className="px-3 py-1.5 border border-slate-200 group relative"
+                style={{ color: "hsl(215 30% 15%)" }}>
+
                     <div className="flex items-center gap-1">
                       <span className="flex-1 truncate">{row.description}</span>
-                      {rowType === "lens" && (
-                        <button
-                          className="opacity-0 group-hover:opacity-100 transition-opacity no-print shrink-0"
-                          title="Change linked lens"
-                          onClick={() => {
-                            setPickerTarget({ section: title, rowKey: row.key, mode: "cell" });
-                            setLensPickerOpen(true);
-                          }}
-                        >
+                      {rowType === "lens" &&
+                  <button
+                    className="opacity-0 group-hover:opacity-100 transition-opacity no-print shrink-0"
+                    title="Change linked lens"
+                    onClick={() => {
+                      setPickerTarget({ section: title, rowKey: row.key, mode: "cell" });
+                      setLensPickerOpen(true);
+                    }}>
+
                           <Search className="h-3 w-3" style={{ color: "hsl(215 65% 50%)" }} />
                         </button>
-                      )}
+                  }
                     </div>
-                    {row.lensId && (
-                      <div className="text-[9px] mt-0.5" style={{ color: "hsl(215 65% 45%)" }}>
+                    {row.lensId &&
+                <div className="text-[9px] mt-0.5" style={{ color: "hsl(215 65% 45%)" }}>
                         ↳ linked lens
                       </div>
-                    )}
-                    {row.supplyId && (
-                      <div className="text-[9px] mt-0.5" style={{ color: "hsl(130 55% 40%)" }}>
+                }
+                    {row.supplyId &&
+                <div className="text-[9px] mt-0.5" style={{ color: "hsl(130 55% 40%)" }}>
                         ↳ linked supply
                       </div>
-                    )}
+                }
                   </td>
                   <td
-                    className="px-3 py-1.5 text-right border border-slate-200 font-medium"
-                    style={{ background: "hsl(215 60% 97%)", color: "hsl(215 60% 30%)" }}
-                  >
+                className="px-3 py-1.5 text-right border border-slate-200 font-medium"
+                style={{ background: "hsl(215 60% 97%)", color: "hsl(215 60% 30%)" }}>
+
                     {row.bbd !== null ? `$${(showUSD ? row.bbd : row.bbd).toFixed(2)}` : "—"}
                   </td>
                   <td
-                    className="px-3 py-1.5 text-right border border-slate-200 font-medium"
-                    style={{ background: "#f0fff4", color: GREEN_TEXT }}
-                  >
+                className="px-3 py-1.5 text-right border border-slate-200 font-medium"
+                style={{ background: "#f0fff4", color: GREEN_TEXT }}>
+
                     {row.usd !== null ? `$${row.usd.toFixed(2)}` : "—"}
                   </td>
                   <td
-                    className="px-3 py-1.5 text-right border border-slate-200 no-print"
-                    style={{ color: "hsl(280 40% 40%)" }}
-                  >
+                className="px-3 py-1.5 text-right border border-slate-200 no-print"
+                style={{ color: "hsl(280 40% 40%)" }}>
+
                     {row.margin !== null ? `${row.margin}%` : "—"}
                   </td>
                   <td className="border border-slate-200 p-0 no-print">
                     <button
-                      className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors"
-                      title="Remove row"
-                      onClick={() => removeRow(title, row.key, rowType)}
-                    >
+                  className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors"
+                  title="Remove row"
+                  onClick={() => removeRow(title, row.key, rowType)}>
+
                       <X className="h-3 w-3 text-destructive/60 hover:text-destructive" />
                     </button>
                   </td>
                 </tr>
-              ))}
+            )}
             </tbody>
           </table>
-        )}
+        }
 
         <p className="text-[10px] italic mt-2 px-1" style={{ color: LABEL }}>
           {PAGE_NOTE}
         </p>
-      </div>
-    );
+      </div>);
+
   };
 
   /* ── Render finish→MF grouped sections ── */
@@ -647,8 +647,8 @@ const ListCatalogTab = ({
         <div key={`finish-${finish}`} className={firstFinish ? "mt-2" : "mt-6"}>
           <div
             className="px-4 py-2 font-bold text-sm uppercase tracking-wide"
-            style={{ background: "hsl(215 30% 18%)", color: "hsl(0 0% 100%)" }}
-          >
+            style={{ background: "hsl(215 30% 18%)", color: "hsl(0 0% 100%)" }}>
+
             {finish}
           </div>
           {sectionKeys.map((key) => {
@@ -674,8 +674,8 @@ const ListCatalogTab = ({
             size="sm"
             className="h-8 text-xs gap-1.5 font-semibold"
             style={{ background: BLUE_BG, color: "white" }}
-            onClick={() => { window.print(); toast({ title: "Print dialog opened" }); }}
-          >
+            onClick={() => {window.print();toast({ title: "Print dialog opened" });}}>
+
             <FileText className="h-3.5 w-3.5" /> Export PDF
           </Button>
           <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExcelExport}>
@@ -688,33 +688,33 @@ const ListCatalogTab = ({
             <Globe className="h-3.5 w-3.5" /> HTML
           </Button>
         </div>
-        {isDirty && (
-          <Button
-            size="sm"
-            className="h-8 text-xs gap-1.5"
-            style={{ background: "hsl(215 65% 50%)", color: "white" }}
-            onClick={handleSave}
-            disabled={isSaving}
-          >
+        {isDirty &&
+        <Button
+          size="sm"
+          className="h-8 text-xs gap-1.5"
+          style={{ background: "hsl(215 65% 50%)", color: "white" }}
+          onClick={handleSave}
+          disabled={isSaving}>
+
             {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Save All Changes
           </Button>
-        )}
+        }
       </div>
 
-      {isDirty && (
-        <p className="text-xs no-print" style={{ color: "hsl(38 92% 40%)" }}>
+      {isDirty &&
+      <p className="text-xs no-print" style={{ color: "hsl(38 92% 40%)" }}>
           You have unsaved changes — click "Save All Changes" to persist.
         </p>
-      )}
+      }
 
       {/* Catalog Body */}
       <div ref={printRef} className="catalog-print-area space-y-0">
         {/* Header */}
         <div
-          className="px-6 py-5 text-center border-b-4 print-header"
-          style={{ borderColor: BLUE_BG, background: "hsl(215 20% 98%)" }}
-        >
+          className="px-6 py-5 text-center border-b-4 print-header border-primary-foreground"
+          style={{ borderColor: BLUE_BG, background: "hsl(215 20% 98%)" }}>
+
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: BLUE_BG }}>
             {pageTitle}
           </h1>
@@ -724,34 +724,34 @@ const ListCatalogTab = ({
 
         {/* Supply sections (Buy/Sell page) */}
         {suppliesOnly && [...effectiveSupplyRows.entries()].map(([sec, rows]) =>
-          renderSection(sec, rows, "supply")
+        renderSection(sec, rows, "supply")
         )}
 
         {/* Lens sections (non-grouped) */}
-        {!suppliesOnly && !groupByFinishThenMf && (
-          <>
+        {!suppliesOnly && !groupByFinishThenMf &&
+        <>
             {["Single Vision Regular", "FT Regular", "Progressive Regular"].map((sec) => {
-              const rows = effectiveLensRows.get(sec);
-              if (!rows) return null;
-              return renderSection(sec, rows, "lens");
-            })}
+            const rows = effectiveLensRows.get(sec);
+            if (!rows) return null;
+            return renderSection(sec, rows, "lens");
+          })}
             {effectiveLensRows.has("Other") &&
-              renderSection("Other", effectiveLensRows.get("Other")!, "lens")}
+          renderSection("Other", effectiveLensRows.get("Other")!, "lens")}
           </>
-        )}
+        }
 
         {/* Grouped sections (Stock Lens / RX grouped by Finish→MF) */}
         {!suppliesOnly && groupByFinishThenMf && renderGroupedSections()}
 
         {/* Add-on sections (Treatments + ADD ONS) */}
-        {!suppliesOnly && showTreatmentsAddons && (
-          <>
+        {!suppliesOnly && showTreatmentsAddons &&
+        <>
             {["Treatments", "ADD ONS"].map((sec) => {
-              const rows = effectiveAddonRows.get(sec) ?? [];
-              return renderSection(sec, rows, "addon");
-            })}
+            const rows = effectiveAddonRows.get(sec) ?? [];
+            return renderSection(sec, rows, "addon");
+          })}
           </>
-        )}
+        }
 
         {/* Footer */}
         <div className="mt-8 px-2 py-4 border-t border-border text-center">
@@ -767,8 +767,8 @@ const ListCatalogTab = ({
         onOpenChange={setLensPickerOpen}
         onPick={handleLensPick}
         mode={pickerMode}
-        currentId={null}
-      />
+        currentId={null} />
+
 
       {/* Supply picker */}
       <SupplyPickerPopover
@@ -776,10 +776,10 @@ const ListCatalogTab = ({
         onOpenChange={setSupplyPickerOpen}
         onPick={handleSupplyPick}
         currentId={null}
-        categoryFilter={pickerTarget?.section}
-      />
-    </div>
-  );
+        categoryFilter={pickerTarget?.section} />
+
+    </div>);
+
 };
 
 export default ListCatalogTab;
