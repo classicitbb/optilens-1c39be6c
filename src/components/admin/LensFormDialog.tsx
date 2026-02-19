@@ -112,6 +112,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const selectedMaterial = (materials.data ?? []).find((m) => m.id === form.material_id);
   const selectedMftype = (mftypes.data ?? []).find((m) => m.id === form.mftype_id);
   const selectedLensType = (lenstypes.data ?? []).find((lt) => lt.id === form.lenstype_id);
+  const selectedFinishType = (finishtypes.data ?? []).find((f) => f.id === form.finishtype_id);
   const selectedOption = (lensOptions.data ?? []).find((o) => o.id === form.option?.lens_option_id);
   const showAdd = selectedLensType
     ? PROGRESSIVE_KEYWORDS.some((kw) => selectedLensType.name.toLowerCase().includes(kw))
@@ -122,10 +123,11 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
       selectedMaterial?.abbrev,
       selectedMftype?.abbrev,
       selectedLensType?.name,
-      selectedOption?.name,
+      selectedFinishType?.abbrev,
+      selectedOption?.abbrev,
     ].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "";
-  }, [selectedMaterial, selectedMftype, selectedLensType, selectedOption]);
+  }, [selectedMaterial, selectedMftype, selectedLensType, selectedFinishType, selectedOption]);
 
   useEffect(() => {
     if (!nameLocked) return;
