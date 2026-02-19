@@ -601,6 +601,8 @@ export type Database = {
           mftype_id: string
           name: string
           notes: string | null
+          pricing_category: string | null
+          pricing_index: string | null
           sell_price: number
           show_in_pricelist: boolean
           show_in_ws_pricelist: boolean
@@ -628,6 +630,8 @@ export type Database = {
           mftype_id: string
           name: string
           notes?: string | null
+          pricing_category?: string | null
+          pricing_index?: string | null
           sell_price: number
           show_in_pricelist?: boolean
           show_in_ws_pricelist?: boolean
@@ -655,6 +659,8 @@ export type Database = {
           mftype_id?: string
           name?: string
           notes?: string | null
+          pricing_category?: string | null
+          pricing_index?: string | null
           sell_price?: number
           show_in_pricelist?: boolean
           show_in_ws_pricelist?: boolean
@@ -864,6 +870,137 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      price_matrix: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: number
+          index_1_50: number | null
+          index_1_53: number | null
+          index_1_59: number | null
+          index_1_60: number | null
+          index_1_67: number | null
+          index_1_74: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: number
+          index_1_50?: number | null
+          index_1_53?: number | null
+          index_1_59?: number | null
+          index_1_60?: number | null
+          index_1_67?: number | null
+          index_1_74?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: number
+          index_1_50?: number | null
+          index_1_53?: number | null
+          index_1_59?: number | null
+          index_1_60?: number | null
+          index_1_67?: number | null
+          index_1_74?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      pricelist_notes: {
+        Row: {
+          content: string | null
+          id: number
+          section: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          content?: string | null
+          id?: number
+          section?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          content?: string | null
+          id?: number
+          section?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      pricelist_overrides: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: number
+          index_column: string | null
+          overridden_price: number | null
+          pricelist_version_id: number | null
+          reason: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: number
+          index_column?: string | null
+          overridden_price?: number | null
+          pricelist_version_id?: number | null
+          reason?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: number
+          index_column?: string | null
+          overridden_price?: number | null
+          pricelist_version_id?: number | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelist_overrides_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricelist_versions: {
+        Row: {
+          base_currency: string | null
+          created_at: string | null
+          discount_percent: number | null
+          id: number
+          is_template: boolean | null
+          markup_percent: number | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_currency?: string | null
+          created_at?: string | null
+          discount_percent?: number | null
+          id?: number
+          is_template?: boolean | null
+          markup_percent?: number | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_currency?: string | null
+          created_at?: string | null
+          discount_percent?: number | null
+          id?: number
+          is_template?: boolean | null
+          markup_percent?: number | null
+          name?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
