@@ -222,35 +222,137 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          base_currency: string
+          bill_city: string
+          bill_country: string
+          bill_county: string
+          bill_line1: string
+          bill_line2: string
+          bill_postcode: string
+          bill_state: string
+          bill_use_physical: boolean
+          business_calendar: string
+          company_name: string
           default_vat: number
+          email: string
+          fax: string
           frames_duty: number
           id: string
           import_duty: number
           import_multiple: number
           labour_percent: number
+          logo_file_name: string | null
+          logo_url: string | null
+          physical_city: string
+          physical_country: string
+          physical_county: string
+          physical_line1: string
+          physical_line2: string
+          physical_postcode: string
+          physical_state: string
+          primary_contact: string
           profit_percent: number
+          ship_city: string
+          ship_country: string
+          ship_county: string
+          ship_line1: string
+          ship_line2: string
+          ship_postcode: string
+          ship_state: string
+          ship_use_physical: boolean
+          slogan: string
+          tax_tin: string
+          tel: string
           updated_at: string
           wholesale_stock_percentage: number
         }
         Insert: {
+          base_currency?: string
+          bill_city?: string
+          bill_country?: string
+          bill_county?: string
+          bill_line1?: string
+          bill_line2?: string
+          bill_postcode?: string
+          bill_state?: string
+          bill_use_physical?: boolean
+          business_calendar?: string
+          company_name?: string
           default_vat?: number
+          email?: string
+          fax?: string
           frames_duty?: number
           id?: string
           import_duty?: number
           import_multiple?: number
           labour_percent?: number
+          logo_file_name?: string | null
+          logo_url?: string | null
+          physical_city?: string
+          physical_country?: string
+          physical_county?: string
+          physical_line1?: string
+          physical_line2?: string
+          physical_postcode?: string
+          physical_state?: string
+          primary_contact?: string
           profit_percent?: number
+          ship_city?: string
+          ship_country?: string
+          ship_county?: string
+          ship_line1?: string
+          ship_line2?: string
+          ship_postcode?: string
+          ship_state?: string
+          ship_use_physical?: boolean
+          slogan?: string
+          tax_tin?: string
+          tel?: string
           updated_at?: string
           wholesale_stock_percentage?: number
         }
         Update: {
+          base_currency?: string
+          bill_city?: string
+          bill_country?: string
+          bill_county?: string
+          bill_line1?: string
+          bill_line2?: string
+          bill_postcode?: string
+          bill_state?: string
+          bill_use_physical?: boolean
+          business_calendar?: string
+          company_name?: string
           default_vat?: number
+          email?: string
+          fax?: string
           frames_duty?: number
           id?: string
           import_duty?: number
           import_multiple?: number
           labour_percent?: number
+          logo_file_name?: string | null
+          logo_url?: string | null
+          physical_city?: string
+          physical_country?: string
+          physical_county?: string
+          physical_line1?: string
+          physical_line2?: string
+          physical_postcode?: string
+          physical_state?: string
+          primary_contact?: string
           profit_percent?: number
+          ship_city?: string
+          ship_country?: string
+          ship_county?: string
+          ship_line1?: string
+          ship_line2?: string
+          ship_postcode?: string
+          ship_state?: string
+          ship_use_physical?: boolean
+          slogan?: string
+          tax_tin?: string
+          tel?: string
           updated_at?: string
           wholesale_stock_percentage?: number
         }
@@ -372,6 +474,45 @@ export type Database = {
           id?: string
           mapped_id?: string
           ref_table?: string
+        }
+        Relationships: []
+      }
+      legacy_rates: {
+        Row: {
+          created_at: string
+          currency: string | null
+          description: string
+          effective_date: string | null
+          id: string
+          is_active: boolean
+          rate_code: string
+          updated_at: string
+          value: number
+          value_type: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          description?: string
+          effective_date?: string | null
+          id?: string
+          is_active?: boolean
+          rate_code: string
+          updated_at?: string
+          value?: number
+          value_type?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          description?: string
+          effective_date?: string | null
+          id?: string
+          is_active?: boolean
+          rate_code?: string
+          updated_at?: string
+          value?: number
+          value_type?: string
         }
         Relationships: []
       }
