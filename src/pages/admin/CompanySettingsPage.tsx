@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import PricingSettingsTab from "@/components/admin/PricingSettingsTab";
+import AuditLogPage from "@/pages/admin/AuditLogPage";
 import { Plus, Trash2, Search, Upload, ImageIcon } from "lucide-react";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -329,7 +330,6 @@ const CompanySettingsPage = () => {
     postcode: form.physical_postcode ?? "",
   };
 
-  // When "Use Physical" is toggled ON for bill/ship, mirror the physical fields
   const handleToggleBillPhysical = (v: boolean) => {
     set("bill_use_physical", v);
     if (v) {
@@ -385,7 +385,6 @@ const CompanySettingsPage = () => {
   };
 
   const handleSave = () => {
-    // Basic email validation
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (form.email && !emailRe.test(form.email)) {
       toast({ title: "Invalid email address", variant: "destructive" }); return;
@@ -408,13 +407,14 @@ const CompanySettingsPage = () => {
 
   return (
     <div className="h-full overflow-auto p-4 space-y-4">
-      <h1 className="text-lg font-semibold text-foreground">Parameters</h1>
+      <h1 className="text-lg font-semibold text-foreground">Settings</h1>
 
       <Tabs defaultValue="company" className="w-full">
         <TabsList className="h-9">
           <TabsTrigger value="company" className="text-xs">Company Variables</TabsTrigger>
           <TabsTrigger value="legacy" className="text-xs">Legacy Rates</TabsTrigger>
           <TabsTrigger value="pricing" className="text-xs">Pricing Settings</TabsTrigger>
+          <TabsTrigger value="audit" className="text-xs">Audit Log</TabsTrigger>
         </TabsList>
 
         {/* ── Company Variables ── */}
@@ -529,6 +529,13 @@ const CompanySettingsPage = () => {
         <TabsContent value="pricing">
           <div className="pt-2">
             <PricingSettingsTab />
+          </div>
+        </TabsContent>
+
+        {/* ── Audit Log ── */}
+        <TabsContent value="audit">
+          <div className="pt-2">
+            <AuditLogPage embedded />
           </div>
         </TabsContent>
       </Tabs>

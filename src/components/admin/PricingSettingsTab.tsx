@@ -126,7 +126,7 @@ const PricingSettingsTab = () => {
   }
 
   const NumField = ({ label, value, onChange, hint, disabled }: { label: string; value: number; onChange: (v: number) => void; hint?: string; disabled?: boolean }) => (
-    <div className="grid grid-cols-[160px_1fr_1fr] items-center gap-2">
+    <div className="space-y-1">
       <Label className="text-xs font-medium">{label}</Label>
       <Input className="h-8 text-xs" type="number" step="0.001" value={value} onChange={(e) => onChange(+e.target.value)} disabled={disabled} />
       {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
@@ -134,13 +134,19 @@ const PricingSettingsTab = () => {
   );
 
   const PercentField = ({ label, value, onChange, disabled }: { label: string; value: number; onChange: (v: number) => void; disabled?: boolean }) => (
-    <div className="grid grid-cols-[160px_1fr_1fr] items-center gap-2">
+    <div className="space-y-1">
       <Label className="text-xs font-medium">{label}</Label>
       <div className="flex items-center gap-1">
         <Input className="h-8 text-xs" type="number" step="0.1" value={toPercent(value)} onChange={(e) => onChange(fromPercent(+e.target.value))} disabled={disabled} />
         <span className="text-xs text-muted-foreground">%</span>
       </div>
-      <span />
+    </div>
+  );
+
+  const SwitchField = ({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) => (
+    <div className="flex items-center justify-between gap-2 py-1">
+      <Label className="text-xs font-medium">{label}</Label>
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
   );
 
@@ -180,7 +186,7 @@ const PricingSettingsTab = () => {
   const disabled = !isEditable;
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4">
       {/* Version bar */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-muted-foreground">Version:</span>
@@ -197,90 +203,93 @@ const PricingSettingsTab = () => {
       </div>
 
       {/* Version label */}
-      <div className="grid grid-cols-[160px_1fr] items-center gap-2">
+      <div className="space-y-1">
         <Label className="text-xs font-medium">Version Label</Label>
-        <Input className="h-8 text-xs" placeholder="e.g. Q1 2026" value={form.label ?? ""} onChange={(e) => setField("label", e.target.value || null)} disabled={disabled} />
+        <Input className="h-8 text-xs max-w-xs" placeholder="e.g. Q1 2026" value={form.label ?? ""} onChange={(e) => setField("label", e.target.value || null)} disabled={disabled} />
       </div>
 
-      {/* Currency & FX */}
-      <CurrencyFxSection
-        baseCurrency={form.base_currency}
-        fxRates={form.fx_rates}
-        fxRiskBuffer={form.fx_risk_buffer}
-        disabled={disabled}
-        onBaseCurrencyChange={(v) => setField("base_currency", v)}
-        onFxRateChange={(currency, engineRate) => setJsonField("fx_rates", currency, engineRate)}
-        onFxRiskBufferChange={(v) => setField("fx_risk_buffer", v)}
-      />
+      {/* Responsive grid of settings cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* Currency & FX */}
+        <Section title="Currency & FX">
+          <CurrencyFxSection
+            baseCurrency={form.base_currency}
+            fxRates={form.fx_rates}
+            fxRiskBuffer={form.fx_risk_buffer}
+            disabled={disabled}
+            onBaseCurrencyChange={(v) => setField("base_currency", v)}
+            onFxRateChange={(currency, engineRate) => setJsonField("fx_rates", currency, engineRate)}
+            onFxRiskBufferChange={(v) => setField("fx_risk_buffer", v)}
+          />
+        </Section>
 
-      {/* Import Defaults */}
-      <Section title="Barbados Import Defaults">
-        <PercentField label="VAT Rate" value={form.vat_rate} onChange={(v) => setField("vat_rate", v)} disabled={disabled} />
-        <JsonGrid label="Duty Rates by Category" data={form.duty_rates} fieldKey="duty_rates" disabled={disabled} />
-        <NumField label="Brokerage Fee (BBD)" value={form.brokerage_fee} onChange={(v) => setField("brokerage_fee", v)} disabled={disabled} />
-        <NumField label="Port Charges (BBD)" value={form.port_charges} onChange={(v) => setField("port_charges", v)} disabled={disabled} />
-        <div className="grid grid-cols-[160px_1fr_1fr] items-center gap-2">
-          <Label className="text-xs font-medium">Freight Method</Label>
-          <Select value={form.freight_method} onValueChange={(v) => setField("freight_method", v)} disabled={disabled}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="per_unit">Per Unit</SelectItem>
-              <SelectItem value="per_value">Per Value</SelectItem>
-            </SelectContent>
-          </Select>
-          <span />
-        </div>
-        <PercentField label="Insurance" value={form.insurance_percent} onChange={(v) => setField("insurance_percent", v)} disabled={disabled} />
-      </Section>
+        {/* Import Defaults */}
+        <Section title="Barbados Import Defaults">
+          <PercentField label="VAT Rate" value={form.vat_rate} onChange={(v) => setField("vat_rate", v)} disabled={disabled} />
+          <NumField label="Brokerage Fee (BBD)" value={form.brokerage_fee} onChange={(v) => setField("brokerage_fee", v)} disabled={disabled} />
+          <NumField label="Port Charges (BBD)" value={form.port_charges} onChange={(v) => setField("port_charges", v)} disabled={disabled} />
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Freight Method</Label>
+            <Select value={form.freight_method} onValueChange={(v) => setField("freight_method", v)} disabled={disabled}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="per_unit">Per Unit</SelectItem>
+                <SelectItem value="per_value">Per Value</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <PercentField label="Insurance" value={form.insurance_percent} onChange={(v) => setField("insurance_percent", v)} disabled={disabled} />
+        </Section>
 
-      {/* Financial & Operational */}
-      <Section title="Financial & Operational">
-        <PercentField label="Cost of Capital" value={form.cost_of_capital} onChange={(v) => setField("cost_of_capital", v)} disabled={disabled} />
-        <PercentField label="Inventory Holding" value={form.inventory_holding} onChange={(v) => setField("inventory_holding", v)} disabled={disabled} />
-        <NumField label="Avg Days in Stock" value={form.avg_days_in_stock} onChange={(v) => setField("avg_days_in_stock", Math.round(v))} disabled={disabled} />
-        <PercentField label="Overhead" value={form.overhead_percent} onChange={(v) => setField("overhead_percent", v)} disabled={disabled} />
-        <PercentField label="Shrinkage" value={form.shrinkage_percent} onChange={(v) => setField("shrinkage_percent", v)} disabled={disabled} />
-      </Section>
+        {/* Duty Rates */}
+        <Section title="Duty Rates">
+          <JsonGrid label="By Category" data={form.duty_rates} fieldKey="duty_rates" disabled={disabled} />
+        </Section>
 
-      {/* Pricing Strategy */}
-      <Section title="Pricing Strategy">
-        <PercentField label="Target Margin" value={form.target_margin} onChange={(v) => setField("target_margin", v)} disabled={disabled} />
-        <JsonGrid label="Category Margin Floors" data={form.category_margin_floors} fieldKey="category_margin_floors" disabled={disabled} />
-        <JsonGrid label="Category Target Margins" data={form.category_target_margins} fieldKey="category_target_margins" disabled={disabled} />
-        <PercentField label="Max Price Increase/Cycle" value={form.max_price_increase} onChange={(v) => setField("max_price_increase", v)} disabled={disabled} />
-        <div className="grid grid-cols-[160px_1fr_1fr] items-center gap-2">
-          <Label className="text-xs font-medium">Rounding Rule</Label>
-          <Select value={String(form.rounding_rule)} onValueChange={(v) => setField("rounding_rule", +v)} disabled={disabled}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0.5">BBD 0.50</SelectItem>
-              <SelectItem value="1">BBD 1.00</SelectItem>
-            </SelectContent>
-          </Select>
-          <span />
-        </div>
-        <div className="flex items-center gap-3">
-          <Label className="text-xs font-medium w-[160px]">Psychological Rounding</Label>
-          <Switch checked={form.psychological_rounding} onCheckedChange={(v) => setField("psychological_rounding", v)} disabled={disabled} />
-        </div>
-      </Section>
+        {/* Financial & Operational */}
+        <Section title="Financial & Operational">
+          <PercentField label="Cost of Capital" value={form.cost_of_capital} onChange={(v) => setField("cost_of_capital", v)} disabled={disabled} />
+          <PercentField label="Inventory Holding" value={form.inventory_holding} onChange={(v) => setField("inventory_holding", v)} disabled={disabled} />
+          <NumField label="Avg Days in Stock" value={form.avg_days_in_stock} onChange={(v) => setField("avg_days_in_stock", Math.round(v))} disabled={disabled} />
+          <PercentField label="Overhead" value={form.overhead_percent} onChange={(v) => setField("overhead_percent", v)} disabled={disabled} />
+          <PercentField label="Shrinkage" value={form.shrinkage_percent} onChange={(v) => setField("shrinkage_percent", v)} disabled={disabled} />
+        </Section>
 
-      {/* Governance */}
-      <Section title="Governance Rules">
-        <div className="flex items-center gap-3">
-          <Label className="text-xs font-medium w-[160px]">Block Below Floor</Label>
-          <Switch checked={form.block_below_floor} onCheckedChange={(v) => setField("block_below_floor", v)} disabled={disabled} />
-        </div>
-        <div className="flex items-center gap-3">
-          <Label className="text-xs font-medium w-[160px]">Block Loss</Label>
-          <Switch checked={form.block_loss} onCheckedChange={(v) => setField("block_loss", v)} disabled={disabled} />
-        </div>
-        <div className="flex items-center gap-3">
-          <Label className="text-xs font-medium w-[160px]">Require Concession Reason</Label>
-          <Switch checked={form.require_concession_reason} onCheckedChange={(v) => setField("require_concession_reason", v)} disabled={disabled} />
-        </div>
-        <PercentField label="Price Reduction Threshold" value={form.price_reduction_threshold} onChange={(v) => setField("price_reduction_threshold", v)} disabled={disabled} />
-      </Section>
+        {/* Pricing Strategy */}
+        <Section title="Pricing Strategy">
+          <PercentField label="Target Margin" value={form.target_margin} onChange={(v) => setField("target_margin", v)} disabled={disabled} />
+          <PercentField label="Max Price Increase/Cycle" value={form.max_price_increase} onChange={(v) => setField("max_price_increase", v)} disabled={disabled} />
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Rounding Rule</Label>
+            <Select value={String(form.rounding_rule)} onValueChange={(v) => setField("rounding_rule", +v)} disabled={disabled}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0.5">BBD 0.50</SelectItem>
+                <SelectItem value="1">BBD 1.00</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <SwitchField label="Psychological Rounding" checked={form.psychological_rounding} onChange={(v) => setField("psychological_rounding", v)} disabled={disabled} />
+        </Section>
+
+        {/* Category Margin Floors */}
+        <Section title="Category Margin Floors">
+          <JsonGrid label="" data={form.category_margin_floors} fieldKey="category_margin_floors" disabled={disabled} />
+        </Section>
+
+        {/* Category Target Margins */}
+        <Section title="Category Target Margins">
+          <JsonGrid label="" data={form.category_target_margins} fieldKey="category_target_margins" disabled={disabled} />
+        </Section>
+
+        {/* Governance */}
+        <Section title="Governance Rules">
+          <SwitchField label="Block Below Floor" checked={form.block_below_floor} onChange={(v) => setField("block_below_floor", v)} disabled={disabled} />
+          <SwitchField label="Block Loss" checked={form.block_loss} onChange={(v) => setField("block_loss", v)} disabled={disabled} />
+          <SwitchField label="Require Concession Reason" checked={form.require_concession_reason} onChange={(v) => setField("require_concession_reason", v)} disabled={disabled} />
+          <PercentField label="Price Reduction Threshold" value={form.price_reduction_threshold} onChange={(v) => setField("price_reduction_threshold", v)} disabled={disabled} />
+        </Section>
+      </div>
 
       {/* Save */}
       {isEditable && (

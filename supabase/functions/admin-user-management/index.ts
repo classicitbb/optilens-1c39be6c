@@ -54,7 +54,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, email } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
     if (action === "list-users") {
       const {
@@ -73,6 +74,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reset-password") {
+      const { email } = body;
       if (!email) {
         return new Response(
           JSON.stringify({ error: "Email is required" }),
@@ -88,6 +90,35 @@ Deno.serve(async (req) => {
         options: {
           redirectTo: "https://optilens.lovable.app/reset-password",
         },
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "set-password") {
+      const { userId, password } = body;
+      if (!userId || !password) {
+        return new Response(
+          JSON.stringify({ error: "userId and password are required" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      if (password.length < 8) {
+        return new Response(
+          JSON.stringify({ error: "Password must be at least 8 characters" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      const { error } = await adminClient.auth.admin.updateUserById(userId, {
+        password,
       });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {

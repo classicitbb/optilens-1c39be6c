@@ -56,16 +56,8 @@ const NAV: NavItem[] = [
       { label: "Reports", icon: BarChart3, path: "/admin/costings/reports", feature: "costings" },
     ],
   } as MenuGroup,
-  {
-    label: "Settings",
-    icon: Settings,
-    feature: "parameters",
-    children: [
-      { label: "Parameters", icon: SlidersHorizontal, path: "/admin/parameters", feature: "parameters" },
-      { label: "Users", icon: Users, path: "/admin/users", feature: "users" },
-      { label: "Audit Log", icon: FileText, path: "/admin/audit", feature: "audit" },
-    ],
-  } as MenuGroup,
+  { label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem,
+  { label: "Settings", icon: Settings, path: "/admin/parameters", feature: "parameters" } as MenuItem,
 ];
 
 const AdminSidebar = () => {
