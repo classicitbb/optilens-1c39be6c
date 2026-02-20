@@ -89,7 +89,7 @@ const App = () => (
                 <Route path="exports" element={<PlaceholderPage />} />
                 <Route path="parameters" element={<CompanySettingsPage />} />
                 <Route path="users" element={<UsersPage />} />
-                <Route path="audit" element={<AuditLogPage />} />
+                <Route path="audit" element={<Navigate to="/admin/parameters" replace />} />
                 <Route path="wiki" element={<AdminWikiPage />} />
                 <Route path="quotations" element={<QuotationsListPage />} />
                 <Route path="quotations/:id" element={<QuoteEditorPage />} />

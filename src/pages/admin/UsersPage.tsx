@@ -1,14 +1,18 @@
 import { useState, useMemo, Fragment } from "react";
 import { useAdminUsers, type AdminUser } from "@/hooks/useAdminUsers";
 import type { AppRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, ChevronDown } from "lucide-react";
+import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, ChevronDown, Check, X, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import PermissionGrid from "@/components/admin/PermissionGrid";
 import CustomerPricingPanel from "@/components/admin/CustomerPricingPanel";
 
@@ -29,6 +33,16 @@ const UsersPage = () => {
   const [search, setSearch] = useState("");
   const [permOpen, setPermOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+
+  // Inline name editing
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [nameValue, setNameValue] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  // Password dialog
+  const [pwDialogUser, setPwDialogUser] = useState<AdminUser | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [settingPw, setSettingPw] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -71,6 +85,52 @@ const UsersPage = () => {
       toast({ title: "Password reset sent", description: `Recovery email sent to ${user.email}.` });
     } catch {
       toast({ title: "Error", description: "Failed to send password reset.", variant: "destructive" });
+    }
+  };
+
+  const startEditName = (user: AdminUser) => {
+    setEditingName(user.user_id);
+    setNameValue(user.display_name ?? "");
+  };
+
+  const saveDisplayName = async (userId: string) => {
+    setSavingName(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ display_name: nameValue || null })
+        .eq("user_id", userId);
+      if (error) throw error;
+      toast({ title: "Name updated" });
+      setEditingName(null);
+      // Force refetch
+      window.location.reload();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (!pwDialogUser || !newPassword || newPassword.length < 8) {
+      toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+      return;
+    }
+    setSettingPw(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-management", {
+        body: { action: "set-password", userId: pwDialogUser.user_id, password: newPassword },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Password set", description: `Password updated for ${pwDialogUser.email || pwDialogUser.display_name}.` });
+      setPwDialogUser(null);
+      setNewPassword("");
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSettingPw(false);
     }
   };
 
@@ -132,7 +192,7 @@ const UsersPage = () => {
               <th className="text-left px-3 py-2 font-medium text-xs" style={{ color: "hsl(215 15% 50%)" }}>Email</th>
               <th className="text-left px-3 py-2 font-medium text-xs" style={{ color: "hsl(215 15% 50%)" }}>Role</th>
               <th className="text-left px-3 py-2 font-medium text-xs" style={{ color: "hsl(215 15% 50%)" }}>Created</th>
-              <th className="text-right px-3 py-2 font-medium text-xs w-36" style={{ color: "hsl(215 15% 50%)" }}>Actions</th>
+              <th className="text-right px-3 py-2 font-medium text-xs w-44" style={{ color: "hsl(215 15% 50%)" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -140,9 +200,32 @@ const UsersPage = () => {
               <Fragment key={user.user_id}>
                 <tr className="border-b last:border-b-0" style={{ borderColor: "hsl(215 15% 92%)" }}>
                   <td className="px-3 py-2">
-                    <span className="text-[13px] font-medium" style={{ color: "hsl(215 30% 15%)" }}>
-                      {user.display_name || "Unnamed user"}
-                    </span>
+                    {editingName === user.user_id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          className="h-7 text-xs w-36"
+                          value={nameValue}
+                          onChange={(e) => setNameValue(e.target.value)}
+                          autoFocus
+                          onKeyDown={(e) => { if (e.key === "Enter") saveDisplayName(user.user_id); if (e.key === "Escape") setEditingName(null); }}
+                        />
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => saveDisplayName(user.user_id)} disabled={savingName}>
+                          <Check className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingName(null)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        className="text-[13px] font-medium hover:underline cursor-pointer text-left"
+                        style={{ color: "hsl(215 30% 15%)" }}
+                        onClick={() => startEditName(user)}
+                        title="Click to edit name"
+                      >
+                        {user.display_name || "Unnamed user"}
+                      </button>
+                    )}
                   </td>
                   <td className="px-3 py-2">
                     <span className="text-xs" style={{ color: "hsl(215 15% 40%)" }}>
@@ -188,7 +271,10 @@ const UsersPage = () => {
                   <td className="px-3 py-2 text-right">
                     {editingUser !== user.user_id && (
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Send password reset" onClick={() => handleResetPassword(user)} disabled={resetPassword.isPending || !user.email}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Set password" onClick={() => { setPwDialogUser(user); setNewPassword(""); }}>
+                          <Lock className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Send password reset email" onClick={() => handleResetPassword(user)} disabled={resetPassword.isPending || !user.email}>
                           <KeyRound className="h-3.5 w-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7" title={user.role ? "Change role" : "Assign role"} onClick={() => { setSelectedRole(user.role ?? "viewer"); setEditingUser(user.user_id); }}>
@@ -227,6 +313,42 @@ const UsersPage = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Set Password Dialog */}
+      <Dialog open={!!pwDialogUser} onOpenChange={() => setPwDialogUser(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+              <Lock className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
+              Set Password
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs" style={{ color: "hsl(215 15% 45%)" }}>
+              Set a new password for <strong>{pwDialogUser?.display_name || pwDialogUser?.email || "this user"}</strong>.
+            </p>
+            <Input
+              type="password"
+              placeholder="New password (min 8 characters)"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="h-8 text-xs"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPwDialogUser(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={handleSetPassword}
+              disabled={settingPw || newPassword.length < 8}
+            >
+              {settingPw ? "Setting…" : "Set Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

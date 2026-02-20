@@ -21,12 +21,15 @@ const ACTION_COLORS: Record<string, string> = {
   delete: "bg-red-100 text-red-800",
 };
 
-const AuditLogPage = () => {
+interface AuditLogPageProps {
+  embedded?: boolean;
+}
+
+const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
   const [activeTab, setActiveTab] = useState("");
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(100);
 
-  // For multi-table tabs, just use the first one for the query filter
   const tableFilter = activeTab.includes(",") ? undefined : (activeTab || undefined);
 
   const { data: entries, isLoading } = useAuditLogQuery({
@@ -34,7 +37,6 @@ const AuditLogPage = () => {
     limit,
   });
 
-  // Client-side filter for multi-table tabs and search
   const filtered = (entries ?? []).filter((e) => {
     if (activeTab.includes(",")) {
       const tables = activeTab.split(",");
@@ -53,8 +55,8 @@ const AuditLogPage = () => {
   });
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Audit Log</h1>
+    <div className={embedded ? "space-y-4" : "p-4 space-y-4"}>
+      {!embedded && <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Audit Log</h1>}
 
       {/* Tabs */}
       <div className="flex gap-0 border-b" style={{ borderColor: "hsl(215 15% 85%)" }}>
