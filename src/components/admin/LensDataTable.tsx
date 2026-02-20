@@ -12,6 +12,7 @@ import type { Lens } from "@/hooks/useLenses";
 type SortKey = "name" | "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
 type SortDir = "asc" | "desc";
 type Filter = "all" | "active" | "inactive" | "web" | "zero_cost" | "zero_sell";
+type ColumnFilterKey = "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype";
 
 interface Props {
   lenses: Lens[];
@@ -22,46 +23,76 @@ interface Props {
   onDuplicate?: (lens: Lens) => void;
   onDelete?: (lens: Lens) => void;
   canDelete?: boolean;
+  // Controlled state from parent (for persistence)
+  filter?: Filter;
+  onFilterChange?: (f: Filter) => void;
+  sortKey?: SortKey;
+  sortDir?: SortDir;
+  onSortChange?: (key: SortKey, dir: SortDir) => void;
+  colFilters?: Record<ColumnFilterKey, string[]>;
+  onColFiltersChange?: (cf: Record<ColumnFilterKey, string[]>) => void;
 }
 
 const fkName = (fk: { name: string } | null) => fk?.name ?? "";
 const fkAbbrev = (fk: { abbrev?: string } | null) => fk?.abbrev ?? "";
 const optionNames = (lens: Lens) =>
-  (lens.lens_lens_options ?? [])
-    .map((o) => o.lens_option?.name ?? "")
-    .filter(Boolean)
-    .join(", ");
+  (lens.lens_lens_options ?? []).map((o) => o.lens_option?.name ?? "").filter(Boolean).join(", ");
 const optionAbbrevs = (lens: Lens) =>
-  (lens.lens_lens_options ?? [])
-    .map((o) => o.lens_option?.abbrev ?? "")
-    .filter(Boolean)
-    .join(", ");
+  (lens.lens_lens_options ?? []).map((o) => o.lens_option?.abbrev ?? "").filter(Boolean).join(", ");
 
-type ColumnFilterKey = "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype";
+const emptyColFilters: Record<ColumnFilterKey, string[]> = {
+  supplier: [], brand: [], material: [], mftype: [], lenstype: [], option: [], finishtype: [],
+};
 
-const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
+const LensDataTable = ({
+  lenses, search, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete,
+  filter: filterProp, onFilterChange,
+  sortKey: sortKeyProp, sortDir: sortDirProp, onSortChange,
+  colFilters: colFiltersProp, onColFiltersChange,
+}: Props) => {
   const { canEdit } = useAdminRole();
   const { canEditFeature } = useRolePermissions();
   const canEditCatalog = canEditFeature("catalog");
   const showCost = canEdit;
   const { settings } = usePricingEngine();
-  const [filter, setFilter] = useState<Filter>("active");
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  // Local state (fallback when not controlled)
+  const [filterLocal, setFilterLocal] = useState<Filter>("active");
+  const [sortKeyLocal, setSortKeyLocal] = useState<SortKey>("name");
+  const [sortDirLocal, setSortDirLocal] = useState<SortDir>("asc");
+  const [colFiltersLocal, setColFiltersLocal] = useState<Record<ColumnFilterKey, string[]>>(emptyColFilters);
+
   const [visibleCount, setVisibleCount] = useState(50);
   const [unlocked, setUnlocked] = useState(false);
 
-  const emptyColFilters: Record<ColumnFilterKey, Set<string>> = { supplier: new Set(), brand: new Set(), material: new Set(), mftype: new Set(), lenstype: new Set(), option: new Set(), finishtype: new Set() };
-  const [colFilters, setColFilters] = useState<Record<ColumnFilterKey, Set<string>>>(emptyColFilters);
+  // Resolve controlled vs local
+  const filter = filterProp ?? filterLocal;
+  const sortKey = sortKeyProp ?? sortKeyLocal;
+  const sortDir = sortDirProp ?? sortDirLocal;
+  const colFiltersArr = colFiltersProp ?? colFiltersLocal;
 
+  // Convert string[] arrays to Sets for internal use
+  const colFilters = useMemo<Record<ColumnFilterKey, Set<string>>>(() => ({
+    supplier: new Set(colFiltersArr.supplier),
+    brand: new Set(colFiltersArr.brand),
+    material: new Set(colFiltersArr.material),
+    mftype: new Set(colFiltersArr.mftype),
+    lenstype: new Set(colFiltersArr.lenstype),
+    option: new Set(colFiltersArr.option),
+    finishtype: new Set(colFiltersArr.finishtype),
+  }), [colFiltersArr]);
+
+  // Reset col filters on filterVersion bump (Clear Filters)
   useEffect(() => {
-    if (filterVersion !== undefined) setColFilters({ supplier: new Set(), brand: new Set(), material: new Set(), mftype: new Set(), lenstype: new Set(), option: new Set(), finishtype: new Set() });
+    if (filterVersion !== undefined) {
+      const empty = emptyColFilters;
+      setColFiltersLocal(empty);
+      onColFiltersChange?.(empty);
+      setFilterLocal("active");
+      onFilterChange?.("active");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterVersion]);
-
-  const setColFilter = useCallback((key: ColumnFilterKey, val: Set<string>) => {
-    setColFilters((prev) => ({ ...prev, [key]: val }));
-    setVisibleCount(50);
-  }, []);
 
   const fxRate = useMemo(() => {
     if (!settings) return 2;
@@ -69,23 +100,32 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
     return (rates["USD"] ?? 1) * (1 + settings.fx_risk_buffer);
   }, [settings]);
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else { setSortKey(key); setSortDir("asc"); }
+  const setFilter = useCallback((f: Filter) => {
+    setFilterLocal(f);
+    onFilterChange?.(f);
     setVisibleCount(50);
-  };
+  }, [onFilterChange]);
 
-  const handleFilterChange = useCallback((f: Filter) => {
-    setFilter(f);
+  const toggleSort = useCallback((key: SortKey) => {
+    const newDir: SortDir = sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    setSortKeyLocal(key);
+    setSortDirLocal(newDir);
+    onSortChange?.(key, newDir);
     setVisibleCount(50);
-  }, []);
+  }, [sortKey, sortDir, onSortChange]);
+
+  const setColFilter = useCallback((key: ColumnFilterKey, val: Set<string>) => {
+    const arr = Array.from(val);
+    setColFiltersLocal((prev) => ({ ...prev, [key]: arr }));
+    onColFiltersChange?.({ ...colFiltersArr, [key]: arr });
+    setVisibleCount(50);
+  }, [colFiltersArr, onColFiltersChange]);
 
   // Build unique options for each column filter
   const columnOptions = useMemo(() => {
     const collect = (key: ColumnFilterKey) => {
       const map = new Map<string, string>();
       for (const l of lenses) {
-        let name = "";
         if (key === "option") {
           for (const o of l.lens_lens_options ?? []) {
             const n = o.lens_option?.name ?? "";
@@ -93,21 +133,14 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
           }
           continue;
         }
-        name = fkName(l[key]);
+        const name = fkName(l[key]);
         if (name && !map.has(name)) map.set(name, name);
       }
-      return Array.from(map.entries())
-        .map(([value, label]) => ({ value, label }))
-        .sort((a, b) => a.label.localeCompare(b.label));
+      return Array.from(map.entries()).map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
     };
     return {
-      supplier: collect("supplier"),
-      brand: collect("brand"),
-      material: collect("material"),
-      mftype: collect("mftype"),
-      lenstype: collect("lenstype"),
-      option: collect("option"),
-      finishtype: collect("finishtype"),
+      supplier: collect("supplier"), brand: collect("brand"), material: collect("material"),
+      mftype: collect("mftype"), lenstype: collect("lenstype"), option: collect("option"), finishtype: collect("finishtype"),
     };
   }, [lenses]);
 
@@ -119,7 +152,6 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
     else if (filter === "zero_cost") items = items.filter((i) => i.base_price === 0);
     else if (filter === "zero_sell") items = items.filter((i) => i.sell_price === 0);
 
-    // Apply column filters
     if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(fkName(i.supplier)));
     if (colFilters.brand.size > 0) items = items.filter((i) => colFilters.brand.has(fkName(i.brand)));
     if (colFilters.material.size > 0) items = items.filter((i) => colFilters.material.has(fkName(i.material)));
@@ -213,7 +245,7 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
         {filterTabs.map((t) => (
           <button
             key={t.value}
-            onClick={() => handleFilterChange(t.value)}
+            onClick={() => setFilter(t.value)}
             className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
             style={{
               background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
@@ -280,44 +312,44 @@ const LensDataTable = ({ lenses, search, filterVersion, onRowClick, onToggleActi
                   if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
                 }
                 return (
-                <TableRow key={lens.id} className={canEditCatalog ? "cursor-pointer" : ""} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEditCatalog && onRowClick(lens)}>
-                  <TableCell className="font-medium text-xs">{lens.name}</TableCell>
-                  <TableCell className="text-xs">{fkName(lens.supplier)}</TableCell>
-                  <TableCell className="text-xs">{fkName(lens.brand)}</TableCell>
-                  <TableCell className="text-xs">{fkName(lens.material)}</TableCell>
-                  <TableCell className="text-xs">{fkName(lens.mftype)}</TableCell>
-                  <TableCell className="text-xs">{fkName(lens.lenstype)}</TableCell>
-                  <TableCell className="text-xs">{optionNames(lens) || "—"}</TableCell>
-                  <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
-                   {showCost && <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>}
-                  <TableCell className="text-xs font-semibold">{currency(lens.sell_price)}</TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
-                  <TableCell className="text-center text-xs">{lens.show_in_pricelist ? "✓" : ""}</TableCell>
-                  <TableCell className="text-center text-xs">{lens.full_lab ? "✓" : ""}</TableCell>
-                  <TableCell className="text-center text-xs">{lens.show_in_ws_pricelist ? "✓" : ""}</TableCell>
-                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                    {lens.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(215 65% 50%)" }} />}
-                  </TableCell>
-                  {showActions && (
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Switch checked={lens.is_active} onCheckedChange={() => onToggleActive(lens)} className="scale-75" />
+                  <TableRow key={lens.id} className={canEditCatalog ? "cursor-pointer" : ""} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEditCatalog && onRowClick(lens)}>
+                    <TableCell className="font-medium text-xs">{lens.name}</TableCell>
+                    <TableCell className="text-xs">{fkName(lens.supplier)}</TableCell>
+                    <TableCell className="text-xs">{fkName(lens.brand)}</TableCell>
+                    <TableCell className="text-xs">{fkName(lens.material)}</TableCell>
+                    <TableCell className="text-xs">{fkName(lens.mftype)}</TableCell>
+                    <TableCell className="text-xs">{fkName(lens.lenstype)}</TableCell>
+                    <TableCell className="text-xs">{optionNames(lens) || "—"}</TableCell>
+                    <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
+                    {showCost && <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>}
+                    <TableCell className="text-xs font-semibold">{currency(lens.sell_price)}</TableCell>
+                    <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
+                    <TableCell className="text-center text-xs">{lens.show_in_pricelist ? "✓" : ""}</TableCell>
+                    <TableCell className="text-center text-xs">{lens.full_lab ? "✓" : ""}</TableCell>
+                    <TableCell className="text-center text-xs">{lens.show_in_ws_pricelist ? "✓" : ""}</TableCell>
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      {lens.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(215 65% 50%)" }} />}
                     </TableCell>
-                  )}
-                  {showActions && (
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(lens)}>
-                          <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
-                        </Button>
-                        {canDelete && (
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(lens)}>
-                            <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
+                    {showActions && (
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Switch checked={lens.is_active} onCheckedChange={() => onToggleActive(lens)} className="scale-75" />
+                      </TableCell>
+                    )}
+                    {showActions && (
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(lens)}>
+                            <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
+                          {canDelete && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(lens)}>
+                              <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
                 );
               })
             )}

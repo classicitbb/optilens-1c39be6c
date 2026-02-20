@@ -7,6 +7,7 @@ import { useSupplies, Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuditLog, buildPricingSummary } from "@/hooks/useAuditLog";
+import { useCatalogFilterStore } from "@/hooks/useCatalogFilterStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FilterX } from "lucide-react";
@@ -38,16 +39,23 @@ const Spinner = () => (
 
 /* ─── Main Page ─── */
 const ProductCatalogPage = () => {
-  const [activeTab, setActiveTab] = useState<Tab>("lenses");
-  const [search, setSearch] = useState("");
+  const store = useCatalogFilterStore();
+  const activeTab = store.activeTab;
   const [filterVersion, setFilterVersion] = useState(0);
   const { canEdit } = useAdminRole();
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
 
+  // Per-tab search persisted in store
+  const search = activeTab === "lenses" ? store.lens.search : activeTab === "addons" ? store.addon.search : store.supply.search;
+  const setSearch = (v: string) => {
+    if (activeTab === "lenses") store.setLens({ search: v });
+    else if (activeTab === "addons") store.setAddon({ search: v });
+    else store.setSupply({ search: v });
+  };
+
   const handleTabChange = (tab: Tab) => {
-    setActiveTab(tab);
-    setSearch("");
+    store.setActiveTab(tab);
   };
 
   /* We need formOpen state lifted here for the Add button */
@@ -102,9 +110,9 @@ const ProductCatalogPage = () => {
 
       {/* Tab content – fills remaining height */}
       <div className="flex-1 min-h-0 overflow-auto">
-        {activeTab === "lenses" && <LensesTab search={search} filterVersion={filterVersion} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} />}
-        {activeTab === "addons" && <AddonsTab search={search} filterVersion={filterVersion} formOpen={addonFormOpen} setFormOpen={setAddonFormOpen} />}
-        {activeTab === "supplies" && <SuppliesTab search={search} filterVersion={filterVersion} formOpen={supplyFormOpen} setFormOpen={setSupplyFormOpen} />}
+        {activeTab === "lenses" && <LensesTab search={search} filterVersion={filterVersion} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} store={store} />}
+        {activeTab === "addons" && <AddonsTab search={search} filterVersion={filterVersion} formOpen={addonFormOpen} setFormOpen={setAddonFormOpen} store={store} />}
+        {activeTab === "supplies" && <SuppliesTab search={search} filterVersion={filterVersion} formOpen={supplyFormOpen} setFormOpen={setSupplyFormOpen} store={store} />}
       </div>
     </div>
   );
