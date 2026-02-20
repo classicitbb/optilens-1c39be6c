@@ -1,9 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
 import TreatmentMatricesAccordion from "@/components/admin/TreatmentMatricesAccordion";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
-import MatrixExportBar from "@/components/admin/MatrixExportBar";
+import RxExportBar from "@/components/admin/RxExportBar";
+import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
 import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
@@ -25,6 +27,10 @@ const RxLensPricesPage = () => {
 
   // Treatments panel open/close
   const [treatmentsOpen, setTreatmentsOpen] = useState(false);
+
+  // Live Preview
+  const [previewFormat, setPreviewFormat] = useState<"matrix" | "list">("list");
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
 
@@ -63,6 +69,12 @@ const RxLensPricesPage = () => {
 
   const isSavingAll = saveMatrix.isPending || saveMaterialUpgrades.isPending;
 
+  const handlePreviewClick = (versionId: number) => {
+    setTimeout(() => {
+      previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
   return (
     <VersionSelectorPanel
       pageTitle="RX Lens Prices"
@@ -71,30 +83,32 @@ const RxLensPricesPage = () => {
       onVersionChange={setSelectedVersionId}
       showUSD={showUSD}
       onShowUSDChange={setShowUSD}
+      onPreviewClick={handlePreviewClick}
     >
-      {resolvedId && (
+      {resolvedId && activeVersion && (
         <div className="space-y-4">
-          {/* Global Save All + Pending indicator */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          {/* Export Bar + Global Save All */}
+          <div className="flex items-center justify-between gap-3 flex-wrap no-print">
+            <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} />
             <div className="flex items-center gap-2">
               {hasPending && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200 text-xs text-red-700">
-                  <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-xs text-destructive">
+                  <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
                   {pendingMatrixRowKeys.size} pending catalog sync{pendingMatrixRowKeys.size > 1 ? "s" : ""}
                 </div>
               )}
+              <Button
+                size="sm"
+                className="h-8 text-xs gap-1.5 font-semibold"
+                variant={hasPending ? "default" : "outline"}
+                style={hasPending ? { background: "hsl(215 65% 50%)", color: "white" } : undefined}
+                onClick={handleSaveAll}
+                disabled={isSavingAll}
+              >
+                {isSavingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save All Changes
+              </Button>
             </div>
-            <Button
-              size="sm"
-              className="h-8 text-xs gap-1.5 font-semibold"
-              variant={hasPending ? "default" : "outline"}
-              style={hasPending ? { background: "hsl(215 65% 50%)", color: "white" } : undefined}
-              onClick={handleSaveAll}
-              disabled={isSavingAll}
-            >
-              {isSavingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Save All Changes
-            </Button>
           </div>
 
           {/* Tabs: Price Matrix | List Catalog */}
@@ -104,7 +118,7 @@ const RxLensPricesPage = () => {
               <TabsTrigger value="catalog" className="text-xs h-7 relative">
                 List Catalog
                 {hasPending && (
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-background" />
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive ring-1 ring-background" />
                 )}
               </TabsTrigger>
             </TabsList>
@@ -113,7 +127,6 @@ const RxLensPricesPage = () => {
               <div className="px-3 py-1.5 rounded text-xs font-semibold bg-primary/10 text-primary">
                 {activeVersion?.name} — Treatment Matrices
               </div>
-              <MatrixExportBar showUSD={showUSD} fxRate={fxRate} />
               <TreatmentMatricesAccordion
                 versionId={resolvedId}
                 showUSD={showUSD}
@@ -137,7 +150,7 @@ const RxLensPricesPage = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Treatments & Add-ons Panel — outside tabs, applies to both export formats */}
+          {/* Treatments & Add-ons Panel */}
           <div className="border border-border rounded-lg overflow-hidden mt-6">
             <button
               className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors bg-muted/20"
@@ -166,6 +179,40 @@ const RxLensPricesPage = () => {
                 />
               </div>
             )}
+          </div>
+
+          {/* ── Live Preview Section ──────────────────────────────────────────── */}
+          <div ref={previewRef} className="border border-border rounded-lg overflow-hidden mt-6" id="live-preview">
+            <div className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border">
+              <div>
+                <span className="text-sm font-semibold text-foreground">Live Preview</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  — showing exactly what the customer receives for <strong>{activeVersion.name}</strong>
+                </span>
+              </div>
+              {/* Format toggle */}
+              <div className="flex items-center gap-2 no-print">
+                <span className={`text-xs font-medium transition-colors ${previewFormat === "matrix" ? "text-primary" : "text-muted-foreground"}`}>
+                  Matrix
+                </span>
+                <Switch
+                  checked={previewFormat === "list"}
+                  onCheckedChange={(v) => setPreviewFormat(v ? "list" : "matrix")}
+                  aria-label="Toggle preview format"
+                />
+                <span className={`text-xs font-medium transition-colors ${previewFormat === "list" ? "text-primary" : "text-muted-foreground"}`}>
+                  List
+                </span>
+              </div>
+            </div>
+            <div className="p-5 bg-background overflow-auto max-h-[70vh]">
+              <PricelistLivePreview
+                version={activeVersion}
+                previewFormat={previewFormat}
+                showUSD={showUSD}
+                fxRate={fxRate}
+              />
+            </div>
           </div>
         </div>
       )}
