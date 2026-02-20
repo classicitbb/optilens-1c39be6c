@@ -28,7 +28,7 @@ import ImportsPage from "./pages/admin/ImportsPage";
 import UsersPage from "./pages/admin/UsersPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
 import AdminWikiPage from "./pages/admin/AdminWikiPage";
-import ShipmentListPage from "./pages/admin/costings/ShipmentListPage";
+import ImportCostingsPage from "./pages/admin/costings/ImportCostingsPage";
 import ShipmentDetailPage from "./pages/admin/costings/ShipmentDetailPage";
 import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
 import QuotationsListPage from "./pages/admin/QuotationsListPage";
@@ -94,11 +94,9 @@ const App = () => (
                 <Route path="quotations" element={<QuotationsListPage />} />
                 <Route path="quotations/:id" element={<QuoteEditorPage />} />
                 {/* Import Costings */}
-                <Route path="costings/shipments" element={<ShipmentListPage title="All Shipments" />} />
+                <Route path="costings/shipments" element={<ImportCostingsPage />} />
                 <Route path="costings/shipments/new" element={<ShipmentDetailPage />} />
                 <Route path="costings/shipments/:id" element={<ShipmentDetailPage />} />
-                <Route path="costings/lens-shipments" element={<ShipmentListPage typeFilter="lens" title="Lens Shipments" />} />
-                <Route path="costings/non-lens-shipments" element={<ShipmentListPage typeFilter="non-lens" title="Non-Lens Shipments" />} />
                 <Route path="costings/reports" element={<CostingsReportsPage />} />
               </Route>
 
