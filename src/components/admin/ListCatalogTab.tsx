@@ -455,10 +455,6 @@ const ListCatalogTab = ({
       {isDirty && !hasPending && <p className="text-xs no-print" style={{ color: "hsl(38 92% 40%)" }}>⚠ Unsaved changes — click "Save All Changes" to persist to this version.</p>}
 
       <div ref={printRef} className="catalog-print-area space-y-0">
-        <div className="px-6 py-5 text-center border-b-4" style={{ borderColor: BLUE_BG, background: "hsl(215 20% 98%)" }}>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: BLUE_BG }}>{pageTitle}</h1>
-          <p className="text-sm mt-1" style={{ color: LABEL }}>{today}</p>
-        </div>
 
         {catalogType === "buysell" && [...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
         {catalogType === "stock" && [...effectiveLensRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "lens"))}
