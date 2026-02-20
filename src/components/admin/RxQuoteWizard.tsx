@@ -318,9 +318,9 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   const { data: lenstypes = [] } = useReferenceData("lenstypes");
 
   // Lens picker filters
-  const [filterMftype, setFilterMftype] = useState("");
-  const [filterMaterial, setFilterMaterial] = useState("");
-  const [filterLenstype, setFilterLenstype] = useState("");
+  const [filterMftype, setFilterMftype] = useState("all");
+  const [filterMaterial, setFilterMaterial] = useState("all");
+  const [filterLenstype, setFilterLenstype] = useState("all");
   const [lensSearch, setLensSearch] = useState("");
 
   // Frame data (stored locally, saved to header notes or as future field)
@@ -364,9 +364,9 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
     return lenses.filter(l => {
       if (!l.is_active) return false;
       if (l.base_price <= 0 && l.sell_price <= 0) return false; // needs cost+price
-      if (filterMftype && l.mftype_id !== filterMftype) return false;
-      if (filterMaterial && l.material_id !== filterMaterial) return false;
-      if (filterLenstype && l.lenstype_id !== filterLenstype) return false;
+      if (filterMftype !== "all" && l.mftype_id !== filterMftype) return false;
+      if (filterMaterial !== "all" && l.material_id !== filterMaterial) return false;
+      if (filterLenstype !== "all" && l.lenstype_id !== filterLenstype) return false;
       if (lensSearch && !l.name.toLowerCase().includes(lensSearch.toLowerCase())) return false;
       return true;
     });
@@ -629,21 +629,21 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
               <Select value={filterMftype} onValueChange={setFilterMftype}>
                 <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="MF Type" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All MF Types</SelectItem>
+                  <SelectItem value="all">All MF Types</SelectItem>
                   {(mftypes as any[]).map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={filterMaterial} onValueChange={setFilterMaterial}>
                 <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Material" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Materials</SelectItem>
+                  <SelectItem value="all">All Materials</SelectItem>
                   {(materials as any[]).map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={filterLenstype} onValueChange={setFilterLenstype}>
                 <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Lens Type" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Lens Types</SelectItem>
+                  <SelectItem value="all">All Lens Types</SelectItem>
                   {(lenstypes as any[]).map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
