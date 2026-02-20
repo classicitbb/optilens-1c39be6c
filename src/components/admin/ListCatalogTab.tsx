@@ -4,7 +4,7 @@ import { useAddons } from "@/hooks/useAddons";
 import { useSupplies } from "@/hooks/useSupplies";
 import { usePricelistCatalogRows, PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 import { Button } from "@/components/ui/button";
-import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown } from "lucide-react";
+import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -74,6 +74,7 @@ const ListCatalogTab = ({
   const [editingDesc, setEditingDesc] = useState<{ key: string; value: string } | null>(null);
   const [sortState, setSortState] = useState<Map<string, { col: string; dir: SortDir }>>(new Map());
   const [hasViewed, setHasViewed] = useState(false);
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
   const [lensPickerOpen, setLensPickerOpen] = useState(false);
   const [supplyPickerOpen, setSupplyPickerOpen] = useState(false);
@@ -342,6 +343,12 @@ const ListCatalogTab = ({
           {row.lensId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(215 65% 45%)" }}>↳ linked lens</div>}
           {row.supplyId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(130 55% 40%)" }}>↳ linked supply</div>}
         </td>
+        {/* Matrix Cell — screen-only, hidden on print/export — BEFORE BBD */}
+        <td className="px-2 py-1.5 border border-slate-200 no-print max-w-[160px]" style={{ color: "hsl(215 30% 55%)", fontSize: "10px" }}>
+          {row.matrixCell ? (
+            <span className="truncate block" title={row.matrixCell}>{row.matrixCell}</span>
+          ) : "—"}
+        </td>
         {/* BBD always visible in editor */}
         <td className={`px-3 py-1.5 text-right border border-slate-200 font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: "hsl(215 60% 97%)", color: "hsl(215 60% 30%)" }}>
           {row.bbd !== null ? `$${row.bbd.toFixed(2)}` : "—"}
@@ -351,12 +358,6 @@ const ListCatalogTab = ({
         </td>
         <td className="px-3 py-1.5 text-right border border-slate-200 no-print" style={{ color: "hsl(280 40% 40%)" }}>
           {row.margin !== null ? `${row.margin}%` : "—"}
-        </td>
-        {/* Matrix Cell — screen-only, hidden on print/export */}
-        <td className="px-2 py-1.5 border border-slate-200 no-print max-w-[160px]" style={{ color: "hsl(215 30% 55%)", fontSize: "10px" }}>
-          {row.matrixCell ? (
-            <span className="truncate block" title={row.matrixCell}>{row.matrixCell}</span>
-          ) : "—"}
         </td>
         <td className="border border-slate-200 p-0 no-print">
           <button className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
@@ -386,13 +387,13 @@ const ListCatalogTab = ({
             <thead>
               <tr>
                 <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
-                <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
-                <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
-                <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
-                {/* Matrix Cell header — screen only */}
+                {/* Matrix Cell header — screen only, before BBD */}
                 <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>
                   Matrix Cell
                 </th>
+                <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
+                <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
+                <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
                 <th className="w-6 no-print border border-slate-300" />
               </tr>
             </thead>
@@ -403,18 +404,95 @@ const ListCatalogTab = ({
     );
   };
 
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   const renderRxGrouped = () => {
-    const finishGroups = new Map<string, string[]>();
+    // Build: finishType → mfType → sectionKey
+    const finishGroups = new Map<string, Map<string, string>>();
     for (const key of effectiveLensRows.keys()) {
       const parts = key.split(" — ");
       const finish = parts[0] || key;
-      if (!finishGroups.has(finish)) finishGroups.set(finish, []);
-      finishGroups.get(finish)!.push(key);
+      const mf = parts[1] || key;
+      if (!finishGroups.has(finish)) finishGroups.set(finish, new Map());
+      finishGroups.get(finish)!.set(mf, key);
     }
-    return [...finishGroups.entries()].map(([finish, keys]) => (
-      <div key={`finish-${finish}`} className="mt-6">
-        <div className="px-4 py-2 font-bold text-sm uppercase tracking-wide" style={{ background: "hsl(215 30% 18%)", color: "white" }}>{finish}</div>
-        {keys.map((key) => renderSection(key, effectiveLensRows.get(key) ?? [], "lens", key.split(" — ")[1] || key))}
+
+    return [...finishGroups.entries()].map(([finish, mfMap]) => (
+      <div key={`finish-${finish}`} className="mt-4 border border-border rounded-lg overflow-hidden">
+        {/* Finish Type header — always visible, acts as group label */}
+        <div className="px-4 py-2.5 font-bold text-sm uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(215 30% 18%)", color: "white" }}>
+          {finish}
+          <span className="ml-auto text-xs font-normal opacity-60">{mfMap.size} {mfMap.size === 1 ? "category" : "categories"}</span>
+        </div>
+
+        {/* MF Type rows — each is a collapsible accordion */}
+        {[...mfMap.entries()].map(([mf, sectionKey]) => {
+          const accKey = `${finish}::${mf}`;
+          const isOpen = openSections.has(accKey);
+          const rows = effectiveLensRows.get(sectionKey) ?? [];
+          const rowCount = rows.length;
+
+          return (
+            <div key={accKey} className="border-t border-border">
+              {/* Accordion trigger */}
+              <button
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors bg-muted/10"
+                onClick={() => toggleSection(accKey)}
+              >
+                <div className="flex items-center gap-2">
+                  {isOpen
+                    ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  }
+                  <span className="text-sm font-semibold text-foreground">{mf}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
+                  <button
+                    className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border border-border hover:bg-muted/50 transition-colors no-print"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPickerTarget({ section: sectionKey, rowKey: "", mode: "add-lens" });
+                      setLensPickerOpen(true);
+                    }}
+                  >
+                    <Plus className="h-3 w-3" /> Add Line
+                  </button>
+                </div>
+              </button>
+
+              {/* Accordion content */}
+              {isOpen && (
+                <div className="border-t border-border">
+                  {rows.length === 0 ? (
+                    <p className="text-xs text-muted-foreground px-6 py-3 italic">No items — click "Add Line" to add.</p>
+                  ) : (
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={sectionKey} col="description" /></th>
+                          <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Matrix Cell</th>
+                          <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={sectionKey} col="bbd" /></th>
+                          <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={sectionKey} col="usd" /></th>
+                          <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={sectionKey} col="margin" /></th>
+                          <th className="w-6 no-print border border-slate-300" />
+                        </tr>
+                      </thead>
+                      <tbody>{sortedRows(sectionKey, rows).map((row, i) => renderRow(row, i, "lens", sectionKey))}</tbody>
+                    </table>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     ));
   };
