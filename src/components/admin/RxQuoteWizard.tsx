@@ -775,48 +775,9 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
             {lensLines.length > 0 && (
               <div className="border border-border rounded p-2 space-y-1 bg-muted/20">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Selected Lens(es)</div>
-                {lensLines.map(l => {
-                  const [editCost, setEditCost] = useState(String(l.unit_cost_landed_bbd));
-                  const [editSell, setEditSell] = useState(String(l.unit_sell_price_bbd));
-                  return (
-                    <div key={l.id} className="flex items-center gap-2 text-xs bg-background border border-border rounded px-2 py-1.5">
-                      <span className="font-medium text-foreground flex-1 truncate">{l.item_name}</span>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <label className="text-[10px] text-muted-foreground">Cost:</label>
-                        <Input
-                          type="number"
-                          value={editCost}
-                          onChange={e => setEditCost(e.target.value)}
-                          onBlur={() => {
-                            const cost = parseFloat(editCost) || 0;
-                            const profit = computeLineProfit(l.unit_sell_price_bbd, cost, l.qty, "RX");
-                            updateLineMutation.mutate({ id: l.id, updates: { unit_cost_landed_bbd: cost, ...profit } });
-                          }}
-                          className="h-6 text-xs w-16 p-1 text-right font-mono"
-                          step={0.01}
-                        />
-                        <label className="text-[10px] text-muted-foreground">Sell:</label>
-                        <Input
-                          type="number"
-                          value={editSell}
-                          onChange={e => setEditSell(e.target.value)}
-                          onBlur={() => {
-                            const sell = parseFloat(editSell) || 0;
-                            const profit = computeLineProfit(sell, l.unit_cost_landed_bbd, l.qty, "RX");
-                            updateLineMutation.mutate({ id: l.id, updates: { unit_sell_price_bbd: sell, price_override: sell !== l.unit_base_price_bbd, ...profit } });
-                          }}
-                          className="h-6 text-xs w-16 p-1 text-right font-mono"
-                          step={0.01}
-                        />
-                      </div>
-                      {canEdit && (
-                        <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10">
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+                {lensLines.map(l => (
+                  <EditableLensRow key={l.id} l={l} canEdit={canEdit} updateLineMutation={updateLineMutation} deleteLineMutation={deleteLineMutation} />
+                ))}
               </div>
             )}
 
@@ -928,75 +889,9 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
             {addonLines.length > 0 && (
               <div className="border border-border rounded p-2 space-y-1.5 bg-muted/20">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Selected Add-ons</div>
-                {addonLines.map(l => {
-                  const [editDesc, setEditDesc] = useState(l.description_override || l.item_name);
-                  const [editCost, setEditCost] = useState(String(l.unit_cost_landed_bbd));
-                  const [editSell, setEditSell] = useState(String(l.unit_sell_price_bbd));
-                  return (
-                    <div key={l.id} className="flex flex-col gap-1 bg-background border border-border rounded px-2 py-1.5 text-xs">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[9px] h-4 shrink-0">{l.line_type}</Badge>
-                        <Input
-                          value={editDesc}
-                          onChange={e => setEditDesc(e.target.value)}
-                          onBlur={() => updateLineMutation.mutate({ id: l.id, updates: { description_override: editDesc !== l.item_name ? editDesc : null } })}
-                          className="h-6 text-xs flex-1 p-1"
-                          placeholder="Description"
-                        />
-                        <div className="flex items-center gap-1 shrink-0">
-                          <span className="text-[10px] text-muted-foreground">Qty:</span>
-                          <Input
-                            type="number"
-                            value={l.qty}
-                            onChange={e => {
-                              const qty = Number(e.target.value) || 1;
-                              const profit = computeLineProfit(l.unit_sell_price_bbd, l.unit_cost_landed_bbd, qty, "RX");
-                              updateLineMutation.mutate({ id: l.id, updates: { qty, ...profit } });
-                            }}
-                            className="h-6 text-xs w-10 p-1 text-center"
-                            min={1}
-                          />
-                        </div>
-                        {canEdit && (
-                          <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10 shrink-0">
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 pl-1">
-                        <label className="text-[10px] text-muted-foreground">Cost:</label>
-                        <Input
-                          type="number"
-                          value={editCost}
-                          onChange={e => setEditCost(e.target.value)}
-                          onBlur={() => {
-                            const cost = parseFloat(editCost) || 0;
-                            const profit = computeLineProfit(l.unit_sell_price_bbd, cost, l.qty, "RX");
-                            updateLineMutation.mutate({ id: l.id, updates: { unit_cost_landed_bbd: cost, ...profit } });
-                          }}
-                          className="h-6 text-xs w-16 p-1 text-right font-mono"
-                          step={0.01}
-                        />
-                        <label className="text-[10px] text-muted-foreground">Sell:</label>
-                        <Input
-                          type="number"
-                          value={editSell}
-                          onChange={e => setEditSell(e.target.value)}
-                          onBlur={() => {
-                            const sell = parseFloat(editSell) || 0;
-                            const profit = computeLineProfit(sell, l.unit_cost_landed_bbd, l.qty, "RX");
-                            updateLineMutation.mutate({ id: l.id, updates: { unit_sell_price_bbd: sell, price_override: true, ...profit } });
-                          }}
-                          className="h-6 text-xs w-16 p-1 text-right font-mono"
-                          step={0.01}
-                        />
-                        <span className="text-[10px] text-muted-foreground ml-auto">
-                          Total: <span className="font-mono font-medium">${(l.qty * l.unit_sell_price_bbd).toFixed(2)}</span>
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                {addonLines.map(l => (
+                  <EditableAddonRow key={l.id} l={l} canEdit={canEdit} updateLineMutation={updateLineMutation} deleteLineMutation={deleteLineMutation} />
+                ))}
               </div>
             )}
 
