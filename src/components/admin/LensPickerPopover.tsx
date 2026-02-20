@@ -57,7 +57,11 @@ export const LensPickerPopover = ({
     );
     if (!search.trim()) return base;
     const q = search.toLowerCase();
-    return base.filter((l) => l.name.toLowerCase().includes(q));
+    return base.filter((l) =>
+      l.name.toLowerCase().includes(q) ||
+      (l.supplier?.name ?? "").toLowerCase().includes(q) ||
+      (l.supplier?.abbrev ?? "").toLowerCase().includes(q)
+    );
   }, [allLenses, search]);
 
   const addons = useMemo(() => {
@@ -146,6 +150,7 @@ export const LensPickerPopover = ({
               ) : (
                 lenses.map((l) => {
                   const isSelected = currentId === l.id;
+                  const supplierLabel = l.supplier?.abbrev || l.supplier?.name || "";
                   return (
                     <button
                       key={l.id}
@@ -154,13 +159,23 @@ export const LensPickerPopover = ({
                       }
                       className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors group"
                     >
-                      <span
-                        className="text-xs font-medium flex-1 min-w-0 truncate pr-2"
-                        style={{ color: "hsl(215 65% 40%)" }}
-                      >
-                        {l.name}
-                      </span>
-                      <span className="shrink-0 flex items-center gap-1.5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {supplierLabel && (
+                          <span
+                            className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                            style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)", minWidth: "36px", textAlign: "center" }}
+                          >
+                            {supplierLabel}
+                          </span>
+                        )}
+                        <span
+                          className="text-xs font-medium flex-1 min-w-0 truncate"
+                          style={{ color: "hsl(215 65% 40%)" }}
+                        >
+                          {l.name}
+                        </span>
+                      </div>
+                      <span className="shrink-0 flex items-center gap-1.5 ml-2">
                         <span className="text-xs font-semibold" style={{ color: "hsl(215 30% 20%)" }}>
                           ${l.sell_price.toFixed(2)}
                         </span>
