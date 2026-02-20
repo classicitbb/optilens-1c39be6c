@@ -11,7 +11,7 @@ const StockLensPricesPage = () => {
   const [showUSD, setShowUSD] = useState(false);
 
   return (
-    <div className="p-4 space-y-4 border py-[12px] px-[12px]">
+    <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
@@ -33,10 +33,10 @@ const StockLensPricesPage = () => {
         showUSD={showUSD}
         groupByFinishThenMf={true}
         lensFilter="wspl"
-        pageTitle="Stock Lens Price List" />
-
-    </div>);
-
+        pageTitle="Stock Lens Price List"
+      />
+    </div>
+  );
 };
 
 export default StockLensPricesPage;

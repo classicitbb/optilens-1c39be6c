@@ -11,14 +11,14 @@ const AdminLayout = () => {
         <AdminSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <AdminTopBar />
-          <main className="admin-content flex-1 overflow-auto p-4 py-[10px] px-[10px]">
+          <main className="admin-content flex-1 overflow-auto p-4">
             <Outlet />
           </main>
         </div>
         
       </div>
-    </AdminRoleProvider>);
-
+    </AdminRoleProvider>
+  );
 };
 
 export default AdminLayout;

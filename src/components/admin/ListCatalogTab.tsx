@@ -491,14 +491,14 @@ const ListCatalogTab = ({
       <div key={title} className="mt-5 px-2 py-[5px]">
         {parentLabel &&
         <div
-          className="px-4 py-1.5 mb-0.5 font-bold text-xs uppercase tracking-wider rounded-none bg-slate-400"
+          className="px-4 py-1.5 mb-0.5 font-bold text-xs uppercase tracking-wider"
           style={{ background: "hsl(215 30% 20%)", color: "hsl(215 80% 85%)" }}>
 
             {parentLabel}
           </div>
         }
         <div
-          className="px-4 py-2 mb-0.5 font-bold text-sm flex items-center justify-between rounded-none bg-primary text-primary-foreground"
+          className="px-4 py-2 rounded-sm mb-0.5 font-bold text-sm flex items-center justify-between"
           style={{ background: BLUE_BG, color: "white" }}>
 
           <span>{parentLabel ? `└ ${title.split(" — ")[1] || title}` : title}</span>
@@ -646,7 +646,7 @@ const ListCatalogTab = ({
       elements.push(
         <div key={`finish-${finish}`} className={firstFinish ? "mt-2" : "mt-6"}>
           <div
-            className="px-4 py-2 font-bold text-sm uppercase tracking-wide rounded-none bg-slate-300"
+            className="px-4 py-2 font-bold text-sm uppercase tracking-wide"
             style={{ background: "hsl(215 30% 18%)", color: "hsl(0 0% 100%)" }}>
 
             {finish}
