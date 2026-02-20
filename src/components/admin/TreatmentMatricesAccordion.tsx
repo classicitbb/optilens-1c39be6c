@@ -112,7 +112,11 @@ const LensPickerModal = ({
     );
     if (!search.trim()) return base;
     const q = search.toLowerCase();
-    return base.filter((l) => l.name.toLowerCase().includes(q));
+    return base.filter((l) =>
+      l.name.toLowerCase().includes(q) ||
+      (l.supplier?.name ?? "").toLowerCase().includes(q) ||
+      (l.supplier?.abbrev ?? "").toLowerCase().includes(q)
+    );
   }, [allLenses, search]);
 
   return (
@@ -165,10 +169,20 @@ const LensPickerModal = ({
                   }}
                   className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors"
                 >
-                  <span className="text-xs font-medium flex-1 min-w-0 truncate pr-2 text-primary">
-                    {l.name}
-                  </span>
-                  <span className="shrink-0 flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {(l.supplier?.abbrev || l.supplier?.name) && (
+                      <span
+                        className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                        style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)", minWidth: "36px", textAlign: "center" }}
+                      >
+                        {l.supplier?.abbrev || l.supplier?.name}
+                      </span>
+                    )}
+                    <span className="text-xs font-medium flex-1 min-w-0 truncate text-primary">
+                      {l.name}
+                    </span>
+                  </div>
+                  <span className="shrink-0 flex items-center gap-2 ml-2">
                     {inCatalog && (
                       <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                         In List
