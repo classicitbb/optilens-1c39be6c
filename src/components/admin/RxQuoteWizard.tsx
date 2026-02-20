@@ -438,7 +438,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   // Retail markup toggle
   const [isRetail, setIsRetail] = useState(false);
 
-  // Frame data (local state — displayed in sidebar live)
+  // Frame data (local state — displayed in sidebar live, persisted to quote on Next)
   const [frameRef, setFrameRef] = useState("");
   const [frameModel, setFrameModel] = useState("");
   const [frameBridge, setFrameBridge] = useState("");
@@ -448,6 +448,38 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   const [frameDbl, setFrameDbl] = useState("");
   const [isUncut, setIsUncut] = useState(false);
   const [uncutPrice, setUncutPrice] = useState("");
+
+  // Hydrate frame state from quote notes_internal on mount / quote change
+  useEffect(() => {
+    const notes = quote.notes_internal ?? "";
+    const match = notes.match(/\[\[FRAME:(.*?)\]\]/s);
+    if (match) {
+      try {
+        const f = JSON.parse(match[1]);
+        setFrameRef(f.ref ?? "");
+        setFrameModel(f.model ?? "");
+        setFrameBridge(f.bridge ?? "");
+        setFrameEd(f.ed ?? "");
+        setFrameA(f.a ?? "");
+        setFrameB(f.b ?? "");
+        setFrameDbl(f.dbl ?? "");
+        setIsUncut(f.uncut ?? false);
+        setUncutPrice(f.uncutPrice ?? "");
+      } catch { /* ignore parse errors */ }
+    }
+  }, [quote.id]);
+
+  // Persist frame data into notes_internal as a tagged JSON block
+  const saveFrameData = () => {
+    const frameJson = JSON.stringify({
+      ref: frameRef, model: frameModel, bridge: frameBridge,
+      ed: frameEd, a: frameA, b: frameB, dbl: frameDbl,
+      uncut: isUncut, uncutPrice,
+    });
+    const existingNotes = (quote.notes_internal ?? "").replace(/\[\[FRAME:.*?\]\]/s, "").trim();
+    const combined = `[[FRAME:${frameJson}]]${existingNotes ? `\n${existingNotes}` : ""}`;
+    onUpdateQuote({ notes_internal: combined });
+  };
 
   // Live rx summary for sidebar (updated by PrescriptionStep)
   const [sidebarRx, setSidebarRx] = useState<Partial<RxForm>>({});
@@ -750,7 +782,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
               <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setStep("identification")}>
                 ← Back
               </Button>
-              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setStep("lens")}>
+              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => { saveFrameData(); setStep("lens"); }}>
                 Next: Lens <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
