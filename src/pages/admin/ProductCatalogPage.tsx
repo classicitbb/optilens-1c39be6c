@@ -62,7 +62,7 @@ const ProductCatalogPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 gap-4 border">
+    <div className="h-full flex flex-col overflow-hidden p-4 gap-4 border px-[12px] py-[12px]">
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Product Catalog</h1>
         {canEdit &&
