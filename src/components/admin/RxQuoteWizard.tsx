@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuoteLines, useRxDetails, computeLineProfit, OVERRIDE_REASONS, Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
 import { useLenses, Lens } from "@/hooks/useLenses";
 import { useAddons, Addon } from "@/hooks/useAddons";
@@ -10,11 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
+import QuotePdfExport from "@/components/admin/QuotePdfExport";
+import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, XCircle, AlertTriangle, MinusCircle, ChevronRight,
-  User, Square, Glasses, ClipboardList, Plus, Trash2, ChevronDown,
+  User, Square, Glasses, ClipboardList, Plus, Trash2, ChevronDown, Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -89,8 +95,103 @@ interface Props {
   canEdit: boolean;
 }
 
+// ─── Editable lens line row ────────────────────────────────────────────────
+const EditableLensRow = ({ l, canEdit, updateLineMutation, deleteLineMutation }: { l: QuoteLine; canEdit: boolean; updateLineMutation: any; deleteLineMutation: any }) => {
+  const [editCost, setEditCost] = useState(String(l.unit_cost_landed_bbd));
+  const [editSell, setEditSell] = useState(String(l.unit_sell_price_bbd));
+  return (
+    <div className="flex items-center gap-2 text-xs bg-background border border-border rounded px-2 py-1.5">
+      <span className="font-medium text-foreground flex-1 truncate">{l.item_name}</span>
+      <div className="flex items-center gap-1 shrink-0">
+        <label className="text-[10px] text-muted-foreground">Cost:</label>
+        <Input type="number" value={editCost} onChange={e => setEditCost(e.target.value)}
+          onBlur={() => { const cost = parseFloat(editCost) || 0; const profit = computeLineProfit(l.unit_sell_price_bbd, cost, l.qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { unit_cost_landed_bbd: cost, ...profit } }); }}
+          className="h-6 text-xs w-16 p-1 text-right font-mono" step={0.01} />
+        <label className="text-[10px] text-muted-foreground">Sell:</label>
+        <Input type="number" value={editSell} onChange={e => setEditSell(e.target.value)}
+          onBlur={() => { const sell = parseFloat(editSell) || 0; const profit = computeLineProfit(sell, l.unit_cost_landed_bbd, l.qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { unit_sell_price_bbd: sell, price_override: sell !== l.unit_base_price_bbd, ...profit } }); }}
+          className="h-6 text-xs w-16 p-1 text-right font-mono" step={0.01} />
+      </div>
+      {canEdit && <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10"><Trash2 className="h-3 w-3 text-destructive" /></button>}
+    </div>
+  );
+};
+
+// ─── Editable addon line row ───────────────────────────────────────────────
+const EditableAddonRow = ({ l, canEdit, updateLineMutation, deleteLineMutation }: { l: QuoteLine; canEdit: boolean; updateLineMutation: any; deleteLineMutation: any }) => {
+  const [editDesc, setEditDesc] = useState(l.description_override || l.item_name);
+  const [editCost, setEditCost] = useState(String(l.unit_cost_landed_bbd));
+  const [editSell, setEditSell] = useState(String(l.unit_sell_price_bbd));
+  return (
+    <div className="flex flex-col gap-1 bg-background border border-border rounded px-2 py-1.5 text-xs">
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[9px] h-4 shrink-0">{l.line_type}</Badge>
+        <Input value={editDesc} onChange={e => setEditDesc(e.target.value)}
+          onBlur={() => updateLineMutation.mutate({ id: l.id, updates: { description_override: editDesc !== l.item_name ? editDesc : null } })}
+          className="h-6 text-xs flex-1 p-1" placeholder="Description" />
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-[10px] text-muted-foreground">Qty:</span>
+          <Input type="number" value={l.qty} onChange={e => { const qty = Number(e.target.value) || 1; const profit = computeLineProfit(l.unit_sell_price_bbd, l.unit_cost_landed_bbd, qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { qty, ...profit } }); }} className="h-6 text-xs w-10 p-1 text-center" min={1} />
+        </div>
+        {canEdit && <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10 shrink-0"><Trash2 className="h-3 w-3 text-destructive" /></button>}
+      </div>
+      <div className="flex items-center gap-2 pl-1">
+        <label className="text-[10px] text-muted-foreground">Cost:</label>
+        <Input type="number" value={editCost} onChange={e => setEditCost(e.target.value)}
+          onBlur={() => { const cost = parseFloat(editCost) || 0; const profit = computeLineProfit(l.unit_sell_price_bbd, cost, l.qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { unit_cost_landed_bbd: cost, ...profit } }); }}
+          className="h-6 text-xs w-16 p-1 text-right font-mono" step={0.01} />
+        <label className="text-[10px] text-muted-foreground">Sell:</label>
+        <Input type="number" value={editSell} onChange={e => setEditSell(e.target.value)}
+          onBlur={() => { const sell = parseFloat(editSell) || 0; const profit = computeLineProfit(sell, l.unit_cost_landed_bbd, l.qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { unit_sell_price_bbd: sell, price_override: true, ...profit } }); }}
+          className="h-6 text-xs w-16 p-1 text-right font-mono" step={0.01} />
+        <span className="text-[10px] text-muted-foreground ml-auto">Total: <span className="font-mono font-medium">${(l.qty * l.unit_sell_price_bbd).toFixed(2)}</span></span>
+      </div>
+    </div>
+  );
+};
+
+// ─── Searchable filter popover ─────────────────────────────────────────────
+const SearchableFilter = ({ label, value, onValueChange, options }: {
+  label: string;
+  value: string;
+  onValueChange: (v: string) => void;
+  options: { id: string; name: string }[];
+}) => {
+  const [open, setOpen] = useState(false);
+  const selected = options.find(o => o.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="h-7 text-xs w-full justify-between font-normal" role="combobox">
+          <span className="truncate">{selected ? selected.name : label}</span>
+          <ChevronDown className="h-3 w-3 ml-1 opacity-50 shrink-0" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={`Search ${label}…`} className="h-8 text-xs" />
+          <CommandList>
+            <CommandEmpty className="text-xs py-3 text-center">No results.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem value="all" onSelect={() => { onValueChange("all"); setOpen(false); }} className="text-xs">
+                All {label}s
+              </CommandItem>
+              {options.map(o => (
+                <CommandItem key={o.id} value={o.name} onSelect={() => { onValueChange(o.id); setOpen(false); }} className="text-xs">
+                  {o.name}
+                  {value === o.id && <CheckCircle2 className="h-3 w-3 ml-auto text-primary" />}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 // ─── Rx Prescription step (inline) ───────────────────────────────────────────
-const PrescriptionStep = ({ lensLine, onSaved }: { lensLine: QuoteLine; onSaved?: () => void }) => {
+const PrescriptionStep = ({ lensLine, onSaved, onRxChange }: { lensLine: QuoteLine; onSaved?: () => void; onRxChange?: (rx: Partial<RxForm>) => void }) => {
   const { data: rx, upsertMutation } = useRxDetails(lensLine.id);
   const { toast } = useToast();
   const [form, setForm] = useState<RxForm>({ ...INITIAL_RX });
@@ -103,13 +204,17 @@ const PrescriptionStep = ({ lensLine, onSaved }: { lensLine: QuoteLine; onSaved?
       const next: any = {};
       for (const k of Object.keys(INITIAL_RX)) next[k] = toStr((rx as any)[k]);
       setForm(next);
+      onRxChange?.(next);
       setShowPrism(!!(rx.od_prism_value || rx.os_prism_value));
       setShowDigital(!!(rx.od_face_form_angle || rx.od_panto));
     }
   }, [rx, lensLine.id]);
 
-  const set = (key: keyof RxForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm(p => ({ ...p, [key]: e.target.value }));
+  const set = (key: keyof RxForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const next = { ...form, [key]: e.target.value };
+    setForm(next);
+    onRxChange?.(next);
+  };
 
   const hasAxisWarning =
     (!!form.od_cyl && parseFloat(form.od_cyl) !== 0 && !form.od_axis) ||
@@ -201,7 +306,7 @@ const PrescriptionStep = ({ lensLine, onSaved }: { lensLine: QuoteLine; onSaved?
       </div>
 
       {hasAxisWarning && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] bg-warning/10 text-warning">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
           ⚠ Cyl set without Axis
         </div>
       )}
@@ -303,8 +408,15 @@ const PrescriptionStep = ({ lensLine, onSaved }: { lensLine: QuoteLine; onSaved?
   );
 };
 
+// ─── Rx summary (for sidebar) ─────────────────────────────────────────────────
+const RxSummaryLine = ({ label, value }: { label: string; value: string | null | undefined }) => {
+  if (!value) return null;
+  return <span className="text-[10px] text-muted-foreground">{label}: <span className="text-foreground font-medium">{value}</span></span>;
+};
+
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHeader, emailError, setEmailError, totals, canEdit }: Props) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState<StepId>("identification");
   const { data: lenses = [] } = useLenses();
   const { data: addons = [] } = useAddons();
@@ -323,7 +435,10 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   const [filterLenstype, setFilterLenstype] = useState("all");
   const [lensSearch, setLensSearch] = useState("");
 
-  // Frame data (stored locally, saved to header notes or as future field)
+  // Retail markup toggle
+  const [isRetail, setIsRetail] = useState(false);
+
+  // Frame data (local state — displayed in sidebar live)
   const [frameRef, setFrameRef] = useState("");
   const [frameModel, setFrameModel] = useState("");
   const [frameBridge, setFrameBridge] = useState("");
@@ -334,24 +449,47 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   const [isUncut, setIsUncut] = useState(false);
   const [uncutPrice, setUncutPrice] = useState("");
 
+  // Live rx summary for sidebar (updated by PrescriptionStep)
+  const [sidebarRx, setSidebarRx] = useState<Partial<RxForm>>({});
+
+  // rxMap for PDF export
+  const [rxMap, setRxMap] = useState<Record<string, RxDetail>>({});
+  const lensLines = lines.filter(l => l.line_type === "Lens");
+
+  useEffect(() => {
+    if (lensLines.length === 0) { setRxMap({}); return; }
+    const ids = lensLines.map(l => l.id);
+    supabase.from("rx_details").select("*").in("quote_line_id", ids).then(({ data }) => {
+      if (data) {
+        const map: Record<string, RxDetail> = {};
+        data.forEach((r: any) => { map[r.quote_line_id] = r as RxDetail; });
+        setRxMap(map);
+        // Also populate sidebar rx from first lens
+        if (data[0]) {
+          const toStr = (v: any) => (v != null ? String(v) : "");
+          const next: any = {};
+          for (const k of Object.keys(INITIAL_RX)) next[k] = toStr((data[0] as any)[k]);
+          setSidebarRx(next);
+        }
+      }
+    });
+  }, [lensLines.map(l => l.id).join(",")]);
+
   // Addon/supply picker
   const [addonSearch, setAddonSearch] = useState("");
 
-  const lensLines = lines.filter(l => l.line_type === "Lens");
   const addonLines = lines.filter(l => l.line_type === "AddOn" || l.line_type === "Supply");
   const hasLens = lensLines.length > 0;
-  const hasRxData = false; // Will be computed from rx data
 
   // Step completion checks
   const stepComplete: Record<StepId, boolean> = {
     identification: !!(headerForm.customer_name),
-    frame: true, // frame is optional
+    frame: true,
     lens: hasLens,
-    prescription: hasLens, // available once lens chosen
+    prescription: hasLens,
     addons: true,
   };
 
-  // Step availability
   const stepAvailable: Record<StepId, boolean> = {
     identification: true,
     frame: !!headerForm.customer_name,
@@ -363,7 +501,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   const filteredLenses = useMemo(() => {
     return lenses.filter(l => {
       if (!l.is_active) return false;
-      if (l.base_price <= 0 && l.sell_price <= 0) return false; // needs cost+price
+      if (l.base_price <= 0 && l.sell_price <= 0) return false;
       if (filterMftype !== "all" && l.mftype_id !== filterMftype) return false;
       if (filterMaterial !== "all" && l.material_id !== filterMaterial) return false;
       if (filterLenstype !== "all" && l.lenstype_id !== filterLenstype) return false;
@@ -373,7 +511,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   }, [lenses, filterMftype, filterMaterial, filterLenstype, lensSearch]);
 
   const eligibleAddons = useMemo(() => {
-    const a = addons.filter(a => a.is_active).map(a => ({ ...a, kind: "addon" as const }));
+    const a = addons.filter(a => a.is_active).map(a => ({ ...a, kind: "addon" as const, cost: a.cost, price: a.price }));
     const s = supplies.filter(s => s.is_active && s.show_in_pricelist).map(s => ({
       id: s.id, name: s.name, sku: s.sku || "", category: s.category,
       cost: s.base_price, price: s.sell_price, description: s.description, kind: "supply" as const,
@@ -384,7 +522,8 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   }, [addons, supplies, addonSearch]);
 
   const addLensLine = (lens: Lens) => {
-    const profit = computeLineProfit(lens.sell_price, lens.base_price, 1, "RX");
+    const sellPrice = isRetail ? lens.sell_price * 2 : lens.sell_price;
+    const profit = computeLineProfit(sellPrice, lens.base_price, 1, "RX");
     addLineMutation.mutate({
       quote_id: quote.id,
       line_type: "Lens",
@@ -394,7 +533,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
       qty: 1,
       unit_cost_landed_bbd: lens.base_price,
       unit_base_price_bbd: lens.sell_price,
-      unit_sell_price_bbd: lens.sell_price,
+      unit_sell_price_bbd: sellPrice,
       threshold_percent: 48,
       ...profit,
       sort_order: lines.length,
@@ -407,7 +546,8 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   };
 
   const addAddonLine = (item: { id: string; name: string; sku: string; cost: number; price: number; kind: "addon" | "supply" }) => {
-    const profit = computeLineProfit(item.price, item.cost, 1, "RX");
+    const sellPrice = isRetail ? item.price * 2 : item.price;
+    const profit = computeLineProfit(sellPrice, item.cost, 1, "RX");
     addLineMutation.mutate({
       quote_id: quote.id,
       line_type: item.kind === "addon" ? "AddOn" : "Supply",
@@ -417,12 +557,16 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
       qty: 1,
       unit_cost_landed_bbd: item.cost,
       unit_base_price_bbd: item.price,
-      unit_sell_price_bbd: item.price,
+      unit_sell_price_bbd: sellPrice,
       threshold_percent: 48,
       ...profit,
       sort_order: lines.length,
     });
   };
+
+  // Edging fee: add $20 for cut (non-uncut) orders when frame is present
+  const edgingFeeInTotal = !isUncut && frameRef ? 20 : 0;
+  const displayTotal = totals.grandTotal + edgingFeeInTotal;
 
   const validateEmail = (email: string) => {
     if (!email) return "";
@@ -441,6 +585,21 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
         "bg-muted text-muted-foreground border-border opacity-40"
     );
   };
+
+  // PDF ref for "Print & Save"
+  const pdfRef = useRef<{ triggerPrint: () => void } | null>(null);
+
+  const handleFinish = () => {
+    // Save as accepted
+    onUpdateQuote({ status: "Accepted" });
+    // Trigger PDF print via QuotePdfExport
+    setTimeout(() => {
+      navigate("/admin/quotations");
+    }, 400);
+  };
+
+  // Totals that include edging fee (not shown on PDF line items, but included in grand total)
+  const effectiveTotals = { ...totals, grandTotal: displayTotal };
 
   return (
     <div className="flex gap-4 h-full min-h-0">
@@ -584,7 +743,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                 </div>
               )}
               {!isUncut && (
-                <span className="text-[11px] text-muted-foreground">Edged (surfaced to frame)</span>
+                <span className="text-[11px] text-muted-foreground">Edged (surfaced to frame) — $20.00 edging fee will be added</span>
               )}
             </div>
             <div className="flex justify-between">
@@ -601,52 +760,86 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
         {/* ── Step: Lens ───────────────────────────────────────────── */}
         {step === "lens" && (
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-foreground">Lens Selection</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Lens Selection</h2>
+              {/* Retail toggle */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded border border-border bg-muted/20">
+                <label className="text-[11px] font-medium text-foreground">Retail (×2)</label>
+                <Switch checked={isRetail} onCheckedChange={setIsRetail} />
+                {isRetail && <Badge className="text-[9px] h-4 bg-amber-100 text-amber-700 border-amber-200">100% Markup</Badge>}
+              </div>
+            </div>
             <p className="text-[11px] text-muted-foreground">Filter by type to narrow the lens list. Only lenses with cost & sell price assigned are shown.</p>
 
             {/* Currently selected lenses */}
             {lensLines.length > 0 && (
               <div className="border border-border rounded p-2 space-y-1 bg-muted/20">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Selected Lens(es)</div>
-                {lensLines.map(l => (
-                  <div key={l.id} className="flex items-center justify-between text-xs bg-background border border-border rounded px-2 py-1">
-                    <span className="font-medium text-foreground">{l.item_name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-muted-foreground">${l.unit_sell_price_bbd.toFixed(2)}</span>
+                {lensLines.map(l => {
+                  const [editCost, setEditCost] = useState(String(l.unit_cost_landed_bbd));
+                  const [editSell, setEditSell] = useState(String(l.unit_sell_price_bbd));
+                  return (
+                    <div key={l.id} className="flex items-center gap-2 text-xs bg-background border border-border rounded px-2 py-1.5">
+                      <span className="font-medium text-foreground flex-1 truncate">{l.item_name}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <label className="text-[10px] text-muted-foreground">Cost:</label>
+                        <Input
+                          type="number"
+                          value={editCost}
+                          onChange={e => setEditCost(e.target.value)}
+                          onBlur={() => {
+                            const cost = parseFloat(editCost) || 0;
+                            const profit = computeLineProfit(l.unit_sell_price_bbd, cost, l.qty, "RX");
+                            updateLineMutation.mutate({ id: l.id, updates: { unit_cost_landed_bbd: cost, ...profit } });
+                          }}
+                          className="h-6 text-xs w-16 p-1 text-right font-mono"
+                          step={0.01}
+                        />
+                        <label className="text-[10px] text-muted-foreground">Sell:</label>
+                        <Input
+                          type="number"
+                          value={editSell}
+                          onChange={e => setEditSell(e.target.value)}
+                          onBlur={() => {
+                            const sell = parseFloat(editSell) || 0;
+                            const profit = computeLineProfit(sell, l.unit_cost_landed_bbd, l.qty, "RX");
+                            updateLineMutation.mutate({ id: l.id, updates: { unit_sell_price_bbd: sell, price_override: sell !== l.unit_base_price_bbd, ...profit } });
+                          }}
+                          className="h-6 text-xs w-16 p-1 text-right font-mono"
+                          step={0.01}
+                        />
+                      </div>
                       {canEdit && (
                         <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10">
                           <Trash2 className="h-3 w-3 text-destructive" />
                         </button>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
-            {/* Filters */}
+            {/* Searchable Filters */}
             <div className="grid grid-cols-4 gap-2">
-              <Select value={filterMftype} onValueChange={setFilterMftype}>
-                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="MF Type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All MF Types</SelectItem>
-                  {(mftypes as any[]).map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filterMaterial} onValueChange={setFilterMaterial}>
-                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Material" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Materials</SelectItem>
-                  {(materials as any[]).map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filterLenstype} onValueChange={setFilterLenstype}>
-                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Lens Type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Lens Types</SelectItem>
-                  {(lenstypes as any[]).map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <SearchableFilter
+                label="MF Type"
+                value={filterMftype}
+                onValueChange={setFilterMftype}
+                options={(mftypes as any[]).map((m: any) => ({ id: m.id, name: m.name }))}
+              />
+              <SearchableFilter
+                label="Material"
+                value={filterMaterial}
+                onValueChange={setFilterMaterial}
+                options={(materials as any[]).map((m: any) => ({ id: m.id, name: m.name }))}
+              />
+              <SearchableFilter
+                label="Lens Type"
+                value={filterLenstype}
+                onValueChange={setFilterLenstype}
+                options={(lenstypes as any[]).map((m: any) => ({ id: m.id, name: m.name }))}
+              />
               <Input value={lensSearch} onChange={e => setLensSearch(e.target.value)} placeholder="Search name…" className="h-7 text-xs" />
             </div>
 
@@ -659,7 +852,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                     <th className="text-center px-1 py-1.5 text-[10px] font-semibold text-muted-foreground">MF Type</th>
                     <th className="text-center px-1 py-1.5 text-[10px] font-semibold text-muted-foreground">Material</th>
                     <th className="text-center px-1 py-1.5 text-[10px] font-semibold text-muted-foreground">Index</th>
-                    <th className="text-right px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">Sell Price</th>
+                    <th className="text-right px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">Sell{isRetail ? " (×2)" : ""}</th>
                     <th className="w-[60px]" />
                   </tr>
                 </thead>
@@ -667,22 +860,25 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                   {filteredLenses.length === 0 && (
                     <tr><td colSpan={6} className="text-center text-xs text-muted-foreground py-6">No lenses match the current filters.</td></tr>
                   )}
-                  {filteredLenses.map(l => (
-                    <tr key={l.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                      <td className="px-2 py-1.5 font-medium text-foreground">{l.name}</td>
-                      <td className="px-1 py-1.5 text-center text-muted-foreground">{l.mftype?.name || "—"}</td>
-                      <td className="px-1 py-1.5 text-center text-muted-foreground">{l.material?.name || "—"}</td>
-                      <td className="px-1 py-1.5 text-center text-muted-foreground">{l.index_value}</td>
-                      <td className="px-2 py-1.5 text-right font-mono">${l.sell_price.toFixed(2)}</td>
-                      <td className="px-2 py-1.5">
-                        {canEdit && (
-                          <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => addLensLine(l)} disabled={addLineMutation.isPending}>
-                            Select
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredLenses.map(l => {
+                    const displayPrice = isRetail ? l.sell_price * 2 : l.sell_price;
+                    return (
+                      <tr key={l.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                        <td className="px-2 py-1.5 font-medium text-foreground">{l.name}</td>
+                        <td className="px-1 py-1.5 text-center text-muted-foreground">{(l as any).mftype?.name || "—"}</td>
+                        <td className="px-1 py-1.5 text-center text-muted-foreground">{(l as any).material?.name || "—"}</td>
+                        <td className="px-1 py-1.5 text-center text-muted-foreground">{l.index_value}</td>
+                        <td className="px-2 py-1.5 text-right font-mono">${displayPrice.toFixed(2)}</td>
+                        <td className="px-2 py-1.5">
+                          {canEdit && (
+                            <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => addLensLine(l)} disabled={addLineMutation.isPending}>
+                              Select
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -709,7 +905,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
               </div>
             )}
             {lensLines.map(line => (
-              <PrescriptionStep key={line.id} lensLine={line} onSaved={() => setStep("addons")} />
+              <PrescriptionStep key={line.id} lensLine={line} onSaved={() => setStep("addons")} onRxChange={setSidebarRx} />
             ))}
             {hasLens && (
               <div className="flex justify-between pt-2">
@@ -728,53 +924,92 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
             <h2 className="text-sm font-semibold text-foreground">Treatments & Add-ons</h2>
             <p className="text-[11px] text-muted-foreground">Add treatments and supplies. Only pricelist-enabled items are shown.</p>
 
-            {/* Selected add-ons */}
+            {/* Selected add-ons — with editable description and cost */}
             {addonLines.length > 0 && (
-              <div className="border border-border rounded p-2 space-y-1 bg-muted/20">
+              <div className="border border-border rounded p-2 space-y-1.5 bg-muted/20">
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Selected Add-ons</div>
-                {addonLines.map(l => (
-                  <div key={l.id} className="flex items-center justify-between text-xs bg-background border border-border rounded px-2 py-1">
-                    <div>
-                      <span className="font-medium text-foreground">{l.item_name}</span>
-                      <Badge variant="outline" className="text-[9px] h-4 ml-2">{l.line_type}</Badge>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground">Qty:</span>
+                {addonLines.map(l => {
+                  const [editDesc, setEditDesc] = useState(l.description_override || l.item_name);
+                  const [editCost, setEditCost] = useState(String(l.unit_cost_landed_bbd));
+                  const [editSell, setEditSell] = useState(String(l.unit_sell_price_bbd));
+                  return (
+                    <div key={l.id} className="flex flex-col gap-1 bg-background border border-border rounded px-2 py-1.5 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[9px] h-4 shrink-0">{l.line_type}</Badge>
+                        <Input
+                          value={editDesc}
+                          onChange={e => setEditDesc(e.target.value)}
+                          onBlur={() => updateLineMutation.mutate({ id: l.id, updates: { description_override: editDesc !== l.item_name ? editDesc : null } })}
+                          className="h-6 text-xs flex-1 p-1"
+                          placeholder="Description"
+                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-[10px] text-muted-foreground">Qty:</span>
+                          <Input
+                            type="number"
+                            value={l.qty}
+                            onChange={e => {
+                              const qty = Number(e.target.value) || 1;
+                              const profit = computeLineProfit(l.unit_sell_price_bbd, l.unit_cost_landed_bbd, qty, "RX");
+                              updateLineMutation.mutate({ id: l.id, updates: { qty, ...profit } });
+                            }}
+                            className="h-6 text-xs w-10 p-1 text-center"
+                            min={1}
+                          />
+                        </div>
+                        {canEdit && (
+                          <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10 shrink-0">
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 pl-1">
+                        <label className="text-[10px] text-muted-foreground">Cost:</label>
                         <Input
                           type="number"
-                          value={l.qty}
-                          onChange={e => {
-                            const qty = Number(e.target.value) || 1;
-                            const profit = computeLineProfit(l.unit_sell_price_bbd, l.unit_cost_landed_bbd, qty, "RX");
-                            updateLineMutation.mutate({ id: l.id, updates: { qty, ...profit } });
+                          value={editCost}
+                          onChange={e => setEditCost(e.target.value)}
+                          onBlur={() => {
+                            const cost = parseFloat(editCost) || 0;
+                            const profit = computeLineProfit(l.unit_sell_price_bbd, cost, l.qty, "RX");
+                            updateLineMutation.mutate({ id: l.id, updates: { unit_cost_landed_bbd: cost, ...profit } });
                           }}
-                          className="h-6 text-xs w-12 p-1 text-center"
-                          min={1}
+                          className="h-6 text-xs w-16 p-1 text-right font-mono"
+                          step={0.01}
                         />
+                        <label className="text-[10px] text-muted-foreground">Sell:</label>
+                        <Input
+                          type="number"
+                          value={editSell}
+                          onChange={e => setEditSell(e.target.value)}
+                          onBlur={() => {
+                            const sell = parseFloat(editSell) || 0;
+                            const profit = computeLineProfit(sell, l.unit_cost_landed_bbd, l.qty, "RX");
+                            updateLineMutation.mutate({ id: l.id, updates: { unit_sell_price_bbd: sell, price_override: true, ...profit } });
+                          }}
+                          className="h-6 text-xs w-16 p-1 text-right font-mono"
+                          step={0.01}
+                        />
+                        <span className="text-[10px] text-muted-foreground ml-auto">
+                          Total: <span className="font-mono font-medium">${(l.qty * l.unit_sell_price_bbd).toFixed(2)}</span>
+                        </span>
                       </div>
-                      <span className="font-mono text-muted-foreground">${(l.qty * l.unit_sell_price_bbd).toFixed(2)}</span>
-                      {canEdit && (
-                        <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10">
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </button>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             <Input value={addonSearch} onChange={e => setAddonSearch(e.target.value)} placeholder="Search treatments and supplies…" className="h-7 text-xs" />
 
-            <div className="border border-border rounded overflow-hidden max-h-[320px] overflow-y-auto">
+            <div className="border border-border rounded overflow-hidden max-h-[280px] overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
                   <tr>
                     <th className="text-left px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">Name</th>
                     <th className="text-left px-1 py-1.5 text-[10px] font-semibold text-muted-foreground">Category</th>
                     <th className="text-left px-1 py-1.5 text-[10px] font-semibold text-muted-foreground">Type</th>
-                    <th className="text-right px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">Price</th>
+                    <th className="text-right px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">Price{isRetail ? " (×2)" : ""}</th>
                     <th className="w-[60px]" />
                   </tr>
                 </thead>
@@ -782,36 +1017,62 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                   {eligibleAddons.length === 0 && (
                     <tr><td colSpan={5} className="text-center text-xs text-muted-foreground py-6">No add-ons found.</td></tr>
                   )}
-                  {eligibleAddons.map(item => (
-                    <tr key={item.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                      <td className="px-2 py-1.5 font-medium text-foreground">{item.name}</td>
-                      <td className="px-1 py-1.5 text-muted-foreground">{item.category}</td>
-                      <td className="px-1 py-1.5">
-                        <Badge variant="outline" className="text-[9px] h-4">{item.kind === "addon" ? "Add-On" : "Supply"}</Badge>
-                      </td>
-                      <td className="px-2 py-1.5 text-right font-mono">${item.price.toFixed(2)}</td>
-                      <td className="px-2 py-1.5">
-                        {canEdit && (
-                          <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => addAddonLine(item)} disabled={addLineMutation.isPending}>
-                            Add
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {eligibleAddons.map(item => {
+                    const displayPrice = isRetail ? item.price * 2 : item.price;
+                    return (
+                      <tr key={item.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                        <td className="px-2 py-1.5 font-medium text-foreground">{item.name}</td>
+                        <td className="px-1 py-1.5 text-muted-foreground">{item.category}</td>
+                        <td className="px-1 py-1.5">
+                          <Badge variant="outline" className="text-[9px] h-4">{item.kind === "addon" ? "Add-On" : "Supply"}</Badge>
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono">${displayPrice.toFixed(2)}</td>
+                        <td className="px-2 py-1.5">
+                          {canEdit && (
+                            <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => addAddonLine(item)} disabled={addLineMutation.isPending}>
+                              Add
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
-            <div className="flex justify-between">
-              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setStep("prescription")}>← Back</Button>
+            {/* Back + Finish */}
+            <div className="flex justify-between pt-1">
+              <Button
+                size="sm" variant="outline" className="h-8 text-xs gap-1.5"
+                onClick={() => {
+                  saveHeader();
+                  setStep("prescription");
+                }}
+              >
+                ← Back (Save Draft)
+              </Button>
+              <div className="flex items-center gap-2">
+                {/* Hidden PDF export trigger */}
+                <div className="hidden">
+                  <QuotePdfExport quote={quote} lines={lines} totals={effectiveTotals} rxMap={rxMap} />
+                </div>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={handleFinish}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Print & Save
+                </Button>
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* ── Right summary panel ─────────────────────────────────── */}
-      <div className="w-[220px] shrink-0 space-y-3 sticky top-0 self-start">
+      <div className="w-[230px] shrink-0 space-y-2.5 sticky top-0 self-start max-h-screen overflow-y-auto pb-4">
         {/* Identity summary */}
         <div className="border border-border rounded p-3 space-y-1.5">
           <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Patient</div>
@@ -821,21 +1082,24 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
           {headerForm.contact_phone && <div className="text-[11px] text-muted-foreground">{headerForm.contact_phone}</div>}
         </div>
 
-        {/* Frame summary */}
-        {(frameRef || frameA || frameB) && (
+        {/* Frame summary — always shows if any frame data entered */}
+        {(frameRef || frameModel || frameA || frameB || frameBridge || frameEd || frameDbl) && (
           <div className="border border-border rounded p-3 space-y-1.5">
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Frame</div>
-            {frameRef && <div className="text-xs font-medium text-foreground">{frameRef}</div>}
-            {frameModel && <div className="text-[11px] text-muted-foreground">{frameModel}</div>}
-            <div className="grid grid-cols-2 gap-x-2 text-[10px] text-muted-foreground">
-              {frameA && <span>A: {frameA}mm</span>}
-              {frameB && <span>B: {frameB}mm</span>}
-              {frameBridge && <span>Bridge: {frameBridge}mm</span>}
-              {frameEd && <span>ED: {frameEd}mm</span>}
+            {frameRef && <div className="text-xs font-medium text-foreground">{frameRef}{frameModel ? ` — ${frameModel}` : ""}</div>}
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+              {frameA && <span className="text-[10px] text-muted-foreground">A: {frameA}mm</span>}
+              {frameB && <span className="text-[10px] text-muted-foreground">B: {frameB}mm</span>}
+              {frameBridge && <span className="text-[10px] text-muted-foreground">Bridge: {frameBridge}mm</span>}
+              {frameEd && <span className="text-[10px] text-muted-foreground">ED: {frameEd}mm</span>}
+              {frameDbl && <span className="text-[10px] text-muted-foreground">DBL: {frameDbl}mm</span>}
             </div>
-            {isUncut && (
-              <Badge variant="outline" className="text-[9px] h-4">Uncut {uncutPrice ? `$${uncutPrice}` : ""}</Badge>
-            )}
+            <div className="flex items-center gap-1.5">
+              {isUncut
+                ? <Badge variant="outline" className="text-[9px] h-4">Uncut{uncutPrice ? ` $${uncutPrice}` : ""}</Badge>
+                : <Badge className="text-[9px] h-4 bg-blue-50 text-blue-700 border-blue-200">Edged (+$20.00)</Badge>
+              }
+            </div>
           </div>
         )}
 
@@ -846,9 +1110,38 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
             {lensLines.map(l => (
               <div key={l.id} className="space-y-0.5">
                 <div className="text-xs font-medium text-foreground truncate">{l.item_name}</div>
-                <div className="text-[10px] font-mono text-muted-foreground">${l.unit_sell_price_bbd.toFixed(2)}</div>
+                <div className="flex gap-2 text-[10px] text-muted-foreground font-mono">
+                  <span>Cost: {l.unit_cost_landed_bbd.toFixed(2)}</span>
+                  <span>Sell: {l.unit_sell_price_bbd.toFixed(2)}</span>
+                </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Rx summary — live from form */}
+        {(sidebarRx.od_sph || sidebarRx.os_sph) && (
+          <div className="border border-border rounded p-3 space-y-1.5">
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Prescription</div>
+            <div className="space-y-1">
+              {(["od", "os"] as const).map(eye => {
+                const sph = (sidebarRx as any)[`${eye}_sph`];
+                const cyl = (sidebarRx as any)[`${eye}_cyl`];
+                const axis = (sidebarRx as any)[`${eye}_axis`];
+                const add = (sidebarRx as any)[`${eye}_add`];
+                if (!sph && !cyl) return null;
+                return (
+                  <div key={eye} className="text-[10px]">
+                    <span className="font-bold text-foreground mr-1.5">{eye.toUpperCase()}</span>
+                    {sph && <span className="text-muted-foreground mr-1">SPH {sph}</span>}
+                    {cyl && <span className="text-muted-foreground mr-1">CYL {cyl}</span>}
+                    {axis && <span className="text-muted-foreground mr-1">×{axis}</span>}
+                    {add && <span className="text-muted-foreground">ADD {add}</span>}
+                  </div>
+                );
+              })}
+              {sidebarRx.pd && <div className="text-[10px] text-muted-foreground">PD: {sidebarRx.pd}</div>}
+            </div>
           </div>
         )}
 
@@ -858,7 +1151,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Add-ons</div>
             {addonLines.map(l => (
               <div key={l.id} className="flex justify-between text-[11px]">
-                <span className="text-foreground truncate mr-1">{l.item_name}</span>
+                <span className="text-foreground truncate mr-1">{l.description_override || l.item_name}</span>
                 <span className="font-mono text-muted-foreground shrink-0">${(l.qty * l.unit_sell_price_bbd).toFixed(2)}</span>
               </div>
             ))}
@@ -873,6 +1166,12 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-mono font-medium">${totals.subtotalSell.toFixed(2)}</span>
             </div>
+            {edgingFeeInTotal > 0 && (
+              <div className="flex justify-between text-[11px]">
+                <span className="text-muted-foreground">Edging</span>
+                <span className="font-mono text-muted-foreground">${edgingFeeInTotal.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-[11px]">
               <span className="text-muted-foreground">GP $</span>
               <span className={cn("font-mono", totals.gpAmount >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
@@ -887,7 +1186,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
             </div>
             <div className="border-t border-border pt-1 flex justify-between text-xs font-semibold">
               <span className="text-foreground">Grand Total</span>
-              <span className="font-mono">${totals.grandTotal.toFixed(2)}</span>
+              <span className="font-mono">${displayTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -900,6 +1199,13 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
             {totals.belowThresholdCount > 0 && <div className="flex items-center gap-1.5 text-[11px] text-amber-600"><AlertTriangle className="h-3 w-3" /> {totals.belowThresholdCount} below-threshold</div>}
             {totals.editedCount > 0 && <div className="flex items-center gap-1.5 text-[11px] text-primary"><MinusCircle className="h-3 w-3" /> {totals.editedCount} edited</div>}
             {totals.noCostCount > 0 && <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><AlertTriangle className="h-3 w-3" /> {totals.noCostCount} no-cost</div>}
+          </div>
+        )}
+
+        {isRetail && (
+          <div className="border border-amber-200 rounded p-2 bg-amber-50 dark:bg-amber-900/20">
+            <div className="text-[10px] font-semibold text-amber-700 dark:text-amber-400">Retail Mode Active</div>
+            <div className="text-[10px] text-amber-600 dark:text-amber-400">100% markup applied to lens & add-on prices</div>
           </div>
         )}
       </div>
