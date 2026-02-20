@@ -488,7 +488,7 @@ const ListCatalogTab = ({
 
 
     return (
-      <div key={title} className="mt-5 px-2 py-[5px]">
+      <div key={title} className="mt-5 py-[5px] px-[5px]">
         {parentLabel &&
         <div
           className="px-4 py-1.5 mb-0.5 font-bold text-xs uppercase tracking-wider rounded-none bg-slate-400"
@@ -524,11 +524,11 @@ const ListCatalogTab = ({
             No items — click "Add Line" to add.
           </p> :
 
-        <table className="w-full text-xs border-collapse">
+        <table className="w-full text-xs border-collapse rounded-none">
             <thead>
               <tr>
                 <th
-                className="px-3 py-2 text-left font-semibold border border-slate-300 cursor-pointer select-none"
+                className="px-3 py-2 text-left font-semibold border border-slate-300 cursor-pointer select-none rounded-none"
                 style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>
 
                   Description <SortIcon col="description" />
@@ -558,7 +558,7 @@ const ListCatalogTab = ({
               {displayRows.map((row, i) =>
             <tr key={row.key} style={{ background: i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
                   <td
-                className="px-3 py-1.5 border border-slate-200 group relative"
+                className="px-3 py-1.5 border border-slate-200 group relative rounded-none"
                 style={{ color: "hsl(215 30% 15%)" }}>
 
                     <div className="flex items-center gap-1">
