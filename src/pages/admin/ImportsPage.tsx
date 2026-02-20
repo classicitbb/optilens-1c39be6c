@@ -6,7 +6,7 @@ import ImportFramesTab from "@/components/admin/ImportFramesTab";
 
 const ImportsPage = () => {
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 border">
       <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Data</h1>
 
       <Tabs defaultValue="lenses" className="w-full">
@@ -22,8 +22,8 @@ const ImportsPage = () => {
         <TabsContent value="addons"><ImportAddonsTab /></TabsContent>
         <TabsContent value="frames"><ImportFramesTab /></TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>);
+
 };
 
 export default ImportsPage;
