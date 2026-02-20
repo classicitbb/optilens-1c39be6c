@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useLenses } from "@/hooks/useLenses";
 import { useAddons } from "@/hooks/useAddons";
 import { useSupplies } from "@/hooks/useSupplies";
-import { usePricelistNotes } from "@/hooks/useMaterialUpgrades";
+import { usePricelistCatalogRows, PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 import { Button } from "@/components/ui/button";
 import { FileText, Table2, FileSpreadsheet, Globe, Loader2, Plus, X, Search, Save, ArrowUpDown } from "lucide-react";
 import { format } from "date-fns";
@@ -16,15 +16,10 @@ const GREEN_BG = "#d4edda";
 const BLUE_TEXT = "#fff";
 const GREEN_TEXT = "#155724";
 const LABEL = "hsl(215 15% 40%)";
-const PAGE_NOTE = "This is a standard catalog showing lenses inclusive of edging and freight.";
 
-/* ─────────────────────────────────────────────────────────
-   Types
-   ───────────────────────────────────────────────────────── */
 export interface CatalogRow {
   key: string;
   section: string;
-  subSection?: string; // for finish→MF grouping
   description: string;
   bbd: number | null;
   usd: number | null;
@@ -34,103 +29,77 @@ export interface CatalogRow {
   supplyId?: string;
 }
 
-export interface CatalogSection {
-  title: string;
-  subTitle?: string; // e.g. MF Type name
-  rows: CatalogRow[];
-  isAddon?: boolean;
-  isSupply?: boolean;
-  parentGroup?: string; // Finish Type
-}
-
 type SortDir = "asc" | "desc" | null;
 
 interface ListCatalogTabProps {
   fxRate: number;
   showUSD: boolean;
-  groupByFinishThenMf?: boolean;
+  /** 'rx' groups by finish→mf, 'stock' groups by mf only, 'buysell' groups by category */
+  catalogType?: "rx" | "stock" | "buysell";
   lensFilter?: "wspl" | "web" | "pricelist" | "none";
-  suppliesOnly?: boolean;
   pageTitle?: string;
   showTreatmentsAddons?: boolean;
+  versionId?: number | null;
 }
 
-/* ─────────────────────────────────────────────────────────
-   Component
-   ───────────────────────────────────────────────────────── */
 const ListCatalogTab = ({
   fxRate,
   showUSD,
-  groupByFinishThenMf = false,
+  catalogType = "rx",
   lensFilter = "pricelist",
-  suppliesOnly = false,
   pageTitle = "Custom Catalog",
-  showTreatmentsAddons = true
+  showTreatmentsAddons = false,
+  versionId = null,
 }: ListCatalogTabProps) => {
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: allSupplies, isLoading: sLoading } = useSupplies();
-  const { data: notes = [] } = usePricelistNotes();
+  const { data: savedRows, isLoading: rowsLoading, saveRows } = usePricelistCatalogRows(
+    versionId ?? null,
+    catalogType
+  );
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
 
-  // User-managed overrides keyed by section title
+  // Local override state: section → rows
   const [lensRows, setLensRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [addonRows, setAddonRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [supplyRows, setSupplyRows] = useState<Map<string, CatalogRow[]>>(new Map());
-
-  // Sort state: section → { col, dir }
-  const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
-
-  // Dirty state for save button
   const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [editingDesc, setEditingDesc] = useState<{ key: string; value: string } | null>(null);
+  const [sortState, setSortState] = useState<Map<string, { col: string; dir: SortDir }>>(new Map());
 
-  // Picker state
   const [lensPickerOpen, setLensPickerOpen] = useState(false);
   const [supplyPickerOpen, setSupplyPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<{
-    section: string;
-    rowKey: string;
+    section: string; rowKey: string;
     mode: "cell" | "add-lens" | "add-addon" | "add-supply";
     addonSection?: string;
   } | null>(null);
 
-  const isLoading = lLoading || aLoading || sLoading;
+  const isLoading = lLoading || aLoading || sLoading || rowsLoading;
 
-  /* ── Supply sections (for Buy/Sell page) ── */
-  const defaultSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => {
-    const map = new Map<string, CatalogRow[]>();
-    if (!suppliesOnly) return map;
-    const active = (allSupplies ?? []).filter(
-      (s) => s.is_active && s.show_in_pricelist && s.sell_price > 0
-    );
-    // Group by category name
-    const cats = [...new Set(active.map((s) => s.category))].sort();
-    for (const cat of cats) {
-      const items = active.filter((s) => s.category === cat);
-      if (items.length === 0) continue;
-      const rows: CatalogRow[] = items.map((s) => ({
-        key: `supply-${s.id}`,
-        section: cat,
-        description: s.name + (s.description ? ` — ${s.description}` : ""),
-        bbd: s.sell_price,
-        usd: s.sell_price * fxRate,
-        margin: s.base_price > 0 ?
-        parseFloat(((s.sell_price - s.base_price * 2) / s.sell_price * 100).toFixed(1)) :
-        null,
-        supplyId: s.id
-      }));
-      map.set(cat, rows);
+  // When savedRows or versionId changes, reset local state from DB
+  useEffect(() => {
+    if (!versionId) { setLensRows(new Map()); setAddonRows(new Map()); setSupplyRows(new Map()); setIsDirty(false); return; }
+    if (!savedRows) return;
+    if (savedRows.length === 0) { setLensRows(new Map()); setAddonRows(new Map()); setSupplyRows(new Map()); setIsDirty(false); return; }
+    const newLens = new Map<string, CatalogRow[]>();
+    const newAddon = new Map<string, CatalogRow[]>();
+    const newSupply = new Map<string, CatalogRow[]>();
+    for (const r of savedRows) {
+      const row: CatalogRow = { key: r.row_key, section: r.section, description: r.display_description, bbd: r.bbd_price, usd: r.bbd_price !== null ? r.bbd_price * fxRate : null, margin: null, lensId: r.row_type === "lens" ? r.item_id ?? undefined : undefined, addonId: r.row_type === "addon" ? r.item_id ?? undefined : undefined, supplyId: r.row_type === "supply" ? r.item_id ?? undefined : undefined };
+      if (r.row_type === "lens") { const arr = newLens.get(r.section) ?? []; arr.push(row); newLens.set(r.section, arr); }
+      else if (r.row_type === "addon") { const arr = newAddon.get(r.section) ?? []; arr.push(row); newAddon.set(r.section, arr); }
+      else { const arr = newSupply.get(r.section) ?? []; arr.push(row); newSupply.set(r.section, arr); }
     }
-    return map;
-  }, [allSupplies, suppliesOnly, fxRate]);
+    setLensRows(newLens); setAddonRows(newAddon); setSupplyRows(newSupply); setIsDirty(false);
+  }, [savedRows, versionId]);
 
-  /* ── Lens sections ── */
+  /* ── Default rows from catalog (used when no DB rows exist) ── */
   const defaultLensRows = useMemo<Map<string, CatalogRow[]>>(() => {
     const map = new Map<string, CatalogRow[]>();
-    if (suppliesOnly || lensFilter === "none") return map;
-
+    if (lensFilter === "none" || catalogType === "buysell") return map;
     const plLenses = (allLenses ?? []).filter((l) => {
       if (!l.is_active) return false;
       if (lensFilter === "wspl") return l.show_in_ws_pricelist && l.sell_price > 0;
@@ -138,12 +107,23 @@ const ListCatalogTab = ({
       return l.show_in_pricelist && l.sell_price > 0;
     });
 
-    if (groupByFinishThenMf) {
-      // Group by Finish Type name → MF Type name (compound key)
+    if (catalogType === "stock") {
+      // Group by MF Type only
+      const mfGroups = new Map<string, typeof plLenses>();
+      for (const l of plLenses) {
+        const mf = (l as any).mftype_name || "Standard";
+        if (!mfGroups.has(mf)) mfGroups.set(mf, []);
+        mfGroups.get(mf)!.push(l);
+      }
+      for (const [mf, lenses] of mfGroups) {
+        map.set(mf, lenses.map((l) => ({ key: `lens-${l.id}`, section: mf, description: l.name, bbd: l.sell_price, usd: l.sell_price * fxRate, margin: l.base_price > 0 ? parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) : null, lensId: l.id })));
+      }
+    } else {
+      // RX: Group by Finish Type → MF Type
       const finishGroups = new Map<string, Map<string, typeof plLenses>>();
       for (const l of plLenses) {
-        const finish = (l as any).finishtype_name || (l as any).finishtype?.name || "Finished";
-        const mf = (l as any).mftype_name || (l as any).mftype?.name || "Standard";
+        const finish = (l as any).finishtype_name || "Finished";
+        const mf = (l as any).mftype_name || "Standard";
         if (!finishGroups.has(finish)) finishGroups.set(finish, new Map());
         const mfMap = finishGroups.get(finish)!;
         if (!mfMap.has(mf)) mfMap.set(mf, []);
@@ -151,275 +131,152 @@ const ListCatalogTab = ({
       }
       for (const [finish, mfMap] of finishGroups) {
         for (const [mf, lenses] of mfMap) {
-          const sectionKey = `${finish} — ${mf}`;
-          const rows: CatalogRow[] = lenses.map((l) => ({
-            key: `lens-${l.id}`,
-            section: sectionKey,
-            description: l.name,
-            bbd: l.sell_price,
-            usd: l.sell_price * fxRate,
-            margin:
-            l.base_price > 0 ?
-            parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) :
-            null,
-            lensId: l.id
-          }));
-          map.set(sectionKey, rows);
+          const key = `${finish} — ${mf}`;
+          map.set(key, lenses.map((l) => ({ key: `lens-${l.id}`, section: key, description: l.name, bbd: l.sell_price, usd: l.sell_price * fxRate, margin: l.base_price > 0 ? parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) : null, lensId: l.id })));
         }
       }
-    } else {
-      // Legacy: group by lens type keywords
-      const LENS_SECTIONS = [
-      { title: "Single Vision Regular", test: (l: any) => /single|sv\b/i.test(l.name) && !/bifocal|ft|prog/i.test(l.name) },
-      { title: "FT Regular", test: (l: any) => /bifocal|flat top|ft\b|kryptok/i.test(l.name) },
-      { title: "Progressive Regular", test: (l: any) => /prog|varifocal/i.test(l.name) }];
-
-      const used = new Set<string>();
-      for (const sec of LENS_SECTIONS) {
-        const matched = plLenses.filter((l) => !used.has(l.id) && sec.test(l));
-        matched.forEach((l) => used.add(l.id));
-        if (matched.length === 0) continue;
-        map.set(sec.title, matched.map((l) => ({
-          key: `lens-${l.id}`,
-          section: sec.title,
-          description: l.name,
-          bbd: l.sell_price,
-          usd: l.sell_price * fxRate,
-          margin: l.base_price > 0 ?
-          parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) :
-          null,
-          lensId: l.id
-        })));
-      }
-      const remaining = plLenses.filter((l) => !used.has(l.id));
-      if (remaining.length > 0) {
-        map.set("Other", remaining.map((l) => ({
-          key: `lens-${l.id}`,
-          section: "Other",
-          description: l.name,
-          bbd: l.sell_price,
-          usd: l.sell_price * fxRate,
-          margin: null,
-          lensId: l.id
-        })));
-      }
     }
     return map;
-  }, [allLenses, fxRate, groupByFinishThenMf, lensFilter, suppliesOnly]);
+  }, [allLenses, fxRate, catalogType, lensFilter]);
 
-  /* ── Addon sections ── */
   const defaultAddonRows = useMemo<Map<string, CatalogRow[]>>(() => {
     const map = new Map<string, CatalogRow[]>();
-    if (suppliesOnly || !showTreatmentsAddons) return map;
+    if (!showTreatmentsAddons || catalogType === "buysell" || catalogType === "stock") return map;
     const active = (allAddons ?? []).filter((a) => a.is_active);
-    const ADDON_SECTIONS = [
-    { title: "Treatments", test: (a: any) => /treat|coat|hmc|ar\b|uv|tint|mirr|antireflect/i.test(`${a.category} ${a.name}`) },
-    { title: "ADD ONS", test: () => true }];
-
+    const SECTIONS = [{ title: "Treatments", test: (a: any) => /treat|coat|hmc|ar\b|uv|tint|mirr/i.test(`${a.category} ${a.name}`) }, { title: "ADD ONS", test: () => true }];
     const used = new Set<string>();
-    for (const sec of ADDON_SECTIONS) {
+    for (const sec of SECTIONS) {
       const matched = active.filter((a) => !used.has(a.id) && sec.test(a));
       matched.forEach((a) => used.add(a.id));
-      if (matched.length === 0) continue;
-      map.set(sec.title, matched.map((a) => ({
-        key: `addon-${a.id}`,
-        section: sec.title,
-        description: a.name + (a.description ? ` — ${a.description}` : ""),
-        bbd: a.price,
-        usd: a.price * fxRate,
-        margin: a.cost > 0 ?
-        parseFloat(((a.price - a.cost) / a.price * 100).toFixed(1)) :
-        null,
-        addonId: a.id
-      })));
+      if (!matched.length) continue;
+      map.set(sec.title, matched.map((a) => ({ key: `addon-${a.id}`, section: sec.title, description: a.name + (a.description ? ` — ${a.description}` : ""), bbd: a.price, usd: a.price * fxRate, margin: a.cost > 0 ? parseFloat(((a.price - a.cost) / a.price * 100).toFixed(1)) : null, addonId: a.id })));
     }
     return map;
-  }, [allAddons, fxRate, suppliesOnly, showTreatmentsAddons]);
+  }, [allAddons, fxRate, showTreatmentsAddons, catalogType]);
 
-  // Merged effective rows
-  const effectiveLensRows = useMemo<Map<string, CatalogRow[]>>(() => {
-    const merged = new Map(defaultLensRows);
-    lensRows.forEach((rows, sec) => merged.set(sec, rows));
-    return merged;
-  }, [defaultLensRows, lensRows]);
+  const defaultSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => {
+    const map = new Map<string, CatalogRow[]>();
+    if (catalogType !== "buysell") return map;
+    const active = (allSupplies ?? []).filter((s) => s.is_active && s.show_in_pricelist && s.sell_price > 0);
+    const cats = [...new Set(active.map((s) => s.category))].sort();
+    for (const cat of cats) {
+      const items = active.filter((s) => s.category === cat);
+      if (!items.length) continue;
+      map.set(cat, items.map((s) => ({ key: `supply-${s.id}`, section: cat, description: s.name + (s.description ? ` — ${s.description}` : ""), bbd: s.sell_price, usd: s.sell_price * fxRate, margin: s.base_price > 0 ? parseFloat(((s.sell_price - s.base_price * 2) / s.sell_price * 100).toFixed(1)) : null, supplyId: s.id })));
+    }
+    return map;
+  }, [allSupplies, fxRate, catalogType]);
 
-  const effectiveAddonRows = useMemo<Map<string, CatalogRow[]>>(() => {
-    const merged = new Map(defaultAddonRows);
-    addonRows.forEach((rows, sec) => merged.set(sec, rows));
-    return merged;
-  }, [defaultAddonRows, addonRows]);
+  // Effective rows: DB-loaded overrides take precedence over defaults
+  const hasDbRows = savedRows && savedRows.length > 0;
+  const effectiveLensRows = useMemo<Map<string, CatalogRow[]>>(() => { if (hasDbRows) return lensRows; const m = new Map(defaultLensRows); lensRows.forEach((r, s) => m.set(s, r)); return m; }, [defaultLensRows, lensRows, hasDbRows]);
+  const effectiveAddonRows = useMemo<Map<string, CatalogRow[]>>(() => { if (hasDbRows) return addonRows; const m = new Map(defaultAddonRows); addonRows.forEach((r, s) => m.set(s, r)); return m; }, [defaultAddonRows, addonRows, hasDbRows]);
+  const effectiveSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => { if (hasDbRows) return supplyRows; const m = new Map(defaultSupplyRows); supplyRows.forEach((r, s) => m.set(s, r)); return m; }, [defaultSupplyRows, supplyRows, hasDbRows]);
 
-  const effectiveSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => {
-    const merged = new Map(defaultSupplyRows);
-    supplyRows.forEach((rows, sec) => merged.set(sec, rows));
-    return merged;
-  }, [defaultSupplyRows, supplyRows]);
-
-  /* ── Sort helpers ── */
   const toggleSort = (section: string, col: string) => {
-    setSortState((prev) => {
-      const next = new Map(prev);
-      const cur = prev.get(section);
-      if (!cur || cur.col !== col) {
-        next.set(section, { col, dir: "asc" });
-      } else if (cur.dir === "asc") {
-        next.set(section, { col, dir: "desc" });
-      } else {
-        next.set(section, { col: "", dir: null });
-      }
-      return next;
-    });
+    setSortState((prev) => { const next = new Map(prev); const cur = prev.get(section); if (!cur || cur.col !== col) { next.set(section, { col, dir: "asc" }); } else if (cur.dir === "asc") { next.set(section, { col, dir: "desc" }); } else { next.set(section, { col: "", dir: null }); } return next; });
   };
 
-  const sortedRows = useCallback(
-    (section: string, rows: CatalogRow[]): CatalogRow[] => {
-      const s = sortState.get(section);
-      if (!s || !s.dir || !s.col) return rows;
-      return [...rows].sort((a, b) => {
-        let aVal: any, bVal: any;
-        if (s.col === "description") {aVal = a.description;bVal = b.description;} else
-        if (s.col === "bbd") {aVal = a.bbd ?? -Infinity;bVal = b.bbd ?? -Infinity;} else
-        if (s.col === "usd") {aVal = a.usd ?? -Infinity;bVal = b.usd ?? -Infinity;} else
-        if (s.col === "margin") {aVal = a.margin ?? -Infinity;bVal = b.margin ?? -Infinity;} else
-        return 0;
-        if (typeof aVal === "string") return s.dir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-        return s.dir === "asc" ? aVal - bVal : bVal - aVal;
-      });
-    },
-    [sortState]
-  );
+  const sortedRows = useCallback((section: string, rows: CatalogRow[]): CatalogRow[] => {
+    const s = sortState.get(section);
+    if (!s || !s.dir || !s.col) return rows;
+    return [...rows].sort((a, b) => {
+      let aVal: any, bVal: any;
+      if (s.col === "description") { aVal = a.description; bVal = b.description; }
+      else if (s.col === "bbd") { aVal = a.bbd ?? -Infinity; bVal = b.bbd ?? -Infinity; }
+      else if (s.col === "usd") { aVal = a.usd ?? -Infinity; bVal = b.usd ?? -Infinity; }
+      else if (s.col === "margin") { aVal = a.margin ?? -Infinity; bVal = b.margin ?? -Infinity; }
+      else return 0;
+      if (typeof aVal === "string") return s.dir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      return s.dir === "asc" ? aVal - bVal : bVal - aVal;
+    });
+  }, [sortState]);
+
+  /* ── Description editing ── */
+  const commitDesc = (type: "lens" | "addon" | "supply", section: string, rowKey: string, value: string) => {
+    const setter = type === "lens" ? setLensRows : type === "addon" ? setAddonRows : setSupplyRows;
+    const effectiveMap = type === "lens" ? effectiveLensRows : type === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    setter((prev) => { const next = new Map(prev); const rows = [...(effectiveMap.get(section) ?? [])]; const idx = rows.findIndex((r) => r.key === rowKey); if (idx !== -1) rows[idx] = { ...rows[idx], description: value }; next.set(section, rows); return next; });
+    setEditingDesc(null); setIsDirty(true);
+  };
 
   /* ── Picker handlers ── */
   const handleLensPick = (item: PickedItem) => {
     if (!pickerTarget) return;
     const { section, rowKey, mode } = pickerTarget;
-
     if (mode === "cell" && item.type === "lens") {
-      setLensRows((prev) => {
-        const next = new Map(prev);
-        const sectionRows = [...(effectiveLensRows.get(section) ?? [])];
-        const idx = sectionRows.findIndex((r) => r.key === rowKey);
-        if (idx !== -1) {
-          sectionRows[idx] = { ...sectionRows[idx], description: item.name, bbd: item.sell_price, usd: item.sell_price * fxRate, lensId: item.id };
-        }
-        next.set(section, sectionRows);
-        return next;
-      });
+      setLensRows((prev) => { const next = new Map(prev); const rows = [...(effectiveLensRows.get(section) ?? [])]; const idx = rows.findIndex((r) => r.key === rowKey); if (idx !== -1) rows[idx] = { ...rows[idx], description: item.name, bbd: item.sell_price, usd: item.sell_price * fxRate, lensId: item.id }; next.set(section, rows); return next; });
       setIsDirty(true);
     } else if (mode === "add-lens" && item.type === "lens") {
-      const newRow: CatalogRow = {
-        key: `lens-${item.id}-${Date.now()}`,
-        section,
-        description: item.name,
-        bbd: item.sell_price,
-        usd: item.sell_price * fxRate,
-        margin: null,
-        lensId: item.id
-      };
-      setLensRows((prev) => {
-        const next = new Map(prev);
-        next.set(section, [...(effectiveLensRows.get(section) ?? []), newRow]);
-        return next;
-      });
+      const newRow: CatalogRow = { key: `lens-${item.id}-${Date.now()}`, section, description: item.name, bbd: item.sell_price, usd: item.sell_price * fxRate, margin: null, lensId: item.id };
+      setLensRows((prev) => { const next = new Map(prev); next.set(section, [...(effectiveLensRows.get(section) ?? []), newRow]); return next; });
       setIsDirty(true);
     } else if (mode === "add-addon" && item.type === "addon") {
       const target = pickerTarget.addonSection ?? "ADD ONS";
-      const newRow: CatalogRow = {
-        key: `addon-${item.id}-${Date.now()}`,
-        section: target,
-        description: item.name + ((item as any).description ? ` — ${(item as any).description}` : ""),
-        bbd: item.price,
-        usd: item.price * fxRate,
-        margin: null,
-        addonId: item.id
-      };
-      setAddonRows((prev) => {
-        const next = new Map(prev);
-        next.set(target, [...(effectiveAddonRows.get(target) ?? []), newRow]);
-        return next;
-      });
+      const newRow: CatalogRow = { key: `addon-${item.id}-${Date.now()}`, section: target, description: item.name + ((item as any).description ? ` — ${(item as any).description}` : ""), bbd: (item as any).price ?? 0, usd: ((item as any).price ?? 0) * fxRate, margin: null, addonId: item.id };
+      setAddonRows((prev) => { const next = new Map(prev); next.set(target, [...(effectiveAddonRows.get(target) ?? []), newRow]); return next; });
       setIsDirty(true);
     }
   };
 
   const handleSupplyPick = (item: PickedSupply) => {
     if (!pickerTarget) return;
-    const { section } = pickerTarget;
-    const targetSection = section || item.category;
-    const newRow: CatalogRow = {
-      key: `supply-${item.id}-${Date.now()}`,
-      section: targetSection,
-      description: item.name + (item.description ? ` — ${item.description}` : ""),
-      bbd: item.sell_price,
-      usd: item.sell_price * fxRate,
-      margin: null,
-      supplyId: item.id
-    };
-    setSupplyRows((prev) => {
-      const next = new Map(prev);
-      next.set(targetSection, [...(effectiveSupplyRows.get(targetSection) ?? []), newRow]);
-      return next;
-    });
+    const targetSection = pickerTarget.section || item.category;
+    const newRow: CatalogRow = { key: `supply-${item.id}-${Date.now()}`, section: targetSection, description: item.name + (item.description ? ` — ${item.description}` : ""), bbd: item.sell_price, usd: item.sell_price * fxRate, margin: null, supplyId: item.id };
+    setSupplyRows((prev) => { const next = new Map(prev); next.set(targetSection, [...(effectiveSupplyRows.get(targetSection) ?? []), newRow]); return next; });
     setIsDirty(true);
   };
 
   const removeRow = (section: string, rowKey: string, type: "lens" | "addon" | "supply") => {
-    if (type === "supply") {
-      setSupplyRows((prev) => {
-        const next = new Map(prev);
-        next.set(section, (effectiveSupplyRows.get(section) ?? []).filter((r) => r.key !== rowKey));
-        return next;
-      });
-    } else if (type === "addon") {
-      setAddonRows((prev) => {
-        const next = new Map(prev);
-        next.set(section, (effectiveAddonRows.get(section) ?? []).filter((r) => r.key !== rowKey));
-        return next;
-      });
-    } else {
-      setLensRows((prev) => {
-        const next = new Map(prev);
-        next.set(section, (effectiveLensRows.get(section) ?? []).filter((r) => r.key !== rowKey));
-        return next;
-      });
-    }
+    if (type === "supply") setSupplyRows((prev) => { const next = new Map(prev); next.set(section, (effectiveSupplyRows.get(section) ?? []).filter((r) => r.key !== rowKey)); return next; });
+    else if (type === "addon") setAddonRows((prev) => { const next = new Map(prev); next.set(section, (effectiveAddonRows.get(section) ?? []).filter((r) => r.key !== rowKey)); return next; });
+    else setLensRows((prev) => { const next = new Map(prev); next.set(section, (effectiveLensRows.get(section) ?? []).filter((r) => r.key !== rowKey)); return next; });
     setIsDirty(true);
   };
 
-  /* ── Save ── */
+  /* ── Save to DB ── */
   const handleSave = async () => {
-    setIsSaving(true);
-    // Simulate persistence — in real implementation this would write to a pricelist_version-specific table
-    await new Promise((r) => setTimeout(r, 600));
-    setIsSaving(false);
-    setIsDirty(false);
-    toast({ title: "Catalog saved", description: "All changes have been applied to this version." });
+    if (!versionId) { toast({ title: "No version selected", variant: "destructive" }); return; }
+    let sortOrder = 0;
+    const rows: Omit<PricelistCatalogRow, "id">[] = [];
+    for (const [sec, secRows] of effectiveLensRows) {
+      for (const r of secRows) { rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "lens", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.lensId ?? null, sort_order: sortOrder++ }); }
+    }
+    for (const [sec, secRows] of effectiveAddonRows) {
+      for (const r of secRows) { rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "addon", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.addonId ?? null, sort_order: sortOrder++ }); }
+    }
+    for (const [sec, secRows] of effectiveSupplyRows) {
+      for (const r of secRows) { rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "supply", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.supplyId ?? null, sort_order: sortOrder++ }); }
+    }
+    const affectedAreas = [
+      ...(effectiveLensRows.size > 0 ? ["Lens pricing"] : []),
+      ...(effectiveAddonRows.size > 0 ? ["Treatments & Add-ons (shared across matrix and list)"] : []),
+      ...(effectiveSupplyRows.size > 0 ? ["Supply pricing"] : []),
+    ].join(", ");
+    saveRows.mutate(rows, {
+      onSuccess: () => { setIsDirty(false); toast({ title: "Catalog saved", description: affectedAreas ? `Changes applied to: ${affectedAreas}` : "All changes saved." }); },
+      onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+    });
   };
 
-  /* ── Exports ── */
-  const allExportRows = [
-  ...[...effectiveSupplyRows.entries()].flatMap(([sec, rows]) =>
-  [{ isHeader: true, title: sec }, ...rows]
-  ),
-  ...[...effectiveLensRows.entries()].flatMap(([sec, rows]) =>
-  [{ isHeader: true, title: sec }, ...rows]
-  ),
-  ...[...effectiveAddonRows.entries()].flatMap(([sec, rows]) =>
-  [{ isHeader: true, title: sec }, ...rows]
-  )];
-
+  /* ── Exports (BBD hidden in exports when showUSD=true) ── */
+  const buildExportRows = () => {
+    const all: any[] = [];
+    const addSection = (sec: string, rows: CatalogRow[]) => {
+      all.push({ isHeader: true, title: sec });
+      for (const r of rows) all.push(r);
+    };
+    for (const [s, r] of effectiveSupplyRows) addSection(s, r);
+    for (const [s, r] of effectiveLensRows) addSection(s, r);
+    for (const [s, r] of effectiveAddonRows) addSection(s, r);
+    return all;
+  };
 
   const handleExcelExport = () => {
+    const exportRows = buildExportRows();
+    const headers = showUSD ? ["Description", "USD $ COST", "Margin %"] : ["Description", "BBD $ COST", "USD $ COST", "Margin %"];
     const wb = XLSX.utils.book_new();
-    const data: any[][] = [
-    [pageTitle, "", "", ""],
-    ["Description", "BBD $ COST", "USD $ COST", "Margin %"],
-    ...allExportRows.map((r: any) =>
-    r.isHeader ?
-    [r.title, "", "", ""] :
-    [r.description, r.bbd ?? "", r.usd !== null ? parseFloat(r.usd.toFixed(2)) : "", r.margin ?? ""]
-    )];
-
+    const data: any[][] = [[pageTitle], headers, ...exportRows.map((r: any) => r.isHeader ? [r.title, ...(showUSD ? ["", ""] : ["", "", ""])] : showUSD ? [r.description, r.usd !== null ? parseFloat(r.usd.toFixed(2)) : "", r.margin ?? ""] : [r.description, r.bbd ?? "", r.usd !== null ? parseFloat(r.usd.toFixed(2)) : "", r.margin ?? ""])];
     const ws = XLSX.utils.aoa_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, "Catalog");
     XLSX.writeFile(wb, `${pageTitle.replace(/\s+/g, "_")}.xlsx`);
@@ -427,211 +284,96 @@ const ListCatalogTab = ({
   };
 
   const handleCSVExport = () => {
-    const lines = [
-    "Description,BBD $ COST,USD $ COST,Margin %",
-    ...allExportRows.
-    filter((r: any) => !r.isHeader).
-    map((r: any) =>
-    [`"${(r as CatalogRow).description}"`, (r as CatalogRow).bbd ?? "", (r as CatalogRow).usd !== null ? (r as CatalogRow).usd!.toFixed(2) : "", (r as CatalogRow).margin ?? ""].join(",")
-    )];
-
+    const exportRows = buildExportRows();
+    const header = showUSD ? "Description,USD $ COST,Margin %" : "Description,BBD $ COST,USD $ COST,Margin %";
+    const lines = [header, ...exportRows.filter((r: any) => !r.isHeader).map((r: any) => showUSD ? [`"${r.description}"`, r.usd !== null ? r.usd.toFixed(2) : "", r.margin ?? ""].join(",") : [`"${r.description}"`, r.bbd ?? "", r.usd !== null ? r.usd.toFixed(2) : "", r.margin ?? ""].join(","))];
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${pageTitle.replace(/\s+/g, "_")}.csv`;
-    a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${pageTitle.replace(/\s+/g, "_")}.csv`; a.click();
     toast({ title: "CSV exported" });
   };
 
-  const handleHTMLExport = () => {
-    if (!printRef.current) return;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${pageTitle}</title></head><body>${printRef.current.outerHTML}</body></html>`;
-    const blob = new Blob([html], { type: "text/html" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${pageTitle.replace(/\s+/g, "_")}.html`;
-    a.click();
-    toast({ title: "HTML exported" });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-40">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>);
-
-  }
-
   const today = format(new Date(), "dd MMMM yyyy");
 
-  /* ── Render a section table ── */
-  const renderSection = (
-  title: string,
-  rows: CatalogRow[],
-  rowType: "lens" | "addon" | "supply",
+  const SortIcon = ({ section, col }: { section: string; col: string }) => {
+    const s = sortState.get(section);
+    return <button className="ml-1 opacity-50 hover:opacity-100 transition-opacity no-print" onClick={(e) => { e.stopPropagation(); toggleSort(section, col); }}><ArrowUpDown className="h-2.5 w-2.5 inline" style={{ color: s?.col === col && s.dir ? "hsl(215 65% 50%)" : "inherit" }} /></button>;
+  };
 
-  parentLabel?: string) =>
-  {
-    const displayRows = sortedRows(title, rows);
-    const sort = sortState.get(title);
-    const SortIcon = ({ col }: {col: string;}) =>
-    <button
-      className="ml-1 opacity-50 hover:opacity-100 transition-opacity no-print"
-      onClick={(e) => {e.stopPropagation();toggleSort(title, col);}}
-      title={`Sort by ${col}`}>
-
-        <ArrowUpDown
-        className="h-2.5 w-2.5 inline"
-        style={{ color: sort?.col === col && sort.dir ? "hsl(215 65% 50%)" : "inherit" }} />
-
-      </button>;
-
-
+  const renderRow = (row: CatalogRow, i: number, rowType: "lens" | "addon" | "supply", section: string) => {
+    const isEditingThisDesc = editingDesc?.key === row.key;
     return (
-      <div key={title} className="mt-5 px-2 py-[5px]">
-        {parentLabel &&
-        <div
-          className="px-4 py-1.5 mb-0.5 font-bold text-xs uppercase tracking-wider"
-          style={{ background: "hsl(215 30% 20%)", color: "hsl(215 80% 85%)" }}>
-
-            {parentLabel}
+      <tr key={row.key} style={{ background: i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
+        <td className="px-3 py-1.5 border border-slate-200 group relative" style={{ color: "hsl(215 30% 15%)" }}>
+          <div className="flex items-center gap-1">
+            {isEditingThisDesc ? (
+              <input autoFocus className="flex-1 text-xs border rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-primary/30" value={editingDesc.value}
+                onChange={(e) => setEditingDesc({ key: row.key, value: e.target.value })}
+                onBlur={() => commitDesc(rowType, section, row.key, editingDesc.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") commitDesc(rowType, section, row.key, editingDesc.value); if (e.key === "Escape") setEditingDesc(null); }} />
+            ) : (
+              <span className="flex-1 truncate cursor-text hover:bg-primary/5 rounded px-0.5" title="Click to edit description" onClick={() => setEditingDesc({ key: row.key, value: row.description })}>{row.description}</span>
+            )}
+            {rowType === "lens" && !isEditingThisDesc && (
+              <button className="opacity-0 group-hover:opacity-100 transition-opacity no-print shrink-0" title="Change linked lens" onClick={() => { setPickerTarget({ section, rowKey: row.key, mode: "cell" }); setLensPickerOpen(true); }}>
+                <Search className="h-3 w-3" style={{ color: "hsl(215 65% 50%)" }} />
+              </button>
+            )}
           </div>
-        }
-        <div
-          className="px-4 py-2 rounded-sm mb-0.5 font-bold text-sm flex items-center justify-between"
-          style={{ background: BLUE_BG, color: "white" }}>
+          {row.lensId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(215 65% 45%)" }}>↳ linked lens</div>}
+          {row.supplyId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(130 55% 40%)" }}>↳ linked supply</div>}
+        </td>
+        {/* BBD always visible in editor; hidden in export when showUSD */}
+        <td className={`px-3 py-1.5 text-right border border-slate-200 font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: "hsl(215 60% 97%)", color: "hsl(215 60% 30%)" }}>
+          {row.bbd !== null ? `$${row.bbd.toFixed(2)}` : "—"}
+        </td>
+        <td className="px-3 py-1.5 text-right border border-slate-200 font-medium" style={{ background: "#f0fff4", color: GREEN_TEXT }}>
+          {row.usd !== null ? `$${row.usd.toFixed(2)}` : "—"}
+        </td>
+        <td className="px-3 py-1.5 text-right border border-slate-200 no-print" style={{ color: "hsl(280 40% 40%)" }}>
+          {row.margin !== null ? `${row.margin}%` : "—"}
+        </td>
+        <td className="border border-slate-200 p-0 no-print">
+          <button className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
+            <X className="h-3 w-3 text-destructive/60 hover:text-destructive" />
+          </button>
+        </td>
+      </tr>
+    );
+  };
 
+  const renderSection = (title: string, rows: CatalogRow[], rowType: "lens" | "addon" | "supply", parentLabel?: string) => {
+    const displayRows = sortedRows(title, rows);
+    return (
+      <div key={title} className="mt-5 px-2">
+        {parentLabel && <div className="px-4 py-1.5 mb-0.5 font-bold text-xs uppercase tracking-wider" style={{ background: "hsl(215 30% 20%)", color: "hsl(215 80% 85%)" }}>{parentLabel}</div>}
+        <div className="px-4 py-2 rounded-sm mb-0.5 font-bold text-sm flex items-center justify-between" style={{ background: BLUE_BG, color: "white" }}>
           <span>{parentLabel ? `└ ${title.split(" — ")[1] || title}` : title}</span>
-          <button
-            className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
-            onClick={() => {
-              setPickerTarget({
-                section: title,
-                rowKey: "",
-                mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens",
-                addonSection: rowType === "addon" ? title : undefined
-              });
-              if (rowType === "supply") setSupplyPickerOpen(true);else
-              setLensPickerOpen(true);
-            }}>
-
+          <button className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
+            onClick={() => { setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined }); if (rowType === "supply") setSupplyPickerOpen(true); else setLensPickerOpen(true); }}>
             <Plus className="h-3 w-3" /> Add Line
           </button>
         </div>
-
-        {displayRows.length === 0 ?
-        <p className="text-xs text-muted-foreground px-3 py-3 italic">
-            No items — click "Add Line" to add.
-          </p> :
-
-        <table className="w-full text-xs border-collapse">
+        {displayRows.length === 0 ? (
+          <p className="text-xs text-muted-foreground px-3 py-3 italic">No items — click "Add Line" to add.</p>
+        ) : (
+          <table className="w-full text-xs border-collapse">
             <thead>
               <tr>
-                <th
-                className="px-3 py-2 text-left font-semibold border border-slate-300 cursor-pointer select-none"
-                style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>
-
-                  Description <SortIcon col="description" />
-                </th>
-                <th
-                className="px-3 py-2 text-right font-semibold border border-slate-300 w-28 cursor-pointer"
-                style={{ background: BLUE_BG, color: BLUE_TEXT }}>
-
-                  BBD $ COST <SortIcon col="bbd" />
-                </th>
-                <th
-                className="px-3 py-2 text-right font-semibold border border-slate-300 w-28 cursor-pointer"
-                style={{ background: GREEN_BG, color: GREEN_TEXT }}>
-
-                  USD $ COST <SortIcon col="usd" />
-                </th>
-                <th
-                className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print"
-                style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>
-
-                  Margin % <SortIcon col="margin" />
-                </th>
+                <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
+                <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
+                <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
+                <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
                 <th className="w-6 no-print border border-slate-300" />
               </tr>
             </thead>
-            <tbody>
-              {displayRows.map((row, i) =>
-            <tr key={row.key} style={{ background: i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
-                  <td
-                className="px-3 py-1.5 border border-slate-200 group relative"
-                style={{ color: "hsl(215 30% 15%)" }}>
-
-                    <div className="flex items-center gap-1">
-                      <span className="flex-1 truncate">{row.description}</span>
-                      {rowType === "lens" &&
-                  <button
-                    className="opacity-0 group-hover:opacity-100 transition-opacity no-print shrink-0"
-                    title="Change linked lens"
-                    onClick={() => {
-                      setPickerTarget({ section: title, rowKey: row.key, mode: "cell" });
-                      setLensPickerOpen(true);
-                    }}>
-
-                          <Search className="h-3 w-3" style={{ color: "hsl(215 65% 50%)" }} />
-                        </button>
-                  }
-                    </div>
-                    {row.lensId &&
-                <div className="text-[9px] mt-0.5" style={{ color: "hsl(215 65% 45%)" }}>
-                        ↳ linked lens
-                      </div>
-                }
-                    {row.supplyId &&
-                <div className="text-[9px] mt-0.5" style={{ color: "hsl(130 55% 40%)" }}>
-                        ↳ linked supply
-                      </div>
-                }
-                  </td>
-                  <td
-                className="px-3 py-1.5 text-right border border-slate-200 font-medium"
-                style={{ background: "hsl(215 60% 97%)", color: "hsl(215 60% 30%)" }}>
-
-                    {row.bbd !== null ? `$${(showUSD ? row.bbd : row.bbd).toFixed(2)}` : "—"}
-                  </td>
-                  <td
-                className="px-3 py-1.5 text-right border border-slate-200 font-medium"
-                style={{ background: "#f0fff4", color: GREEN_TEXT }}>
-
-                    {row.usd !== null ? `$${row.usd.toFixed(2)}` : "—"}
-                  </td>
-                  <td
-                className="px-3 py-1.5 text-right border border-slate-200 no-print"
-                style={{ color: "hsl(280 40% 40%)" }}>
-
-                    {row.margin !== null ? `${row.margin}%` : "—"}
-                  </td>
-                  <td className="border border-slate-200 p-0 no-print">
-                    <button
-                  className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors"
-                  title="Remove row"
-                  onClick={() => removeRow(title, row.key, rowType)}>
-
-                      <X className="h-3 w-3 text-destructive/60 hover:text-destructive" />
-                    </button>
-                  </td>
-                </tr>
-            )}
-            </tbody>
+            <tbody>{displayRows.map((row, i) => renderRow(row, i, rowType, title))}</tbody>
           </table>
-        }
-
-        <p className="text-[10px] italic mt-2 px-1" style={{ color: LABEL }}>
-          {PAGE_NOTE}
-        </p>
-      </div>);
-
+        )}
+      </div>
+    );
   };
 
-  /* ── Render finish→MF grouped sections ── */
-  const renderGroupedSections = () => {
-    if (!groupByFinishThenMf) return null;
-
-    // Parse section keys like "Finished — Single Vision" into parent/child
+  const renderRxGrouped = () => {
     const finishGroups = new Map<string, string[]>();
     for (const key of effectiveLensRows.keys()) {
       const parts = key.split(" — ");
@@ -639,147 +381,68 @@ const ListCatalogTab = ({
       if (!finishGroups.has(finish)) finishGroups.set(finish, []);
       finishGroups.get(finish)!.push(key);
     }
-
-    const elements: React.ReactNode[] = [];
-    let firstFinish = true;
-    for (const [finish, sectionKeys] of finishGroups) {
-      elements.push(
-        <div key={`finish-${finish}`} className={firstFinish ? "mt-2" : "mt-6"}>
-          <div
-            className="px-4 py-2 font-bold text-sm uppercase tracking-wide"
-            style={{ background: "hsl(215 30% 18%)", color: "hsl(0 0% 100%)" }}>
-
-            {finish}
-          </div>
-          {sectionKeys.map((key) => {
-            const rows = effectiveLensRows.get(key) ?? [];
-            const mfName = key.split(" — ")[1] || key;
-            return renderSection(key, rows, "lens", mfName);
-          })}
-        </div>
-      );
-      firstFinish = false;
-    }
-    return elements;
+    return [...finishGroups.entries()].map(([finish, keys]) => (
+      <div key={`finish-${finish}`} className="mt-6">
+        <div className="px-4 py-2 font-bold text-sm uppercase tracking-wide" style={{ background: "hsl(215 30% 18%)", color: "white" }}>{finish}</div>
+        {keys.map((key) => renderSection(key, effectiveLensRows.get(key) ?? [], "lens", key.split(" — ")[1] || key))}
+      </div>
+    ));
   };
 
-  const pickerMode = pickerTarget?.mode === "add-addon" ? "all" : "lens-only";
+  if (isLoading) return <div className="flex items-center justify-center h-40"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
     <div className="space-y-4">
-      {/* Export + Save Bar */}
+      {/* Controls */}
       <div className="flex items-center gap-2 flex-wrap no-print justify-between">
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            size="sm"
-            className="h-8 text-xs gap-1.5 font-semibold"
-            style={{ background: BLUE_BG, color: "white" }}
-            onClick={() => {window.print();toast({ title: "Print dialog opened" });}}>
-
-            <FileText className="h-3.5 w-3.5" /> Export PDF
+          <Button size="sm" className="h-8 text-xs gap-1.5 font-semibold" style={{ background: BLUE_BG, color: "white" }} onClick={() => { window.print(); toast({ title: "Print dialog opened" }); }}>
+            <FileText className="h-3.5 w-3.5" /> PDF
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExcelExport}>
-            <Table2 className="h-3.5 w-3.5" /> Excel
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleCSVExport}>
-            <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleHTMLExport}>
-            <Globe className="h-3.5 w-3.5" /> HTML
-          </Button>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExcelExport}><Table2 className="h-3.5 w-3.5" /> Excel</Button>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleCSVExport}><FileSpreadsheet className="h-3.5 w-3.5" /> CSV</Button>
         </div>
-        {isDirty &&
-        <Button
-          size="sm"
-          className="h-8 text-xs gap-1.5"
-          style={{ background: "hsl(215 65% 50%)", color: "white" }}
-          onClick={handleSave}
-          disabled={isSaving}>
-
-            {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            Save All Changes
-          </Button>
-        }
+        <Button size="sm" className="h-8 text-xs gap-1.5" style={{ background: isDirty ? "hsl(215 65% 50%)" : undefined }} variant={isDirty ? "default" : "outline"} onClick={handleSave} disabled={saveRows.isPending}>
+          {saveRows.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save All Changes
+        </Button>
       </div>
+      {isDirty && <p className="text-xs no-print" style={{ color: "hsl(38 92% 40%)" }}>⚠ Unsaved changes — click "Save All Changes" to persist to this version.</p>}
 
-      {isDirty &&
-      <p className="text-xs no-print" style={{ color: "hsl(38 92% 40%)" }}>
-          You have unsaved changes — click "Save All Changes" to persist.
-        </p>
-      }
-
-      {/* Catalog Body */}
       <div ref={printRef} className="catalog-print-area space-y-0">
-        {/* Header */}
-        <div
-          className="px-6 py-5 text-center border-b-4 print-header border-primary-foreground"
-          style={{ borderColor: BLUE_BG, background: "hsl(215 20% 98%)" }}>
-
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: BLUE_BG }}>
-            {pageTitle}
-          </h1>
+        <div className="px-6 py-5 text-center border-b-4 border-primary-foreground" style={{ borderColor: BLUE_BG, background: "hsl(215 20% 98%)" }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: BLUE_BG }}>{pageTitle}</h1>
           <p className="text-sm mt-1" style={{ color: LABEL }}>{today}</p>
-          <p className="text-xs mt-2 italic" style={{ color: LABEL }}>{PAGE_NOTE}</p>
         </div>
 
-        {/* Supply sections (Buy/Sell page) */}
-        {suppliesOnly && [...effectiveSupplyRows.entries()].map(([sec, rows]) =>
-        renderSection(sec, rows, "supply")
+        {/* Buy/Sell: supplies by category */}
+        {catalogType === "buysell" && [...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
+
+        {/* Stock: lenses by MF type only */}
+        {catalogType === "stock" && [...effectiveLensRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "lens"))}
+
+        {/* RX: lenses grouped by Finish → MF */}
+        {catalogType === "rx" && renderRxGrouped()}
+
+        {/* Treatments & Add-ons (RX only) */}
+        {showTreatmentsAddons && catalogType === "rx" && (
+          <div className="mt-8 border-t-2 border-dashed border-border pt-4">
+            <div className="px-4 py-2 mb-2 rounded-sm text-xs font-bold tracking-wide" style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}>
+              TREATMENTS &amp; ADD ONS
+            </div>
+            {["Treatments", "ADD ONS"].map((sec) => renderSection(sec, effectiveAddonRows.get(sec) ?? [], "addon"))}
+          </div>
         )}
 
-        {/* Lens sections (non-grouped) */}
-        {!suppliesOnly && !groupByFinishThenMf &&
-        <>
-            {["Single Vision Regular", "FT Regular", "Progressive Regular"].map((sec) => {
-            const rows = effectiveLensRows.get(sec);
-            if (!rows) return null;
-            return renderSection(sec, rows, "lens");
-          })}
-            {effectiveLensRows.has("Other") &&
-          renderSection("Other", effectiveLensRows.get("Other")!, "lens")}
-          </>
-        }
-
-        {/* Grouped sections (Stock Lens / RX grouped by Finish→MF) */}
-        {!suppliesOnly && groupByFinishThenMf && renderGroupedSections()}
-
-        {/* Add-on sections (Treatments + ADD ONS) */}
-        {!suppliesOnly && showTreatmentsAddons &&
-        <>
-            {["Treatments", "ADD ONS"].map((sec) => {
-            const rows = effectiveAddonRows.get(sec) ?? [];
-            return renderSection(sec, rows, "addon");
-          })}
-          </>
-        }
-
-        {/* Footer */}
         <div className="mt-8 px-2 py-4 border-t border-border text-center">
-          <p className="text-[10px] italic" style={{ color: LABEL }}>
-            Prices subject to change without notice. All prices in BBD unless otherwise stated. {today}.
-          </p>
+          <p className="text-[10px] italic" style={{ color: LABEL }}>Prices subject to change without notice. All prices in {showUSD ? "USD" : "BBD"} unless otherwise stated. {today}.</p>
         </div>
       </div>
 
-      {/* Lens picker */}
-      <LensPickerPopover
-        open={lensPickerOpen}
-        onOpenChange={setLensPickerOpen}
-        onPick={handleLensPick}
-        mode={pickerMode}
-        currentId={null} />
-
-
-      {/* Supply picker */}
-      <SupplyPickerPopover
-        open={supplyPickerOpen}
-        onOpenChange={setSupplyPickerOpen}
-        onPick={handleSupplyPick}
-        currentId={null}
-        categoryFilter={pickerTarget?.section} />
-
-    </div>);
-
+      <LensPickerPopover open={lensPickerOpen} onOpenChange={setLensPickerOpen} onPick={handleLensPick} mode={pickerTarget?.mode === "add-addon" ? "all" : "lens-only"} currentId={null} />
+      <SupplyPickerPopover open={supplyPickerOpen} onOpenChange={setSupplyPickerOpen} onPick={handleSupplyPick} currentId={null} categoryFilter={pickerTarget?.section} />
+    </div>
+  );
 };
 
 export default ListCatalogTab;
