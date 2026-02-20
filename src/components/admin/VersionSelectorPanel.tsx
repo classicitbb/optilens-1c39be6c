@@ -51,6 +51,8 @@ interface VersionSelectorPanelProps {
   onShowUSDChange: (v: boolean) => void;
   /** Called when user clicks Preview on a version row */
   onPreviewClick?: (versionId: number) => void;
+  /** Optional export bar + save button rendered inside the "You are editing" banner */
+  exportBar?: React.ReactNode;
   /** If provided, render after the context banner */
   children?: React.ReactNode;
 }
@@ -63,6 +65,7 @@ const VersionSelectorPanel = ({
   showUSD,
   onShowUSDChange,
   onPreviewClick,
+  exportBar,
   children,
 }: VersionSelectorPanelProps) => {
   const { data: versions, isLoading, createMutation, updateMutation, deleteMutation } =
@@ -359,61 +362,70 @@ const VersionSelectorPanel = ({
       {/* Editing context banner */}
       {activeVersion && (
         <div
-          className="flex items-center gap-3 px-4 py-2.5 rounded-md border"
+          className="rounded-md border space-y-0"
           style={{
             background: "hsl(215 65% 50% / 0.05)",
             borderColor: "hsl(215 65% 50% / 0.2)",
           }}
         >
-          <div className="flex-1 space-y-0.5">
-            <p className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
-              You are editing:{" "}
-              <span style={{ color: BLUE }}>{activeVersion.name}</span>
-            </p>
-            <div
-              className="flex items-center gap-4 text-[10px]"
-              style={{ color: LABEL_COLOR }}
-            >
-              <span className="flex items-center gap-1">
-                <CalendarDays className="h-3 w-3" />
-                Created{" "}
-                {activeVersion.created_at
-                  ? format(new Date(activeVersion.created_at), "dd MMM yyyy 'at' HH:mm")
-                  : "—"}
+          {/* Top row: version info + currency toggle */}
+          <div className="flex items-center gap-3 px-4 py-2.5">
+            <div className="flex-1 space-y-0.5">
+              <p className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+                You are editing:{" "}
+                <span style={{ color: BLUE }}>{activeVersion.name}</span>
+              </p>
+              <div
+                className="flex items-center gap-4 text-[10px]"
+                style={{ color: LABEL_COLOR }}
+              >
+                <span className="flex items-center gap-1">
+                  <CalendarDays className="h-3 w-3" />
+                  Created{" "}
+                  {activeVersion.created_at
+                    ? format(new Date(activeVersion.created_at), "dd MMM yyyy 'at' HH:mm")
+                    : "—"}
+                </span>
+                {activeVersion.updated_at &&
+                  activeVersion.updated_at !== activeVersion.created_at && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Last saved{" "}
+                      {format(
+                        new Date(activeVersion.updated_at),
+                        "dd MMM yyyy 'at' HH:mm"
+                      )}
+                    </span>
+                  )}
+              </div>
+            </div>
+            {/* BBD/USD toggle */}
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className="text-[10px] font-medium"
+                style={{ color: showUSD ? LABEL_COLOR : BLUE }}
+              >
+                BBD
               </span>
-              {activeVersion.updated_at &&
-                activeVersion.updated_at !== activeVersion.created_at && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Last saved{" "}
-                    {format(
-                      new Date(activeVersion.updated_at),
-                      "dd MMM yyyy 'at' HH:mm"
-                    )}
-                  </span>
-                )}
+              <Switch
+                checked={showUSD}
+                onCheckedChange={onShowUSDChange}
+                aria-label="Toggle currency"
+              />
+              <span
+                className="text-[10px] font-medium"
+                style={{ color: showUSD ? BLUE : LABEL_COLOR }}
+              >
+                USD
+              </span>
             </div>
           </div>
-          {/* BBD/USD toggle */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span
-              className="text-[10px] font-medium"
-              style={{ color: showUSD ? LABEL_COLOR : BLUE }}
-            >
-              BBD
-            </span>
-            <Switch
-              checked={showUSD}
-              onCheckedChange={onShowUSDChange}
-              aria-label="Toggle currency"
-            />
-            <span
-              className="text-[10px] font-medium"
-              style={{ color: showUSD ? BLUE : LABEL_COLOR }}
-            >
-              USD
-            </span>
-          </div>
+          {/* Export bar slot */}
+          {exportBar && (
+            <div className="px-4 pb-3 border-t border-border/40 pt-2.5">
+              {exportBar}
+            </div>
+          )}
         </div>
       )}
 

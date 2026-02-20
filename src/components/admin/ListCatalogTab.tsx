@@ -423,88 +423,95 @@ const ListCatalogTab = ({
   };
 
   const renderRxGrouped = () => {
-    // Build: finishType → mfType → sectionKey
-    const finishGroups = new Map<string, Map<string, string>>();
+    // Group by CATEGORY only (ignore treatment type prefix).
+    // Section keys from matrix sync look like "Clear Lenses — Progressive - Best"
+    // or "Finished — SV". We want to group by the category part only.
+    // For matrix-synced rows: strip known treatment prefixes; for DB rows use section as-is.
+    const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
+
+    // Build: category → [sectionKeys that map to this category]
+    const categoryMap = new Map<string, string[]>();
     for (const key of effectiveLensRows.keys()) {
       const parts = key.split(" — ");
-      const finish = parts[0] || key;
-      const mf = parts[1] || key;
-      if (!finishGroups.has(finish)) finishGroups.set(finish, new Map());
-      finishGroups.get(finish)!.set(mf, key);
+      // If first part is a treatment prefix, the category is the rest
+      const isMatrixKey = TREATMENT_PREFIXES.some(tp => parts[0].trim() === tp);
+      const category = isMatrixKey ? (parts.slice(1).join(" — ") || key) : key;
+      if (!categoryMap.has(category)) categoryMap.set(category, []);
+      categoryMap.get(category)!.push(key);
     }
 
-    return [...finishGroups.entries()].map(([finish, mfMap]) => (
-      <div key={`finish-${finish}`} className="mt-4 border border-border rounded-lg overflow-hidden mx-[5px]">
-        {/* Finish Type header — always visible, acts as group label */}
-        <div className="px-3 py-1.5 font-semibold text-xs uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)" }}>
-          {finish}
-          <span className="ml-auto text-xs font-normal opacity-60">{mfMap.size} {mfMap.size === 1 ? "category" : "categories"}</span>
+    return [...categoryMap.entries()].map(([category, sectionKeys]) => {
+      // Merge all rows for this category regardless of treatment type
+      const allRows = sectionKeys.flatMap(sk => effectiveLensRows.get(sk) ?? []);
+      const accKey = `cat::${category}`;
+      const isOpen = openSections.has(accKey);
+      const rowCount = allRows.length;
+      // Use first sectionKey for picker/sort operations
+      const primarySectionKey = sectionKeys[0];
+
+      return (
+        <div key={accKey} className="mt-4 border border-border rounded-lg overflow-hidden mx-[5px]">
+          {/* Category header */}
+          <div className="px-3 py-1.5 font-semibold text-xs uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)" }}>
+            {category}
+            <span className="ml-auto text-xs font-normal opacity-60">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
+          </div>
+
+          {/* Accordion trigger */}
+          <div className="border-t border-border">
+            <button
+              className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors bg-muted/10"
+              onClick={() => toggleSection(accKey)}
+            >
+              <div className="flex items-center gap-2">
+                {isOpen
+                  ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                }
+                <span className="text-sm font-semibold text-foreground">{category}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
+                <button
+                  className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border border-border hover:bg-muted/50 transition-colors no-print"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPickerTarget({ section: primarySectionKey, rowKey: "", mode: "add-lens" });
+                    setLensPickerOpen(true);
+                  }}
+                >
+                  <Plus className="h-3 w-3" /> Add Line
+                </button>
+              </div>
+            </button>
+
+            {/* Accordion content */}
+            {isOpen && (
+              <div className="border-t border-border">
+                {allRows.length === 0 ? (
+                  <p className="text-xs text-muted-foreground px-6 py-3 italic">No items — click "Add Line" to add.</p>
+                ) : (
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
+                        <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={primarySectionKey} col="description" /></th>
+                        <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Matrix Cell</th>
+                        <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={primarySectionKey} col="bbd" /></th>
+                        <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={primarySectionKey} col="usd" /></th>
+                        <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={primarySectionKey} col="margin" /></th>
+                        <th className="w-6 no-print border border-slate-300" />
+                      </tr>
+                    </thead>
+                    <tbody>{allRows.map((row, i) => renderRow(row, i, "lens", row.section))}</tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* MF Type rows — each is a collapsible accordion */}
-        {[...mfMap.entries()].map(([mf, sectionKey]) => {
-          const accKey = `${finish}::${mf}`;
-          const isOpen = openSections.has(accKey);
-          const rows = effectiveLensRows.get(sectionKey) ?? [];
-          const rowCount = rows.length;
-
-          return (
-            <div key={accKey} className="border-t border-border">
-              {/* Accordion trigger */}
-              <button
-                className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors bg-muted/10"
-                onClick={() => toggleSection(accKey)}
-              >
-                <div className="flex items-center gap-2">
-                  {isOpen
-                    ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  }
-                  <span className="text-sm font-semibold text-foreground">{mf}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
-                  <button
-                    className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border border-border hover:bg-muted/50 transition-colors no-print"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPickerTarget({ section: sectionKey, rowKey: "", mode: "add-lens" });
-                      setLensPickerOpen(true);
-                    }}
-                  >
-                    <Plus className="h-3 w-3" /> Add Line
-                  </button>
-                </div>
-              </button>
-
-              {/* Accordion content */}
-              {isOpen && (
-                <div className="border-t border-border">
-                  {rows.length === 0 ? (
-                    <p className="text-xs text-muted-foreground px-6 py-3 italic">No items — click "Add Line" to add.</p>
-                  ) : (
-                    <table className="w-full text-xs border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
-                          <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={sectionKey} col="description" /></th>
-                          <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Matrix Cell</th>
-                          <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={sectionKey} col="bbd" /></th>
-                          <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={sectionKey} col="usd" /></th>
-                          <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={sectionKey} col="margin" /></th>
-                          <th className="w-6 no-print border border-slate-300" />
-                        </tr>
-                      </thead>
-                      <tbody>{sortedRows(sectionKey, rows).map((row, i) => renderRow(row, i, "lens", sectionKey))}</tbody>
-                    </table>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    ));
+      );
+    });
   };
 
   if (isLoading) return <div className="flex items-center justify-center h-40"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
