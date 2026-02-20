@@ -11,7 +11,7 @@ const BuySellPricesPage = () => {
   const [showUSD, setShowUSD] = useState(false);
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 border">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
@@ -34,10 +34,10 @@ const BuySellPricesPage = () => {
         groupByFinishThenMf={false}
         lensFilter="none"
         suppliesOnly={true}
-        pageTitle="Buy / Sell Price List"
-      />
-    </div>
-  );
+        pageTitle="Buy / Sell Price List" />
+
+    </div>);
+
 };
 
 export default BuySellPricesPage;
