@@ -39,7 +39,7 @@ const DEFAULTS: FormData = {
   block_below_floor: true,
   block_loss: true,
   require_concession_reason: true,
-  price_reduction_threshold: 0.10,
+  price_reduction_threshold: 0.10
 };
 
 const toPercent = (v: number) => +(v * 100).toFixed(4);
@@ -64,7 +64,7 @@ const PricingSettingsTab = () => {
     }
   }, [viewedVersion?.version, versions.length]);
 
-  const setField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
+  const setField = <K extends keyof FormData,>(key: K, value: FormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -96,10 +96,10 @@ const PricingSettingsTab = () => {
           record_id: activeVersion.id,
           action: "update",
           old_data: oldData as any,
-          new_data: { ...form, name: `Pricing Settings v${activeVersion.version}` } as any,
+          new_data: { ...form, name: `Pricing Settings v${activeVersion.version}` } as any
         });
       },
-      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" })
     });
   };
 
@@ -114,10 +114,10 @@ const PricingSettingsTab = () => {
           record_id: activeVersion?.id ?? "",
           action: "update",
           old_data: oldData as any,
-          new_data: { ...form, name: `Pricing Settings v${(activeVersion?.version ?? 0) + 1}` } as any,
+          new_data: { ...form, name: `Pricing Settings v${(activeVersion?.version ?? 0) + 1}` } as any
         });
       },
-      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" })
     });
   };
 
@@ -125,63 +125,63 @@ const PricingSettingsTab = () => {
     return <div className="flex items-center justify-center h-40"><div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>;
   }
 
-  const NumField = ({ label, value, onChange, hint, disabled }: { label: string; value: number; onChange: (v: number) => void; hint?: string; disabled?: boolean }) => (
-    <div className="space-y-1">
+  const NumField = ({ label, value, onChange, hint, disabled }: {label: string;value: number;onChange: (v: number) => void;hint?: string;disabled?: boolean;}) =>
+  <div className="space-y-1">
       <Label className="text-xs font-medium">{label}</Label>
       <Input className="h-8 text-xs" type="number" step="0.001" value={value} onChange={(e) => onChange(+e.target.value)} disabled={disabled} />
       {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
-    </div>
-  );
+    </div>;
 
-  const PercentField = ({ label, value, onChange, disabled }: { label: string; value: number; onChange: (v: number) => void; disabled?: boolean }) => (
-    <div className="space-y-1">
+
+  const PercentField = ({ label, value, onChange, disabled }: {label: string;value: number;onChange: (v: number) => void;disabled?: boolean;}) =>
+  <div className="space-y-1">
       <Label className="text-xs font-medium">{label}</Label>
       <div className="flex items-center gap-1">
         <Input className="h-8 text-xs" type="number" step="0.1" value={toPercent(value)} onChange={(e) => onChange(fromPercent(+e.target.value))} disabled={disabled} />
         <span className="text-xs text-muted-foreground">%</span>
       </div>
-    </div>
-  );
+    </div>;
 
-  const SwitchField = ({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) => (
-    <div className="flex items-center justify-between gap-2 py-1">
+
+  const SwitchField = ({ label, checked, onChange, disabled }: {label: string;checked: boolean;onChange: (v: boolean) => void;disabled?: boolean;}) =>
+  <div className="flex items-center justify-between gap-2 py-1">
       <Label className="text-xs font-medium">{label}</Label>
       <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
-    </div>
-  );
+    </div>;
 
-  const JsonGrid = ({ label, data, fieldKey, disabled }: { label: string; data: Record<string, number>; fieldKey: keyof FormData; disabled?: boolean }) => {
+
+  const JsonGrid = ({ label, data, fieldKey, disabled }: {label: string;data: Record<string, number>;fieldKey: keyof FormData;disabled?: boolean;}) => {
     const [newKey, setNewKey] = useState("");
     return (
       <div className="space-y-1">
         <Label className="text-xs font-medium">{label}</Label>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(data).map(([k, v]) => (
-            <div key={k} className="flex items-center gap-1 rounded border border-border bg-muted/50 px-2 py-1">
+          {Object.entries(data).map(([k, v]) =>
+          <div key={k} className="flex items-center gap-1 rounded border border-border bg-muted/50 px-2 py-1">
               <span className="text-[10px] font-medium capitalize">{k}</span>
               <Input className="h-6 w-16 text-[10px]" type="number" step="0.01" value={v} onChange={(e) => setJsonField(fieldKey, k, +e.target.value)} disabled={disabled} />
-              {!disabled && (
-                <button onClick={() => removeJsonKey(fieldKey, k)} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
-              )}
-            </div>
-          ))}
-          {!disabled && (
-            <div className="flex items-center gap-1">
-              <Input className="h-6 w-20 text-[10px]" placeholder="key" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
-              <button onClick={() => { addJsonKey(fieldKey, newKey); setNewKey(""); }} className="text-primary hover:text-primary/80"><Plus className="h-3 w-3" /></button>
+              {!disabled &&
+            <button onClick={() => removeJsonKey(fieldKey, k)} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
+            }
             </div>
           )}
+          {!disabled &&
+          <div className="flex items-center gap-1">
+              <Input className="h-6 w-20 text-[10px]" placeholder="key" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
+              <button onClick={() => {addJsonKey(fieldKey, newKey);setNewKey("");}} className="text-primary hover:text-primary/80"><Plus className="h-3 w-3" /></button>
+            </div>
+          }
         </div>
-      </div>
-    );
+      </div>);
+
   };
 
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="space-y-3 rounded-lg border border-border p-4">
+  const Section = ({ title, children }: {title: string;children: React.ReactNode;}) =>
+  <div className="space-y-3 rounded-lg border border-border p-4 bg-secondary-foreground">
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       {children}
-    </div>
-  );
+    </div>;
+
 
   const disabled = !isEditable;
 
@@ -190,16 +190,16 @@ const PricingSettingsTab = () => {
       {/* Version bar */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-muted-foreground">Version:</span>
-        {versions.map((v) => (
-          <Badge
-            key={v.version}
-            variant={v.version === (viewedVersion?.version) ? "default" : "outline"}
-            className="cursor-pointer text-[10px]"
-            onClick={() => setSelectedVersion(v.version)}
-          >
+        {versions.map((v) =>
+        <Badge
+          key={v.version}
+          variant={v.version === viewedVersion?.version ? "default" : "outline"}
+          className="cursor-pointer text-[10px]"
+          onClick={() => setSelectedVersion(v.version)}>
+
             v{v.version}{v.label ? ` (${v.label})` : ""}{v.is_active ? " ✦" : ""}
           </Badge>
-        ))}
+        )}
       </div>
 
       {/* Version label */}
@@ -219,8 +219,8 @@ const PricingSettingsTab = () => {
             disabled={disabled}
             onBaseCurrencyChange={(v) => setField("base_currency", v)}
             onFxRateChange={(currency, engineRate) => setJsonField("fx_rates", currency, engineRate)}
-            onFxRiskBufferChange={(v) => setField("fx_risk_buffer", v)}
-          />
+            onFxRiskBufferChange={(v) => setField("fx_risk_buffer", v)} />
+
         </Section>
 
         {/* Import Defaults */}
@@ -292,8 +292,8 @@ const PricingSettingsTab = () => {
       </div>
 
       {/* Save */}
-      {isEditable && (
-        <div className="flex justify-end gap-2">
+      {isEditable &&
+      <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleSave} disabled={saveInPlace.isPending}>
             {saveInPlace.isPending ? "Saving…" : "Save"}
           </Button>
@@ -301,9 +301,9 @@ const PricingSettingsTab = () => {
             {saveNewVersion.isPending ? "Saving…" : "Save as New Version"}
           </Button>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 };
 
 export default PricingSettingsTab;
