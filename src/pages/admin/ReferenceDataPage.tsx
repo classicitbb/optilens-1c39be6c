@@ -16,7 +16,7 @@ const ReferenceDataPage = () => {
   const active = ENTITIES.find((e) => e.key === activeTab)!;
 
   return (
-    <div className="p-4 space-y-4 border">
+    <div className="p-4 space-y-4 border px-[12px] py-[12px]">
       <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
         Reference Data
       </h1>
