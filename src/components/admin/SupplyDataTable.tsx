@@ -8,6 +8,8 @@ import MultiSelectFilter from "./MultiSelectFilter";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useReferenceData } from "@/hooks/useReferenceData";
+import { usePricelistUsedItems } from "@/hooks/usePricelistUsedItems";
+
 
 type Filter = "active" | "inactive" | "all" | "web";
 type SortKey = "name" | "category" | "supplier_name" | "sku" | "base_price" | "sell_price" | "sell_usd" | "unit";
@@ -78,6 +80,8 @@ const SupplyDataTable = ({
   const { settings } = usePricingEngine();
   const { canEditFeature } = useRolePermissions();
   const { data: supplyCategories } = useReferenceData("supply_categories");
+  const { data: usedItems = new Set<string>() } = usePricelistUsedItems();
+
   const catLabels = useMemo(() => {
     const map: Record<string, string> = {};
     (supplyCategories ?? []).forEach((c) => {
@@ -218,7 +222,14 @@ const SupplyDataTable = ({
               }
               return (
                 <TableRow key={s.id} className={canEdit ? "cursor-pointer hover:bg-blue-50/60" : "hover:bg-blue-50/60"} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEdit && onRowClick(s)}>
-                  <TableCell className={`${tdCls} font-medium max-w-[200px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{s.name}</TableCell>
+                  <TableCell className={`${tdCls} font-medium max-w-[200px]`} style={{ color: "hsl(215 30% 15%)" }}>
+                    <span className="flex items-center gap-1.5 truncate">
+                      <span className="truncate">{s.name}</span>
+                      {usedItems.has(s.id) && (
+                        <span title="Used in a pricelist" className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full shrink-0" style={{ background: "hsl(215 65% 50%)", color: "white", fontSize: "8px", fontWeight: 700 }}>P</span>
+                      )}
+                    </span>
+                  </TableCell>
                   <TableCell className={tdCls}>{catLabels[s.category] || s.category}</TableCell>
                   <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.supplier_name ?? "—"}</TableCell>
                   <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.sku}</TableCell>

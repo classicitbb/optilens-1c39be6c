@@ -181,6 +181,7 @@ const RxLensPricesPage = () => {
             )}
           </div>
 
+
           {/* ── Live Preview Section ──────────────────────────────────────────── */}
           <div ref={previewRef} className="border border-border rounded-lg overflow-hidden mt-6" id="live-preview">
             <div className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border">
