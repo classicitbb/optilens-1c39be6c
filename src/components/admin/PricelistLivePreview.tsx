@@ -32,7 +32,11 @@ const fmt = (val: number | null | undefined, showUSD: boolean, fxRate: number) =
 const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
-  const { data: catalogRows = [] } = usePricelistCatalogRows(version.id, "rx");
+  const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, "rx");
+
+  // Split rows: lens rows vs add-on/treatment/supply rows
+  const catalogRows = useMemo(() => allCatalogRows.filter((r) => r.row_type === "lens"), [allCatalogRows]);
+  const addonRows = useMemo(() => allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order), [allCatalogRows]);
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
 
@@ -122,53 +126,94 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                       );
                     })}
                   </tr>
-                )}
-              </tbody>
+        )}
+      </tbody>
             </table>
           </div>
         );
       })}
+
+      {/* Treatments & Add-ons compact table (Matrix format) */}
+      {addonRows.length > 0 && (
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
+            Treatments &amp; Add-ons
+          </div>
+          <table className="w-full text-xs border-collapse border border-border">
+            <thead>
+              <tr style={{ background: "#1e4db7", color: "white" }}>
+                <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">Add-on / Treatment</th>
+                <th className="px-3 py-1.5 text-right font-semibold w-28">{currency} Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {addonRows.map((row, i) => (
+                <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                  <td className="px-3 py-1 border-r border-border text-foreground">{row.display_description}</td>
+                  <td className="px-3 py-1 text-right font-mono text-foreground">
+                    {row.bbd_price != null ? fmt(row.bbd_price, showUSD, fxRate) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 
   // ── List preview ─────────────────────────────────────────────────────────────
   const ListPreview = () => {
     const sections = [...new Set(catalogRows.map((r) => r.section))].sort();
+    const hasContent = sections.length > 0 || addonRows.length > 0;
+
+    const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
+      <div>
+        <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
+          {label}
+        </div>
+        <table className="w-full text-xs border-collapse border border-border">
+          <thead>
+            <tr style={{ background: "#1e4db7", color: "white" }}>
+              <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">Description</th>
+              <th className="px-3 py-1.5 text-right font-semibold w-24">{currency} Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                <td className="px-3 py-1.5 border-r border-border text-foreground">{row.display_description}</td>
+                <td className="px-3 py-1.5 text-right font-mono text-foreground">
+                  {row.bbd_price != null ? fmt(row.bbd_price, showUSD, fxRate) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+
     return (
       <div className="space-y-5">
-        {sections.length === 0 ? (
+        {!hasContent ? (
           <p className="text-xs text-muted-foreground text-center py-6">
             No list catalog rows yet. Add lenses in the Price Matrix tab.
           </p>
         ) : (
-          sections.map((sec) => {
-            const rows = catalogRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order);
-            return (
-              <div key={sec}>
-                <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
-                  {sec}
-                </div>
-                <table className="w-full text-xs border-collapse border border-border">
-                  <thead>
-                    <tr style={{ background: "#1e4db7", color: "white" }}>
-                      <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">Description</th>
-                      <th className="px-3 py-1.5 text-right font-semibold w-24">{currency} Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, i) => (
-                      <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                        <td className="px-3 py-1.5 border-r border-border text-foreground">{row.display_description}</td>
-                        <td className="px-3 py-1.5 text-right font-mono text-foreground">
-                          {row.bbd_price != null ? fmt(row.bbd_price, showUSD, fxRate) : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })
+          <>
+            {sections.map((sec) => {
+              const rows = catalogRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order);
+              return <SectionTable key={sec} label={sec} rows={rows} />;
+            })}
+
+            {/* Treatments & Add-ons section */}
+            {addonRows.length > 0 && (
+              <>
+                <div className="border-t-2 border-border pt-2" />
+                <SectionTable label="Treatments & Add-ons" rows={addonRows} />
+              </>
+            )}
+          </>
         )}
       </div>
     );
