@@ -3,7 +3,7 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { Badge } from "@/components/ui/badge";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import GlobalSearch from "./GlobalSearch";
 
 const AdminTopBar = () => {
@@ -34,7 +34,7 @@ const AdminTopBar = () => {
         <GlobalSearch />
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs" style={{ color: "hsl(215 30% 15%)" }}>{user?.email}</span>
+        <Link to="/profile" className="text-xs hover:underline transition-colors" style={{ color: "hsl(215 30% 15%)" }}>{user?.email}</Link>
         {role && (
           <Badge
             className="text-[10px] px-1.5 py-0 h-5 font-medium border-0"
