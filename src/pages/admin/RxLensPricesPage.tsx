@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
-import PriceMatrixEditor from "@/components/admin/PriceMatrixEditor";
+import TreatmentMatricesAccordion from "@/components/admin/TreatmentMatricesAccordion";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import MatrixExportBar from "@/components/admin/MatrixExportBar";
 import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
@@ -33,11 +33,15 @@ const RxLensPricesPage = () => {
           </TabsList>
 
           <TabsContent value="matrix" className="space-y-3 mt-2">
-            <div className="px-3 py-1.5 rounded text-xs font-semibold" style={{ background: "hsl(215 65% 50% / 0.08)", color: "hsl(215 65% 40%)" }}>
-              {activeVersion?.name} — Price Matrix
+            <div className="px-3 py-1.5 rounded text-xs font-semibold bg-primary/10 text-primary">
+              {activeVersion?.name} — Treatment Matrices
             </div>
             <MatrixExportBar showUSD={showUSD} fxRate={fxRate} />
-            <PriceMatrixEditor showUSD={showUSD} fxRate={fxRate} />
+            <TreatmentMatricesAccordion
+              versionId={resolvedId}
+              showUSD={showUSD}
+              fxRate={fxRate}
+            />
           </TabsContent>
 
           <TabsContent value="catalog" className="mt-2">
