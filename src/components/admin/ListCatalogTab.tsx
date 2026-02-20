@@ -427,7 +427,7 @@ const ListCatalogTab = ({
     return [...finishGroups.entries()].map(([finish, mfMap]) => (
       <div key={`finish-${finish}`} className="mt-4 border border-border rounded-lg overflow-hidden">
         {/* Finish Type header — always visible, acts as group label */}
-        <div className="px-4 py-2.5 font-bold text-sm uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(215 30% 18%)", color: "white" }}>
+        <div className="px-3 py-1.5 font-semibold text-xs uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)" }}>
           {finish}
           <span className="ml-auto text-xs font-normal opacity-60">{mfMap.size} {mfMap.size === 1 ? "category" : "categories"}</span>
         </div>
