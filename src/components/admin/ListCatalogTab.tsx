@@ -28,6 +28,7 @@ export interface CatalogRow {
   addonId?: string;
   supplyId?: string;
   matrixCell?: string; // screen-only, hidden on print/export
+  supplier?: string;   // supplier abbrev
 }
 
 type SortDir = "asc" | "desc" | null;
@@ -100,7 +101,9 @@ const ListCatalogTab = ({
     const newLens = new Map<string, CatalogRow[]>();
     const newAddon = new Map<string, CatalogRow[]>();
     const newSupply = new Map<string, CatalogRow[]>();
+    const lensMap = new Map((allLenses ?? []).map((l) => [l.id, l]));
     for (const r of savedRows) {
+      const linkedLens = r.item_id && r.row_type === "lens" ? lensMap.get(r.item_id) : undefined;
       const row: CatalogRow = {
         key: r.row_key,
         section: r.section,
@@ -112,6 +115,7 @@ const ListCatalogTab = ({
         addonId: r.row_type === "addon" ? r.item_id ?? undefined : undefined,
         supplyId: r.row_type === "supply" ? r.item_id ?? undefined : undefined,
         matrixCell: r.row_key.startsWith("matrix::") ? r.row_key.replace("matrix::", "").replace(/::/g, " – ") : undefined,
+        supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || "",
       };
       if (r.row_type === "lens") { const arr = newLens.get(r.section) ?? []; arr.push(row); newLens.set(r.section, arr); }
       else if (r.row_type === "addon") { const arr = newAddon.get(r.section) ?? []; arr.push(row); newAddon.set(r.section, arr); }
@@ -153,7 +157,7 @@ const ListCatalogTab = ({
       for (const [finish, mfMap] of finishGroups) {
         for (const [mf, lenses] of mfMap) {
           const key = `${finish} — ${mf}`;
-          map.set(key, lenses.map((l) => ({ key: `lens-${l.id}`, section: key, description: l.name, bbd: l.sell_price, usd: l.sell_price * fxRate, margin: l.base_price > 0 ? parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) : null, lensId: l.id })));
+          map.set(key, lenses.map((l) => ({ key: `lens-${l.id}`, section: key, description: l.name, bbd: l.sell_price, usd: l.sell_price * fxRate, margin: l.base_price > 0 ? parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) : null, lensId: l.id, supplier: l.supplier?.abbrev || l.supplier?.name || "" })));
         }
       }
     }
@@ -323,6 +327,10 @@ const ListCatalogTab = ({
     const isPending = pendingMatrixRowKeys?.has(row.key);
     return (
       <tr key={row.key} style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
+        {/* Supplier — before description */}
+        <td className="px-2 py-1.5 border border-slate-200 text-center whitespace-nowrap" style={{ color: "hsl(215 50% 40%)", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
+          {row.supplier || "—"}
+        </td>
         <td className="px-3 py-1.5 border border-slate-200 group relative" style={{ color: "hsl(215 30% 15%)" }}>
           <div className="flex items-center gap-1">
             {isPending && <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" title="Pending — save to confirm" />}
@@ -383,9 +391,10 @@ const ListCatalogTab = ({
         {displayRows.length === 0 ? (
           <p className="text-xs text-muted-foreground px-3 py-3 italic">No items — click "Add Line" to add.</p>
         ) : (
-          <table className="w-full text-xs border-collapse">
+            <table className="w-full text-xs border-collapse">
             <thead>
               <tr>
+                <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
                 <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
                 {/* Matrix Cell header — screen only, before BBD */}
                 <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>
@@ -477,6 +486,7 @@ const ListCatalogTab = ({
                     <table className="w-full text-xs border-collapse">
                       <thead>
                         <tr>
+                          <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
                           <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={sectionKey} col="description" /></th>
                           <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Matrix Cell</th>
                           <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={sectionKey} col="bbd" /></th>
