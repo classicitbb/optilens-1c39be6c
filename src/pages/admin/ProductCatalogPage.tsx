@@ -7,7 +7,7 @@ import { useSupplies, Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuditLog, buildPricingSummary } from "@/hooks/useAuditLog";
-import { useCatalogFilterStore } from "@/hooks/useCatalogFilterStore";
+import { useCatalogFilterStore, CatalogFilterStore } from "@/hooks/useCatalogFilterStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FilterX } from "lucide-react";
@@ -120,7 +120,7 @@ const ProductCatalogPage = () => {
 
 /* ─── Tab wrappers that accept lifted formOpen ─── */
 
-const LensesTab = ({ search, filterVersion, formOpen, setFormOpen }: { search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void }) => {
+const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void; store: CatalogFilterStore }) => {
   const { data: lenses, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useLenses();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
@@ -199,7 +199,7 @@ const LensesTab = ({ search, filterVersion, formOpen, setFormOpen }: { search: s
   );
 };
 
-const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen }: { search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void }) => {
+const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void; store: CatalogFilterStore }) => {
   const { data: addons, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useAddons();
   const { data: pricingSheets } = usePricingSheets();
   const { canEdit, isAdmin } = useAdminRole();
@@ -297,7 +297,7 @@ const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen }: { search: s
   );
 };
 
-const SuppliesTab = ({ search, filterVersion, formOpen, setFormOpen }: { search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void }) => {
+const SuppliesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void; store: CatalogFilterStore }) => {
   const { data: supplies, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useSupplies();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
