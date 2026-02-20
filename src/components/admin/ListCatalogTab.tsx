@@ -712,7 +712,7 @@ const ListCatalogTab = ({
       <div ref={printRef} className="catalog-print-area space-y-0">
         {/* Header */}
         <div
-          className="px-6 py-5 text-center border-b-4 print-header border-primary-foreground"
+          className="px-6 py-5 text-center border-b-4 print-header border-primary-foreground shadow-none rounded-none border-0 border-none"
           style={{ borderColor: BLUE_BG, background: "hsl(215 20% 98%)" }}>
 
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: BLUE_BG }}>
