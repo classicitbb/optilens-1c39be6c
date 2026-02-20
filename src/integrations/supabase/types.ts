@@ -805,6 +805,57 @@ export type Database = {
         }
         Relationships: []
       }
+      matrix_allocations: {
+        Row: {
+          allocated_price_bbd: number | null
+          category: string
+          id: number
+          is_active: boolean | null
+          lens_id: string | null
+          material_index: string
+          pricelist_version_id: number | null
+          treatment_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          allocated_price_bbd?: number | null
+          category: string
+          id?: number
+          is_active?: boolean | null
+          lens_id?: string | null
+          material_index: string
+          pricelist_version_id?: number | null
+          treatment_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          allocated_price_bbd?: number | null
+          category?: string
+          id?: number
+          is_active?: boolean | null
+          lens_id?: string | null
+          material_index?: string
+          pricelist_version_id?: number | null
+          treatment_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matrix_allocations_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matrix_allocations_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mftypes: {
         Row: {
           abbrev: string
@@ -1059,6 +1110,7 @@ export type Database = {
           base_currency: string | null
           created_at: string | null
           discount_percent: number | null
+          format_type: string | null
           id: number
           is_template: boolean | null
           markup_percent: number | null
@@ -1069,6 +1121,7 @@ export type Database = {
           base_currency?: string | null
           created_at?: string | null
           discount_percent?: number | null
+          format_type?: string | null
           id?: number
           is_template?: boolean | null
           markup_percent?: number | null
@@ -1079,6 +1132,7 @@ export type Database = {
           base_currency?: string | null
           created_at?: string | null
           discount_percent?: number | null
+          format_type?: string | null
           id?: number
           is_template?: boolean | null
           markup_percent?: number | null
