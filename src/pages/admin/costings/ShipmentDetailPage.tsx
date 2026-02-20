@@ -32,14 +32,14 @@ const NumericInput = ({
   onChange,
   disabled,
   className,
-  onAdvance
-
-
-
-
-
-
-}: {value: number;onChange: (v: number) => void;disabled?: boolean;className?: string;onAdvance?: () => void;}) => {
+  onAdvance,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  disabled?: boolean;
+  className?: string;
+  onAdvance?: () => void;
+}) => {
   const [local, setLocal] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
 
@@ -73,9 +73,9 @@ const NumericInput = ({
           commit();
           onAdvance?.();
         }
-      }} />);
-
-
+      }}
+    />
+  );
 };
 
 /** A text input that only saves on blur */
@@ -84,14 +84,14 @@ const TextInput = ({
   onChange,
   disabled,
   className,
-  onAdvance
-
-
-
-
-
-
-}: {value: string;onChange: (v: string) => void;disabled?: boolean;className?: string;onAdvance?: () => void;}) => {
+  onAdvance,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  className?: string;
+  onAdvance?: () => void;
+}) => {
   const [local, setLocal] = useState(value);
   const ref = useRef<HTMLInputElement>(null);
 
@@ -119,9 +119,9 @@ const TextInput = ({
           commit();
           onAdvance?.();
         }
-      }} />);
-
-
+      }}
+    />
+  );
 };
 
 /** Searchable product combobox */
@@ -129,13 +129,13 @@ const ProductCombobox = ({
   options,
   value,
   onSelect,
-  disabled
-
-
-
-
-
-}: {options: {id: string;label: string;}[];value: string;onSelect: (id: string) => void;disabled?: boolean;}) => {
+  disabled,
+}: {
+  options: { id: string; label: string }[];
+  value: string;
+  onSelect: (id: string) => void;
+  disabled?: boolean;
+}) => {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.id === value);
 
@@ -147,8 +147,8 @@ const ProductCombobox = ({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="h-7 text-xs w-44 justify-between font-normal px-2">
-
+          className="h-7 text-xs w-44 justify-between font-normal px-2"
+        >
           <span className="truncate">{selected?.label ?? "Select…"}</span>
           <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
         </Button>
@@ -159,26 +159,26 @@ const ProductCombobox = ({
           <CommandList>
             <CommandEmpty className="py-2 text-xs">No results</CommandEmpty>
             <CommandGroup>
-              {options.map((o) =>
-              <CommandItem
-                key={o.id}
-                value={o.label}
-                onSelect={() => {
-                  onSelect(o.id);
-                  setOpen(false);
-                }}
-                className="text-xs">
-
+              {options.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={o.label}
+                  onSelect={() => {
+                    onSelect(o.id);
+                    setOpen(false);
+                  }}
+                  className="text-xs"
+                >
                   <Check className={cn("mr-1 h-3 w-3 shrink-0", value === o.id ? "opacity-100" : "opacity-0")} />
                   <span className="truncate">{o.label}</span>
                 </CommandItem>
-              )}
+              ))}
             </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
-    </Popover>);
-
+    </Popover>
+  );
 };
 
 /** Focus next tabbable input in the table */
@@ -194,7 +194,7 @@ const focusNextInput = (current: EventTarget) => {
 };
 
 const ShipmentDetailPage = () => {
-  const { id } = useParams<{id: string;}>();
+  const { id } = useParams<{ id: string }>();
   const isNew = !id;
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -211,7 +211,7 @@ const ShipmentDetailPage = () => {
     invoice_number: "", invoice_date: new Date().toISOString().split("T")[0],
     currency: "USD", exchange_rate: 2, fob_foreign: 0, invoice_total_foreign: 0,
     status: "draft", version: 1, parent_id: null, created_by: user?.id ?? "",
-    created_at: "", updated_at: ""
+    created_at: "", updated_at: "",
   };
 
   const [shipment, setShipment] = useState<Shipment | null>(isNew ? defaultShipment : null);
@@ -222,7 +222,7 @@ const ShipmentDetailPage = () => {
   const { data: lenses = [] } = useLenses();
   const { data: supplies = [] } = useSupplies();
   const { data: addons = [] } = useAddons();
-  const realId = isNew ? null : id ?? null;
+  const realId = isNew ? null : (id ?? null);
   const { data: charges = [], upsertMutation: upsertCharge, deleteMutation: deleteCharge } = useShipmentCharges(realId);
   const { data: lines = [], upsertMutation: upsertLine, deleteMutation: deleteLine } = useShipmentLines(realId);
 
@@ -230,7 +230,7 @@ const ShipmentDetailPage = () => {
     if (isNew || !id) return;
     (async () => {
       const { data, error } = await (supabase.from("shipments" as any) as any).select("*").eq("id", id).single();
-      if (error) {toast({ title: "Error", description: error.message, variant: "destructive" });return;}
+      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       setShipment(data as Shipment);
       setLoading(false);
     })();
@@ -263,10 +263,10 @@ const ShipmentDetailPage = () => {
     try {
       if (isNew) {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
-        const { data, error } = await (supabase.from("shipments" as any) as any).
-        insert({ ...form, created_by: user?.id }).
-        select().
-        single();
+        const { data, error } = await (supabase.from("shipments" as any) as any)
+          .insert({ ...form, created_by: user?.id })
+          .select()
+          .single();
         if (error) throw error;
         logChange({ table_name: "shipments", record_id: data.id, action: "create", new_data: data });
         toast({ title: "Shipment created" });
@@ -315,25 +315,25 @@ const ShipmentDetailPage = () => {
     const csv = [headers.join(","), ...data.map((r) => headers.map((h) => `"${r[h] ?? ""}"`).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");a.href = url;a.download = filename;a.click();
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
   };
 
   // Product selector options — for non-lens, combine supplies + addons
-  const dedup = (items: {id: string;label: string;}[]) => {
+  const dedup = (items: { id: string; label: string }[]) => {
     const seen = new Set<string>();
-    return items.filter((i) => {if (seen.has(i.label)) return false;seen.add(i.label);return true;});
+    return items.filter(i => { if (seen.has(i.label)) return false; seen.add(i.label); return true; });
   };
-  const lensOptions = useMemo(() => dedup(lenses.filter((l) => l.is_active).map((l) => ({ id: l.id, label: l.name }))), [lenses]);
-  const supplyOptions = useMemo(() => dedup(supplies.filter((s) => s.is_active).map((s) => ({ id: s.id, label: s.name }))), [supplies]);
-  const addonOptions = useMemo(() => dedup(addons.filter((a) => a.is_active).map((a) => ({ id: a.id, label: a.name }))), [addons]);
+  const lensOptions = useMemo(() => dedup(lenses.filter(l => l.is_active).map(l => ({ id: l.id, label: l.name }))), [lenses]);
+  const supplyOptions = useMemo(() => dedup(supplies.filter(s => s.is_active).map(s => ({ id: s.id, label: s.name }))), [supplies]);
+  const addonOptions = useMemo(() => dedup(addons.filter(a => a.is_active).map(a => ({ id: a.id, label: a.name }))), [addons]);
 
   const getProductOptions = (type: string) => {
     switch (type) {
-      case "lens":return lensOptions;
-      case "supply":return supplyOptions;
-      case "addon":return addonOptions;
-      default:return [];
+      case "lens": return lensOptions;
+      case "supply": return supplyOptions;
+      case "addon": return addonOptions;
+      default: return [];
     }
   };
 
@@ -341,12 +341,12 @@ const ShipmentDetailPage = () => {
 
   const handleProductSelect = (line: ShipmentLine, productId: string) => {
     const updates: Partial<ShipmentLine> = { ...line, lens_id: null, supply_id: null, addon_id: null };
-    if (line.product_type === "lens") updates.lens_id = productId;else
-    if (line.product_type === "supply") updates.supply_id = productId;else
-    if (line.product_type === "addon") updates.addon_id = productId;
+    if (line.product_type === "lens") updates.lens_id = productId;
+    else if (line.product_type === "supply") updates.supply_id = productId;
+    else if (line.product_type === "addon") updates.addon_id = productId;
 
     const opts = getProductOptions(line.product_type);
-    const match = opts.find((o) => o.id === productId);
+    const match = opts.find(o => o.id === productId);
     if (match) updates.description = match.label;
 
     upsertLine.mutate(updates);
@@ -371,7 +371,7 @@ const ShipmentDetailPage = () => {
   const xr = shipment.exchange_rate || 1;
 
   return (
-    <div className="p-4 space-y-4 max-w-[1220px] border border-solid">
+    <div className="p-4 space-y-4 max-w-[1220px]">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
@@ -383,20 +383,20 @@ const ShipmentDetailPage = () => {
         {!isNew && <Badge variant="outline" className="capitalize">{shipment.status}</Badge>}
         {!isNew && <span className="text-xs text-muted-foreground">v{shipment.version}</span>}
         <div className="flex-1" />
-        {!isNew && editable && shipment.status === "draft" &&
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("reviewed")}>Mark Reviewed</Button>
-        }
-        {!isNew && editable && shipment.status === "reviewed" &&
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("locked")}>Lock</Button>
-        }
-        {!isNew && isAdmin && shipment.status === "reviewed" &&
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("draft")}>Back to Draft</Button>
-        }
-        {editable &&
-        <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
+        {!isNew && editable && shipment.status === "draft" && (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("reviewed")}>Mark Reviewed</Button>
+        )}
+        {!isNew && editable && shipment.status === "reviewed" && (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("locked")}>Lock</Button>
+        )}
+        {!isNew && isAdmin && shipment.status === "reviewed" && (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("draft")}>Back to Draft</Button>
+        )}
+        {editable && (
+          <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
             <Save className="h-3 w-3" /> {isNew ? "Create" : "Save"}
           </Button>
-        }
+        )}
       </div>
 
       {/* Shipment fields */}
@@ -414,9 +414,9 @@ const ShipmentDetailPage = () => {
           <Select value={shipment.supplier_id} onValueChange={(v) => updateField("supplier_id", v)} disabled={!editable}>
             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select…" /></SelectTrigger>
             <SelectContent>
-              {(suppliers ?? []).filter((s) => s.is_active).map((s) =>
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              )}
+              {(suppliers ?? []).filter((s) => s.is_active).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </Field>
@@ -469,8 +469,8 @@ const ShipmentDetailPage = () => {
       </div>
 
       {/* Tabs - only show for saved shipments */}
-      {!isNew &&
-      <Tabs defaultValue="charges" className="w-full">
+      {!isNew && (
+        <Tabs defaultValue="charges" className="w-full">
           <TabsList className="h-8 p-0.5 gap-0.5" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
             <TabsTrigger value="charges" className="text-xs h-7 px-3" style={{ borderRadius: "3px" }}>Charges ({charges.length})</TabsTrigger>
             <TabsTrigger value="lines" className="text-xs h-7 px-3" style={{ borderRadius: "3px" }}>Line Items ({lines.length})</TabsTrigger>
@@ -499,10 +499,10 @@ const ShipmentDetailPage = () => {
                 </TableHeader>
                 <TableBody>
                   {charges.map((c) => {
-                  const isDutyRow = c.charge_type === "Duties & VAT";
-                  const rowTotal = (c.amount_bbd || 0) + (c.vat_bbd || 0) + (c.duty_bbd || 0);
-                  return (
-                    <TableRow key={c.id} className="text-xs">
+                    const isDutyRow = c.charge_type === "Duties & VAT";
+                    const rowTotal = (c.amount_bbd || 0) + (c.vat_bbd || 0) + (c.duty_bbd || 0);
+                    return (
+                      <TableRow key={c.id} className="text-xs">
                         <TableCell className="py-1">
                           <Select value={c.charge_type} disabled={!editable} onValueChange={(v) => updateCharge(c, "charge_type", v)}>
                             <SelectTrigger className="h-7 text-xs border-0 shadow-none"><SelectValue /></SelectTrigger>
@@ -511,42 +511,42 @@ const ShipmentDetailPage = () => {
                         </TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-24"
-                        onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => {}} />
+                            onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-24"
-                        onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => {}} />
+                            onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
-                          {isDutyRow ?
-                        <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-24"
-                        onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => {}} /> :
-                        <span className="text-muted-foreground">—</span>}
+                          {isDutyRow ? (
+                            <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-24"
+                              onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => {}} />
+                          ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="py-1">
-                          {isDutyRow ?
-                        <Switch checked={c.vat_reclaimable} disabled={!editable}
-                        onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} /> :
-                        <span className="text-muted-foreground">—</span>}
+                          {isDutyRow ? (
+                            <Switch checked={c.vat_reclaimable} disabled={!editable}
+                              onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} />
+                          ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="py-1">
                           <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-32"
-                        onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => {}} />
+                            onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(rowTotal)}</TableCell>
-                        {editable &&
-                      <TableCell className="py-1">
+                        {editable && (
+                          <TableCell className="py-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteCharge.mutate(c.id)}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </TableCell>
-                      }
-                      </TableRow>);
-
-                })}
-                  {charges.length === 0 &&
-                <TableRow><TableCell colSpan={8} className="text-center text-xs py-4 text-muted-foreground">No charges added</TableCell></TableRow>
-                }
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                  {charges.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="text-center text-xs py-4 text-muted-foreground">No charges added</TableCell></TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -585,85 +585,85 @@ const ShipmentDetailPage = () => {
                 </TableHeader>
                 <TableBody>
                   {lines.map((l) => {
-                  const computed = computeLineCosts(l, xr, totals.multiplier);
-                  const productOpts = getProductOptions(l.product_type);
-                  const selectedProductId = getProductId(l);
-                  return (
-                    <TableRow key={l.id} className="text-xs">
+                    const computed = computeLineCosts(l, xr, totals.multiplier);
+                    const productOpts = getProductOptions(l.product_type);
+                    const selectedProductId = getProductId(l);
+                    return (
+                      <TableRow key={l.id} className="text-xs">
                         <TableCell className="py-1">
                           <Select value={l.product_type} disabled={!editable} onValueChange={(v) => handleProductTypeChange(l, v)}>
                             <SelectTrigger className="h-7 text-xs border-0 shadow-none w-20"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {shipment.type === "lens" ?
-                            <SelectItem value="lens">Lens</SelectItem> :
-
-                            <>
+                              {shipment.type === "lens" ? (
+                                <SelectItem value="lens">Lens</SelectItem>
+                              ) : (
+                                <>
                                   <SelectItem value="supply">Supply</SelectItem>
                                   <SelectItem value="addon">Add-On</SelectItem>
                                   <SelectItem value="free">Free</SelectItem>
                                 </>
-                            }
+                              )}
                             </SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell className="py-1">
-                          {l.product_type !== "free" && productOpts.length > 0 ?
-                        <ProductCombobox
-                          options={productOpts}
-                          value={selectedProductId}
-                          onSelect={(pid) => handleProductSelect(l, pid)}
-                          disabled={!editable} /> :
-
-
-                        <span className="text-muted-foreground text-xs">—</span>
-                        }
+                          {l.product_type !== "free" && productOpts.length > 0 ? (
+                            <ProductCombobox
+                              options={productOpts}
+                              value={selectedProductId}
+                              onSelect={(pid) => handleProductSelect(l, pid)}
+                              disabled={!editable}
+                            />
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="py-1">
                           <TextInput value={l.description} disabled={!editable} className="h-7 text-xs w-36"
-                        onChange={(v) => updateLine(l, { description: v })} />
+                            onChange={(v) => updateLine(l, { description: v })} />
                         </TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={l.quantity} disabled={!editable} className="h-7 text-xs text-right w-16"
-                        onChange={(qty) => updateLine(l, { quantity: qty, line_fob_foreign: l.unit_fob_foreign * qty })} />
+                            onChange={(qty) => updateLine(l, { quantity: qty, line_fob_foreign: l.unit_fob_foreign * qty })} />
                         </TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={l.unit_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-20"
-                        onChange={(unitFob) => updateLine(l, { unit_fob_foreign: unitFob, line_fob_foreign: unitFob * l.quantity })} />
+                            onChange={(unitFob) => updateLine(l, { unit_fob_foreign: unitFob, line_fob_foreign: unitFob * l.quantity })} />
                         </TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={l.line_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-20"
-                        onChange={(v) => updateLine(l, { line_fob_foreign: v })} />
+                            onChange={(v) => updateLine(l, { line_fob_foreign: v })} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.lineFobBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.landedUnitBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.landedUnitUsd)}</TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={l.markup_percent} disabled={!editable} className="h-7 text-xs text-right w-16"
-                        onChange={(v) => updateLine(l, { markup_percent: v })} />
+                            onChange={(v) => updateLine(l, { markup_percent: v })} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.sellBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.sellUsd)}</TableCell>
-                        {editable &&
-                      <TableCell className="py-1">
+                        {editable && (
+                          <TableCell className="py-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteLine.mutate(l.id)}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </TableCell>
-                      }
-                      </TableRow>);
-
-                })}
-                  {lines.length === 0 &&
-                <TableRow><TableCell colSpan={13} className="text-center text-xs py-4 text-muted-foreground">No line items</TableCell></TableRow>
-                }
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                  {lines.length === 0 && (
+                    <TableRow><TableCell colSpan={13} className="text-center text-xs py-4 text-muted-foreground">No line items</TableCell></TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
-            {editable &&
-          <div>
+            {editable && (
+              <div>
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addLine}><Plus className="h-3 w-3" /> Add Line</Button>
               </div>
-          }
+            )}
           </TabsContent>
 
           {/* Exports Tab */}
@@ -671,63 +671,63 @@ const ShipmentDetailPage = () => {
             <p className="text-xs text-muted-foreground">Export data for this shipment as CSV files.</p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => {
-              const { fobBbd, invoiceBbd, totalChargesBbd, totalLandedBbd, multiplier } = totals;
-              exportCSV([{
-                invoice_number: shipment.invoice_number, type: shipment.type, supplier_id: shipment.supplier_id,
-                commodity: shipment.commodity, po_ref: shipment.po_ref, date_ordered: shipment.date_ordered,
-                date_received: shipment.date_received, invoice_date: shipment.invoice_date,
-                currency: shipment.currency, exchange_rate: shipment.exchange_rate,
-                fob_foreign: shipment.fob_foreign, fob_bbd: fobBbd.toFixed(2),
-                invoice_total_foreign: shipment.invoice_total_foreign, invoice_total_bbd: invoiceBbd.toFixed(2),
-                total_charges_bbd: totalChargesBbd.toFixed(2), total_landed_bbd: totalLandedBbd.toFixed(2),
-                multiplier: multiplier.toFixed(4), status: shipment.status, version: shipment.version
-              }], `shipment-${shipment.invoice_number}.csv`);
-            }}><Download className="h-3 w-3" /> Shipment</Button>
+                const { fobBbd, invoiceBbd, totalChargesBbd, totalLandedBbd, multiplier } = totals;
+                exportCSV([{
+                  invoice_number: shipment.invoice_number, type: shipment.type, supplier_id: shipment.supplier_id,
+                  commodity: shipment.commodity, po_ref: shipment.po_ref, date_ordered: shipment.date_ordered,
+                  date_received: shipment.date_received, invoice_date: shipment.invoice_date,
+                  currency: shipment.currency, exchange_rate: shipment.exchange_rate,
+                  fob_foreign: shipment.fob_foreign, fob_bbd: fobBbd.toFixed(2),
+                  invoice_total_foreign: shipment.invoice_total_foreign, invoice_total_bbd: invoiceBbd.toFixed(2),
+                  total_charges_bbd: totalChargesBbd.toFixed(2), total_landed_bbd: totalLandedBbd.toFixed(2),
+                  multiplier: multiplier.toFixed(4), status: shipment.status, version: shipment.version,
+                }], `shipment-${shipment.invoice_number}.csv`);
+              }}><Download className="h-3 w-3" /> Shipment</Button>
               <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => {
-              exportCSV(charges.map((c) => ({
-                charge_type: c.charge_type, amount_bbd: c.amount_bbd, vat_bbd: c.vat_bbd,
-                duty_bbd: c.duty_bbd, vat_reclaimable: c.vat_reclaimable, notes: c.notes,
-                row_total_bbd: ((c.amount_bbd || 0) + (c.vat_bbd || 0) + (c.duty_bbd || 0)).toFixed(2)
-              })), `charges-${shipment.invoice_number}.csv`);
-            }}><Download className="h-3 w-3" /> Charges</Button>
+                exportCSV(charges.map((c) => ({
+                  charge_type: c.charge_type, amount_bbd: c.amount_bbd, vat_bbd: c.vat_bbd,
+                  duty_bbd: c.duty_bbd, vat_reclaimable: c.vat_reclaimable, notes: c.notes,
+                  row_total_bbd: ((c.amount_bbd || 0) + (c.vat_bbd || 0) + (c.duty_bbd || 0)).toFixed(2),
+                })), `charges-${shipment.invoice_number}.csv`);
+              }}><Download className="h-3 w-3" /> Charges</Button>
               <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => {
-              exportCSV(lines.map((l) => {
-                const c = computeLineCosts(l, xr, totals.multiplier);
-                return {
-                  product_type: l.product_type, description: l.description, quantity: l.quantity,
-                  unit_fob_foreign: l.unit_fob_foreign, line_fob_foreign: l.line_fob_foreign,
-                  line_fob_bbd: c.lineFobBbd.toFixed(2), landed_unit_bbd: c.landedUnitBbd.toFixed(2),
-                  landed_unit_usd: c.landedUnitUsd.toFixed(2), markup_percent: l.markup_percent,
-                  sell_bbd: c.sellBbd.toFixed(2), sell_usd: c.sellUsd.toFixed(2)
-                };
-              }), `lines-${shipment.invoice_number}.csv`);
-            }}><Download className="h-3 w-3" /> Lines</Button>
+                exportCSV(lines.map((l) => {
+                  const c = computeLineCosts(l, xr, totals.multiplier);
+                  return {
+                    product_type: l.product_type, description: l.description, quantity: l.quantity,
+                    unit_fob_foreign: l.unit_fob_foreign, line_fob_foreign: l.line_fob_foreign,
+                    line_fob_bbd: c.lineFobBbd.toFixed(2), landed_unit_bbd: c.landedUnitBbd.toFixed(2),
+                    landed_unit_usd: c.landedUnitUsd.toFixed(2), markup_percent: l.markup_percent,
+                    sell_bbd: c.sellBbd.toFixed(2), sell_usd: c.sellUsd.toFixed(2),
+                  };
+                }), `lines-${shipment.invoice_number}.csv`);
+              }}><Download className="h-3 w-3" /> Lines</Button>
             </div>
           </TabsContent>
         </Tabs>
-      }
+      )}
 
-      {isNew &&
-      <div className="text-center py-8 text-xs text-muted-foreground border rounded" style={{ background: "hsl(215 20% 97%)" }}>
+      {isNew && (
+        <div className="text-center py-8 text-xs text-muted-foreground border rounded" style={{ background: "hsl(215 20% 97%)" }}>
           Save the shipment first to add Charges and Line Items.
         </div>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 };
 
-const Field = ({ label, children }: {label: string;children: React.ReactNode;}) =>
-<div className="space-y-1">
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="space-y-1">
     <label className="text-[11px] font-medium text-muted-foreground">{label}</label>
     {children}
-  </div>;
+  </div>
+);
 
-
-const ComputedField = ({ label, value }: {label: string;value: string;}) =>
-<div className="text-center">
+const ComputedField = ({ label, value }: { label: string; value: string }) => (
+  <div className="text-center">
     <div className="text-[10px] text-muted-foreground">{label}</div>
     <div className="text-sm font-mono font-semibold" style={{ color: "hsl(215 30% 25%)" }}>{value}</div>
-  </div>;
-
+  </div>
+);
 
 export default ShipmentDetailPage;
