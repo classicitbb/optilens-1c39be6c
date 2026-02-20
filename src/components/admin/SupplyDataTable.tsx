@@ -23,28 +23,58 @@ interface Props {
   onDuplicate?: (supply: Supply) => void;
   onDelete?: (supply: Supply) => void;
   canDelete?: boolean;
+  // Controlled state
+  filter?: Filter;
+  onFilterChange?: (f: Filter) => void;
+  sortKey?: SortKey;
+  sortDir?: SortDir;
+  onSortChange?: (key: SortKey, dir: SortDir) => void;
+  colFilters?: { supplier: string[]; category: string[] };
+  onColFiltersChange?: (cf: { supplier: string[]; category: string[] }) => void;
 }
 
 const PAGE_SIZE = 50;
 
-/* Category labels are now loaded dynamically from supply_categories */
-
-const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete }: Props) => {
+const SupplyDataTable = ({
+  supplies, search, canEdit, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete,
+  filter: filterProp, onFilterChange,
+  sortKey: sortKeyProp, sortDir: sortDirProp, onSortChange,
+  colFilters: colFiltersProp, onColFiltersChange,
+}: Props) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [filter, setFilter] = useState<Filter>("active");
+  const [filterLocal, setFilterLocal] = useState<Filter>("active");
   const [unlocked, setUnlocked] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [colFilters, setColFilters] = useState<{ supplier: Set<string>; category: Set<string> }>({ supplier: new Set(), category: new Set() });
+  const [sortKeyLocal, setSortKeyLocal] = useState<SortKey>("name");
+  const [sortDirLocal, setSortDirLocal] = useState<SortDir>("asc");
+  const [colFiltersLocal, setColFiltersLocal] = useState<{ supplier: string[]; category: string[] }>({ supplier: [], category: [] });
+
+  const filter = filterProp ?? filterLocal;
+  const sortKey = sortKeyProp ?? sortKeyLocal;
+  const sortDir = sortDirProp ?? sortDirLocal;
+  const colFiltersArr = colFiltersProp ?? colFiltersLocal;
+  const colFilters = useMemo(() => ({
+    supplier: new Set(colFiltersArr.supplier),
+    category: new Set(colFiltersArr.category),
+  }), [colFiltersArr]);
 
   useEffect(() => {
-    if (filterVersion !== undefined) setColFilters({ supplier: new Set(), category: new Set() });
+    if (filterVersion !== undefined) {
+      const empty = { supplier: [], category: [] };
+      setColFiltersLocal(empty);
+      onColFiltersChange?.(empty);
+      setFilterLocal("active");
+      onFilterChange?.("active");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterVersion]);
 
   const setColFilter = useCallback((key: "supplier" | "category", values: Set<string>) => {
-    setColFilters((prev) => ({ ...prev, [key]: values }));
+    const arr = Array.from(values);
+    setColFiltersLocal((prev) => ({ ...prev, [key]: arr }));
+    onColFiltersChange?.({ ...colFiltersArr, [key]: arr });
     setVisibleCount(PAGE_SIZE);
-  }, []);
+  }, [colFiltersArr, onColFiltersChange]);
+
   const { settings } = usePricingEngine();
   const { canEditFeature } = useRolePermissions();
   const { data: supplyCategories } = useReferenceData("supply_categories");
@@ -61,21 +91,18 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
   const showCost = canEdit;
 
   const handleFilterChange = useCallback((f: Filter) => {
-    setFilter(f);
+    setFilterLocal(f);
+    onFilterChange?.(f);
     setVisibleCount(PAGE_SIZE);
-  }, []);
+  }, [onFilterChange]);
 
   const toggleSort = useCallback((key: SortKey) => {
-    setSortKey((prev) => {
-      if (prev === key) {
-        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-      } else {
-        setSortDir("asc");
-      }
-      return key;
-    });
+    const newDir: SortDir = sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : "asc";
+    setSortKeyLocal(key);
+    setSortDirLocal(newDir);
+    onSortChange?.(key, newDir);
     setVisibleCount(PAGE_SIZE);
-  }, []);
+  }, [sortKey, sortDir, onSortChange]);
 
   const fxRate = useMemo(() => {
     if (!settings) return 2;
@@ -92,17 +119,11 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
     if (colFilters.category.size > 0) items = items.filter((i) => colFilters.category.has(catLabels[i.category] || i.category));
     if (search) {
       const q = search.toLowerCase();
-      items = items.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          (s.sku ?? "").toLowerCase().includes(q) ||
-          s.category.toLowerCase().includes(q) ||
-          (catLabels[s.category] ?? "").toLowerCase().includes(q) ||
-          (s.description ?? "").toLowerCase().includes(q) ||
-          (s.supplier_name ?? "").toLowerCase().includes(q) ||
-          s.unit.toLowerCase().includes(q) ||
-          s.bin.toLowerCase().includes(q) ||
-          s.detail.toLowerCase().includes(q)
+      items = items.filter((s) =>
+        s.name.toLowerCase().includes(q) || (s.sku ?? "").toLowerCase().includes(q) ||
+        s.category.toLowerCase().includes(q) || (catLabels[s.category] ?? "").toLowerCase().includes(q) ||
+        (s.description ?? "").toLowerCase().includes(q) || (s.supplier_name ?? "").toLowerCase().includes(q) ||
+        s.unit.toLowerCase().includes(q) || s.bin.toLowerCase().includes(q) || s.detail.toLowerCase().includes(q)
       );
     }
     return [...items].sort((a, b) => {
@@ -123,16 +144,13 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
   const categoryOptions = useMemo(() => [...new Set(supplies.map((s) => catLabels[s.category] || s.category))].sort().map((v) => ({ value: v, label: v })), [supplies, catLabels]);
 
   const filterTabs: { label: string; value: Filter }[] = [
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
-    { label: "All", value: "all" },
-    { label: "Web", value: "web" },
+    { label: "Active", value: "active" }, { label: "Inactive", value: "inactive" },
+    { label: "All", value: "all" }, { label: "Web", value: "web" },
   ];
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
   const showActions = unlocked && canEdit;
-
   const thCls = "text-[11px] font-semibold uppercase tracking-wider py-2 px-3 sticky top-0 z-10";
   const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
 
@@ -160,11 +178,7 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
         ))}
         <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
           {canEdit && (
-            <button
-              onClick={() => setUnlocked((u) => !u)}
-              className="p-0.5 rounded transition-colors hover:bg-black/5"
-              title={unlocked ? "Lock actions" : "Unlock actions"}
-            >
+            <button onClick={() => setUnlocked((u) => !u)} className="p-0.5 rounded transition-colors hover:bg-black/5" title={unlocked ? "Lock actions" : "Unlock actions"}>
               {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(35 80% 50%)" }} /> : <Lock className="h-3.5 w-3.5" />}
             </button>
           )}
@@ -172,94 +186,77 @@ const SupplyDataTable = ({ supplies, search, canEdit, filterVersion, onRowClick,
         </span>
       </div>
       <div className="rounded border overflow-auto max-h-[calc(100vh-280px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
-      <Table>
-        <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
-          <TableRow style={{ background: "hsl(215 30% 96%)" }}>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Name" k="name" /></TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>
-              <MultiSelectFilter label="Category" options={categoryOptions} selected={colFilters.category} onChange={(v) => setColFilter("category", v)} />
-            </TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>
-              <MultiSelectFilter label="Supplier" options={supplierOptions} selected={colFilters.supplier} onChange={(v) => setColFilter("supplier", v)} />
-            </TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="SKU" k="sku" /></TableHead>
-            {showCost && <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
-            <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Unit" k="unit" /></TableHead>
-            <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
-            {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
-            {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {visible.map((s, idx) => {
-            let rowBg = idx % 2 === 1 ? "hsl(215 20% 97%)" : undefined;
-            if (s.base_price === 0) rowBg = "hsl(0 70% 96%)";
-            else if (s.sell_price > 0 && s.sell_price <= s.base_price * fxRate) rowBg = "hsl(0 70% 95%)";
-            else if (s.sell_price > 0) {
-              const fullCostApprox = s.base_price * fxRate * 1.15;
-              const margin = (s.sell_price - fullCostApprox) / s.sell_price;
-              if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
-            }
-            return (
-            <TableRow
-              key={s.id}
-              className={canEdit ? "cursor-pointer hover:bg-blue-50/60" : "hover:bg-blue-50/60"}
-              style={rowBg ? { background: rowBg } : undefined}
-              onClick={() => canEdit && onRowClick(s)}
-            >
-              <TableCell className={`${tdCls} font-medium max-w-[200px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{s.name}</TableCell>
-              <TableCell className={tdCls}>{catLabels[s.category] || s.category}</TableCell>
-              <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.supplier_name ?? "—"}</TableCell>
-              <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.sku}</TableCell>
-              {showCost && <TableCell className={`${tdCls} text-right`}>{s.base_price.toFixed(2)}</TableCell>}
-              <TableCell className={`${tdCls} text-right font-medium`}>{s.sell_price.toFixed(2)}</TableCell>
-              <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? (s.sell_price / fxRate).toFixed(2) : "—"}</TableCell>
-              <TableCell className={tdCls}>{s.quantity_per_unit > 1 ? `${s.quantity_per_unit}/${s.unit}` : s.unit}</TableCell>
-              <TableCell className={tdCls}>{s.show_on_website ? "✓" : ""}</TableCell>
-              {showActions && (
-                <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
-                  <Switch checked={s.is_active} onCheckedChange={() => onToggleActive(s)} />
-                </TableCell>
-              )}
-              {showActions && (
-                <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(s)}>
-                      <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
-                    </Button>
-                    {canDelete && (
-                      <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(s)}>
-                        <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              )}
+        <Table>
+          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
+            <TableRow style={{ background: "hsl(215 30% 96%)" }}>
+              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Name" k="name" /></TableHead>
+              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>
+                <MultiSelectFilter label="Category" options={categoryOptions} selected={colFilters.category} onChange={(v) => setColFilter("category", v)} />
+              </TableHead>
+              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>
+                <MultiSelectFilter label="Supplier" options={supplierOptions} selected={colFilters.supplier} onChange={(v) => setColFilter("supplier", v)} />
+              </TableHead>
+              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="SKU" k="sku" /></TableHead>
+              {showCost && <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
+              <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
+              <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
+              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Unit" k="unit" /></TableHead>
+              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
+              {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
+              {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
             </TableRow>
-            );
-          })}
-          {visible.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={canEdit ? (showActions ? 11 : 10) : 9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>
-                No supplies found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      {hasMore && (
-        <div className="flex justify-center py-2 border-t" style={{ borderColor: "hsl(215 20% 88%)" }}>
-          <button
-            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-            className="text-xs font-medium px-3 py-1 rounded hover:bg-blue-50"
-            style={{ color: "hsl(215 65% 50%)" }}
-          >
-            Load more ({filtered.length - visibleCount} remaining)
-          </button>
-        </div>
-      )}
+          </TableHeader>
+          <TableBody>
+            {visible.map((s, idx) => {
+              let rowBg = idx % 2 === 1 ? "hsl(215 20% 97%)" : undefined;
+              if (s.base_price === 0) rowBg = "hsl(0 70% 96%)";
+              else if (s.sell_price > 0 && s.sell_price <= s.base_price * fxRate) rowBg = "hsl(0 70% 95%)";
+              else if (s.sell_price > 0) {
+                const fullCostApprox = s.base_price * fxRate * 1.15;
+                const margin = (s.sell_price - fullCostApprox) / s.sell_price;
+                if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
+              }
+              return (
+                <TableRow key={s.id} className={canEdit ? "cursor-pointer hover:bg-blue-50/60" : "hover:bg-blue-50/60"} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEdit && onRowClick(s)}>
+                  <TableCell className={`${tdCls} font-medium max-w-[200px] truncate`} style={{ color: "hsl(215 30% 15%)" }}>{s.name}</TableCell>
+                  <TableCell className={tdCls}>{catLabels[s.category] || s.category}</TableCell>
+                  <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.supplier_name ?? "—"}</TableCell>
+                  <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.sku}</TableCell>
+                  {showCost && <TableCell className={`${tdCls} text-right`}>{s.base_price.toFixed(2)}</TableCell>}
+                  <TableCell className={`${tdCls} text-right font-medium`}>{s.sell_price.toFixed(2)}</TableCell>
+                  <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? (s.sell_price / fxRate).toFixed(2) : "—"}</TableCell>
+                  <TableCell className={tdCls}>{s.quantity_per_unit > 1 ? `${s.quantity_per_unit}/${s.unit}` : s.unit}</TableCell>
+                  <TableCell className={tdCls}>{s.show_on_website ? "✓" : ""}</TableCell>
+                  {showActions && (
+                    <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
+                      <Switch checked={s.is_active} onCheckedChange={() => onToggleActive(s)} />
+                    </TableCell>
+                  )}
+                  {showActions && (
+                    <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(s)}><Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} /></Button>
+                        {canDelete && <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(s)}><Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} /></Button>}
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+            {visible.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={canEdit ? (showActions ? 11 : 10) : 9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>No supplies found.</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        {hasMore && (
+          <div className="flex justify-center py-2 border-t" style={{ borderColor: "hsl(215 20% 88%)" }}>
+            <button onClick={() => setVisibleCount((c) => c + PAGE_SIZE)} className="text-xs font-medium px-3 py-1 rounded hover:bg-blue-50" style={{ color: "hsl(215 65% 50%)" }}>
+              Load more ({filtered.length - visibleCount} remaining)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
