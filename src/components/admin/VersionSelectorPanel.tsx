@@ -35,6 +35,7 @@ import {
   Loader2,
   CalendarDays,
   Clock,
+  Eye,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -48,6 +49,8 @@ interface VersionSelectorPanelProps {
   onVersionChange: (id: number) => void;
   showUSD: boolean;
   onShowUSDChange: (v: boolean) => void;
+  /** Called when user clicks Preview on a version row */
+  onPreviewClick?: (versionId: number) => void;
   /** If provided, render after the context banner */
   children?: React.ReactNode;
 }
@@ -59,6 +62,7 @@ const VersionSelectorPanel = ({
   onVersionChange,
   showUSD,
   onShowUSDChange,
+  onPreviewClick,
   children,
 }: VersionSelectorPanelProps) => {
   const { data: versions, isLoading, createMutation, updateMutation, deleteMutation } =
@@ -296,41 +300,53 @@ const VersionSelectorPanel = ({
                           </span>
                         </div>
                       </div>
-                      {canEdit && (
-                        <div
-                          className="flex items-center gap-0.5 shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                      <div
+                        className="flex items-center gap-0.5 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {onPreviewClick && (
                           <button
-                            onClick={() => openEdit(v)}
-                            className="p-1 rounded hover:bg-black/5"
-                            title="Edit"
+                            onClick={() => { onVersionChange(v.id); onPreviewClick(v.id); }}
+                            className="p-1 rounded hover:bg-primary/10 flex items-center gap-0.5 text-[10px]"
+                            title="Preview this pricelist"
+                            style={{ color: BLUE }}
                           >
-                            <Pencil className="h-3 w-3" style={{ color: LABEL_COLOR }} />
+                            <Eye className="h-3 w-3" />
                           </button>
-                          <button
-                            onClick={() => handleDuplicate(v)}
-                            className="p-1 rounded hover:bg-black/5"
-                            title="Duplicate"
-                            disabled={createMutation.isPending}
-                          >
-                            <Copy className="h-3 w-3" style={{ color: LABEL_COLOR }} />
-                          </button>
-                          {isAdmin && (
+                        )}
+                        {canEdit && (
+                          <>
                             <button
-                              onClick={() => handleDelete(v)}
-                              className="p-1 rounded hover:bg-red-50"
-                              title="Delete"
-                              disabled={deleteMutation.isPending}
+                              onClick={() => openEdit(v)}
+                              className="p-1 rounded hover:bg-black/5"
+                              title="Edit"
                             >
-                              <Trash2
-                                className="h-3 w-3"
-                                style={{ color: "hsl(0 60% 50%)" }}
-                              />
+                              <Pencil className="h-3 w-3" style={{ color: LABEL_COLOR }} />
                             </button>
-                          )}
-                        </div>
-                      )}
+                            <button
+                              onClick={() => handleDuplicate(v)}
+                              className="p-1 rounded hover:bg-black/5"
+                              title="Duplicate"
+                              disabled={createMutation.isPending}
+                            >
+                              <Copy className="h-3 w-3" style={{ color: LABEL_COLOR }} />
+                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleDelete(v)}
+                                className="p-1 rounded hover:bg-red-50"
+                                title="Delete"
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Trash2
+                                  className="h-3 w-3"
+                                  style={{ color: "hsl(0 60% 50%)" }}
+                                />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
