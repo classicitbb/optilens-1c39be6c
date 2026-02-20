@@ -11,7 +11,7 @@ import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
 import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import { Button } from "@/components/ui/button";
-import { Save, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const RxLensPricesPage = () => {
@@ -24,9 +24,6 @@ const RxLensPricesPage = () => {
   // Pending matrix→catalog row keys
   const [pendingMatrixRowKeys, setPendingMatrixRowKeys] = useState<Set<string>>(new Set());
   const hasPending = pendingMatrixRowKeys.size > 0;
-
-  // Treatments panel open/close
-  const [treatmentsOpen, setTreatmentsOpen] = useState(false);
 
   // Live Preview
   const [previewFormat, setPreviewFormat] = useState<"matrix" | "list">("list");
@@ -84,33 +81,33 @@ const RxLensPricesPage = () => {
       showUSD={showUSD}
       onShowUSDChange={setShowUSD}
       onPreviewClick={handlePreviewClick}
+      exportBar={resolvedId && activeVersion ? (
+        <div className="flex items-center justify-between gap-3 flex-wrap no-print">
+          <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} />
+          <div className="flex items-center gap-2">
+            {hasPending && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-xs text-destructive">
+                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                {pendingMatrixRowKeys.size} pending catalog sync{pendingMatrixRowKeys.size > 1 ? "s" : ""}
+              </div>
+            )}
+            <Button
+              size="sm"
+              className="h-8 text-xs gap-1.5 font-semibold"
+              variant={hasPending ? "default" : "outline"}
+              style={hasPending ? { background: "hsl(215 65% 50%)", color: "white" } : undefined}
+              onClick={handleSaveAll}
+              disabled={isSavingAll}
+            >
+              {isSavingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Save All Changes
+            </Button>
+          </div>
+        </div>
+      ) : undefined}
     >
       {resolvedId && activeVersion && (
         <div className="space-y-4">
-          {/* Export Bar + Global Save All */}
-          <div className="flex items-center justify-between gap-3 flex-wrap no-print">
-            <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} />
-            <div className="flex items-center gap-2">
-              {hasPending && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-xs text-destructive">
-                  <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                  {pendingMatrixRowKeys.size} pending catalog sync{pendingMatrixRowKeys.size > 1 ? "s" : ""}
-                </div>
-              )}
-              <Button
-                size="sm"
-                className="h-8 text-xs gap-1.5 font-semibold"
-                variant={hasPending ? "default" : "outline"}
-                style={hasPending ? { background: "hsl(215 65% 50%)", color: "white" } : undefined}
-                onClick={handleSaveAll}
-                disabled={isSavingAll}
-              >
-                {isSavingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                Save All Changes
-              </Button>
-            </div>
-          </div>
-
           {/* Tabs: Price Matrix | List Catalog */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="h-8">
@@ -141,7 +138,7 @@ const RxLensPricesPage = () => {
                 showUSD={showUSD}
                 catalogType="rx"
                 lensFilter="pricelist"
-                showTreatmentsAddons={false}
+                showTreatmentsAddons={true}
                 pageTitle={activeVersion?.name ?? "RX Pricelist"}
                 versionId={resolvedId}
                 pendingMatrixRowKeys={pendingMatrixRowKeys}
@@ -149,38 +146,6 @@ const RxLensPricesPage = () => {
               />
             </TabsContent>
           </Tabs>
-
-          {/* Treatments & Add-ons Panel */}
-          <div className="border border-border rounded-lg overflow-hidden mt-6">
-            <button
-              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors bg-muted/20"
-              onClick={() => setTreatmentsOpen((o) => !o)}
-            >
-              <div>
-                <span className="text-sm font-semibold text-foreground">Treatments &amp; Add-ons</span>
-                <span className="ml-2 text-xs text-muted-foreground">— applies to both Matrix and List export formats</span>
-              </div>
-              {treatmentsOpen ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
-            </button>
-            {treatmentsOpen && (
-              <div className="p-4 border-t border-border">
-                <ListCatalogTab
-                  fxRate={fxRate}
-                  showUSD={showUSD}
-                  catalogType="rx"
-                  lensFilter="none"
-                  showTreatmentsAddons={true}
-                  pageTitle={`${activeVersion?.name ?? "RX"} — Treatments & Add-ons`}
-                  versionId={resolvedId}
-                />
-              </div>
-            )}
-          </div>
-
 
           {/* ── Live Preview Section ──────────────────────────────────────────── */}
           <div ref={previewRef} className="border border-border rounded-lg overflow-hidden mt-6" id="live-preview">

@@ -62,13 +62,18 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
 
   const categories = useMemo(() => [...new Set(matrixRows.map((r) => r.category))], [matrixRows]);
 
-  // Group lens catalog rows by section (not treatment type) for list preview
+  // Group lens catalog rows by CATEGORY only (strip treatment-type prefix like "Clear Lenses — ")
+  // for list preview. Treatment splits only apply to matrix view.
+  const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
   const lensSections = useMemo(() => {
     const map = new Map<string, typeof catalogRows>();
     for (const r of catalogRows) {
       const sec = r.section || "Lenses";
-      if (!map.has(sec)) map.set(sec, []);
-      map.get(sec)!.push(r);
+      const parts = sec.split(" — ");
+      const isMatrixSection = TREATMENT_PREFIXES.some(tp => parts[0].trim() === tp);
+      const category = isMatrixSection ? (parts.slice(1).join(" — ") || sec) : sec;
+      if (!map.has(category)) map.set(category, []);
+      map.get(category)!.push(r);
     }
     return map;
   }, [catalogRows]);
