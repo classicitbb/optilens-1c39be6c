@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
-import QuotePdfExport from "@/components/admin/QuotePdfExport";
+import QuotePdfExport, { QuotePreviewPanel, QuotePdfExportHandle } from "@/components/admin/QuotePdfExport";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, XCircle, AlertTriangle, MinusCircle, ChevronRight,
@@ -619,15 +619,21 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   };
 
   // PDF ref for "Print & Save"
-  const pdfRef = useRef<{ triggerPrint: () => void } | null>(null);
+  const pdfRef = useRef<QuotePdfExportHandle | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Derived frame data object for PDF/preview
+  const frameDataForPdf = (frameRef || frameModel || frameA || frameB) ? {
+    ref: frameRef, model: frameModel, bridge: frameBridge, ed: frameEd,
+    a: frameA, b: frameB, dbl: frameDbl, uncut: isUncut, uncutPrice,
+  } : null;
 
   const handleFinish = () => {
-    // Save as accepted
     onUpdateQuote({ status: "Accepted" });
-    // Trigger PDF print via QuotePdfExport
+    pdfRef.current?.triggerPrint();
     setTimeout(() => {
       navigate("/admin/quotations");
-    }, 400);
+    }, 1200);
   };
 
   // Totals that include edging fee (not shown on PDF line items, but included in grand total)
@@ -968,8 +974,21 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
               </table>
             </div>
 
-            {/* Back + Finish */}
-            <div className="flex justify-between pt-1">
+            {/* Preview panel */}
+            {showPreview && (
+              <div className="mt-2">
+                <QuotePreviewPanel
+                  quote={quote}
+                  lines={lines}
+                  totals={effectiveTotals}
+                  rxMap={rxMap}
+                  frameData={frameDataForPdf}
+                />
+              </div>
+            )}
+
+            {/* Back + Preview + Finish */}
+            <div className="flex justify-between pt-2">
               <Button
                 size="sm" variant="outline" className="h-8 text-xs gap-1.5"
                 onClick={() => {
@@ -980,10 +999,24 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                 ← Back (Save Draft)
               </Button>
               <div className="flex items-center gap-2">
-                {/* Hidden PDF export trigger */}
-                <div className="hidden">
-                  <QuotePdfExport quote={quote} lines={lines} totals={effectiveTotals} rxMap={rxMap} />
+                {/* Hidden PDF export — holds off-screen print content */}
+                <div style={{ position: "absolute", left: "-9999px", top: 0, visibility: "hidden" }}>
+                  <QuotePdfExport
+                    ref={pdfRef}
+                    quote={quote}
+                    lines={lines}
+                    totals={effectiveTotals}
+                    rxMap={rxMap}
+                    frameData={frameDataForPdf}
+                  />
                 </div>
+                <Button
+                  size="sm" variant="outline"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => setShowPreview(v => !v)}
+                >
+                  {showPreview ? "Hide Preview" : "▷ Preview"}
+                </Button>
                 <Button
                   size="sm"
                   className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
