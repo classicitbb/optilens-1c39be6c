@@ -4,11 +4,10 @@ import {
   MATERIAL_COLUMNS,
   TREATMENT_TYPES,
   TreatmentType,
-  MaterialKey,
   MatrixAllocation,
 } from "@/hooks/useMatrixAllocations";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
-import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
+import { usePricelistCatalogRows, PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 import { useLenses } from "@/hooks/useLenses";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,18 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ChevronDown,
   ChevronRight,
@@ -27,14 +37,19 @@ import {
   Loader2,
   CheckCircle2,
   CheckCircle,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
+import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface TreatmentMatricesAccordionProps {
   versionId: number;
   showUSD: boolean;
   fxRate: number;
+  /** Called whenever matrix changes create pending List Catalog rows */
+  onPendingChange?: (pendingKeys: Set<string>) => void;
 }
 
 const TREATMENT_LABELS: Record<TreatmentType, string> = {
@@ -51,21 +66,37 @@ const fmt = (val: number | null, showUSD: boolean, fxRate: number): string => {
   return v === 0 ? "" : v.toFixed(2);
 };
 
+/** Build the row_key used in pricelist_catalog_rows from matrix coords */
+const buildRowKey = (
+  treatment: TreatmentType,
+  category: string,
+  material: string
+) => `matrix::${treatment}::${category}::${material}`;
+
+/** Build human-readable Matrix Cell label */
+const buildMatrixCellLabel = (
+  treatmentLabel: string,
+  category: string,
+  material: string
+) => `${treatmentLabel} – ${category} ${material}`;
+
 // ─── Lens Picker Modal ────────────────────────────────────────────────────────
 interface LensPickerModalProps {
   open: boolean;
   onClose: () => void;
   onPick: (lensId: string, lensName: string, sellPrice: number) => void;
+  onClear?: () => void;
   currentLensId: string | null;
   categoryFilter?: string;
   materialFilter?: string;
-  catalogLensIds: Set<string>; // lens IDs present in the list catalog
+  catalogLensIds: Set<string>;
 }
 
 const LensPickerModal = ({
   open,
   onClose,
   onPick,
+  onClear,
   currentLensId,
   categoryFilter,
   materialFilter,
@@ -97,7 +128,6 @@ const LensPickerModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Search */}
         <div className="px-4 py-3 border-b border-border shrink-0">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -111,7 +141,6 @@ const LensPickerModal = ({
           </div>
         </div>
 
-        {/* List */}
         <div className="overflow-y-auto flex-1 px-2 py-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
@@ -157,10 +186,18 @@ const LensPickerModal = ({
           )}
         </div>
 
-        <div className="px-4 py-2 border-t border-border shrink-0 bg-muted/30">
+        <div className="px-4 py-2 border-t border-border shrink-0 bg-muted/30 flex items-center justify-between">
           <p className="text-[10px] text-muted-foreground">
             {lenses.length} lens{lenses.length !== 1 ? "es" : ""} with cost &amp; price assigned
           </p>
+          {currentLensId && onClear && (
+            <button
+              className="text-[10px] text-destructive hover:underline"
+              onClick={() => { onClear(); onClose(); }}
+            >
+              Clear cell
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -176,14 +213,11 @@ interface TreatmentGridProps {
   allocations: MatrixAllocation[];
   clearAllocations: MatrixAllocation[];
   catalogLensIds: Set<string>;
+  pendingRowKeys: Set<string>;
   lensNameMap: Map<string, string>;
   showUSD: boolean;
   fxRate: number;
-  onCellPick: (
-    category: string,
-    materialIndex: string,
-    treatmentType: TreatmentType
-  ) => void;
+  onCellPick: (category: string, materialIndex: string, treatmentType: TreatmentType) => void;
   isSaving: boolean;
 }
 
@@ -195,6 +229,7 @@ const TreatmentGrid = ({
   allocations,
   clearAllocations,
   catalogLensIds,
+  pendingRowKeys,
   lensNameMap,
   showUSD,
   fxRate,
@@ -216,7 +251,6 @@ const TreatmentGrid = ({
 
   const getClearPrice = useCallback(
     (materialIndex: string): number | null => {
-      // Average of clear prices for this material across all categories
       const vals = clearAllocations
         .filter((a) => a.material_index === materialIndex && a.treatment_type === "clear" && a.allocated_price_bbd !== null)
         .map((a) => a.allocated_price_bbd as number);
@@ -242,7 +276,6 @@ const TreatmentGrid = ({
       <table className="w-full text-xs border-collapse bg-background">
         <thead>
           <tr className="bg-muted/60 border-b border-border">
-            {/* Editable heading for treatment panels */}
             <th className="px-3 py-2 text-left font-bold border-r border-border min-w-[200px] text-foreground">
               {onLabelChange ? (
                 editingLabel ? (
@@ -255,11 +288,7 @@ const TreatmentGrid = ({
                     className="h-6 text-xs font-bold px-1 w-full"
                   />
                 ) : (
-                  <span
-                    className="cursor-pointer hover:underline"
-                    title="Click to edit heading"
-                    onClick={() => setEditingLabel(true)}
-                  >
+                  <span className="cursor-pointer hover:underline" title="Click to edit heading" onClick={() => setEditingLabel(true)}>
                     {label}
                   </span>
                 )
@@ -268,10 +297,7 @@ const TreatmentGrid = ({
               )}
             </th>
             {MATERIAL_COLUMNS.map((col) => (
-              <th
-                key={col.key}
-                className="px-3 py-2 text-center font-bold border-r border-border last:border-r-0 min-w-[120px] text-foreground"
-              >
+              <th key={col.key} className="px-3 py-2 text-center font-bold border-r border-border last:border-r-0 min-w-[120px] text-foreground">
                 {col.key}
               </th>
             ))}
@@ -283,9 +309,7 @@ const TreatmentGrid = ({
               key={cat}
               className={cn(
                 "border-b border-border last:border-b-0 transition-colors",
-                rowIdx % 2 === 0
-                  ? "bg-background hover:bg-muted/30"
-                  : "bg-muted/10 hover:bg-muted/30"
+                rowIdx % 2 === 0 ? "bg-background hover:bg-muted/30" : "bg-muted/10 hover:bg-muted/30"
               )}
             >
               <td className="px-3 py-1.5 font-semibold border-r border-border whitespace-nowrap text-foreground">
@@ -294,26 +318,26 @@ const TreatmentGrid = ({
               {MATERIAL_COLUMNS.map((col) => {
                 const alloc = getAllocation(cat, col.key);
                 const inCatalog = alloc?.lens_id ? catalogLensIds.has(alloc.lens_id) : false;
+                const rk = buildRowKey(treatmentType, cat, col.key);
+                const isPending = pendingRowKeys.has(rk);
 
                 return (
                   <td key={col.key} className="border-r border-border last:border-r-0 p-0">
                     <div className="flex flex-col">
                       <div className="flex items-center">
-                        {/* Price display / allocated price */}
                         <div className="flex-1 px-2 py-1.5 text-right font-mono text-xs text-foreground min-w-0">
                           {alloc?.allocated_price_bbd != null ? (
-                            <span className="font-semibold">
-                              {fmt(alloc.allocated_price_bbd, showUSD, fxRate)}
-                            </span>
+                            <span className="font-semibold">{fmt(alloc.allocated_price_bbd, showUSD, fxRate)}</span>
                           ) : (
                             <span className="text-muted-foreground/40">—</span>
                           )}
                         </div>
-                        {/* Catalog indicator */}
-                        {inCatalog && (
+                        {isPending && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to List Catalog" />
+                        )}
+                        {inCatalog && !isPending && (
                           <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />
                         )}
-                        {/* Picker button */}
                         <button
                           onClick={() => onCellPick(cat, col.key, treatmentType)}
                           className={cn(
@@ -326,12 +350,8 @@ const TreatmentGrid = ({
                           <Search className="h-3 w-3" />
                         </button>
                       </div>
-                      {/* Lens name label */}
                       {alloc?.lens_id && (
-                        <div
-                          className="px-2 pb-0.5 text-[9px] truncate max-w-full text-primary/70"
-                          title={lensNameMap.get(alloc.lens_id) ?? alloc.lens_id}
-                        >
+                        <div className="px-2 pb-0.5 text-[9px] truncate max-w-full text-primary/70" title={lensNameMap.get(alloc.lens_id) ?? alloc.lens_id}>
                           ↳ {lensNameMap.get(alloc.lens_id) ?? alloc.lens_id.slice(0, 8) + "…"}
                         </div>
                       )}
@@ -344,53 +364,30 @@ const TreatmentGrid = ({
 
           {/* Column Averages row */}
           <tr className="bg-muted/40 border-t-2 border-border font-semibold">
-            <td className="px-3 py-1.5 text-xs border-r border-border text-muted-foreground italic">
-              Col. Averages
-            </td>
+            <td className="px-3 py-1.5 text-xs border-r border-border text-muted-foreground italic">Col. Averages</td>
             {MATERIAL_COLUMNS.map((col) => {
               const avg = getColAvg(col.key);
               return (
-                <td
-                  key={col.key}
-                  className="px-3 py-1.5 text-right text-xs border-r border-border last:border-r-0 text-foreground"
-                >
+                <td key={col.key} className="px-3 py-1.5 text-right text-xs border-r border-border last:border-r-0 text-foreground">
                   {avg !== null ? fmt(avg, showUSD, fxRate) : "—"}
                 </td>
               );
             })}
           </tr>
 
-          {/* Delta vs Clear row (only for non-clear treatments) */}
+          {/* Delta vs Clear row */}
           {treatmentType !== "clear" && (
             <tr className="bg-amber-50/60 dark:bg-amber-900/10 border-t border-border">
-              <td className="px-3 py-1.5 text-xs border-r border-border text-amber-700 dark:text-amber-400 italic">
-                Δ vs Clear
-              </td>
+              <td className="px-3 py-1.5 text-xs border-r border-border text-amber-700 dark:text-amber-400 italic">Δ vs Clear</td>
               {MATERIAL_COLUMNS.map((col) => {
                 const treatAvg = getColAvg(col.key);
                 const clearAvg = getClearPrice(col.key);
-                const delta =
-                  treatAvg !== null && clearAvg !== null
-                    ? treatAvg - clearAvg
-                    : null;
+                const delta = treatAvg !== null && clearAvg !== null ? treatAvg - clearAvg : null;
                 return (
-                  <td
-                    key={col.key}
-                    className="px-3 py-1.5 text-right text-xs border-r border-border last:border-r-0"
-                  >
+                  <td key={col.key} className="px-3 py-1.5 text-right text-xs border-r border-border last:border-r-0">
                     {delta !== null ? (
-                      <span
-                        className={cn(
-                          "font-semibold",
-                          delta > 0
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : delta < 0
-                            ? "text-red-500"
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {delta > 0 ? "+" : ""}
-                        {fmt(delta, showUSD, fxRate)}
+                      <span className={cn("font-semibold", delta > 0 ? "text-emerald-600 dark:text-emerald-400" : delta < 0 ? "text-red-500" : "text-muted-foreground")}>
+                        {delta > 0 ? "+" : ""}{fmt(delta, showUSD, fxRate)}
                       </span>
                     ) : (
                       <span className="text-muted-foreground/40">—</span>
@@ -406,55 +403,166 @@ const TreatmentGrid = ({
   );
 };
 
+// ─── Clear Lenses Grid ────────────────────────────────────────────────────────
+interface ClearTreatmentGridProps {
+  categories: string[];
+  allocations: MatrixAllocation[];
+  catalogLensIds: Set<string>;
+  pendingRowKeys: Set<string>;
+  lensNameMap: Map<string, string>;
+  showUSD: boolean;
+  fxRate: number;
+  onCellPick: (category: string, materialIndex: string, treatmentType: TreatmentType) => void;
+  isSaving: boolean;
+}
+
+const ClearTreatmentGrid = ({
+  categories,
+  allocations,
+  catalogLensIds,
+  pendingRowKeys,
+  lensNameMap,
+  showUSD,
+  fxRate,
+  onCellPick,
+  isSaving,
+}: ClearTreatmentGridProps) => {
+  const getAllocation = (category: string, materialIndex: string) =>
+    allocations.find((a) => a.category === category && a.material_index === materialIndex && a.treatment_type === "clear");
+
+  const getColAvg = (materialIndex: string): number | null => {
+    const vals = categories.map((cat) => getAllocation(cat, materialIndex)?.allocated_price_bbd ?? null).filter((v): v is number => v !== null);
+    if (vals.length === 0) return null;
+    return vals.reduce((s, v) => s + v, 0) / vals.length;
+  };
+
+  return (
+    <div className="overflow-auto border border-border rounded-md">
+      <table className="w-full text-xs border-collapse bg-background">
+        <thead>
+          <tr className="bg-muted/60 border-b border-border">
+            <th className="px-3 py-2 text-left font-bold border-r border-border min-w-[200px] text-foreground">Category</th>
+            {MATERIAL_COLUMNS.map((col) => (
+              <th key={col.key} className="px-3 py-2 text-center font-bold border-r border-border last:border-r-0 min-w-[120px] text-foreground">{col.key}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {categories.map((cat, rowIdx) => (
+            <tr key={cat} className={cn("border-b border-border last:border-b-0 transition-colors", rowIdx % 2 === 0 ? "bg-background hover:bg-muted/30" : "bg-muted/10 hover:bg-muted/30")}>
+              <td className="px-3 py-1.5 font-semibold border-r border-border whitespace-nowrap text-foreground">{cat}</td>
+              {MATERIAL_COLUMNS.map((col) => {
+                const alloc = getAllocation(cat, col.key);
+                const inCatalog = alloc?.lens_id ? catalogLensIds.has(alloc.lens_id) : false;
+                const lensName = alloc?.lens_id ? lensNameMap.get(alloc.lens_id) : undefined;
+                const rk = buildRowKey("clear", cat, col.key);
+                const isPending = pendingRowKeys.has(rk);
+
+                return (
+                  <td key={col.key} className="border-r border-border last:border-r-0 p-0">
+                    <div className="flex flex-col">
+                      <div className="flex items-center">
+                        <div className="flex-1 px-2 py-1.5 text-right font-mono text-xs text-foreground min-w-0">
+                          {alloc?.allocated_price_bbd != null ? (
+                            <span className="font-semibold">{fmt(alloc.allocated_price_bbd, showUSD, fxRate)}</span>
+                          ) : (
+                            <span className="text-muted-foreground/40">—</span>
+                          )}
+                        </div>
+                        {isPending && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to List Catalog" />
+                        )}
+                        {inCatalog && !isPending && (
+                          <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />
+                        )}
+                        <button
+                          onClick={() => onCellPick(cat, col.key, "clear")}
+                          className="shrink-0 px-1 py-1 hover:bg-primary/10 rounded transition-colors"
+                          title="Link a lens to this cell"
+                          disabled={isSaving}
+                        >
+                          <Search className="h-3 w-3" style={{ color: alloc ? "hsl(215 65% 50%)" : "hsl(215 15% 65%)" }} />
+                        </button>
+                      </div>
+                      {lensName && (
+                        <div className="px-2 pb-0.5 text-[9px] truncate max-w-full text-primary/70" title={lensName}>
+                          ↳ {lensName}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+          <tr className="bg-muted/40 border-t-2 border-border font-semibold">
+            <td className="px-3 py-1.5 text-xs border-r border-border text-muted-foreground italic">Col. Averages</td>
+            {MATERIAL_COLUMNS.map((col) => {
+              const avg = getColAvg(col.key);
+              return (
+                <td key={col.key} className="px-3 py-1.5 text-right text-xs border-r border-border last:border-r-0 text-foreground">
+                  {avg !== null ? fmt(avg, showUSD, fxRate) : "—"}
+                </td>
+              );
+            })}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 // ─── Main Accordion ───────────────────────────────────────────────────────────
 const TreatmentMatricesAccordion = ({
   versionId,
   showUSD,
   fxRate,
+  onPendingChange,
 }: TreatmentMatricesAccordionProps) => {
   const { toast } = useToast();
 
-  // Data sources
   const { data: matrixRows, isLoading: matrixLoading } = usePriceMatrix();
   const {
     data: allocations = [],
     isLoading: allocLoading,
     upsertMutation,
+    deleteMutation,
   } = useMatrixAllocations(versionId);
-  const { data: catalogRows } = usePricelistCatalogRows(versionId, "rx");
+  const { data: catalogRows, saveRows: saveCatalogRows } = usePricelistCatalogRows(versionId, "rx");
   const { data: allLenses } = useLenses();
 
-  // Build a set of lens IDs present in the list catalog
+  // Track locally which row_keys are pending sync to List Catalog
+  const [pendingRowKeys, setPendingRowKeys] = useState<Set<string>>(new Set());
+
   const catalogLensIds = useMemo(
-    () => new Set((catalogRows ?? []).map((r) => r.item_id).filter(Boolean) as string[]),
+    () => new Set((catalogRows ?? []).filter((r) => r.item_id).map((r) => r.item_id as string)),
     [catalogRows]
   );
 
-  // Build lens id → name map
+  // row_key → catalog row map for quick lookup
+  const catalogRowKeyMap = useMemo(
+    () => new Map((catalogRows ?? []).map((r) => [r.row_key, r])),
+    [catalogRows]
+  );
+
   const lensNameMap = useMemo(
     () => new Map((allLenses ?? []).map((l) => [l.id, l.name])),
     [allLenses]
   );
 
-  // Categories from price_matrix table
   const categories = useMemo(
     () => (matrixRows ?? []).map((r) => r.category),
     [matrixRows]
   );
 
-  // Treatment section labels (editable)
-  const [treatmentLabels, setTreatmentLabels] = useState<
-    Record<TreatmentType, string>
-  >({ ...TREATMENT_LABELS });
+  const [treatmentLabels, setTreatmentLabels] = useState<Record<TreatmentType, string>>({ ...TREATMENT_LABELS });
 
-  // Expanded accordion state (clear is always open)
   const [expanded, setExpanded] = useState<Set<TreatmentType>>(
     new Set(["transitions", "photochromic", "polarized", "bluefilter"])
   );
 
   const toggleExpanded = (t: TreatmentType) => {
-    if (t === "clear") return; // always expanded
+    if (t === "clear") return;
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(t)) next.delete(t);
@@ -471,32 +579,85 @@ const TreatmentMatricesAccordion = ({
     treatmentType: TreatmentType;
   } | null>(null);
 
+  // Clear confirmation dialog
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [clearTarget, setClearTarget] = useState<typeof pickerTarget>(null);
+
   const currentCellLensId = useMemo(() => {
     if (!pickerTarget) return null;
     return (
       allocations.find(
-        (a) =>
-          a.category === pickerTarget.category &&
-          a.material_index === pickerTarget.materialIndex &&
-          a.treatment_type === pickerTarget.treatmentType
+        (a) => a.category === pickerTarget.category && a.material_index === pickerTarget.materialIndex && a.treatment_type === pickerTarget.treatmentType
       )?.lens_id ?? null
     );
   }, [pickerTarget, allocations]);
 
-  const handleCellPick = (
-    category: string,
-    materialIndex: string,
-    treatmentType: TreatmentType
-  ) => {
+  const markPending = (rowKey: string) => {
+    setPendingRowKeys((prev) => {
+      const next = new Set(prev);
+      next.add(rowKey);
+      onPendingChange?.(next);
+      return next;
+    });
+  };
+
+  const unmarkPending = (rowKey: string) => {
+    setPendingRowKeys((prev) => {
+      const next = new Set(prev);
+      next.delete(rowKey);
+      onPendingChange?.(next);
+      return next;
+    });
+  };
+
+  const handleCellPick = (category: string, materialIndex: string, treatmentType: TreatmentType) => {
     setPickerTarget({ category, materialIndex, treatmentType });
     setPickerOpen(true);
   };
 
-  const handlePick = async (
+  /** Sync a picked lens to pricelist_catalog_rows */
+  const syncToCatalog = async (
+    treatment: TreatmentType,
+    category: string,
+    material: string,
     lensId: string,
     lensName: string,
     sellPrice: number
   ) => {
+    const rowKey = buildRowKey(treatment, category, material);
+    const treatLabel = treatmentLabels[treatment];
+    const matrixCellLabel = buildMatrixCellLabel(treatLabel, category, material);
+    const section = `${treatLabel} — ${category}`;
+
+    // Build updated catalog rows: replace or add this key
+    const existing = catalogRows ?? [];
+    const withoutThis = existing.filter((r) => r.row_key !== rowKey);
+    const newRow: Omit<PricelistCatalogRow, "id"> = {
+      pricelist_version_id: versionId,
+      catalog_type: "rx",
+      row_key: rowKey,
+      row_type: "lens",
+      section,
+      display_description: lensName,
+      bbd_price: sellPrice,
+      item_id: lensId,
+      sort_order: withoutThis.length,
+    };
+    const allRows = [...withoutThis, newRow];
+
+    // Preserve existing rows and upsert
+    saveCatalogRows.mutate(
+      allRows.map((r) => ({ ...r, pricelist_version_id: versionId } as Omit<PricelistCatalogRow, "id">)),
+      {
+        onSuccess: () => unmarkPending(rowKey),
+        onError: () => markPending(rowKey),
+      }
+    );
+
+    markPending(rowKey);
+  };
+
+  const handlePick = async (lensId: string, lensName: string, sellPrice: number) => {
     if (!pickerTarget) return;
     try {
       await upsertMutation.mutateAsync({
@@ -506,21 +667,61 @@ const TreatmentMatricesAccordion = ({
         lens_id: lensId,
         allocated_price_bbd: sellPrice,
       });
+
+      // Auto-sync to List Catalog
+      await syncToCatalog(
+        pickerTarget.treatmentType,
+        pickerTarget.category,
+        pickerTarget.materialIndex,
+        lensId,
+        lensName,
+        sellPrice
+      );
+
       toast({
-        title: "Cell updated",
-        description: `${lensName} → $${sellPrice.toFixed(2)} BBD assigned to ${pickerTarget.category} / ${pickerTarget.materialIndex} / ${pickerTarget.treatmentType}`,
+        title: "Cell updated & synced to List Catalog",
+        description: `${lensName} → $${sellPrice.toFixed(2)} BBD`,
       });
     } catch (e: any) {
-      toast({
-        title: "Save failed",
-        description: e.message,
-        variant: "destructive",
-      });
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
     }
   };
 
+  const handleClearRequest = () => {
+    if (!pickerTarget) return;
+    const alloc = allocations.find(
+      (a) => a.category === pickerTarget.category && a.material_index === pickerTarget.materialIndex && a.treatment_type === pickerTarget.treatmentType
+    );
+    if (!alloc) return;
+    setClearTarget(pickerTarget);
+    setPickerOpen(false);
+    setClearConfirmOpen(true);
+  };
+
+  const handleClearConfirm = async () => {
+    if (!clearTarget) return;
+    const alloc = allocations.find(
+      (a) => a.category === clearTarget.category && a.material_index === clearTarget.materialIndex && a.treatment_type === clearTarget.treatmentType
+    );
+    if (!alloc) { setClearConfirmOpen(false); return; }
+
+    try {
+      await deleteMutation.mutateAsync(alloc.id);
+
+      // Mark catalog row as inactive by removing it from saved rows
+      const rowKey = buildRowKey(clearTarget.treatmentType, clearTarget.category, clearTarget.materialIndex);
+      const existing = catalogRows ?? [];
+      const withoutThis = existing.filter((r) => r.row_key !== rowKey);
+      saveCatalogRows.mutate(withoutThis.map((r) => ({ ...r, pricelist_version_id: versionId } as Omit<PricelistCatalogRow, "id">)));
+
+      toast({ title: "Cell cleared", description: "Removed from Matrix and List Catalog." });
+    } catch (e: any) {
+      toast({ title: "Clear failed", description: e.message, variant: "destructive" });
+    }
+    setClearConfirmOpen(false);
+  };
+
   const handleRecalculate = () => {
-    // Deltas are computed live from allocations data; this just forces a re-render
     toast({ title: "Deltas recalculated", description: "All delta rows updated." });
   };
 
@@ -532,22 +733,8 @@ const TreatmentMatricesAccordion = ({
     );
   }
 
-  // Build rich allocation list with lens names resolved
-  const richAllocations: MatrixAllocation[] = allocations.map((a) => ({
-    ...a,
-    // We stash lensName in a synthetic field for display; the grid uses lensNameMap
-  }));
-
-  const clearAllocations = richAllocations.filter(
-    (a) => a.treatment_type === "clear"
-  );
-
-  const collapsibleTreatments: TreatmentType[] = [
-    "transitions",
-    "photochromic",
-    "polarized",
-    "bluefilter",
-  ];
+  const clearAllocations = allocations.filter((a) => a.treatment_type === "clear");
+  const collapsibleTreatments: TreatmentType[] = ["transitions", "photochromic", "polarized", "bluefilter"];
 
   return (
     <div className="space-y-3">
@@ -561,17 +748,12 @@ const TreatmentMatricesAccordion = ({
             </span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Click <Search className="inline h-3 w-3" /> to link a lens to any cell. Green{" "}
-            <CheckCircle className="inline h-3 w-3 text-emerald-500" /> means the price also exists
-            in the List Catalog. Deltas are auto-calculated vs Clear averages.
+            Click <Search className="inline h-3 w-3" /> to link a lens. Green{" "}
+            <CheckCircle className="inline h-3 w-3 text-emerald-500" /> = in List Catalog.{" "}
+            Red dot = pending sync. Lens selection auto-creates List Catalog row.
           </p>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs gap-1.5"
-          onClick={handleRecalculate}
-        >
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleRecalculate}>
           <RefreshCw className="h-3 w-3" />
           Recalculate All Deltas
         </Button>
@@ -582,7 +764,7 @@ const TreatmentMatricesAccordion = ({
         Displaying: {showUSD ? "USD" : "BBD"}
       </div>
 
-      {/* ── CLEAR LENSES (always expanded, non-collapsible) ─────────────────── */}
+      {/* ── CLEAR LENSES ─────────────────────────────────────────────────────── */}
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/50 border-b border-border">
           <span className="text-sm font-bold text-foreground">Clear Lenses</span>
@@ -591,8 +773,9 @@ const TreatmentMatricesAccordion = ({
         <div className="p-3">
           <ClearTreatmentGrid
             categories={categories}
-            allocations={richAllocations}
+            allocations={allocations}
             catalogLensIds={catalogLensIds}
+            pendingRowKeys={pendingRowKeys}
             lensNameMap={lensNameMap}
             showUSD={showUSD}
             fxRate={fxRate}
@@ -605,16 +788,10 @@ const TreatmentMatricesAccordion = ({
       {/* ── COLLAPSIBLE TREATMENT SECTIONS ─────────────────────────────────── */}
       {collapsibleTreatments.map((treatment) => {
         const isOpen = expanded.has(treatment);
-        const treatAllocs = richAllocations.filter(
-          (a) => a.treatment_type === treatment
-        );
+        const treatAllocs = allocations.filter((a) => a.treatment_type === treatment);
 
         return (
-          <div
-            key={treatment}
-            className="border border-border rounded-lg overflow-hidden"
-          >
-            {/* Header / trigger */}
+          <div key={treatment} className="border border-border rounded-lg overflow-hidden">
             <button
               className="w-full flex items-center gap-2 px-4 py-2.5 bg-muted/50 border-b border-border hover:bg-muted/70 transition-colors text-left"
               onClick={() => toggleExpanded(treatment)}
@@ -624,55 +801,25 @@ const TreatmentMatricesAccordion = ({
               ) : (
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
               )}
-              <span className="text-sm font-semibold text-foreground flex-1">
-                {treatmentLabels[treatment]}
-              </span>
-              {/* Delta summary chips (always visible even when collapsed) */}
+              <span className="text-sm font-semibold text-foreground flex-1">{treatmentLabels[treatment]}</span>
+              {/* Delta summary chips */}
               <span className="flex gap-1.5 ml-2">
                 {MATERIAL_COLUMNS.map((col) => {
                   const treatAvgs = categories
-                    .map(
-                      (cat) =>
-                        treatAllocs.find(
-                          (a) =>
-                            a.category === cat &&
-                            a.material_index === col.key
-                        )?.allocated_price_bbd ?? null
-                    )
+                    .map((cat) => treatAllocs.find((a) => a.category === cat && a.material_index === col.key)?.allocated_price_bbd ?? null)
                     .filter((v): v is number => v !== null);
                   const clearAvgs = clearAllocations
                     .filter((a) => a.material_index === col.key && a.allocated_price_bbd !== null)
                     .map((a) => a.allocated_price_bbd as number);
-                  const tAvg =
-                    treatAvgs.length > 0
-                      ? treatAvgs.reduce((s, v) => s + v, 0) / treatAvgs.length
-                      : null;
-                  const cAvg =
-                    clearAvgs.length > 0
-                      ? clearAvgs.reduce((s, v) => s + v, 0) / clearAvgs.length
-                      : null;
-                  const delta =
-                    tAvg !== null && cAvg !== null ? tAvg - cAvg : null;
-
+                  const tAvg = treatAvgs.length > 0 ? treatAvgs.reduce((s, v) => s + v, 0) / treatAvgs.length : null;
+                  const cAvg = clearAvgs.length > 0 ? clearAvgs.reduce((s, v) => s + v, 0) / clearAvgs.length : null;
+                  const delta = tAvg !== null && cAvg !== null ? tAvg - cAvg : null;
                   return (
-                    <span
-                      key={col.key}
-                      className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-background border border-border"
-                      title={`${col.key} Δ`}
-                    >
+                    <span key={col.key} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-background border border-border" title={`${col.key} Δ`}>
                       <span className="text-muted-foreground mr-0.5">{col.key}:</span>
                       {delta !== null ? (
-                        <span
-                          className={
-                            delta > 0
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : delta < 0
-                              ? "text-red-500"
-                              : "text-muted-foreground"
-                          }
-                        >
-                          {delta > 0 ? "+" : ""}
-                          {fmt(delta, showUSD, fxRate)}
+                        <span className={delta > 0 ? "text-emerald-600 dark:text-emerald-400" : delta < 0 ? "text-red-500" : "text-muted-foreground"}>
+                          {delta > 0 ? "+" : ""}{fmt(delta, showUSD, fxRate)}
                         </span>
                       ) : (
                         <span className="text-muted-foreground/40">—</span>
@@ -683,19 +830,17 @@ const TreatmentMatricesAccordion = ({
               </span>
             </button>
 
-            {/* Collapsible body */}
             {isOpen && (
               <div className="p-3 space-y-2">
                 <TreatmentGrid
                   treatmentType={treatment}
                   label={treatmentLabels[treatment]}
-                  onLabelChange={(v) =>
-                    setTreatmentLabels((prev) => ({ ...prev, [treatment]: v }))
-                  }
+                  onLabelChange={(v) => setTreatmentLabels((prev) => ({ ...prev, [treatment]: v }))}
                   categories={categories}
-                  allocations={richAllocations}
+                  allocations={allocations}
                   clearAllocations={clearAllocations}
                   catalogLensIds={catalogLensIds}
+                  pendingRowKeys={pendingRowKeys}
                   lensNameMap={lensNameMap}
                   showUSD={showUSD}
                   fxRate={fxRate}
@@ -708,14 +853,9 @@ const TreatmentMatricesAccordion = ({
         );
       })}
 
-      {/* Recalculate footer button */}
+      {/* Footer */}
       <div className="flex justify-end">
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs gap-1.5"
-          onClick={handleRecalculate}
-        >
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleRecalculate}>
           <RefreshCw className="h-3 w-3" />
           Recalculate All Deltas
         </Button>
@@ -726,162 +866,42 @@ const TreatmentMatricesAccordion = ({
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onPick={handlePick}
+        onClear={currentCellLensId ? handleClearRequest : undefined}
         currentLensId={currentCellLensId}
         categoryFilter={pickerTarget?.category}
         materialFilter={pickerTarget?.materialIndex}
         catalogLensIds={catalogLensIds}
       />
-    </div>
-  );
-};
 
-// ─── Clear Lenses Grid (no delta row, no editable heading) ────────────────────
-interface ClearTreatmentGridProps {
-  categories: string[];
-  allocations: MatrixAllocation[];
-  catalogLensIds: Set<string>;
-  lensNameMap: Map<string, string>;
-  showUSD: boolean;
-  fxRate: number;
-  onCellPick: (
-    category: string,
-    materialIndex: string,
-    treatmentType: TreatmentType
-  ) => void;
-  isSaving: boolean;
-}
-
-const ClearTreatmentGrid = ({
-  categories,
-  allocations,
-  catalogLensIds,
-  lensNameMap,
-  showUSD,
-  fxRate,
-  onCellPick,
-  isSaving,
-}: ClearTreatmentGridProps) => {
-  const getAllocation = (category: string, materialIndex: string) =>
-    allocations.find(
-      (a) =>
-        a.category === category &&
-        a.material_index === materialIndex &&
-        a.treatment_type === "clear"
-    );
-
-  const getColAvg = (materialIndex: string): number | null => {
-    const vals = categories
-      .map((cat) => getAllocation(cat, materialIndex)?.allocated_price_bbd ?? null)
-      .filter((v): v is number => v !== null);
-    if (vals.length === 0) return null;
-    return vals.reduce((s, v) => s + v, 0) / vals.length;
-  };
-
-  return (
-    <div className="overflow-auto border border-border rounded-md">
-      <table className="w-full text-xs border-collapse bg-background">
-        <thead>
-          <tr className="bg-muted/60 border-b border-border">
-            <th className="px-3 py-2 text-left font-bold border-r border-border min-w-[200px] text-foreground">
-              Category
-            </th>
-            {MATERIAL_COLUMNS.map((col) => (
-              <th
-                key={col.key}
-                className="px-3 py-2 text-center font-bold border-r border-border last:border-r-0 min-w-[120px] text-foreground"
-              >
-                {col.key}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((cat, rowIdx) => (
-            <tr
-              key={cat}
-              className={cn(
-                "border-b border-border last:border-b-0 transition-colors",
-                rowIdx % 2 === 0
-                  ? "bg-background hover:bg-muted/30"
-                  : "bg-muted/10 hover:bg-muted/30"
-              )}
+      {/* Clear Confirmation Dialog */}
+      <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold">Clear Matrix Cell?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              Are you sure? This will remove the lens from the matrix cell{" "}
+              {clearTarget && (
+                <strong>
+                  {clearTarget.treatmentType} / {clearTarget.category} / {clearTarget.materialIndex}
+                </strong>
+              )}{" "}
+              <span className="text-destructive font-medium">and delete the matching row from the List Catalog.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="h-7 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleClearConfirm}
             >
-              <td className="px-3 py-1.5 font-semibold border-r border-border whitespace-nowrap text-foreground">
-                {cat}
-              </td>
-              {MATERIAL_COLUMNS.map((col) => {
-                const alloc = getAllocation(cat, col.key);
-                const inCatalog = alloc?.lens_id ? catalogLensIds.has(alloc.lens_id) : false;
-                const lensName = alloc?.lens_id ? lensNameMap.get(alloc.lens_id) : undefined;
-
-                return (
-                  <td key={col.key} className="border-r border-border last:border-r-0 p-0">
-                    <div className="flex flex-col">
-                      <div className="flex items-center">
-                        <div className="flex-1 px-2 py-1.5 text-right font-mono text-xs text-foreground min-w-0">
-                          {alloc?.allocated_price_bbd != null ? (
-                            <span className="font-semibold">
-                              {fmt(alloc.allocated_price_bbd, showUSD, fxRate)}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground/40">—</span>
-                          )}
-                        </div>
-                        {inCatalog && (
-                          <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />
-                        )}
-                        <button
-                          onClick={() => onCellPick(cat, col.key, "clear")}
-                          className="shrink-0 px-1 py-1 hover:bg-primary/10 rounded transition-colors"
-                          title="Link a lens to this cell"
-                          disabled={isSaving}
-                        >
-                          <Search
-                            className="h-3 w-3"
-                            style={{
-                              color: alloc
-                                ? "hsl(215 65% 50%)"
-                                : "hsl(215 15% 65%)",
-                            }}
-                          />
-                        </button>
-                      </div>
-                      {lensName && (
-                        <div
-                          className="px-2 pb-0.5 text-[9px] truncate max-w-full text-primary/70"
-                          title={lensName}
-                        >
-                          ↳ {lensName}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-
-          {/* Column Averages */}
-          <tr className="bg-muted/40 border-t-2 border-border font-semibold">
-            <td className="px-3 py-1.5 text-xs border-r border-border text-muted-foreground italic">
-              Col. Averages
-            </td>
-            {MATERIAL_COLUMNS.map((col) => {
-              const avg = getColAvg(col.key);
-              return (
-                <td
-                  key={col.key}
-                  className="px-3 py-1.5 text-right text-xs border-r border-border last:border-r-0 text-foreground"
-                >
-                  {avg !== null ? fmt(avg, showUSD, fxRate) : "—"}
-                </td>
-              );
-            })}
-          </tr>
-        </tbody>
-      </table>
+              Yes, Clear Cell
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
 export default TreatmentMatricesAccordion;
+export { buildRowKey, buildMatrixCellLabel, TREATMENT_LABELS };
