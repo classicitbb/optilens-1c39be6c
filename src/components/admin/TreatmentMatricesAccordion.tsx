@@ -7,7 +7,8 @@ import {
   MatrixAllocation,
 } from "@/hooks/useMatrixAllocations";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
-import { usePricelistCatalogRows, PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
+import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
+import { usePricelistCatalogRowUpsert } from "@/hooks/usePricelistCatalogRowUpsert";
 import { useLenses } from "@/hooks/useLenses";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -528,7 +529,8 @@ const TreatmentMatricesAccordion = ({
     upsertMutation,
     deleteMutation,
   } = useMatrixAllocations(versionId);
-  const { data: catalogRows, saveRows: saveCatalogRows } = usePricelistCatalogRows(versionId, "rx");
+  const { data: catalogRows } = usePricelistCatalogRows(versionId, "rx");
+  const { upsertRow: upsertCatalogRow, deleteRow: deleteCatalogRow } = usePricelistCatalogRowUpsert(versionId, "rx");
   const { data: allLenses } = useLenses();
 
   // Track locally which row_keys are pending sync to List Catalog
@@ -615,7 +617,7 @@ const TreatmentMatricesAccordion = ({
     setPickerOpen(true);
   };
 
-  /** Sync a picked lens to pricelist_catalog_rows */
+  /** Sync a picked lens to pricelist_catalog_rows using direct upsert (no bulk delete) */
   const syncToCatalog = async (
     treatment: TreatmentType,
     category: string,
@@ -626,35 +628,24 @@ const TreatmentMatricesAccordion = ({
   ) => {
     const rowKey = buildRowKey(treatment, category, material);
     const treatLabel = treatmentLabels[treatment];
-    const matrixCellLabel = buildMatrixCellLabel(treatLabel, category, material);
     const section = `${treatLabel} — ${category}`;
-
-    // Build updated catalog rows: replace or add this key
-    const existing = catalogRows ?? [];
-    const withoutThis = existing.filter((r) => r.row_key !== rowKey);
-    const newRow: Omit<PricelistCatalogRow, "id"> = {
-      pricelist_version_id: versionId,
-      catalog_type: "rx",
-      row_key: rowKey,
-      row_type: "lens",
-      section,
-      display_description: lensName,
-      bbd_price: sellPrice,
-      item_id: lensId,
-      sort_order: withoutThis.length,
-    };
-    const allRows = [...withoutThis, newRow];
-
-    // Preserve existing rows and upsert
-    saveCatalogRows.mutate(
-      allRows.map((r) => ({ ...r, pricelist_version_id: versionId } as Omit<PricelistCatalogRow, "id">)),
-      {
-        onSuccess: () => unmarkPending(rowKey),
-        onError: () => markPending(rowKey),
-      }
-    );
+    const existingCount = (catalogRows ?? []).filter((r) => r.row_type === "lens").length;
 
     markPending(rowKey);
+    try {
+      await upsertCatalogRow.mutateAsync({
+        row_key: rowKey,
+        row_type: "lens",
+        section,
+        display_description: lensName,
+        bbd_price: sellPrice,
+        item_id: lensId,
+        sort_order: existingCount,
+      });
+      unmarkPending(rowKey);
+    } catch {
+      // keep pending — user must manually save
+    }
   };
 
   const handlePick = async (lensId: string, lensName: string, sellPrice: number) => {
@@ -708,11 +699,9 @@ const TreatmentMatricesAccordion = ({
     try {
       await deleteMutation.mutateAsync(alloc.id);
 
-      // Mark catalog row as inactive by removing it from saved rows
+      // Also delete the matching catalog row directly
       const rowKey = buildRowKey(clearTarget.treatmentType, clearTarget.category, clearTarget.materialIndex);
-      const existing = catalogRows ?? [];
-      const withoutThis = existing.filter((r) => r.row_key !== rowKey);
-      saveCatalogRows.mutate(withoutThis.map((r) => ({ ...r, pricelist_version_id: versionId } as Omit<PricelistCatalogRow, "id">)));
+      await deleteCatalogRow.mutateAsync(rowKey);
 
       toast({ title: "Cell cleared", description: "Removed from Matrix and List Catalog." });
     } catch (e: any) {
