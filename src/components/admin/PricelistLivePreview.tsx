@@ -33,12 +33,26 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
   const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, "rx");
+  const { data: company } = useCompanySettings();
+  const { data: allLenses = [] } = useLenses();
 
   // Split rows: lens rows vs add-on/treatment/supply rows
   const catalogRows = useMemo(() => allCatalogRows.filter((r) => r.row_type === "lens"), [allCatalogRows]);
-  const addonRows = useMemo(() => allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order), [allCatalogRows]);
-  const { data: company } = useCompanySettings();
-  const { data: allLenses = [] } = useLenses();
+  const addonRows = useMemo(
+    () => allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order),
+    [allCatalogRows]
+  );
+
+  // Group addon rows by section (category name)
+  const addonsBySection = useMemo(() => {
+    const map = new Map<string, typeof addonRows>();
+    for (const r of addonRows) {
+      const sec = r.section || "Other";
+      if (!map.has(sec)) map.set(sec, []);
+      map.get(sec)!.push(r);
+    }
+    return map;
+  }, [addonRows]);
 
   const lensNameMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -47,6 +61,18 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
   }, [allLenses]);
 
   const categories = useMemo(() => [...new Set(matrixRows.map((r) => r.category))], [matrixRows]);
+
+  // Group lens catalog rows by section (not treatment type) for list preview
+  const lensSections = useMemo(() => {
+    const map = new Map<string, typeof catalogRows>();
+    for (const r of catalogRows) {
+      const sec = r.section || "Lenses";
+      if (!map.has(sec)) map.set(sec, []);
+      map.get(sec)!.push(r);
+    }
+    return map;
+  }, [catalogRows]);
+
   const today = format(new Date(), "dd MMMM yyyy");
   const currency = showUSD ? "USD" : (version.base_currency ?? "BBD");
 
@@ -56,7 +82,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
       {TREATMENT_TYPES.map((tt) => {
         const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
         if (tt !== "clear" && ttAllocs.length === 0) return null;
-        const clearAllocs = allocations.filter((a) => a.treatment_type === "clear");
 
         const getColAvg = (mat: string, treatType: TreatmentType) => {
           const vals = categories
@@ -91,7 +116,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                         (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
                       );
                       return (
-                        <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 font-mono text-foreground">
+                        <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 text-foreground">
                           {alloc?.allocated_price_bbd != null ? fmt(alloc.allocated_price_bbd, showUSD, fxRate) : "—"}
                         </td>
                       );
@@ -104,7 +129,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                   {MATERIAL_COLUMNS.map((col) => {
                     const avg = getColAvg(col.key, tt);
                     return (
-                      <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 font-mono text-foreground">
+                      <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 text-foreground">
                         {avg != null ? fmt(avg, showUSD, fxRate) : "—"}
                       </td>
                     );
@@ -119,44 +144,50 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                       const clearAvg = getColAvg(col.key, "clear");
                       const delta = treatAvg != null && clearAvg != null ? treatAvg - clearAvg : null;
                       return (
-                        <td key={col.key} className={cn("px-3 py-1 text-right border-r border-border last:border-r-0 font-mono font-semibold text-[10px]",
-                          delta == null ? "text-muted-foreground" : delta > 0 ? "text-emerald-600" : "text-red-500")}>
+                        <td key={col.key} className={cn(
+                          "px-3 py-1 text-right border-r border-border last:border-r-0 font-semibold text-[10px]",
+                          delta == null ? "text-muted-foreground" : delta > 0 ? "text-emerald-600" : "text-red-500"
+                        )}>
                           {delta != null ? `${delta > 0 ? "+" : ""}${fmt(delta, showUSD, fxRate)}` : "—"}
                         </td>
                       );
                     })}
                   </tr>
-        )}
-      </tbody>
+                )}
+              </tbody>
             </table>
           </div>
         );
       })}
 
-      {/* Treatments & Add-ons compact table (Matrix format) */}
-      {addonRows.length > 0 && (
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
-            Treatments &amp; Add-ons
-          </div>
-          <table className="w-full text-xs border-collapse border border-border">
-            <thead>
-              <tr style={{ background: "#1e4db7", color: "white" }}>
-                <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">Add-on / Treatment</th>
-                <th className="px-3 py-1.5 text-right font-semibold w-28">{currency} Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {addonRows.map((row, i) => (
-                <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                  <td className="px-3 py-1 border-r border-border text-foreground">{row.display_description}</td>
-                  <td className="px-3 py-1 text-right font-mono text-foreground">
-                    {row.bbd_price != null ? fmt(row.bbd_price, showUSD, fxRate) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Treatments & Add-ons grouped by category (Matrix format) */}
+      {addonsBySection.size > 0 && (
+        <div className="space-y-3">
+          {[...addonsBySection.entries()].map(([sec, rows]) => (
+            <div key={sec}>
+              <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
+                {sec}
+              </div>
+              <table className="w-full text-xs border-collapse border border-border">
+                <thead>
+                  <tr style={{ background: "#1e4db7", color: "white" }}>
+                    <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">{sec}</th>
+                    <th className="px-3 py-1.5 text-right font-semibold w-28">{currency} Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, i) => (
+                    <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                      <td className="px-3 py-1 border-r border-border text-foreground">{row.display_description}</td>
+                      <td className="px-3 py-1 text-right text-foreground">
+                        {row.bbd_price != null ? fmt(row.bbd_price, showUSD, fxRate) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -164,8 +195,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
 
   // ── List preview ─────────────────────────────────────────────────────────────
   const ListPreview = () => {
-    const sections = [...new Set(catalogRows.map((r) => r.section))].sort();
-    const hasContent = sections.length > 0 || addonRows.length > 0;
+    const hasContent = lensSections.size > 0 || addonsBySection.size > 0;
+
 
     const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
       <div>
@@ -175,7 +206,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
         <table className="w-full text-xs border-collapse border border-border">
           <thead>
             <tr style={{ background: "#1e4db7", color: "white" }}>
-              <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">Description</th>
+              <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">{label}</th>
               <th className="px-3 py-1.5 text-right font-semibold w-24">{currency} Price</th>
             </tr>
           </thead>
@@ -183,7 +214,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
             {rows.map((row, i) => (
               <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
                 <td className="px-3 py-1.5 border-r border-border text-foreground">{row.display_description}</td>
-                <td className="px-3 py-1.5 text-right font-mono text-foreground">
+                <td className="px-3 py-1.5 text-right text-foreground">
                   {row.bbd_price != null ? fmt(row.bbd_price, showUSD, fxRate) : "—"}
                 </td>
               </tr>
@@ -201,16 +232,22 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
           </p>
         ) : (
           <>
-            {sections.map((sec) => {
-              const rows = catalogRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order);
-              return <SectionTable key={sec} label={sec} rows={rows} />;
-            })}
+            {/* Lens sections grouped by section name (category), NOT treatment type */}
+            {[...lensSections.entries()].map(([sec, rows]) => (
+              <SectionTable
+                key={sec}
+                label={sec}
+                rows={[...rows].sort((a, b) => a.sort_order - b.sort_order)}
+              />
+            ))}
 
-            {/* Treatments & Add-ons section */}
-            {addonRows.length > 0 && (
+            {/* Treatments & Add-ons grouped by category */}
+            {addonsBySection.size > 0 && (
               <>
                 <div className="border-t-2 border-border pt-2" />
-                <SectionTable label="Treatments & Add-ons" rows={addonRows} />
+                {[...addonsBySection.entries()].map(([sec, rows]) => (
+                  <SectionTable key={sec} label={sec} rows={rows} />
+                ))}
               </>
             )}
           </>

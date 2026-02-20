@@ -2,12 +2,14 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2 } from "lucide-react";
+import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2, ListChecks } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import MultiSelectFilter from "./MultiSelectFilter";
 import type { Lens } from "@/hooks/useLenses";
+import { usePricelistUsedItems } from "@/hooks/usePricelistUsedItems";
+
 
 type SortKey = "name" | "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
 type SortDir = "asc" | "desc";
@@ -53,6 +55,8 @@ const LensDataTable = ({
   const { canEdit } = useAdminRole();
   const { canEditFeature } = useRolePermissions();
   const canEditCatalog = canEditFeature("catalog");
+  const { data: usedItems = new Set<string>() } = usePricelistUsedItems();
+
   const showCost = canEdit;
   const { settings } = usePricingEngine();
 
@@ -313,7 +317,16 @@ const LensDataTable = ({
                 }
                 return (
                   <TableRow key={lens.id} className={canEditCatalog ? "cursor-pointer" : ""} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEditCatalog && onRowClick(lens)}>
-                    <TableCell className="font-medium text-xs">{lens.name}</TableCell>
+                    <TableCell className="font-medium text-xs">
+                      <span className="flex items-center gap-1.5">
+                        {lens.name}
+                        {usedItems.has(lens.id) && (
+                          <span title="Used in a pricelist" className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full shrink-0" style={{ background: "hsl(215 65% 50%)", color: "white" }}>
+                            <ListChecks className="h-2 w-2" />
+                          </span>
+                        )}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-xs">{fkName(lens.supplier)}</TableCell>
                     <TableCell className="text-xs">{fkName(lens.brand)}</TableCell>
                     <TableCell className="text-xs">{fkName(lens.material)}</TableCell>
