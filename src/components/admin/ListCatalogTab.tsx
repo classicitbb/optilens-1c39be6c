@@ -425,7 +425,7 @@ const ListCatalogTab = ({
     }
 
     return [...finishGroups.entries()].map(([finish, mfMap]) => (
-      <div key={`finish-${finish}`} className="mt-4 border border-border rounded-lg overflow-hidden">
+      <div key={`finish-${finish}`} className="mt-4 border border-border rounded-lg overflow-hidden mx-[5px]">
         {/* Finish Type header — always visible, acts as group label */}
         <div className="px-3 py-1.5 font-semibold text-xs uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)" }}>
           {finish}
