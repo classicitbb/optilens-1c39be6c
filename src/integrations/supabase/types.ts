@@ -942,6 +942,59 @@ export type Database = {
         }
         Relationships: []
       }
+      pricelist_catalog_rows: {
+        Row: {
+          bbd_price: number | null
+          catalog_type: string
+          created_at: string
+          display_description: string
+          id: string
+          item_id: string | null
+          pricelist_version_id: number
+          row_key: string
+          row_type: string
+          section: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          bbd_price?: number | null
+          catalog_type?: string
+          created_at?: string
+          display_description?: string
+          id?: string
+          item_id?: string | null
+          pricelist_version_id: number
+          row_key: string
+          row_type: string
+          section: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          bbd_price?: number | null
+          catalog_type?: string
+          created_at?: string
+          display_description?: string
+          id?: string
+          item_id?: string | null
+          pricelist_version_id?: number
+          row_key?: string
+          row_type?: string
+          section?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelist_catalog_rows_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricelist_notes: {
         Row: {
           content: string | null

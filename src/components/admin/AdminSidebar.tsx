@@ -2,10 +2,10 @@ import { useState } from "react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import {
-  Database, DollarSign, Upload, Download,
+  Database, Upload, Download,
   Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
   ChevronDown, ChevronRight, Ship, Glasses, Package, BarChart3, FileSpreadsheet,
-  FlaskConical, ShoppingCart,
+  FlaskConical, ShoppingCart, SlidersHorizontal,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -19,7 +19,7 @@ interface MenuItem {
 interface MenuGroup {
   label: string;
   icon: React.ElementType;
-  path?: string; // clickable parent
+  path?: string;
   feature: Feature;
   children: MenuItem[];
 }
@@ -56,9 +56,16 @@ const NAV: NavItem[] = [
       { label: "Reports", icon: BarChart3, path: "/admin/costings/reports", feature: "costings" },
     ],
   } as MenuGroup,
-  { label: "Parameters", icon: Settings, path: "/admin/parameters", feature: "parameters" } as MenuItem,
-  { label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem,
-  { label: "Audit Log", icon: FileText, path: "/admin/audit", feature: "audit" } as MenuItem,
+  {
+    label: "Settings",
+    icon: Settings,
+    feature: "parameters",
+    children: [
+      { label: "Parameters", icon: SlidersHorizontal, path: "/admin/parameters", feature: "parameters" },
+      { label: "Users", icon: Users, path: "/admin/users", feature: "users" },
+      { label: "Audit Log", icon: FileText, path: "/admin/audit", feature: "audit" },
+    ],
+  } as MenuGroup,
 ];
 
 const AdminSidebar = () => {
@@ -69,7 +76,6 @@ const AdminSidebar = () => {
 
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const s = new Set<string>();
-    // Auto-expand groups that contain the current path
     NAV.forEach((item) => {
       if (isGroup(item)) {
         const parentMatch = item.path && currentPath.startsWith(item.path);
@@ -123,16 +129,12 @@ const AdminSidebar = () => {
     return (
       <div key={group.label}>
         <div className="flex items-center">
-          {/* If the group has a clickable path, make the label a link */}
           {group.path ? (
             <RouterNavLink
               to={group.path}
               className={`${linkBase} flex-1 ${groupActive ? "font-medium" : ""}`}
               title={collapsed ? group.label : undefined}
-              style={{
-                color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)",
-                background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent",
-              }}
+              style={{ color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)", background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent" }}
             >
               <group.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span className="flex-1 text-left">{group.label}</span>}
@@ -142,25 +144,15 @@ const AdminSidebar = () => {
               onClick={() => !collapsed && toggleGroup(group.label)}
               className={`${linkBase} w-full ${groupActive ? "font-medium" : ""}`}
               title={collapsed ? group.label : undefined}
-              style={{
-                color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)",
-                background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent",
-              }}
+              style={{ color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)", background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent" }}
             >
               <group.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span className="flex-1 text-left">{group.label}</span>}
             </button>
           )}
           {!collapsed && (
-            <button
-              onClick={() => toggleGroup(group.label)}
-              className="p-1 rounded hover:bg-white/10 mr-1"
-            >
-              {isOpen ? (
-                <ChevronDown className="h-3 w-3" style={{ color: "hsl(210 20% 65%)" }} />
-              ) : (
-                <ChevronRight className="h-3 w-3" style={{ color: "hsl(210 20% 65%)" }} />
-              )}
+            <button onClick={() => toggleGroup(group.label)} className="p-1 rounded hover:bg-white/10 mr-1">
+              {isOpen ? <ChevronDown className="h-3 w-3" style={{ color: "hsl(210 20% 65%)" }} /> : <ChevronRight className="h-3 w-3" style={{ color: "hsl(210 20% 65%)" }} />}
             </button>
           )}
         </div>
@@ -183,32 +175,17 @@ const AdminSidebar = () => {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2 space-y-0.5">
-        {NAV.map((item) =>
-          isGroup(item) ? renderGroup(item) : renderMenuItem(item)
-        )}
+        {NAV.map((item) => isGroup(item) ? renderGroup(item) : renderMenuItem(item))}
       </nav>
 
       <div className="border-t px-3 py-2 space-y-0.5" style={{ borderColor: "hsl(215 25% 18%)" }}>
         {canView("wiki") && (
-          <RouterNavLink
-            to="/admin/wiki"
-            className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`}
-            title={collapsed ? "Help / Wiki" : undefined}
-            style={{
-              color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)",
-              background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent",
-            }}
-          >
+          <RouterNavLink to="/admin/wiki" className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`} title={collapsed ? "Help / Wiki" : undefined} style={{ color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
             <BookOpen className="h-4 w-4 shrink-0" />
             {!collapsed && <span>Help / Wiki</span>}
           </RouterNavLink>
         )}
-        <Link
-          to="/"
-          className={`${linkBase} w-full`}
-          style={{ color: "hsl(210 15% 65%)" }}
-          title={collapsed ? "Back to Site" : undefined}
-        >
+        <Link to="/" className={`${linkBase} w-full`} style={{ color: "hsl(210 15% 65%)" }} title={collapsed ? "Back to Site" : undefined}>
           <ArrowLeft className="h-4 w-4 shrink-0" />
           {!collapsed && <span>Back to Site</span>}
         </Link>

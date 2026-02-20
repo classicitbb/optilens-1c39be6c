@@ -1,41 +1,38 @@
 import { useState } from "react";
-import { useBBDUSDRate } from "@/hooks/usePricelistVersions";
-import { Switch } from "@/components/ui/switch";
+import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
-
-const BLUE = "hsl(215 65% 50%)";
-const LABEL_COLOR = "hsl(215 15% 40%)";
+import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
 
 const StockLensPricesPage = () => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
+  const { data: versions } = usePricelistVersions();
+  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
   const [showUSD, setShowUSD] = useState(false);
 
-  return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
-            Stock Lens Prices
-          </h1>
-          <p className="text-xs mt-0.5" style={{ color: LABEL_COLOR }}>
-            Semi-finished stock lenses available for wholesale (WSPL). Grouped by Finish Type → MF Type.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-medium" style={{ color: showUSD ? LABEL_COLOR : BLUE }}>BBD</span>
-          <Switch checked={showUSD} onCheckedChange={setShowUSD} aria-label="Toggle currency" />
-          <span className="text-[10px] font-medium" style={{ color: showUSD ? BLUE : LABEL_COLOR }}>USD</span>
-        </div>
-      </div>
+  const activeVersion = versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
+  const resolvedId = activeVersion?.id ?? null;
 
-      <ListCatalogTab
-        fxRate={fxRate}
-        showUSD={showUSD}
-        groupByFinishThenMf={true}
-        lensFilter="wspl"
-        pageTitle="Stock Lens Price List"
-      />
-    </div>
+  return (
+    <VersionSelectorPanel
+      pageTitle="Stock Lens Prices"
+      pageSubtitle="Semi-finished stock lenses for wholesale (WSPL). Grouped by MF Type."
+      selectedVersionId={selectedVersionId}
+      onVersionChange={setSelectedVersionId}
+      showUSD={showUSD}
+      onShowUSDChange={setShowUSD}
+    >
+      {resolvedId && (
+        <ListCatalogTab
+          fxRate={fxRate}
+          showUSD={showUSD}
+          catalogType="stock"
+          lensFilter="wspl"
+          showTreatmentsAddons={false}
+          pageTitle={activeVersion?.name ?? "Stock Lens Pricelist"}
+          versionId={resolvedId}
+        />
+      )}
+    </VersionSelectorPanel>
   );
 };
 
