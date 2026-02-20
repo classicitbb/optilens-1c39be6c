@@ -3,9 +3,9 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import {
   Database, Upload, Download,
-  Settings, Users, FileText, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
-  ChevronDown, ChevronRight, Ship, Glasses, Package, BarChart3, FileSpreadsheet,
-  FlaskConical, ShoppingCart, SlidersHorizontal,
+  Settings, Users, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
+  ChevronDown, ChevronRight, Ship, FileSpreadsheet, Glasses,
+  FlaskConical, ShoppingCart,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -44,18 +44,7 @@ const NAV: NavItem[] = [
   { label: "Stock Lens Prices", icon: Glasses, path: "/admin/stock-lens-prices", feature: "stock-lens-prices" } as MenuItem,
   { label: "Buy / Sell Prices", icon: ShoppingCart, path: "/admin/buy-sell-prices", feature: "buy-sell-prices" } as MenuItem,
   { label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", feature: "quotations" } as MenuItem,
-  {
-    label: "Import Costings",
-    icon: Ship,
-    path: "/admin/costings/shipments",
-    feature: "costings",
-    children: [
-      { label: "Shipments", icon: Ship, path: "/admin/costings/shipments", feature: "costings" },
-      { label: "Lens Shipments", icon: Glasses, path: "/admin/costings/lens-shipments", feature: "costings" },
-      { label: "Non-Lens Shipments", icon: Package, path: "/admin/costings/non-lens-shipments", feature: "costings" },
-      { label: "Reports", icon: BarChart3, path: "/admin/costings/reports", feature: "costings" },
-    ],
-  } as MenuGroup,
+  { label: "Import Costings", icon: Ship, path: "/admin/costings/shipments", feature: "costings" } as MenuItem,
   { label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem,
   { label: "Settings", icon: Settings, path: "/admin/parameters", feature: "parameters" } as MenuItem,
 ];

@@ -7,7 +7,7 @@ import { Ship, DollarSign, TrendingUp, Package } from "lucide-react";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const CostingsReportsPage = () => {
+const CostingsReportsPage = ({ embedded = false }: { embedded?: boolean }) => {
   const { data: shipments = [], isLoading } = useShipments();
 
   // We can't call useShipmentCharges per-shipment in a loop, so compute simple totals from shipment-level data
@@ -50,8 +50,8 @@ const CostingsReportsPage = () => {
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading reports…</div>;
 
   return (
-    <div className="p-4 space-y-6 max-w-6xl">
-      <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Costing Reports</h1>
+    <div className={`space-y-6 max-w-6xl ${embedded ? "" : "p-4"}`}>
+      {!embedded && <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Costing Reports</h1>}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
