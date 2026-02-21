@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { CartSheet } from "@/components/CartSheet";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAccountRequestDismissed } from "@/components/AccountRequestBanner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 const KB_CATEGORIES = [
@@ -125,7 +126,9 @@ const ProductsDropdown = () => {
 const Header = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { hasAccess } = useUserRole();
+  const { hasAccess, role, isLoading: roleLoading } = useUserRole();
+  const bannerDismissed = useAccountRequestDismissed();
+  const showRequestInMenu = !!user && !roleLoading && !role && bannerDismissed;
 
   const handleSignOut = async () => {
     await signOut();
@@ -264,6 +267,17 @@ const Header = () => {
                         <Shield className="h-4 w-4" />
                         Admin
                       </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {showRequestInMenu && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" });
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <User className="h-4 w-4" />
+                      Request Account
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
