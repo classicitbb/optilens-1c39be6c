@@ -165,6 +165,27 @@
   }
 }
 
+/* ── Auth page animations ── */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  25% { background-position: 50% 0%; }
+  50% { background-position: 100% 50%; }
+  75% { background-position: 50% 100%; }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(110vh) rotate(0deg); }
+  100% { transform: translateY(-10vh) rotate(360deg); }
+}
+
+.animate-gradient-shift {
+  animation: gradient-shift 16s ease infinite;
+}
+
+.animate-float-up {
+  animation: float-up linear infinite;
+}
+
 /* Admin Tool Design Tokens */
 .admin-tool {
   --admin-sidebar-bg: 215 28% 12%;

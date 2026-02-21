@@ -62,10 +62,10 @@ const App = () => (
         <AuthProvider>
           <CartProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/store" element={<Store />} />
+              <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
               <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
@@ -101,7 +101,7 @@ const App = () => (
               </Route>
 
               {/* ZenVue brand microsite */}
-              <Route path="/zenvue" element={<ZenvueLayout />}>
+              <Route path="/zenvue" element={<ProtectedRoute><ZenvueLayout /></ProtectedRoute>}>
                 <Route index element={<ZenvueHome />} />
                 <Route path="brilliance" element={<ZenvueBrilliance />} />
                 <Route path="single-vision" element={<ZenvueSingleVision />} />
