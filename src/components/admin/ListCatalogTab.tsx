@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { LensPickerPopover, PickedItem } from "@/components/admin/LensPickerPopover";
 import { SupplyPickerPopover, PickedSupply } from "@/components/admin/SupplyPickerPopover";
+import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 
 const BLUE_BG = "#1e4db7";
 const GREEN_BG = "#d4edda";
@@ -61,6 +62,8 @@ const ListCatalogTab = ({
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: allSupplies, isLoading: sLoading } = useSupplies();
+  const { data: priceMatrixData } = usePriceMatrix();
+  const matrixCategories = useMemo(() => (priceMatrixData ?? []).map(r => r.category), [priceMatrixData]);
   const { data: savedRows, isLoading: rowsLoading, saveRows } = usePricelistCatalogRows(
     versionId ?? null,
     catalogType
@@ -168,13 +171,11 @@ const ListCatalogTab = ({
     const map = new Map<string, CatalogRow[]>();
     if (!showTreatmentsAddons || catalogType === "buysell" || catalogType === "stock") return map;
     const active = (allAddons ?? []).filter((a) => a.is_active);
-    const SECTIONS = [{ title: "Treatments", test: (a: any) => /treat|coat|hmc|ar\b|uv|tint|mirr/i.test(`${a.category} ${a.name}`) }, { title: "ADD ONS", test: () => true }];
-    const used = new Set<string>();
-    for (const sec of SECTIONS) {
-      const matched = active.filter((a) => !used.has(a.id) && sec.test(a));
-      matched.forEach((a) => used.add(a.id));
-      if (!matched.length) continue;
-      map.set(sec.title, matched.map((a) => ({ key: `addon-${a.id}`, section: sec.title, description: a.name + (a.description ? ` — ${a.description}` : ""), bbd: a.price, usd: a.price * fxRate, margin: a.cost > 0 ? parseFloat(((a.price - a.cost) / a.price * 100).toFixed(1)) : null, addonId: a.id })));
+    const cats = [...new Set(active.map((a) => a.category))].sort();
+    for (const cat of cats) {
+      const items = active.filter((a) => a.category === cat);
+      if (!items.length) continue;
+      map.set(cat, items.map((a) => ({ key: `addon-${a.id}`, section: cat, description: a.name + (a.description ? ` — ${a.description}` : ""), bbd: a.price, usd: a.price * fxRate, margin: a.cost > 0 ? parseFloat(((a.price - a.cost) / a.price * 100).toFixed(1)) : null, addonId: a.id })));
     }
     return map;
   }, [allAddons, fxRate, showTreatmentsAddons, catalogType]);
@@ -440,7 +441,14 @@ const ListCatalogTab = ({
       categoryMap.get(category)!.push(key);
     }
 
-    return [...categoryMap.entries()].map(([category, sectionKeys]) => {
+    return [...categoryMap.entries()].sort((a, b) => {
+      const aIdx = matrixCategories.indexOf(a[0]);
+      const bIdx = matrixCategories.indexOf(b[0]);
+      if (aIdx === -1 && bIdx === -1) return 0;
+      if (aIdx === -1) return 1;
+      if (bIdx === -1) return -1;
+      return aIdx - bIdx;
+    }).map(([category, sectionKeys]) => {
       // Merge all rows for this category regardless of treatment type
       const allRows = sectionKeys.flatMap(sk => effectiveLensRows.get(sk) ?? []);
       const accKey = `cat::${category}`;
@@ -555,12 +563,12 @@ const ListCatalogTab = ({
         {catalogType === "stock" && [...effectiveLensRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "lens"))}
         {catalogType === "rx" && renderRxGrouped()}
 
-        {showTreatmentsAddons && catalogType === "rx" && (
+        {showTreatmentsAddons && catalogType === "rx" && effectiveAddonRows.size > 0 && (
           <div className="mt-8 border-t-2 border-dashed border-border pt-4">
             <div className="px-4 py-2 mb-2 rounded-sm text-xs font-bold tracking-wide" style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}>
-              TREATMENTS &amp; ADD ONS
+              ADD ONS
             </div>
-            {["Treatments", "ADD ONS"].map((sec) => renderSection(sec, effectiveAddonRows.get(sec) ?? [], "addon"))}
+            {[...effectiveAddonRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "addon"))}
           </div>
         )}
 
@@ -569,7 +577,7 @@ const ListCatalogTab = ({
         </div>
       </div>
 
-      <LensPickerPopover open={lensPickerOpen} onOpenChange={setLensPickerOpen} onPick={handleLensPick} mode={pickerTarget?.mode === "add-addon" ? "all" : "lens-only"} currentId={null} />
+      <LensPickerPopover open={lensPickerOpen} onOpenChange={setLensPickerOpen} onPick={handleLensPick} mode={pickerTarget?.mode === "add-addon" ? "all" : "lens-only"} currentId={null} hideFinished={catalogType === "rx"} />
       <SupplyPickerPopover open={supplyPickerOpen} onOpenChange={setSupplyPickerOpen} onPick={handleSupplyPick} currentId={null} categoryFilter={pickerTarget?.section} />
     </div>
   );

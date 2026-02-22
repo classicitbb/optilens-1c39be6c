@@ -88,7 +88,7 @@ const RxLensPricesPage = () => {
             {hasPending && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-xs text-destructive">
                 <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                {pendingMatrixRowKeys.size} pending catalog sync{pendingMatrixRowKeys.size > 1 ? "s" : ""}
+                {pendingMatrixRowKeys.size} pending price list sync{pendingMatrixRowKeys.size > 1 ? "s" : ""}
               </div>
             )}
             <Button
@@ -111,9 +111,9 @@ const RxLensPricesPage = () => {
           {/* Tabs: Price Matrix | List Catalog */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="h-8">
-              <TabsTrigger value="matrix" className="text-xs h-7">Price Matrix</TabsTrigger>
+              <TabsTrigger value="matrix" className="text-xs h-7">Price Matrix Editor</TabsTrigger>
               <TabsTrigger value="catalog" className="text-xs h-7 relative">
-                List Catalog
+                Price List Editor
                 {hasPending && (
                   <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive ring-1 ring-background" />
                 )}

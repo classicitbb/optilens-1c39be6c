@@ -9,7 +9,7 @@ import {
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import { usePricelistCatalogRowUpsert } from "@/hooks/usePricelistCatalogRowUpsert";
-import { useLenses } from "@/hooks/useLenses";
+import { useLenses, Lens } from "@/hooks/useLenses";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,10 +39,14 @@ import {
   CheckCircle2,
   CheckCircle,
   Save,
+  Pencil,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
+import LensFormDialog from "@/components/admin/LensFormDialog";
+import { Switch } from "@/components/ui/switch";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface TreatmentMatricesAccordionProps {
@@ -104,118 +108,177 @@ const LensPickerModal = ({
   catalogLensIds,
 }: LensPickerModalProps) => {
   const [search, setSearch] = useState("");
-  const { data: allLenses, isLoading } = useLenses();
+  const [showAll, setShowAll] = useState(false);
+  const [editLens, setEditLens] = useState<Lens | null>(null);
+  const [addLensOpen, setAddLensOpen] = useState(false);
+  const { data: allLenses, isLoading, refetch, createMutation, updateMutation } = useLenses();
 
   const lenses = useMemo(() => {
-    const base = (allLenses ?? []).filter(
-      (l) => l.show_in_pricelist && l.sell_price > 0 && l.is_active && l.base_price > 0
-    );
-    if (!search.trim()) return base;
-    const q = search.toLowerCase();
-    return base.filter((l) =>
-      l.name.toLowerCase().includes(q) ||
-      (l.supplier?.name ?? "").toLowerCase().includes(q) ||
-      (l.supplier?.abbrev ?? "").toLowerCase().includes(q)
-    );
-  }, [allLenses, search]);
+    let base = (allLenses ?? []).filter((l) => {
+      if (l.finishtype?.name?.toLowerCase() === "finished") return false;
+      if (!showAll) {
+        return l.show_in_pricelist && l.sell_price > 0 && l.is_active && l.base_price > 0;
+      }
+      return true;
+    });
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      base = base.filter((l) =>
+        l.name.toLowerCase().includes(q) ||
+        (l.supplier?.name ?? "").toLowerCase().includes(q) ||
+        (l.supplier?.abbrev ?? "").toLowerCase().includes(q)
+      );
+    }
+    return base;
+  }, [allLenses, search, showAll]);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { setSearch(""); onClose(); } }}>
-      <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
-          <DialogTitle className="text-sm font-semibold text-foreground">
-            Select Lens
-            {categoryFilter && (
-              <span className="ml-2 font-normal text-muted-foreground">
-                — {categoryFilter} / {materialFilter}
-              </span>
-            )}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="px-4 py-3 border-b border-border shrink-0">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              autoFocus
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search lenses…"
-              className="pl-8 h-8 text-xs"
-            />
-          </div>
-        </div>
-
-        <div className="overflow-y-auto flex-1 px-2 py-1">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          ) : lenses.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-8">
-              No pricelist-enabled lenses found.
-            </p>
-          ) : (
-            lenses.map((l) => {
-              const isSelected = currentLensId === l.id;
-              const inCatalog = catalogLensIds.has(l.id);
-              return (
-                <button
-                  key={l.id}
-                  onClick={() => {
-                    onPick(l.id, l.name, l.sell_price);
-                    setSearch("");
-                    onClose();
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors"
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    {(l.supplier?.abbrev || l.supplier?.name) && (
-                      <span
-                        className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                        style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)", minWidth: "36px", textAlign: "center" }}
-                      >
-                        {l.supplier?.abbrev || l.supplier?.name}
-                      </span>
-                    )}
-                    <span className="text-xs font-medium flex-1 min-w-0 truncate text-primary">
-                      {l.name}
-                    </span>
-                  </div>
-                  <span className="shrink-0 flex items-center gap-2 ml-2">
-                    {inCatalog && (
-                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                        In List
-                      </span>
-                    )}
-                    <span className="text-xs font-semibold text-foreground">
-                      ${l.sell_price.toFixed(2)}
-                    </span>
-                    {isSelected && (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                    )}
+    <>
+      <Dialog open={open && !editLens && !addLensOpen} onOpenChange={(v) => { if (!v) { setSearch(""); onClose(); } }}>
+        <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-sm font-semibold text-foreground">
+                Select Lens
+                {categoryFilter && (
+                  <span className="ml-2 font-normal text-muted-foreground">
+                    — {categoryFilter} / {materialFilter}
                   </span>
-                </button>
-              );
-            })
-          )}
-        </div>
+                )}
+              </DialogTitle>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => refetch()} title="Refresh lens list">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setAddLensOpen(true)} title="Add new lens to catalog">
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
 
-        <div className="px-4 py-2 border-t border-border shrink-0 bg-muted/30 flex items-center justify-between">
-          <p className="text-[10px] text-muted-foreground">
-            {lenses.length} lens{lenses.length !== 1 ? "es" : ""} with cost &amp; price assigned
-          </p>
-          {currentLensId && onClear && (
-            <button
-              className="text-[10px] text-destructive hover:underline"
-              onClick={() => { onClear(); onClose(); }}
-            >
-              Clear cell
-            </button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+          <div className="px-4 py-3 border-b border-border shrink-0 space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search lenses…"
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={showAll} onCheckedChange={setShowAll} className="scale-75" />
+              <span className="text-[10px] text-muted-foreground">Show all (incl. inactive &amp; out of range)</span>
+            </div>
+          </div>
+
+          <div className="overflow-y-auto flex-1 px-2 py-1">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : lenses.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-8">
+                No lenses found.
+              </p>
+            ) : (
+              lenses.map((l) => {
+                const isSelected = currentLensId === l.id;
+                const inCatalog = catalogLensIds.has(l.id);
+                const isInactive = !l.is_active;
+                return (
+                  <button
+                    key={l.id}
+                    onClick={() => {
+                      onPick(l.id, l.name, l.sell_price);
+                      setSearch("");
+                      onClose();
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors",
+                      isInactive && "opacity-60"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {(l.supplier?.abbrev || l.supplier?.name) && (
+                        <span
+                          className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                          style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)", minWidth: "36px", textAlign: "center" }}
+                        >
+                          {l.supplier?.abbrev || l.supplier?.name}
+                        </span>
+                      )}
+                      {isInactive && (
+                        <span className="shrink-0 text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700">
+                          Inactive
+                        </span>
+                      )}
+                      <span className="text-xs font-medium flex-1 min-w-0 truncate text-primary">
+                        {l.name}
+                      </span>
+                    </div>
+                    <span className="shrink-0 flex items-center gap-2 ml-2">
+                      {inCatalog && (
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                          In List
+                        </span>
+                      )}
+                      <span className="text-xs font-semibold text-foreground">
+                        ${l.sell_price.toFixed(2)}
+                      </span>
+                      {isInactive && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
+                          className="p-0.5 hover:bg-muted rounded"
+                          title="Edit lens for inclusion"
+                        >
+                          <Pencil className="h-3 w-3 text-amber-500" />
+                        </button>
+                      )}
+                      {isSelected && (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                      )}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="px-4 py-2 border-t border-border shrink-0 bg-muted/30 flex items-center justify-between">
+            <p className="text-[10px] text-muted-foreground">
+              {lenses.length} lens{lenses.length !== 1 ? "es" : ""} {showAll ? "(all)" : "with cost & price assigned"}
+            </p>
+            {currentLensId && onClear && (
+              <button
+                className="text-[10px] text-destructive hover:underline"
+                onClick={() => { onClear(); onClose(); }}
+              >
+                Clear cell
+              </button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <LensFormDialog
+        open={addLensOpen || !!editLens}
+        onOpenChange={(v) => { if (!v) { setAddLensOpen(false); setEditLens(null); } }}
+        lens={editLens}
+        onSubmit={async (form) => {
+          if (editLens) {
+            await updateMutation.mutateAsync({ id: editLens.id, form });
+          } else {
+            await createMutation.mutateAsync(form);
+          }
+          setEditLens(null);
+          setAddLensOpen(false);
+        }}
+        isPending={createMutation.isPending || updateMutation.isPending}
+      />
+    </>
   );
 };
 
@@ -348,7 +411,7 @@ const TreatmentGrid = ({
                           )}
                         </div>
                         {isPending && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to List Catalog" />
+                         <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to Price List" />
                         )}
                         {inCatalog && !isPending && (
                           <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />
@@ -485,7 +548,7 @@ const ClearTreatmentGrid = ({
                           )}
                         </div>
                         {isPending && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to List Catalog" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to Price List" />
                         )}
                         {inCatalog && !isPending && (
                           <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />
@@ -573,9 +636,7 @@ const TreatmentMatricesAccordion = ({
 
   const [treatmentLabels, setTreatmentLabels] = useState<Record<TreatmentType, string>>({ ...TREATMENT_LABELS });
 
-  const [expanded, setExpanded] = useState<Set<TreatmentType>>(
-    new Set(["transitions", "photochromic", "polarized", "bluefilter"])
-  );
+  const [expanded, setExpanded] = useState<Set<TreatmentType>>(new Set());
 
   const toggleExpanded = (t: TreatmentType) => {
     if (t === "clear") return;
@@ -684,7 +745,7 @@ const TreatmentMatricesAccordion = ({
       );
 
       toast({
-        title: "Cell updated & synced to List Catalog",
+        title: "Cell updated & synced to Price List",
         description: `${lensName} → $${sellPrice.toFixed(2)} BBD`,
       });
     } catch (e: any) {
@@ -717,7 +778,7 @@ const TreatmentMatricesAccordion = ({
       const rowKey = buildRowKey(clearTarget.treatmentType, clearTarget.category, clearTarget.materialIndex);
       await deleteCatalogRow.mutateAsync(rowKey);
 
-      toast({ title: "Cell cleared", description: "Removed from Matrix and List Catalog." });
+      toast({ title: "Cell cleared", description: "Removed from Matrix and Price List." });
     } catch (e: any) {
       toast({ title: "Clear failed", description: e.message, variant: "destructive" });
     }
@@ -752,8 +813,8 @@ const TreatmentMatricesAccordion = ({
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Click <Search className="inline h-3 w-3" /> to link a lens. Green{" "}
-            <CheckCircle className="inline h-3 w-3 text-emerald-500" /> = in List Catalog.{" "}
-            Red dot = pending sync. Lens selection auto-creates List Catalog row.
+            <CheckCircle className="inline h-3 w-3 text-emerald-500" /> = in Price List.{" "}
+            Red dot = pending sync. Lens selection auto-creates Price List row.
           </p>
         </div>
         <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleRecalculate}>
