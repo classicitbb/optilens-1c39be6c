@@ -638,7 +638,7 @@ const TreatmentMatricesAccordion = ({
 
   const [treatmentLabels, setTreatmentLabels] = useState<Record<TreatmentType, string>>({ ...TREATMENT_LABELS });
 
-  const [expanded, setExpanded] = useState<Set<TreatmentType>>(new Set());
+  const [expanded, setExpanded] = useState<Set<TreatmentType>>(new Set(["clear" as TreatmentType]));
 
   const toggleExpanded = (t: TreatmentType) => {
     if (t === "clear") return;
@@ -832,23 +832,32 @@ const TreatmentMatricesAccordion = ({
 
       {/* ── CLEAR LENSES ─────────────────────────────────────────────────────── */}
       <div className="border border-border rounded-lg overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/50 border-b border-border">
+        <button
+          className="w-full flex items-center gap-2 px-4 py-2.5 bg-muted/50 border-b border-border hover:bg-muted/70 transition-colors text-left"
+          onClick={() => toggleExpanded("clear" as any)}
+        >
+          {expanded.has("clear" as any) ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          )}
           <span className="text-sm font-bold text-foreground">Clear Lenses</span>
-          <span className="text-[10px] text-muted-foreground ml-1">(always expanded)</span>
-        </div>
-        <div className="p-3">
-          <ClearTreatmentGrid
-            categories={categories}
-            allocations={allocations}
-            catalogLensIds={catalogLensIds}
-            pendingRowKeys={pendingRowKeys}
-            lensNameMap={lensNameMap}
-            showUSD={showUSD}
-            fxRate={fxRate}
-            onCellPick={handleCellPick}
-            isSaving={upsertMutation.isPending}
-          />
-        </div>
+        </button>
+        {expanded.has("clear" as any) && (
+          <div className="p-3">
+            <ClearTreatmentGrid
+              categories={categories}
+              allocations={allocations}
+              catalogLensIds={catalogLensIds}
+              pendingRowKeys={pendingRowKeys}
+              lensNameMap={lensNameMap}
+              showUSD={showUSD}
+              fxRate={fxRate}
+              onCellPick={handleCellPick}
+              isSaving={upsertMutation.isPending}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── COLLAPSIBLE TREATMENT SECTIONS ─────────────────────────────────── */}
