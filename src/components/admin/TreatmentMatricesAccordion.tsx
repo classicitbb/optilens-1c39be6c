@@ -195,7 +195,7 @@ const LensPickerModal = ({
                       onClose();
                     }}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors",
+                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors group",
                       isInactive && "opacity-60",
                       l.sell_price <= 0 && "opacity-60 cursor-not-allowed"
                     )}
