@@ -26,7 +26,7 @@ interface Props {
 const fmt = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
   if (val == null) return "—";
   const v = showUSD ? val * fxRate : val;
-  return v.toFixed(2);
+  return `$${v.toFixed(2)}`;
 };
 
 const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props) => {
@@ -36,14 +36,12 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
 
-  // Split rows: lens rows vs add-on/treatment/supply rows
   const catalogRows = useMemo(() => allCatalogRows.filter((r) => r.row_type === "lens"), [allCatalogRows]);
   const addonRows = useMemo(
     () => allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order),
     [allCatalogRows]
   );
 
-  // Group addon rows by section (category name)
   const addonsBySection = useMemo(() => {
     const map = new Map<string, typeof addonRows>();
     for (const r of addonRows) {
@@ -62,8 +60,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
 
   const categories = useMemo(() => [...new Set(matrixRows.map((r) => r.category))], [matrixRows]);
 
-  // Group lens catalog rows by CATEGORY only (strip treatment-type prefix like "Clear Lenses — ")
-  // for list preview. Treatment splits only apply to matrix view.
   const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
   const lensSections = useMemo(() => {
     const map = new Map<string, typeof catalogRows>();
@@ -98,15 +94,14 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
 
         return (
           <div key={tt}>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
-              {TREATMENT_LABELS[tt]}
-            </div>
-            <table className="w-full text-xs border-collapse border border-border">
+            <table className="w-full text-xs border-collapse border border-border" style={{ tableLayout: "auto" }}>
               <thead>
-                <tr style={{ background: "#1e4db7", color: "white" }}>
-                  <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">Category</th>
+                <tr style={{ background: "#1e4db7" }}>
+                  <th className="px-3 py-2 text-left border-r border-white/20 font-bold text-white uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "180px" }}>
+                    {TREATMENT_LABELS[tt]}
+                  </th>
                   {MATERIAL_COLUMNS.map((col) => (
-                    <th key={col.key} className="px-3 py-1.5 text-center border-r border-white/20 last:border-r-0 font-semibold">
+                    <th key={col.key} className="px-3 py-2 text-center border-r border-white/20 last:border-r-0 font-bold text-white uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "80px" }}>
                       {col.key}
                     </th>
                   ))}
@@ -128,7 +123,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                     })}
                   </tr>
                 ))}
-                {/* Col averages */}
                 <tr className="bg-muted/50 border-t-2 border-border">
                   <td className="px-3 py-1 text-muted-foreground italic border-r border-border text-[10px]">Col. Averages</td>
                   {MATERIAL_COLUMNS.map((col) => {
@@ -140,7 +134,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                     );
                   })}
                 </tr>
-                {/* Delta vs Clear */}
                 {tt !== "clear" && (
                   <tr className="bg-amber-50/40 dark:bg-amber-900/10 border-t border-border">
                     <td className="px-3 py-1 text-amber-700 dark:text-amber-400 italic border-r border-border text-[10px]">Δ vs Clear</td>
@@ -165,19 +158,16 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
         );
       })}
 
-      {/* Treatments & Add-ons grouped by category (Matrix format) */}
+      {/* Treatments & Add-ons grouped by category */}
       {addonsBySection.size > 0 && (
         <div className="space-y-3">
           {[...addonsBySection.entries()].map(([sec, rows]) => (
             <div key={sec}>
-              <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
-                {sec}
-              </div>
               <table className="w-full text-xs border-collapse border border-border">
                 <thead>
-                  <tr style={{ background: "#1e4db7", color: "white" }}>
-                    <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">{sec}</th>
-                    <th className="px-3 py-1.5 text-right font-semibold w-28">{currency} Price</th>
+                  <tr style={{ background: "#1e4db7" }}>
+                    <th className="px-3 py-2 text-left border-r border-white/20 font-bold text-white uppercase tracking-wide">{sec}</th>
+                    <th className="px-3 py-2 text-right font-bold text-white uppercase tracking-wide w-28">{currency} Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,17 +192,13 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
   const ListPreview = () => {
     const hasContent = lensSections.size > 0 || addonsBySection.size > 0;
 
-
     const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
       <div>
-        <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
-          {label}
-        </div>
         <table className="w-full text-xs border-collapse border border-border">
           <thead>
-            <tr style={{ background: "#1e4db7", color: "white" }}>
-              <th className="px-3 py-1.5 text-left border-r border-white/20 font-semibold">{label}</th>
-              <th className="px-3 py-1.5 text-right font-semibold w-24">{currency} Price</th>
+            <tr style={{ background: "#1e4db7" }}>
+              <th className="px-3 py-2 text-left border-r border-white/20 font-bold text-white uppercase tracking-wide">{label}</th>
+              <th className="px-3 py-2 text-right font-bold text-white uppercase tracking-wide w-24">{currency} Price</th>
             </tr>
           </thead>
           <tbody>
@@ -229,16 +215,25 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
       </div>
     );
 
+    // Sort lens sections by matrix category order
+    const sortedLensSections = [...lensSections.entries()].sort((a, b) => {
+      const aIdx = categories.indexOf(a[0]);
+      const bIdx = categories.indexOf(b[0]);
+      if (aIdx === -1 && bIdx === -1) return 0;
+      if (aIdx === -1) return 1;
+      if (bIdx === -1) return -1;
+      return aIdx - bIdx;
+    });
+
     return (
       <div className="space-y-5">
         {!hasContent ? (
           <p className="text-xs text-muted-foreground text-center py-6">
-            No list catalog rows yet. Add lenses in the Price Matrix tab.
+            No price list rows yet. Add lenses in the Price Matrix Editor tab.
           </p>
         ) : (
           <>
-            {/* Lens sections grouped by section name (category), NOT treatment type */}
-            {[...lensSections.entries()].map(([sec, rows]) => (
+            {sortedLensSections.map(([sec, rows]) => (
               <SectionTable
                 key={sec}
                 label={sec}
@@ -246,7 +241,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
               />
             ))}
 
-            {/* Treatments & Add-ons grouped by category */}
             {addonsBySection.size > 0 && (
               <>
                 <div className="border-t-2 border-border pt-2" />
