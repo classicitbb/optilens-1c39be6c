@@ -8,6 +8,7 @@ import MultiSelectFilter from "./MultiSelectFilter";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { usePricelistUsedItems } from "@/hooks/usePricelistUsedItems";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 
 
 type Filter = "active" | "inactive" | "all" | "web";
@@ -117,9 +118,7 @@ const AddonDataTable = ({
     if (search) {
       const q = search.toLowerCase();
       items = items.filter((a) =>
-        a.name.toLowerCase().includes(q) || a.sku.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q) || (CATEGORY_LABELS[a.category] ?? "").toLowerCase().includes(q) ||
-        a.description.toLowerCase().includes(q) || (a.supplier_name ?? "").toLowerCase().includes(q)
+        fieldsMatch(q, a.name, a.sku, a.category, CATEGORY_LABELS[a.category], a.description, a.supplier_name)
       );
     }
     return [...items].sort((a, b) => {

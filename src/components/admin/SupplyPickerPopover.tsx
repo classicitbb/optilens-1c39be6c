@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, CheckCircle2 } from "lucide-react";
 import { useSupplies } from "@/hooks/useSupplies";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 
 export interface PickedSupply {
   id: string;
@@ -41,12 +42,7 @@ export const SupplyPickerPopover = ({
       : base;
     if (!search.trim()) return filtered;
     const q = search.toLowerCase();
-    return filtered.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.category.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q)
-    );
+    return filtered.filter((s) => fieldsMatch(q, s.name, s.category, s.description));
   }, [allSupplies, search, categoryFilter]);
 
   const categories = useMemo(

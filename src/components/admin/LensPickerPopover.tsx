@@ -8,6 +8,7 @@ import { useLenses, Lens } from "@/hooks/useLenses";
 import { useAddons } from "@/hooks/useAddons";
 import LensFormDialog from "@/components/admin/LensFormDialog";
 import { cn } from "@/lib/utils";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 
 export interface PickedLens {
   id: string;
@@ -67,11 +68,7 @@ export const LensPickerPopover = ({
     });
     if (search.trim()) {
       const q = search.toLowerCase();
-      base = base.filter((l) =>
-        l.name.toLowerCase().includes(q) ||
-        (l.supplier?.name ?? "").toLowerCase().includes(q) ||
-        (l.supplier?.abbrev ?? "").toLowerCase().includes(q)
-      );
+      base = base.filter((l) => fieldsMatch(q, l.name, l.supplier?.name, l.supplier?.abbrev));
     }
     return base;
   }, [allLenses, search, showAll, hideFinished]);
@@ -80,11 +77,7 @@ export const LensPickerPopover = ({
     const base = (allAddons ?? []).filter((a) => a.is_active);
     if (!search.trim()) return base;
     const q = search.toLowerCase();
-    return base.filter(
-      (a) =>
-        a.name.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q)
-    );
+    return base.filter((a) => fieldsMatch(q, a.name, a.category));
   }, [allAddons, search]);
 
   const handleClose = () => {

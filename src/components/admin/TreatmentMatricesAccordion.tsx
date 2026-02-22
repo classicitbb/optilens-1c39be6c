@@ -43,6 +43,7 @@ import {
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import LensFormDialog from "@/components/admin/LensFormDialog";
@@ -123,11 +124,7 @@ const LensPickerModal = ({
     });
     if (search.trim()) {
       const q = search.toLowerCase();
-      base = base.filter((l) =>
-        l.name.toLowerCase().includes(q) ||
-        (l.supplier?.name ?? "").toLowerCase().includes(q) ||
-        (l.supplier?.abbrev ?? "").toLowerCase().includes(q)
-      );
+      base = base.filter((l) => fieldsMatch(q, l.name, l.supplier?.name, l.supplier?.abbrev));
     }
     return base;
   }, [allLenses, search, showAll]);

@@ -9,6 +9,7 @@ import { useRolePermissions } from "@/hooks/useRolePermissions";
 import MultiSelectFilter from "./MultiSelectFilter";
 import type { Lens } from "@/hooks/useLenses";
 import { usePricelistUsedItems } from "@/hooks/usePricelistUsedItems";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 
 
 type SortKey = "name" | "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
@@ -170,22 +171,10 @@ const LensDataTable = ({
     if (search) {
       const q = search.toLowerCase();
       items = items.filter((i) =>
-        i.name.toLowerCase().includes(q) ||
-        fkName(i.supplier).toLowerCase().includes(q) ||
-        fkAbbrev(i.supplier).toLowerCase().includes(q) ||
-        fkName(i.brand).toLowerCase().includes(q) ||
-        fkAbbrev(i.brand).toLowerCase().includes(q) ||
-        fkName(i.material).toLowerCase().includes(q) ||
-        fkAbbrev(i.material).toLowerCase().includes(q) ||
-        fkName(i.lenstype).toLowerCase().includes(q) ||
-        fkAbbrev(i.lenstype).toLowerCase().includes(q) ||
-        fkName(i.finishtype).toLowerCase().includes(q) ||
-        fkAbbrev(i.finishtype).toLowerCase().includes(q) ||
-        fkName(i.mftype).toLowerCase().includes(q) ||
-        fkAbbrev(i.mftype).toLowerCase().includes(q) ||
-        optionNames(i).toLowerCase().includes(q) ||
-        optionAbbrevs(i).toLowerCase().includes(q) ||
-        (i.notes ?? "").toLowerCase().includes(q)
+        fieldsMatch(q, i.name, fkName(i.supplier), fkAbbrev(i.supplier),
+          fkName(i.brand), fkAbbrev(i.brand), fkName(i.material), fkAbbrev(i.material),
+          fkName(i.lenstype), fkAbbrev(i.lenstype), fkName(i.finishtype), fkAbbrev(i.finishtype),
+          fkName(i.mftype), fkAbbrev(i.mftype), optionNames(i), optionAbbrevs(i), i.notes)
       );
     }
     return [...items].sort((a, b) => {
