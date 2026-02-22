@@ -326,7 +326,7 @@ const LensDataTable = ({
                     {showCost && <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>}
                     <TableCell className="text-xs font-semibold">{currency(lens.sell_price)}</TableCell>
                     <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
-                    <TableCell className="text-center text-xs">{lens.show_in_pricelist ? "✓" : ""}</TableCell>
+                    <TableCell className="text-center text-xs">{(lens.show_in_pricelist || usedItems.has(lens.id)) ? "✓" : ""}</TableCell>
                     <TableCell className="text-center text-xs">{lens.full_lab ? "✓" : ""}</TableCell>
                     <TableCell className="text-center text-xs">{lens.show_in_ws_pricelist ? "✓" : ""}</TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
