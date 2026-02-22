@@ -1,69 +1,87 @@
 
-## Issues Found & Fix Plan
 
-### Root Cause 1: CHECK Constraint Mismatch (Cannot Add Lenses)
+# RX Lens Prices: Duplication, Markup/Discount, Live Preview & Export Enhancements
 
-The database has a CHECK constraint on `matrix_allocations.treatment_type` that only accepts **Title Case** values:
+## 1. Pricelist Duplication -- Copy All Data (Matrix Allocations + Catalog Rows)
+
+**Problem:** Currently, duplicating a pricelist version only copies `pricelist_overrides` (legacy). The new system uses `matrix_allocations` and `pricelist_catalog_rows`, which are NOT copied during duplication. Creating a "new" pricelist from the matrix also copies overrides but not allocations.
+
+**Fix in `usePricelistVersions.ts`:**
+- When `copyFrom` is a version ID (duplicate), also copy all `matrix_allocations` and `pricelist_catalog_rows` from the source version to the new version.
+- When `copyFrom` is `"matrix"` (new blank pricelist), do NOT copy allocations or catalog rows -- start blank.
+- Apply markup/discount calculation during the copy (see section 2).
+
+## 2. Wire Up Markup % and Discount % Calculations
+
+**Logic:** When creating or duplicating a pricelist with markup and/or discount set:
+- `final_price = base_price * (1 + markup/100) * (1 - discount/100)`
+- This applies to all `allocated_price_bbd` in `matrix_allocations` and `bbd_price` in `pricelist_catalog_rows` at copy time.
+
+**Changes in `usePricelistVersions.ts` `createMutation`:**
+- After copying `matrix_allocations`, transform each `allocated_price_bbd` using the markup/discount formula.
+- After copying `pricelist_catalog_rows`, transform each `bbd_price` using the same formula.
+
+**On edit (updating markup/discount on existing pricelist):**
+- Add a recalculation utility: when markup/discount changes on an existing version, offer a "Recalculate Prices" action that applies the new markup/discount relative to the original source prices. This would be shown as a button in the version editor dialog.
+
+## 3. Live Preview: Collapse Empty Material Columns
+
+**In `PricelistLivePreview.tsx` MatrixPreview:**
+- Before rendering each treatment table, compute which `MATERIAL_COLUMNS` have at least one allocation with a non-null price for that treatment type.
+- Only render columns that have data. Filter `MATERIAL_COLUMNS` per treatment section.
+- Also apply this to the header row and averages/delta rows.
+
+## 4. Live Preview Header: Logo + Slogan
+
+**In `PricelistLivePreview.tsx`:**
+- In the branded header section (line ~276), add the company logo above the slogan text on the left side.
+- Use `company?.logo_url` to render an `<img>` tag with reasonable sizing (e.g., max-height 48px).
+- The slogan text remains below the logo.
+
+## 5. Add-on Editor: Drag-and-Drop Reordering (Up/Down Arrows)
+
+**Approach:** Use up/down arrow buttons on hover rather than full drag-and-drop (simpler, no new dependencies).
+
+**In `ListCatalogTab.tsx`:**
+- Add up/down arrow buttons that appear on row hover for addon/treatment/supply rows.
+- Clicking up/down swaps the row's `sort_order` with its neighbor.
+- The reordered sort_order persists when saved and reflects in the live preview.
+- Apply the same pattern to the addon sections in the catalog tab.
+
+## 6. Export: Capture Only Live Preview Area
+
+**Problem:** Current PDF export uses `window.print()` which prints the whole page. Excel/CSV/HTML exports build data programmatically (already correct for content) but need to match preview formatting.
+
+**Changes in `RxExportBar.tsx`:**
+- **PDF export:** Instead of `window.print()`, isolate the `#live-preview` element. Use a print-specific approach: temporarily clone the live preview content into a print-only container, trigger `window.print()`, then remove it. Or use `@media print` CSS to hide everything except `#live-preview`.
+- **Matrix HTML export:** Add a missing Matrix HTML export button (currently only List has HTML).
+- **Excel/CSV exports:** Already programmatic -- these are fine but should match the live preview content (including collapsed empty columns for matrix).
+
+**CSS approach for PDF (simplest):**
+- Add a global print stylesheet: `@media print { body > * { display: none !important; } #live-preview { display: block !important; } }` or use a class-based approach.
+- In `RxLensPricesPage.tsx`, ensure the live preview div has a specific print class.
+
+**Add Matrix HTML export** in `RxExportBar.tsx` (currently missing -- only List has HTML).
+
+## Technical Details
+
+### Files to modify:
+1. **`src/hooks/usePricelistVersions.ts`** -- Copy `matrix_allocations` + `pricelist_catalog_rows` on duplicate; apply markup/discount formula
+2. **`src/components/admin/PricelistLivePreview.tsx`** -- Collapse empty material columns; add logo to header
+3. **`src/components/admin/ListCatalogTab.tsx`** -- Add up/down reorder buttons for addon rows
+4. **`src/components/admin/RxExportBar.tsx`** -- Add Matrix HTML export; change PDF to only capture live preview
+5. **`src/pages/admin/RxLensPricesPage.tsx`** -- Add print CSS to isolate live preview
+6. **`src/index.css`** -- Add `@media print` rules to hide non-preview content
+
+### Price calculation formula:
+```text
+adjusted_price = original_price * (1 + markup_percent / 100) * (1 - discount_percent / 100)
 ```
-CHECK (treatment_type = ANY (ARRAY['Clear', 'Transitions', 'Photochromic', 'Polarized', 'Bluefilter']))
+
+### Empty column detection (per treatment type):
+```text
+activeCols = MATERIAL_COLUMNS.filter(col =>
+  allocations.some(a => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
+)
 ```
 
-But the application code uses **lowercase** values (`clear`, `transitions`, `photochromic`, `polarized`, `bluefilter`). Every insert attempt fails this constraint — that's the exact error shown in your screenshot.
-
-**Fix**: Drop the old constraint and replace it with one accepting lowercase values (matching all existing application code).
-
----
-
-### Root Cause 2: Live Preview Missing Treatments & Add-ons
-
-The `PricelistLivePreview` component only reads rows where `catalog_type = 'rx'` and renders them grouped by `section`. However, Treatment and Add-on rows saved from the Treatments & Add-ons panel are also stored in `pricelist_catalog_rows` — the preview just never renders them in a separate labeled section after the lens grids.
-
-**Fix**: In the List Preview, after rendering lens sections, add a second pass that renders rows where `row_type = 'addon'` or `row_type = 'treatment'` / `row_type = 'supply'` grouped together in a clearly labeled "Treatments & Add-ons" block. In the Matrix Preview, add a compact Add-on delta table underneath each treatment grid.
-
----
-
-### Root Cause 3: No Demo Data to Test End-to-End
-
-The `matrix_allocations` table is empty because no lenses have ever been successfully saved (due to the constraint failure). There is good data available: the `price_matrix` table has 10 categories (Progressive - Best/Better/Good, Single Vision, etc.) and there are pricelist-enabled lenses with costs and prices.
-
-**Fix**: After fixing the constraint, seed demo allocations by inserting matrix rows that map the existing `price_matrix` categories to real lenses from the catalog for version ID 3 (the only existing version).
-
----
-
-### Technical Implementation
-
-**Step 1 — Database migration** (executes immediately):
-```sql
--- Drop old Title Case constraint
-ALTER TABLE public.matrix_allocations 
-DROP CONSTRAINT IF EXISTS matrix_allocations_treatment_type_check;
-
--- Add new lowercase constraint matching the application
-ALTER TABLE public.matrix_allocations 
-ADD CONSTRAINT matrix_allocations_treatment_type_check 
-CHECK (treatment_type = ANY (ARRAY[
-  'clear', 'transitions', 'photochromic', 'polarized', 'bluefilter'
-]));
-```
-
-**Step 2 — Seed demo allocations**: Insert ~10 matrix_allocation rows for version 3 mapping the `price_matrix` categories to real lenses (e.g., Progressive - Better / 1.50 → the "1.50 LBUC PROG Classic PAL SRCoated" lens at $138.60). This makes the matrix immediately usable and testable.
-
-**Step 3 — Fix PricelistLivePreview**: Add a Treatments & Add-ons section:
-
-- **Matrix format**: After each treatment grid, add a compact row listing add-on name + price from `pricelist_catalog_rows` where `row_type IN ('addon', 'supply')`.
-- **List format**: After all lens sections, add a clearly delineated "Treatments & Add-ons" section table showing all addon/supply rows.
-
-**Step 4 — Seed demo catalog rows**: After seeding matrix allocations, also insert matching `pricelist_catalog_rows` for the demo lens allocations and a few add-ons (e.g., Super AR at $75, Classic AR at $70) so the preview renders fully.
-
----
-
-### Files Changed
-
-| File | What Changes |
-|---|---|
-| Migration SQL | Drop+recreate `treatment_type` CHECK constraint to lowercase |
-| Migration SQL | Seed demo `matrix_allocations` rows for version 3 |
-| Migration SQL | Seed demo `pricelist_catalog_rows` (lens + addon rows) |
-| `src/components/admin/PricelistLivePreview.tsx` | Add Treatments & Add-ons section to both Matrix and List preview formats |
-
-No changes needed to `TreatmentMatricesAccordion.tsx` or `useMatrixAllocations.ts` — the code is correct, only the DB constraint was wrong.
