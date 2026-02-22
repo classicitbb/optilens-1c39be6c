@@ -192,13 +192,15 @@ const LensPickerModal = ({
                   <button
                     key={l.id}
                     onClick={() => {
+                      if (l.sell_price <= 0) return; // Block zero-price lenses from being picked
                       onPick(l.id, l.name, l.sell_price);
                       setSearch("");
                       onClose();
                     }}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors",
-                      isInactive && "opacity-60"
+                      isInactive && "opacity-60",
+                      l.sell_price <= 0 && "opacity-60 cursor-not-allowed"
                     )}
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -215,6 +217,11 @@ const LensPickerModal = ({
                           Inactive
                         </span>
                       )}
+                      {l.sell_price <= 0 && !isInactive && (
+                        <span className="shrink-0 text-[9px] font-semibold px-1 py-0.5 rounded bg-red-100 text-red-700">
+                          $0
+                        </span>
+                      )}
                       <span className="text-xs font-medium flex-1 min-w-0 truncate text-primary">
                         {l.name}
                       </span>
@@ -228,11 +235,11 @@ const LensPickerModal = ({
                       <span className="text-xs font-semibold text-foreground">
                         ${l.sell_price.toFixed(2)}
                       </span>
-                      {isInactive && (
+                      {(isInactive || l.sell_price <= 0) && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
                           className="p-0.5 hover:bg-muted rounded"
-                          title="Edit lens for inclusion"
+                          title="Edit lens to fix price"
                         >
                           <Pencil className="h-3 w-3 text-amber-500" />
                         </button>
