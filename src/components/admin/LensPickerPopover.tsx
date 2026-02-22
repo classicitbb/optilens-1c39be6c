@@ -223,9 +223,6 @@ export const LensPickerPopover = ({
                           </span>
                         </div>
                         <span className="shrink-0 flex items-center gap-1.5 ml-2">
-                          <span className="text-xs font-semibold" style={{ color: "hsl(215 30% 20%)" }}>
-                            ${l.sell_price.toFixed(2)}
-                          </span>
                           {(isInactive || l.sell_price <= 0) && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
@@ -235,6 +232,9 @@ export const LensPickerPopover = ({
                               <Pencil className="h-3 w-3 text-amber-500" />
                             </button>
                           )}
+                          <span className="text-xs font-semibold" style={{ color: "hsl(215 30% 20%)" }}>
+                            ${l.sell_price.toFixed(2)}
+                          </span>
                           {isSelected && (
                             <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "hsl(215 65% 50%)" }} />
                           )}
