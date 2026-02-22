@@ -7,6 +7,7 @@ import {
 import { useBBDUSDRate } from "@/hooks/usePricelistVersions";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -73,6 +74,7 @@ const VersionSelectorPanel = ({
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const { logChange } = useAuditLog();
 
   const [selectorCollapsed, setSelectorCollapsed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -134,6 +136,13 @@ const VersionSelectorPanel = ({
         },
         {
           onSuccess: () => {
+            logChange({
+              table_name: "pricelist_versions",
+              record_id: String(editMode.id),
+              action: "update",
+              old_data: { name: editMode.name, markup_percent: editMode.markup_percent, discount_percent: editMode.discount_percent, base_currency: editMode.base_currency, is_template: editMode.is_template },
+              new_data: { name: name.trim(), markup_percent: parseFloat(markupPct) || 0, discount_percent: parseFloat(discountPct) || 0, base_currency: currency, is_template: isTemplate },
+            });
             setDialogOpen(false);
             resetForm();
             toast({ title: "Pricelist updated" });
@@ -153,6 +162,12 @@ const VersionSelectorPanel = ({
       };
       createMutation.mutate(input, {
         onSuccess: (newV: any) => {
+          logChange({
+            table_name: "pricelist_versions",
+            record_id: String(newV.id),
+            action: "create",
+            new_data: { name: input.name, base_currency: input.base_currency, markup_percent: input.markup_percent, discount_percent: input.discount_percent, is_template: input.is_template, copyFrom: input.copyFrom },
+          });
           setDialogOpen(false);
           resetForm();
           onVersionChange(newV.id);
@@ -168,6 +183,12 @@ const VersionSelectorPanel = ({
     if (!confirm(`Delete "${v.name}" and all its prices? Cannot be undone.`)) return;
     deleteMutation.mutate(v.id, {
       onSuccess: () => {
+        logChange({
+          table_name: "pricelist_versions",
+          record_id: String(v.id),
+          action: "delete",
+          old_data: { name: v.name, base_currency: v.base_currency, markup_percent: v.markup_percent, discount_percent: v.discount_percent },
+        });
         if (resolvedVersionId === v.id) onVersionChange(versions?.[0]?.id ?? 0);
         toast({ title: "Deleted" });
       },
@@ -187,6 +208,12 @@ const VersionSelectorPanel = ({
     };
     createMutation.mutate(input, {
       onSuccess: (newV: any) => {
+        logChange({
+          table_name: "pricelist_versions",
+          record_id: String(newV.id),
+          action: "create",
+          new_data: { name: input.name, duplicated_from: v.name, source_id: v.id, base_currency: input.base_currency, markup_percent: input.markup_percent, discount_percent: input.discount_percent },
+        });
         onVersionChange(newV.id);
         toast({ title: "Duplicated" });
       },

@@ -4,6 +4,7 @@ import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useLenses } from "@/hooks/useLenses";
 import { PricelistVersion } from "@/hooks/usePricelistVersions";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Button } from "@/components/ui/button";
 import { FileText, Table2, FileSpreadsheet, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +52,16 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
   const { toast } = useToast();
+  const { logChange } = useAuditLog();
+
+  const logExport = (formatType: string, viewType: string) => {
+    logChange({
+      table_name: "pricelist_export",
+      record_id: String(version.id),
+      action: "create",
+      new_data: { name: version.name, format: formatType, view: viewType, currency },
+    });
+  };
 
   const currency = showUSD ? "USD" : (version.base_currency ?? "BBD");
   const today = format(new Date(), "dd MMMM yyyy");
@@ -136,6 +147,7 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
     XLSX.utils.book_append_sheet(wb, ws, "Matrix");
     XLSX.writeFile(wb, `${version.name}_Matrix.xlsx`);
     toast({ title: "Matrix Excel exported" });
+    logExport("Excel", "Matrix");
   };
 
   // ── Matrix CSV ───────────────────────────────────────────────────────────────
@@ -182,6 +194,7 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
     a.href = url; a.download = `${version.name}_Matrix.csv`; a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Matrix CSV exported" });
+    logExport("CSV", "Matrix");
   };
 
   // ── Matrix HTML ──────────────────────────────────────────────────────────────
@@ -235,6 +248,7 @@ ${addonsHtml}
     a.href = url; a.download = `${version.name}_Matrix.html`; a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Matrix HTML exported" });
+    logExport("HTML", "Matrix");
   };
 
   // ── Matrix PDF (jsPDF + autoTable) ──────────────────────────────────────────
@@ -326,6 +340,7 @@ ${addonsHtml}
 
     doc.save(`${version.name}_Matrix.pdf`);
     toast({ title: "Matrix PDF exported" });
+    logExport("PDF", "Matrix");
   };
 
   // ── List Excel ───────────────────────────────────────────────────────────────
@@ -365,6 +380,7 @@ ${addonsHtml}
     XLSX.utils.book_append_sheet(wb, ws, "List");
     XLSX.writeFile(wb, `${version.name}_List.xlsx`);
     toast({ title: "List Excel exported" });
+    logExport("Excel", "List");
   };
 
   // ── List CSV ─────────────────────────────────────────────────────────────────
@@ -401,6 +417,7 @@ ${addonsHtml}
     a.href = url; a.download = `${version.name}_List.csv`; a.click();
     URL.revokeObjectURL(url);
     toast({ title: "List CSV exported" });
+    logExport("CSV", "List");
   };
 
   // ── List HTML ────────────────────────────────────────────────────────────────
@@ -456,6 +473,7 @@ ${addonsHtml}
     a.href = url; a.download = `${version.name}_List.html`; a.click();
     URL.revokeObjectURL(url);
     toast({ title: "List HTML exported" });
+    logExport("HTML", "List");
   };
 
   // ── List PDF (jsPDF + autoTable) ─────────────────────────────────────────────
@@ -535,6 +553,7 @@ ${addonsHtml}
 
     doc.save(`${version.name}_List.pdf`);
     toast({ title: "List PDF exported" });
+    logExport("PDF", "List");
   };
 
   const btnBase = "h-7 text-[11px] gap-1 px-2.5 font-medium";
