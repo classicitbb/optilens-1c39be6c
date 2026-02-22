@@ -114,7 +114,11 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                 </tr>
               </thead>
               <tbody>
-                {categories.map((cat, i) => (
+                {categories.filter((cat) =>
+                  MATERIAL_COLUMNS.some((col) =>
+                    allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
+                  )
+                ).map((cat, i) => (
                   <tr key={cat} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
                     <td className="px-3 py-1 font-medium border-r border-border text-foreground">{cat}</td>
                     {MATERIAL_COLUMNS.map((col) => {
