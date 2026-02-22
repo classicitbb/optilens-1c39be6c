@@ -232,9 +232,6 @@ const LensPickerModal = ({
                           In List
                         </span>
                       )}
-                      <span className="text-xs font-semibold text-foreground">
-                        ${l.sell_price.toFixed(2)}
-                      </span>
                       {(isInactive || l.sell_price <= 0) && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
@@ -244,6 +241,9 @@ const LensPickerModal = ({
                           <Pencil className="h-3 w-3 text-amber-500" />
                         </button>
                       )}
+                      <span className="text-xs font-semibold text-foreground">
+                        ${l.sell_price.toFixed(2)}
+                      </span>
                       {isSelected && (
                         <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                       )}
