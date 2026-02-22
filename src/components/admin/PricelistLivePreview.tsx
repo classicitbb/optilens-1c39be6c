@@ -94,14 +94,14 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
 
         return (
           <div key={tt}>
-            <table className="w-full text-xs border-collapse border border-border" style={{ tableLayout: "auto" }}>
+            <table className="w-full text-xs border-collapse border border-border" style={{ tableLayout: "auto", borderRadius: 0 }}>
               <thead>
                 <tr style={{ background: "#1e4db7" }}>
-                  <th className="px-3 py-2 text-left border-r border-white/20 font-bold text-white uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "180px" }}>
-                    {TREATMENT_LABELS[tt]}
+                  <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "180px", color: "white", borderRadius: 0 }}>
+                     {TREATMENT_LABELS[tt]}
                   </th>
                   {MATERIAL_COLUMNS.map((col) => (
-                    <th key={col.key} className="px-3 py-2 text-center border-r border-white/20 last:border-r-0 font-bold text-white uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "80px" }}>
+                    <th key={col.key} className="px-3 py-2 text-center border-r border-white/20 last:border-r-0 font-bold uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "80px", color: "white", borderRadius: 0 }}>
                       {col.key}
                     </th>
                   ))}
@@ -163,11 +163,11 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
         <div className="space-y-3">
           {[...addonsBySection.entries()].map(([sec, rows]) => (
             <div key={sec}>
-              <table className="w-full text-xs border-collapse border border-border">
+              <table className="w-full text-xs border-collapse border border-border" style={{ borderRadius: 0 }}>
                 <thead>
-                  <tr style={{ background: "#1e4db7" }}>
-                    <th className="px-3 py-2 text-left border-r border-white/20 font-bold text-white uppercase tracking-wide">{sec}</th>
-                    <th className="px-3 py-2 text-right font-bold text-white uppercase tracking-wide w-28">{currency} Price</th>
+              <tr style={{ background: "#1e4db7" }}>
+                     <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide" style={{ color: "white", borderRadius: 0 }}>{sec}</th>
+                     <th className="px-3 py-2 text-right font-bold uppercase tracking-wide w-28" style={{ color: "white", borderRadius: 0 }}>{currency} Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -194,11 +194,11 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
 
     const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
       <div>
-        <table className="w-full text-xs border-collapse border border-border">
+          <table className="w-full text-xs border-collapse border border-border" style={{ borderRadius: 0 }}>
           <thead>
             <tr style={{ background: "#1e4db7" }}>
-              <th className="px-3 py-2 text-left border-r border-white/20 font-bold text-white uppercase tracking-wide">{label}</th>
-              <th className="px-3 py-2 text-right font-bold text-white uppercase tracking-wide w-24">{currency} Price</th>
+              <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide" style={{ color: "white", borderRadius: 0 }}>{label}</th>
+              <th className="px-3 py-2 text-right font-bold uppercase tracking-wide w-24" style={{ color: "white", borderRadius: 0 }}>{currency} Price</th>
             </tr>
           </thead>
           <tbody>
