@@ -13,6 +13,7 @@ const TABS = [
   { key: "addons", label: "Add-Ons" },
   { key: "company_settings,pricing_settings", label: "Settings" },
   { key: "suppliers,brands,materials,mftypes,lenstypes,lens_options,finishtypes", label: "Reference Data" },
+  { key: "pricelist_versions,pricelist_export", label: "Pricing Edits" },
 ];
 
 const ACTION_COLORS: Record<string, string> = {
@@ -31,17 +32,15 @@ const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
   const [limit, setLimit] = useState(100);
 
   const tableFilter = activeTab.includes(",") ? undefined : (activeTab || undefined);
+  const tableNamesFilter = activeTab.includes(",") ? activeTab.split(",") : undefined;
 
   const { data: entries, isLoading } = useAuditLogQuery({
     table_name: tableFilter,
+    table_names: tableNamesFilter,
     limit,
   });
 
   const filtered = (entries ?? []).filter((e) => {
-    if (activeTab.includes(",")) {
-      const tables = activeTab.split(",");
-      if (!tables.includes(e.table_name)) return false;
-    }
     if (search) {
       const q = search.toLowerCase();
       const matchesName =

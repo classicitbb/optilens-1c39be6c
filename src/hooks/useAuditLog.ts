@@ -85,6 +85,7 @@ export const buildPricingSummary = (
 
 export interface AuditLogFilters {
   table_name?: string;
+  table_names?: string[];
   limit?: number;
   offset?: number;
 }
@@ -104,7 +105,9 @@ export const useAuditLogQuery = (filters: AuditLogFilters) => {
         query = query.range(filters.offset, filters.offset + (filters.limit ?? 100) - 1);
       }
 
-      if (filters.table_name) {
+      if (filters.table_names && filters.table_names.length > 0) {
+        query = query.in("table_name", filters.table_names);
+      } else if (filters.table_name) {
         query = query.eq("table_name", filters.table_name);
       }
 
