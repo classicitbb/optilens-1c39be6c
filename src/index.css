@@ -293,6 +293,19 @@
   /* Hide admin sidebar/topbar when printing */
   aside, nav, header { display: none !important; }
   main { margin: 0 !important; padding: 0 !important; }
+
+  /* When print-preview-only is set, only show #live-preview */
+  body.print-preview-only * { visibility: hidden !important; }
+  body.print-preview-only #live-preview,
+  body.print-preview-only #live-preview * { visibility: visible !important; }
+  body.print-preview-only #live-preview {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+  }
 }
 
 .zenvue * {

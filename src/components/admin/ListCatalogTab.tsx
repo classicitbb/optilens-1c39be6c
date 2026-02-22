@@ -4,7 +4,7 @@ import { useAddons } from "@/hooks/useAddons";
 import { useSupplies } from "@/hooks/useSupplies";
 import { usePricelistCatalogRows, PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 import { Button } from "@/components/ui/button";
-import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -259,6 +259,23 @@ const ListCatalogTab = ({
     setIsDirty(true);
   };
 
+  const moveRow = (section: string, rowKey: string, direction: "up" | "down", type: "lens" | "addon" | "supply") => {
+    const setter = type === "lens" ? setLensRows : type === "addon" ? setAddonRows : setSupplyRows;
+    const effectiveMap = type === "lens" ? effectiveLensRows : type === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    setter((prev) => {
+      const next = new Map(prev);
+      const rows = [...(effectiveMap.get(section) ?? [])];
+      const idx = rows.findIndex((r) => r.key === rowKey);
+      if (idx === -1) return prev;
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= rows.length) return prev;
+      [rows[idx], rows[swapIdx]] = [rows[swapIdx], rows[idx]];
+      next.set(section, rows);
+      return next;
+    });
+    setIsDirty(true);
+  };
+
   /* ── Save to DB ── */
   const handleSave = async () => {
     if (!versionId) { toast({ title: "No version selected", variant: "destructive" }); return; }
@@ -323,11 +340,25 @@ const ListCatalogTab = ({
     return <button className="ml-1 opacity-50 hover:opacity-100 transition-opacity no-print" onClick={(e) => { e.stopPropagation(); toggleSort(section, col); }}><ArrowUpDown className="h-2.5 w-2.5 inline" style={{ color: s?.col === col && s.dir ? "hsl(215 65% 50%)" : "inherit" }} /></button>;
   };
 
-  const renderRow = (row: CatalogRow, i: number, rowType: "lens" | "addon" | "supply", section: string) => {
+  const renderRow = (row: CatalogRow, i: number, rowType: "lens" | "addon" | "supply", section: string, totalRows?: number) => {
     const isEditingThisDesc = editingDesc?.key === row.key;
     const isPending = pendingMatrixRowKeys?.has(row.key);
+    const showReorder = rowType === "addon" || rowType === "supply";
     return (
-      <tr key={row.key} style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
+      <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
+        {/* Reorder arrows for addon/supply rows */}
+        {showReorder && (
+          <td className="border border-slate-200 p-0 no-print w-8">
+            <div className="flex flex-col items-center opacity-0 group-hover/row:opacity-100 transition-opacity">
+              <button className="p-0.5 hover:bg-muted/50 disabled:opacity-20" disabled={i === 0} onClick={() => moveRow(section, row.key, "up", rowType)}>
+                <ArrowUp className="h-2.5 w-2.5 text-muted-foreground" />
+              </button>
+              <button className="p-0.5 hover:bg-muted/50 disabled:opacity-20" disabled={totalRows != null && i >= totalRows - 1} onClick={() => moveRow(section, row.key, "down", rowType)}>
+                <ArrowDown className="h-2.5 w-2.5 text-muted-foreground" />
+              </button>
+            </div>
+          </td>
+        )}
         {/* Supplier — before description */}
         <td className="px-2 py-1.5 border border-slate-200 text-center whitespace-nowrap" style={{ color: "hsl(215 50% 40%)", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
           {row.supplier || "—"}
@@ -395,6 +426,7 @@ const ListCatalogTab = ({
             <table className="w-full text-xs border-collapse">
             <thead>
               <tr>
+                {(rowType === "addon" || rowType === "supply") && <th className="w-8 no-print border border-slate-300" style={{ background: "hsl(215 15% 93%)" }} />}
                 <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
                 <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
                 {/* Matrix Cell header — screen only, before BBD */}
@@ -407,7 +439,7 @@ const ListCatalogTab = ({
                 <th className="w-6 no-print border border-slate-300" />
               </tr>
             </thead>
-            <tbody>{displayRows.map((row, i) => renderRow(row, i, rowType, title))}</tbody>
+            <tbody>{displayRows.map((row, i) => renderRow(row, i, rowType, title, displayRows.length))}</tbody>
           </table>
         )}
       </div>

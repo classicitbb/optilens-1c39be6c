@@ -132,9 +132,51 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
     toast({ title: "Matrix CSV exported" });
   };
 
-  // ── Matrix PDF (print) ───────────────────────────────────────────────────────
+  // ── Matrix HTML ──────────────────────────────────────────────────────────────
+  const exportMatrixHTML = () => {
+    const sectionsHtml = TREATMENT_TYPES.map((tt) => {
+      const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
+      if (tt !== "clear" && !ttAllocs.length) return "";
+      const activeCols = MATERIAL_COLUMNS.filter((col) =>
+        allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
+      );
+      if (activeCols.length === 0 && tt !== "clear") return "";
+      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
+      const colHeaders = visibleCols.map((c) => `<th>${c.key}</th>`).join("");
+      const rowsHtml = categories
+        .filter((cat) => visibleCols.some((col) => allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)))
+        .map((cat) => {
+          const cells = visibleCols.map((col) => {
+            const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
+            return `<td style="text-align:right">${alloc?.allocated_price_bbd != null ? fmt(alloc.allocated_price_bbd, showUSD, fxRate) : "—"}</td>`;
+          }).join("");
+          return `<tr><td>${cat}</td>${cells}</tr>`;
+        }).join("");
+      return `<h3 style="color:#1e4db7;margin:20px 0 8px">${TREATMENT_LABELS[tt]}</h3>
+      <table><thead><tr><th>Category</th>${colHeaders}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${version.name}</title>
+<style>body{font-family:sans-serif;font-size:12px;margin:40px}h1{color:#1e4db7;margin-bottom:4px}h2{color:#444;font-size:11px;font-weight:normal;margin-bottom:2px}h3{color:#1e4db7;font-size:12px;font-weight:bold}table{border-collapse:collapse;width:100%;margin-bottom:12px}th,td{border:1px solid #ccc;padding:4px 10px}th{background:#1e4db7;color:#fff;text-align:left}tr:nth-child(even){background:#f5f7fb}footer{font-size:10px;color:#888;margin-top:24px}</style></head><body>
+<h1>${company?.company_name ?? ""}</h1>
+<h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2>
+<h2>${version.name} — ${today} (${currency})</h2>
+${sectionsHtml}
+<footer>All prices in ${currency}. Prices subject to change without notice.</footer>
+</body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${version.name}_Matrix.html`; a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Matrix HTML exported" });
+  };
+
+  // ── Matrix PDF (print live preview only) ────────────────────────────────────
   const exportMatrixPDF = () => {
+    document.body.classList.add("print-preview-only");
     window.print();
+    document.body.classList.remove("print-preview-only");
     toast({ title: "Print dialog opened (Matrix)" });
   };
 
@@ -225,9 +267,11 @@ ${sectionsHtml}
     toast({ title: "List HTML exported" });
   };
 
-  // ── List PDF (print) ─────────────────────────────────────────────────────────
+  // ── List PDF (print live preview only) ───────────────────────────────────────
   const exportListPDF = () => {
+    document.body.classList.add("print-preview-only");
     window.print();
+    document.body.classList.remove("print-preview-only");
     toast({ title: "Print dialog opened (List)" });
   };
 
@@ -245,6 +289,9 @@ ${sectionsHtml}
       </Button>
       <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixCSV}>
         <FileSpreadsheet className="h-3 w-3" /> CSV
+      </Button>
+      <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixHTML}>
+        <Globe className="h-3 w-3" /> HTML
       </Button>
 
       <div className="w-px h-4 bg-border mx-1" />
