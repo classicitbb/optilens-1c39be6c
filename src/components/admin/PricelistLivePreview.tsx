@@ -58,6 +58,12 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
     return m;
   }, [allLenses]);
 
+  const lensIndexMap = useMemo(() => {
+    const m = new Map<string, number>();
+    allLenses.forEach((l) => m.set(l.id, l.index_value));
+    return m;
+  }, [allLenses]);
+
   const categories = useMemo(() => [...new Set(matrixRows.map((r) => r.category))], [matrixRows]);
 
   const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
@@ -237,7 +243,12 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
               <SectionTable
                 key={sec}
                 label={sec}
-                rows={[...rows].sort((a, b) => a.sort_order - b.sort_order)}
+                rows={[...rows].sort((a, b) => {
+                  const aIdx = a.item_id ? (lensIndexMap.get(a.item_id) ?? 999) : 999;
+                  const bIdx = b.item_id ? (lensIndexMap.get(b.item_id) ?? 999) : 999;
+                  if (aIdx !== bIdx) return aIdx - bIdx;
+                  return a.sort_order - b.sort_order;
+                })}
               />
             ))}
 
