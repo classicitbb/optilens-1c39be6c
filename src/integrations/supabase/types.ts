@@ -243,6 +243,8 @@ export type Database = {
           labour_percent: number
           logo_file_name: string | null
           logo_url: string | null
+          pdf_footer_html: string
+          pdf_header_html: string
           physical_city: string
           physical_country: string
           physical_county: string
@@ -288,6 +290,8 @@ export type Database = {
           labour_percent?: number
           logo_file_name?: string | null
           logo_url?: string | null
+          pdf_footer_html?: string
+          pdf_header_html?: string
           physical_city?: string
           physical_country?: string
           physical_county?: string
@@ -333,6 +337,8 @@ export type Database = {
           labour_percent?: number
           logo_file_name?: string | null
           logo_url?: string | null
+          pdf_footer_html?: string
+          pdf_header_html?: string
           physical_city?: string
           physical_country?: string
           physical_county?: string
