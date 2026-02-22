@@ -808,7 +808,7 @@ const TreatmentMatricesAccordion = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-foreground">
-            Treatment Matrices{" "}
+            Price Matrix{" "}
             <span className="font-normal text-muted-foreground text-xs">
               — Shared Editor for Matrix &amp; List Formats
             </span>
