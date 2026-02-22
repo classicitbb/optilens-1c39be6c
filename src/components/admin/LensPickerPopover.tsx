@@ -186,12 +186,14 @@ export const LensPickerPopover = ({
                     return (
                       <button
                         key={l.id}
-                        onClick={() =>
-                          handlePick({ id: l.id, name: l.name, sell_price: l.sell_price, type: "lens" })
-                        }
+                        onClick={() => {
+                          if (l.sell_price <= 0) return;
+                          handlePick({ id: l.id, name: l.name, sell_price: l.sell_price, type: "lens" });
+                        }}
                         className={cn(
                           "w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors group",
-                          isInactive && "opacity-60"
+                          isInactive && "opacity-60",
+                          l.sell_price <= 0 && "opacity-60 cursor-not-allowed"
                         )}
                       >
                         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -208,6 +210,11 @@ export const LensPickerPopover = ({
                               Inactive
                             </span>
                           )}
+                          {l.sell_price <= 0 && !isInactive && (
+                            <span className="shrink-0 text-[9px] font-semibold px-1 py-0.5 rounded bg-red-100 text-red-700">
+                              $0
+                            </span>
+                          )}
                           <span
                             className="text-xs font-medium flex-1 min-w-0 truncate"
                             style={{ color: "hsl(215 65% 40%)" }}
@@ -219,11 +226,11 @@ export const LensPickerPopover = ({
                           <span className="text-xs font-semibold" style={{ color: "hsl(215 30% 20%)" }}>
                             ${l.sell_price.toFixed(2)}
                           </span>
-                          {isInactive && (
+                          {(isInactive || l.sell_price <= 0) && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
                               className="p-0.5 hover:bg-muted rounded"
-                              title="Edit lens for inclusion"
+                              title="Edit lens to fix price"
                             >
                               <Pencil className="h-3 w-3 text-amber-500" />
                             </button>
