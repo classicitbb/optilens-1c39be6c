@@ -104,7 +104,7 @@ export const LensPickerPopover = ({
       <Dialog open={open && !editLens && !addLensOpen} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v); }}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pr-8">
               <DialogTitle className="text-sm font-semibold flex-1">
                 {tab === "Lenses" ? "Select Lens" : "Select Add-On"}
               </DialogTitle>
