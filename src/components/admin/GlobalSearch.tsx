@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 import { Search, BookOpen, Layers, DollarSign, Ship, Users, Settings, FileSpreadsheet, FlaskConical, Glasses, ShoppingCart, Upload, Database, ArrowRight } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
@@ -52,12 +53,7 @@ const GlobalSearch = () => {
   const results = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return ALL_RESULTS.filter(
-      (r) =>
-        r.label.toLowerCase().includes(q) ||
-        r.sublabel?.toLowerCase().includes(q) ||
-        r.group.toLowerCase().includes(q)
-    ).slice(0, 10);
+    return ALL_RESULTS.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group)).slice(0, 10);
   }, [query]);
 
   // Group results

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 
 interface Option {
   value: string;
@@ -29,7 +30,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
   const filtered = useMemo(() => {
     if (!search) return options;
     const q = search.toLowerCase();
-    return options.filter((o) => o.label.toLowerCase().includes(q));
+    return options.filter((o) => fieldsMatch(q, o.label));
   }, [options, search]);
 
   const allSelected = selected.size === 0; // empty = no filter = all

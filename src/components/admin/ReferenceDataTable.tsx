@@ -12,6 +12,7 @@ import { Plus, ArrowUpDown, Trash2, EyeOff, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ReferenceDataModal from "./ReferenceDataModal";
 import { format } from "date-fns";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -56,11 +57,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
     if (filter === "inactive") items = items.filter((i) => !i.is_active);
     if (search) {
       const q = search.toLowerCase();
-      items = items.filter((i) =>
-        i.name.toLowerCase().includes(q) ||
-        (i.abbrev ?? "").toLowerCase().includes(q) ||
-        (i.code ?? "").toLowerCase().includes(q)
-      );
+      items = items.filter((i) => fieldsMatch(q, i.name, i.abbrev, i.code));
     }
     return [...items].sort((a, b) => {
       const av = a[sortKey];

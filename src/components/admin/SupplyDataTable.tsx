@@ -9,6 +9,7 @@ import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { usePricelistUsedItems } from "@/hooks/usePricelistUsedItems";
+import { fieldsMatch } from "@/lib/wildcardMatch";
 
 
 type Filter = "active" | "inactive" | "all" | "web";
@@ -124,10 +125,7 @@ const SupplyDataTable = ({
     if (search) {
       const q = search.toLowerCase();
       items = items.filter((s) =>
-        s.name.toLowerCase().includes(q) || (s.sku ?? "").toLowerCase().includes(q) ||
-        s.category.toLowerCase().includes(q) || (catLabels[s.category] ?? "").toLowerCase().includes(q) ||
-        (s.description ?? "").toLowerCase().includes(q) || (s.supplier_name ?? "").toLowerCase().includes(q) ||
-        s.unit.toLowerCase().includes(q) || s.bin.toLowerCase().includes(q) || s.detail.toLowerCase().includes(q)
+        fieldsMatch(q, s.name, s.sku, s.category, catLabels[s.category], s.description, s.supplier_name, s.unit, s.bin, s.detail)
       );
     }
     return [...items].sort((a, b) => {
