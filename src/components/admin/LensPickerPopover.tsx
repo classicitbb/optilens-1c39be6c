@@ -216,15 +216,13 @@ export const LensPickerPopover = ({
                           </span>
                         </div>
                         <span className="shrink-0 flex items-center gap-1.5 ml-2">
-                          {(isInactive || l.sell_price <= 0) && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
-                              className="p-0.5 hover:bg-muted rounded"
-                              title="Edit lens to fix price"
-                            >
-                              <Pencil className="h-3 w-3 text-amber-500" />
-                            </button>
-                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
+                            className="p-0.5 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Edit lens"
+                          >
+                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                          </button>
                           <span className="text-xs font-semibold" style={{ color: "hsl(215 30% 20%)" }}>
                             ${l.sell_price.toFixed(2)}
                           </span>

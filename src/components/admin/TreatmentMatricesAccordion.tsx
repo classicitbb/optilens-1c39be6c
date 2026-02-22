@@ -229,15 +229,13 @@ const LensPickerModal = ({
                           In List
                         </span>
                       )}
-                      {(isInactive || l.sell_price <= 0) && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
-                          className="p-0.5 hover:bg-muted rounded"
-                          title="Edit lens to fix price"
-                        >
-                          <Pencil className="h-3 w-3 text-amber-500" />
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditLens(l); }}
+                        className="p-0.5 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Edit lens"
+                      >
+                        <Pencil className="h-3 w-3 text-muted-foreground" />
+                      </button>
                       <span className="text-xs font-semibold text-foreground">
                         ${l.sell_price.toFixed(2)}
                       </span>
