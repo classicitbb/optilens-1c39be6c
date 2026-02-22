@@ -9,6 +9,8 @@ import { FileText, Table2, FileSpreadsheet, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const TREATMENT_LABELS: Record<TreatmentType, string> = {
   clear: "Clear Lenses",
@@ -30,6 +32,18 @@ const fmt = (val: number | null | undefined, showUSD: boolean, fxRate: number) =
   return parseFloat(v.toFixed(2));
 };
 
+const fmtStr = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
+  if (val == null) return "—";
+  const v = showUSD ? val * fxRate : val;
+  return v.toFixed(2);
+};
+
+// Build a logo HTML snippet from company settings
+const buildLogoHtml = (logoUrl: string | null | undefined) => {
+  if (!logoUrl) return "";
+  return `<img src="${logoUrl}" alt="Logo" style="max-height:60px;margin-bottom:8px;display:block" crossorigin="anonymous" />`;
+};
+
 const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
@@ -49,6 +63,34 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
     `${version.name} — ${today} (${currency})`,
   ];
 
+  // Helper: get addon rows grouped by section
+  const getAddonsBySection = () => {
+    const addonRows = catalogRows
+      .filter((r) => ["addon", "treatment", "supply"].includes(r.row_type))
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const map = new Map<string, typeof addonRows>();
+    for (const r of addonRows) {
+      const sec = r.section || "Other";
+      if (!map.has(sec)) map.set(sec, []);
+      map.get(sec)!.push(r);
+    }
+    return map;
+  };
+
+  // Helper: get active columns per treatment
+  const getActiveCols = (tt: TreatmentType) =>
+    MATERIAL_COLUMNS.filter((col) =>
+      allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
+    );
+
+  // Helper: get active categories per treatment/cols
+  const getActiveCats = (tt: TreatmentType, cols: readonly { key: string; label: string }[]) =>
+    categories.filter((cat) =>
+      cols.some((col) =>
+        allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
+      )
+    );
+
   // ── Matrix Excel ─────────────────────────────────────────────────────────────
   const exportMatrixExcel = () => {
     const aoa: any[][] = [];
@@ -56,44 +98,38 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
     aoa.push([]);
 
     TREATMENT_TYPES.forEach((tt) => {
-      const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
-      if (tt !== "clear" && !ttAllocs.length) return;
+      const activeCols = getActiveCols(tt);
+      if (activeCols.length === 0 && tt !== "clear") return;
+      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
+      const activeCats = getActiveCats(tt, visibleCols);
 
       aoa.push([TREATMENT_LABELS[tt]]);
-      aoa.push(["Category", ...MATERIAL_COLUMNS.map((c) => c.key)]);
+      aoa.push(["Category", ...visibleCols.map((c) => c.key)]);
 
-      categories.forEach((cat) => {
+      activeCats.forEach((cat) => {
         const row = [cat];
-        MATERIAL_COLUMNS.forEach((col) => {
+        visibleCols.forEach((col) => {
           const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
           row.push(fmt(alloc?.allocated_price_bbd, showUSD, fxRate) as any);
         });
         aoa.push(row);
       });
-
-      // Col averages
-      const avgRow = ["Col. Averages"];
-      MATERIAL_COLUMNS.forEach((col) => {
-        const vals = categories.map((cat) => allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt)?.allocated_price_bbd ?? null).filter((v): v is number => v !== null);
-        avgRow.push(vals.length ? parseFloat((vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2)) as any : "");
-      });
-      aoa.push(avgRow);
-
-      // Delta
-      if (tt !== "clear") {
-        const deltaRow = ["Δ vs Clear"];
-        MATERIAL_COLUMNS.forEach((col) => {
-          const treatVals = categories.map((cat) => allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt)?.allocated_price_bbd ?? null).filter((v): v is number => v !== null);
-          const clearVals = categories.map((cat) => allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === "clear")?.allocated_price_bbd ?? null).filter((v): v is number => v !== null);
-          const treatAvg = treatVals.length ? treatVals.reduce((s, v) => s + v, 0) / treatVals.length : null;
-          const clearAvg = clearVals.length ? clearVals.reduce((s, v) => s + v, 0) / clearVals.length : null;
-          deltaRow.push(treatAvg != null && clearAvg != null ? parseFloat((treatAvg - clearAvg).toFixed(2)) as any : "");
-        });
-        aoa.push(deltaRow);
-      }
-
       aoa.push([]);
     });
+
+    // Add addons
+    const addonsBySection = getAddonsBySection();
+    if (addonsBySection.size > 0) {
+      aoa.push(["ADD ONS"]);
+      for (const [sec, rows] of addonsBySection.entries()) {
+        aoa.push([sec]);
+        aoa.push(["Description", `${currency} Price`]);
+        rows.forEach((row) => {
+          aoa.push([row.display_description, fmt(row.bbd_price, showUSD, fxRate) ?? ""]);
+        });
+        aoa.push([]);
+      }
+    }
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const wb = XLSX.utils.book_new();
@@ -109,13 +145,15 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
     lines.push("");
 
     TREATMENT_TYPES.forEach((tt) => {
-      const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
-      if (tt !== "clear" && !ttAllocs.length) return;
+      const activeCols = getActiveCols(tt);
+      if (activeCols.length === 0 && tt !== "clear") return;
+      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
+      const activeCats = getActiveCats(tt, visibleCols);
 
       lines.push(TREATMENT_LABELS[tt]);
-      lines.push(["Category", ...MATERIAL_COLUMNS.map((c) => c.key)].join(","));
-      categories.forEach((cat) => {
-        const vals = MATERIAL_COLUMNS.map((col) => {
+      lines.push(["Category", ...visibleCols.map((c) => c.key)].join(","));
+      activeCats.forEach((cat) => {
+        const vals = visibleCols.map((col) => {
           const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
           return fmt(alloc?.allocated_price_bbd, showUSD, fxRate) ?? "";
         });
@@ -123,6 +161,20 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
       });
       lines.push("");
     });
+
+    // Add addons
+    const addonsBySection = getAddonsBySection();
+    if (addonsBySection.size > 0) {
+      lines.push("ADD ONS");
+      for (const [sec, rows] of addonsBySection.entries()) {
+        lines.push(`"${sec}"`);
+        lines.push(`Description,${currency} Price`);
+        rows.forEach((row) => {
+          lines.push([`"${row.display_description}"`, fmt(row.bbd_price, showUSD, fxRate) ?? ""].join(","));
+        });
+        lines.push("");
+      }
+    }
 
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -135,33 +187,46 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
   // ── Matrix HTML ──────────────────────────────────────────────────────────────
   const exportMatrixHTML = () => {
     const sectionsHtml = TREATMENT_TYPES.map((tt) => {
-      const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
-      if (tt !== "clear" && !ttAllocs.length) return "";
-      const activeCols = MATERIAL_COLUMNS.filter((col) =>
-        allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
-      );
+      const activeCols = getActiveCols(tt);
       if (activeCols.length === 0 && tt !== "clear") return "";
       const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
+      const activeCats = getActiveCats(tt, visibleCols);
+      if (activeCats.length === 0 && tt !== "clear") return "";
+
       const colHeaders = visibleCols.map((c) => `<th>${c.key}</th>`).join("");
-      const rowsHtml = categories
-        .filter((cat) => visibleCols.some((col) => allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)))
-        .map((cat) => {
-          const cells = visibleCols.map((col) => {
-            const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
-            return `<td style="text-align:right">${alloc?.allocated_price_bbd != null ? fmt(alloc.allocated_price_bbd, showUSD, fxRate) : "—"}</td>`;
-          }).join("");
-          return `<tr><td>${cat}</td>${cells}</tr>`;
+      const rowsHtml = activeCats.map((cat) => {
+        const cells = visibleCols.map((col) => {
+          const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
+          return `<td style="text-align:right">${alloc?.allocated_price_bbd != null ? fmtStr(alloc.allocated_price_bbd, showUSD, fxRate) : "—"}</td>`;
         }).join("");
+        return `<tr><td>${cat}</td>${cells}</tr>`;
+      }).join("");
       return `<h3 style="color:#1e4db7;margin:20px 0 8px">${TREATMENT_LABELS[tt]}</h3>
       <table><thead><tr><th>Category</th>${colHeaders}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
     }).join("");
 
+    // Addons HTML
+    const addonsBySection = getAddonsBySection();
+    let addonsHtml = "";
+    if (addonsBySection.size > 0) {
+      addonsHtml = `<h2 style="color:#1e4db7;margin:24px 0 8px">ADD ONS</h2>`;
+      for (const [sec, rows] of addonsBySection.entries()) {
+        const rowsH = rows.map((row) =>
+          `<tr><td>${row.display_description}</td><td style="text-align:right">${row.bbd_price != null ? fmtStr(row.bbd_price, showUSD, fxRate) : "—"}</td></tr>`
+        ).join("");
+        addonsHtml += `<h3 style="color:#1e4db7;margin:16px 0 6px">${sec}</h3>
+        <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
+      }
+    }
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${version.name}</title>
 <style>body{font-family:sans-serif;font-size:12px;margin:40px}h1{color:#1e4db7;margin-bottom:4px}h2{color:#444;font-size:11px;font-weight:normal;margin-bottom:2px}h3{color:#1e4db7;font-size:12px;font-weight:bold}table{border-collapse:collapse;width:100%;margin-bottom:12px}th,td{border:1px solid #ccc;padding:4px 10px}th{background:#1e4db7;color:#fff;text-align:left}tr:nth-child(even){background:#f5f7fb}footer{font-size:10px;color:#888;margin-top:24px}</style></head><body>
+${buildLogoHtml(company?.logo_url)}
 <h1>${company?.company_name ?? ""}</h1>
 <h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2>
 <h2>${version.name} — ${today} (${currency})</h2>
 ${sectionsHtml}
+${addonsHtml}
 <footer>All prices in ${currency}. Prices subject to change without notice.</footer>
 </body></html>`;
     const blob = new Blob([html], { type: "text/html" });
@@ -172,12 +237,95 @@ ${sectionsHtml}
     toast({ title: "Matrix HTML exported" });
   };
 
-  // ── Matrix PDF (print live preview only) ────────────────────────────────────
+  // ── Matrix PDF (jsPDF + autoTable) ──────────────────────────────────────────
   const exportMatrixPDF = () => {
-    document.body.classList.add("print-preview-only");
-    window.print();
-    document.body.classList.remove("print-preview-only");
-    toast({ title: "Print dialog opened (Matrix)" });
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
+    const margin = 12;
+    let y = margin;
+
+    // Header
+    doc.setFontSize(14);
+    doc.setTextColor(30, 77, 183);
+    doc.text(company?.company_name ?? "", margin, y);
+    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(`${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}`, margin, y);
+    y += 4;
+    doc.text(`${version.name} — ${today} (${currency})`, margin, y);
+    y += 6;
+
+    TREATMENT_TYPES.forEach((tt) => {
+      const activeCols = getActiveCols(tt);
+      if (activeCols.length === 0 && tt !== "clear") return;
+      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
+      const activeCats = getActiveCats(tt, visibleCols);
+      if (activeCats.length === 0 && tt !== "clear") return;
+
+      // Section label
+      if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
+      doc.setFontSize(10);
+      doc.setTextColor(30, 77, 183);
+      doc.text(TREATMENT_LABELS[tt], margin, y);
+      y += 2;
+
+      const head = [["Category", ...visibleCols.map((c) => c.key)]];
+      const body = activeCats.map((cat) => [
+        cat,
+        ...visibleCols.map((col) => {
+          const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
+          return alloc?.allocated_price_bbd != null ? fmtStr(alloc.allocated_price_bbd, showUSD, fxRate) : "—";
+        }),
+      ]);
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head,
+        body,
+        styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [245, 247, 251] },
+        tableWidth: "auto",
+      });
+      y = (doc as any).lastAutoTable.finalY + 6;
+    });
+
+    // Addons
+    const addonsBySection = getAddonsBySection();
+    if (addonsBySection.size > 0) {
+      for (const [sec, rows] of addonsBySection.entries()) {
+        if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
+        doc.setFontSize(9);
+        doc.setTextColor(30, 77, 183);
+        doc.text(sec, margin, y);
+        y += 2;
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: margin, right: margin },
+          head: [["Description", `Price (${currency})`]],
+          body: rows.map((r) => [r.display_description, r.bbd_price != null ? fmtStr(r.bbd_price, showUSD, fxRate) : "—"]),
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
+          alternateRowStyles: { fillColor: [245, 247, 251] },
+          tableWidth: "auto",
+        });
+        y = (doc as any).lastAutoTable.finalY + 4;
+      }
+    }
+
+    // Footer
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(150);
+      doc.text(`All prices in ${currency}. Prices subject to change without notice. · ${company?.company_name ?? ""}`, margin, doc.internal.pageSize.getHeight() - 5);
+    }
+
+    doc.save(`${version.name}_Matrix.pdf`);
+    toast({ title: "Matrix PDF exported" });
   };
 
   // ── List Excel ───────────────────────────────────────────────────────────────
@@ -186,15 +334,29 @@ ${sectionsHtml}
     companyHeader.forEach((h) => aoa.push([h]));
     aoa.push([]);
 
-    const sections = [...new Set(catalogRows.map((r) => r.section))].sort();
+    const lensRows = catalogRows.filter((r) => r.row_type === "lens");
+    const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     sections.forEach((sec) => {
       aoa.push([sec]);
       aoa.push(["Description", `${currency} Price`]);
-      catalogRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order).forEach((row) => {
+      lensRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order).forEach((row) => {
         aoa.push([row.display_description, fmt(row.bbd_price, showUSD, fxRate) ?? ""]);
       });
       aoa.push([]);
     });
+
+    // Add addons
+    const addonsBySection = getAddonsBySection();
+    if (addonsBySection.size > 0) {
+      for (const [sec, rows] of addonsBySection.entries()) {
+        aoa.push([sec]);
+        aoa.push(["Description", `${currency} Price`]);
+        rows.forEach((row) => {
+          aoa.push([row.display_description, fmt(row.bbd_price, showUSD, fxRate) ?? ""]);
+        });
+        aoa.push([]);
+      }
+    }
 
     aoa.push(["All prices in " + currency + ". Prices subject to change without notice."]);
 
@@ -212,13 +374,26 @@ ${sectionsHtml}
     lines.push("");
     lines.push(`Description,${currency} Price`);
 
-    const sections = [...new Set(catalogRows.map((r) => r.section))].sort();
+    const lensRows = catalogRows.filter((r) => r.row_type === "lens");
+    const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     sections.forEach((sec) => {
       lines.push(`"${sec}"`);
-      catalogRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order).forEach((row) => {
+      lensRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order).forEach((row) => {
         lines.push([`"${row.display_description}"`, fmt(row.bbd_price, showUSD, fxRate) ?? ""].join(","));
       });
     });
+
+    // Add addons
+    const addonsBySection = getAddonsBySection();
+    if (addonsBySection.size > 0) {
+      lines.push("");
+      for (const [sec, rows] of addonsBySection.entries()) {
+        lines.push(`"${sec}"`);
+        rows.forEach((row) => {
+          lines.push([`"${row.display_description}"`, fmt(row.bbd_price, showUSD, fxRate) ?? ""].join(","));
+        });
+      }
+    }
 
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -230,16 +405,30 @@ ${sectionsHtml}
 
   // ── List HTML ────────────────────────────────────────────────────────────────
   const exportListHTML = () => {
-    const sections = [...new Set(catalogRows.map((r) => r.section))].sort();
+    const lensRows = catalogRows.filter((r) => r.row_type === "lens");
+    const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     const sectionsHtml = sections.map((sec) => {
-      const rowsHtml = catalogRows
+      const rowsHtml = lensRows
         .filter((r) => r.section === sec)
         .sort((a, b) => a.sort_order - b.sort_order)
-        .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${fmt(row.bbd_price, showUSD, fxRate) || "—"}</td></tr>`)
+        .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${fmtStr(row.bbd_price, showUSD, fxRate)}</td></tr>`)
         .join("");
       return `<h3 style="color:#1e4db7;margin:20px 0 8px">${sec}</h3>
       <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
     }).join("");
+
+    // Addons HTML
+    const addonsBySection = getAddonsBySection();
+    let addonsHtml = "";
+    if (addonsBySection.size > 0) {
+      for (const [sec, rows] of addonsBySection.entries()) {
+        const rowsH = rows.map((row) =>
+          `<tr><td>${row.display_description}</td><td style="text-align:right">${row.bbd_price != null ? fmtStr(row.bbd_price, showUSD, fxRate) : "—"}</td></tr>`
+        ).join("");
+        addonsHtml += `<h3 style="color:#1e4db7;margin:16px 0 6px">${sec}</h3>
+        <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
+      }
+    }
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${version.name}</title>
 <style>
@@ -252,10 +441,12 @@ ${sectionsHtml}
   tr:nth-child(even){background:#f5f7fb}
   footer{font-size:10px;color:#888;margin-top:24px}
 </style></head><body>
+${buildLogoHtml(company?.logo_url)}
 <h1>${company?.company_name ?? ""}</h1>
 <h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2>
 <h2>${version.name} — ${today} (${currency})</h2>
 ${sectionsHtml}
+${addonsHtml}
 <footer>All prices in ${currency}. Prices subject to change without notice.</footer>
 </body></html>`;
 
@@ -267,12 +458,83 @@ ${sectionsHtml}
     toast({ title: "List HTML exported" });
   };
 
-  // ── List PDF (print live preview only) ───────────────────────────────────────
+  // ── List PDF (jsPDF + autoTable) ─────────────────────────────────────────────
   const exportListPDF = () => {
-    document.body.classList.add("print-preview-only");
-    window.print();
-    document.body.classList.remove("print-preview-only");
-    toast({ title: "Print dialog opened (List)" });
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
+    const margin = 12;
+    let y = margin;
+
+    // Header
+    doc.setFontSize(14);
+    doc.setTextColor(30, 77, 183);
+    doc.text(company?.company_name ?? "", margin, y);
+    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(`${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}`, margin, y);
+    y += 4;
+    doc.text(`${version.name} — ${today} (${currency})`, margin, y);
+    y += 6;
+
+    const lensRows = catalogRows.filter((r) => r.row_type === "lens");
+    const sections = [...new Set(lensRows.map((r) => r.section))].sort();
+
+    sections.forEach((sec) => {
+      if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
+      doc.setFontSize(9);
+      doc.setTextColor(30, 77, 183);
+      doc.text(sec, margin, y);
+      y += 2;
+
+      const rows = lensRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order);
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [["Description", `${currency} Price`]],
+        body: rows.map((r) => [r.display_description, r.bbd_price != null ? fmtStr(r.bbd_price, showUSD, fxRate) : "—"]),
+        styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [245, 247, 251] },
+        tableWidth: "auto",
+      });
+      y = (doc as any).lastAutoTable.finalY + 5;
+    });
+
+    // Addons
+    const addonsBySection = getAddonsBySection();
+    if (addonsBySection.size > 0) {
+      for (const [sec, rows] of addonsBySection.entries()) {
+        if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
+        doc.setFontSize(9);
+        doc.setTextColor(30, 77, 183);
+        doc.text(sec, margin, y);
+        y += 2;
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: margin, right: margin },
+          head: [["Description", `Price (${currency})`]],
+          body: rows.map((r) => [r.display_description, r.bbd_price != null ? fmtStr(r.bbd_price, showUSD, fxRate) : "—"]),
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
+          alternateRowStyles: { fillColor: [245, 247, 251] },
+          tableWidth: "auto",
+        });
+        y = (doc as any).lastAutoTable.finalY + 4;
+      }
+    }
+
+    // Footer on each page
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(150);
+      doc.text(`All prices in ${currency}. Prices subject to change without notice. · ${company?.company_name ?? ""}`, margin, doc.internal.pageSize.getHeight() - 5);
+    }
+
+    doc.save(`${version.name}_List.pdf`);
+    toast({ title: "List PDF exported" });
   };
 
   const btnBase = "h-7 text-[11px] gap-1 px-2.5 font-medium";
