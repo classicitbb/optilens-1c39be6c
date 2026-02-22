@@ -137,7 +137,7 @@ const LensPickerModal = ({
       <Dialog open={open && !editLens && !addLensOpen} onOpenChange={(v) => { if (!v) { setSearch(""); onClose(); } }}>
         <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pr-8">
               <DialogTitle className="text-sm font-semibold text-foreground">
                 Select Lens
                 {categoryFilter && (
