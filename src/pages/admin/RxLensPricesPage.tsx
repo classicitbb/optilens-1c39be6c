@@ -75,7 +75,7 @@ const RxLensPricesPage = () => {
   return (
     <VersionSelectorPanel
       pageTitle="RX Lens Prices"
-      pageSubtitle="Manage RX lens pricelist versions — matrix, list catalog, and treatments."
+      pageSubtitle="Manage RX lens pricelist versions — matrix, price list, treatments and add-ons."
       selectedVersionId={selectedVersionId}
       onVersionChange={setSelectedVersionId}
       showUSD={showUSD}
