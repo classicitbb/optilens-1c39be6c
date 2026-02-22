@@ -9,13 +9,13 @@ const BLUE = "hsl(215 65% 50%)";
 const LABEL = "hsl(215 15% 40%)";
 
 // Canonical material column order
-const MATERIAL_COLS = ["1.50", "Trivex", "POLY", "1.60", "1.67", "1.74"];
+const MATERIAL_COLS = ["1.50", "POLY", "Trivex", "1.60", "1.67", "1.74"];
 
 // Map material label → price_matrix index key
 const MATERIAL_TO_INDEX: Record<string, string> = {
   "1.50": "index_1_50",
-  "Trivex": "index_1_53",
   "POLY": "index_1_59",
+  "Trivex": "index_1_53",
   "1.60": "index_1_60",
   "1.67": "index_1_67",
   "1.74": "index_1_74",

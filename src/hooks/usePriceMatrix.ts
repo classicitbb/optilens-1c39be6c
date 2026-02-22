@@ -16,8 +16,8 @@ export interface PriceMatrixRow {
 
 export const INDEX_COLUMNS = [
   { key: "index_1_50" as const, label: "1.50" },
+  { key: "index_1_59" as const, label: "POLY" },
   { key: "index_1_53" as const, label: "Trivex" },
-  { key: "index_1_59" as const, label: "1.59" },
   { key: "index_1_60" as const, label: "1.60" },
   { key: "index_1_67" as const, label: "1.67" },
   { key: "index_1_74" as const, label: "1.74" },

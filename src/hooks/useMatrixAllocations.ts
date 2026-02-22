@@ -26,8 +26,8 @@ export type TreatmentType = typeof TREATMENT_TYPES[number];
 // Material columns for Spec 1.2
 export const MATERIAL_COLUMNS = [
   { key: "1.50", label: "1.50" },
-  { key: "Trivex", label: "Trivex" },
   { key: "POLY", label: "POLY" },
+  { key: "Trivex", label: "Trivex" },
   { key: "1.60", label: "1.60" },
   { key: "1.67", label: "1.67" },
   { key: "1.74", label: "1.74" },
