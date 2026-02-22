@@ -90,6 +90,12 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
         const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
         if (tt !== "clear" && ttAllocs.length === 0) return null;
 
+        // Collapse empty material columns for this treatment
+        const activeCols = MATERIAL_COLUMNS.filter((col) =>
+          allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
+        );
+        if (activeCols.length === 0 && tt !== "clear") return null;
+
         const getColAvg = (mat: string, treatType: TreatmentType) => {
           const vals = categories
             .map((cat) => allocations.find((a) => a.category === cat && a.material_index === mat && a.treatment_type === treatType)?.allocated_price_bbd ?? null)
@@ -97,6 +103,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
           if (!vals.length) return null;
           return vals.reduce((s, v) => s + v, 0) / vals.length;
         };
+
+        const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
 
         return (
           <div key={tt}>
@@ -106,7 +114,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                   <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "180px", color: "white", borderRadius: 0 }}>
                      {TREATMENT_LABELS[tt]}
                   </th>
-                  {MATERIAL_COLUMNS.map((col) => (
+                  {visibleCols.map((col) => (
                     <th key={col.key} className="px-3 py-2 text-center border-r border-white/20 last:border-r-0 font-bold uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "80px", color: "white", borderRadius: 0 }}>
                       {col.key}
                     </th>
@@ -115,13 +123,13 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
               </thead>
               <tbody>
                 {categories.filter((cat) =>
-                  MATERIAL_COLUMNS.some((col) =>
+                  visibleCols.some((col) =>
                     allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
                   )
                 ).map((cat, i) => (
                   <tr key={cat} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
                     <td className="px-3 py-1 font-medium border-r border-border text-foreground">{cat}</td>
-                    {MATERIAL_COLUMNS.map((col) => {
+                    {visibleCols.map((col) => {
                       const alloc = allocations.find(
                         (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
                       );
@@ -135,7 +143,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                 ))}
                 <tr className="bg-muted/50 border-t-2 border-border">
                   <td className="px-3 py-1 text-muted-foreground italic border-r border-border text-[10px]">Col. Averages</td>
-                  {MATERIAL_COLUMNS.map((col) => {
+                  {visibleCols.map((col) => {
                     const avg = getColAvg(col.key, tt);
                     return (
                       <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 text-foreground">
@@ -147,7 +155,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
                 {tt !== "clear" && (
                   <tr className="bg-amber-50/40 dark:bg-amber-900/10 border-t border-border">
                     <td className="px-3 py-1 text-amber-700 dark:text-amber-400 italic border-r border-border text-[10px]">Δ vs Clear</td>
-                    {MATERIAL_COLUMNS.map((col) => {
+                    {visibleCols.map((col) => {
                       const treatAvg = getColAvg(col.key, tt);
                       const clearAvg = getColAvg(col.key, "clear");
                       const delta = treatAvg != null && clearAvg != null ? treatAvg - clearAvg : null;
@@ -275,6 +283,9 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props
       {/* Branded header */}
       <div className="flex items-start justify-between pb-3 border-b border-border">
         <div>
+          {company?.logo_url && (
+            <img src={company.logo_url} alt={company?.company_name ?? "Logo"} className="max-h-12 mb-1 object-contain" />
+          )}
           <p className="text-sm font-bold text-foreground">{company?.company_name ?? "Company"}</p>
           <p className="text-[10px] text-muted-foreground">{company?.slogan}</p>
           <p className="text-[10px] text-muted-foreground">{company?.tel} · {company?.email}</p>

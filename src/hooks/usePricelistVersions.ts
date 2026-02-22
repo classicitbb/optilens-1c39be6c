@@ -61,9 +61,14 @@ export const usePricelistVersions = () => {
         .single();
       if (error) throw error;
 
+      const applyAdjustment = (price: number | null) => {
+        if (price == null) return price;
+        return parseFloat((price * (1 + (input.markup_percent || 0) / 100) * (1 - (input.discount_percent || 0) / 100)).toFixed(2));
+      };
+
       // 2. Copy prices
       if (input.copyFrom === "matrix") {
-        // Seed from price_matrix
+        // New blank pricelist — seed from price_matrix (legacy overrides only)
         const { data: matrixRows, error: mErr } = await supabase
           .from("price_matrix")
           .select("*");
@@ -78,7 +83,7 @@ export const usePricelistVersions = () => {
                 pricelist_version_id: newVersion.id,
                 category: row.category,
                 index_column: col.label,
-                overridden_price: val,
+                overridden_price: applyAdjustment(val),
               });
             }
           }
@@ -89,8 +94,9 @@ export const usePricelistVersions = () => {
             .insert(overrides);
           if (insErr) throw insErr;
         }
+        // New pricelist: do NOT copy matrix_allocations or catalog_rows
       } else {
-        // Copy overrides from an existing version
+        // Duplicate from an existing version — copy overrides
         const { data: srcOverrides, error: soErr } = await supabase
           .from("pricelist_overrides")
           .select("*")
@@ -102,12 +108,60 @@ export const usePricelistVersions = () => {
             pricelist_version_id: newVersion.id,
             category: o.category,
             index_column: o.index_column,
-            overridden_price: o.overridden_price,
+            overridden_price: applyAdjustment(o.overridden_price),
             reason: null,
           }));
           const { error: insErr } = await supabase
             .from("pricelist_overrides")
             .insert(copies);
+          if (insErr) throw insErr;
+        }
+
+        // Copy matrix_allocations
+        const { data: srcAllocs, error: saErr } = await supabase
+          .from("matrix_allocations")
+          .select("*")
+          .eq("pricelist_version_id", input.copyFrom);
+        if (saErr) throw saErr;
+
+        if (srcAllocs && srcAllocs.length > 0) {
+          const allocCopies = srcAllocs.map((a) => ({
+            pricelist_version_id: newVersion.id,
+            category: a.category,
+            material_index: a.material_index,
+            treatment_type: a.treatment_type,
+            lens_id: a.lens_id,
+            allocated_price_bbd: applyAdjustment(a.allocated_price_bbd),
+            is_active: a.is_active,
+          }));
+          const { error: insErr } = await supabase
+            .from("matrix_allocations")
+            .insert(allocCopies);
+          if (insErr) throw insErr;
+        }
+
+        // Copy pricelist_catalog_rows
+        const { data: srcCatalog, error: scErr } = await supabase
+          .from("pricelist_catalog_rows")
+          .select("*")
+          .eq("pricelist_version_id", input.copyFrom);
+        if (scErr) throw scErr;
+
+        if (srcCatalog && srcCatalog.length > 0) {
+          const catCopies = srcCatalog.map((r) => ({
+            pricelist_version_id: newVersion.id,
+            catalog_type: r.catalog_type,
+            row_key: r.row_key,
+            row_type: r.row_type,
+            section: r.section,
+            display_description: r.display_description,
+            bbd_price: applyAdjustment(r.bbd_price),
+            item_id: r.item_id,
+            sort_order: r.sort_order,
+          }));
+          const { error: insErr } = await supabase
+            .from("pricelist_catalog_rows")
+            .insert(catCopies);
           if (insErr) throw insErr;
         }
       }
