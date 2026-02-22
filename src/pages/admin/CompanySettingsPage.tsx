@@ -13,9 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import PricingSettingsTab from "@/components/admin/PricingSettingsTab";
 import AuditLogPage from "@/pages/admin/AuditLogPage";
-import { Plus, Trash2, Search, Upload, ImageIcon } from "lucide-react";
+import { Plus, Trash2, Search, Upload, ImageIcon, X, Building2, MapPin, FileText } from "lucide-react";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const CURRENCIES = ["BBD", "USD", "EUR", "GBP", "CAD"];
@@ -23,24 +24,33 @@ const CALENDARS = ["Business HRS", "24/7", "Mon–Fri", "Mon–Sat"];
 const COUNTRIES = ["Barbados", "Trinidad & Tobago", "Jamaica", "Guyana", "St. Lucia", "Antigua & Barbuda", "United States", "United Kingdom", "Canada"];
 const VALUE_TYPES = ["percent", "fixed", "multiplier", "per_kg", "per_item", "per_shipment"];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
-    <Separator />
-    {children}
-  </div>
-);
+// ─── Compact Widget Section (styled like JsonGrid tags) ──────────────────────
+const WidgetSection = ({ title, icon, children, collapsible }: { title: string; icon?: React.ReactNode; children: React.ReactNode; collapsible?: boolean }) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-3 bg-card">
+      <button
+        type="button"
+        className="flex items-center gap-2 w-full text-left"
+        onClick={() => collapsible && setOpen(!open)}
+      >
+        {icon}
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">{title}</h3>
+        {collapsible && <span className="text-[10px] text-muted-foreground">{open ? "▾" : "▸"}</span>}
+      </button>
+      {open && <div className="space-y-2 pt-1">{children}</div>}
+    </div>
+  );
+};
 
-const Field = ({
-  label, value, onChange, disabled, type = "text", placeholder,
-}: {
-  label: string; value: string; onChange?: (v: string) => void; disabled?: boolean; type?: string; placeholder?: string;
+// ─── Compact inline field (tag-style) ────────────────────────────────────────
+const TagField = ({ label, value, onChange, disabled, type = "text", placeholder, className = "" }: {
+  label: string; value: string; onChange?: (v: string) => void; disabled?: boolean; type?: string; placeholder?: string; className?: string;
 }) => (
-  <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-    <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+  <div className={`flex items-center gap-1 rounded border border-border bg-muted/50 px-2 py-1 ${className}`}>
+    <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">{label}</span>
     <Input
-      className="h-8 text-xs"
+      className="h-6 text-[10px] min-w-[80px] border-0 bg-transparent p-0 focus-visible:ring-0"
       type={type}
       value={value}
       onChange={(e) => onChange?.(e.target.value)}
@@ -50,58 +60,38 @@ const Field = ({
   </div>
 );
 
-const ReadonlyField = ({ label, value }: { label: string; value: string }) => (
-  <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-    <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-    <span className="text-xs text-foreground">{value}</span>
-  </div>
-);
-
-const SelectField = ({
-  label, value, onChange, disabled, options,
-}: {
+const TagSelect = ({ label, value, onChange, disabled, options }: {
   label: string; value: string; onChange?: (v: string) => void; disabled?: boolean; options: string[];
 }) => (
-  <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-    <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+  <div className="flex items-center gap-1 rounded border border-border bg-muted/50 px-2 py-1">
+    <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">{label}</span>
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-      </SelectContent>
+      <SelectTrigger className="h-6 text-[10px] border-0 bg-transparent p-0 min-w-[70px] focus:ring-0"><SelectValue /></SelectTrigger>
+      <SelectContent>{options.map((o) => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}</SelectContent>
     </Select>
   </div>
 );
 
-// ─── Address Block ────────────────────────────────────────────────────────────
+// ─── Address Widget ──────────────────────────────────────────────────────────
 type AddressFields = {
   country: string; state: string; county: string;
   line1: string; line2: string; city: string; postcode: string;
 };
 
-const AddressBlock = ({
+const AddressWidget = ({
   prefix, label, form, setForm, usePhysical, onToggleUsePhysical, physicalAddr, canEdit,
 }: {
-  prefix: "bill" | "ship";
-  label: string;
-  form: Record<string, any>;
+  prefix: "bill" | "ship"; label: string; form: Record<string, any>;
   setForm: React.Dispatch<React.SetStateAction<Record<string, any>>>;
-  usePhysical: boolean;
-  onToggleUsePhysical: (v: boolean) => void;
-  physicalAddr: AddressFields;
-  canEdit: boolean;
+  usePhysical: boolean; onToggleUsePhysical: (v: boolean) => void;
+  physicalAddr: AddressFields; canEdit: boolean;
 }) => {
-  const get = (k: string) => {
-    if (usePhysical) return physicalAddr[k as keyof AddressFields] ?? "";
-    return form[`${prefix}_${k}`] ?? "";
-  };
-  const set = (k: string, v: string) => {
-    if (!usePhysical) setForm((p) => ({ ...p, [`${prefix}_${k}`]: v }));
-  };
+  const get = (k: string) => usePhysical ? physicalAddr[k as keyof AddressFields] ?? "" : form[`${prefix}_${k}`] ?? "";
+  const set = (k: string, v: string) => { if (!usePhysical) setForm((p) => ({ ...p, [`${prefix}_${k}`]: v })); };
   const locked = !canEdit || usePhysical;
 
   return (
-    <Section title={label}>
+    <WidgetSection title={label} icon={<MapPin className="h-3 w-3 text-muted-foreground" />} collapsible>
       <div className="flex items-center gap-2 mb-1">
         <Checkbox
           id={`${prefix}_use_physical`}
@@ -109,19 +99,19 @@ const AddressBlock = ({
           onCheckedChange={(v) => canEdit && onToggleUsePhysical(!!v)}
           disabled={!canEdit}
         />
-        <Label htmlFor={`${prefix}_use_physical`} className="text-xs cursor-pointer">Use Physical Address</Label>
-        {usePhysical && <Badge variant="secondary" className="text-[10px]">Mirroring Physical</Badge>}
+        <Label htmlFor={`${prefix}_use_physical`} className="text-[10px] cursor-pointer">Use Physical Address</Label>
+        {usePhysical && <Badge variant="secondary" className="text-[10px]">Mirroring</Badge>}
       </div>
-      <div className="space-y-2 mt-2">
-        <SelectField label="Country" value={get("country")} onChange={(v) => set("country", v)} disabled={locked} options={COUNTRIES} />
-        <Field label="State / Province" value={get("state")} onChange={(v) => set("state", v)} disabled={locked} />
-        <Field label="County" value={get("county")} onChange={(v) => set("county", v)} disabled={locked} />
-        <Field label="Address Line 1" value={get("line1")} onChange={(v) => set("line1", v)} disabled={locked} />
-        <Field label="Address Line 2" value={get("line2")} onChange={(v) => set("line2", v)} disabled={locked} />
-        <Field label="City / Town" value={get("city")} onChange={(v) => set("city", v)} disabled={locked} />
-        <Field label="Post Code" value={get("postcode")} onChange={(v) => set("postcode", v)} disabled={locked} />
+      <div className="flex flex-wrap gap-1.5">
+        <TagSelect label="Country" value={get("country")} onChange={(v) => set("country", v)} disabled={locked} options={COUNTRIES} />
+        <TagField label="State" value={get("state")} onChange={(v) => set("state", v)} disabled={locked} />
+        <TagField label="County" value={get("county")} onChange={(v) => set("county", v)} disabled={locked} />
+        <TagField label="Line 1" value={get("line1")} onChange={(v) => set("line1", v)} disabled={locked} />
+        <TagField label="Line 2" value={get("line2")} onChange={(v) => set("line2", v)} disabled={locked} />
+        <TagField label="City" value={get("city")} onChange={(v) => set("city", v)} disabled={locked} />
+        <TagField label="Postcode" value={get("postcode")} onChange={(v) => set("postcode", v)} disabled={locked} />
       </div>
-    </Section>
+    </WidgetSection>
   );
 };
 
@@ -192,7 +182,7 @@ const LegacyRatesTab = ({ canEdit }: { canEdit: boolean }) => {
       </div>
 
       <p className="text-[10px] text-muted-foreground">
-        Legacy cost-engine rates used by the historical landed-cost calculator for supplies. These feed any system component that has not yet migrated to the new pricing engine.
+        Legacy cost-engine rates used by the historical landed-cost calculator for supplies.
       </p>
 
       <div className="rounded-lg border border-border overflow-auto">
@@ -210,7 +200,6 @@ const LegacyRatesTab = ({ canEdit }: { canEdit: boolean }) => {
             </tr>
           </thead>
           <tbody>
-            {/* New row */}
             {newRow && (
               <tr className="border-b border-border bg-primary/5">
                 <td className={tdCls}><Input className="h-7 text-xs" placeholder="RATE_CODE" value={newRow.rate_code ?? ""} onChange={(e) => setNewRow((p) => ({ ...p, rate_code: e.target.value.toUpperCase() }))} /></td>
@@ -304,23 +293,20 @@ const LegacyRatesTab = ({ canEdit }: { canEdit: boolean }) => {
   );
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-const CompanySettingsPage = () => {
-  const { data: settings, isLoading, updateMutation } = useCompanySettings();
-  const { canEdit } = useAdminRole();
-  const { toast } = useToast();
-  const { logChange } = useAuditLog();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState<Record<string, any>>({});
-
-  useEffect(() => {
-    if (settings) setForm({ ...settings });
-  }, [settings]);
-
+// ─── Company Variables Widget (embedded in Pricing Settings) ─────────────────
+export const CompanyVariablesWidget = ({
+  form, setForm, canEdit, onLogoUpload, uploading, fileInputRef,
+}: {
+  form: Record<string, any>;
+  setForm: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+  canEdit: boolean;
+  onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  uploading: boolean;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+}) => {
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
-  const physicalAddr = {
+  const physicalAddr: AddressFields = {
     country: form.physical_country ?? "",
     state: form.physical_state ?? "",
     county: form.physical_county ?? "",
@@ -334,15 +320,9 @@ const CompanySettingsPage = () => {
     set("bill_use_physical", v);
     if (v) {
       setForm((p) => ({
-        ...p,
-        bill_use_physical: true,
-        bill_country: p.physical_country,
-        bill_state: p.physical_state,
-        bill_county: p.physical_county,
-        bill_line1: p.physical_line1,
-        bill_line2: p.physical_line2,
-        bill_city: p.physical_city,
-        bill_postcode: p.physical_postcode,
+        ...p, bill_use_physical: true,
+        bill_country: p.physical_country, bill_state: p.physical_state, bill_county: p.physical_county,
+        bill_line1: p.physical_line1, bill_line2: p.physical_line2, bill_city: p.physical_city, bill_postcode: p.physical_postcode,
       }));
     }
   };
@@ -351,18 +331,130 @@ const CompanySettingsPage = () => {
     set("ship_use_physical", v);
     if (v) {
       setForm((p) => ({
-        ...p,
-        ship_use_physical: true,
-        ship_country: p.physical_country,
-        ship_state: p.physical_state,
-        ship_county: p.physical_county,
-        ship_line1: p.physical_line1,
-        ship_line2: p.physical_line2,
-        ship_city: p.physical_city,
-        ship_postcode: p.physical_postcode,
+        ...p, ship_use_physical: true,
+        ship_country: p.physical_country, ship_state: p.physical_state, ship_county: p.physical_county,
+        ship_line1: p.physical_line1, ship_line2: p.physical_line2, ship_city: p.physical_city, ship_postcode: p.physical_postcode,
       }));
     }
   };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      {/* Identity */}
+      <WidgetSection title="Company Identity" icon={<Building2 className="h-3 w-3 text-muted-foreground" />}>
+        <div className="flex flex-wrap gap-1.5">
+          <TagField label="Name" value={form.company_name ?? ""} onChange={(v) => set("company_name", v)} disabled={!canEdit} className="flex-1 min-w-[180px]" />
+          <TagField label="Contact" value={form.primary_contact ?? ""} onChange={(v) => set("primary_contact", v)} disabled={!canEdit} />
+          <TagField label="Email" value={form.email ?? ""} onChange={(v) => set("email", v)} disabled={!canEdit} type="email" />
+          <TagField label="Tel" value={form.tel ?? ""} onChange={(v) => set("tel", v)} disabled={!canEdit} />
+          <TagField label="Fax" value={form.fax ?? ""} onChange={(v) => set("fax", v)} disabled={!canEdit} />
+          <TagField label="TIN" value={form.tax_tin ?? ""} onChange={(v) => set("tax_tin", v)} disabled={!canEdit} />
+          <TagSelect label="Currency" value={form.base_currency ?? "BBD"} onChange={(v) => set("base_currency", v)} disabled={!canEdit} options={CURRENCIES} />
+          <TagSelect label="Calendar" value={form.business_calendar ?? "Business HRS"} onChange={(v) => set("business_calendar", v)} disabled={!canEdit} options={CALENDARS} />
+          <TagField label="Slogan" value={form.slogan ?? ""} onChange={(v) => set("slogan", v)} disabled={!canEdit} className="flex-1 min-w-[200px]" />
+        </div>
+      </WidgetSection>
+
+      {/* Logo */}
+      <WidgetSection title="Logo" icon={<ImageIcon className="h-3 w-3 text-muted-foreground" />}>
+        <div className="flex items-center gap-3">
+          {form.logo_url ? (
+            <img
+              src={form.logo_url}
+              alt="Company logo"
+              className="h-12 w-auto object-contain border border-border p-1 bg-background"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className="h-12 w-12 flex items-center justify-center border border-dashed border-border bg-muted/30">
+              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+            </div>
+          )}
+          <div className="flex-1">
+            {form.logo_file_name && <p className="text-[10px] font-medium text-foreground">{form.logo_file_name}</p>}
+            {canEdit && (
+              <>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onLogoUpload} />
+                <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1 mt-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                  <Upload className="h-3 w-3" />
+                  {uploading ? "Uploading…" : "Upload"}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </WidgetSection>
+
+      {/* Physical Address */}
+      <WidgetSection title="Physical Address" icon={<MapPin className="h-3 w-3 text-muted-foreground" />} collapsible>
+        <div className="flex flex-wrap gap-1.5">
+          <TagSelect label="Country" value={form.physical_country ?? "Barbados"} onChange={(v) => set("physical_country", v)} disabled={!canEdit} options={COUNTRIES} />
+          <TagField label="State" value={form.physical_state ?? ""} onChange={(v) => set("physical_state", v)} disabled={!canEdit} />
+          <TagField label="County" value={form.physical_county ?? ""} onChange={(v) => set("physical_county", v)} disabled={!canEdit} />
+          <TagField label="Line 1" value={form.physical_line1 ?? ""} onChange={(v) => set("physical_line1", v)} disabled={!canEdit} />
+          <TagField label="Line 2" value={form.physical_line2 ?? ""} onChange={(v) => set("physical_line2", v)} disabled={!canEdit} />
+          <TagField label="City" value={form.physical_city ?? ""} onChange={(v) => set("physical_city", v)} disabled={!canEdit} />
+          <TagField label="Postcode" value={form.physical_postcode ?? ""} onChange={(v) => set("physical_postcode", v)} disabled={!canEdit} />
+        </div>
+      </WidgetSection>
+
+      {/* Bill-To */}
+      <AddressWidget
+        prefix="bill" label="Bill-To Address" form={form} setForm={setForm}
+        usePhysical={!!form.bill_use_physical} onToggleUsePhysical={handleToggleBillPhysical}
+        physicalAddr={physicalAddr} canEdit={canEdit}
+      />
+
+      {/* Ship-To */}
+      <AddressWidget
+        prefix="ship" label="Ship-To Address" form={form} setForm={setForm}
+        usePhysical={!!form.ship_use_physical} onToggleUsePhysical={handleToggleShipPhysical}
+        physicalAddr={physicalAddr} canEdit={canEdit}
+      />
+
+      {/* PDF Export Header/Footer */}
+      <WidgetSection title="PDF Export Header & Footer" icon={<FileText className="h-3 w-3 text-muted-foreground" />}>
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <Label className="text-[10px] font-medium text-muted-foreground">Header (appears on all PDF exports)</Label>
+            <Textarea
+              className="text-xs min-h-[60px] font-mono"
+              placeholder="<b>Company Name</b> — Your tagline here"
+              value={form.pdf_header_html ?? ""}
+              onChange={(e) => set("pdf_header_html", e.target.value)}
+              disabled={!canEdit}
+            />
+            <p className="text-[9px] text-muted-foreground">Supports basic HTML: &lt;b&gt;, &lt;i&gt;, &lt;u&gt;, &lt;br&gt;, &lt;span style="..."&gt;</p>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] font-medium text-muted-foreground">Footer (appears on all PDF exports)</Label>
+            <Textarea
+              className="text-xs min-h-[60px] font-mono"
+              placeholder="All prices subject to change · &lt;i&gt;Thank you for your business&lt;/i&gt;"
+              value={form.pdf_footer_html ?? ""}
+              onChange={(e) => set("pdf_footer_html", e.target.value)}
+              disabled={!canEdit}
+            />
+          </div>
+        </div>
+      </WidgetSection>
+    </div>
+  );
+};
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+const CompanySettingsPage = () => {
+  const { data: settings, isLoading, updateMutation } = useCompanySettings();
+  const { canEdit } = useAdminRole();
+  const { toast } = useToast();
+  const { logChange } = useAuditLog();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (settings) setForm({ ...settings });
+  }, [settings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -419,105 +511,24 @@ const CompanySettingsPage = () => {
 
         {/* ── Company Variables ── */}
         <TabsContent value="company">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 pt-2 max-w-5xl">
-
-            {/* General */}
-            <Section title="General">
-              <Field label="Company Name" value={form.company_name ?? ""} onChange={(v) => set("company_name", v)} disabled={!canEdit} />
-              <Field label="Primary Contact" value={form.primary_contact ?? ""} onChange={(v) => set("primary_contact", v)} disabled={!canEdit} />
-              <Field label="Email" value={form.email ?? ""} onChange={(v) => set("email", v)} disabled={!canEdit} type="email" />
-              <Field label="Tel" value={form.tel ?? ""} onChange={(v) => set("tel", v)} disabled={!canEdit} />
-              <Field label="Fax" value={form.fax ?? ""} onChange={(v) => set("fax", v)} disabled={!canEdit} />
-              <Field label="Tax Number / TIN" value={form.tax_tin ?? ""} onChange={(v) => set("tax_tin", v)} disabled={!canEdit} />
-              <SelectField label="Base Currency" value={form.base_currency ?? "BBD"} onChange={(v) => set("base_currency", v)} disabled={!canEdit} options={CURRENCIES} />
-              <SelectField label="Business Calendar" value={form.business_calendar ?? "Business HRS"} onChange={(v) => set("business_calendar", v)} disabled={!canEdit} options={CALENDARS} />
-            </Section>
-
-            {/* Physical Address */}
-            <Section title="Physical Address">
-              <SelectField label="Country" value={form.physical_country ?? "Barbados"} onChange={(v) => set("physical_country", v)} disabled={!canEdit} options={COUNTRIES} />
-              <Field label="State / Province" value={form.physical_state ?? ""} onChange={(v) => set("physical_state", v)} disabled={!canEdit} />
-              <Field label="County" value={form.physical_county ?? ""} onChange={(v) => set("physical_county", v)} disabled={!canEdit} />
-              <Field label="Address Line 1" value={form.physical_line1 ?? ""} onChange={(v) => set("physical_line1", v)} disabled={!canEdit} />
-              <Field label="Address Line 2" value={form.physical_line2 ?? ""} onChange={(v) => set("physical_line2", v)} disabled={!canEdit} />
-              <Field label="City / Town" value={form.physical_city ?? ""} onChange={(v) => set("physical_city", v)} disabled={!canEdit} />
-              <Field label="Post Code" value={form.physical_postcode ?? ""} onChange={(v) => set("physical_postcode", v)} disabled={!canEdit} />
-            </Section>
-
-            {/* Bill-To Address */}
-            <AddressBlock
-              prefix="bill"
-              label="Bill-To Address"
+          <div className="pt-2">
+            <CompanyVariablesWidget
               form={form}
               setForm={setForm}
-              usePhysical={!!form.bill_use_physical}
-              onToggleUsePhysical={handleToggleBillPhysical}
-              physicalAddr={physicalAddr}
               canEdit={canEdit}
+              onLogoUpload={handleLogoUpload}
+              uploading={uploading}
+              fileInputRef={fileInputRef as React.RefObject<HTMLInputElement>}
             />
 
-            {/* Ship-To Address */}
-            <AddressBlock
-              prefix="ship"
-              label="Ship-To Address"
-              form={form}
-              setForm={setForm}
-              usePhysical={!!form.ship_use_physical}
-              onToggleUsePhysical={handleToggleShipPhysical}
-              physicalAddr={physicalAddr}
-              canEdit={canEdit}
-            />
-
-            {/* Theme (read-only) */}
-            <Section title="Theme">
-              <p className="text-[10px] text-muted-foreground mb-1">Application theme colors are set globally and cannot be changed here.</p>
-              <ReadonlyField label="Primary Color" value="Navy" />
-              <ReadonlyField label="Secondary Color" value="Gray" />
-            </Section>
-
-            {/* Slogan */}
-            <Section title="Slogan">
-              <Field label="Slogan" value={form.slogan ?? ""} onChange={(v) => set("slogan", v)} disabled={!canEdit} placeholder="Helping people see better" />
-            </Section>
-
-            {/* Logo */}
-            <Section title="Logo">
-              {form.logo_url && (
-                <div className="flex items-center gap-3 mb-2">
-                  <img src={form.logo_url} alt="Company logo" className="h-14 object-contain border border-border rounded p-1 bg-background" />
-                  <div className="text-[10px] text-muted-foreground">
-                    <p className="font-medium text-foreground">{form.logo_file_name}</p>
-                    <p>Stored URL: {form.logo_url}</p>
-                  </div>
-                </div>
-              )}
-              {!form.logo_url && (
-                <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                  <ImageIcon className="h-8 w-8" />
-                  <span className="text-xs">No logo uploaded</span>
-                </div>
-              )}
-              {canEdit && (
-                <>
-                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                    <Upload className="h-3 w-3" />
-                    {uploading ? "Uploading…" : "Upload Logo"}
-                  </Button>
-                </>
-              )}
-            </Section>
-
+            {canEdit && (
+              <div className="pt-4">
+                <Button size="sm" className="h-8 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? "Saving…" : "Save Company Variables"}
+                </Button>
+              </div>
+            )}
           </div>
-
-          {/* Save button */}
-          {canEdit && (
-            <div className="pt-4 max-w-5xl">
-              <Button size="sm" className="h-8 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Saving…" : "Save Company Variables"}
-              </Button>
-            </div>
-          )}
         </TabsContent>
 
         {/* ── Legacy Rates ── */}

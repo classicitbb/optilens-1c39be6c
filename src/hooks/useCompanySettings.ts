@@ -24,6 +24,9 @@ export interface CompanySettings {
   slogan: string;
   logo_file_name: string | null;
   logo_url: string | null;
+  // PDF export
+  pdf_header_html: string;
+  pdf_footer_html: string;
   // Physical address
   physical_country: string;
   physical_state: string;
