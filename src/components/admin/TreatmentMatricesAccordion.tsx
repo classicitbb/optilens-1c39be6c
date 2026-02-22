@@ -640,8 +640,7 @@ const TreatmentMatricesAccordion = ({
 
   const [expanded, setExpanded] = useState<Set<TreatmentType>>(new Set(["clear" as TreatmentType]));
 
-  const toggleExpanded = (t: TreatmentType) => {
-    if (t === "clear") return;
+  const toggleExpanded = (t: TreatmentType | "clear") => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(t)) next.delete(t);
