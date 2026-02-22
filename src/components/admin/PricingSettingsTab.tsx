@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePricingSettings, PricingSettings } from "@/hooks/usePricingSettings";
+import { useLegacyRates, LegacyRate } from "@/hooks/useCompanySettings";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useToast } from "@/hooks/use-toast";
@@ -183,6 +184,64 @@ const PricingSettingsTab = () => {
     </div>;
 
 
+  // Legacy Rates as tag-style widgets
+  const LegacyRatesWidget = ({ disabled: d }: { disabled: boolean }) => {
+    const { data: rates = [], isLoading: ratesLoading, upsertMutation, deleteMutation } = useLegacyRates();
+    const [newKey, setNewKey] = useState("");
+
+    if (ratesLoading) return <Section title="Legacy Cost Rates"><p className="text-xs text-muted-foreground">Loading…</p></Section>;
+
+    const handleAdd = () => {
+      if (!newKey.trim()) return;
+      upsertMutation.mutate({ rate_code: newKey.toUpperCase(), description: newKey, value_type: "percent", value: 0, is_active: true }, {
+        onSuccess: () => { toast({ title: "Rate added" }); setNewKey(""); },
+        onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+      });
+    };
+
+    const handleUpdate = (rate: LegacyRate, value: number) => {
+      upsertMutation.mutate({ id: rate.id, value });
+    };
+
+    const handleRemove = (id: string) => {
+      deleteMutation.mutate(id, {
+        onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+      });
+    };
+
+    return (
+      <Section title="Legacy Cost Rates">
+        <p className="text-[10px] text-muted-foreground mb-1">Historical landed-cost rates used by the supply costing engine.</p>
+        <div className="flex flex-wrap gap-2">
+          {rates.map((r) => (
+            <div key={r.id} className="flex items-center gap-1 rounded border border-border bg-muted/50 px-2 py-1">
+              <span className="text-[10px] font-medium capitalize">{r.rate_code}</span>
+              <Input
+                className="h-6 w-16 text-[10px]"
+                type="number"
+                step="0.01"
+                value={r.value}
+                onChange={(e) => handleUpdate(r, +e.target.value)}
+                disabled={d}
+              />
+              {!d && (
+                <button onClick={() => handleRemove(r.id)} className="text-muted-foreground hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ))}
+          {!d && (
+            <div className="flex items-center gap-1">
+              <Input className="h-6 w-20 text-[10px]" placeholder="key" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
+              <button onClick={handleAdd} className="text-primary hover:text-primary/80"><Plus className="h-3 w-3" /></button>
+            </div>
+          )}
+        </div>
+      </Section>
+    );
+  };
+
   const disabled = !isEditable;
 
   return (
@@ -289,6 +348,9 @@ const PricingSettingsTab = () => {
           <SwitchField label="Require Concession Reason" checked={form.require_concession_reason} onChange={(v) => setField("require_concession_reason", v)} disabled={disabled} />
           <PercentField label="Price Reduction Threshold" value={form.price_reduction_threshold} onChange={(v) => setField("price_reduction_threshold", v)} disabled={disabled} />
         </Section>
+
+        {/* Legacy Rates (tag-style like Duty Rates) */}
+        <LegacyRatesWidget disabled={disabled} />
       </div>
 
       {/* Save */}
