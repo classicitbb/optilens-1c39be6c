@@ -128,15 +128,28 @@ const ListCatalogTab = ({
     const newAddon = new Map<string, CatalogRow[]>();
     const newSupply = new Map<string, CatalogRow[]>();
     const lensMap = new Map((allLenses ?? []).map((l) => [l.id, l]));
+    const addonMap = new Map((allAddons ?? []).map((a) => [a.id, a]));
+    const supplyMap = new Map((allSupplies ?? []).map((s) => [s.id, s]));
     for (const r of savedRows) {
       const linkedLens = r.item_id && r.row_type === "lens" ? lensMap.get(r.item_id) : undefined;
+      const linkedAddon = r.item_id && r.row_type === "addon" ? addonMap.get(r.item_id) : undefined;
+      const linkedSupply = r.item_id && r.row_type === "supply" ? supplyMap.get(r.item_id) : undefined;
+      // Compute margin from linked item cost
+      let itemCost: number | null = null;
+      if (linkedLens) itemCost = linkedLens.base_price * 2; // landed cost approx
+      else if (linkedAddon) itemCost = linkedAddon.cost;
+      else if (linkedSupply) itemCost = linkedSupply.base_price * 2;
+      const sellPrice = r.bbd_price;
+      const computedMargin = itemCost != null && itemCost > 0 && sellPrice != null && sellPrice > 0
+        ? parseFloat((((sellPrice - itemCost) / sellPrice) * 100).toFixed(1))
+        : null;
       const row: CatalogRow = {
         key: r.row_key,
         section: r.section,
         description: r.display_description,
         bbd: r.bbd_price,
         usd: r.bbd_price !== null ? r.bbd_price * fxRate : null,
-        margin: null,
+        margin: computedMargin,
         lensId: r.row_type === "lens" ? r.item_id ?? undefined : undefined,
         addonId: r.row_type === "addon" ? r.item_id ?? undefined : undefined,
         supplyId: r.row_type === "supply" ? r.item_id ?? undefined : undefined,
