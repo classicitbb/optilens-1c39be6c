@@ -721,10 +721,10 @@ const TreatmentMatricesAccordion = ({
       unmarkPending(rowKey);
     } catch {
 
-      // keep pending — user must manually save
-    }};
 
-  const handlePick = async (lensId: string, lensName: string, sellPrice: number) => {
+
+      // keep pending — user must manually save
+    }};const handlePick = async (lensId: string, lensName: string, sellPrice: number) => {
     if (!pickerTarget) return;
     try {
       await upsertMutation.mutateAsync({
@@ -832,7 +832,7 @@ const TreatmentMatricesAccordion = ({
       {/* ── CLEAR LENSES ─────────────────────────────────────────────────────── */}
       <div className="border rounded-lg overflow-hidden border-[#1e4cb8]">
         <button
-          className="w-full flex items-center gap-2 px-4 py-2.5 bg-muted/50 border-b border-border hover:bg-muted/70 transition-colors text-left"
+          className="w-full flex items-center gap-2 px-4 py-2.5 border-b border-border transition-colors text-left bg-[#1e4cb8]"
           onClick={() => toggleExpanded("clear" as any)}>
 
           {expanded.has("clear" as any) ?
@@ -840,7 +840,7 @@ const TreatmentMatricesAccordion = ({
 
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
           }
-          <span className="text-sm font-bold text-foreground">Clear Lenses</span>
+          <span className="text-sm font-bold text-primary-foreground">Clear Lenses</span>
         </button>
         {expanded.has("clear" as any) &&
         <div className="p-3">
