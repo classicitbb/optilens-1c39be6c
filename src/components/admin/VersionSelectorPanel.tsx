@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   usePricelistVersions,
   PricelistVersion,
@@ -88,6 +89,21 @@ const VersionSelectorPanel = ({
   const [markupPct, setMarkupPct] = useState("0");
   const [discountPct, setDiscountPct] = useState("0");
   const [isTemplate, setIsTemplate] = useState(false);
+  const [formatType, setFormatType] = useState<string>("list");
+  const [masterMarkupPct, setMasterMarkupPct] = useState("0");
+  const [masterDiscountPct, setMasterDiscountPct] = useState("0");
+
+  const SECTION_TYPES = ["rx", "stock", "supplies"] as const;
+  const SECTION_LABELS: Record<string, string> = {
+    rx: "RX Lens Prices",
+    stock: "Stock Lens Prices",
+    supplies: "Supplies Prices",
+  };
+  const [childSections, setChildSections] = useState<Record<string, { markup: string; discount: string }>>({
+    rx: { markup: "0", discount: "0" },
+    stock: { markup: "0", discount: "0" },
+    supplies: { markup: "0", discount: "0" },
+  });
 
   const activeVersion =
     versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
@@ -106,6 +122,21 @@ const VersionSelectorPanel = ({
     setDiscountPct("0");
     setIsTemplate(false);
     setEditMode(null);
+    setFormatType("list");
+    setMasterMarkupPct("0");
+    setMasterDiscountPct("0");
+    setChildSections({
+      rx: { markup: "0", discount: "0" },
+      stock: { markup: "0", discount: "0" },
+      supplies: { markup: "0", discount: "0" },
+    });
+  };
+
+  const updateChild = (section: string, field: "markup" | "discount", value: string) => {
+    setChildSections((prev) => ({
+      ...prev,
+      [section]: { ...prev[section], [field]: value },
+    }));
   };
 
   const openCreate = () => {
@@ -113,18 +144,50 @@ const VersionSelectorPanel = ({
     setDialogOpen(true);
   };
 
-  const openEdit = (v: PricelistVersion) => {
+  const openEdit = async (v: PricelistVersion) => {
     setEditMode(v);
     setName(v.name);
     setCurrency((v.base_currency as "BBD" | "USD") ?? "BBD");
     setMarkupPct(String(v.markup_percent ?? 0));
     setDiscountPct(String(v.discount_percent ?? 0));
     setIsTemplate(v.is_template ?? false);
+    setFormatType(v.format_type ?? "list");
+    setMasterMarkupPct(String(v.master_markup_percent ?? 0));
+    setMasterDiscountPct(String(v.master_discount_percent ?? 0));
+
+    // Fetch child sections
+    const { data: children } = await supabase
+      .from("pricelist_child_sections")
+      .select("*")
+      .eq("pricelist_version_id", v.id);
+
+    const newChildState: Record<string, { markup: string; discount: string }> = {
+      rx: { markup: "0", discount: "0" },
+      stock: { markup: "0", discount: "0" },
+      supplies: { markup: "0", discount: "0" },
+    };
+    for (const c of children ?? []) {
+      if (newChildState[c.section_type]) {
+        newChildState[c.section_type] = {
+          markup: String(c.child_markup_percent ?? 0),
+          discount: String(c.child_discount_percent ?? 0),
+        };
+      }
+    }
+    setChildSections(newChildState);
     setDialogOpen(true);
   };
 
   const handleSave = () => {
     if (!name.trim()) return;
+
+    const childData: import("@/hooks/usePricelistVersions").ChildSection[] = SECTION_TYPES.map((st) => ({
+      pricelist_version_id: editMode?.id ?? 0,
+      section_type: st,
+      child_markup_percent: parseFloat(childSections[st].markup) || 0,
+      child_discount_percent: parseFloat(childSections[st].discount) || 0,
+    }));
+
     if (editMode) {
       updateMutation.mutate(
         {
@@ -135,7 +198,11 @@ const VersionSelectorPanel = ({
             markup_percent: parseFloat(markupPct) || 0,
             discount_percent: parseFloat(discountPct) || 0,
             is_template: isTemplate,
+            format_type: formatType,
+            master_markup_percent: parseFloat(masterMarkupPct) || 0,
+            master_discount_percent: parseFloat(masterDiscountPct) || 0,
           },
+          childSections: childData,
         },
         {
           onSuccess: () => {
@@ -144,7 +211,7 @@ const VersionSelectorPanel = ({
               record_id: String(editMode.id),
               action: "update",
               old_data: { name: editMode.name, markup_percent: editMode.markup_percent, discount_percent: editMode.discount_percent, base_currency: editMode.base_currency, is_template: editMode.is_template },
-              new_data: { name: name.trim(), markup_percent: parseFloat(markupPct) || 0, discount_percent: parseFloat(discountPct) || 0, base_currency: currency, is_template: isTemplate },
+              new_data: { name: name.trim(), markup_percent: parseFloat(markupPct) || 0, discount_percent: parseFloat(discountPct) || 0, base_currency: currency, is_template: isTemplate, format_type: formatType, master_markup_percent: parseFloat(masterMarkupPct) || 0, master_discount_percent: parseFloat(masterDiscountPct) || 0 },
             });
             setDialogOpen(false);
             resetForm();
@@ -479,7 +546,7 @@ const VersionSelectorPanel = ({
           if (!o) resetForm();
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">
               {editMode ? "Edit Pricelist" : "New Pricelist Version"}
@@ -551,48 +618,108 @@ const VersionSelectorPanel = ({
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  className="text-xs font-medium mb-1 block"
-                  style={{ color: LABEL_COLOR }}
-                >
-                  Markup %
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={markupPct}
-                  onChange={(e) => setMarkupPct(e.target.value)}
-                  className="h-8 text-xs text-right"
-                />
+            {/* Markup / Discount (create mode = legacy, edit mode = master) */}
+            {!editMode && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Markup %</label>
+                  <Input type="number" step="0.01" min="0" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} className="h-8 text-xs text-right" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Discount %</label>
+                  <Input type="number" step="0.01" min="0" value={discountPct} onChange={(e) => setDiscountPct(e.target.value)} className="h-8 text-xs text-right" />
+                </div>
               </div>
+            )}
+
+            {/* Format Type (edit only) */}
+            {editMode && (
               <div>
-                <label
-                  className="text-xs font-medium mb-1 block"
-                  style={{ color: LABEL_COLOR }}
-                >
-                  Discount %
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={discountPct}
-                  onChange={(e) => setDiscountPct(e.target.value)}
-                  className="h-8 text-xs text-right"
-                />
+                <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Format Type</label>
+                <div className="flex gap-2">
+                  {(["matrix", "list"] as const).map((ft) => (
+                    <button
+                      key={ft}
+                      onClick={() => setFormatType(ft)}
+                      className="flex-1 py-1.5 text-xs font-medium rounded border transition-colors"
+                      style={{
+                        background: formatType === ft ? BLUE : "transparent",
+                        color: formatType === ft ? "white" : LABEL_COLOR,
+                        borderColor: formatType === ft ? BLUE : "hsl(215 15% 80%)",
+                      }}
+                    >
+                      {ft === "matrix" ? "Matrix" : "List"}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Master Markup / Discount (edit only) */}
+            {editMode && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Master Markup %</label>
+                  <div className="relative">
+                    <Input type="number" step="0.01" min="0" value={masterMarkupPct} onChange={(e) => setMasterMarkupPct(e.target.value)} className="h-8 text-xs text-right pr-6" placeholder="0" />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Master Discount %</label>
+                  <div className="relative">
+                    <Input type="number" step="0.01" min="0" value={masterDiscountPct} onChange={(e) => setMasterDiscountPct(e.target.value)} className="h-8 text-xs text-right pr-6" placeholder="0" />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Markup / Discount (edit mode = legacy) */}
+            {editMode && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Markup %</label>
+                  <Input type="number" step="0.01" min="0" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} className="h-8 text-xs text-right" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Discount %</label>
+                  <Input type="number" step="0.01" min="0" value={discountPct} onChange={(e) => setDiscountPct(e.target.value)} className="h-8 text-xs text-right" />
+                </div>
+              </div>
+            )}
+
+            {/* Child Section Boxes (edit mode only) */}
+            {editMode && (
+              <div className="space-y-3 pt-1">
+                {SECTION_TYPES.map((st) => (
+                  <div key={st} className="border border-border rounded-md p-3 bg-muted/30">
+                    <h4 className="text-xs font-semibold text-foreground mb-2">{SECTION_LABELS[st]}</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block text-muted-foreground">Child Markup %</label>
+                        <div className="relative">
+                          <Input type="number" step="0.01" min="0" value={childSections[st].markup} onChange={(e) => updateChild(st, "markup", e.target.value)} className="h-7 text-xs text-right pr-6" placeholder="0" />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block text-muted-foreground">Child Discount %</label>
+                        <div className="relative">
+                          <Input type="number" step="0.01" min="0" value={childSections[st].discount} onChange={(e) => updateChild(st, "discount", e.target.value)} className="h-7 text-xs text-right pr-6" placeholder="0" />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-1">
               <div>
-                <p className="text-xs font-medium" style={{ color: LABEL_COLOR }}>
-                  Mark as Template
-                </p>
-                <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
-                  Templates appear as copy sources for future versions.
-                </p>
+                <p className="text-xs font-medium" style={{ color: LABEL_COLOR }}>Mark as Template</p>
+                <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Templates appear as copy sources for future versions.</p>
               </div>
               <Switch checked={isTemplate} onCheckedChange={setIsTemplate} />
             </div>
