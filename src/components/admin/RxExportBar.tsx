@@ -32,6 +32,8 @@ interface Props {
   catalogType?: "rx" | "stock" | "buysell";
 }
 
+const STANDARD_FOOTER = "Prices subject to change without notice. All prices in BBD unless otherwise stated.";
+
 const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
@@ -58,30 +60,23 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
   const today = format(new Date(), "dd MMMM yyyy");
   const categories = [...new Set(matrixRows.map((r) => r.category))];
 
-  const headerHtml = company?.pdf_header_html?.trim() || "";
-  const footerHtml = company?.pdf_footer_html?.trim() || "";
+  // ── Standardised branding ─────────────────────────────────────────────────
+  const companyName = company?.company_name ?? "Classic Visions";
+  const tagline = "Helping People See Better";
+  const phone = "+1 246 433-4928";
+  const website = "www.classicvisions.net";
+  const versionTitle = `${companyName} ${version.name} — ${today} (${currency})`;
+  const logoUrl = company?.logo_url ?? null;
 
-  const stripHtml = (html: string) => {
-    const div = document.createElement("div");
-    div.innerHTML = html;
-    return div.textContent || div.innerText || "";
+  // Text header lines for PDF / Excel / CSV
+  const companyHeader = [companyName, tagline, `Phone: ${phone}  |  ${website}`, versionTitle];
+
+  const buildLogoHtml = (url: string | null | undefined) => {
+    if (!url) return "";
+    return `<img src="${url}" alt="Logo" style="max-height:60px;margin-bottom:8px;display:block" crossorigin="anonymous" />`;
   };
-
-  const buildLogoHtml = (logoUrl: string | null | undefined) => {
-    if (!logoUrl) return "";
-    return `<img src="${logoUrl}" alt="Logo" style="max-height:60px;margin-bottom:8px;display:block" crossorigin="anonymous" />`;
-  };
-
-  const companyHeader = headerHtml
-    ? [stripHtml(headerHtml), `${version.name} — ${today} (${currency})`]
-    : [company?.company_name ?? "", company?.slogan ?? "", `${company?.tel ?? ""} | ${company?.email ?? ""}`, `${version.name} — ${today} (${currency})`];
-
-  const footerText = footerHtml
-    ? stripHtml(footerHtml)
-    : `All prices in ${currency}. Prices subject to change without notice. · ${company?.company_name ?? ""}`;
 
   // ── Price calculation helpers ──────────────────────────────────────────────
-  /** Apply hierarchy to a value and optionally convert to display currency */
   const hp = (basePrice: number | null, refId?: string, refType?: string): number | null => {
     const finalBbd = calcFinalPrice(basePrice, version, catalogType, refId, refType);
     if (finalBbd == null) return null;
@@ -98,7 +93,6 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
     return v != null ? parseFloat(v.toFixed(2)) : "";
   };
 
-  /** Calculate margin % for a catalog row (sell vs cost from lens base_price) */
   const calcMargin = (row: { bbd_price: number | null; item_id: string | null; row_key?: string; row_type?: string }): string => {
     if (!row.bbd_price || !row.item_id) return "";
     const lens = allLenses.find((l) => l.id === row.item_id);
@@ -140,8 +134,45 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
       )
     );
 
-  // Customer mode = not admin/operator (hide margins & override reasons)
   const isCustomerExport = !canEdit;
+
+  // ── PDF header helper (adds logo + text to doc, returns y) ────────────────
+  const drawPdfHeader = (doc: jsPDF, margin: number): number => {
+    let y = margin;
+    // Logo — attempt to add if available (will be text-only if image fails)
+    // We write text header lines
+    doc.setFontSize(14);
+    doc.setTextColor(30, 77, 183);
+    doc.text(companyName, margin, y);
+    y += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(tagline, margin, y);
+    y += 4;
+    doc.text(`Phone: ${phone}  |  ${website}`, margin, y);
+    y += 4;
+    doc.setFontSize(9);
+    doc.setTextColor(30, 77, 183);
+    doc.text(versionTitle, margin, y);
+    y += 5;
+    return y;
+  };
+
+  // ── PDF footer helper (page numbers + standard footer on every page) ──────
+  const drawPdfFooters = (doc: jsPDF, margin: number) => {
+    const totalPages = doc.getNumberOfPages();
+    const pageH = doc.internal.pageSize.getHeight();
+    const pageW = doc.internal.pageSize.getWidth();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      // Footer text left
+      doc.setFontSize(7);
+      doc.setTextColor(150);
+      doc.text(STANDARD_FOOTER, margin, pageH - 5);
+      // Page numbers centred
+      doc.text(`Page ${i} of ${totalPages}`, pageW / 2, pageH - 5, { align: "center" });
+    }
+  };
 
   // ── Matrix Excel ─────────────────────────────────────────────────────────────
   const exportMatrixExcel = () => {
@@ -155,8 +186,9 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
       const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
       const activeCats = getActiveCats(tt, visibleCols);
 
-      aoa.push([TREATMENT_LABELS[tt]]);
-      aoa.push(["Category", ...visibleCols.map((c) => c.key)]);
+      const groupTitle = TREATMENT_LABELS[tt];
+      aoa.push([groupTitle]);
+      aoa.push([groupTitle, ...visibleCols.map((c) => c.key)]);
 
       activeCats.forEach((cat) => {
         const row = [cat];
@@ -171,16 +203,17 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
 
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
-      aoa.push(["ADD ONS"]);
       for (const [sec, rows] of addonsBySection.entries()) {
         aoa.push([sec]);
-        aoa.push(["Description", `${currency} Price`]);
+        aoa.push([sec, `${currency} Price`]);
         rows.forEach((row) => {
           aoa.push([row.display_description, hpNum(row.bbd_price, row.row_key, row.row_type)]);
         });
         aoa.push([]);
       }
     }
+
+    aoa.push([STANDARD_FOOTER]);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const wb = XLSX.utils.book_new();
@@ -202,8 +235,9 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
       const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
       const activeCats = getActiveCats(tt, visibleCols);
 
-      lines.push(TREATMENT_LABELS[tt]);
-      lines.push(["Category", ...visibleCols.map((c) => c.key)].join(","));
+      const groupTitle = TREATMENT_LABELS[tt];
+      lines.push(groupTitle);
+      lines.push([groupTitle, ...visibleCols.map((c) => c.key)].join(","));
       activeCats.forEach((cat) => {
         const vals = visibleCols.map((col) => {
           const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
@@ -216,16 +250,17 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
 
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
-      lines.push("ADD ONS");
       for (const [sec, rows] of addonsBySection.entries()) {
         lines.push(`"${sec}"`);
-        lines.push(`Description,${currency} Price`);
+        lines.push(`"${sec}",${currency} Price`);
         rows.forEach((row) => {
           lines.push([`"${row.display_description}"`, hpNum(row.bbd_price, row.row_key, row.row_type)].join(","));
         });
         lines.push("");
       }
     }
+
+    lines.push(STANDARD_FOOTER);
 
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -245,6 +280,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
       const activeCats = getActiveCats(tt, visibleCols);
       if (activeCats.length === 0 && tt !== "clear") return "";
 
+      const groupTitle = TREATMENT_LABELS[tt];
       const colHeaders = visibleCols.map((c) => `<th>${c.key}</th>`).join("");
       const rowsHtml = activeCats
         .map((cat) => {
@@ -257,34 +293,30 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
           return `<tr><td>${cat}</td>${cells}</tr>`;
         })
         .join("");
-      return `<h3 style="color:#1e4db7;margin:20px 0 8px">${TREATMENT_LABELS[tt]}</h3>
-      <table><thead><tr><th>Category</th>${colHeaders}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
+      return `<h3 style="color:#1e4db7;margin:20px 0 8px">${groupTitle}</h3>
+      <table><thead><tr><th>${groupTitle}</th>${colHeaders}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
     }).join("");
 
     const addonsBySection = getAddonsBySection();
     let addonsHtml = "";
     if (addonsBySection.size > 0) {
-      addonsHtml = `<h2 style="color:#1e4db7;margin:24px 0 8px">ADD ONS</h2>`;
       for (const [sec, rows] of addonsBySection.entries()) {
         const rowsH = rows
           .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
           .join("");
         addonsHtml += `<h3 style="color:#1e4db7;margin:16px 0 6px">${sec}</h3>
-        <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
+        <table><thead><tr><th>${sec}</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
       }
     }
 
-    const headerBlock = headerHtml
-      ? `${buildLogoHtml(company?.logo_url)}${headerHtml}<h2>${version.name} — ${today} (${currency})</h2>`
-      : `${buildLogoHtml(company?.logo_url)}<h1>${company?.company_name ?? ""}</h1><h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2><h2>${version.name} — ${today} (${currency})</h2>`;
-    const footerBlock = footerHtml || `All prices in ${currency}. Prices subject to change without notice.`;
+    const headerBlock = `${buildLogoHtml(logoUrl)}<h1>${companyName}</h1><p class="tagline">${tagline}</p><p class="contact">Phone: ${phone} &nbsp;|&nbsp; ${website}</p><h2>${versionTitle}</h2>`;
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${version.name}</title>
-<style>body{font-family:sans-serif;font-size:12px;margin:40px}h1{color:#1e4db7;margin-bottom:4px}h2{color:#444;font-size:11px;font-weight:normal;margin-bottom:2px}h3{color:#1e4db7;font-size:12px;font-weight:bold}table{border-collapse:collapse;width:100%;margin-bottom:12px}th,td{border:1px solid #ccc;padding:4px 10px}th{background:#1e4db7;color:#fff;text-align:left}tr:nth-child(even){background:#f5f7fb}footer{font-size:10px;color:#888;margin-top:24px}</style></head><body>
+<style>body{font-family:sans-serif;font-size:12px;margin:40px}h1{color:#1e4db7;margin-bottom:2px}h2{color:#444;font-size:11px;font-weight:normal;margin-bottom:2px}.tagline{font-size:11px;color:#444;margin:2px 0}.contact{font-size:10px;color:#666;margin:2px 0 8px}h3{color:#1e4db7;font-size:12px;font-weight:bold}table{border-collapse:collapse;width:100%;margin-bottom:12px}th,td{border:1px solid #ccc;padding:4px 10px}th{background:#1e4db7;color:#fff;text-align:left}tr:nth-child(even){background:#f5f7fb}footer{font-size:10px;color:#888;margin-top:24px;text-align:center}</style></head><body>
 ${headerBlock}
 ${sectionsHtml}
 ${addonsHtml}
-<footer>${footerBlock}</footer>
+<footer>${STANDARD_FOOTER}</footer>
 </body></html>`;
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
@@ -299,18 +331,7 @@ ${addonsHtml}
   const exportMatrixPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
     const margin = 12;
-    let y = margin;
-
-    doc.setFontSize(9);
-    doc.setTextColor(30, 77, 183);
-    let headerY = y;
-    companyHeader.forEach((line, i) => {
-      if (i === 0) { doc.setFontSize(14); doc.setTextColor(30, 77, 183); }
-      else { doc.setFontSize(8); doc.setTextColor(100); }
-      doc.text(line, margin, headerY);
-      headerY += i === 0 ? 5 : 4;
-    });
-    y = headerY + 2;
+    let y = drawPdfHeader(doc, margin);
 
     TREATMENT_TYPES.forEach((tt) => {
       const activeCols = getActiveCols(tt);
@@ -320,12 +341,13 @@ ${addonsHtml}
       if (activeCats.length === 0 && tt !== "clear") return;
 
       if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
+      const groupTitle = TREATMENT_LABELS[tt];
       doc.setFontSize(10);
       doc.setTextColor(30, 77, 183);
-      doc.text(TREATMENT_LABELS[tt], margin, y);
+      doc.text(groupTitle, margin, y);
       y += 2;
 
-      const head = [["Category", ...visibleCols.map((c) => c.key)]];
+      const head = [[groupTitle, ...visibleCols.map((c) => c.key)]];
       const body = activeCats.map((cat) => [
         cat,
         ...visibleCols.map((col) => {
@@ -358,7 +380,7 @@ ${addonsHtml}
         autoTable(doc, {
           startY: y,
           margin: { left: margin, right: margin },
-          head: [["Description", `Price (${currency})`]],
+          head: [[sec, `Price (${currency})`]],
           body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)]),
           styles: { fontSize: 7, cellPadding: 1.5 },
           headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
@@ -369,14 +391,7 @@ ${addonsHtml}
       }
     }
 
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(150);
-      doc.text(footerText, margin, doc.internal.pageSize.getHeight() - 5);
-    }
-
+    drawPdfFooters(doc, margin);
     doc.save(`${version.name}_Matrix.pdf`);
     toast({ title: "Matrix PDF exported" });
     logExport("PDF", "Matrix");
@@ -392,7 +407,7 @@ ${addonsHtml}
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     sections.forEach((sec) => {
       aoa.push([sec]);
-      const headers = ["Description", `${currency} Price`];
+      const headers = [sec, `${currency} Price`];
       if (showMargins && !isCustomerExport) headers.push("Margin %");
       aoa.push(headers);
       lensRows
@@ -410,7 +425,7 @@ ${addonsHtml}
     if (addonsBySection.size > 0) {
       for (const [sec, rows] of addonsBySection.entries()) {
         aoa.push([sec]);
-        aoa.push(["Description", `${currency} Price`]);
+        aoa.push([sec, `${currency} Price`]);
         rows.forEach((row) => {
           aoa.push([row.display_description, hpNum(row.bbd_price, row.row_key, row.row_type)]);
         });
@@ -418,7 +433,7 @@ ${addonsHtml}
       }
     }
 
-    aoa.push([footerText]);
+    aoa.push([STANDARD_FOOTER]);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const wb = XLSX.utils.book_new();
@@ -433,14 +448,14 @@ ${addonsHtml}
     const lines: string[] = [];
     companyHeader.forEach((h) => lines.push(h));
     lines.push("");
-    const csvHeaders = [`Description`, `${currency} Price`];
-    if (showMargins && !isCustomerExport) csvHeaders.push("Margin %");
-    lines.push(csvHeaders.join(","));
 
     const lensRows = getPrimaryRows();
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     sections.forEach((sec) => {
       lines.push(`"${sec}"`);
+      const csvHeaders = [`"${sec}"`, `${currency} Price`];
+      if (showMargins && !isCustomerExport) csvHeaders.push("Margin %");
+      lines.push(csvHeaders.join(","));
       lensRows
         .filter((r) => r.section === sec)
         .sort((a, b) => a.sort_order - b.sort_order)
@@ -456,11 +471,15 @@ ${addonsHtml}
       lines.push("");
       for (const [sec, rows] of addonsBySection.entries()) {
         lines.push(`"${sec}"`);
+        lines.push([`"${sec}"`, `${currency} Price`].join(","));
         rows.forEach((row) => {
           lines.push([`"${row.display_description}"`, hpNum(row.bbd_price, row.row_key, row.row_type)].join(","));
         });
       }
     }
+
+    lines.push("");
+    lines.push(STANDARD_FOOTER);
 
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -483,7 +502,7 @@ ${addonsHtml}
           .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
           .join("");
         return `<h3 style="color:#1e4db7;margin:20px 0 8px">${sec}</h3>
-      <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+      <table><thead><tr><th>${sec}</th><th>Price (${currency})</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
       })
       .join("");
 
@@ -495,30 +514,28 @@ ${addonsHtml}
           .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
           .join("");
         addonsHtml += `<h3 style="color:#1e4db7;margin:16px 0 6px">${sec}</h3>
-        <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
+        <table><thead><tr><th>${sec}</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
       }
     }
 
-    const listHeaderBlock = headerHtml
-      ? `${buildLogoHtml(company?.logo_url)}${headerHtml}<h2>${version.name} — ${today} (${currency})</h2>`
-      : `${buildLogoHtml(company?.logo_url)}<h1>${company?.company_name ?? ""}</h1><h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2><h2>${version.name} — ${today} (${currency})</h2>`;
-    const listFooterBlock = footerHtml || `All prices in ${currency}. Prices subject to change without notice.`;
+    const headerBlock = `${buildLogoHtml(logoUrl)}<h1>${companyName}</h1><p class="tagline">${tagline}</p><p class="contact">Phone: ${phone} &nbsp;|&nbsp; ${website}</p><h2>${versionTitle}</h2>`;
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${version.name}</title>
 <style>
   body{font-family:sans-serif;font-size:12px;margin:40px}
-  h1{color:#1e4db7;margin-bottom:4px} h2{color:#444;font-size:11px;font-weight:normal;margin-bottom:2px}
+  h1{color:#1e4db7;margin-bottom:2px} h2{color:#444;font-size:11px;font-weight:normal;margin-bottom:2px}
+  .tagline{font-size:11px;color:#444;margin:2px 0}.contact{font-size:10px;color:#666;margin:2px 0 8px}
   h3{color:#1e4db7;font-size:12px;font-weight:bold}
   table{border-collapse:collapse;width:100%;margin-bottom:12px}
   th,td{border:1px solid #ccc;padding:4px 10px}
   th{background:#1e4db7;color:#fff;text-align:left}
   tr:nth-child(even){background:#f5f7fb}
-  footer{font-size:10px;color:#888;margin-top:24px}
+  footer{font-size:10px;color:#888;margin-top:24px;text-align:center}
 </style></head><body>
-${listHeaderBlock}
+${headerBlock}
 ${sectionsHtml}
 ${addonsHtml}
-<footer>${listFooterBlock}</footer>
+<footer>${STANDARD_FOOTER}</footer>
 </body></html>`;
 
     const blob = new Blob([html], { type: "text/html" });
@@ -534,18 +551,7 @@ ${addonsHtml}
   const exportListPDF = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
     const margin = 12;
-    let y = margin;
-
-    doc.setFontSize(9);
-    doc.setTextColor(30, 77, 183);
-    let listHeaderY = y;
-    companyHeader.forEach((line, i) => {
-      if (i === 0) { doc.setFontSize(14); doc.setTextColor(30, 77, 183); }
-      else { doc.setFontSize(8); doc.setTextColor(100); }
-      doc.text(line, margin, listHeaderY);
-      listHeaderY += i === 0 ? 5 : 4;
-    });
-    y = listHeaderY + 2;
+    let y = drawPdfHeader(doc, margin);
 
     const lensRows = getPrimaryRows();
 
@@ -572,7 +578,6 @@ ${addonsHtml}
     const lensIdxMap = new Map<string, number>();
     allLenses.forEach((l) => lensIdxMap.set(l.id, l.index_value));
 
-    // Determine columns: customer PDF hides margin; internal shows if toggled
     const includeMargin = showMargins && !isCustomerExport;
 
     sortedSections.forEach(([sec, secRows]) => {
@@ -589,7 +594,7 @@ ${addonsHtml}
         return a.sort_order - b.sort_order;
       });
 
-      const head = [includeMargin ? ["Description", `${currency} Price`, "Margin %"] : ["Description", `${currency} Price`]];
+      const head = [includeMargin ? [sec, `${currency} Price`, "Margin %"] : [sec, `${currency} Price`]];
       const body = rows.map((r) => {
         const line = [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)];
         if (includeMargin) line.push(calcMargin(r));
@@ -620,7 +625,7 @@ ${addonsHtml}
         autoTable(doc, {
           startY: y,
           margin: { left: margin, right: margin },
-          head: [["Description", `Price (${currency})`]],
+          head: [[sec, `Price (${currency})`]],
           body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)]),
           styles: { fontSize: 7, cellPadding: 1.5 },
           headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
@@ -631,14 +636,7 @@ ${addonsHtml}
       }
     }
 
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(150);
-      doc.text(footerText, margin, doc.internal.pageSize.getHeight() - 5);
-    }
-
+    drawPdfFooters(doc, margin);
     doc.save(`${version.name}_List.pdf`);
     toast({ title: "List PDF exported" });
     logExport("PDF", "List");
