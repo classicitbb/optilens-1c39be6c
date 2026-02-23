@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, ReactNode } from "react";
 
 import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
@@ -13,6 +13,7 @@ const BuySellPricesPage = () => {
   const [showUSD, setShowUSD] = useState(false);
   const previewFormat = "list" as const;
   const previewRef = useRef<HTMLDivElement>(null);
+  const [saveBar, setSaveBar] = useState<ReactNode>(null);
 
   const activeVersion = versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
   const resolvedId = activeVersion?.id ?? null;
@@ -32,6 +33,7 @@ const BuySellPricesPage = () => {
       showUSD={showUSD}
       onShowUSDChange={setShowUSD}
       onPreviewClick={handlePreviewClick}
+      saveBar={saveBar}
       exportBar={resolvedId && activeVersion ? (
         <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} catalogType="buysell" />
       ) : undefined}
@@ -46,6 +48,7 @@ const BuySellPricesPage = () => {
             showTreatmentsAddons={false}
             pageTitle={activeVersion?.name ?? "Supplies Pricelist"}
             versionId={resolvedId}
+            renderSaveBar={setSaveBar}
           />
 
           {/* Live Preview */}

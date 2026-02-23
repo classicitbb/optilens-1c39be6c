@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, ReactNode } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
@@ -29,12 +29,15 @@ const RxLensPricesPage = () => {
   const [previewFormat, setPreviewFormat] = useState<"matrix" | "list">("list");
   const previewRef = useRef<HTMLDivElement>(null);
 
+  // Save bar from ListCatalogTab (catalog tab)
+  const [catalogSaveBar, setCatalogSaveBar] = useState<ReactNode>(null);
+
   const { toast } = useToast();
 
   const activeVersion = versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
   const resolvedId = activeVersion?.id ?? null;
 
-  // Hooks for global Save All
+  // Hooks for global Save All (matrix tab)
   const { data: matrixRows, saveMutation: saveMatrix } = usePriceMatrix();
   const { data: materialUpgrades, saveMutation: saveMaterialUpgrades } = useMaterialUpgrades();
   const { saveRows: saveCatalogRows } = usePricelistCatalogRows(resolvedId, "rx");
@@ -72,6 +75,33 @@ const RxLensPricesPage = () => {
     }, 100);
   };
 
+  // Matrix tab save bar
+  const matrixSaveBar = (
+    <div className="flex items-center justify-between gap-3 flex-wrap no-print">
+      <div className="flex items-center gap-1">
+        {hasPending && (
+          <span className="flex items-center gap-1.5 text-xs text-destructive">
+            <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+            {pendingMatrixRowKeys.size} pending sync{pendingMatrixRowKeys.size > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+      <Button
+        size="sm"
+        className="h-8 text-xs gap-1.5 font-semibold"
+        variant={hasPending ? "default" : "outline"}
+        style={hasPending ? { background: "hsl(215 65% 50%)", color: "white" } : undefined}
+        onClick={handleSaveAll}
+        disabled={isSavingAll}
+      >
+        {isSavingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+        Save All Changes
+      </Button>
+    </div>
+  );
+
+  const activeSaveBar = activeTab === "catalog" ? catalogSaveBar : matrixSaveBar;
+
   return (
     <VersionSelectorPanel
       pageTitle="RX Lens Prices"
@@ -81,29 +111,9 @@ const RxLensPricesPage = () => {
       showUSD={showUSD}
       onShowUSDChange={setShowUSD}
       onPreviewClick={handlePreviewClick}
+      saveBar={resolvedId && activeVersion ? activeSaveBar : undefined}
       exportBar={resolvedId && activeVersion ? (
-        <div className="flex items-center justify-between gap-3 flex-wrap no-print">
-          <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} catalogType="rx" />
-          <div className="flex items-center gap-2">
-            {hasPending && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-xs text-destructive">
-                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                {pendingMatrixRowKeys.size} pending price list sync{pendingMatrixRowKeys.size > 1 ? "s" : ""}
-              </div>
-            )}
-            <Button
-              size="sm"
-              className="h-8 text-xs gap-1.5 font-semibold"
-              variant={hasPending ? "default" : "outline"}
-              style={hasPending ? { background: "hsl(215 65% 50%)", color: "white" } : undefined}
-              onClick={handleSaveAll}
-              disabled={isSavingAll}
-            >
-              {isSavingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Save All Changes
-            </Button>
-          </div>
-        </div>
+        <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} catalogType="rx" />
       ) : undefined}
     >
       {resolvedId && activeVersion && (
@@ -143,6 +153,7 @@ const RxLensPricesPage = () => {
                 versionId={resolvedId}
                 pendingMatrixRowKeys={pendingMatrixRowKeys}
                 onSaved={handleCatalogSaved}
+                renderSaveBar={setCatalogSaveBar}
               />
             </TabsContent>
           </Tabs>

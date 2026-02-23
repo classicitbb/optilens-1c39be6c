@@ -54,6 +54,8 @@ interface VersionSelectorPanelProps {
   onPreviewClick?: (versionId: number) => void;
   /** Optional export bar + save button rendered inside the "You are editing" banner */
   exportBar?: React.ReactNode;
+  /** Optional save controls rendered below BBD/USD toggle */
+  saveBar?: React.ReactNode;
   /** If provided, render after the context banner */
   children?: React.ReactNode;
 }
@@ -67,6 +69,7 @@ const VersionSelectorPanel = ({
   onShowUSDChange,
   onPreviewClick,
   exportBar,
+  saveBar,
   children,
 }: VersionSelectorPanelProps) => {
   const { data: versions, isLoading, createMutation, updateMutation, deleteMutation } =
@@ -447,6 +450,12 @@ const VersionSelectorPanel = ({
               </span>
             </div>
           </div>
+          {/* Save bar slot */}
+          {saveBar && (
+            <div className="px-4 pb-3 border-t border-border/40 pt-2.5">
+              {saveBar}
+            </div>
+          )}
           {/* Export bar slot */}
           {exportBar && (
             <div className="px-4 pb-3 border-t border-border/40 pt-2.5">

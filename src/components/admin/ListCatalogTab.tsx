@@ -46,6 +46,8 @@ interface ListCatalogTabProps {
   pendingMatrixRowKeys?: Set<string>;
   /** Called when user clicks Save All Changes so parent can clear pending */
   onSaved?: () => void;
+  /** If provided, save controls are rendered via this callback instead of inline */
+  renderSaveBar?: (saveBar: React.ReactNode) => void;
 }
 
 const ListCatalogTab = ({
@@ -58,6 +60,7 @@ const ListCatalogTab = ({
   versionId = null,
   pendingMatrixRowKeys,
   onSaved,
+  renderSaveBar,
 }: ListCatalogTabProps) => {
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
@@ -553,18 +556,17 @@ const ListCatalogTab = ({
     });
   };
 
-  if (isLoading) return <div className="flex items-center justify-center h-40"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
-
-  return (
-    <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex items-center gap-2 flex-wrap no-print justify-between">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button size="sm" className="h-8 text-xs gap-1.5 font-semibold" style={{ background: BLUE_BG, color: "white" }} onClick={() => { window.print(); toast({ title: "Print dialog opened" }); }}>
-            <FileText className="h-3.5 w-3.5" /> PDF
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExcelExport}><Table2 className="h-3.5 w-3.5" /> Excel</Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleCSVExport}><FileSpreadsheet className="h-3.5 w-3.5" /> CSV</Button>
+  const saveBarContent = (
+    <div className="space-y-2 no-print">
+      <div className="flex items-center gap-2 flex-wrap justify-between">
+        <div className="flex items-center gap-1">
+          {isDirty && !hasPending && <span className="text-xs" style={{ color: "hsl(38 92% 40%)" }}>⚠ Unsaved changes</span>}
+          {hasPending && (
+            <span className="flex items-center gap-1 text-xs text-red-600">
+              <span className="h-2 w-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
+              {pendingMatrixRowKeys!.size} pending sync{pendingMatrixRowKeys!.size > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
         <Button
           size="sm"
@@ -578,15 +580,32 @@ const ListCatalogTab = ({
           Save All Changes
         </Button>
       </div>
+    </div>
+  );
 
-      {hasPending && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-red-50 border border-red-200 text-xs text-red-700 no-print">
-          <span className="h-2 w-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
-          {pendingMatrixRowKeys!.size} pending matrix sync{pendingMatrixRowKeys!.size > 1 ? "s" : ""} — review rows highlighted in red, then click "Save All Changes".
+  useEffect(() => {
+    if (renderSaveBar) renderSaveBar(saveBarContent);
+  });
+
+  if (isLoading) return <div className="flex items-center justify-center h-40"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="space-y-4">
+      {/* Inline save controls when no external saveBar handler */}
+      {!renderSaveBar && (
+        <div className="no-print">
+          {saveBarContent}
         </div>
       )}
 
-      {isDirty && !hasPending && <p className="text-xs no-print" style={{ color: "hsl(38 92% 40%)" }}>⚠ Unsaved changes — click "Save All Changes" to persist to this version.</p>}
+      {/* Print/export controls */}
+      <div className="flex items-center gap-2 flex-wrap no-print">
+        <Button size="sm" className="h-8 text-xs gap-1.5 font-semibold" style={{ background: BLUE_BG, color: "white" }} onClick={() => { window.print(); toast({ title: "Print dialog opened" }); }}>
+          <FileText className="h-3.5 w-3.5" /> PDF
+        </Button>
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExcelExport}><Table2 className="h-3.5 w-3.5" /> Excel</Button>
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleCSVExport}><FileSpreadsheet className="h-3.5 w-3.5" /> CSV</Button>
+      </div>
 
       <div ref={printRef} className="catalog-print-area space-y-0">
 
