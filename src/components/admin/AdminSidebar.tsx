@@ -45,8 +45,7 @@ const NAV: NavItem[] = [
 { label: "Supplies Prices", icon: ShoppingCart, path: "/admin/supplies-prices", feature: "supplies-prices" } as MenuItem,
 { label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", feature: "quotations" } as MenuItem,
 { label: "Import Costings", icon: Ship, path: "/admin/costings/shipments", feature: "costings" } as MenuItem,
-{ label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem,
-{ label: "Settings", icon: Settings, path: "/admin/parameters", feature: "parameters" } as MenuItem];
+{ label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem];
 
 
 const AdminSidebar = () => {
@@ -170,6 +169,12 @@ const AdminSidebar = () => {
         <RouterNavLink to="/admin/wiki" className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`} title={collapsed ? "Help / Wiki" : undefined} style={{ color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
             <BookOpen className="h-4 w-4 shrink-0" />
             {!collapsed && <span>Help / Wiki</span>}
+          </RouterNavLink>
+        }
+        {canView("parameters") &&
+        <RouterNavLink to="/admin/parameters" className={`${linkBase} w-full ${isActive("/admin/parameters") ? "font-medium" : ""}`} title={collapsed ? "Settings" : undefined} style={{ color: isActive("/admin/parameters") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/parameters") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
+            <Settings className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Settings</span>}
           </RouterNavLink>
         }
         <Link to="/" className={`${linkBase} w-full`} style={{ color: "hsl(210 15% 65%)" }} title={collapsed ? "Back to Site" : undefined}>
