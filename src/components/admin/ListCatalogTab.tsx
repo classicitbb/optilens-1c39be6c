@@ -681,7 +681,7 @@ const ListCatalogTab = ({
       }
 
 
-      <div ref={printRef} className="catalog-print-area space-y-0">
+      <div ref={printRef} className="catalog-print-area space-y-0 border">
         {/* Banner */}
         <div className="px-4 py-2.5 mb-4 rounded-md border-primary/30 bg-primary/5 border-0">
           <h2 className="text-sm font-semibold text-primary tracking-wide">{pageTitle} List Editor</h2>
