@@ -43,19 +43,19 @@ const AdminWikiPage = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-slate-700/60 bg-slate-950 flex items-center justify-between">
-        <h1 className="text-sm font-semibold text-white">Help / Wiki</h1>
+      <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+        <h1 className="text-sm font-semibold text-foreground">Help / Wiki</h1>
         {canEdit && (
-          <div className="flex items-center gap-1 bg-slate-800 rounded-md p-0.5">
+          <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
             <button
               onClick={() => setActiveTab("browse")}
-              className={`text-[11px] px-2 py-0.5 rounded ${activeTab === "browse" ? "bg-slate-700 text-slate-100" : "text-slate-400 hover:text-slate-200"}`}
+              className={`text-[11px] px-2 py-0.5 rounded ${activeTab === "browse" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               Browse
             </button>
             <button
               onClick={() => setActiveTab("manage")}
-              className={`text-[11px] px-2 py-0.5 rounded ${activeTab === "manage" ? "bg-slate-700 text-slate-100" : "text-slate-400 hover:text-slate-200"}`}
+              className={`text-[11px] px-2 py-0.5 rounded ${activeTab === "manage" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               Manage Articles
             </button>
@@ -78,7 +78,7 @@ const AdminWikiPage = () => {
           />
         </div>
       ) : (
-        <div className="flex-1 min-h-0 bg-slate-950 overflow-auto">
+        <div className="flex-1 min-h-0 bg-background overflow-auto">
           <HelpArticleEditor />
         </div>
       )}

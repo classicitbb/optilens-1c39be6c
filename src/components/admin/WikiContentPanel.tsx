@@ -41,7 +41,7 @@ const renderContent = (text: string) => {
 
     const withBold = trimmed.split(/(\*\*[^*]+\*\*)/).map((part, j) => {
       if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={j} className="text-slate-100 font-semibold">{part.slice(2, -2)}</strong>;
+        return <strong key={j} className="text-foreground font-semibold">{part.slice(2, -2)}</strong>;
       }
       return part;
     });
@@ -50,17 +50,17 @@ const renderContent = (text: string) => {
       const label = headingMatch[1].replace(/:$/, "").trim();
       const anchorId = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
       elements.push(
-        <h3 key={i} id={anchorId} className="text-sm font-semibold text-slate-100 mt-4 mb-1 flex items-center gap-2 group scroll-mt-4">
+        <h3 key={i} id={anchorId} className="text-sm font-semibold text-foreground mt-4 mb-1 flex items-center gap-2 group scroll-mt-4">
           {withBold}
           <a href={`#${anchorId}`} className="opacity-0 group-hover:opacity-60 transition-opacity" aria-label={`Link to ${label}`}>
-            <Link2 className="h-3.5 w-3.5 text-blue-400" />
+            <Link2 className="h-3.5 w-3.5 text-primary" />
           </a>
         </h3>
       );
     } else if (trimmed.startsWith("• ") || trimmed.startsWith("- ")) {
       elements.push(
         <div key={i} className="flex gap-2 pl-3">
-          <span className="shrink-0 text-blue-400">•</span>
+          <span className="shrink-0 text-primary">•</span>
           <span>{withBold.map((p) => typeof p === "string" ? p.replace(/^[•\-]\s*/, "") : p)}</span>
         </div>
       );
@@ -68,7 +68,7 @@ const renderContent = (text: string) => {
       const num = trimmed.match(/^(\d+)\./)?.[1];
       elements.push(
         <div key={i} className="flex gap-2 pl-3">
-          <span className="shrink-0 font-medium text-blue-400">{num}.</span>
+          <span className="shrink-0 font-medium text-primary">{num}.</span>
           <span>{withBold.map((p) => typeof p === "string" ? p.replace(/^\d+\.\s*/, "") : p)}</span>
         </div>
       );
@@ -100,8 +100,8 @@ const WikiContentPanel = ({ categories, activeArticleId }: WikiContentPanelProps
 
   if (!activeArticle || !activeCategory) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
-        <p className="text-sm text-slate-500">
+      <div className="flex-1 flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">
           Select an article from the sidebar.
         </p>
       </div>
@@ -111,30 +111,30 @@ const WikiContentPanel = ({ categories, activeArticleId }: WikiContentPanelProps
   const Icon = activeCategory.icon;
 
   return (
-    <ScrollArea className="flex-1 bg-slate-900">
+    <ScrollArea className="flex-1 bg-background">
       <div className="max-w-3xl mx-auto p-8 space-y-4">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
           <Icon className="h-3 w-3" />
           <span>{activeCategory.title}</span>
           <span>/</span>
-          <span className="text-slate-300">{activeArticle.title}</span>
+          <span className="text-foreground">{activeArticle.title}</span>
         </div>
 
         {/* Title */}
-        <h1 className="text-xl font-bold text-white tracking-tight">
+        <h1 className="text-xl font-bold text-foreground tracking-tight">
           {activeArticle.title}
         </h1>
 
         {/* Table of Contents */}
         {sections.length > 1 && (
-          <nav className="border border-slate-700/60 rounded-lg bg-slate-800/50 p-4 space-y-1">
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2">On this page</p>
+          <nav className="border border-border rounded-lg bg-muted/30 p-4 space-y-1">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">On this page</p>
             {sections.map((s) => (
               <a
                 key={s.id}
                 href={`#${s.id}`}
-                className="block text-[13px] text-blue-400 hover:text-blue-300 transition-colors py-0.5"
+                className="block text-[13px] text-primary hover:text-primary/80 transition-colors py-0.5"
               >
                 {s.label}
               </a>
@@ -143,7 +143,7 @@ const WikiContentPanel = ({ categories, activeArticleId }: WikiContentPanelProps
         )}
 
         {/* Content */}
-        <div className="text-[13px] leading-relaxed space-y-1.5 text-slate-300">
+        <div className="text-[13px] leading-relaxed space-y-1.5 text-muted-foreground">
           {renderContent(activeArticle.content)}
         </div>
 

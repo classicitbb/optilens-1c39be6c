@@ -33,15 +33,15 @@ const WikiSidebar = ({ categories, activeArticleId, onSelectArticle, searchTerm,
   };
 
   return (
-    <div className="w-64 shrink-0 border-r border-slate-700/60 flex flex-col bg-slate-950">
-      <div className="p-3 border-b border-slate-700/60">
+    <div className="w-64 shrink-0 border-r border-border flex flex-col bg-muted/20">
+      <div className="p-3 border-b border-border">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search articles…"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 h-8 text-xs bg-slate-800 border-slate-700 text-slate-200 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
+            className="pl-8 h-8 text-xs"
           />
         </div>
       </div>
@@ -57,17 +57,15 @@ const WikiSidebar = ({ categories, activeArticleId, onSelectArticle, searchTerm,
               <div key={cat.id}>
                 <button
                   onClick={() => toggleCategory(cat.id)}
-                  className="flex items-center gap-2 w-full px-3 py-1.5 text-[13px] rounded-sm transition-colors hover:bg-slate-800/60"
-                  style={{
-                    color: hasActive ? "rgb(96, 165, 250)" : "rgb(203, 213, 225)",
-                    fontWeight: hasActive ? 600 : 400,
-                  }}
+                  className={`flex items-center gap-2 w-full px-3 py-1.5 text-[13px] rounded-sm transition-colors hover:bg-muted/60 ${
+                    hasActive ? "text-primary font-semibold" : "text-foreground"
+                  }`}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
                   <span className="flex-1 text-left">{cat.title}</span>
                   {isOpen
-                    ? <ChevronDown className="h-3 w-3 shrink-0 text-slate-500" />
-                    : <ChevronRight className="h-3 w-3 shrink-0 text-slate-500" />
+                    ? <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    : <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
                   }
                 </button>
                 {isOpen && (
@@ -80,8 +78,8 @@ const WikiSidebar = ({ categories, activeArticleId, onSelectArticle, searchTerm,
                           onClick={() => onSelectArticle(cat.id, article.id)}
                           className={`flex items-center w-full px-3 py-1 text-[12px] rounded-sm transition-colors text-left ${
                             isActive
-                              ? "bg-blue-500/15 text-blue-400 font-medium"
-                              : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-300"
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                           }`}
                         >
                           {article.title}
