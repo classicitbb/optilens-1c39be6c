@@ -14,10 +14,19 @@ interface HelpPanelProps {
 /** Map admin route to page_slug */
 const routeToSlug = (pathname: string): string => {
   const path = pathname.replace(/^\/admin\/?/, "").replace(/\/$/, "");
-  if (!path) return "catalog";
+  if (!path || path === "catalog") return "catalog";
   const parts = path.split("/");
   if (parts[0] === "costings") return "costings/shipments";
-  if (parts[0] === "quotations") return "quotations";
+  if (parts[0] === "quotations" || parts[0] === "quote-editor") return "quotations";
+  if (parts[0] === "rx-lens-prices") return "rx-lens-prices";
+  if (parts[0] === "stock-lens-prices") return "stock-lens-prices";
+  if (parts[0] === "supplies-prices") return "supplies-prices";
+  if (parts[0] === "reference") return "reference";
+  if (parts[0] === "imports") return "imports";
+  if (parts[0] === "parameters") return "parameters";
+  if (parts[0] === "users") return "users";
+  if (parts[0] === "wiki") return "wiki";
+  if (parts[0] === "content") return "content";
   return parts[0];
 };
 
