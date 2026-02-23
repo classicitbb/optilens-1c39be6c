@@ -131,9 +131,6 @@ const RxLensPricesPage = () => {
             </TabsList>
 
             <TabsContent value="matrix" className="space-y-3 mt-2">
-              <div className="px-3 py-1.5 rounded text-xs font-semibold bg-primary/10 text-primary">
-                {activeVersion?.name} Price Matrix Editor
-              </div>
               <TreatmentMatricesAccordion
                 versionId={resolvedId}
                 showUSD={showUSD}
