@@ -723,17 +723,17 @@ const TreatmentMatricesAccordion = ({
 
 
 
+
+
+
+
+
+
+
+
+
       // keep pending — user must manually save
-    }};const handlePick = async (lensId: string, lensName: string, sellPrice: number) => {
-    if (!pickerTarget) return;
-    try {
-      await upsertMutation.mutateAsync({
-        category: pickerTarget.category,
-        material_index: pickerTarget.materialIndex,
-        treatment_type: pickerTarget.treatmentType,
-        lens_id: lensId,
-        allocated_price_bbd: sellPrice
-      });
+    }};const handlePick = async (lensId: string, lensName: string, sellPrice: number) => {if (!pickerTarget) return;try {await upsertMutation.mutateAsync({ category: pickerTarget.category, material_index: pickerTarget.materialIndex, treatment_type: pickerTarget.treatmentType, lens_id: lensId, allocated_price_bbd: sellPrice });
 
       // Auto-sync to List Catalog
       await syncToCatalog(
@@ -836,7 +836,7 @@ const TreatmentMatricesAccordion = ({
           onClick={() => toggleExpanded("clear" as any)}>
 
           {expanded.has("clear" as any) ?
-          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> :
+          <ChevronDown className="h-4 w-4 shrink-0 bg-secondary-foreground opacity-100 text-popover-foreground" /> :
 
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
           }
