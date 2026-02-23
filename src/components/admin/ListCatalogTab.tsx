@@ -15,6 +15,7 @@ import MarginBadge from "@/components/admin/MarginBadge";
 import LineOverrideDialog from "@/components/admin/LineOverrideDialog";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useReferenceData } from "@/hooks/useReferenceData";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 const BLUE_BG = "#1e4db7";
 const GREEN_BG = "#d4edda";
@@ -79,6 +80,7 @@ const ListCatalogTab = ({
     catalogType
   );
   const { toast } = useToast();
+  const { data: companySettings } = useCompanySettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [lensRows, setLensRows] = useState<Map<string, CatalogRow[]>>(new Map());
@@ -733,7 +735,9 @@ const ListCatalogTab = ({
         }
 
         <div className="mt-8 px-2 py-4 border-t border-border text-center">
-          <p className="text-[10px] italic" style={{ color: LABEL }}>Prices subject to change without notice. All prices in {showUSD ? "USD" : "BBD"} unless otherwise stated. {today}.</p>
+          <p className="text-[10px] italic" style={{ color: LABEL }}>
+            {companySettings?.pdf_footer_html || "Prices subject to change without notice."} All prices in {showUSD ? "USD" : "BBD"} unless otherwise stated. {today}.
+          </p>
         </div>
       </div>
 
