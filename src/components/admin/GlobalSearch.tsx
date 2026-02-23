@@ -20,7 +20,7 @@ const MODULE_RESULTS: SearchResult[] = [
   { id: "imports", label: "Imports", sublabel: "Import lenses, supplies, add-ons from CSV", path: "/admin/imports", icon: Upload, group: "Modules" },
   { id: "rx-lens-prices", label: "RX Lens Prices", sublabel: "Prescription lens pricing", path: "/admin/rx-lens-prices", icon: FlaskConical, group: "Modules" },
   { id: "stock-lens-prices", label: "Stock Lens Prices", sublabel: "Stock lens pricing", path: "/admin/stock-lens-prices", icon: Glasses, group: "Modules" },
-  { id: "buy-sell-prices", label: "Buy / Sell Prices", sublabel: "Buy and sell price management", path: "/admin/buy-sell-prices", icon: ShoppingCart, group: "Modules" },
+  { id: "supplies-prices", label: "Supplies Prices", sublabel: "Supplies price management", path: "/admin/supplies-prices", icon: ShoppingCart, group: "Modules" },
   { id: "quotations", label: "Quotations", sublabel: "Build and export customer quotes", path: "/admin/quotations", icon: FileSpreadsheet, group: "Modules" },
   { id: "costings", label: "Import Costings", sublabel: "Shipments and landed cost management", path: "/admin/costings/shipments", icon: Ship, group: "Modules" },
   { id: "users", label: "Users", sublabel: "Manage users and roles", path: "/admin/users", icon: Users, group: "Modules" },

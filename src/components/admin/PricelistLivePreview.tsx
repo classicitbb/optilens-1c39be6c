@@ -19,7 +19,7 @@ const TREATMENT_LABELS: Record<TreatmentType, string> = {
 const CATALOG_TITLES: Record<string, string> = {
   rx: "Rx Lens Prices",
   stock: "Stock Lens Prices",
-  buysell: "Buy / Sell Prices",
+  buysell: "Supplies Price List",
 };
 
 interface Props {

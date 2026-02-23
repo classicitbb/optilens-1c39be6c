@@ -42,7 +42,7 @@ const NAV: NavItem[] = [
   } as MenuGroup,
   { label: "RX Lens Prices", icon: FlaskConical, path: "/admin/rx-lens-prices", feature: "rx-lens-prices" } as MenuItem,
   { label: "Stock Lens Prices", icon: Glasses, path: "/admin/stock-lens-prices", feature: "stock-lens-prices" } as MenuItem,
-  { label: "Buy / Sell Prices", icon: ShoppingCart, path: "/admin/buy-sell-prices", feature: "buy-sell-prices" } as MenuItem,
+  { label: "Supplies Prices", icon: ShoppingCart, path: "/admin/supplies-prices", feature: "supplies-prices" } as MenuItem,
   { label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", feature: "quotations" } as MenuItem,
   { label: "Import Costings", icon: Ship, path: "/admin/costings/shipments", feature: "costings" } as MenuItem,
   { label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem,

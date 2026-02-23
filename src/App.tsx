@@ -83,7 +83,7 @@ const App = () => (
                 {/* New dedicated price modules */}
                 <Route path="rx-lens-prices" element={<RxLensPricesPage />} />
                 <Route path="stock-lens-prices" element={<StockLensPricesPage />} />
-                <Route path="buy-sell-prices" element={<BuySellPricesPage />} />
+                <Route path="supplies-prices" element={<BuySellPricesPage />} />
                 <Route path="imports" element={<ImportsPage />} />
                 <Route path="history" element={<PlaceholderPage />} />
                 <Route path="exports" element={<PlaceholderPage />} />
