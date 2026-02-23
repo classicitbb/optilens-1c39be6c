@@ -154,7 +154,7 @@ const ListCatalogTab = ({
         addonId: r.row_type === "addon" ? r.item_id ?? undefined : undefined,
         supplyId: r.row_type === "supply" ? r.item_id ?? undefined : undefined,
         matrixCell: r.row_key.startsWith("matrix::") ? r.row_key.replace("matrix::", "").replace(/::/g, " – ") : undefined,
-        supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || "",
+        supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || linkedSupply?.supplier_name || "",
       };
       if (r.row_type === "lens") { const arr = newLens.get(r.section) ?? []; arr.push(row); newLens.set(r.section, arr); }
       else if (r.row_type === "addon") { const arr = newAddon.get(r.section) ?? []; arr.push(row); newAddon.set(r.section, arr); }
