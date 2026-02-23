@@ -161,7 +161,7 @@ const ListCatalogTab = ({
         addonId: r.row_type === "addon" ? r.item_id ?? undefined : undefined,
         supplyId: r.row_type === "supply" ? r.item_id ?? undefined : undefined,
         matrixCell: r.row_key.startsWith("matrix::") ? r.row_key.replace("matrix::", "").replace(/::/g, " – ") : undefined,
-        supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || linkedSupply?.supplier_name || ""
+        supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || linkedAddon?.supplier_name || linkedSupply?.supplier_name || ""
       };
       if (r.row_type === "lens") {const arr = newLens.get(r.section) ?? [];arr.push(row);newLens.set(r.section, arr);} else
       if (r.row_type === "addon") {const arr = newAddon.get(r.section) ?? [];arr.push(row);newAddon.set(r.section, arr);} else
@@ -218,7 +218,7 @@ const ListCatalogTab = ({
     for (const cat of cats) {
       const items = active.filter((a) => a.category === cat);
       if (!items.length) continue;
-      map.set(cat, items.map((a) => ({ key: `addon-${a.id}`, section: cat, description: a.name + (a.description ? ` — ${a.description}` : ""), bbd: a.price, usd: a.price * fxRate, margin: a.cost > 0 ? parseFloat(((a.price - a.cost) / a.price * 100).toFixed(1)) : null, addonId: a.id })));
+      map.set(cat, items.map((a) => ({ key: `addon-${a.id}`, section: cat, description: a.name + (a.description ? ` — ${a.description}` : ""), bbd: a.price, usd: a.price * fxRate, margin: a.cost > 0 ? parseFloat(((a.price - a.cost) / a.price * 100).toFixed(1)) : null, addonId: a.id, supplier: a.supplier_name || "" })));
     }
     return map;
   }, [allAddons, fxRate, showTreatmentsAddons, catalogType]);
@@ -231,7 +231,7 @@ const ListCatalogTab = ({
     for (const cat of cats) {
       const items = active.filter((s) => s.category === cat);
       if (!items.length) continue;
-      map.set(cat, items.map((s) => ({ key: `supply-${s.id}`, section: cat, description: s.name + (s.description ? ` — ${s.description}` : ""), bbd: s.sell_price, usd: s.sell_price * fxRate, margin: s.base_price > 0 ? parseFloat(((s.sell_price - s.base_price * 2) / s.sell_price * 100).toFixed(1)) : null, supplyId: s.id })));
+      map.set(cat, items.map((s) => ({ key: `supply-${s.id}`, section: cat, description: s.name + (s.description ? ` — ${s.description}` : ""), bbd: s.sell_price, usd: s.sell_price * fxRate, margin: s.base_price > 0 ? parseFloat(((s.sell_price - s.base_price * 2) / s.sell_price * 100).toFixed(1)) : null, supplyId: s.id, supplier: s.supplier_name || "" })));
     }
     return map;
   }, [allSupplies, fxRate, catalogType]);
