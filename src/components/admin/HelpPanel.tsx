@@ -15,7 +15,6 @@ interface HelpPanelProps {
 const routeToSlug = (pathname: string): string => {
   const path = pathname.replace(/^\/admin\/?/, "").replace(/\/$/, "");
   if (!path) return "catalog";
-  // Handle sub-routes like costings/shipments/123
   const parts = path.split("/");
   if (parts[0] === "costings") return "costings/shipments";
   if (parts[0] === "quotations") return "quotations";
@@ -42,17 +41,20 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
     setExpandedId(null);
   }, [slug]);
 
-  // Resize handler
+  // Resize handler – prevent text selection while dragging
   useEffect(() => {
     if (!resizing) return;
     const onMove = (e: MouseEvent) => {
+      e.preventDefault();
       const newWidth = window.innerWidth - e.clientX;
       setWidth(Math.min(Math.max(280, newWidth), 600));
     };
     const onUp = () => setResizing(false);
+    document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
     return () => {
+      document.body.style.userSelect = "";
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
@@ -60,15 +62,16 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
 
   if (!open) return null;
 
-  /** Render markdown-ish content */
+  /** Render markdown-ish content – split on real newlines AND literal \n sequences */
   const renderContent = (text: string) => {
-    return text.split("\n").map((line, i) => {
+    const normalized = text.replace(/\\n/g, "\n");
+    return normalized.split("\n").map((line, i) => {
       const trimmed = line.trim();
       if (!trimmed) return <div key={i} className="h-2" />;
 
       const withBold = trimmed.split(/(\*\*[^*]+\*\*)/).map((part, j) => {
         if (part.startsWith("**") && part.endsWith("**")) {
-          return <strong key={j} className="font-semibold" style={{ color: "hsl(215 30% 15%)" }}>{part.slice(2, -2)}</strong>;
+          return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
         }
         return part;
       });
@@ -76,7 +79,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
       if (trimmed.startsWith("• ") || trimmed.startsWith("- ")) {
         return (
           <div key={i} className="flex gap-2 pl-2">
-            <span className="shrink-0" style={{ color: "hsl(215 65% 50%)" }}>•</span>
+            <span className="shrink-0 text-primary">•</span>
             <span>{withBold.map((p) => typeof p === "string" ? p.replace(/^[•\-]\s*/, "") : p)}</span>
           </div>
         );
@@ -93,42 +96,33 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
     >
       {/* Resize handle */}
       <div
-        className="w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors"
+        className="w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors shrink-0"
         onMouseDown={() => setResizing(true)}
         style={{ background: resizing ? "hsl(215 65% 50% / 0.3)" : "transparent" }}
       />
 
       {/* Panel */}
-      <div
-        className="flex-1 flex flex-col border-l shadow-xl"
-        style={{
-          background: "hsl(0 0% 100%)",
-          borderColor: "hsl(215 15% 85%)",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-4 h-11 border-b shrink-0"
-          style={{ borderColor: "hsl(215 15% 85%)" }}
-        >
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
-            <span className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Help</span>
+      <div className="flex-1 flex flex-col border-l shadow-xl bg-background border-border min-w-0">
+        {/* Header – always visible */}
+        <div className="flex items-center justify-between px-4 h-11 border-b border-border shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+            <span className="text-sm font-semibold text-foreground truncate">Help</span>
           </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
 
-        {/* Content */}
-        <ScrollArea className="flex-1">
+        {/* Content – scrollable */}
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-4 space-y-2">
             {isLoading && (
-              <p className="text-xs" style={{ color: "hsl(215 20% 45%)" }}>Loading...</p>
+              <p className="text-xs text-muted-foreground">Loading...</p>
             )}
 
             {!isLoading && articles.length === 0 && (
-              <p className="text-xs" style={{ color: "hsl(215 20% 45%)" }}>
+              <p className="text-xs text-muted-foreground">
                 No help articles available for this page.
               </p>
             )}
@@ -138,31 +132,26 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
               return (
                 <div
                   key={article.id}
-                  className="border rounded-lg overflow-hidden"
-                  style={{ borderColor: "hsl(215 15% 88%)" }}
+                  className="border border-border rounded-lg overflow-hidden"
                 >
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : article.id)}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
                   >
                     <ChevronRight
-                      className="h-3.5 w-3.5 shrink-0 transition-transform"
+                      className="h-3.5 w-3.5 shrink-0 transition-transform text-muted-foreground"
                       style={{
-                        color: "hsl(215 20% 45%)",
                         transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                       }}
                     />
-                    <span className="text-[13px] font-medium" style={{ color: "hsl(215 30% 15%)" }}>
+                    <span className="text-[13px] font-medium text-foreground">
                       {article.title}
                     </span>
                   </button>
 
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-3">
-                      <div
-                        className="text-[12px] leading-relaxed space-y-1"
-                        style={{ color: "hsl(215 15% 35%)" }}
-                      >
+                      <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground">
                         {renderContent(article.content)}
                       </div>
                       <HelpFeedbackButtons articleId={article.id} pageSlug={slug} />
