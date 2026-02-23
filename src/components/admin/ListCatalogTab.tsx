@@ -32,7 +32,7 @@ export interface CatalogRow {
   addonId?: string;
   supplyId?: string;
   matrixCell?: string; // screen-only, hidden on print/export
-  supplier?: string;   // supplier abbrev
+  supplier?: string; // supplier abbrev
 }
 
 type SortDir = "asc" | "desc" | null;
@@ -63,14 +63,14 @@ const ListCatalogTab = ({
   versionId = null,
   pendingMatrixRowKeys,
   onSaved,
-  renderSaveBar,
+  renderSaveBar
 }: ListCatalogTabProps) => {
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: allSupplies, isLoading: sLoading } = useSupplies();
   const { data: priceMatrixData } = usePriceMatrix();
   const { data: mftypeRef = [] } = useReferenceData("mftypes");
-  const matrixCategories = useMemo(() => (priceMatrixData ?? []).map(r => r.category), [priceMatrixData]);
+  const matrixCategories = useMemo(() => (priceMatrixData ?? []).map((r) => r.category), [priceMatrixData]);
   const { data: savedRows, isLoading: rowsLoading, saveRows } = usePricelistCatalogRows(
     versionId ?? null,
     catalogType
@@ -82,15 +82,15 @@ const ListCatalogTab = ({
   const [addonRows, setAddonRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [supplyRows, setSupplyRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [isDirty, setIsDirty] = useState(false);
-  const [editingDesc, setEditingDesc] = useState<{ key: string; value: string } | null>(null);
-  const [sortState, setSortState] = useState<Map<string, { col: string; dir: SortDir }>>(new Map());
+  const [editingDesc, setEditingDesc] = useState<{key: string;value: string;} | null>(null);
+  const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
   const [hasViewed, setHasViewed] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
 
   const [lensPickerOpen, setLensPickerOpen] = useState(false);
   const [supplyPickerOpen, setSupplyPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<{
-    section: string; rowKey: string;
+    section: string;rowKey: string;
     mode: "cell" | "add-lens" | "add-addon" | "add-supply";
     addonSection?: string;
   } | null>(null);
@@ -108,7 +108,7 @@ const ListCatalogTab = ({
   const CATALOG_TO_SECTION_LABEL: Record<string, string> = {
     rx: "RX Lens Prices",
     stock: "Stock Lens Prices",
-    buysell: "Supplies Prices",
+    buysell: "Supplies Prices"
   };
 
   const isLoading = lLoading || aLoading || sLoading || rowsLoading;
@@ -121,9 +121,9 @@ const ListCatalogTab = ({
 
   // When savedRows changes, reset local state from DB
   useEffect(() => {
-    if (!versionId) { setLensRows(new Map()); setAddonRows(new Map()); setSupplyRows(new Map()); setIsDirty(false); return; }
+    if (!versionId) {setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);return;}
     if (!savedRows) return;
-    if (savedRows.length === 0) { setLensRows(new Map()); setAddonRows(new Map()); setSupplyRows(new Map()); setIsDirty(false); return; }
+    if (savedRows.length === 0) {setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);return;}
     const newLens = new Map<string, CatalogRow[]>();
     const newAddon = new Map<string, CatalogRow[]>();
     const newSupply = new Map<string, CatalogRow[]>();
@@ -137,12 +137,12 @@ const ListCatalogTab = ({
       // Compute margin from linked item cost
       let itemCost: number | null = null;
       if (linkedLens) itemCost = linkedLens.base_price * 2; // landed cost approx
-      else if (linkedAddon) itemCost = linkedAddon.cost;
-      else if (linkedSupply) itemCost = linkedSupply.base_price * 2;
+      else if (linkedAddon) itemCost = linkedAddon.cost;else
+      if (linkedSupply) itemCost = linkedSupply.base_price * 2;
       const sellPrice = r.bbd_price;
-      const computedMargin = itemCost != null && itemCost > 0 && sellPrice != null && sellPrice > 0
-        ? parseFloat((((sellPrice - itemCost) / sellPrice) * 100).toFixed(1))
-        : null;
+      const computedMargin = itemCost != null && itemCost > 0 && sellPrice != null && sellPrice > 0 ?
+      parseFloat(((sellPrice - itemCost) / sellPrice * 100).toFixed(1)) :
+      null;
       const row: CatalogRow = {
         key: r.row_key,
         section: r.section,
@@ -154,13 +154,13 @@ const ListCatalogTab = ({
         addonId: r.row_type === "addon" ? r.item_id ?? undefined : undefined,
         supplyId: r.row_type === "supply" ? r.item_id ?? undefined : undefined,
         matrixCell: r.row_key.startsWith("matrix::") ? r.row_key.replace("matrix::", "").replace(/::/g, " – ") : undefined,
-        supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || linkedSupply?.supplier_name || "",
+        supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || linkedSupply?.supplier_name || ""
       };
-      if (r.row_type === "lens") { const arr = newLens.get(r.section) ?? []; arr.push(row); newLens.set(r.section, arr); }
-      else if (r.row_type === "addon") { const arr = newAddon.get(r.section) ?? []; arr.push(row); newAddon.set(r.section, arr); }
-      else { const arr = newSupply.get(r.section) ?? []; arr.push(row); newSupply.set(r.section, arr); }
+      if (r.row_type === "lens") {const arr = newLens.get(r.section) ?? [];arr.push(row);newLens.set(r.section, arr);} else
+      if (r.row_type === "addon") {const arr = newAddon.get(r.section) ?? [];arr.push(row);newAddon.set(r.section, arr);} else
+      {const arr = newSupply.get(r.section) ?? [];arr.push(row);newSupply.set(r.section, arr);}
     }
-    setLensRows(newLens); setAddonRows(newAddon); setSupplyRows(newSupply); setIsDirty(false);
+    setLensRows(newLens);setAddonRows(newAddon);setSupplyRows(newSupply);setIsDirty(false);
   }, [savedRows, versionId]);
 
   /* ── Default rows from catalog ── */
@@ -230,12 +230,12 @@ const ListCatalogTab = ({
   }, [allSupplies, fxRate, catalogType]);
 
   const hasDbRows = savedRows && savedRows.length > 0;
-  const effectiveLensRows = useMemo<Map<string, CatalogRow[]>>(() => { if (hasDbRows) return lensRows; const m = new Map(defaultLensRows); lensRows.forEach((r, s) => m.set(s, r)); return m; }, [defaultLensRows, lensRows, hasDbRows]);
-  const effectiveAddonRows = useMemo<Map<string, CatalogRow[]>>(() => { if (hasDbRows) return addonRows; const m = new Map(defaultAddonRows); addonRows.forEach((r, s) => m.set(s, r)); return m; }, [defaultAddonRows, addonRows, hasDbRows]);
-  const effectiveSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => { if (hasDbRows) return supplyRows; const m = new Map(defaultSupplyRows); supplyRows.forEach((r, s) => m.set(s, r)); return m; }, [defaultSupplyRows, supplyRows, hasDbRows]);
+  const effectiveLensRows = useMemo<Map<string, CatalogRow[]>>(() => {if (hasDbRows) return lensRows;const m = new Map(defaultLensRows);lensRows.forEach((r, s) => m.set(s, r));return m;}, [defaultLensRows, lensRows, hasDbRows]);
+  const effectiveAddonRows = useMemo<Map<string, CatalogRow[]>>(() => {if (hasDbRows) return addonRows;const m = new Map(defaultAddonRows);addonRows.forEach((r, s) => m.set(s, r));return m;}, [defaultAddonRows, addonRows, hasDbRows]);
+  const effectiveSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => {if (hasDbRows) return supplyRows;const m = new Map(defaultSupplyRows);supplyRows.forEach((r, s) => m.set(s, r));return m;}, [defaultSupplyRows, supplyRows, hasDbRows]);
 
   const toggleSort = (section: string, col: string) => {
-    setSortState((prev) => { const next = new Map(prev); const cur = prev.get(section); if (!cur || cur.col !== col) { next.set(section, { col, dir: "asc" }); } else if (cur.dir === "asc") { next.set(section, { col, dir: "desc" }); } else { next.set(section, { col: "", dir: null }); } return next; });
+    setSortState((prev) => {const next = new Map(prev);const cur = prev.get(section);if (!cur || cur.col !== col) {next.set(section, { col, dir: "asc" });} else if (cur.dir === "asc") {next.set(section, { col, dir: "desc" });} else {next.set(section, { col: "", dir: null });}return next;});
   };
 
   const sortedRows = useCallback((section: string, rows: CatalogRow[]): CatalogRow[] => {
@@ -243,11 +243,11 @@ const ListCatalogTab = ({
     if (!s || !s.dir || !s.col) return rows;
     return [...rows].sort((a, b) => {
       let aVal: any, bVal: any;
-      if (s.col === "description") { aVal = a.description; bVal = b.description; }
-      else if (s.col === "bbd") { aVal = a.bbd ?? -Infinity; bVal = b.bbd ?? -Infinity; }
-      else if (s.col === "usd") { aVal = a.usd ?? -Infinity; bVal = b.usd ?? -Infinity; }
-      else if (s.col === "margin") { aVal = a.margin ?? -Infinity; bVal = b.margin ?? -Infinity; }
-      else return 0;
+      if (s.col === "description") {aVal = a.description;bVal = b.description;} else
+      if (s.col === "bbd") {aVal = a.bbd ?? -Infinity;bVal = b.bbd ?? -Infinity;} else
+      if (s.col === "usd") {aVal = a.usd ?? -Infinity;bVal = b.usd ?? -Infinity;} else
+      if (s.col === "margin") {aVal = a.margin ?? -Infinity;bVal = b.margin ?? -Infinity;} else
+      return 0;
       if (typeof aVal === "string") return s.dir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       return s.dir === "asc" ? aVal - bVal : bVal - aVal;
     });
@@ -257,8 +257,8 @@ const ListCatalogTab = ({
   const commitDesc = (type: "lens" | "addon" | "supply", section: string, rowKey: string, value: string) => {
     const setter = type === "lens" ? setLensRows : type === "addon" ? setAddonRows : setSupplyRows;
     const effectiveMap = type === "lens" ? effectiveLensRows : type === "addon" ? effectiveAddonRows : effectiveSupplyRows;
-    setter((prev) => { const next = new Map(prev); const rows = [...(effectiveMap.get(section) ?? [])]; const idx = rows.findIndex((r) => r.key === rowKey); if (idx !== -1) rows[idx] = { ...rows[idx], description: value }; next.set(section, rows); return next; });
-    setEditingDesc(null); setIsDirty(true);
+    setter((prev) => {const next = new Map(prev);const rows = [...(effectiveMap.get(section) ?? [])];const idx = rows.findIndex((r) => r.key === rowKey);if (idx !== -1) rows[idx] = { ...rows[idx], description: value };next.set(section, rows);return next;});
+    setEditingDesc(null);setIsDirty(true);
   };
 
   /* ── Picker handlers ── */
@@ -266,16 +266,16 @@ const ListCatalogTab = ({
     if (!pickerTarget) return;
     const { section, rowKey, mode } = pickerTarget;
     if (mode === "cell" && item.type === "lens") {
-      setLensRows((prev) => { const next = new Map(prev); const rows = [...(effectiveLensRows.get(section) ?? [])]; const idx = rows.findIndex((r) => r.key === rowKey); if (idx !== -1) rows[idx] = { ...rows[idx], description: item.name, bbd: item.sell_price, usd: item.sell_price * fxRate, lensId: item.id }; next.set(section, rows); return next; });
+      setLensRows((prev) => {const next = new Map(prev);const rows = [...(effectiveLensRows.get(section) ?? [])];const idx = rows.findIndex((r) => r.key === rowKey);if (idx !== -1) rows[idx] = { ...rows[idx], description: item.name, bbd: item.sell_price, usd: item.sell_price * fxRate, lensId: item.id };next.set(section, rows);return next;});
       setIsDirty(true);
     } else if (mode === "add-lens" && item.type === "lens") {
       const newRow: CatalogRow = { key: `lens-${item.id}-${Date.now()}`, section, description: item.name, bbd: item.sell_price, usd: item.sell_price * fxRate, margin: null, lensId: item.id };
-      setLensRows((prev) => { const next = new Map(prev); next.set(section, [...(effectiveLensRows.get(section) ?? []), newRow]); return next; });
+      setLensRows((prev) => {const next = new Map(prev);next.set(section, [...(effectiveLensRows.get(section) ?? []), newRow]);return next;});
       setIsDirty(true);
     } else if (mode === "add-addon" && item.type === "addon") {
       const target = pickerTarget.addonSection ?? "ADD ONS";
       const newRow: CatalogRow = { key: `addon-${item.id}-${Date.now()}`, section: target, description: item.name + ((item as any).description ? ` — ${(item as any).description}` : ""), bbd: (item as any).price ?? 0, usd: ((item as any).price ?? 0) * fxRate, margin: null, addonId: item.id };
-      setAddonRows((prev) => { const next = new Map(prev); next.set(target, [...(effectiveAddonRows.get(target) ?? []), newRow]); return next; });
+      setAddonRows((prev) => {const next = new Map(prev);next.set(target, [...(effectiveAddonRows.get(target) ?? []), newRow]);return next;});
       setIsDirty(true);
     }
   };
@@ -284,14 +284,14 @@ const ListCatalogTab = ({
     if (!pickerTarget) return;
     const targetSection = pickerTarget.section || item.category;
     const newRow: CatalogRow = { key: `supply-${item.id}-${Date.now()}`, section: targetSection, description: item.name + (item.description ? ` — ${item.description}` : ""), bbd: item.sell_price, usd: item.sell_price * fxRate, margin: null, supplyId: item.id };
-    setSupplyRows((prev) => { const next = new Map(prev); next.set(targetSection, [...(effectiveSupplyRows.get(targetSection) ?? []), newRow]); return next; });
+    setSupplyRows((prev) => {const next = new Map(prev);next.set(targetSection, [...(effectiveSupplyRows.get(targetSection) ?? []), newRow]);return next;});
     setIsDirty(true);
   };
 
   const removeRow = (section: string, rowKey: string, type: "lens" | "addon" | "supply") => {
-    if (type === "supply") setSupplyRows((prev) => { const next = new Map(prev); next.set(section, (effectiveSupplyRows.get(section) ?? []).filter((r) => r.key !== rowKey)); return next; });
-    else if (type === "addon") setAddonRows((prev) => { const next = new Map(prev); next.set(section, (effectiveAddonRows.get(section) ?? []).filter((r) => r.key !== rowKey)); return next; });
-    else setLensRows((prev) => { const next = new Map(prev); next.set(section, (effectiveLensRows.get(section) ?? []).filter((r) => r.key !== rowKey)); return next; });
+    if (type === "supply") setSupplyRows((prev) => {const next = new Map(prev);next.set(section, (effectiveSupplyRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
+    if (type === "addon") setAddonRows((prev) => {const next = new Map(prev);next.set(section, (effectiveAddonRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
+    setLensRows((prev) => {const next = new Map(prev);next.set(section, (effectiveLensRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});
     setIsDirty(true);
   };
 
@@ -314,17 +314,17 @@ const ListCatalogTab = ({
 
   /* ── Save to DB ── */
   const handleSave = async () => {
-    if (!versionId) { toast({ title: "No version selected", variant: "destructive" }); return; }
+    if (!versionId) {toast({ title: "No version selected", variant: "destructive" });return;}
     let sortOrder = 0;
     const rows: Omit<PricelistCatalogRow, "id">[] = [];
     for (const [sec, secRows] of effectiveLensRows) {
-      for (const r of secRows) { rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "lens", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.lensId ?? null, sort_order: sortOrder++ }); }
+      for (const r of secRows) {rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "lens", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.lensId ?? null, sort_order: sortOrder++ });}
     }
     for (const [sec, secRows] of effectiveAddonRows) {
-      for (const r of secRows) { rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "addon", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.addonId ?? null, sort_order: sortOrder++ }); }
+      for (const r of secRows) {rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "addon", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.addonId ?? null, sort_order: sortOrder++ });}
     }
     for (const [sec, secRows] of effectiveSupplyRows) {
-      for (const r of secRows) { rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "supply", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.supplyId ?? null, sort_order: sortOrder++ }); }
+      for (const r of secRows) {rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "supply", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.supplyId ?? null, sort_order: sortOrder++ });}
     }
     saveRows.mutate(rows, {
       onSuccess: () => {
@@ -332,7 +332,7 @@ const ListCatalogTab = ({
         onSaved?.();
         toast({ title: "Catalog saved", description: "All changes saved." });
       },
-      onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+      onError: (e: any) => toast({ title: "Save failed", description: e.message, variant: "destructive" })
     });
   };
 
@@ -365,15 +365,15 @@ const ListCatalogTab = ({
     const header = showUSD ? "Description,USD $ COST,Margin %" : "Description,BBD $ COST,USD $ COST,Margin %";
     const lines = [header, ...exportRows.filter((r: any) => !r.isHeader).map((r: any) => showUSD ? [`"${r.description}"`, r.usd !== null ? r.usd.toFixed(2) : "", r.margin ?? ""].join(",") : [`"${r.description}"`, r.bbd ?? "", r.usd !== null ? r.usd.toFixed(2) : "", r.margin ?? ""].join(","))];
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${pageTitle.replace(/\s+/g, "_")}.csv`; a.click();
+    const a = document.createElement("a");a.href = URL.createObjectURL(blob);a.download = `${pageTitle.replace(/\s+/g, "_")}.csv`;a.click();
     toast({ title: "CSV exported" });
   };
 
   const today = format(new Date(), "dd MMMM yyyy");
 
-  const SortIcon = ({ section, col }: { section: string; col: string }) => {
+  const SortIcon = ({ section, col }: {section: string;col: string;}) => {
     const s = sortState.get(section);
-    return <button className="ml-1 opacity-50 hover:opacity-100 transition-opacity no-print" onClick={(e) => { e.stopPropagation(); toggleSort(section, col); }}><ArrowUpDown className="h-2.5 w-2.5 inline" style={{ color: s?.col === col && s.dir ? "hsl(215 65% 50%)" : "inherit" }} /></button>;
+    return <button className="ml-1 opacity-50 hover:opacity-100 transition-opacity no-print" onClick={(e) => {e.stopPropagation();toggleSort(section, col);}}><ArrowUpDown className="h-2.5 w-2.5 inline" style={{ color: s?.col === col && s.dir ? "hsl(215 65% 50%)" : "inherit" }} /></button>;
   };
 
   const getRowCost = (row: CatalogRow): number | null => {
@@ -401,7 +401,7 @@ const ListCatalogTab = ({
       itemName: row.description,
       cost: getRowCost(row),
       currentPrice: row.bbd,
-      sectionType: CATALOG_TO_SECTION_LABEL[catalogType] ?? "RX Lens Prices",
+      sectionType: CATALOG_TO_SECTION_LABEL[catalogType] ?? "RX Lens Prices"
     });
   };
 
@@ -413,8 +413,8 @@ const ListCatalogTab = ({
     return (
       <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
         {/* Reorder arrows for addon/supply rows */}
-        {showReorder && (
-          <td className="border border-slate-200 p-0 no-print w-8">
+        {showReorder &&
+        <td className="border border-slate-200 p-0 no-print w-8">
             <div className="flex flex-col items-center opacity-0 group-hover/row:opacity-100 transition-opacity">
               <button className="p-0.5 hover:bg-muted/50 disabled:opacity-20" disabled={i === 0} onClick={() => moveRow(section, row.key, "up", rowType)}>
                 <ArrowUp className="h-2.5 w-2.5 text-muted-foreground" />
@@ -424,7 +424,7 @@ const ListCatalogTab = ({
               </button>
             </div>
           </td>
-        )}
+        }
         {/* Supplier — before description */}
         <td className="px-2 py-1.5 border border-slate-200 text-center whitespace-nowrap" style={{ color: "hsl(215 50% 40%)", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
           {row.supplier || "—"}
@@ -432,28 +432,28 @@ const ListCatalogTab = ({
         <td className="px-3 py-1.5 border border-slate-200 group relative" style={{ color: "hsl(215 30% 15%)" }}>
           <div className="flex items-center gap-1">
             {isPending && <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" title="Pending — save to confirm" />}
-            {isEditingThisDesc ? (
-              <input autoFocus className="flex-1 text-xs border rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-primary/30" value={editingDesc.value}
-                onChange={(e) => setEditingDesc({ key: row.key, value: e.target.value })}
-                onBlur={() => commitDesc(rowType, section, row.key, editingDesc.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") commitDesc(rowType, section, row.key, editingDesc.value); if (e.key === "Escape") setEditingDesc(null); }} />
-            ) : (
-              <span className="flex-1 truncate cursor-text hover:bg-primary/5 rounded px-0.5" title="Click to edit description" onClick={() => setEditingDesc({ key: row.key, value: row.description })}>{row.description}</span>
-            )}
-            {rowType === "lens" && !isEditingThisDesc && (
-              <button className="opacity-0 group-hover:opacity-100 transition-opacity no-print shrink-0" title="Change linked lens" onClick={() => { setPickerTarget({ section, rowKey: row.key, mode: "cell" }); setLensPickerOpen(true); }}>
+            {isEditingThisDesc ?
+            <input autoFocus className="flex-1 text-xs border rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-primary/30" value={editingDesc.value}
+            onChange={(e) => setEditingDesc({ key: row.key, value: e.target.value })}
+            onBlur={() => commitDesc(rowType, section, row.key, editingDesc.value)}
+            onKeyDown={(e) => {if (e.key === "Enter") commitDesc(rowType, section, row.key, editingDesc.value);if (e.key === "Escape") setEditingDesc(null);}} /> :
+
+            <span className="flex-1 truncate cursor-text hover:bg-primary/5 rounded px-0.5" title="Click to edit description" onClick={() => setEditingDesc({ key: row.key, value: row.description })}>{row.description}</span>
+            }
+            {rowType === "lens" && !isEditingThisDesc &&
+            <button className="opacity-0 group-hover:opacity-100 transition-opacity no-print shrink-0" title="Change linked lens" onClick={() => {setPickerTarget({ section, rowKey: row.key, mode: "cell" });setLensPickerOpen(true);}}>
                 <Search className="h-3 w-3" style={{ color: "hsl(215 65% 50%)" }} />
               </button>
-            )}
+            }
           </div>
           {row.lensId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(215 65% 45%)" }}>↳ linked lens</div>}
           {row.supplyId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(130 55% 40%)" }}>↳ linked supply</div>}
         </td>
         {/* Matrix Cell — screen-only, hidden on print/export — BEFORE BBD */}
         <td className="px-2 py-1.5 border border-slate-200 no-print max-w-[160px]" style={{ color: "hsl(215 30% 55%)", fontSize: "10px" }}>
-          {row.matrixCell ? (
-            <span className="truncate block" title={row.matrixCell}>{row.matrixCell}</span>
-          ) : "—"}
+          {row.matrixCell ?
+          <span className="truncate block" title={row.matrixCell}>{row.matrixCell}</span> :
+          "—"}
         </td>
         {/* BBD always visible in editor */}
         <td className={`px-3 py-1.5 text-right border border-slate-200 font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: "hsl(215 60% 97%)", color: "hsl(215 60% 30%)" }}>
@@ -467,28 +467,28 @@ const ListCatalogTab = ({
             marginPercent={row.margin}
             cost={rowCost}
             sellPrice={row.bbd}
-            itemName={row.description}
-          />
+            itemName={row.description} />
+
         </td>
         {/* Pencil override icon */}
         <td className="border border-slate-200 p-0 no-print w-7">
-          {(row.lensId || row.addonId || row.supplyId) && versionId && (
-            <button
-              className="w-full h-full flex items-center justify-center p-1 hover:bg-primary/10 transition-colors"
-              title="Override price for this line"
-              onClick={() => openOverride(row, rowType)}
-            >
+          {(row.lensId || row.addonId || row.supplyId) && versionId &&
+          <button
+            className="w-full h-full flex items-center justify-center p-1 hover:bg-primary/10 transition-colors"
+            title="Override price for this line"
+            onClick={() => openOverride(row, rowType)}>
+
               <Pencil className="h-3 w-3" style={{ color: "hsl(215 65% 50%)" }} />
             </button>
-          )}
+          }
         </td>
         <td className="border border-slate-200 p-0 no-print">
           <button className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
             <X className="h-3 w-3 text-destructive/60 hover:text-destructive" />
           </button>
         </td>
-      </tr>
-    );
+      </tr>);
+
   };
 
   const renderSection = (title: string, rows: CatalogRow[], rowType: "lens" | "addon" | "supply") => {
@@ -498,14 +498,14 @@ const ListCatalogTab = ({
         <div className="px-4 py-2 rounded-sm mb-0.5 font-bold text-sm uppercase tracking-wide flex items-center justify-between" style={{ background: BLUE_BG, color: "white" }}>
           <span>{title}</span>
           <button className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
-            onClick={() => { setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined }); if (rowType === "supply") setSupplyPickerOpen(true); else setLensPickerOpen(true); }}>
+          onClick={() => {setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined });if (rowType === "supply") setSupplyPickerOpen(true);else setLensPickerOpen(true);}}>
             <Plus className="h-3 w-3" /> Add Line
           </button>
         </div>
-        {displayRows.length === 0 ? (
-          <p className="text-xs text-muted-foreground px-3 py-3 italic">{catalogType === "stock" ? "No lens selected — click \"+ Add Line\" to add." : "No items — click \"Add Line\" to add."}</p>
-        ) : (
-            <table className="w-full text-xs border-collapse">
+        {displayRows.length === 0 ?
+        <p className="text-xs text-muted-foreground px-3 py-3 italic">{catalogType === "stock" ? "No lens selected — click \"+ Add Line\" to add." : "No items — click \"Add Line\" to add."}</p> :
+
+        <table className="w-full text-xs border-collapse">
             <thead>
               <tr>
                 {(rowType === "addon" || rowType === "supply") && <th className="w-8 no-print border border-slate-300" style={{ background: "hsl(215 15% 93%)" }} />}
@@ -524,16 +524,16 @@ const ListCatalogTab = ({
             </thead>
             <tbody>{displayRows.map((row, i) => renderRow(row, i, rowType, title, displayRows.length))}</tbody>
           </table>
-        )}
-      </div>
-    );
+        }
+      </div>);
+
   };
 
   const toggleSection = (key: string) => {
     setOpenSections((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (next.has(key)) next.delete(key);else
+      next.add(key);
       return next;
     });
   };
@@ -550,8 +550,8 @@ const ListCatalogTab = ({
     for (const key of effectiveLensRows.keys()) {
       const parts = key.split(" — ");
       // If first part is a treatment prefix, the category is the rest
-      const isMatrixKey = TREATMENT_PREFIXES.some(tp => parts[0].trim() === tp);
-      const category = isMatrixKey ? (parts.slice(1).join(" — ") || key) : key;
+      const isMatrixKey = TREATMENT_PREFIXES.some((tp) => parts[0].trim() === tp);
+      const category = isMatrixKey ? parts.slice(1).join(" — ") || key : key;
       if (!categoryMap.has(category)) categoryMap.set(category, []);
       categoryMap.get(category)!.push(key);
     }
@@ -565,7 +565,7 @@ const ListCatalogTab = ({
       return aIdx - bIdx;
     }).map(([category, sectionKeys]) => {
       // Merge all rows for this category regardless of treatment type
-      const allRows = sectionKeys.flatMap(sk => effectiveLensRows.get(sk) ?? []);
+      const allRows = sectionKeys.flatMap((sk) => effectiveLensRows.get(sk) ?? []);
       const accKey = `cat::${category}`;
       const isOpen = openSections.has(accKey);
       const rowCount = allRows.length;
@@ -584,12 +584,12 @@ const ListCatalogTab = ({
           <div className="border-t border-border">
             <button
               className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors bg-muted/10"
-              onClick={() => toggleSection(accKey)}
-            >
+              onClick={() => toggleSection(accKey)}>
+
               <div className="flex items-center gap-2">
-                {isOpen
-                  ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                {isOpen ?
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> :
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 }
                 <span className="text-sm font-semibold text-foreground">{category}</span>
               </div>
@@ -601,20 +601,20 @@ const ListCatalogTab = ({
                     e.stopPropagation();
                     setPickerTarget({ section: primarySectionKey, rowKey: "", mode: "add-lens" });
                     setLensPickerOpen(true);
-                  }}
-                >
+                  }}>
+
                   <Plus className="h-3 w-3" /> Add Line
                 </button>
               </div>
             </button>
 
             {/* Accordion content */}
-            {isOpen && (
-              <div className="border-t border-border">
-                {allRows.length === 0 ? (
-                  <p className="text-xs text-muted-foreground px-6 py-3 italic">No items — click "Add Line" to add.</p>
-                ) : (
-                  <table className="w-full text-xs border-collapse">
+            {isOpen &&
+            <div className="border-t border-border">
+                {allRows.length === 0 ?
+              <p className="text-xs text-muted-foreground px-6 py-3 italic">No items — click "Add Line" to add.</p> :
+
+              <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr>
                         <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
@@ -629,41 +629,41 @@ const ListCatalogTab = ({
                     </thead>
                     <tbody>{allRows.map((row, i) => renderRow(row, i, "lens", row.section))}</tbody>
                   </table>
-                )}
+              }
               </div>
-            )}
+            }
           </div>
-        </div>
-      );
+        </div>);
+
     });
   };
 
-  const saveBarContent = (
-    <div className="space-y-2 no-print">
+  const saveBarContent =
+  <div className="space-y-2 no-print">
       <div className="flex items-center gap-2 flex-wrap justify-between">
         <div className="flex items-center gap-1">
           {isDirty && !hasPending && <span className="text-xs" style={{ color: "hsl(38 92% 40%)" }}>⚠ Unsaved changes</span>}
-          {hasPending && (
-            <span className="flex items-center gap-1 text-xs text-red-600">
+          {hasPending &&
+        <span className="flex items-center gap-1 text-xs text-red-600">
               <span className="h-2 w-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
               {pendingMatrixRowKeys!.size} pending sync{pendingMatrixRowKeys!.size > 1 ? "s" : ""}
             </span>
-          )}
+        }
         </div>
         <Button
-          size="sm"
-          className="h-8 text-xs gap-1.5"
-          style={{ background: (isDirty || hasPending) ? "hsl(215 65% 50%)" : undefined }}
-          variant={(isDirty || hasPending) ? "default" : "outline"}
-          onClick={handleSave}
-          disabled={saveRows.isPending}
-        >
+        size="sm"
+        className="h-8 text-xs gap-1.5"
+        style={{ background: isDirty || hasPending ? "hsl(215 65% 50%)" : undefined }}
+        variant={isDirty || hasPending ? "default" : "outline"}
+        onClick={handleSave}
+        disabled={saveRows.isPending}>
+
           {saveRows.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Save All Changes
         </Button>
       </div>
-    </div>
-  );
+    </div>;
+
 
   useEffect(() => {
     if (renderSaveBar) renderSaveBar(saveBarContent);
@@ -674,16 +674,16 @@ const ListCatalogTab = ({
   return (
     <div className="space-y-4">
       {/* Inline save controls when no external saveBar handler */}
-      {!renderSaveBar && (
-        <div className="no-print">
+      {!renderSaveBar &&
+      <div className="no-print">
           {saveBarContent}
         </div>
-      )}
+      }
 
 
       <div ref={printRef} className="catalog-print-area space-y-0">
         {/* Banner */}
-        <div className="px-4 py-2.5 mb-4 rounded-md border border-primary/30 bg-primary/5">
+        <div className="px-4 py-2.5 mb-4 rounded-md border-primary/30 bg-primary/5 border-0">
           <h2 className="text-sm font-semibold text-primary tracking-wide">{pageTitle}</h2>
         </div>
 
@@ -708,14 +708,14 @@ const ListCatalogTab = ({
         })()}
         {catalogType === "rx" && renderRxGrouped()}
 
-        {showTreatmentsAddons && catalogType === "rx" && effectiveAddonRows.size > 0 && (
-          <div className="mt-8 border-t-2 border-dashed border-border pt-4">
+        {showTreatmentsAddons && catalogType === "rx" && effectiveAddonRows.size > 0 &&
+        <div className="mt-8 border-t-2 border-dashed border-border pt-4">
             <div className="px-4 py-2 mb-2 rounded-sm text-xs font-bold tracking-wide" style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}>
               ADD ONS
             </div>
             {[...effectiveAddonRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "addon"))}
           </div>
-        )}
+        }
 
         <div className="mt-8 px-2 py-4 border-t border-border text-center">
           <p className="text-[10px] italic" style={{ color: LABEL }}>Prices subject to change without notice. All prices in {showUSD ? "USD" : "BBD"} unless otherwise stated. {today}.</p>
@@ -726,17 +726,17 @@ const ListCatalogTab = ({
       <SupplyPickerPopover open={supplyPickerOpen} onOpenChange={setSupplyPickerOpen} onPick={handleSupplyPick} currentId={null} categoryFilter={pickerTarget?.section} />
       <LineOverrideDialog
         open={!!overrideTarget}
-        onOpenChange={(v) => { if (!v) setOverrideTarget(null); }}
+        onOpenChange={(v) => {if (!v) setOverrideTarget(null);}}
         versionId={versionId ?? null}
         sectionType={overrideTarget?.sectionType ?? ""}
         referenceType={overrideTarget?.referenceType ?? ""}
         referenceId={overrideTarget?.referenceId ?? ""}
         itemName={overrideTarget?.itemName ?? ""}
         cost={overrideTarget?.cost ?? null}
-        currentPrice={overrideTarget?.currentPrice ?? null}
-      />
-    </div>
-  );
+        currentPrice={overrideTarget?.currentPrice ?? null} />
+
+    </div>);
+
 };
 
 export default ListCatalogTab;
