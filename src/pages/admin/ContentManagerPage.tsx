@@ -347,7 +347,7 @@ const ContentManagerPage = () => {
             className="pl-8 h-7 text-xs bg-slate-800 border-slate-700 text-slate-200"
           />
         </div>
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-white">
           <TabIcon className="inline h-3 w-3 mr-1" />
           {tabConfig.description}
         </p>
