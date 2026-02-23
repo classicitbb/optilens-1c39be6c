@@ -425,34 +425,46 @@ export type Database = {
       }
       help_articles: {
         Row: {
+          category: string
           content: string
+          content_type: string
           created_at: string
+          description: string
           id: string
           is_active: boolean
           page_slug: string
           sort_order: number
           title: string
           updated_at: string
+          visibility: string
         }
         Insert: {
+          category?: string
           content?: string
+          content_type?: string
           created_at?: string
+          description?: string
           id?: string
           is_active?: boolean
           page_slug: string
           sort_order?: number
           title: string
           updated_at?: string
+          visibility?: string
         }
         Update: {
+          category?: string
           content?: string
+          content_type?: string
           created_at?: string
+          description?: string
           id?: string
           is_active?: boolean
           page_slug?: string
           sort_order?: number
           title?: string
           updated_at?: string
+          visibility?: string
         }
         Relationships: []
       }
