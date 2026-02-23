@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { useMatrixAllocations, MATERIAL_COLUMNS, TREATMENT_TYPES, TreatmentType } from "@/hooks/useMatrixAllocations";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useLenses } from "@/hooks/useLenses";
 import { PricelistVersion } from "@/hooks/usePricelistVersions";
+import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { FileText, Table2, FileSpreadsheet, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -28,39 +32,18 @@ interface Props {
   catalogType?: "rx" | "stock" | "buysell";
 }
 
-const fmt = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
-  if (val == null) return "";
-  const v = showUSD ? val * fxRate : val;
-  return parseFloat(v.toFixed(2));
-};
-
-const fmtStr = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
-  if (val == null) return "—";
-  const v = showUSD ? val * fxRate : val;
-  return v.toFixed(2);
-};
-
-// Build a logo HTML snippet from company settings
-const buildLogoHtml = (logoUrl: string | null | undefined) => {
-  if (!logoUrl) return "";
-  return `<img src="${logoUrl}" alt="Logo" style="max-height:60px;margin-bottom:8px;display:block" crossorigin="anonymous" />`;
-};
-
-// Strip HTML tags for text-based exports
-const stripHtml = (html: string) => {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return div.textContent || div.innerText || "";
-};
-
 const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
   const { data: catalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
+  const { calcFinalPrice, getOverrideReason } = usePriceHierarchy(version.id);
   const { toast } = useToast();
   const { logChange } = useAuditLog();
+  const { isAdmin, canEdit } = useAdminRole();
+
+  const [showMargins, setShowMargins] = useState(false);
 
   const logExport = (formatType: string, viewType: string) => {
     logChange({
@@ -78,26 +61,59 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
   const headerHtml = company?.pdf_header_html?.trim() || "";
   const footerHtml = company?.pdf_footer_html?.trim() || "";
 
-  // For text-based exports: use stripped header or fallback
+  const stripHtml = (html: string) => {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.textContent || div.innerText || "";
+  };
+
+  const buildLogoHtml = (logoUrl: string | null | undefined) => {
+    if (!logoUrl) return "";
+    return `<img src="${logoUrl}" alt="Logo" style="max-height:60px;margin-bottom:8px;display:block" crossorigin="anonymous" />`;
+  };
+
   const companyHeader = headerHtml
     ? [stripHtml(headerHtml), `${version.name} — ${today} (${currency})`]
-    : [
-        company?.company_name ?? "",
-        company?.slogan ?? "",
-        `${company?.tel ?? ""} | ${company?.email ?? ""}`,
-        `${version.name} — ${today} (${currency})`,
-      ];
+    : [company?.company_name ?? "", company?.slogan ?? "", `${company?.tel ?? ""} | ${company?.email ?? ""}`, `${version.name} — ${today} (${currency})`];
 
   const footerText = footerHtml
     ? stripHtml(footerHtml)
     : `All prices in ${currency}. Prices subject to change without notice. · ${company?.company_name ?? ""}`;
 
-  // Helper: get addon rows grouped by section
+  // ── Price calculation helpers ──────────────────────────────────────────────
+  /** Apply hierarchy to a value and optionally convert to display currency */
+  const hp = (basePrice: number | null, refId?: string, refType?: string): number | null => {
+    const finalBbd = calcFinalPrice(basePrice, version, catalogType, refId, refType);
+    if (finalBbd == null) return null;
+    return showUSD ? finalBbd * fxRate : finalBbd;
+  };
+
+  const hpStr = (basePrice: number | null, refId?: string, refType?: string): string => {
+    const v = hp(basePrice, refId, refType);
+    return v != null ? v.toFixed(2) : "—";
+  };
+
+  const hpNum = (basePrice: number | null, refId?: string, refType?: string): any => {
+    const v = hp(basePrice, refId, refType);
+    return v != null ? parseFloat(v.toFixed(2)) : "";
+  };
+
+  /** Calculate margin % for a catalog row (sell vs cost from lens base_price) */
+  const calcMargin = (row: { bbd_price: number | null; item_id: string | null; row_key?: string; row_type?: string }): string => {
+    if (!row.bbd_price || !row.item_id) return "";
+    const lens = allLenses.find((l) => l.id === row.item_id);
+    if (!lens || !lens.base_price) return "";
+    const finalSell = calcFinalPrice(row.bbd_price, version, catalogType, row.row_key ?? "", row.row_type ?? "lens");
+    if (!finalSell || finalSell <= 0) return "";
+    const cost = lens.base_price * (showUSD ? fxRate : 2);
+    const margin = ((finalSell - cost) / finalSell) * 100;
+    return margin.toFixed(1) + "%";
+  };
+
+  // ── Shared helpers ────────────────────────────────────────────────────────
   const getAddonsBySection = () => {
     const primaryType = catalogType === "buysell" ? "supply" : "lens";
-    const addonRows = catalogRows
-      .filter((r) => r.row_type !== primaryType)
-      .sort((a, b) => a.sort_order - b.sort_order);
+    const addonRows = catalogRows.filter((r) => r.row_type !== primaryType).sort((a, b) => a.sort_order - b.sort_order);
     const map = new Map<string, typeof addonRows>();
     for (const r of addonRows) {
       const sec = r.section || "Other";
@@ -107,25 +123,25 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
     return map;
   };
 
-  // Helper: get primary rows (lens for rx/stock, supply for buysell)
   const getPrimaryRows = () => {
     const primaryType = catalogType === "buysell" ? "supply" : "lens";
     return catalogRows.filter((r) => r.row_type === primaryType);
   };
 
-  // Helper: get active columns per treatment
   const getActiveCols = (tt: TreatmentType) =>
     MATERIAL_COLUMNS.filter((col) =>
       allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
     );
 
-  // Helper: get active categories per treatment/cols
   const getActiveCats = (tt: TreatmentType, cols: readonly { key: string; label: string }[]) =>
     categories.filter((cat) =>
       cols.some((col) =>
         allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
       )
     );
+
+  // Customer mode = not admin/operator (hide margins & override reasons)
+  const isCustomerExport = !canEdit;
 
   // ── Matrix Excel ─────────────────────────────────────────────────────────────
   const exportMatrixExcel = () => {
@@ -146,14 +162,13 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
         const row = [cat];
         visibleCols.forEach((col) => {
           const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
-          row.push(fmt(alloc?.allocated_price_bbd, showUSD, fxRate) as any);
+          row.push(hpNum(alloc?.allocated_price_bbd ?? null, alloc?.id ? String(alloc.id) : undefined, "matrix_allocation"));
         });
         aoa.push(row);
       });
       aoa.push([]);
     });
 
-    // Add addons
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
       aoa.push(["ADD ONS"]);
@@ -161,7 +176,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
         aoa.push([sec]);
         aoa.push(["Description", `${currency} Price`]);
         rows.forEach((row) => {
-          aoa.push([row.display_description, fmt(row.bbd_price, showUSD, fxRate) ?? ""]);
+          aoa.push([row.display_description, hpNum(row.bbd_price, row.row_key, row.row_type)]);
         });
         aoa.push([]);
       }
@@ -192,14 +207,13 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
       activeCats.forEach((cat) => {
         const vals = visibleCols.map((col) => {
           const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
-          return fmt(alloc?.allocated_price_bbd, showUSD, fxRate) ?? "";
+          return hpNum(alloc?.allocated_price_bbd ?? null, alloc?.id ? String(alloc.id) : undefined, "matrix_allocation");
         });
         lines.push([cat, ...vals].join(","));
       });
       lines.push("");
     });
 
-    // Add addons
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
       lines.push("ADD ONS");
@@ -207,7 +221,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
         lines.push(`"${sec}"`);
         lines.push(`Description,${currency} Price`);
         rows.forEach((row) => {
-          lines.push([`"${row.display_description}"`, fmt(row.bbd_price, showUSD, fxRate) ?? ""].join(","));
+          lines.push([`"${row.display_description}"`, hpNum(row.bbd_price, row.row_key, row.row_type)].join(","));
         });
         lines.push("");
       }
@@ -232,26 +246,29 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
       if (activeCats.length === 0 && tt !== "clear") return "";
 
       const colHeaders = visibleCols.map((c) => `<th>${c.key}</th>`).join("");
-      const rowsHtml = activeCats.map((cat) => {
-        const cells = visibleCols.map((col) => {
-          const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
-          return `<td style="text-align:right">${alloc?.allocated_price_bbd != null ? fmtStr(alloc.allocated_price_bbd, showUSD, fxRate) : "—"}</td>`;
-        }).join("");
-        return `<tr><td>${cat}</td>${cells}</tr>`;
-      }).join("");
+      const rowsHtml = activeCats
+        .map((cat) => {
+          const cells = visibleCols
+            .map((col) => {
+              const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
+              return `<td style="text-align:right">${hpStr(alloc?.allocated_price_bbd ?? null, alloc?.id ? String(alloc.id) : undefined, "matrix_allocation")}</td>`;
+            })
+            .join("");
+          return `<tr><td>${cat}</td>${cells}</tr>`;
+        })
+        .join("");
       return `<h3 style="color:#1e4db7;margin:20px 0 8px">${TREATMENT_LABELS[tt]}</h3>
       <table><thead><tr><th>Category</th>${colHeaders}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
     }).join("");
 
-    // Addons HTML
     const addonsBySection = getAddonsBySection();
     let addonsHtml = "";
     if (addonsBySection.size > 0) {
       addonsHtml = `<h2 style="color:#1e4db7;margin:24px 0 8px">ADD ONS</h2>`;
       for (const [sec, rows] of addonsBySection.entries()) {
-        const rowsH = rows.map((row) =>
-          `<tr><td>${row.display_description}</td><td style="text-align:right">${row.bbd_price != null ? fmtStr(row.bbd_price, showUSD, fxRate) : "—"}</td></tr>`
-        ).join("");
+        const rowsH = rows
+          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
+          .join("");
         addonsHtml += `<h3 style="color:#1e4db7;margin:16px 0 6px">${sec}</h3>
         <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
       }
@@ -278,13 +295,12 @@ ${addonsHtml}
     logExport("HTML", "Matrix");
   };
 
-  // ── Matrix PDF (jsPDF + autoTable) ──────────────────────────────────────────
+  // ── Matrix PDF ──────────────────────────────────────────────────────────────
   const exportMatrixPDF = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
     const margin = 12;
     let y = margin;
 
-    // Header
     doc.setFontSize(9);
     doc.setTextColor(30, 77, 183);
     let headerY = y;
@@ -303,7 +319,6 @@ ${addonsHtml}
       const activeCats = getActiveCats(tt, visibleCols);
       if (activeCats.length === 0 && tt !== "clear") return;
 
-      // Section label
       if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
       doc.setFontSize(10);
       doc.setTextColor(30, 77, 183);
@@ -315,15 +330,14 @@ ${addonsHtml}
         cat,
         ...visibleCols.map((col) => {
           const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
-          return alloc?.allocated_price_bbd != null ? fmtStr(alloc.allocated_price_bbd, showUSD, fxRate) : "—";
+          return hpStr(alloc?.allocated_price_bbd ?? null, alloc?.id ? String(alloc.id) : undefined, "matrix_allocation");
         }),
       ]);
 
       autoTable(doc, {
         startY: y,
         margin: { left: margin, right: margin },
-        head,
-        body,
+        head, body,
         styles: { fontSize: 7, cellPadding: 1.5 },
         headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [245, 247, 251] },
@@ -332,7 +346,6 @@ ${addonsHtml}
       y = (doc as any).lastAutoTable.finalY + 6;
     });
 
-    // Addons
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
       for (const [sec, rows] of addonsBySection.entries()) {
@@ -346,7 +359,7 @@ ${addonsHtml}
           startY: y,
           margin: { left: margin, right: margin },
           head: [["Description", `Price (${currency})`]],
-          body: rows.map((r) => [r.display_description, r.bbd_price != null ? fmtStr(r.bbd_price, showUSD, fxRate) : "—"]),
+          body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)]),
           styles: { fontSize: 7, cellPadding: 1.5 },
           headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
           alternateRowStyles: { fillColor: [245, 247, 251] },
@@ -356,7 +369,6 @@ ${addonsHtml}
       }
     }
 
-    // Footer
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
@@ -380,21 +392,27 @@ ${addonsHtml}
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     sections.forEach((sec) => {
       aoa.push([sec]);
-      aoa.push(["Description", `${currency} Price`]);
-      lensRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order).forEach((row) => {
-        aoa.push([row.display_description, fmt(row.bbd_price, showUSD, fxRate) ?? ""]);
-      });
+      const headers = ["Description", `${currency} Price`];
+      if (showMargins && !isCustomerExport) headers.push("Margin %");
+      aoa.push(headers);
+      lensRows
+        .filter((r) => r.section === sec)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .forEach((row) => {
+          const line: any[] = [row.display_description, hpNum(row.bbd_price, row.row_key, row.row_type)];
+          if (showMargins && !isCustomerExport) line.push(calcMargin(row));
+          aoa.push(line);
+        });
       aoa.push([]);
     });
 
-    // Add addons
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
       for (const [sec, rows] of addonsBySection.entries()) {
         aoa.push([sec]);
         aoa.push(["Description", `${currency} Price`]);
         rows.forEach((row) => {
-          aoa.push([row.display_description, fmt(row.bbd_price, showUSD, fxRate) ?? ""]);
+          aoa.push([row.display_description, hpNum(row.bbd_price, row.row_key, row.row_type)]);
         });
         aoa.push([]);
       }
@@ -415,25 +433,31 @@ ${addonsHtml}
     const lines: string[] = [];
     companyHeader.forEach((h) => lines.push(h));
     lines.push("");
-    lines.push(`Description,${currency} Price`);
+    const csvHeaders = [`Description`, `${currency} Price`];
+    if (showMargins && !isCustomerExport) csvHeaders.push("Margin %");
+    lines.push(csvHeaders.join(","));
 
     const lensRows = getPrimaryRows();
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     sections.forEach((sec) => {
       lines.push(`"${sec}"`);
-      lensRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order).forEach((row) => {
-        lines.push([`"${row.display_description}"`, fmt(row.bbd_price, showUSD, fxRate) ?? ""].join(","));
-      });
+      lensRows
+        .filter((r) => r.section === sec)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .forEach((row) => {
+          const vals: any[] = [`"${row.display_description}"`, hpNum(row.bbd_price, row.row_key, row.row_type)];
+          if (showMargins && !isCustomerExport) vals.push(calcMargin(row));
+          lines.push(vals.join(","));
+        });
     });
 
-    // Add addons
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
       lines.push("");
       for (const [sec, rows] of addonsBySection.entries()) {
         lines.push(`"${sec}"`);
         rows.forEach((row) => {
-          lines.push([`"${row.display_description}"`, fmt(row.bbd_price, showUSD, fxRate) ?? ""].join(","));
+          lines.push([`"${row.display_description}"`, hpNum(row.bbd_price, row.row_key, row.row_type)].join(","));
         });
       }
     }
@@ -451,24 +475,25 @@ ${addonsHtml}
   const exportListHTML = () => {
     const lensRows = getPrimaryRows();
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
-    const sectionsHtml = sections.map((sec) => {
-      const rowsHtml = lensRows
-        .filter((r) => r.section === sec)
-        .sort((a, b) => a.sort_order - b.sort_order)
-        .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${fmtStr(row.bbd_price, showUSD, fxRate)}</td></tr>`)
-        .join("");
-      return `<h3 style="color:#1e4db7;margin:20px 0 8px">${sec}</h3>
+    const sectionsHtml = sections
+      .map((sec) => {
+        const rowsHtml = lensRows
+          .filter((r) => r.section === sec)
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
+          .join("");
+        return `<h3 style="color:#1e4db7;margin:20px 0 8px">${sec}</h3>
       <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
-    }).join("");
+      })
+      .join("");
 
-    // Addons HTML
     const addonsBySection = getAddonsBySection();
     let addonsHtml = "";
     if (addonsBySection.size > 0) {
       for (const [sec, rows] of addonsBySection.entries()) {
-        const rowsH = rows.map((row) =>
-          `<tr><td>${row.display_description}</td><td style="text-align:right">${row.bbd_price != null ? fmtStr(row.bbd_price, showUSD, fxRate) : "—"}</td></tr>`
-        ).join("");
+        const rowsH = rows
+          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
+          .join("");
         addonsHtml += `<h3 style="color:#1e4db7;margin:16px 0 6px">${sec}</h3>
         <table><thead><tr><th>Description</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
       }
@@ -505,13 +530,12 @@ ${addonsHtml}
     logExport("HTML", "List");
   };
 
-  // ── List PDF (jsPDF + autoTable) ─────────────────────────────────────────────
+  // ── List PDF ─────────────────────────────────────────────────────────────────
   const exportListPDF = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
     const margin = 12;
     let y = margin;
 
-    // Header
     doc.setFontSize(9);
     doc.setTextColor(30, 77, 183);
     let listHeaderY = y;
@@ -525,19 +549,17 @@ ${addonsHtml}
 
     const lensRows = getPrimaryRows();
 
-    // Group by category (stripping treatment prefixes, matching preview)
     const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
     const lensSectionMap = new Map<string, typeof lensRows>();
     for (const r of lensRows) {
       const sec = r.section || "Lenses";
       const parts = sec.split(" — ");
-      const isMatrixSection = TREATMENT_PREFIXES.some(tp => parts[0].trim() === tp);
+      const isMatrixSection = TREATMENT_PREFIXES.some((tp) => parts[0].trim() === tp);
       const category = isMatrixSection ? (parts.slice(1).join(" — ") || sec) : sec;
       if (!lensSectionMap.has(category)) lensSectionMap.set(category, []);
       lensSectionMap.get(category)!.push(r);
     }
 
-    // Sort sections by matrix category order (matching preview)
     const sortedSections = [...lensSectionMap.entries()].sort((a, b) => {
       const aIdx = categories.indexOf(a[0]);
       const bIdx = categories.indexOf(b[0]);
@@ -547,9 +569,11 @@ ${addonsHtml}
       return aIdx - bIdx;
     });
 
-    // Build lens index map for sorting rows within sections
     const lensIdxMap = new Map<string, number>();
     allLenses.forEach((l) => lensIdxMap.set(l.id, l.index_value));
+
+    // Determine columns: customer PDF hides margin; internal shows if toggled
+    const includeMargin = showMargins && !isCustomerExport;
 
     sortedSections.forEach(([sec, secRows]) => {
       if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
@@ -558,7 +582,6 @@ ${addonsHtml}
       doc.text(sec, margin, y);
       y += 2;
 
-      // Sort rows by lens index then sort_order (matching preview)
       const rows = [...secRows].sort((a, b) => {
         const aIdx = a.item_id ? (lensIdxMap.get(a.item_id) ?? 999) : 999;
         const bIdx = b.item_id ? (lensIdxMap.get(b.item_id) ?? 999) : 999;
@@ -566,11 +589,17 @@ ${addonsHtml}
         return a.sort_order - b.sort_order;
       });
 
+      const head = [includeMargin ? ["Description", `${currency} Price`, "Margin %"] : ["Description", `${currency} Price`]];
+      const body = rows.map((r) => {
+        const line = [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)];
+        if (includeMargin) line.push(calcMargin(r));
+        return line;
+      });
+
       autoTable(doc, {
         startY: y,
         margin: { left: margin, right: margin },
-        head: [["Description", `${currency} Price`]],
-        body: rows.map((r) => [r.display_description, r.bbd_price != null ? fmtStr(r.bbd_price, showUSD, fxRate) : "—"]),
+        head, body,
         styles: { fontSize: 7, cellPadding: 1.5 },
         headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [245, 247, 251] },
@@ -579,7 +608,6 @@ ${addonsHtml}
       y = (doc as any).lastAutoTable.finalY + 5;
     });
 
-    // Addons
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
       for (const [sec, rows] of addonsBySection.entries()) {
@@ -593,7 +621,7 @@ ${addonsHtml}
           startY: y,
           margin: { left: margin, right: margin },
           head: [["Description", `Price (${currency})`]],
-          body: rows.map((r) => [r.display_description, r.bbd_price != null ? fmtStr(r.bbd_price, showUSD, fxRate) : "—"]),
+          body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)]),
           styles: { fontSize: 7, cellPadding: 1.5 },
           headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
           alternateRowStyles: { fillColor: [245, 247, 251] },
@@ -603,7 +631,6 @@ ${addonsHtml}
       }
     }
 
-    // Footer on each page
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
@@ -622,6 +649,18 @@ ${addonsHtml}
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap no-print">
+      {/* Show Margins toggle (internal only) */}
+      {canEdit && (
+        <div className="flex items-center gap-1.5 mr-2">
+          <span className="text-[10px] font-medium text-muted-foreground">Show Margins</span>
+          <Switch
+            checked={showMargins}
+            onCheckedChange={setShowMargins}
+            className="h-4 w-7"
+          />
+        </div>
+      )}
+
       {/* Matrix exports — only for RX */}
       {showMatrix && (
         <>
