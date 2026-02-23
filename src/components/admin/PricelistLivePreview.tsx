@@ -291,6 +291,9 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     );
   };
 
+  const headerHtml = company?.pdf_header_html?.trim();
+  const footerHtml = company?.pdf_footer_html?.trim();
+
   return (
     <div className="space-y-3">
       {/* Branded header */}
@@ -299,9 +302,18 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
           {company?.logo_url && (
             <img src={company.logo_url} alt={company?.company_name ?? "Logo"} className="max-h-12 mb-1 object-contain" />
           )}
-          <p className="text-sm font-bold text-foreground">{company?.company_name ?? "Company"}</p>
-          <p className="text-[10px] text-muted-foreground">{company?.slogan}</p>
-          <p className="text-[10px] text-muted-foreground">{company?.tel} · {company?.email}</p>
+          {headerHtml ? (
+            <div
+              className="text-xs text-foreground [&_h1]:text-sm [&_h1]:font-bold [&_h2]:text-[10px] [&_h2]:text-muted-foreground [&_p]:text-[10px] [&_p]:text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: headerHtml }}
+            />
+          ) : (
+            <>
+              <p className="text-sm font-bold text-foreground">{company?.company_name ?? "Company"}</p>
+              <p className="text-[10px] text-muted-foreground">{company?.slogan}</p>
+              <p className="text-[10px] text-muted-foreground">{company?.tel} · {company?.email}</p>
+            </>
+          )}
         </div>
         <div className="flex-1 text-center self-center">
           <h1 className="text-lg font-bold text-foreground tracking-wide uppercase">
@@ -319,9 +331,16 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
       {previewFormat === "matrix" ? <MatrixPreview /> : <ListPreview />}
 
-      <p className="text-[9px] text-muted-foreground pt-2 border-t border-border text-center">
-        All prices in {currency}. Prices subject to change without notice. · {company?.company_name}
-      </p>
+      {footerHtml ? (
+        <div
+          className="text-[9px] text-muted-foreground pt-2 border-t border-border text-center"
+          dangerouslySetInnerHTML={{ __html: footerHtml }}
+        />
+      ) : (
+        <p className="text-[9px] text-muted-foreground pt-2 border-t border-border text-center">
+          All prices in {currency}. Prices subject to change without notice. · {company?.company_name}
+        </p>
+      )}
     </div>
   );
 };

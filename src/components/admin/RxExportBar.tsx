@@ -46,6 +46,13 @@ const buildLogoHtml = (logoUrl: string | null | undefined) => {
   return `<img src="${logoUrl}" alt="Logo" style="max-height:60px;margin-bottom:8px;display:block" crossorigin="anonymous" />`;
 };
 
+// Strip HTML tags for text-based exports
+const stripHtml = (html: string) => {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return div.textContent || div.innerText || "";
+};
+
 const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
@@ -68,12 +75,22 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
   const today = format(new Date(), "dd MMMM yyyy");
   const categories = [...new Set(matrixRows.map((r) => r.category))];
 
-  const companyHeader = [
-    company?.company_name ?? "",
-    company?.slogan ?? "",
-    `${company?.tel ?? ""} | ${company?.email ?? ""}`,
-    `${version.name} — ${today} (${currency})`,
-  ];
+  const headerHtml = company?.pdf_header_html?.trim() || "";
+  const footerHtml = company?.pdf_footer_html?.trim() || "";
+
+  // For text-based exports: use stripped header or fallback
+  const companyHeader = headerHtml
+    ? [stripHtml(headerHtml), `${version.name} — ${today} (${currency})`]
+    : [
+        company?.company_name ?? "",
+        company?.slogan ?? "",
+        `${company?.tel ?? ""} | ${company?.email ?? ""}`,
+        `${version.name} — ${today} (${currency})`,
+      ];
+
+  const footerText = footerHtml
+    ? stripHtml(footerHtml)
+    : `All prices in ${currency}. Prices subject to change without notice. · ${company?.company_name ?? ""}`;
 
   // Helper: get addon rows grouped by section
   const getAddonsBySection = () => {
@@ -240,15 +257,17 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
       }
     }
 
+    const headerBlock = headerHtml
+      ? `${buildLogoHtml(company?.logo_url)}${headerHtml}<h2>${version.name} — ${today} (${currency})</h2>`
+      : `${buildLogoHtml(company?.logo_url)}<h1>${company?.company_name ?? ""}</h1><h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2><h2>${version.name} — ${today} (${currency})</h2>`;
+    const footerBlock = footerHtml || `All prices in ${currency}. Prices subject to change without notice.`;
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${version.name}</title>
 <style>body{font-family:sans-serif;font-size:12px;margin:40px}h1{color:#1e4db7;margin-bottom:4px}h2{color:#444;font-size:11px;font-weight:normal;margin-bottom:2px}h3{color:#1e4db7;font-size:12px;font-weight:bold}table{border-collapse:collapse;width:100%;margin-bottom:12px}th,td{border:1px solid #ccc;padding:4px 10px}th{background:#1e4db7;color:#fff;text-align:left}tr:nth-child(even){background:#f5f7fb}footer{font-size:10px;color:#888;margin-top:24px}</style></head><body>
-${buildLogoHtml(company?.logo_url)}
-<h1>${company?.company_name ?? ""}</h1>
-<h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2>
-<h2>${version.name} — ${today} (${currency})</h2>
+${headerBlock}
 ${sectionsHtml}
 ${addonsHtml}
-<footer>All prices in ${currency}. Prices subject to change without notice.</footer>
+<footer>${footerBlock}</footer>
 </body></html>`;
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
@@ -266,16 +285,16 @@ ${addonsHtml}
     let y = margin;
 
     // Header
-    doc.setFontSize(14);
+    doc.setFontSize(9);
     doc.setTextColor(30, 77, 183);
-    doc.text(company?.company_name ?? "", margin, y);
-    y += 5;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text(`${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}`, margin, y);
-    y += 4;
-    doc.text(`${version.name} — ${today} (${currency})`, margin, y);
-    y += 6;
+    let headerY = y;
+    companyHeader.forEach((line, i) => {
+      if (i === 0) { doc.setFontSize(14); doc.setTextColor(30, 77, 183); }
+      else { doc.setFontSize(8); doc.setTextColor(100); }
+      doc.text(line, margin, headerY);
+      headerY += i === 0 ? 5 : 4;
+    });
+    y = headerY + 2;
 
     TREATMENT_TYPES.forEach((tt) => {
       const activeCols = getActiveCols(tt);
@@ -343,7 +362,7 @@ ${addonsHtml}
       doc.setPage(i);
       doc.setFontSize(7);
       doc.setTextColor(150);
-      doc.text(`All prices in ${currency}. Prices subject to change without notice. · ${company?.company_name ?? ""}`, margin, doc.internal.pageSize.getHeight() - 5);
+      doc.text(footerText, margin, doc.internal.pageSize.getHeight() - 5);
     }
 
     doc.save(`${version.name}_Matrix.pdf`);
@@ -381,7 +400,7 @@ ${addonsHtml}
       }
     }
 
-    aoa.push(["All prices in " + currency + ". Prices subject to change without notice."]);
+    aoa.push([footerText]);
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const wb = XLSX.utils.book_new();
@@ -455,6 +474,11 @@ ${addonsHtml}
       }
     }
 
+    const listHeaderBlock = headerHtml
+      ? `${buildLogoHtml(company?.logo_url)}${headerHtml}<h2>${version.name} — ${today} (${currency})</h2>`
+      : `${buildLogoHtml(company?.logo_url)}<h1>${company?.company_name ?? ""}</h1><h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2><h2>${version.name} — ${today} (${currency})</h2>`;
+    const listFooterBlock = footerHtml || `All prices in ${currency}. Prices subject to change without notice.`;
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${version.name}</title>
 <style>
   body{font-family:sans-serif;font-size:12px;margin:40px}
@@ -466,13 +490,10 @@ ${addonsHtml}
   tr:nth-child(even){background:#f5f7fb}
   footer{font-size:10px;color:#888;margin-top:24px}
 </style></head><body>
-${buildLogoHtml(company?.logo_url)}
-<h1>${company?.company_name ?? ""}</h1>
-<h2>${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}</h2>
-<h2>${version.name} — ${today} (${currency})</h2>
+${listHeaderBlock}
 ${sectionsHtml}
 ${addonsHtml}
-<footer>All prices in ${currency}. Prices subject to change without notice.</footer>
+<footer>${listFooterBlock}</footer>
 </body></html>`;
 
     const blob = new Blob([html], { type: "text/html" });
@@ -491,16 +512,16 @@ ${addonsHtml}
     let y = margin;
 
     // Header
-    doc.setFontSize(14);
+    doc.setFontSize(9);
     doc.setTextColor(30, 77, 183);
-    doc.text(company?.company_name ?? "", margin, y);
-    y += 5;
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text(`${company?.slogan ?? ""} · ${company?.tel ?? ""} · ${company?.email ?? ""}`, margin, y);
-    y += 4;
-    doc.text(`${version.name} — ${today} (${currency})`, margin, y);
-    y += 6;
+    let listHeaderY = y;
+    companyHeader.forEach((line, i) => {
+      if (i === 0) { doc.setFontSize(14); doc.setTextColor(30, 77, 183); }
+      else { doc.setFontSize(8); doc.setTextColor(100); }
+      doc.text(line, margin, listHeaderY);
+      listHeaderY += i === 0 ? 5 : 4;
+    });
+    y = listHeaderY + 2;
 
     const lensRows = getPrimaryRows();
 
@@ -588,7 +609,7 @@ ${addonsHtml}
       doc.setPage(i);
       doc.setFontSize(7);
       doc.setTextColor(150);
-      doc.text(`All prices in ${currency}. Prices subject to change without notice. · ${company?.company_name ?? ""}`, margin, doc.internal.pageSize.getHeight() - 5);
+      doc.text(footerText, margin, doc.internal.pageSize.getHeight() - 5);
     }
 
     doc.save(`${version.name}_List.pdf`);
