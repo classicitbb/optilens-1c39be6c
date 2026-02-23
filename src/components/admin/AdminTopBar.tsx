@@ -22,18 +22,18 @@ const AdminTopBar = () => {
   const roleColor: Record<string, string> = {
     admin: "hsl(0 72% 51%)",
     operator: "hsl(215 65% 50%)",
-    viewer: "hsl(215 15% 50%)",
+    viewer: "hsl(215 15% 50%)"
   };
 
   return (
     <>
       <header
-        className="flex items-center gap-3 px-4 h-11 border-b shrink-0"
+        className="flex items-center gap-3 px-4 h-11 border-b shrink-0 rounded-none"
         style={{
           background: "hsl(0 0% 100%)",
-          borderColor: "hsl(215 15% 85%)",
-        }}
-      >
+          borderColor: "hsl(215 15% 85%)"
+        }}>
+
         <div className="flex-1 min-w-0">
           <GlobalSearch />
         </div>
@@ -43,30 +43,30 @@ const AdminTopBar = () => {
             size="icon"
             className="h-7 w-7"
             onClick={() => setHelpOpen(!helpOpen)}
-            title="Help"
-          >
+            title="Help">
+
             <HelpCircle className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
           </Button>
           <Link to="/profile" className="text-xs hover:underline transition-colors" style={{ color: "hsl(215 30% 15%)" }}>{user?.email}</Link>
-          {role && (
-            <Badge
-              className="text-[10px] px-1.5 py-0 h-5 font-medium border-0"
-              style={{
-                background: `${roleColor[role]}20`,
-                color: roleColor[role],
-              }}
-            >
+          {role &&
+          <Badge
+            className="text-[10px] px-1.5 py-0 h-5 font-medium border-0"
+            style={{
+              background: `${roleColor[role]}20`,
+              color: roleColor[role]
+            }}>
+
               {role}
             </Badge>
-          )}
+          }
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSignOut}>
             <LogOut className="h-3.5 w-3.5" />
           </Button>
         </div>
       </header>
       <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
-    </>
-  );
+    </>);
+
 };
 
 export default AdminTopBar;
