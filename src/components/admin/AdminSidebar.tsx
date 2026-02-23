@@ -5,7 +5,7 @@ import {
   Database, Upload, Download,
   Settings, Users, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
   ChevronDown, ChevronRight, Ship, FileSpreadsheet, Glasses,
-  FlaskConical, ShoppingCart } from
+  FlaskConical, ShoppingCart, Globe } from
 "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -160,6 +160,12 @@ const AdminSidebar = () => {
       </nav>
 
       <div className="border-t px-3 py-2 space-y-0.5 rounded-none" style={{ borderColor: "hsl(215 25% 18%)" }}>
+        {canView("content") &&
+        <RouterNavLink to="/admin/content" className={`${linkBase} w-full ${isActive("/admin/content") ? "font-medium" : ""}`} title={collapsed ? "Website Content" : undefined} style={{ color: isActive("/admin/content") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/content") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
+            <Globe className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Website Content</span>}
+          </RouterNavLink>
+        }
         {canView("wiki") &&
         <RouterNavLink to="/admin/wiki" className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`} title={collapsed ? "Help / Wiki" : undefined} style={{ color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
             <BookOpen className="h-4 w-4 shrink-0" />
