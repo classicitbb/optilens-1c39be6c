@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Switch } from "@/components/ui/switch";
+
 import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import RxExportBar from "@/components/admin/RxExportBar";
@@ -11,7 +11,7 @@ const BuySellPricesPage = () => {
   const { data: versions } = usePricelistVersions();
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
   const [showUSD, setShowUSD] = useState(false);
-  const [previewFormat, setPreviewFormat] = useState<"matrix" | "list">("list");
+  const previewFormat = "list" as const;
   const previewRef = useRef<HTMLDivElement>(null);
 
   const activeVersion = versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
@@ -57,19 +57,7 @@ const BuySellPricesPage = () => {
                   — showing exactly what the customer receives for <strong>{activeVersion.name}</strong>
                 </span>
               </div>
-              <div className="flex items-center gap-2 no-print">
-                <span className={`text-xs font-medium transition-colors ${previewFormat === "matrix" ? "text-primary" : "text-muted-foreground"}`}>
-                  Matrix
-                </span>
-                <Switch
-                  checked={previewFormat === "list"}
-                  onCheckedChange={(v) => setPreviewFormat(v ? "list" : "matrix")}
-                  aria-label="Toggle preview format"
-                />
-                <span className={`text-xs font-medium transition-colors ${previewFormat === "list" ? "text-primary" : "text-muted-foreground"}`}>
-                  List
-                </span>
-              </div>
+              <span className="text-xs font-medium text-primary">List</span>
             </div>
             <div className="p-5 bg-background overflow-auto max-h-[70vh]">
               <PricelistLivePreview
