@@ -11,6 +11,7 @@ import * as XLSX from "xlsx";
 import { LensPickerPopover, PickedItem } from "@/components/admin/LensPickerPopover";
 import { SupplyPickerPopover, PickedSupply } from "@/components/admin/SupplyPickerPopover";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
+import { useReferenceData } from "@/hooks/useReferenceData";
 
 const BLUE_BG = "#1e4db7";
 const GREEN_BG = "#d4edda";
@@ -66,6 +67,7 @@ const ListCatalogTab = ({
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: allSupplies, isLoading: sLoading } = useSupplies();
   const { data: priceMatrixData } = usePriceMatrix();
+  const { data: mftypeRef = [] } = useReferenceData("mftypes");
   const matrixCategories = useMemo(() => (priceMatrixData ?? []).map(r => r.category), [priceMatrixData]);
   const { data: savedRows, isLoading: rowsLoading, saveRows } = usePricelistCatalogRows(
     versionId ?? null,
@@ -143,18 +145,18 @@ const ListCatalogTab = ({
     if (catalogType === "stock") {
       const mfGroups = new Map<string, typeof plLenses>();
       for (const l of plLenses) {
-        const mf = (l as any).mftype_name || "Standard";
+        const mf = l.mftype?.name || "Standard";
         if (!mfGroups.has(mf)) mfGroups.set(mf, []);
         mfGroups.get(mf)!.push(l);
       }
       for (const [mf, lenses] of mfGroups) {
-        map.set(mf, lenses.map((l) => ({ key: `lens-${l.id}`, section: mf, description: l.name, bbd: l.sell_price, usd: l.sell_price * fxRate, margin: l.base_price > 0 ? parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) : null, lensId: l.id })));
+        map.set(mf, lenses.map((l) => ({ key: `lens-${l.id}`, section: mf, description: l.name, bbd: l.sell_price, usd: l.sell_price * fxRate, margin: l.base_price > 0 ? parseFloat(((l.sell_price - l.base_price * 2) / l.sell_price * 100).toFixed(1)) : null, lensId: l.id, supplier: l.supplier?.abbrev || l.supplier?.name || "" })));
       }
     } else {
       const finishGroups = new Map<string, Map<string, typeof plLenses>>();
       for (const l of plLenses) {
-        const finish = (l as any).finishtype_name || "Finished";
-        const mf = (l as any).mftype_name || "Standard";
+        const finish = l.finishtype?.name || "Finished";
+        const mf = l.mftype?.name || "Standard";
         if (!finishGroups.has(finish)) finishGroups.set(finish, new Map());
         const mfMap = finishGroups.get(finish)!;
         if (!mfMap.has(mf)) mfMap.set(mf, []);
@@ -423,7 +425,7 @@ const ListCatalogTab = ({
           </button>
         </div>
         {displayRows.length === 0 ? (
-          <p className="text-xs text-muted-foreground px-3 py-3 italic">No items — click "Add Line" to add.</p>
+          <p className="text-xs text-muted-foreground px-3 py-3 italic">{catalogType === "stock" ? "No lens selected — click \"+ Add Line\" to add." : "No items — click \"Add Line\" to add."}</p>
         ) : (
             <table className="w-full text-xs border-collapse">
             <thead>
@@ -602,7 +604,24 @@ const ListCatalogTab = ({
       <div ref={printRef} className="catalog-print-area space-y-0">
 
         {catalogType === "buysell" && [...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
-        {catalogType === "stock" && [...effectiveLensRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "lens"))}
+        {catalogType === "stock" && (() => {
+          // Show all active MF types as groups; populate with lens rows if they exist
+          const activeMfTypes = mftypeRef.filter((m: any) => m.is_active).map((m: any) => m.name as string);
+          const shownSections = new Set<string>();
+          const result: React.ReactNode[] = [];
+          // First render sections that have rows
+          for (const [sec, rows] of effectiveLensRows) {
+            shownSections.add(sec);
+            result.push(renderSection(sec, rows, "lens"));
+          }
+          // Then render empty MF type groups that don't have rows yet
+          for (const mfName of activeMfTypes) {
+            if (!shownSections.has(mfName)) {
+              result.push(renderSection(mfName, [], "lens"));
+            }
+          }
+          return result;
+        })()}
         {catalogType === "rx" && renderRxGrouped()}
 
         {showTreatmentsAddons && catalogType === "rx" && effectiveAddonRows.size > 0 && (
