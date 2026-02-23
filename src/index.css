@@ -4,6 +4,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Crimson+Pro:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans&display=swap");
 
 @layer base {
   :root {
@@ -17,7 +18,7 @@
     --popover-foreground: 215 35% 15%;
 
     /* Deep navy blue - primary brand */
-    --primary: 215 65% 25%;
+    --primary: 215 25% 26.6667%;
     --primary-foreground: 210 40% 98%;
 
     /* Olive green - secondary */
@@ -50,7 +51,7 @@
     --gradient-secondary: linear-gradient(135deg, hsl(85 35% 35%) 0%, hsl(95 40% 42%) 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
     --gradient-hero: linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(215 25% 95%) 100%);
-    
+
     --shadow-soft: 0 4px 20px -4px hsl(215 35% 15% / 0.08);
     --shadow-medium: 0 8px 30px -6px hsl(215 35% 15% / 0.12);
     --shadow-elegant: 0 10px 40px -10px hsl(215 65% 25% / 0.15);
@@ -102,7 +103,7 @@
     --border: 215 30% 20%;
     --input: 215 30% 20%;
     --ring: 215 60% 55%;
-    
+
     --sidebar-background: 215 35% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 215 60% 55%;
