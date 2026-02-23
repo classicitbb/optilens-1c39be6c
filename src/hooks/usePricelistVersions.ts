@@ -190,7 +190,19 @@ export const usePricelistVersions = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      // Delete overrides first (no cascade)
+      // Delete all dependent rows first (no cascade on FK)
+      const { error: delCatErr } = await supabase
+        .from("pricelist_catalog_rows")
+        .delete()
+        .eq("pricelist_version_id", id);
+      if (delCatErr) throw delCatErr;
+
+      const { error: delAllocErr } = await supabase
+        .from("matrix_allocations")
+        .delete()
+        .eq("pricelist_version_id", id);
+      if (delAllocErr) throw delAllocErr;
+
       const { error: delOverErr } = await supabase
         .from("pricelist_overrides")
         .delete()
