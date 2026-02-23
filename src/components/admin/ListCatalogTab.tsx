@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { useLenses } from "@/hooks/useLenses";
 import { useAddons } from "@/hooks/useAddons";
 import { useSupplies } from "@/hooks/useSupplies";
@@ -496,40 +497,45 @@ const ListCatalogTab = ({
   const renderSection = (title: string, rows: CatalogRow[], rowType: "lens" | "addon" | "supply") => {
     const displayRows = sortedRows(title, rows);
     return (
-      <div key={title} className="mt-5 px-2">
-        <div className="px-4 py-2 rounded-sm mb-0.5 font-bold text-sm uppercase tracking-wide flex items-center justify-between" style={{ background: BLUE_BG, color: "white" }}>
-          <span>{title}</span>
+      <AccordionItem key={title} value={title} className="mt-3 px-2 border-none">
+        <div className="flex items-center justify-between rounded-sm px-4 py-2 mb-0.5" style={{ background: BLUE_BG, color: "white" }}>
+          <AccordionTrigger className="p-0 hover:no-underline gap-2 font-bold text-sm uppercase tracking-wide [&>svg]:text-white flex-1 justify-start">
+            <span>{title}</span>
+            <span className="text-[10px] font-normal normal-case tracking-normal opacity-70 ml-2">({displayRows.length})</span>
+          </AccordionTrigger>
           <button className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
-          onClick={() => {setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined });if (rowType === "supply") setSupplyPickerOpen(true);else setLensPickerOpen(true);}}>
+          onClick={(e) => {e.stopPropagation();setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined });if (rowType === "supply") setSupplyPickerOpen(true);else setLensPickerOpen(true);}}>
             <Plus className="h-3 w-3" /> Add Line
           </button>
         </div>
-        {displayRows.length === 0 ?
-        <p className="text-xs text-muted-foreground px-3 py-3 italic">{catalogType === "stock" ? "No lens selected — click \"+ Add Line\" to add." : "No items — click \"Add Line\" to add."}</p> :
+        <AccordionContent className="pb-0 pt-0">
+          {displayRows.length === 0 ?
+          <p className="text-xs text-muted-foreground px-3 py-3 italic">{catalogType === "stock" ? "No lens selected — click \"+ Add Line\" to add." : "No items — click \"Add Line\" to add."}</p> :
 
-        <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr>
-                {(rowType === "addon" || rowType === "supply") && <th className="w-8 no-print border border-slate-300" style={{ background: "hsl(215 15% 93%)" }} />}
-                <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
-                <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
-                {/* Matrix Cell header — screen only, before BBD */}
-                <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>
-                  Matrix Cell
-                </th>
-                <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
-                <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
-                <th className="px-3 py-2 text-center font-semibold border border-slate-300 w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
-                <th className="w-7 no-print border border-slate-300" title="Override" />
-                <th className="w-6 no-print border border-slate-300" />
-              </tr>
-            </thead>
-            <tbody>{displayRows.map((row, i) => renderRow(row, i, rowType, title, displayRows.length))}</tbody>
-          </table>
-        }
-      </div>);
-
+          <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr>
+                  {(rowType === "addon" || rowType === "supply") && <th className="w-8 no-print border border-slate-300" style={{ background: "hsl(215 15% 93%)" }} />}
+                  <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
+                  <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
+                  {/* Matrix Cell header — screen only, before BBD */}
+                  <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>
+                    Matrix Cell
+                  </th>
+                  <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
+                  <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
+                  <th className="px-3 py-2 text-center font-semibold border border-slate-300 w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
+                  <th className="w-7 no-print border border-slate-300" title="Override" />
+                  <th className="w-6 no-print border border-slate-300" />
+                </tr>
+              </thead>
+              <tbody>{displayRows.map((row, i) => renderRow(row, i, rowType, title, displayRows.length))}</tbody>
+            </table>
+          }
+        </AccordionContent>
+      </AccordionItem>);
   };
+
 
   const toggleSection = (key: string) => {
     setOpenSections((prev) => {
@@ -689,24 +695,29 @@ const ListCatalogTab = ({
           <h2 className="text-sm font-semibold text-primary tracking-wide">{pageName || pageTitle} List Editor</h2>
         </div>
 
-        {catalogType === "buysell" && [...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
+        {catalogType === "buysell" && (
+          <Accordion type="multiple" defaultValue={[...effectiveSupplyRows.keys()]} className="space-y-0">
+            {[...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
+          </Accordion>
+        )}
         {catalogType === "stock" && (() => {
-          // Show all active MF types as groups; populate with lens rows if they exist
           const activeMfTypes = mftypeRef.filter((m: any) => m.is_active).map((m: any) => m.name as string);
           const shownSections = new Set<string>();
-          const result: React.ReactNode[] = [];
-          // First render sections that have rows
+          const items: { sec: string; rows: CatalogRow[] }[] = [];
           for (const [sec, rows] of effectiveLensRows) {
             shownSections.add(sec);
-            result.push(renderSection(sec, rows, "lens"));
+            items.push({ sec, rows });
           }
-          // Then render empty MF type groups that don't have rows yet
           for (const mfName of activeMfTypes) {
             if (!shownSections.has(mfName)) {
-              result.push(renderSection(mfName, [], "lens"));
+              items.push({ sec: mfName, rows: [] });
             }
           }
-          return result;
+          return (
+            <Accordion type="multiple" defaultValue={items.filter(i => i.rows.length > 0).map(i => i.sec)} className="space-y-0">
+              {items.map(({ sec, rows }) => renderSection(sec, rows, "lens"))}
+            </Accordion>
+          );
         })()}
         {catalogType === "rx" && renderRxGrouped()}
 
@@ -715,7 +726,9 @@ const ListCatalogTab = ({
             <div className="px-4 py-2 mb-2 rounded-sm text-xs font-bold tracking-wide" style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}>
               ADD ONS
             </div>
-            {[...effectiveAddonRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "addon"))}
+            <Accordion type="multiple" defaultValue={[...effectiveAddonRows.keys()]} className="space-y-0">
+              {[...effectiveAddonRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "addon"))}
+            </Accordion>
           </div>
         }
 
