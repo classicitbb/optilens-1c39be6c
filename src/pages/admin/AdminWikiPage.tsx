@@ -2,9 +2,13 @@ import { useState, useMemo, useEffect } from "react";
 import { wikiCategories } from "@/data/wikiContent";
 import WikiSidebar from "@/components/admin/WikiSidebar";
 import WikiContentPanel from "@/components/admin/WikiContentPanel";
+import HelpArticleEditor from "@/components/admin/HelpArticleEditor";
+import { useAdminRole } from "@/contexts/AdminRoleContext";
 
 const AdminWikiPage = () => {
+  const { canEdit } = useAdminRole();
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"browse" | "manage">("browse");
   const [activeArticleId, setActiveArticleId] = useState<string | null>(
     wikiCategories[0]?.articles[0]?.id ?? null
   );
@@ -26,7 +30,6 @@ const AdminWikiPage = () => {
     [searchTerm, lower]
   );
 
-  // If active article is filtered out, select the first visible one
   useEffect(() => {
     const stillVisible = filtered.some(c => c.articles.some(a => a.id === activeArticleId));
     if (!stillVisible && filtered.length > 0 && filtered[0].articles.length > 0) {
@@ -40,24 +43,45 @@ const AdminWikiPage = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-slate-700/60 bg-slate-950">
-        <h1 className="text-sm font-semibold text-white">
-          Help / Wiki
-        </h1>
+      <div className="px-4 py-3 border-b border-slate-700/60 bg-slate-950 flex items-center justify-between">
+        <h1 className="text-sm font-semibold text-white">Help / Wiki</h1>
+        {canEdit && (
+          <div className="flex items-center gap-1 bg-slate-800 rounded-md p-0.5">
+            <button
+              onClick={() => setActiveTab("browse")}
+              className={`text-[11px] px-2 py-0.5 rounded ${activeTab === "browse" ? "bg-slate-700 text-slate-100" : "text-slate-400 hover:text-slate-200"}`}
+            >
+              Browse
+            </button>
+            <button
+              onClick={() => setActiveTab("manage")}
+              className={`text-[11px] px-2 py-0.5 rounded ${activeTab === "manage" ? "bg-slate-700 text-slate-100" : "text-slate-400 hover:text-slate-200"}`}
+            >
+              Manage Articles
+            </button>
+          </div>
+        )}
       </div>
-      <div className="flex flex-1 min-h-0">
-        <WikiSidebar
-          categories={filtered}
-          activeArticleId={activeArticleId}
-          onSelectArticle={handleSelectArticle}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-        />
-        <WikiContentPanel
-          categories={wikiCategories}
-          activeArticleId={activeArticleId}
-        />
-      </div>
+
+      {activeTab === "browse" ? (
+        <div className="flex flex-1 min-h-0">
+          <WikiSidebar
+            categories={filtered}
+            activeArticleId={activeArticleId}
+            onSelectArticle={handleSelectArticle}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
+          <WikiContentPanel
+            categories={wikiCategories}
+            activeArticleId={activeArticleId}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 bg-slate-950 overflow-auto">
+          <HelpArticleEditor />
+        </div>
+      )}
     </div>
   );
 };
