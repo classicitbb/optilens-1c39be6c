@@ -1052,6 +1052,82 @@ export type Database = {
           },
         ]
       }
+      pricelist_child_sections: {
+        Row: {
+          child_discount_percent: number | null
+          child_markup_percent: number | null
+          created_at: string | null
+          id: number
+          pricelist_version_id: number | null
+          section_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          child_discount_percent?: number | null
+          child_markup_percent?: number | null
+          created_at?: string | null
+          id?: number
+          pricelist_version_id?: number | null
+          section_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          child_discount_percent?: number | null
+          child_markup_percent?: number | null
+          created_at?: string | null
+          id?: number
+          pricelist_version_id?: number | null
+          section_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelist_child_sections_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricelist_line_overrides: {
+        Row: {
+          child_section_id: number | null
+          id: number
+          overridden_price_bbd: number | null
+          reason: string | null
+          reference_id: string
+          reference_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          child_section_id?: number | null
+          id?: number
+          overridden_price_bbd?: number | null
+          reason?: string | null
+          reference_id: string
+          reference_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          child_section_id?: number | null
+          id?: number
+          overridden_price_bbd?: number | null
+          reason?: string | null
+          reference_id?: string
+          reference_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelist_line_overrides_child_section_id_fkey"
+            columns: ["child_section_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_child_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricelist_notes: {
         Row: {
           content: string | null
@@ -1120,6 +1196,8 @@ export type Database = {
           id: number
           is_template: boolean | null
           markup_percent: number | null
+          master_discount_percent: number | null
+          master_markup_percent: number | null
           name: string
           updated_at: string | null
         }
@@ -1131,6 +1209,8 @@ export type Database = {
           id?: number
           is_template?: boolean | null
           markup_percent?: number | null
+          master_discount_percent?: number | null
+          master_markup_percent?: number | null
           name: string
           updated_at?: string | null
         }
@@ -1142,6 +1222,8 @@ export type Database = {
           id?: number
           is_template?: boolean | null
           markup_percent?: number | null
+          master_discount_percent?: number | null
+          master_markup_percent?: number | null
           name?: string
           updated_at?: string | null
         }

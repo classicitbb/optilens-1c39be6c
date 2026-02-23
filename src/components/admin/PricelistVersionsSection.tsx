@@ -270,7 +270,7 @@ const PricelistVersionsSection = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">
-              {editMode ? "Edit Pricelist" : "New Pricelist Version"}
+              {editMode ? "Edit Pricelist Version" : "New Pricelist Version"}
             </DialogTitle>
           </DialogHeader>
 
