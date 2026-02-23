@@ -327,67 +327,139 @@ ${addonsHtml}
     logExport("HTML", "Matrix");
   };
 
-  // ── Matrix PDF ──────────────────────────────────────────────────────────────
+  // ── Matrix PDF (Portrait A4, compact, lens names, deltas) ────────────────
   const exportMatrixPDF = () => {
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
-    const margin = 12;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const margin = 10;
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
     let y = drawPdfHeader(doc, margin);
 
-    TREATMENT_TYPES.forEach((tt) => {
+    // Build a lens-name lookup: allocation id → lens name
+    const lensNameMap = new Map<string, string>();
+    for (const a of allocations) {
+      if (a.lens_id) {
+        const lens = allLenses.find((l) => l.id === a.lens_id);
+        if (lens) lensNameMap.set(String(a.id), lens.name);
+      }
+    }
+
+    // Helper: get the average price for a column in a treatment type
+    const getColAvg = (mat: string, treatType: TreatmentType): number | null => {
+      const vals = categories
+        .map((cat) => {
+          const a = allocations.find((al) => al.category === cat && al.material_index === mat && al.treatment_type === treatType);
+          if (!a?.allocated_price_bbd) return null;
+          return hp(a.allocated_price_bbd, String(a.id), "matrix_allocation");
+        })
+        .filter((v): v is number => v !== null);
+      if (!vals.length) return null;
+      return vals.reduce((s, v) => s + v, 0) / vals.length;
+    };
+
+    // Render each treatment grid
+    const treatmentsToPrint = TREATMENT_TYPES.filter((tt) => {
       const activeCols = getActiveCols(tt);
-      if (activeCols.length === 0 && tt !== "clear") return;
+      if (activeCols.length === 0 && tt !== "clear") return false;
+      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
+      const activeCats = getActiveCats(tt, visibleCols);
+      return activeCats.length > 0 || tt === "clear";
+    });
+
+    // We'll collect delta rows for non-clear treatments to append after Clear
+    const clearVisibleCols = (() => {
+      const activeCols = getActiveCols("clear");
+      return activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
+    })();
+
+    treatmentsToPrint.forEach((tt, ttIdx) => {
+      const activeCols = getActiveCols(tt);
       const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
       const activeCats = getActiveCats(tt, visibleCols);
       if (activeCats.length === 0 && tt !== "clear") return;
 
-      if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
+      // Page break if not enough room
+      if (y > pageH - 40) { doc.addPage(); y = margin; }
+
       const groupTitle = TREATMENT_LABELS[tt];
-      doc.setFontSize(10);
+      doc.setFontSize(8);
       doc.setTextColor(30, 77, 183);
       doc.text(groupTitle, margin, y);
-      y += 2;
+      y += 1.5;
 
-      const head = [[groupTitle, ...visibleCols.map((c) => c.key)]];
-      const body = activeCats.map((cat) => [
-        cat,
-        ...visibleCols.map((col) => {
-          const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
-          return hpStr(alloc?.allocated_price_bbd ?? null, alloc?.id ? String(alloc.id) : undefined, "matrix_allocation");
-        }),
-      ]);
+      // Build body: each category row shows price + lens name underneath
+      const body: any[][] = activeCats.map((cat) => {
+        return [
+          cat,
+          ...visibleCols.map((col) => {
+            const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
+            if (!alloc?.allocated_price_bbd) return "—";
+            const price = hpStr(alloc.allocated_price_bbd, String(alloc.id), "matrix_allocation");
+            const lensName = lensNameMap.get(String(alloc.id));
+            return lensName ? `${price}\n${lensName}` : price;
+          }),
+        ];
+      });
+
+      // Add delta row for non-clear treatments
+      if (tt !== "clear") {
+        const deltaRow = [
+          "Δ vs Clear",
+          ...visibleCols.map((col) => {
+            const treatAvg = getColAvg(col.key, tt);
+            const clearAvg = getColAvg(col.key, "clear");
+            if (treatAvg == null || clearAvg == null) return "—";
+            const delta = treatAvg - clearAvg;
+            return `${delta >= 0 ? "+" : ""}${delta.toFixed(2)}`;
+          }),
+        ];
+        body.push(deltaRow);
+      }
 
       autoTable(doc, {
         startY: y,
         margin: { left: margin, right: margin },
-        head, body,
-        styles: { fontSize: 7, cellPadding: 1.5 },
-        headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
+        head: [[groupTitle, ...visibleCols.map((c) => c.key)]],
+        body,
+        styles: { fontSize: 5.5, cellPadding: 1.2, overflow: "linebreak" },
+        headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold", fontSize: 6 },
         alternateRowStyles: { fillColor: [245, 247, 251] },
+        columnStyles: { 0: { cellWidth: 32, fontStyle: "bold" } },
         tableWidth: "auto",
+        didParseCell: (data: any) => {
+          // Style delta row
+          if (data.section === "body" && data.row.index === body.length - 1 && tt !== "clear") {
+            data.cell.styles.fillColor = [255, 248, 230];
+            data.cell.styles.textColor = [160, 120, 0];
+            data.cell.styles.fontStyle = "italic";
+            data.cell.styles.fontSize = 5;
+          }
+        },
       });
-      y = (doc as any).lastAutoTable.finalY + 6;
+      y = (doc as any).lastAutoTable.finalY + 4;
     });
 
+    // Add-ons / Treatments sections
     const addonsBySection = getAddonsBySection();
     if (addonsBySection.size > 0) {
       for (const [sec, rows] of addonsBySection.entries()) {
-        if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
-        doc.setFontSize(9);
+        if (y > pageH - 25) { doc.addPage(); y = margin; }
+        doc.setFontSize(7);
         doc.setTextColor(30, 77, 183);
         doc.text(sec, margin, y);
-        y += 2;
+        y += 1.5;
 
         autoTable(doc, {
           startY: y,
           margin: { left: margin, right: margin },
           head: [[sec, `Price (${currency})`]],
           body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)]),
-          styles: { fontSize: 7, cellPadding: 1.5 },
-          headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
+          styles: { fontSize: 5.5, cellPadding: 1.2 },
+          headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold", fontSize: 6 },
           alternateRowStyles: { fillColor: [245, 247, 251] },
           tableWidth: "auto",
         });
-        y = (doc as any).lastAutoTable.finalY + 4;
+        y = (doc as any).lastAutoTable.finalY + 3;
       }
     }
 
