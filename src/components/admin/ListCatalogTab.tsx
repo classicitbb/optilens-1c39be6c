@@ -408,13 +408,12 @@ const ListCatalogTab = ({
     );
   };
 
-  const renderSection = (title: string, rows: CatalogRow[], rowType: "lens" | "addon" | "supply", parentLabel?: string) => {
+  const renderSection = (title: string, rows: CatalogRow[], rowType: "lens" | "addon" | "supply") => {
     const displayRows = sortedRows(title, rows);
     return (
       <div key={title} className="mt-5 px-2">
-        {parentLabel && <div className="px-4 py-1.5 mb-0.5 font-bold text-xs uppercase tracking-wider" style={{ background: "hsl(215 30% 20%)", color: "hsl(215 80% 85%)" }}>{parentLabel}</div>}
-        <div className="px-4 py-2 rounded-sm mb-0.5 font-bold text-sm flex items-center justify-between" style={{ background: BLUE_BG, color: "white" }}>
-          <span>{parentLabel ? `└ ${title.split(" — ")[1] || title}` : title}</span>
+        <div className="px-4 py-2 rounded-sm mb-0.5 font-bold text-sm uppercase tracking-wide flex items-center justify-between" style={{ background: BLUE_BG, color: "white" }}>
+          <span>{title}</span>
           <button className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
             onClick={() => { setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined }); if (rowType === "supply") setSupplyPickerOpen(true); else setLensPickerOpen(true); }}>
             <Plus className="h-3 w-3" /> Add Line
