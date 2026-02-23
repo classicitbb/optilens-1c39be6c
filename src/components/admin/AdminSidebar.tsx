@@ -5,8 +5,8 @@ import {
   Database, Upload, Download,
   Settings, Users, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
   ChevronDown, ChevronRight, Ship, FileSpreadsheet, Glasses,
-  FlaskConical, ShoppingCart,
-} from "lucide-react";
+  FlaskConical, ShoppingCart } from
+"lucide-react";
 import { Link } from "react-router-dom";
 
 interface MenuItem {
@@ -29,25 +29,25 @@ type NavItem = MenuItem | MenuGroup;
 const isGroup = (item: NavItem): item is MenuGroup => "children" in item;
 
 const NAV: NavItem[] = [
-  {
-    label: "Product Catalog",
-    icon: Layers,
-    path: "/admin/catalog",
-    feature: "catalog",
-    children: [
-      { label: "Reference Data", icon: Database, path: "/admin/reference", feature: "reference" },
-      { label: "Imports", icon: Upload, path: "/admin/imports", feature: "imports" },
-      { label: "Exports", icon: Download, path: "/admin/exports", feature: "exports" },
-    ],
-  } as MenuGroup,
-  { label: "RX Lens Prices", icon: FlaskConical, path: "/admin/rx-lens-prices", feature: "rx-lens-prices" } as MenuItem,
-  { label: "Stock Lens Prices", icon: Glasses, path: "/admin/stock-lens-prices", feature: "stock-lens-prices" } as MenuItem,
-  { label: "Supplies Prices", icon: ShoppingCart, path: "/admin/supplies-prices", feature: "supplies-prices" } as MenuItem,
-  { label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", feature: "quotations" } as MenuItem,
-  { label: "Import Costings", icon: Ship, path: "/admin/costings/shipments", feature: "costings" } as MenuItem,
-  { label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem,
-  { label: "Settings", icon: Settings, path: "/admin/parameters", feature: "parameters" } as MenuItem,
-];
+{
+  label: "Product Catalog",
+  icon: Layers,
+  path: "/admin/catalog",
+  feature: "catalog",
+  children: [
+  { label: "Reference Data", icon: Database, path: "/admin/reference", feature: "reference" },
+  { label: "Imports", icon: Upload, path: "/admin/imports", feature: "imports" },
+  { label: "Exports", icon: Download, path: "/admin/exports", feature: "exports" }]
+
+} as MenuGroup,
+{ label: "RX Lens Prices", icon: FlaskConical, path: "/admin/rx-lens-prices", feature: "rx-lens-prices" } as MenuItem,
+{ label: "Stock Lens Prices", icon: Glasses, path: "/admin/stock-lens-prices", feature: "stock-lens-prices" } as MenuItem,
+{ label: "Supplies Prices", icon: ShoppingCart, path: "/admin/supplies-prices", feature: "supplies-prices" } as MenuItem,
+{ label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", feature: "quotations" } as MenuItem,
+{ label: "Import Costings", icon: Ship, path: "/admin/costings/shipments", feature: "costings" } as MenuItem,
+{ label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem,
+{ label: "Settings", icon: Settings, path: "/admin/parameters", feature: "parameters" } as MenuItem];
+
 
 const AdminSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -72,7 +72,7 @@ const AdminSidebar = () => {
   const toggleGroup = (label: string) => {
     setOpenGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(label)) next.delete(label); else next.add(label);
+      if (next.has(label)) next.delete(label);else next.add(label);
       return next;
     });
   };
@@ -91,13 +91,13 @@ const AdminSidebar = () => {
         title={collapsed ? item.label : undefined}
         style={{
           color: active ? "hsl(215 65% 65%)" : indent ? "hsl(210 15% 65%)" : "hsl(210 20% 85%)",
-          background: active ? "hsl(215 65% 50% / 0.12)" : "transparent",
-        }}
-      >
+          background: active ? "hsl(215 65% 50% / 0.12)" : "transparent"
+        }}>
+
         <item.icon className={`${indent ? "h-3.5 w-3.5" : "h-4 w-4"} shrink-0`} />
         {!collapsed && <span>{item.label}</span>}
-      </RouterNavLink>
-    );
+      </RouterNavLink>);
+
   };
 
   const renderGroup = (group: MenuGroup) => {
@@ -110,69 +110,69 @@ const AdminSidebar = () => {
     return (
       <div key={group.label}>
         <div className="flex items-center">
-          {group.path ? (
-            <RouterNavLink
-              to={group.path}
-              className={`${linkBase} flex-1 ${groupActive ? "font-medium" : ""}`}
-              title={collapsed ? group.label : undefined}
-              style={{ color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)", background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent" }}
-            >
+          {group.path ?
+          <RouterNavLink
+            to={group.path}
+            className={`${linkBase} flex-1 ${groupActive ? "font-medium" : ""}`}
+            title={collapsed ? group.label : undefined}
+            style={{ color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)", background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
+
               <group.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span className="flex-1 text-left">{group.label}</span>}
-            </RouterNavLink>
-          ) : (
-            <button
-              onClick={() => !collapsed && toggleGroup(group.label)}
-              className={`${linkBase} w-full ${groupActive ? "font-medium" : ""}`}
-              title={collapsed ? group.label : undefined}
-              style={{ color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)", background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent" }}
-            >
+            </RouterNavLink> :
+
+          <button
+            onClick={() => !collapsed && toggleGroup(group.label)}
+            className={`${linkBase} w-full ${groupActive ? "font-medium" : ""}`}
+            title={collapsed ? group.label : undefined}
+            style={{ color: groupActive ? "hsl(215 65% 65%)" : "hsl(210 20% 85%)", background: groupActive ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
+
               <group.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span className="flex-1 text-left">{group.label}</span>}
             </button>
-          )}
-          {!collapsed && (
-            <button onClick={() => toggleGroup(group.label)} className="p-1 rounded hover:bg-white/10 mr-1">
+          }
+          {!collapsed &&
+          <button onClick={() => toggleGroup(group.label)} className="p-1 rounded hover:bg-white/10 mr-1">
               {isOpen ? <ChevronDown className="h-3 w-3" style={{ color: "hsl(210 20% 65%)" }} /> : <ChevronRight className="h-3 w-3" style={{ color: "hsl(210 20% 65%)" }} />}
             </button>
-          )}
+          }
         </div>
-        {!collapsed && isOpen && (
-          <div className="space-y-0.5">
+        {!collapsed && isOpen &&
+        <div className="space-y-0.5">
             {group.children.map((child) => renderMenuItem(child, true))}
           </div>
-        )}
-      </div>
-    );
+        }
+      </div>);
+
   };
 
   return (
     <aside className={`admin-sidebar ${w} shrink-0 flex flex-col transition-all duration-200 border-r`} style={{ borderColor: "hsl(215 25% 18%)" }}>
-      <div className="h-11 flex items-center justify-between px-3 border-b" style={{ borderColor: "hsl(215 25% 18%)" }}>
+      <div className="h-11 flex items-center justify-between px-3 border-b rounded-none" style={{ borderColor: "hsl(215 25% 18%)" }}>
         {!collapsed && <span className="text-sm font-semibold tracking-tight" style={{ color: "hsl(0 0% 100%)" }}>OptiPricing</span>}
         <button onClick={() => setCollapsed(!collapsed)} className="p-1 rounded hover:bg-white/10">
           {collapsed ? <PanelLeft className="h-4 w-4" style={{ color: "hsl(210 20% 85%)" }} /> : <PanelLeftClose className="h-4 w-4" style={{ color: "hsl(210 20% 85%)" }} />}
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-2 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto py-2 space-y-0.5 rounded-none">
         {NAV.map((item) => isGroup(item) ? renderGroup(item) : renderMenuItem(item))}
       </nav>
 
-      <div className="border-t px-3 py-2 space-y-0.5" style={{ borderColor: "hsl(215 25% 18%)" }}>
-        {canView("wiki") && (
-          <RouterNavLink to="/admin/wiki" className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`} title={collapsed ? "Help / Wiki" : undefined} style={{ color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
+      <div className="border-t px-3 py-2 space-y-0.5 rounded-none" style={{ borderColor: "hsl(215 25% 18%)" }}>
+        {canView("wiki") &&
+        <RouterNavLink to="/admin/wiki" className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`} title={collapsed ? "Help / Wiki" : undefined} style={{ color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
             <BookOpen className="h-4 w-4 shrink-0" />
             {!collapsed && <span>Help / Wiki</span>}
           </RouterNavLink>
-        )}
+        }
         <Link to="/" className={`${linkBase} w-full`} style={{ color: "hsl(210 15% 65%)" }} title={collapsed ? "Back to Site" : undefined}>
           <ArrowLeft className="h-4 w-4 shrink-0" />
           {!collapsed && <span>Back to Site</span>}
         </Link>
       </div>
-    </aside>
-  );
+    </aside>);
+
 };
 
 export default AdminSidebar;
