@@ -10,7 +10,8 @@ import { useAuditLog, buildPricingSummary } from "@/hooks/useAuditLog";
 import { useCatalogFilterStore, CatalogFilterStore } from "@/hooks/useCatalogFilterStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, FilterX } from "lucide-react";
+import { Plus, Search, FilterX, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -42,7 +43,8 @@ const ProductCatalogPage = () => {
   const store = useCatalogFilterStore();
   const activeTab = store.activeTab;
   const [filterVersion, setFilterVersion] = useState(0);
-  const { canEdit } = useAdminRole();
+  const { canEdit, isAdmin, role } = useAdminRole();
+  const showCost = role === "admin" || role === "operator";
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
 
@@ -69,15 +71,94 @@ const ProductCatalogPage = () => {
     else setSupplyFormOpen(true);
   };
 
+  /* ── Export all catalog data to CSV ── */
+  const { data: allLenses } = useLenses();
+  const { data: allAddons } = useAddons();
+  const { data: allSupplies } = useSupplies();
+
+  const handleExportCatalog = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Lenses sheet
+    const lensRows = (allLenses ?? []).map((l) => ({
+      Name: l.name,
+      Supplier: l.supplier?.name ?? "",
+      Brand: l.brand?.name ?? "",
+      Material: l.material?.name ?? "",
+      "MF Type": l.mftype?.name ?? "",
+      "Lens Type": l.lenstype?.name ?? "",
+      "Finish Type": l.finishtype?.name ?? "",
+      Index: l.index_value,
+      ...(showCost ? { "Cost (Base)": l.base_price } : {}),
+      "Sell Price": l.sell_price,
+      "SPH Min": l.sph_min, "SPH Max": l.sph_max,
+      "CYL Min": l.cyl_min, "CYL Max": l.cyl_max,
+      "ADD Min": l.add_min ?? "", "ADD Max": l.add_max ?? "",
+      Active: l.is_active ? "Yes" : "No",
+      "Show in Pricelist": l.show_in_pricelist ? "Yes" : "No",
+      "WS Pricelist": l.show_in_ws_pricelist ? "Yes" : "No",
+      Website: l.show_on_website ? "Yes" : "No",
+      "Full Lab": l.full_lab ? "Yes" : "No",
+      Notes: l.notes ?? "",
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lensRows), "Lenses");
+
+    // Addons sheet
+    const addonRows = (allAddons ?? []).map((a) => ({
+      Name: a.name,
+      SKU: a.sku,
+      Supplier: a.supplier_name ?? "",
+      Category: a.category,
+      Description: a.description,
+      ...(showCost ? { Cost: a.cost } : {}),
+      Price: a.price,
+      Active: a.is_active ? "Yes" : "No",
+      "Auto-Apply": a.is_auto ? "Yes" : "No",
+      Website: a.show_on_website ? "Yes" : "No",
+      "Sort Order": a.sort_order,
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(addonRows), "Add-Ons");
+
+    // Supplies sheet
+    const supplyRows = (allSupplies ?? []).map((s) => ({
+      Name: s.name,
+      SKU: s.sku,
+      Supplier: s.supplier_name ?? "",
+      Brand: s.brand_name ?? "",
+      Category: s.category,
+      Description: s.description,
+      ...(showCost ? { "Base Price": s.base_price } : {}),
+      "Sell Price": s.sell_price,
+      Unit: s.unit,
+      "Qty/Unit": s.quantity_per_unit,
+      Active: s.is_active ? "Yes" : "No",
+      "In Pricelist": s.show_in_pricelist ? "Yes" : "No",
+      Website: s.show_on_website ? "Yes" : "No",
+      Preferred: s.preferred ? "Yes" : "No",
+      Stocked: s.stocked ? "Yes" : "No",
+      Bin: s.bin,
+      Currency: s.currency,
+      Notes: s.notes ?? "",
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(supplyRows), "Supplies");
+
+    XLSX.writeFile(wb, `Product_Catalog_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden p-4 gap-4">
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Product Catalog</h1>
-        {canEdit && (
-          <Button size="sm" className="h-7 text-xs gap-1" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} onClick={handleAdd}>
-            <Plus className="h-3.5 w-3.5" /> {currentTab.addLabel}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" style={{ borderRadius: "4px" }} onClick={handleExportCatalog}>
+            <Download className="h-3.5 w-3.5" /> Export Catalog
           </Button>
-        )}
+          {canEdit && (
+            <Button size="sm" className="h-7 text-xs gap-1" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} onClick={handleAdd}>
+              <Plus className="h-3.5 w-3.5" /> {currentTab.addLabel}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tab bar */}
