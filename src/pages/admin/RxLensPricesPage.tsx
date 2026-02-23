@@ -144,6 +144,7 @@ const RxLensPricesPage = () => {
 
             <TabsContent value="catalog" className="mt-2">
               <ListCatalogTab
+                pageName="RX Lens Prices"
                 fxRate={fxRate}
                 showUSD={showUSD}
                 catalogType="rx"

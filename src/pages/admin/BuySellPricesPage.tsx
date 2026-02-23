@@ -41,6 +41,7 @@ const BuySellPricesPage = () => {
       {resolvedId && activeVersion && (
         <div className="space-y-4">
           <ListCatalogTab
+            pageName="Supplies Prices"
             fxRate={fxRate}
             showUSD={showUSD}
             catalogType="buysell"

@@ -43,6 +43,7 @@ interface ListCatalogTabProps {
   catalogType?: "rx" | "stock" | "buysell";
   lensFilter?: "wspl" | "web" | "pricelist" | "none";
   pageTitle?: string;
+  pageName?: string;
   showTreatmentsAddons?: boolean;
   versionId?: number | null;
   /** Row keys that are pending (newly synced from matrix, not yet viewed+saved) */
@@ -59,6 +60,7 @@ const ListCatalogTab = ({
   catalogType = "rx",
   lensFilter = "pricelist",
   pageTitle = "Custom Catalog",
+  pageName,
   showTreatmentsAddons = false,
   versionId = null,
   pendingMatrixRowKeys,
@@ -684,7 +686,7 @@ const ListCatalogTab = ({
       <div ref={printRef} className="catalog-print-area space-y-0 border">
         {/* Banner */}
         <div className="px-4 py-2.5 mb-4 rounded-md border-primary/30 bg-primary/5 border-0">
-          <h2 className="text-sm font-semibold text-primary tracking-wide">{pageTitle} List Editor</h2>
+          <h2 className="text-sm font-semibold text-primary tracking-wide">{pageName || pageTitle} List Editor</h2>
         </div>
 
         {catalogType === "buysell" && [...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
