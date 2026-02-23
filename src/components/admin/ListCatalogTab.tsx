@@ -5,7 +5,7 @@ import { useAddons } from "@/hooks/useAddons";
 import { useSupplies } from "@/hooks/useSupplies";
 import { usePricelistCatalogRows, PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 import { Button } from "@/components/ui/button";
-import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Pencil } from "lucide-react";
+import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Pencil, Link2Off } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -16,6 +16,7 @@ import LineOverrideDialog from "@/components/admin/LineOverrideDialog";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 
 const BLUE_BG = "#1e4db7";
 const GREEN_BG = "#d4edda";
@@ -81,6 +82,7 @@ const ListCatalogTab = ({
   );
   const { toast } = useToast();
   const { data: companySettings } = useCompanySettings();
+  const { hasOverride, lineOverrides } = usePriceHierarchy(versionId);
   const printRef = useRef<HTMLDivElement>(null);
 
   const [lensRows, setLensRows] = useState<Map<string, CatalogRow[]>>(new Map());
@@ -415,6 +417,20 @@ const ListCatalogTab = ({
     const isPending = pendingMatrixRowKeys?.has(row.key);
     const showReorder = rowType === "addon" || rowType === "supply";
     const rowCost = getRowCost(row);
+
+    // Check for line-level override
+    const refId = row.lensId || row.addonId || row.supplyId;
+    const refType = row.lensId ? "lens" : row.addonId ? "addon" : row.supplyId ? "supply" : "";
+    const isOverridden = refId && refType ? hasOverride(refId, refType) : false;
+    const overrideData = isOverridden ? lineOverrides.find(o => o.reference_id === refId && o.reference_type === refType) : null;
+
+    // Use override price if present
+    const displayBbd = isOverridden && overrideData?.overridden_price_bbd != null ? overrideData.overridden_price_bbd : row.bbd;
+    const displayUsd = displayBbd !== null ? displayBbd * fxRate : null;
+    const displayMargin = rowCost != null && rowCost > 0 && displayBbd != null && displayBbd > 0
+      ? parseFloat(((displayBbd - rowCost) / displayBbd * 100).toFixed(1))
+      : row.margin;
+
     return (
       <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
         {/* Reorder arrows for addon/supply rows */}
@@ -461,17 +477,24 @@ const ListCatalogTab = ({
           "—"}
         </td>
         {/* BBD always visible in editor */}
-        <td className={`px-3 py-1.5 text-right border border-slate-200 font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: "hsl(215 60% 97%)", color: "hsl(215 60% 30%)" }}>
-          {row.bbd !== null ? `$${row.bbd.toFixed(2)}` : "—"}
+        <td className={`px-3 py-1.5 text-right border border-slate-200 font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: isOverridden ? "hsl(35 90% 95%)" : "hsl(215 60% 97%)", color: isOverridden ? "hsl(35 80% 30%)" : "hsl(215 60% 30%)" }}>
+          <div className="flex items-center justify-end gap-1">
+            {isOverridden && (
+              <span title={`Override: $${displayBbd?.toFixed(2)} (was $${row.bbd?.toFixed(2)})`}>
+                <Link2Off className="h-3 w-3 inline-block" style={{ color: "hsl(35 80% 45%)" }} />
+              </span>
+            )}
+            {displayBbd !== null ? `$${displayBbd.toFixed(2)}` : "—"}
+          </div>
         </td>
         <td className="px-3 py-1.5 text-right border border-slate-200 font-medium" style={{ background: "#f0fff4", color: GREEN_TEXT }}>
-          {row.usd !== null ? `$${row.usd.toFixed(2)}` : "—"}
+          {displayUsd !== null ? `$${displayUsd.toFixed(2)}` : "—"}
         </td>
         <td className="px-3 py-1.5 text-center border border-slate-200 no-print">
           <MarginBadge
-            marginPercent={row.margin}
+            marginPercent={displayMargin}
             cost={rowCost}
-            sellPrice={row.bbd}
+            sellPrice={displayBbd}
             itemName={row.description} />
 
         </td>
@@ -483,7 +506,7 @@ const ListCatalogTab = ({
             title="Override price for this line"
             onClick={() => openOverride(row, rowType)}>
 
-              <Pencil className="h-3 w-3" style={{ color: "hsl(215 65% 50%)" }} />
+              <Pencil className="h-3 w-3" style={{ color: isOverridden ? "hsl(35 80% 45%)" : "hsl(215 65% 50%)" }} />
             </button>
           }
         </td>
