@@ -682,6 +682,10 @@ const ListCatalogTab = ({
 
 
       <div ref={printRef} className="catalog-print-area space-y-0">
+        {/* Banner */}
+        <div className="px-4 py-2.5 mb-4 rounded-md border border-primary/30 bg-primary/5">
+          <h2 className="text-sm font-semibold text-primary tracking-wide">{pageTitle}</h2>
+        </div>
 
         {catalogType === "buysell" && [...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
         {catalogType === "stock" && (() => {
