@@ -4,12 +4,14 @@ import { useAddons } from "@/hooks/useAddons";
 import { useSupplies } from "@/hooks/useSupplies";
 import { usePricelistCatalogRows, PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 import { Button } from "@/components/ui/button";
-import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from "lucide-react";
+import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { LensPickerPopover, PickedItem } from "@/components/admin/LensPickerPopover";
 import { SupplyPickerPopover, PickedSupply } from "@/components/admin/SupplyPickerPopover";
+import MarginBadge from "@/components/admin/MarginBadge";
+import LineOverrideDialog from "@/components/admin/LineOverrideDialog";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useReferenceData } from "@/hooks/useReferenceData";
 
@@ -92,6 +94,22 @@ const ListCatalogTab = ({
     mode: "cell" | "add-lens" | "add-addon" | "add-supply";
     addonSection?: string;
   } | null>(null);
+
+  // Line override dialog state
+  const [overrideTarget, setOverrideTarget] = useState<{
+    referenceType: string;
+    referenceId: string;
+    itemName: string;
+    cost: number | null;
+    currentPrice: number | null;
+    sectionType: string;
+  } | null>(null);
+
+  const CATALOG_TO_SECTION_LABEL: Record<string, string> = {
+    rx: "RX Lens Prices",
+    stock: "Stock Lens Prices",
+    buysell: "Supplies Prices",
+  };
 
   const isLoading = lLoading || aLoading || sLoading || rowsLoading;
   const hasPending = (pendingMatrixRowKeys?.size ?? 0) > 0;
@@ -345,10 +363,40 @@ const ListCatalogTab = ({
     return <button className="ml-1 opacity-50 hover:opacity-100 transition-opacity no-print" onClick={(e) => { e.stopPropagation(); toggleSort(section, col); }}><ArrowUpDown className="h-2.5 w-2.5 inline" style={{ color: s?.col === col && s.dir ? "hsl(215 65% 50%)" : "inherit" }} /></button>;
   };
 
+  const getRowCost = (row: CatalogRow): number | null => {
+    if (row.lensId) {
+      const lens = (allLenses ?? []).find((l) => l.id === row.lensId);
+      return lens ? lens.base_price : null;
+    }
+    if (row.addonId) {
+      const addon = (allAddons ?? []).find((a) => a.id === row.addonId);
+      return addon ? addon.cost : null;
+    }
+    if (row.supplyId) {
+      const supply = (allSupplies ?? []).find((s) => s.id === row.supplyId);
+      return supply ? supply.base_price : null;
+    }
+    return null;
+  };
+
+  const openOverride = (row: CatalogRow, rowType: string) => {
+    const refId = row.lensId || row.addonId || row.supplyId;
+    if (!refId) return;
+    setOverrideTarget({
+      referenceType: rowType,
+      referenceId: refId,
+      itemName: row.description,
+      cost: getRowCost(row),
+      currentPrice: row.bbd,
+      sectionType: CATALOG_TO_SECTION_LABEL[catalogType] ?? "RX Lens Prices",
+    });
+  };
+
   const renderRow = (row: CatalogRow, i: number, rowType: "lens" | "addon" | "supply", section: string, totalRows?: number) => {
     const isEditingThisDesc = editingDesc?.key === row.key;
     const isPending = pendingMatrixRowKeys?.has(row.key);
     const showReorder = rowType === "addon" || rowType === "supply";
+    const rowCost = getRowCost(row);
     return (
       <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
         {/* Reorder arrows for addon/supply rows */}
@@ -401,8 +449,25 @@ const ListCatalogTab = ({
         <td className="px-3 py-1.5 text-right border border-slate-200 font-medium" style={{ background: "#f0fff4", color: GREEN_TEXT }}>
           {row.usd !== null ? `$${row.usd.toFixed(2)}` : "—"}
         </td>
-        <td className="px-3 py-1.5 text-right border border-slate-200 no-print" style={{ color: "hsl(280 40% 40%)" }}>
-          {row.margin !== null ? `${row.margin}%` : "—"}
+        <td className="px-3 py-1.5 text-center border border-slate-200 no-print">
+          <MarginBadge
+            marginPercent={row.margin}
+            cost={rowCost}
+            sellPrice={row.bbd}
+            itemName={row.description}
+          />
+        </td>
+        {/* Pencil override icon */}
+        <td className="border border-slate-200 p-0 no-print w-7">
+          {(row.lensId || row.addonId || row.supplyId) && versionId && (
+            <button
+              className="w-full h-full flex items-center justify-center p-1 hover:bg-primary/10 transition-colors"
+              title="Override price for this line"
+              onClick={() => openOverride(row, rowType)}
+            >
+              <Pencil className="h-3 w-3" style={{ color: "hsl(215 65% 50%)" }} />
+            </button>
+          )}
         </td>
         <td className="border border-slate-200 p-0 no-print">
           <button className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
@@ -439,7 +504,8 @@ const ListCatalogTab = ({
                 </th>
                 <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
                 <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
-                <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
+                <th className="px-3 py-2 text-center font-semibold border border-slate-300 w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
+                <th className="w-7 no-print border border-slate-300" title="Override" />
                 <th className="w-6 no-print border border-slate-300" />
               </tr>
             </thead>
@@ -543,7 +609,8 @@ const ListCatalogTab = ({
                         <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Matrix Cell</th>
                         <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={primarySectionKey} col="bbd" /></th>
                         <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={primarySectionKey} col="usd" /></th>
-                        <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-24 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={primarySectionKey} col="margin" /></th>
+                        <th className="px-3 py-2 text-center font-semibold border border-slate-300 w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={primarySectionKey} col="margin" /></th>
+                        <th className="w-7 no-print border border-slate-300" title="Override" />
                         <th className="w-6 no-print border border-slate-300" />
                       </tr>
                     </thead>
@@ -640,6 +707,17 @@ const ListCatalogTab = ({
 
       <LensPickerPopover open={lensPickerOpen} onOpenChange={setLensPickerOpen} onPick={handleLensPick} mode={pickerTarget?.mode === "add-addon" ? "all" : "lens-only"} currentId={null} hideFinished={catalogType === "rx"} />
       <SupplyPickerPopover open={supplyPickerOpen} onOpenChange={setSupplyPickerOpen} onPick={handleSupplyPick} currentId={null} categoryFilter={pickerTarget?.section} />
+      <LineOverrideDialog
+        open={!!overrideTarget}
+        onOpenChange={(v) => { if (!v) setOverrideTarget(null); }}
+        versionId={versionId ?? null}
+        sectionType={overrideTarget?.sectionType ?? ""}
+        referenceType={overrideTarget?.referenceType ?? ""}
+        referenceId={overrideTarget?.referenceId ?? ""}
+        itemName={overrideTarget?.itemName ?? ""}
+        cost={overrideTarget?.cost ?? null}
+        currentPrice={overrideTarget?.currentPrice ?? null}
+      />
     </div>
   );
 };

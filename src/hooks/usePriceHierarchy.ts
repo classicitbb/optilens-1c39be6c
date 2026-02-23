@@ -17,9 +17,10 @@ export interface LineOverride {
 }
 
 const CATALOG_TO_SECTION: Record<string, string> = {
-  rx: "rx",
-  stock: "stock",
-  buysell: "supplies",
+  rx: "RX Lens Prices",
+  stock: "Stock Lens Prices",
+  buysell: "Supplies Prices",
+  supplies: "Supplies Prices",
 };
 
 /**
