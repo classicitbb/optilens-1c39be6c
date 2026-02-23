@@ -41,6 +41,7 @@ const StockLensPricesPage = () => {
       {resolvedId && activeVersion && (
         <div className="space-y-4">
           <ListCatalogTab
+            pageName="Stock Lens Prices"
             fxRate={fxRate}
             showUSD={showUSD}
             catalogType="stock"
