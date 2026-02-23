@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { usePricelistVersions, CreateVersionInput, PricelistVersion } from "@/hooks/usePricelistVersions";
+import { useState, useEffect } from "react";
+import { usePricelistVersions, CreateVersionInput, PricelistVersion, ChildSection } from "@/hooks/usePricelistVersions";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +22,13 @@ import { format } from "date-fns";
 const BLUE = "hsl(215 65% 50%)";
 const LABEL_COLOR = "hsl(215 15% 40%)";
 
+const SECTION_TYPES = ["rx", "stock", "supplies"] as const;
+const SECTION_LABELS: Record<string, string> = {
+  rx: "RX Lens Prices",
+  stock: "Stock Lens Prices",
+  supplies: "Supplies Prices",
+};
+
 const PricelistVersionsSection = () => {
   const { data: versions, isLoading, createMutation, deleteMutation, updateMutation } =
     usePricelistVersions();
@@ -38,6 +46,16 @@ const PricelistVersionsSection = () => {
   const [markupPct, setMarkupPct] = useState<string>("0");
   const [discountPct, setDiscountPct] = useState<string>("0");
   const [isTemplate, setIsTemplate] = useState(false);
+  const [formatType, setFormatType] = useState<string>("list");
+  const [masterMarkupPct, setMasterMarkupPct] = useState<string>("0");
+  const [masterDiscountPct, setMasterDiscountPct] = useState<string>("0");
+
+  // Child sections state
+  const [childSections, setChildSections] = useState<Record<string, { markup: string; discount: string }>>({
+    rx: { markup: "0", discount: "0" },
+    stock: { markup: "0", discount: "0" },
+    supplies: { markup: "0", discount: "0" },
+  });
 
   const resetForm = () => {
     setName("");
@@ -46,6 +64,14 @@ const PricelistVersionsSection = () => {
     setMarkupPct("0");
     setDiscountPct("0");
     setIsTemplate(false);
+    setFormatType("list");
+    setMasterMarkupPct("0");
+    setMasterDiscountPct("0");
+    setChildSections({
+      rx: { markup: "0", discount: "0" },
+      stock: { markup: "0", discount: "0" },
+      supplies: { markup: "0", discount: "0" },
+    });
     setEditMode(null);
   };
 
@@ -54,18 +80,49 @@ const PricelistVersionsSection = () => {
     setOpen(true);
   };
 
-  const openEdit = (v: PricelistVersion) => {
+  const openEdit = async (v: PricelistVersion) => {
     setEditMode(v);
     setName(v.name);
     setCurrency((v.base_currency as "BBD" | "USD") ?? "BBD");
     setMarkupPct(String(v.markup_percent ?? 0));
     setDiscountPct(String(v.discount_percent ?? 0));
     setIsTemplate(v.is_template ?? false);
+    setFormatType(v.format_type ?? "list");
+    setMasterMarkupPct(String(v.master_markup_percent ?? 0));
+    setMasterDiscountPct(String(v.master_discount_percent ?? 0));
+
+    // Fetch child sections
+    const { data: children } = await supabase
+      .from("pricelist_child_sections")
+      .select("*")
+      .eq("pricelist_version_id", v.id);
+
+    const newChildState: Record<string, { markup: string; discount: string }> = {
+      rx: { markup: "0", discount: "0" },
+      stock: { markup: "0", discount: "0" },
+      supplies: { markup: "0", discount: "0" },
+    };
+    for (const c of children ?? []) {
+      if (newChildState[c.section_type]) {
+        newChildState[c.section_type] = {
+          markup: String(c.child_markup_percent ?? 0),
+          discount: String(c.child_discount_percent ?? 0),
+        };
+      }
+    }
+    setChildSections(newChildState);
     setOpen(true);
   };
 
   const handleSave = () => {
     if (!name.trim()) return;
+
+    const childData: ChildSection[] = SECTION_TYPES.map((st) => ({
+      pricelist_version_id: editMode?.id ?? 0,
+      section_type: st,
+      child_markup_percent: parseFloat(childSections[st].markup) || 0,
+      child_discount_percent: parseFloat(childSections[st].discount) || 0,
+    }));
 
     if (editMode) {
       updateMutation.mutate(
@@ -77,7 +134,11 @@ const PricelistVersionsSection = () => {
             markup_percent: parseFloat(markupPct) || 0,
             discount_percent: parseFloat(discountPct) || 0,
             is_template: isTemplate,
+            format_type: formatType,
+            master_markup_percent: parseFloat(masterMarkupPct) || 0,
+            master_discount_percent: parseFloat(masterDiscountPct) || 0,
           },
+          childSections: childData,
         },
         {
           onSuccess: () => {
@@ -135,22 +196,29 @@ const PricelistVersionsSection = () => {
     });
   };
 
+  const updateChild = (section: string, field: "markup" | "discount", value: string) => {
+    setChildSections((prev) => ({
+      ...prev,
+      [section]: { ...prev[section], [field]: value },
+    }));
+  };
+
   return (
     <div className="space-y-3">
       {/* Section header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+          <h2 className="text-sm font-semibold text-foreground">
             Pricelist Versions
           </h2>
-          <p className="text-xs mt-0.5" style={{ color: LABEL_COLOR }}>
+          <p className="text-xs mt-0.5 text-muted-foreground">
             Named, versioned pricing configurations — each copies the base matrix then allows overrides.
           </p>
         </div>
         {canEdit && (
           <Button
-            className="gap-1.5 text-sm font-medium px-4 py-2 h-9"
-            style={{ background: BLUE, color: "white", borderRadius: "6px" }}
+            className="gap-1.5 text-sm font-medium px-4 py-2 h-9 bg-primary text-primary-foreground"
+            style={{ borderRadius: "6px" }}
             onClick={openCreate}
           >
             <Plus className="h-4 w-4" />
@@ -163,14 +231,14 @@ const PricelistVersionsSection = () => {
       <div className="border border-border rounded-md overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow style={{ background: "hsl(215 15% 96%)" }}>
-              <TableHead className="text-xs font-bold" style={{ color: "hsl(215 30% 15%)" }}>Name</TableHead>
-              <TableHead className="text-xs font-bold text-center" style={{ color: "hsl(215 30% 15%)" }}>Currency</TableHead>
-              <TableHead className="text-xs font-bold text-center" style={{ color: "hsl(215 30% 15%)" }}>Markup %</TableHead>
-              <TableHead className="text-xs font-bold text-center" style={{ color: "hsl(215 30% 15%)" }}>Discount %</TableHead>
-              <TableHead className="text-xs font-bold" style={{ color: "hsl(215 30% 15%)" }}>Created</TableHead>
+            <TableRow className="bg-muted/50">
+              <TableHead className="text-xs font-bold text-foreground">Name</TableHead>
+              <TableHead className="text-xs font-bold text-center text-foreground">Currency</TableHead>
+              <TableHead className="text-xs font-bold text-center text-foreground">Markup %</TableHead>
+              <TableHead className="text-xs font-bold text-center text-foreground">Discount %</TableHead>
+              <TableHead className="text-xs font-bold text-foreground">Created</TableHead>
               {canEdit && (
-                <TableHead className="text-xs font-bold text-right" style={{ color: "hsl(215 30% 15%)" }}>
+                <TableHead className="text-xs font-bold text-right text-foreground">
                   Actions
                 </TableHead>
               )}
@@ -188,8 +256,7 @@ const PricelistVersionsSection = () => {
               <TableRow>
                 <TableCell
                   colSpan={6}
-                  className="text-center py-6 text-xs"
-                  style={{ color: LABEL_COLOR }}
+                  className="text-center py-6 text-xs text-muted-foreground"
                 >
                   No pricelist versions yet. Click "+ New Pricelist" to create one.
                 </TableCell>
@@ -200,14 +267,13 @@ const PricelistVersionsSection = () => {
                 key={v.id}
                 className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}
               >
-                <TableCell className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+                <TableCell className="text-xs font-semibold text-foreground">
                   <span className="flex items-center gap-2">
                     {v.name}
                     {v.is_template && (
                       <Badge
                         variant="outline"
-                        className="text-[10px] px-1.5 py-0 h-4"
-                        style={{ borderColor: BLUE, color: BLUE }}
+                        className="text-[10px] px-1.5 py-0 h-4 border-primary text-primary"
                       >
                         Template
                       </Badge>
@@ -219,13 +285,13 @@ const PricelistVersionsSection = () => {
                     {v.base_currency ?? "BBD"}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs text-center" style={{ color: "hsl(215 30% 15%)" }}>
+                <TableCell className="text-xs text-center text-foreground">
                   {v.markup_percent ?? 0}%
                 </TableCell>
-                <TableCell className="text-xs text-center" style={{ color: "hsl(215 30% 15%)" }}>
+                <TableCell className="text-xs text-center text-foreground">
                   {v.discount_percent ?? 0}%
                 </TableCell>
-                <TableCell className="text-xs" style={{ color: LABEL_COLOR }}>
+                <TableCell className="text-xs text-muted-foreground">
                   {v.created_at ? format(new Date(v.created_at), "dd MMM yyyy") : "—"}
                 </TableCell>
                 {canEdit && (
@@ -233,27 +299,27 @@ const PricelistVersionsSection = () => {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => openEdit(v)}
-                        className="p-1 rounded hover:bg-black/5"
+                        className="p-1 rounded hover:bg-accent"
                         title="Edit"
                       >
-                        <Pencil className="h-3 w-3" style={{ color: LABEL_COLOR }} />
+                        <Pencil className="h-3 w-3 text-muted-foreground" />
                       </button>
                       <button
                         onClick={() => handleDuplicate(v)}
-                        className="p-1 rounded hover:bg-black/5"
+                        className="p-1 rounded hover:bg-accent"
                         title="Duplicate"
                         disabled={createMutation.isPending}
                       >
-                        <Copy className="h-3 w-3" style={{ color: LABEL_COLOR }} />
+                        <Copy className="h-3 w-3 text-muted-foreground" />
                       </button>
                       {isAdmin && (
                         <button
                           onClick={() => handleDelete(v)}
-                          className="p-1 rounded hover:bg-red-50"
+                          className="p-1 rounded hover:bg-destructive/10"
                           title="Delete"
                           disabled={deleteMutation.isPending}
                         >
-                          <Trash2 className="h-3 w-3" style={{ color: "hsl(0 60% 50%)" }} />
+                          <Trash2 className="h-3 w-3 text-destructive" />
                         </button>
                       )}
                     </div>
@@ -267,7 +333,7 @@ const PricelistVersionsSection = () => {
 
       {/* Create / Edit dialog */}
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">
               {editMode ? "Edit Pricelist Version" : "New Pricelist Version"}
@@ -275,10 +341,10 @@ const PricelistVersionsSection = () => {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Name */}
+            {/* Version Name */}
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>
-                Version Name <span style={{ color: "hsl(0 60% 50%)" }}>*</span>
+              <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                Version Name <span className="text-destructive">*</span>
               </label>
               <Input
                 value={name}
@@ -292,7 +358,7 @@ const PricelistVersionsSection = () => {
             {/* Copy From (only on create) */}
             {!editMode && (
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>
+                <label className="text-xs font-medium mb-1 block text-muted-foreground">
                   Copy Prices From
                 </label>
                 <Select value={copyFrom} onValueChange={setCopyFrom}>
@@ -310,15 +376,40 @@ const PricelistVersionsSection = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] mt-1" style={{ color: LABEL_COLOR }}>
+                <p className="text-[10px] mt-1 text-muted-foreground">
                   All prices will be copied from the selected source.
                 </p>
               </div>
             )}
 
+            {/* Format Type (edit only) */}
+            {editMode && (
+              <div>
+                <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                  Format Type
+                </label>
+                <div className="flex gap-2">
+                  {(["matrix", "list"] as const).map((ft) => (
+                    <button
+                      key={ft}
+                      onClick={() => setFormatType(ft)}
+                      className="flex-1 py-1.5 text-xs font-medium rounded border transition-colors"
+                      style={{
+                        background: formatType === ft ? BLUE : "transparent",
+                        color: formatType === ft ? "white" : LABEL_COLOR,
+                        borderColor: formatType === ft ? BLUE : "hsl(215 15% 80%)",
+                      }}
+                    >
+                      {ft === "matrix" ? "Matrix" : "List"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Currency */}
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>
+              <label className="text-xs font-medium mb-1 block text-muted-foreground">
                 Base Currency
               </label>
               <div className="flex gap-2">
@@ -339,45 +430,136 @@ const PricelistVersionsSection = () => {
               </div>
             </div>
 
-            {/* Markup / Discount */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>
-                  Markup %
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={markupPct}
-                  onChange={(e) => setMarkupPct(e.target.value)}
-                  className="h-8 text-xs text-right"
-                  placeholder="0"
-                />
+            {/* Master Markup / Discount */}
+            {editMode && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                    Master Markup %
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={masterMarkupPct}
+                      onChange={(e) => setMasterMarkupPct(e.target.value)}
+                      className="h-8 text-xs text-right pr-6"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                    Master Discount %
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={masterDiscountPct}
+                      onChange={(e) => setMasterDiscountPct(e.target.value)}
+                      className="h-8 text-xs text-right pr-6"
+                      placeholder="0"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>
-                  Discount %
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={discountPct}
-                  onChange={(e) => setDiscountPct(e.target.value)}
-                  className="h-8 text-xs text-right"
-                  placeholder="0"
-                />
+            )}
+
+            {/* Legacy Markup / Discount (create mode) */}
+            {!editMode && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                    Markup %
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={markupPct}
+                    onChange={(e) => setMarkupPct(e.target.value)}
+                    className="h-8 text-xs text-right"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                    Discount %
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={discountPct}
+                    onChange={(e) => setDiscountPct(e.target.value)}
+                    className="h-8 text-xs text-right"
+                    placeholder="0"
+                  />
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Child Section Boxes (edit mode only) */}
+            {editMode && (
+              <div className="space-y-3 pt-1">
+                {SECTION_TYPES.map((st) => (
+                  <div key={st} className="border border-border rounded-md p-3 bg-muted/30">
+                    <h4 className="text-xs font-semibold text-foreground mb-2">
+                      {SECTION_LABELS[st]}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block text-muted-foreground">
+                          Child Markup %
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={childSections[st].markup}
+                            onChange={(e) => updateChild(st, "markup", e.target.value)}
+                            className="h-7 text-xs text-right pr-6"
+                            placeholder="0"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium mb-1 block text-muted-foreground">
+                          Child Discount %
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={childSections[st].discount}
+                            onChange={(e) => updateChild(st, "discount", e.target.value)}
+                            className="h-7 text-xs text-right pr-6"
+                            placeholder="0"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Is Template */}
             <div className="flex items-center justify-between pt-1">
               <div>
-                <p className="text-xs font-medium" style={{ color: LABEL_COLOR }}>
+                <p className="text-xs font-medium text-muted-foreground">
                   Mark as Template
                 </p>
-                <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
+                <p className="text-[10px] text-muted-foreground/70">
                   Templates appear as copy sources for future versions.
                 </p>
               </div>
@@ -396,8 +578,7 @@ const PricelistVersionsSection = () => {
             </Button>
             <Button
               size="sm"
-              className="h-7 text-xs"
-              style={{ background: BLUE, color: "white" }}
+              className="h-7 text-xs bg-primary text-primary-foreground"
               onClick={handleSave}
               disabled={
                 !name.trim() ||
