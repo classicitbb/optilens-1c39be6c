@@ -93,16 +93,11 @@ const VersionSelectorPanel = ({
   const [masterMarkupPct, setMasterMarkupPct] = useState("0");
   const [masterDiscountPct, setMasterDiscountPct] = useState("0");
 
-  const SECTION_TYPES = ["rx", "stock", "supplies"] as const;
-  const SECTION_LABELS: Record<string, string> = {
-    rx: "RX Lens Prices",
-    stock: "Stock Lens Prices",
-    supplies: "Supplies Prices",
-  };
+  const SECTION_TYPES = ["RX Lens Prices", "Stock Lens Prices", "Supplies Prices"] as const;
   const [childSections, setChildSections] = useState<Record<string, { markup: string; discount: string }>>({
-    rx: { markup: "0", discount: "0" },
-    stock: { markup: "0", discount: "0" },
-    supplies: { markup: "0", discount: "0" },
+    "RX Lens Prices": { markup: "0", discount: "0" },
+    "Stock Lens Prices": { markup: "0", discount: "0" },
+    "Supplies Prices": { markup: "0", discount: "0" },
   });
 
   const activeVersion =
@@ -126,9 +121,9 @@ const VersionSelectorPanel = ({
     setMasterMarkupPct("0");
     setMasterDiscountPct("0");
     setChildSections({
-      rx: { markup: "0", discount: "0" },
-      stock: { markup: "0", discount: "0" },
-      supplies: { markup: "0", discount: "0" },
+      "RX Lens Prices": { markup: "0", discount: "0" },
+      "Stock Lens Prices": { markup: "0", discount: "0" },
+      "Supplies Prices": { markup: "0", discount: "0" },
     });
   };
 
@@ -162,9 +157,9 @@ const VersionSelectorPanel = ({
       .eq("pricelist_version_id", v.id);
 
     const newChildState: Record<string, { markup: string; discount: string }> = {
-      rx: { markup: "0", discount: "0" },
-      stock: { markup: "0", discount: "0" },
-      supplies: { markup: "0", discount: "0" },
+      "RX Lens Prices": { markup: "0", discount: "0" },
+      "Stock Lens Prices": { markup: "0", discount: "0" },
+      "Supplies Prices": { markup: "0", discount: "0" },
     };
     for (const c of children ?? []) {
       if (newChildState[c.section_type]) {
@@ -632,29 +627,6 @@ const VersionSelectorPanel = ({
               </div>
             )}
 
-            {/* Format Type (edit only) */}
-            {editMode && (
-              <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Format Type</label>
-                <div className="flex gap-2">
-                  {(["matrix", "list"] as const).map((ft) => (
-                    <button
-                      key={ft}
-                      onClick={() => setFormatType(ft)}
-                      className="flex-1 py-1.5 text-xs font-medium rounded border transition-colors"
-                      style={{
-                        background: formatType === ft ? BLUE : "transparent",
-                        color: formatType === ft ? "white" : LABEL_COLOR,
-                        borderColor: formatType === ft ? BLUE : "hsl(215 15% 80%)",
-                      }}
-                    >
-                      {ft === "matrix" ? "Matrix" : "List"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Master Markup / Discount (edit only) */}
             {editMode && (
               <div className="grid grid-cols-2 gap-3">
@@ -675,26 +647,12 @@ const VersionSelectorPanel = ({
               </div>
             )}
 
-            {/* Markup / Discount (edit mode = legacy) */}
-            {editMode && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Markup %</label>
-                  <Input type="number" step="0.01" min="0" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} className="h-8 text-xs text-right" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Discount %</label>
-                  <Input type="number" step="0.01" min="0" value={discountPct} onChange={(e) => setDiscountPct(e.target.value)} className="h-8 text-xs text-right" />
-                </div>
-              </div>
-            )}
-
             {/* Child Section Boxes (edit mode only) */}
             {editMode && (
               <div className="space-y-3 pt-1">
                 {SECTION_TYPES.map((st) => (
                   <div key={st} className="border border-border rounded-md p-3 bg-muted/30">
-                    <h4 className="text-xs font-semibold text-foreground mb-2">{SECTION_LABELS[st]}</h4>
+                    <h4 className="text-xs font-semibold text-foreground mb-2">{st}</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[11px] font-medium mb-1 block text-muted-foreground">Child Markup %</label>

@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { usePriceMatrix, PriceMatrixRow, INDEX_COLUMNS } from "@/hooks/usePriceMatrix";
+import { useLenses } from "@/hooks/useLenses";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Save, Loader2, Search } from "lucide-react";
 import { LensPickerPopover, PickedItem } from "@/components/admin/LensPickerPopover";
+import MarginBadge from "@/components/admin/MarginBadge";
 
 interface PriceMatrixEditorProps {
   showUSD: boolean;
@@ -15,6 +17,7 @@ interface CellAssignment {
   lensId: string;
   lensName: string;
   sellPriceBBD: number;
+  costBBD: number | null;
 }
 
 type AssignmentMap = Record<string, CellAssignment>; // key = `${rowId}_${colKey}`
@@ -29,6 +32,7 @@ const fmt = (val: number | null, showUSD: boolean, fxRate: number): string => {
 
 const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
   const { data: rows, isLoading, saveMutation } = usePriceMatrix();
+  const { data: allLenses } = useLenses();
   const { toast } = useToast();
 
   const [localRows, setLocalRows] = useState<PriceMatrixRow[]>([]);
@@ -70,6 +74,9 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
     if (!pickerTarget || item.type !== "lens") return;
     const { rowId, colKey } = pickerTarget;
     const sellBBD = item.sell_price;
+    // Find cost from allLenses
+    const lens = (allLenses ?? []).find((l) => l.id === item.id);
+    const costBBD = lens ? lens.base_price : null;
 
     // Write price into the matrix cell (BBD stored value)
     setLocalRows((prev) =>
@@ -81,6 +88,7 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
         lensId: item.id,
         lensName: item.name,
         sellPriceBBD: sellBBD,
+        costBBD,
       },
     }));
     setDirty(true);
@@ -206,6 +214,13 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
                   const val = row[col.key];
                   const k = cellKey(row.id, col.key);
                   const assignment = assignments[k];
+                  // Compute margin: use assignment cost if available, else try to find from lens data
+                  const cellCost = assignment?.costBBD ?? null;
+                  const cellSell = val ?? null;
+                  const marginPct =
+                    cellCost != null && cellCost > 0 && cellSell != null && cellSell > 0
+                      ? parseFloat((((cellSell - cellCost) / cellSell) * 100).toFixed(1))
+                      : null;
 
                   return (
                     <td key={col.key} className="border-r border-border last:border-r-0 p-0">
@@ -244,16 +259,27 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
                           </button>
                         </div>
 
-                        {/* Linked lens label */}
-                        {assignment && (
-                          <div
-                            className="px-2 pb-0.5 text-[9px] truncate max-w-full"
-                            style={{ color: "hsl(215 65% 45%)" }}
-                            title={assignment.lensName}
-                          >
-                            ↳ {assignment.lensName}
-                          </div>
-                        )}
+                        {/* Linked lens label + margin badge */}
+                        <div className="flex items-center gap-1 px-2 pb-0.5">
+                          {assignment && (
+                            <span
+                              className="text-[9px] truncate flex-1 min-w-0"
+                              style={{ color: "hsl(215 65% 45%)" }}
+                              title={assignment.lensName}
+                            >
+                              ↳ {assignment.lensName}
+                            </span>
+                          )}
+                          {marginPct != null && (
+                            <MarginBadge
+                              marginPercent={marginPct}
+                              cost={cellCost}
+                              sellPrice={cellSell}
+                              itemName={assignment?.lensName}
+                              inline
+                            />
+                          )}
+                        </div>
                       </div>
                     </td>
                   );
