@@ -13,6 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
+import LegalPage from "./pages/LegalPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
@@ -28,6 +29,7 @@ import ImportsPage from "./pages/admin/ImportsPage";
 import UsersPage from "./pages/admin/UsersPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
 import AdminWikiPage from "./pages/admin/AdminWikiPage";
+import ContentManagerPage from "./pages/admin/ContentManagerPage";
 import ImportCostingsPage from "./pages/admin/costings/ImportCostingsPage";
 import ShipmentDetailPage from "./pages/admin/costings/ShipmentDetailPage";
 import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
@@ -69,6 +71,9 @@ const App = () => (
               <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+              <Route path="/privacy-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
+              <Route path="/terms" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
+              <Route path="/return-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
 
               {/* Admin pricing tool */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
@@ -91,6 +96,7 @@ const App = () => (
                 <Route path="users" element={<UsersPage />} />
                 <Route path="audit" element={<Navigate to="/admin/parameters" replace />} />
                 <Route path="wiki" element={<AdminWikiPage />} />
+                <Route path="content" element={<ContentManagerPage />} />
                 <Route path="quotations" element={<QuotationsListPage />} />
                 <Route path="quotations/:id" element={<QuoteEditorPage />} />
                 {/* Import Costings */}

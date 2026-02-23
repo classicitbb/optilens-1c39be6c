@@ -1,7 +1,12 @@
 import { Eye, Mail, Phone, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLegalPage } from "@/hooks/useContentArticles";
 
 const Footer = () => {
+  const { data: copyrightArticle } = useLegalPage("copyright");
+
+  const copyrightText = copyrightArticle?.content || "© 2024 OptiLens Pro. All rights reserved.";
+
   return (
     <footer className="border-t border-border bg-primary text-primary-foreground">
       <div className="container mx-auto px-4 py-16 lg:px-8">
@@ -38,21 +43,18 @@ const Footer = () => {
             </nav>
           </div>
 
-          {/* Products */}
+          {/* Legal */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold uppercase tracking-wider">Products</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider">Legal</h4>
             <nav className="flex flex-col gap-2">
-              <Link to="/store" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
-                Surfaced Lenses
+              <Link to="/privacy-policy" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+                Privacy Policy
               </Link>
-              <Link to="/store" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
-                Finished Lenses
+              <Link to="/terms" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+                Terms & Conditions
               </Link>
-              <Link to="/store" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
-                Progressive Lenses
-              </Link>
-              <Link to="/store" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
-                Specialty Coatings
+              <Link to="/return-policy" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+                Return Policy
               </Link>
             </nav>
           </div>
@@ -61,24 +63,24 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold uppercase tracking-wider">Contact Us</h4>
             <div className="flex flex-col gap-3">
-              <a href="tel:+1234567890" className="flex items-center gap-2 text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+              <a href="tel:+12464334928" className="flex items-center gap-2 text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
                 <Phone className="h-4 w-4" />
-                (123) 456-7890
+                +1 246 433-4928
               </a>
-              <a href="mailto:info@optilens.com" className="flex items-center gap-2 text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+              <a href="mailto:info@classicvisions.net" className="flex items-center gap-2 text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
                 <Mail className="h-4 w-4" />
-                info@optilens.com
+                info@classicvisions.net
               </a>
-              <div className="flex items-start gap-2 text-sm text-primary-foreground/70">
-                <MapPin className="h-4 w-4 mt-0.5" />
-                <span>123 Optical Drive<br />Vision City, VC 12345</span>
-              </div>
+              <a href="https://www.classicvisions.net" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+                <MapPin className="h-4 w-4" />
+                www.classicvisions.net
+              </a>
             </div>
           </div>
         </div>
 
         <div className="mt-12 border-t border-primary-foreground/10 pt-8 text-center text-sm text-primary-foreground/60">
-          <p>© 2024 OptiLens Pro. All rights reserved.</p>
+          <p>{copyrightText}</p>
         </div>
       </div>
     </footer>
