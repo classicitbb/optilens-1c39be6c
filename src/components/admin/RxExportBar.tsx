@@ -25,6 +25,7 @@ interface Props {
   version: PricelistVersion;
   showUSD: boolean;
   fxRate: number;
+  catalogType?: "rx" | "stock" | "buysell";
 }
 
 const fmt = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
@@ -45,10 +46,10 @@ const buildLogoHtml = (logoUrl: string | null | undefined) => {
   return `<img src="${logoUrl}" alt="Logo" style="max-height:60px;margin-bottom:8px;display:block" crossorigin="anonymous" />`;
 };
 
-const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
+const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
-  const { data: catalogRows = [] } = usePricelistCatalogRows(version.id, "rx");
+  const { data: catalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
   const { toast } = useToast();
@@ -76,8 +77,9 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
 
   // Helper: get addon rows grouped by section
   const getAddonsBySection = () => {
+    const primaryType = catalogType === "buysell" ? "supply" : "lens";
     const addonRows = catalogRows
-      .filter((r) => ["addon", "treatment", "supply"].includes(r.row_type))
+      .filter((r) => r.row_type !== primaryType)
       .sort((a, b) => a.sort_order - b.sort_order);
     const map = new Map<string, typeof addonRows>();
     for (const r of addonRows) {
@@ -86,6 +88,12 @@ const RxExportBar = ({ version, showUSD, fxRate }: Props) => {
       map.get(sec)!.push(r);
     }
     return map;
+  };
+
+  // Helper: get primary rows (lens for rx/stock, supply for buysell)
+  const getPrimaryRows = () => {
+    const primaryType = catalogType === "buysell" ? "supply" : "lens";
+    return catalogRows.filter((r) => r.row_type === primaryType);
   };
 
   // Helper: get active columns per treatment
@@ -349,7 +357,7 @@ ${addonsHtml}
     companyHeader.forEach((h) => aoa.push([h]));
     aoa.push([]);
 
-    const lensRows = catalogRows.filter((r) => r.row_type === "lens");
+    const lensRows = getPrimaryRows();
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     sections.forEach((sec) => {
       aoa.push([sec]);
@@ -390,7 +398,7 @@ ${addonsHtml}
     lines.push("");
     lines.push(`Description,${currency} Price`);
 
-    const lensRows = catalogRows.filter((r) => r.row_type === "lens");
+    const lensRows = getPrimaryRows();
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     sections.forEach((sec) => {
       lines.push(`"${sec}"`);
@@ -422,7 +430,7 @@ ${addonsHtml}
 
   // ── List HTML ────────────────────────────────────────────────────────────────
   const exportListHTML = () => {
-    const lensRows = catalogRows.filter((r) => r.row_type === "lens");
+    const lensRows = getPrimaryRows();
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
     const sectionsHtml = sections.map((sec) => {
       const rowsHtml = lensRows
@@ -494,7 +502,7 @@ ${addonsHtml}
     doc.text(`${version.name} — ${today} (${currency})`, margin, y);
     y += 6;
 
-    const lensRows = catalogRows.filter((r) => r.row_type === "lens");
+    const lensRows = getPrimaryRows();
     const sections = [...new Set(lensRows.map((r) => r.section))].sort();
 
     sections.forEach((sec) => {
@@ -557,25 +565,29 @@ ${addonsHtml}
   };
 
   const btnBase = "h-7 text-[11px] gap-1 px-2.5 font-medium";
+  const showMatrix = catalogType === "rx";
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap no-print">
-      {/* Matrix exports */}
-      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pr-0.5">Matrix:</span>
-      <Button size="sm" className={btnBase} style={{ background: "#1e4db7", color: "white" }} onClick={exportMatrixPDF}>
-        <FileText className="h-3 w-3" /> PDF
-      </Button>
-      <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixExcel}>
-        <Table2 className="h-3 w-3" /> Excel
-      </Button>
-      <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixCSV}>
-        <FileSpreadsheet className="h-3 w-3" /> CSV
-      </Button>
-      <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixHTML}>
-        <Globe className="h-3 w-3" /> HTML
-      </Button>
-
-      <div className="w-px h-4 bg-border mx-1" />
+      {/* Matrix exports — only for RX */}
+      {showMatrix && (
+        <>
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pr-0.5">Matrix:</span>
+          <Button size="sm" className={btnBase} style={{ background: "#1e4db7", color: "white" }} onClick={exportMatrixPDF}>
+            <FileText className="h-3 w-3" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixExcel}>
+            <Table2 className="h-3 w-3" /> Excel
+          </Button>
+          <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixCSV}>
+            <FileSpreadsheet className="h-3 w-3" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixHTML}>
+            <Globe className="h-3 w-3" /> HTML
+          </Button>
+          <div className="w-px h-4 bg-border mx-1" />
+        </>
+      )}
 
       {/* List exports */}
       <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pr-0.5">List:</span>
