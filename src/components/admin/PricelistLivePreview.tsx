@@ -6,6 +6,7 @@ import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useLenses } from "@/hooks/useLenses";
 import { PricelistVersion } from "@/hooks/usePricelistVersions";
+import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { cn } from "@/lib/utils";
 
 const TREATMENT_LABELS: Record<TreatmentType, string> = {
@@ -30,7 +31,7 @@ interface Props {
   catalogType?: "rx" | "stock" | "buysell";
 }
 
-const fmt = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
+const fmtDisplay = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
   if (val == null) return "—";
   const v = showUSD ? val * fxRate : val;
   return `$${v.toFixed(2)}`;
@@ -42,18 +43,18 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
+  const { calcFinalPrice } = usePriceHierarchy(version.id);
 
   const catalogRows = useMemo(() => {
     if (catalogType === "buysell") return allCatalogRows.filter((r) => r.row_type === "supply");
     return allCatalogRows.filter((r) => r.row_type === "lens");
   }, [allCatalogRows, catalogType]);
-  const addonRows = useMemo(
-    () => {
-      if (catalogType === "buysell") return allCatalogRows.filter((r) => ["addon", "treatment"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order);
-      return allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order);
-    },
-    [allCatalogRows, catalogType]
-  );
+
+  const addonRows = useMemo(() => {
+    if (catalogType === "buysell")
+      return allCatalogRows.filter((r) => ["addon", "treatment"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order);
+    return allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order);
+  }, [allCatalogRows, catalogType]);
 
   const addonsBySection = useMemo(() => {
     const map = new Map<string, typeof addonRows>();
@@ -64,12 +65,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     }
     return map;
   }, [addonRows]);
-
-  const lensNameMap = useMemo(() => {
-    const m = new Map<string, string>();
-    allLenses.forEach((l) => m.set(l.id, l.name));
-    return m;
-  }, [allLenses]);
 
   const lensIndexMap = useMemo(() => {
     const m = new Map<string, number>();
@@ -85,7 +80,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     for (const r of catalogRows) {
       const sec = r.section || "Lenses";
       const parts = sec.split(" — ");
-      const isMatrixSection = TREATMENT_PREFIXES.some(tp => parts[0].trim() === tp);
+      const isMatrixSection = TREATMENT_PREFIXES.some((tp) => parts[0].trim() === tp);
       const category = isMatrixSection ? (parts.slice(1).join(" — ") || sec) : sec;
       if (!map.has(category)) map.set(category, []);
       map.get(category)!.push(r);
@@ -96,6 +91,23 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   const today = format(new Date(), "dd MMMM yyyy");
   const currency = showUSD ? "USD" : (version.base_currency ?? "BBD");
 
+  /** Apply hierarchy to a matrix allocation price */
+  const hierarchyMatrixPrice = (allocPrice: number | null, allocId?: string) => {
+    const finalBbd = calcFinalPrice(allocPrice, version, catalogType, allocId, "matrix_allocation");
+    return fmtDisplay(finalBbd, showUSD, fxRate);
+  };
+
+  /** Apply hierarchy to a catalog row price */
+  const hierarchyCatalogPrice = (row: { bbd_price: number | null; row_key: string; row_type: string }) => {
+    const finalBbd = calcFinalPrice(row.bbd_price, version, catalogType, row.row_key, row.row_type);
+    return fmtDisplay(finalBbd, showUSD, fxRate);
+  };
+
+  /** Raw number for average calculations */
+  const hierarchyMatrixNum = (allocPrice: number | null, allocId?: string): number | null => {
+    return calcFinalPrice(allocPrice, version, catalogType, allocId, "matrix_allocation");
+  };
+
   // ── Matrix preview ───────────────────────────────────────────────────────────
   const MatrixPreview = () => (
     <div className="space-y-6">
@@ -103,7 +115,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
         const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
         if (tt !== "clear" && ttAllocs.length === 0) return null;
 
-        // Collapse empty material columns for this treatment
         const activeCols = MATERIAL_COLUMNS.filter((col) =>
           allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
         );
@@ -111,7 +122,10 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
         const getColAvg = (mat: string, treatType: TreatmentType) => {
           const vals = categories
-            .map((cat) => allocations.find((a) => a.category === cat && a.material_index === mat && a.treatment_type === treatType)?.allocated_price_bbd ?? null)
+            .map((cat) => {
+              const a = allocations.find((al) => al.category === cat && al.material_index === mat && al.treatment_type === treatType);
+              return hierarchyMatrixNum(a?.allocated_price_bbd ?? null, a?.id ? String(a.id) : undefined);
+            })
             .filter((v): v is number => v !== null);
           if (!vals.length) return null;
           return vals.reduce((s, v) => s + v, 0) / vals.length;
@@ -125,7 +139,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
               <thead>
                 <tr style={{ background: "#1e4db7" }}>
                   <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "180px", color: "white", borderRadius: 0 }}>
-                     {TREATMENT_LABELS[tt]}
+                    {TREATMENT_LABELS[tt]}
                   </th>
                   {visibleCols.map((col) => (
                     <th key={col.key} className="px-3 py-2 text-center border-r border-white/20 last:border-r-0 font-bold uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "80px", color: "white", borderRadius: 0 }}>
@@ -135,32 +149,36 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                 </tr>
               </thead>
               <tbody>
-                {categories.filter((cat) =>
-                  visibleCols.some((col) =>
-                    allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
+                {categories
+                  .filter((cat) =>
+                    visibleCols.some((col) =>
+                      allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
+                    )
                   )
-                ).map((cat, i) => (
-                  <tr key={cat} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                    <td className="px-3 py-1 font-medium border-r border-border text-foreground">{cat}</td>
-                    {visibleCols.map((col) => {
-                      const alloc = allocations.find(
-                        (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
-                      );
-                      return (
-                        <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 text-foreground">
-                          {alloc?.allocated_price_bbd != null ? fmt(alloc.allocated_price_bbd, showUSD, fxRate) : "—"}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                  .map((cat, i) => (
+                    <tr key={cat} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                      <td className="px-3 py-1 font-medium border-r border-border text-foreground">{cat}</td>
+                      {visibleCols.map((col) => {
+                        const alloc = allocations.find(
+                          (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
+                        );
+                        return (
+                          <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 text-foreground">
+                            {alloc?.allocated_price_bbd != null
+                              ? hierarchyMatrixPrice(alloc.allocated_price_bbd, alloc.id ? String(alloc.id) : undefined)
+                              : "—"}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
                 <tr className="bg-muted/50 border-t-2 border-border">
                   <td className="px-3 py-1 text-muted-foreground italic border-r border-border text-[10px]">Col. Averages</td>
                   {visibleCols.map((col) => {
                     const avg = getColAvg(col.key, tt);
                     return (
                       <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 text-foreground">
-                        {avg != null ? fmt(avg, showUSD, fxRate) : "—"}
+                        {avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}
                       </td>
                     );
                   })}
@@ -173,11 +191,14 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                       const clearAvg = getColAvg(col.key, "clear");
                       const delta = treatAvg != null && clearAvg != null ? treatAvg - clearAvg : null;
                       return (
-                        <td key={col.key} className={cn(
-                          "px-3 py-1 text-right border-r border-border last:border-r-0 font-semibold text-[10px]",
-                          delta == null ? "text-muted-foreground" : delta > 0 ? "text-emerald-600" : "text-red-500"
-                        )}>
-                          {delta != null ? `${delta > 0 ? "+" : ""}${fmt(delta, showUSD, fxRate)}` : "—"}
+                        <td
+                          key={col.key}
+                          className={cn(
+                            "px-3 py-1 text-right border-r border-border last:border-r-0 font-semibold text-[10px]",
+                            delta == null ? "text-muted-foreground" : delta > 0 ? "text-emerald-600" : "text-red-500"
+                          )}
+                        >
+                          {delta != null ? `${delta > 0 ? "+" : ""}${fmtDisplay(delta, showUSD, fxRate)}` : "—"}
                         </td>
                       );
                     })}
@@ -196,9 +217,9 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
             <div key={sec}>
               <table className="w-full text-xs border-collapse border border-border" style={{ borderRadius: 0 }}>
                 <thead>
-              <tr style={{ background: "#1e4db7" }}>
-                     <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide" style={{ color: "white", borderRadius: 0 }}>{sec}</th>
-                     <th className="px-3 py-2 text-right font-bold uppercase tracking-wide w-28" style={{ color: "white", borderRadius: 0 }}>{currency} Price</th>
+                  <tr style={{ background: "#1e4db7" }}>
+                    <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide" style={{ color: "white", borderRadius: 0 }}>{sec}</th>
+                    <th className="px-3 py-2 text-right font-bold uppercase tracking-wide w-28" style={{ color: "white", borderRadius: 0 }}>{currency} Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -206,7 +227,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                     <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
                       <td className="px-3 py-1 border-r border-border text-foreground">{row.display_description}</td>
                       <td className="px-3 py-1 text-right text-foreground">
-                        {row.bbd_price != null ? fmt(row.bbd_price, showUSD, fxRate) : "—"}
+                        {hierarchyCatalogPrice(row)}
                       </td>
                     </tr>
                   ))}
@@ -225,7 +246,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
     const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
       <div>
-          <table className="w-full text-xs border-collapse border border-border" style={{ borderRadius: 0 }}>
+        <table className="w-full text-xs border-collapse border border-border" style={{ borderRadius: 0 }}>
           <thead>
             <tr style={{ background: "#1e4db7" }}>
               <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide" style={{ color: "white", borderRadius: 0 }}>{label}</th>
@@ -237,7 +258,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
               <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
                 <td className="px-3 py-1.5 border-r border-border text-foreground">{row.display_description}</td>
                 <td className="px-3 py-1.5 text-right text-foreground">
-                  {row.bbd_price != null ? fmt(row.bbd_price, showUSD, fxRate) : "—"}
+                  {hierarchyCatalogPrice(row)}
                 </td>
               </tr>
             ))}
@@ -246,7 +267,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
       </div>
     );
 
-    // Sort lens sections by matrix category order
     const sortedLensSections = [...lensSections.entries()].sort((a, b) => {
       const aIdx = categories.indexOf(a[0]);
       const bIdx = categories.indexOf(b[0]);
