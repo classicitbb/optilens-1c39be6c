@@ -7,7 +7,7 @@ import AdminTopBar from "./AdminTopBar";
 const AdminLayout = () => {
   return (
     <AdminRoleProvider>
-      <div className="admin-tool flex h-screen w-full overflow-hidden">
+      <div className="admin-tool flex h-screen w-full overflow-hidden rounded-none">
         <AdminSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <AdminTopBar />
@@ -17,8 +17,8 @@ const AdminLayout = () => {
         </div>
         
       </div>
-    </AdminRoleProvider>
-  );
+    </AdminRoleProvider>);
+
 };
 
 export default AdminLayout;
