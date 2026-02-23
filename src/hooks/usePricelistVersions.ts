@@ -8,8 +8,19 @@ export interface PricelistVersion {
   markup_percent: number | null;
   discount_percent: number | null;
   base_currency: string | null;
+  format_type: string | null;
+  master_markup_percent: number | null;
+  master_discount_percent: number | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+export interface ChildSection {
+  id?: number;
+  pricelist_version_id: number;
+  section_type: string;
+  child_markup_percent: number;
+  child_discount_percent: number;
 }
 
 export interface CreateVersionInput {
@@ -175,17 +186,56 @@ export const usePricelistVersions = () => {
     mutationFn: async ({
       id,
       updates,
+      childSections,
     }: {
       id: number;
-      updates: Partial<Pick<PricelistVersion, "name" | "markup_percent" | "discount_percent" | "is_template" | "base_currency">>;
+      updates: Partial<Pick<PricelistVersion, "name" | "markup_percent" | "discount_percent" | "is_template" | "base_currency" | "format_type" | "master_markup_percent" | "master_discount_percent">>;
+      childSections?: ChildSection[];
     }) => {
       const { error } = await supabase
         .from("pricelist_versions")
         .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq("id", id);
       if (error) throw error;
+
+      // Upsert child sections
+      if (childSections && childSections.length > 0) {
+        for (const cs of childSections) {
+          const { data: existing } = await supabase
+            .from("pricelist_child_sections")
+            .select("id")
+            .eq("pricelist_version_id", id)
+            .eq("section_type", cs.section_type)
+            .maybeSingle();
+
+          if (existing) {
+            const { error: uErr } = await supabase
+              .from("pricelist_child_sections")
+              .update({
+                child_markup_percent: cs.child_markup_percent,
+                child_discount_percent: cs.child_discount_percent,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", existing.id);
+            if (uErr) throw uErr;
+          } else {
+            const { error: iErr } = await supabase
+              .from("pricelist_child_sections")
+              .insert({
+                pricelist_version_id: id,
+                section_type: cs.section_type,
+                child_markup_percent: cs.child_markup_percent,
+                child_discount_percent: cs.child_discount_percent,
+              });
+            if (iErr) throw iErr;
+          }
+        }
+      }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pricelist-versions"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pricelist-versions"] });
+      queryClient.invalidateQueries({ queryKey: ["pricelist-child-sections"] });
+    },
   });
 
   const deleteMutation = useMutation({
