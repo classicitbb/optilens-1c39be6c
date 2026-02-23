@@ -25,7 +25,7 @@ const BuySellPricesPage = () => {
 
   return (
     <VersionSelectorPanel
-      pageTitle="Buy / Sell Prices"
+      pageTitle="Supplies Prices"
       pageSubtitle="Supplies catalog pricelist. Categories auto-group by supply type."
       selectedVersionId={selectedVersionId}
       onVersionChange={setSelectedVersionId}
@@ -44,7 +44,7 @@ const BuySellPricesPage = () => {
             catalogType="buysell"
             lensFilter="none"
             showTreatmentsAddons={false}
-            pageTitle={activeVersion?.name ?? "Buy / Sell Pricelist"}
+            pageTitle={activeVersion?.name ?? "Supplies Pricelist"}
             versionId={resolvedId}
           />
 
