@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Link2 } from "lucide-react";
 import type { WikiCategory } from "@/data/wikiContent";
+import HelpFeedbackButtons from "./HelpFeedbackButtons";
 
 interface WikiContentPanelProps {
   categories: WikiCategory[];
@@ -13,7 +14,6 @@ const extractSections = (text: string) => {
   const sections: { id: string; label: string }[] = [];
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
-    // Match lines that start with **...**
     const m = trimmed.match(/^\*\*([^*]+)\*\*/);
     if (m) {
       const label = m[1].replace(/:$/, "").trim();
@@ -36,11 +36,9 @@ const renderContent = (text: string) => {
       return;
     }
 
-    // Check if line starts with bold (section heading)
     const headingMatch = trimmed.match(/^\*\*([^*]+)\*\*(.*)/);
     const isHeading = headingMatch && !trimmed.startsWith("•") && !trimmed.startsWith("-") && !/^\d+\./.test(trimmed);
 
-    // Bold markers
     const withBold = trimmed.split(/(\*\*[^*]+\*\*)/).map((part, j) => {
       if (part.startsWith("**") && part.endsWith("**")) {
         return <strong key={j} className="text-slate-100 font-semibold">{part.slice(2, -2)}</strong>;
@@ -63,7 +61,7 @@ const renderContent = (text: string) => {
       elements.push(
         <div key={i} className="flex gap-2 pl-3">
           <span className="shrink-0 text-blue-400">•</span>
-          <span>{withBold.map((p, k) => typeof p === "string" ? p.replace(/^[•\-]\s*/, "") : p)}</span>
+          <span>{withBold.map((p) => typeof p === "string" ? p.replace(/^[•\-]\s*/, "") : p)}</span>
         </div>
       );
     } else if (/^\d+\.\s/.test(trimmed)) {
@@ -71,7 +69,7 @@ const renderContent = (text: string) => {
       elements.push(
         <div key={i} className="flex gap-2 pl-3">
           <span className="shrink-0 font-medium text-blue-400">{num}.</span>
-          <span>{withBold.map((p, k) => typeof p === "string" ? p.replace(/^\d+\.\s*/, "") : p)}</span>
+          <span>{withBold.map((p) => typeof p === "string" ? p.replace(/^\d+\.\s*/, "") : p)}</span>
         </div>
       );
     } else {
@@ -147,6 +145,11 @@ const WikiContentPanel = ({ categories, activeArticleId }: WikiContentPanelProps
         {/* Content */}
         <div className="text-[13px] leading-relaxed space-y-1.5 text-slate-300">
           {renderContent(activeArticle.content)}
+        </div>
+
+        {/* Feedback */}
+        <div className="pt-6">
+          <HelpFeedbackButtons articleId={activeArticle.id} pageSlug="wiki" />
         </div>
       </div>
     </ScrollArea>
