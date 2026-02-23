@@ -450,16 +450,11 @@ const VersionSelectorPanel = ({
               </span>
             </div>
           </div>
-          {/* Save bar slot */}
-          {saveBar && (
-            <div className="px-4 pb-3 border-t border-border/40 pt-2.5">
-              {saveBar}
-            </div>
-          )}
-          {/* Export bar slot */}
-          {exportBar && (
-            <div className="px-4 pb-3 border-t border-border/40 pt-2.5">
-              {exportBar}
+          {/* Export + Save bar slot */}
+          {(exportBar || saveBar) && (
+            <div className="flex items-center justify-between gap-3 flex-wrap px-4 pb-3 border-t border-border/40 pt-2.5 no-print">
+              <div className="flex-1">{exportBar}</div>
+              {saveBar && <div className="shrink-0">{saveBar}</div>}
             </div>
           )}
         </div>
