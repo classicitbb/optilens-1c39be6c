@@ -598,14 +598,6 @@ const ListCatalogTab = ({
         </div>
       )}
 
-      {/* Print/export controls */}
-      <div className="flex items-center gap-2 flex-wrap no-print">
-        <Button size="sm" className="h-8 text-xs gap-1.5 font-semibold" style={{ background: BLUE_BG, color: "white" }} onClick={() => { window.print(); toast({ title: "Print dialog opened" }); }}>
-          <FileText className="h-3.5 w-3.5" /> PDF
-        </Button>
-        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExcelExport}><Table2 className="h-3.5 w-3.5" /> Excel</Button>
-        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleCSVExport}><FileSpreadsheet className="h-3.5 w-3.5" /> CSV</Button>
-      </div>
 
       <div ref={printRef} className="catalog-print-area space-y-0">
 
