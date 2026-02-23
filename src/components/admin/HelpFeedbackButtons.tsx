@@ -46,33 +46,33 @@ const HelpFeedbackButtons = ({ articleId, pageSlug }: Props) => {
   return (
     <div className="space-y-2 pt-3 border-t" style={{ borderColor: "hsl(215 15% 85%)" }}>
       <p className="text-[11px] font-medium" style={{ color: "hsl(215 20% 45%)" }}>Was this helpful?</p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Button
           variant="outline"
           size="sm"
-          className="h-7 text-xs gap-1.5"
+          className="h-7 text-xs gap-1 px-2"
           onClick={() => handleFeedback("helpful")}
           disabled={isSubmitting}
         >
-          <ThumbsUp className="h-3 w-3" /> Helpful
+          <ThumbsUp className="h-3 w-3 shrink-0" /> Helpful
         </Button>
         <Button
           variant="outline"
           size="sm"
-          className="h-7 text-xs gap-1.5"
+          className="h-7 text-xs gap-1 px-2"
           onClick={() => handleFeedback("not_helpful")}
           disabled={isSubmitting}
         >
-          <ThumbsDown className="h-3 w-3" /> Not Helpful
+          <ThumbsDown className="h-3 w-3 shrink-0" /> Not Helpful
         </Button>
         <Button
           variant="outline"
           size="sm"
-          className="h-7 text-xs gap-1.5"
+          className="h-7 text-xs gap-1 px-2"
           onClick={() => setShowSuggestion(!showSuggestion)}
           disabled={isSubmitting}
         >
-          <MessageSquare className="h-3 w-3" /> Suggest Improvement
+          <MessageSquare className="h-3 w-3 shrink-0" /> Suggest
         </Button>
       </div>
       {showSuggestion && (
