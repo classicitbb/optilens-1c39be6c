@@ -423,6 +423,77 @@ export type Database = {
         }
         Relationships: []
       }
+      help_articles: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          page_slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          page_slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          page_slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      help_feedback: {
+        Row: {
+          article_id: string
+          created_at: string
+          feedback_type: string
+          id: string
+          page_slug: string | null
+          suggestion_text: string | null
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          feedback_type: string
+          id?: string
+          page_slug?: string | null
+          suggestion_text?: string | null
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          page_slug?: string | null
+          suggestion_text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_feedback_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           created_at: string
