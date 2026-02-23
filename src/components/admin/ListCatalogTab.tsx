@@ -384,7 +384,7 @@ const ListCatalogTab = ({
   const getRowCost = (row: CatalogRow): number | null => {
     if (row.lensId) {
       const lens = (allLenses ?? []).find((l) => l.id === row.lensId);
-      return lens ? lens.base_price : null;
+      return lens ? lens.base_price * 2 : null;
     }
     if (row.addonId) {
       const addon = (allAddons ?? []).find((a) => a.id === row.addonId);
@@ -392,7 +392,7 @@ const ListCatalogTab = ({
     }
     if (row.supplyId) {
       const supply = (allSupplies ?? []).find((s) => s.id === row.supplyId);
-      return supply ? supply.base_price : null;
+      return supply ? supply.base_price * 2 : null;
     }
     return null;
   };
