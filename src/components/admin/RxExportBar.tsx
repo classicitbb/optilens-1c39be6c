@@ -503,16 +503,48 @@ ${addonsHtml}
     y += 6;
 
     const lensRows = getPrimaryRows();
-    const sections = [...new Set(lensRows.map((r) => r.section))].sort();
 
-    sections.forEach((sec) => {
+    // Group by category (stripping treatment prefixes, matching preview)
+    const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
+    const lensSectionMap = new Map<string, typeof lensRows>();
+    for (const r of lensRows) {
+      const sec = r.section || "Lenses";
+      const parts = sec.split(" — ");
+      const isMatrixSection = TREATMENT_PREFIXES.some(tp => parts[0].trim() === tp);
+      const category = isMatrixSection ? (parts.slice(1).join(" — ") || sec) : sec;
+      if (!lensSectionMap.has(category)) lensSectionMap.set(category, []);
+      lensSectionMap.get(category)!.push(r);
+    }
+
+    // Sort sections by matrix category order (matching preview)
+    const sortedSections = [...lensSectionMap.entries()].sort((a, b) => {
+      const aIdx = categories.indexOf(a[0]);
+      const bIdx = categories.indexOf(b[0]);
+      if (aIdx === -1 && bIdx === -1) return 0;
+      if (aIdx === -1) return 1;
+      if (bIdx === -1) return -1;
+      return aIdx - bIdx;
+    });
+
+    // Build lens index map for sorting rows within sections
+    const lensIdxMap = new Map<string, number>();
+    allLenses.forEach((l) => lensIdxMap.set(l.id, l.index_value));
+
+    sortedSections.forEach(([sec, secRows]) => {
       if (y > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); y = margin; }
       doc.setFontSize(9);
       doc.setTextColor(30, 77, 183);
       doc.text(sec, margin, y);
       y += 2;
 
-      const rows = lensRows.filter((r) => r.section === sec).sort((a, b) => a.sort_order - b.sort_order);
+      // Sort rows by lens index then sort_order (matching preview)
+      const rows = [...secRows].sort((a, b) => {
+        const aIdx = a.item_id ? (lensIdxMap.get(a.item_id) ?? 999) : 999;
+        const bIdx = b.item_id ? (lensIdxMap.get(b.item_id) ?? 999) : 999;
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        return a.sort_order - b.sort_order;
+      });
+
       autoTable(doc, {
         startY: y,
         margin: { left: margin, right: margin },
