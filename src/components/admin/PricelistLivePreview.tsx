@@ -16,6 +16,12 @@ const TREATMENT_LABELS: Record<TreatmentType, string> = {
   bluefilter: "Bluefilter",
 };
 
+const CATALOG_TITLES: Record<string, string> = {
+  rx: "Rx Lens Prices",
+  stock: "Stock Lens Prices",
+  buysell: "Buy / Sell Prices",
+};
+
 interface Props {
   version: PricelistVersion;
   previewFormat: "matrix" | "list";
@@ -289,7 +295,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     <div className="space-y-3">
       {/* Branded header */}
       <div className="flex items-start justify-between pb-3 border-b border-border">
-        <div>
+        <div className="flex-shrink-0">
           {company?.logo_url && (
             <img src={company.logo_url} alt={company?.company_name ?? "Logo"} className="max-h-12 mb-1 object-contain" />
           )}
@@ -297,7 +303,12 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
           <p className="text-[10px] text-muted-foreground">{company?.slogan}</p>
           <p className="text-[10px] text-muted-foreground">{company?.tel} · {company?.email}</p>
         </div>
-        <div className="text-right">
+        <div className="flex-1 text-center self-center">
+          <h1 className="text-lg font-bold text-foreground tracking-wide uppercase">
+            {CATALOG_TITLES[catalogType] ?? "Price List"}
+          </h1>
+        </div>
+        <div className="text-right flex-shrink-0">
           <p className="text-xs font-semibold text-foreground">{version.name}</p>
           <p className="text-[10px] text-muted-foreground">
             {previewFormat === "matrix" ? "Matrix Format" : "List Format"} · {today}
