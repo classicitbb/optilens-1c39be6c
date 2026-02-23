@@ -21,6 +21,7 @@ interface Props {
   previewFormat: "matrix" | "list";
   showUSD: boolean;
   fxRate: number;
+  catalogType?: "rx" | "stock" | "buysell";
 }
 
 const fmt = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
@@ -29,17 +30,23 @@ const fmt = (val: number | null | undefined, showUSD: boolean, fxRate: number) =
   return `$${v.toFixed(2)}`;
 };
 
-const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate }: Props) => {
+const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalogType = "rx" }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
-  const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, "rx");
+  const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
 
-  const catalogRows = useMemo(() => allCatalogRows.filter((r) => r.row_type === "lens"), [allCatalogRows]);
+  const catalogRows = useMemo(() => {
+    if (catalogType === "buysell") return allCatalogRows.filter((r) => r.row_type === "supply");
+    return allCatalogRows.filter((r) => r.row_type === "lens");
+  }, [allCatalogRows, catalogType]);
   const addonRows = useMemo(
-    () => allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order),
-    [allCatalogRows]
+    () => {
+      if (catalogType === "buysell") return allCatalogRows.filter((r) => ["addon", "treatment"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order);
+      return allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order);
+    },
+    [allCatalogRows, catalogType]
   );
 
   const addonsBySection = useMemo(() => {

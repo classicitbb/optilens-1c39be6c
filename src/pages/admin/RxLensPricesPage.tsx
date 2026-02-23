@@ -83,7 +83,7 @@ const RxLensPricesPage = () => {
       onPreviewClick={handlePreviewClick}
       exportBar={resolvedId && activeVersion ? (
         <div className="flex items-center justify-between gap-3 flex-wrap no-print">
-          <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} />
+          <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} catalogType="rx" />
           <div className="flex items-center gap-2">
             {hasPending && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-xs text-destructive">
@@ -177,6 +177,7 @@ const RxLensPricesPage = () => {
                 previewFormat={previewFormat}
                 showUSD={showUSD}
                 fxRate={fxRate}
+                catalogType="rx"
               />
             </div>
           </div>
