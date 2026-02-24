@@ -130,11 +130,6 @@ const AdminSidebar = () => {
               {!collapsed && <span className="flex-1 text-left">{group.label}</span>}
             </button>
           }
-          {!collapsed &&
-          <button onClick={() => toggleGroup(group.label)} className="p-1 rounded hover:bg-white/10 mr-1">
-              {isOpen ? <ChevronDown className="h-3 w-3" style={{ color: "hsl(210 20% 65%)" }} /> : <ChevronRight className="h-3 w-3" style={{ color: "hsl(210 20% 65%)" }} />}
-            </button>
-          }
         </div>
         {!collapsed && isOpen &&
         <div className="space-y-0.5">
