@@ -1124,7 +1124,7 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
 };
 
 /* ═══════════════════ Editor Tab ═══════════════════ */
-const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onExit: () => void }) => {
+const EditorTab = ({ template, onExit, onActionsReady }: { template: CatalogTemplate | null; onExit: () => void; onActionsReady?: (actions: React.ReactNode) => void }) => {
   const { updateMutation } = useCatalogTemplates();
   const { data: versions = [] } = useAllPricelistVersions();
   const { data: articles = [] } = useHelpArticlesForCatalog();
@@ -1149,7 +1149,7 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
     }
   }, [template]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!template) return;
     try {
       await updateMutation.mutateAsync({
@@ -1164,7 +1164,24 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
-  };
+  }, [template, name, coverTitle, coverSubtitle, gradStart, gradEnd, updateMutation, toast]);
+
+  useEffect(() => {
+    if (!onActionsReady) return;
+    if (!template) { onActionsReady(null); return; }
+    onActionsReady(
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-xs font-medium text-foreground truncate max-w-[200px]">Editing: {name || "Untitled"}</span>
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { handleSave().then(() => onExit()); }}>
+          Save &amp; Exit
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>Save Template</Button>
+        <Button size="sm" className="h-7 text-xs" onClick={() => { handleSave(); toast({ title: "Published" }); }}>
+          Save &amp; Publish
+        </Button>
+      </div>
+    );
+  }, [template, name, onActionsReady, updateMutation.isPending, handleSave, onExit, toast]);
 
   const handleAddSection = async (sectionType: string) => {
     if (!template) return;
@@ -1228,21 +1245,6 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Top bar */}
-      <div className="flex items-center justify-between gap-3 pb-3 border-b mb-3" style={{ borderColor: "hsl(var(--border))" }}>
-        <h2 className="text-sm font-semibold text-foreground truncate">
-          Editing: {name || "Untitled"}
-        </h2>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { handleSave().then(() => onExit()); }}>
-            Save &amp; Exit to Catalogs List
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>Save Template</Button>
-          <Button size="sm" className="h-8 text-xs" onClick={() => { handleSave(); toast({ title: "Published" }); }}>
-            Save &amp; Publish
-          </Button>
-        </div>
-      </div>
 
       <div className="flex flex-1 overflow-hidden gap-0 min-h-0">
         {/* Left: Palette */}
@@ -1378,6 +1380,7 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
 const CatalogPublisherPage = () => {
   const [tab, setTab] = useState("catalogs");
   const [editingTemplate, setEditingTemplate] = useState<CatalogTemplate | null>(null);
+  const [editorActions, setEditorActions] = useState<React.ReactNode>(null);
 
   const handleEdit = (t: CatalogTemplate) => {
     setEditingTemplate(t);
@@ -1389,20 +1392,23 @@ const CatalogPublisherPage = () => {
       <h1 className="text-lg font-semibold mb-3" style={{ color: "hsl(215 30% 15%)" }}>📖 Catalog Publisher</h1>
 
       <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="h-8 p-0.5 gap-0.5 shrink-0" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
-          <TabsTrigger value="catalogs" className="text-xs h-7 px-3 data-[state=active]:shadow-none flex items-center gap-1.5" style={{ borderRadius: "3px" }}>
-            <BookOpen className="h-3.5 w-3.5" /> Catalogs
-          </TabsTrigger>
-          <TabsTrigger value="editor" className="text-xs h-7 px-3 data-[state=active]:shadow-none flex items-center gap-1.5" style={{ borderRadius: "3px" }}>
-            <Pencil className="h-3.5 w-3.5" /> Editor
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-3 shrink-0">
+          <TabsList className="h-8 p-0.5 gap-0.5" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
+            <TabsTrigger value="catalogs" className="text-xs h-7 px-3 data-[state=active]:shadow-none flex items-center gap-1.5" style={{ borderRadius: "3px" }}>
+              <BookOpen className="h-3.5 w-3.5" /> Catalogs
+            </TabsTrigger>
+            <TabsTrigger value="editor" className="text-xs h-7 px-3 data-[state=active]:shadow-none flex items-center gap-1.5" style={{ borderRadius: "3px" }}>
+              <Pencil className="h-3.5 w-3.5" /> Editor
+            </TabsTrigger>
+          </TabsList>
+          {tab === "editor" && editorActions}
+        </div>
 
         <TabsContent value="catalogs" className="mt-3 flex-1 flex min-h-0">
           <CatalogsTab onEdit={handleEdit} />
         </TabsContent>
         <TabsContent value="editor" className="mt-3 flex-1 flex flex-col min-h-0 overflow-hidden">
-          <EditorTab template={editingTemplate} onExit={() => setTab("catalogs")} />
+          <EditorTab template={editingTemplate} onExit={() => setTab("catalogs")} onActionsReady={setEditorActions} />
         </TabsContent>
       </Tabs>
     </div>
