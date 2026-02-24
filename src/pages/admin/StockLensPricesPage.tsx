@@ -10,7 +10,15 @@ import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersion
 const StockLensPricesPage = () => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { data: versions } = usePricelistVersions();
-  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(() => {
+    const stored = localStorage.getItem("admin-selected-version-id");
+    return stored ? Number(stored) : null;
+  });
+
+  const handleVersionChange = (id: number | null) => {
+    setSelectedVersionId(id);
+    if (id !== null) localStorage.setItem("admin-selected-version-id", String(id));
+  };
   const [showUSD, setShowUSD] = useState(false);
   const previewFormat = "list" as const;
   const previewRef = useRef<HTMLDivElement>(null);
@@ -30,7 +38,7 @@ const StockLensPricesPage = () => {
       pageTitle="Stock Lens Prices"
       pageSubtitle="Semi-finished stock lenses for wholesale (WSPL). Grouped by MF Type."
       selectedVersionId={selectedVersionId}
-      onVersionChange={setSelectedVersionId}
+      onVersionChange={handleVersionChange}
       showUSD={showUSD}
       onShowUSDChange={setShowUSD}
       onPreviewClick={handlePreviewClick}
