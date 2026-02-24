@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import {
-  Database, Upload,
   PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
-  ChevronDown, ChevronRight, Glasses,
-  FlaskConical, ShoppingCart, BookMarked } from
+  ChevronDown, ChevronRight,
+  FlaskConical, Glasses, ShoppingCart, BookMarked } from
 "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -34,9 +33,7 @@ const NAV: NavItem[] = [
   icon: Layers,
   path: "/admin/catalog",
   feature: "catalog",
-  children: [
-  { label: "Reference Data", icon: Database, path: "/admin/reference", feature: "reference" },
-  { label: "Imports", icon: Upload, path: "/admin/imports", feature: "imports" }]
+  children: []
 } as MenuGroup,
 { label: "RX Lens Prices", icon: FlaskConical, path: "/admin/rx-lens-prices", feature: "rx-lens-prices" } as MenuItem,
 { label: "Stock Lens Prices", icon: Glasses, path: "/admin/stock-lens-prices", feature: "stock-lens-prices" } as MenuItem,
