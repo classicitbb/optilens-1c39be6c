@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Glasses, Users, Target, LifeBuoy, ShoppingCart, FileText, Globe } from "lucide-react";
+import {
+  Glasses, Users, Target, LifeBuoy, ShoppingCart, FileText, Globe,
+  Settings, Ship, FileSpreadsheet, ArrowLeft, HelpCircle
+} from "lucide-react";
 
 interface AppLauncherProps {
   open: boolean;
@@ -8,13 +11,18 @@ interface AppLauncherProps {
 }
 
 const apps = [
-  { label: "Optilens", icon: Glasses, path: "/admin/catalog", color: "hsl(215 65% 50%)" },
+  { label: "Optilens", icon: Glasses, path: "/admin/catalog-publisher", color: "hsl(215 65% 50%)" },
   { label: "Contacts", icon: Users, path: "/admin/erp/contacts", color: "hsl(168 76% 42%)" },
   { label: "CRM", icon: Target, path: "/admin/erp/crm", color: "hsl(280 60% 55%)" },
   { label: "Helpdesk", icon: LifeBuoy, path: "/admin/erp/helpdesk", color: "hsl(38 92% 50%)" },
   { label: "Web Orders", icon: ShoppingCart, path: "/admin/erp/web-orders", color: "hsl(140 50% 45%)" },
   { label: "RX Orders", icon: FileText, path: "/admin/erp/rx-orders", color: "hsl(0 72% 51%)" },
   { label: "Website", icon: Globe, path: "/admin/erp/website", color: "hsl(200 60% 50%)" },
+  { label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", color: "hsl(260 50% 55%)" },
+  { label: "Costings", icon: Ship, path: "/admin/costings/shipments", color: "hsl(20 70% 50%)" },
+  { label: "Content", icon: Globe, path: "/admin/content", color: "hsl(310 50% 50%)" },
+  { label: "Users", icon: Users, path: "/admin/users", color: "hsl(190 60% 45%)" },
+  { label: "Settings", icon: Settings, path: "/admin/parameters", color: "hsl(215 15% 50%)" },
 ];
 
 const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
@@ -40,20 +48,31 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
       <div
         ref={panelRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative z-10 p-6 border"
+        className="relative z-10 p-6 border flex flex-col"
         style={{
           background: "hsl(215 28% 14%)",
           borderColor: "hsl(215 25% 22%)",
           borderRadius: "12px",
           boxShadow: "0 25px 60px -12px hsl(215 40% 5% / 0.5)",
-          maxWidth: "420px",
+          maxWidth: "480px",
           width: "90vw",
         }}
       >
-        <h3 className="text-sm font-semibold mb-4" style={{ color: "hsl(210 20% 85%)" }}>
-          Applications
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Header with title and help */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold" style={{ color: "hsl(210 20% 85%)" }}>
+            Applications
+          </h3>
+          <button
+            onClick={() => { navigate("/admin/wiki"); onClose(); }}
+            className="p-1 rounded hover:bg-white/10 transition-colors"
+            title="Help / Wiki"
+          >
+            <HelpCircle className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {apps.map((app) => (
             <button
               key={app.label}
@@ -82,6 +101,16 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
             </button>
           ))}
         </div>
+
+        {/* Back to site */}
+        <button
+          onClick={() => { navigate("/"); onClose(); }}
+          className="mt-5 flex items-center justify-center gap-2 w-full py-2 rounded-md transition-colors hover:bg-white/10"
+          style={{ color: "hsl(210 15% 65%)", borderTop: "1px solid hsl(215 25% 22%)" }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="text-xs font-medium">Back to Site</span>
+        </button>
       </div>
     </div>
   );

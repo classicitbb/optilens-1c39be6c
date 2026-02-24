@@ -3,11 +3,10 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import {
   Database, Upload, Download,
-  Settings, Users, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
-  ChevronDown, ChevronRight, Ship, FileSpreadsheet, Glasses,
-  FlaskConical, ShoppingCart, Globe, BookMarked } from
+  PanelLeftClose, PanelLeft, Layers, BookOpen,
+  ChevronDown, ChevronRight, Glasses,
+  FlaskConical, ShoppingCart, BookMarked } from
 "lucide-react";
-import { Link } from "react-router-dom";
 
 interface MenuItem {
   label: string;
@@ -44,9 +43,7 @@ const NAV: NavItem[] = [
 { label: "RX Lens Prices", icon: FlaskConical, path: "/admin/rx-lens-prices", feature: "rx-lens-prices" } as MenuItem,
 { label: "Stock Lens Prices", icon: Glasses, path: "/admin/stock-lens-prices", feature: "stock-lens-prices" } as MenuItem,
 { label: "Supplies Prices", icon: ShoppingCart, path: "/admin/supplies-prices", feature: "supplies-prices" } as MenuItem,
-{ label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", feature: "quotations" } as MenuItem,
-{ label: "Import Costings", icon: Ship, path: "/admin/costings/shipments", feature: "costings" } as MenuItem,
-{ label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem];
+];
 
 
 const AdminSidebar = () => {
@@ -166,28 +163,12 @@ const AdminSidebar = () => {
       </nav>
 
       <div className="border-t px-3 py-2 space-y-0.5 rounded-none" style={{ borderColor: "hsl(215 25% 18%)" }}>
-        {canView("content") &&
-        <RouterNavLink to="/admin/content" className={`${linkBase} w-full ${isActive("/admin/content") ? "font-medium" : ""}`} title={collapsed ? "Website Content" : undefined} style={{ color: isActive("/admin/content") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/content") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
-            <Globe className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Website Content</span>}
-          </RouterNavLink>
-        }
         {canView("wiki") &&
         <RouterNavLink to="/admin/wiki" className={`${linkBase} w-full ${isActive("/admin/wiki") ? "font-medium" : ""}`} title={collapsed ? "Help / Wiki" : undefined} style={{ color: isActive("/admin/wiki") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/wiki") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
             <BookOpen className="h-4 w-4 shrink-0" />
             {!collapsed && <span>Help / Wiki</span>}
           </RouterNavLink>
         }
-        {canView("parameters") &&
-        <RouterNavLink to="/admin/parameters" className={`${linkBase} w-full ${isActive("/admin/parameters") ? "font-medium" : ""}`} title={collapsed ? "Settings" : undefined} style={{ color: isActive("/admin/parameters") ? "hsl(215 65% 65%)" : "hsl(210 15% 65%)", background: isActive("/admin/parameters") ? "hsl(215 65% 50% / 0.12)" : "transparent" }}>
-            <Settings className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Settings</span>}
-          </RouterNavLink>
-        }
-        <Link to="/" className={`${linkBase} w-full`} style={{ color: "hsl(210 15% 65%)" }} title={collapsed ? "Back to Site" : undefined}>
-          <ArrowLeft className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Back to Site</span>}
-        </Link>
       </div>
     </aside>);
 
