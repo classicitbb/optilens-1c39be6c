@@ -18,7 +18,15 @@ import { useToast } from "@/hooks/use-toast";
 const RxLensPricesPage = () => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { data: versions } = usePricelistVersions();
-  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(() => {
+    const stored = localStorage.getItem("admin-selected-version-id");
+    return stored ? Number(stored) : null;
+  });
+
+  const handleVersionChange = (id: number | null) => {
+    setSelectedVersionId(id);
+    if (id !== null) localStorage.setItem("admin-selected-version-id", String(id));
+  };
   const [showUSD, setShowUSD] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("matrix");
 
@@ -108,7 +116,7 @@ const RxLensPricesPage = () => {
       pageTitle="RX Lens Prices"
       pageSubtitle="Manage RX lens pricelist versions — matrix, price list, treatments and add-ons."
       selectedVersionId={selectedVersionId}
-      onVersionChange={setSelectedVersionId}
+      onVersionChange={handleVersionChange}
       showUSD={showUSD}
       onShowUSDChange={setShowUSD}
       onPreviewClick={handlePreviewClick}

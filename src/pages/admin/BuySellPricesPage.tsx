@@ -10,7 +10,15 @@ import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersion
 const BuySellPricesPage = () => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { data: versions } = usePricelistVersions();
-  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(() => {
+    const stored = localStorage.getItem("admin-selected-version-id");
+    return stored ? Number(stored) : null;
+  });
+
+  const handleVersionChange = (id: number | null) => {
+    setSelectedVersionId(id);
+    if (id !== null) localStorage.setItem("admin-selected-version-id", String(id));
+  };
   const [showUSD, setShowUSD] = useState(false);
   const previewFormat = "list" as const;
   const previewRef = useRef<HTMLDivElement>(null);
@@ -30,7 +38,7 @@ const BuySellPricesPage = () => {
       pageTitle="Supplies Prices"
       pageSubtitle="Supplies catalog pricelist. Categories auto-group by supply type."
       selectedVersionId={selectedVersionId}
-      onVersionChange={setSelectedVersionId}
+      onVersionChange={handleVersionChange}
       showUSD={showUSD}
       onShowUSDChange={setShowUSD}
       onPreviewClick={handlePreviewClick}
