@@ -58,6 +58,9 @@ const AdminTopBar = () => {
         </div>
         <div className="flex items-center gap-2">
           <Link to="/profile" className="text-xs hover:underline transition-colors" style={{ color: "hsl(215 30% 15%)" }}>{user?.email}</Link>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setHelpOpen(!helpOpen)} title="Help">
+            <HelpCircle className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+          </Button>
           {role &&
           <Badge
             className="text-[10px] px-1.5 py-0 h-5 font-medium border-0"
