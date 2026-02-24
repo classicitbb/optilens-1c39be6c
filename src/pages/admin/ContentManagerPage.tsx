@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import {
   useContentArticles,
@@ -11,7 +11,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -287,13 +287,16 @@ const ContentManagerPage = () => {
 
             <div>
               <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
-                Content <span className="text-muted-foreground/60">(Markdown: **bold**, • bullets, 1. numbered, line breaks)</span>
+                Content
               </label>
-              <Textarea
-                value={editing.content || ""}
-                onChange={(e) => setEditing({ ...editing, content: e.target.value })}
-                className="text-xs min-h-[300px] font-mono"
-              />
+              <Suspense fallback={<div className="h-[300px] border border-border rounded-lg animate-pulse bg-muted/20" />}>
+                <RichTextEditor
+                  content={editing.content || ""}
+                  onChange={(html) => setEditing({ ...editing, content: html })}
+                  placeholder="Write a description..."
+                  minHeight="300px"
+                />
+              </Suspense>
             </div>
 
             <div className="flex gap-2 pt-2">

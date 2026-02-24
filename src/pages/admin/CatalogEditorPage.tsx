@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil } from "lucide-react";
+import SectionContentDialog from "@/components/admin/SectionContentDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
@@ -160,6 +161,8 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
 }) => {
   const isPricing = ["rx_prices", "stock_prices", "supplies_prices"].includes(section.section_type);
   const isKnowledge = section.section_type === "knowledge_article";
+  const isFixed = !isPricing && !isKnowledge;
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   return (
     <div className="border rounded-lg p-3 bg-background group" style={{ borderColor: "hsl(var(--border))" }}>
@@ -175,6 +178,11 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
         <GripVertical className="h-4 w-4 text-muted-foreground/40" />
         <span className="text-sm">{getSectionIcon(section.section_type)}</span>
         <span className="text-xs font-medium flex-1 text-foreground">{getSectionLabel(section.section_type)}</span>
+        {(isFixed || (isKnowledge && section.article_id)) && (
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={() => setEditDialogOpen(true)} title="Edit content">
+            <Pencil className="h-3 w-3" />
+          </Button>
+        )}
         <Checkbox
           checked={section.is_included !== false}
           onCheckedChange={(checked) => section.id && onUpdate(section.id, { is_included: !!checked })}
@@ -265,6 +273,14 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
           </div>
         </div>
       )}
+
+      <SectionContentDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        sectionType={section.section_type}
+        sectionLabel={getSectionLabel(section.section_type)}
+        articleId={isKnowledge ? section.article_id : undefined}
+      />
     </div>
   );
 };
@@ -335,7 +351,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
   };
 
   return (
-    <div className="border-l flex flex-col h-full" style={{ borderColor: "hsl(var(--border))", width: 420, minWidth: 420 }}>
+    <div className="border-l flex flex-col h-full" style={{ borderColor: "hsl(var(--border))", minWidth: 300, maxWidth: "50%", width: 420, resize: "horizontal", overflow: "auto" }}>
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30" style={{ borderColor: "hsl(var(--border))" }}>
         <FileText className="h-3.5 w-3.5 text-primary" />
         <span className="text-xs font-semibold text-foreground">PDF Preview</span>
@@ -434,7 +450,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                             <thead>
                               <tr>
                                 <th style={{ textAlign: "left", padding: "4px 6px", fontSize: "8px", fontWeight: 600, textTransform: "uppercase", color: "#4a5568", background: "#f7fafc", borderBottom: "1px solid #e2e8f0" }}>Description</th>
-                                <th style={{ textAlign: "right", padding: "4px 6px", fontSize: "8px", fontWeight: 600, textTransform: "uppercase", color: "#4a5568", background: "#f7fafc", borderBottom: "1px solid #e2e8f0", width: "70px" }}>Price (BBD)</th>
+                                <th style={{ textAlign: "right", padding: "4px 6px", fontSize: "8px", fontWeight: 600, textTransform: "uppercase", color: "#4a5568", background: "#f7fafc", borderBottom: "1px solid #e2e8f0", width: "70px" }}>Price</th>
                               </tr>
                             </thead>
                             <tbody>
