@@ -1,53 +1,63 @@
 
 
-## Shorten the Dialog Header Band with Arrow Navigation
+## Skip Unsaved-Changes Prompt When Operator Hasn't Manually Edited
 
-### Current State
-The AddonFormDialog header shows chevron buttons flanking the title: `[<] Edit Add-On [>]`. There is no record count indicator.
+### Problem
+When navigating between add-ons, the unsaved changes dialog appears even when the operator hasn't touched any fields -- for example when data refreshes or calculations change. The user wants: if there are no **manual** edits, just auto-save (commit) and move to the next record silently.
 
-### Proposed Change
-Replace the current layout with a compact header matching the reference screenshot pattern:
+### Solution
+Track whether the user has **manually** interacted with the form using a `userEdited` ref flag. Only show the unsaved-changes prompt when this flag is true **and** cost > 0. Otherwise, silently save and navigate.
 
-```text
-Edit Add-On                          1 / 24  < >
-```
+### Changes in `src/components/admin/AddonFormDialog.tsx`
 
-**File:** `src/components/admin/AddonFormDialog.tsx` (lines 230-247)
+1. **Add a `userEdited` ref** (next to `initialFormRef`):
+   ```ts
+   const userEditedRef = useRef(false);
+   ```
 
-- Move the title to the left as a standalone element
-- On the right side, show a compact record indicator: `{currentIndex + 1} / {total}` followed by `<` and `>` arrow buttons
-- Use smaller, minimal ghost buttons for the arrows (matching the screenshot style -- simple bordered arrow buttons)
-- The arrows navigate previous/next as before, disabled at boundaries
-- When there is no navigation context (new add-on or no `addons` list), hide the navigation cluster entirely
+2. **Reset the flag** when the dialog opens or the addon changes (inside the existing `useEffect` that sets `initialFormRef`):
+   ```ts
+   useEffect(() => {
+     if (open) {
+       userEditedRef.current = false;
+       const timer = setTimeout(() => { initialFormRef.current = JSON.stringify(form); }, 0);
+       return () => clearTimeout(timer);
+     }
+   }, [open, addon]);
+   ```
 
-### Technical Detail
+3. **Mark as user-edited** in the `set` helper (the function all manual field changes go through):
+   ```ts
+   const set = (key: keyof AddonFormData, value: any) => {
+     userEditedRef.current = true;
+     setForm((f) => ({ ...f, [key]: value }));
+   };
+   ```
 
-Replace the `DialogHeader` content (lines 230-247) with:
+4. **Update `handleNavigate`** to use `userEditedRef` instead of `isDirty()`:
+   ```ts
+   const handleNavigate = (target: Addon) => {
+     if (userEditedRef.current && isDirty() && form.cost > 0) {
+       setPendingNavTarget(target);
+       setUnsavedDialogOpen(true);
+     } else if (userEditedRef.current && isDirty()) {
+       // User edited but cost is 0 -- silently save and go
+       const assignments = getAssignments();
+       onSubmit(form, assignments);
+       setTimeout(() => onNavigate?.(target), 100);
+     } else {
+       onNavigate?.(target);
+     }
+   };
+   ```
 
-```tsx
-<DialogHeader>
-  <div className="flex items-center justify-between">
-    <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
-      {addon ? "Edit Add-On" : "New Add-On"}
-    </DialogTitle>
-    {addon && onNavigate && addons && (
-      <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
-        <span>{currentIndex + 1} / {addons.length}</span>
-        <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-          disabled={!canGoPrev || isPending}
-          onClick={() => canGoPrev && handleNavigate(addons[currentIndex - 1])}>
-          <ChevronLeft className="h-3.5 w-3.5" />
-        </Button>
-        <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-          disabled={!canGoNext || isPending}
-          onClick={() => canGoNext && handleNavigate(addons[currentIndex + 1])}>
-          <ChevronRight className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    )}
-  </div>
-</DialogHeader>
-```
+   This means:
+   - **No manual edits** -- skip straight to next, no prompt, no save
+   - **Manual edits + cost > 0** -- show the unsaved changes dialog
+   - **Manual edits + cost = 0** -- silently save and navigate
 
-Only one file is modified: `src/components/admin/AddonFormDialog.tsx`.
+### Files modified
+| File | Change |
+|------|--------|
+| `src/components/admin/AddonFormDialog.tsx` | Add `userEditedRef`, set it in `set()`, reset on open, use in `handleNavigate` |
 
