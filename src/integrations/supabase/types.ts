@@ -220,6 +220,42 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_assignments: {
+        Row: {
+          assigned_at: string | null
+          catalog_template_id: number | null
+          customer_id: number | null
+          id: number
+        }
+        Insert: {
+          assigned_at?: string | null
+          catalog_template_id?: number | null
+          customer_id?: number | null
+          id?: number
+        }
+        Update: {
+          assigned_at?: string | null
+          catalog_template_id?: number | null
+          customer_id?: number | null
+          id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_assignments_catalog_template_id_fkey"
+            columns: ["catalog_template_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_assignments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_sections: {
         Row: {
           article_id: number | null
@@ -620,6 +656,56 @@ export type Database = {
             columns: ["pricing_sheet_id"]
             isOneToOne: false
             referencedRelation: "pricing_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          assigned_pricelist_id: number | null
+          created_at: string | null
+          email: string | null
+          id: number
+          name: string
+          notes: string | null
+          phone: string | null
+          pipeline_stage: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          assigned_pricelist_id?: number | null
+          created_at?: string | null
+          email?: string | null
+          id?: number
+          name: string
+          notes?: string | null
+          phone?: string | null
+          pipeline_stage?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          assigned_pricelist_id?: number | null
+          created_at?: string | null
+          email?: string | null
+          id?: number
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          pipeline_stage?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_assigned_pricelist_id_fkey"
+            columns: ["assigned_pricelist_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
             referencedColumns: ["id"]
           },
         ]
