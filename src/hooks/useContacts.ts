@@ -21,6 +21,9 @@ export interface Contact {
   salesperson: string;
   is_archived: boolean;
   avatar_url: string;
+  is_customer: boolean;
+  lead_source: string;
+  pipeline_stage: string;
   created_at: string;
   updated_at: string;
 }
