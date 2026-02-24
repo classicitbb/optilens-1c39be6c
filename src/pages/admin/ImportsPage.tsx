@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ImportLensesTab from "@/components/admin/ImportLensesTab";
 import ImportSuppliesTab from "@/components/admin/ImportSuppliesTab";
@@ -5,9 +7,16 @@ import ImportAddonsTab from "@/components/admin/ImportAddonsTab";
 import ImportFramesTab from "@/components/admin/ImportFramesTab";
 
 const ImportsPage = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Data</h1>
+      <div className="flex items-center gap-2">
+        <button onClick={() => navigate("/admin/catalog")} className="p-1 rounded hover:bg-muted transition-colors">
+          <ArrowLeft className="h-4 w-4" style={{ color: "hsl(215 30% 40%)" }} />
+        </button>
+        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Data</h1>
+      </div>
 
       <Tabs defaultValue="lenses" className="w-full">
         <TabsList className="h-8 p-0.5 gap-0.5" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
