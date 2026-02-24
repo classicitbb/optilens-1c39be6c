@@ -99,7 +99,7 @@ const App = () => (
                 <Route path="supplies-prices" element={<BuySellPricesPage />} />
                 <Route path="imports" element={<ImportsPage />} />
                 <Route path="history" element={<PlaceholderPage />} />
-                <Route path="exports" element={<PlaceholderPage />} />
+                
                 <Route path="parameters" element={<CompanySettingsPage />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="audit" element={<Navigate to="/admin/parameters" replace />} />
