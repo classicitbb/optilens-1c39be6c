@@ -771,7 +771,7 @@ const ListCatalogTab = ({
         </div>
       </div>
 
-      <LensPickerPopover open={lensPickerOpen} onOpenChange={setLensPickerOpen} onPick={handleLensPick} mode={pickerTarget?.mode === "add-addon" ? "all" : "lens-only"} currentId={null} hideFinished={catalogType === "rx"} />
+      <LensPickerPopover open={lensPickerOpen} onOpenChange={setLensPickerOpen} onPick={handleLensPick} mode={pickerTarget?.mode === "add-addon" ? "all" : "lens-only"} currentId={null} hideFinished={catalogType === "rx"} wsplOnly={catalogType === "stock"} />
       <SupplyPickerPopover open={supplyPickerOpen} onOpenChange={setSupplyPickerOpen} onPick={handleSupplyPick} currentId={null} categoryFilter={pickerTarget?.section} />
       <LineOverrideDialog
         open={!!overrideTarget}

@@ -35,6 +35,8 @@ interface LensPickerPopoverProps {
   mode?: "lens-only" | "all";
   categoryFilter?: string;
   hideFinished?: boolean;
+  /** When true, default view only shows lenses with WSPL flag + Semifinished/Finished finish types */
+  wsplOnly?: boolean;
 }
 
 const TABS = ["Lenses", "Add-Ons"] as const;
@@ -48,6 +50,7 @@ export const LensPickerPopover = ({
   mode = "all",
   categoryFilter,
   hideFinished = false,
+  wsplOnly = false,
 }: LensPickerPopoverProps) => {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<Tab>("Lenses");
@@ -62,6 +65,12 @@ export const LensPickerPopover = ({
     let base = (allLenses ?? []).filter((l) => {
       if (hideFinished && l.finishtype?.name?.toLowerCase() === "finished") return false;
       if (!showAll) {
+        // WSPL mode: only show lenses with WSPL flag + Semifinished or Finished finish types
+        if (wsplOnly) {
+          const ft = l.finishtype?.name?.toLowerCase() ?? "";
+          if (!l.show_in_ws_pricelist) return false;
+          if (ft !== "semifinished" && ft !== "finished") return false;
+        }
         return l.show_in_pricelist && l.sell_price > 0 && l.is_active;
       }
       return true;
@@ -71,7 +80,7 @@ export const LensPickerPopover = ({
       base = base.filter((l) => fieldsMatch(q, l.name, l.supplier?.name, l.supplier?.abbrev));
     }
     return base;
-  }, [allLenses, search, showAll, hideFinished]);
+  }, [allLenses, search, showAll, hideFinished, wsplOnly]);
 
   const addons = useMemo(() => {
     const base = (allAddons ?? []).filter((a) => a.is_active);
