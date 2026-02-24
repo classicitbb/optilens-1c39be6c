@@ -228,21 +228,24 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            {addon && onNavigate && (
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoPrev || isPending}
-                onClick={() => canGoPrev && addons && handleNavigate(addons[currentIndex - 1])}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            )}
-            <DialogTitle className="text-sm font-semibold flex-1" style={{ color: "hsl(215 30% 15%)" }}>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
               {addon ? "Edit Add-On" : "New Add-On"}
             </DialogTitle>
-            {addon && onNavigate && (
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoNext || isPending}
-                onClick={() => canGoNext && addons && handleNavigate(addons[currentIndex + 1])}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            {addon && onNavigate && addons && (
+              <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <span>{currentIndex + 1} / {addons.length}</span>
+                <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                  disabled={!canGoPrev || isPending}
+                  onClick={() => canGoPrev && handleNavigate(addons[currentIndex - 1])}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                  disabled={!canGoNext || isPending}
+                  onClick={() => canGoNext && handleNavigate(addons[currentIndex + 1])}>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             )}
           </div>
         </DialogHeader>
