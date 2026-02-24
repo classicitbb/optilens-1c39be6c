@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, ChevronDown, Building2, User, X, Trash2, Settings } from "lucide-react";
+import { Plus, Search, ChevronDown, Building2, User, X, Trash2, Settings, Upload, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 type FilterMode = "all" | "companies" | "persons";
 
@@ -72,6 +73,71 @@ const ContactsPage = () => {
   }, [contacts, filter, search, showArchived]);
 
   const companies = contacts.filter((c) => c.is_company);
+
+  const exportCsv = () => {
+    const headers = ["name","is_company","email","phone","street","street2","city","state","zip","country_code","tax_id","website","salesperson","notes"];
+    const rows = filtered.map((c) =>
+      headers.map((h) => {
+        const val = (c as any)[h] ?? "";
+        const str = String(val);
+        return str.includes(",") || str.includes('"') || str.includes("\n")
+          ? `"${str.replace(/"/g, '""')}"`
+          : str;
+      }).join(",")
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contacts-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `Exported ${filtered.length} contacts` });
+  };
+
+  const importCsv = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const lines = text.split("\n").filter((l) => l.trim());
+      if (lines.length < 2) {
+        toast({ title: "CSV must have a header row and at least one data row", variant: "destructive" });
+        return;
+      }
+      const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+      const nameIdx = headers.findIndex((h) => h.toLowerCase() === "name");
+      if (nameIdx === -1) {
+        toast({ title: "CSV must contain a 'name' column", variant: "destructive" });
+        return;
+      }
+      let imported = 0;
+      let errors = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const vals = lines[i].match(/(".*?"|[^,]*)/g)?.map((v) => v.trim().replace(/^"|"$/g, "").replace(/""/g, '"')) ?? [];
+        const row: Record<string, any> = {};
+        headers.forEach((h, idx) => {
+          if (h === "is_company") {
+            row[h] = vals[idx]?.toLowerCase() === "true";
+          } else {
+            row[h] = vals[idx] ?? "";
+          }
+        });
+        if (!row.name) continue;
+        const { error } = await supabase.from("contacts").insert(row as any);
+        if (error) errors++;
+        else imported++;
+      }
+      toast({ title: `Imported ${imported} contacts${errors ? `, ${errors} errors` : ""}` });
+      // Refetch
+      window.location.reload();
+    };
+    input.click();
+  };
 
   const handleSave = async () => {
     if (!editContact?.name) {
@@ -139,6 +205,12 @@ const ContactsPage = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Import CSV" onClick={importCsv}>
+              <Upload className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" title="Export CSV" onClick={exportCsv}>
+              <Download className="h-4 w-4" />
+            </Button>
           <Link to="/admin/erp/config/contact-tags">
             <Button variant="ghost" size="icon" className="h-8 w-8" title="Configuration">
               <Settings className="h-4 w-4" />
