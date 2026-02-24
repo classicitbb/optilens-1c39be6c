@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useCatalogTemplates, useCatalogAssignments, useCustomersList, type CatalogTemplate } from "@/hooks/useCatalogTemplates";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,18 +14,22 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Copy, Pencil, BookOpen, Users, FileDown, X } from "lucide-react";
+import { Plus, Search, Trash2, Copy, Pencil, BookOpen, Users, FileDown, X, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-/* ────────────────── Assignment counts (bulk) ────────────────── */
+/* ─── Types ─── */
+type SortField = "name" | "updated_at" | "customers";
+type SortDir = "asc" | "desc";
+
+/* ─── Assignment counts (bulk) ─── */
 const useAssignmentCounts = () => {
   return useQuery({
     queryKey: ["catalog-assignment-counts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_assignments")
-        .select("catalog_template_id");
+      const { data, error } = await supabase.from("catalog_assignments").select("catalog_template_id");
       if (error) throw error;
       const counts: Record<number, number> = {};
       (data ?? []).forEach((r: any) => {
@@ -35,89 +40,340 @@ const useAssignmentCounts = () => {
   });
 };
 
-/* ────────────────── Preview Pane ────────────────── */
+/* ─── Catalog sections for a template ─── */
+const useCatalogSections = (templateId?: number) => {
+  return useQuery({
+    queryKey: ["catalog-sections", templateId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("catalog_sections")
+        .select("*, pricelist_versions(name)")
+        .eq("catalog_template_id", templateId!)
+        .order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!templateId,
+  });
+};
+
+/* ─── Pricelist rows for preview ─── */
+const usePricelistPreviewRows = (versionId?: number) => {
+  return useQuery({
+    queryKey: ["catalog-preview-rows", versionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pricelist_catalog_rows")
+        .select("section, display_description, bbd_price, row_type, catalog_type")
+        .eq("pricelist_version_id", versionId!)
+        .order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!versionId,
+  });
+};
+
+/* ─── All pricelist versions for preview ─── */
+const useAllPricelistVersions = () => {
+  return useQuery({
+    queryKey: ["all-pricelist-versions-brief"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pricelist_versions")
+        .select("id, name, format_type")
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+/* ─── All rx/stock catalog rows for first available version ─── */
+const useDefaultPreviewData = () => {
+  return useQuery({
+    queryKey: ["catalog-default-preview"],
+    queryFn: async () => {
+      // Get first version
+      const { data: versions } = await supabase
+        .from("pricelist_versions")
+        .select("id, name")
+        .order("id", { ascending: true })
+        .limit(1);
+      const vId = versions?.[0]?.id;
+      if (!vId) return { sections: {} as Record<string, { description: string; price: number | null }[]>, versionName: "" };
+
+      const { data: rows } = await supabase
+        .from("pricelist_catalog_rows")
+        .select("section, display_description, bbd_price, row_type, catalog_type")
+        .eq("pricelist_version_id", vId)
+        .order("sort_order");
+
+      const sections: Record<string, { description: string; price: number | null }[]> = {};
+      (rows ?? []).forEach((r: any) => {
+        const key = r.section;
+        if (!sections[key]) sections[key] = [];
+        sections[key].push({ description: r.display_description, price: r.bbd_price });
+      });
+
+      // Also get addons
+      const { data: addons } = await supabase
+        .from("addons")
+        .select("name, price")
+        .eq("is_active", true)
+        .order("sort_order");
+
+      if (addons && addons.length > 0) {
+        sections["Add-Ons & Extras"] = addons.map((a: any) => ({ description: a.name, price: a.price }));
+      }
+
+      return { sections, versionName: versions?.[0]?.name ?? "" };
+    },
+  });
+};
+
+const fmt = (n: number | null) => n != null ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—";
+const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+/* ═══════════════════ Preview Pane ═══════════════════ */
 const CatalogPreviewPane = ({ template, onClose }: { template: CatalogTemplate; onClose: () => void }) => {
+  const { data: settings } = useCompanySettings();
+  const { data: previewData } = useDefaultPreviewData();
+  const sections = previewData?.sections ?? {};
+  const sectionKeys = Object.keys(sections);
+
   return (
-    <div className="border-l flex flex-col h-full" style={{ borderColor: "hsl(215 25% 88%)", width: 420, minWidth: 420 }}>
+    <div className="border-l flex flex-col" style={{ borderColor: "hsl(215 25% 88%)", width: 440, minWidth: 440 }}>
       <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: "hsl(215 25% 88%)" }}>
-        <span className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Preview</span>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <span className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Catalog Preview</span>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
       </div>
-      <div className="flex-1 overflow-auto p-4">
-        {/* Cover page mock */}
+      <div className="flex-1 overflow-auto p-3 space-y-3">
+        {/* Cover */}
         <div
-          className="rounded-lg p-8 text-white flex flex-col items-center justify-center text-center"
+          className="rounded-lg p-6 text-white flex flex-col items-center justify-center text-center"
           style={{
             background: `linear-gradient(135deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`,
-            minHeight: 280,
+            minHeight: 220,
           }}
         >
-          <h2 className="text-xl font-bold mb-2">{template.cover_title || template.name}</h2>
-          {template.cover_subtitle && (
-            <p className="text-sm opacity-80">{template.cover_subtitle}</p>
+          {settings?.logo_url && (
+            <img src={settings.logo_url} alt="Logo" className="h-10 mb-3 object-contain" />
           )}
+          <h2 className="text-lg font-bold mb-1">{template.cover_title || template.name}</h2>
+          {template.cover_subtitle && <p className="text-xs opacity-80">{template.cover_subtitle}</p>}
+          {settings && <p className="text-[10px] mt-3 opacity-60">{settings.company_name} · {settings.tel}</p>}
         </div>
 
-        {/* TOC placeholder */}
-        <div className="mt-4 border rounded-lg p-4" style={{ borderColor: "hsl(215 25% 88%)" }}>
-          <h3 className="text-xs font-semibold mb-3" style={{ color: "hsl(215 30% 15%)" }}>
-            TABLE OF CONTENTS
-          </h3>
-          <div className="space-y-2">
-            {["Cover Page", "RX Lens Pricing", "Stock Lens Pricing", "Add-Ons & Extras", "Terms & Conditions"].map((s, i) => (
-              <div key={i} className="flex items-center justify-between text-xs" style={{ color: "hsl(215 15% 50%)" }}>
-                <span>{s}</span>
-                <span>{i + 1}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Sample content page */}
-        <div className="mt-4 border rounded-lg p-4" style={{ borderColor: "hsl(215 25% 88%)" }}>
-          <h3 className="text-xs font-semibold mb-2" style={{ color: "hsl(215 30% 15%)" }}>
-            RX LENS PRICING
+        {/* TOC */}
+        <div className="border rounded-lg p-3" style={{ borderColor: "hsl(215 25% 88%)" }}>
+          <h3 className="text-[11px] font-bold mb-2 uppercase tracking-wider" style={{ color: "hsl(215 65% 50%)" }}>
+            Table of Contents
           </h3>
           <div className="space-y-1">
-            {["Single Vision Clear", "Bifocal Clear", "Progressive Clear"].map((item, i) => (
-              <div key={i} className="flex items-center justify-between text-[11px] py-1 border-b" style={{ color: "hsl(215 15% 50%)", borderColor: "hsl(215 25% 92%)" }}>
-                <span>{item}</span>
-                <span className="font-mono">—</span>
+            {sectionKeys.map((s, i) => (
+              <div key={i} className="flex items-center justify-between text-[11px] py-0.5" style={{ color: "hsl(215 15% 50%)" }}>
+                <span className="truncate mr-2">{s}</span>
+                <span className="text-[10px] tabular-nums">{i + 2}</span>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Section pages */}
+        {sectionKeys.slice(0, 6).map((sectionName) => (
+          <div key={sectionName} className="border rounded-lg p-3" style={{ borderColor: "hsl(215 25% 88%)" }}>
+            <div className="flex items-center gap-2 mb-2 pb-1.5 border-b" style={{ borderColor: "hsl(215 65% 50%)" }}>
+              <div className="w-1 h-4 rounded-full" style={{ background: "hsl(215 65% 50%)" }} />
+              <h3 className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "hsl(215 30% 15%)" }}>
+                {sectionName}
+              </h3>
+            </div>
+            <div className="space-y-0">
+              {sections[sectionName].slice(0, 8).map((row, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between text-[10px] py-1 border-b last:border-b-0"
+                  style={{ color: "hsl(215 15% 40%)", borderColor: "hsl(215 25% 94%)" }}
+                >
+                  <span className="truncate mr-4 flex-1">{row.description}</span>
+                  <span className="font-mono font-medium tabular-nums whitespace-nowrap" style={{ color: "hsl(215 30% 15%)" }}>
+                    ${fmt(row.price)}
+                  </span>
+                </div>
+              ))}
+              {sections[sectionName].length > 8 && (
+                <p className="text-[9px] text-center pt-1" style={{ color: "hsl(215 15% 65%)" }}>
+                  +{sections[sectionName].length - 8} more items…
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+        {sectionKeys.length > 6 && (
+          <p className="text-[10px] text-center" style={{ color: "hsl(215 15% 55%)" }}>
+            +{sectionKeys.length - 6} more sections in full catalog
+          </p>
+        )}
       </div>
     </div>
   );
 };
 
-/* ────────────────── Assign Dialog ────────────────── */
+/* ═══════════════════ PDF Generator ═══════════════════ */
+const generateCatalogPdf = async (template: CatalogTemplate, settings: any) => {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+
+  // Cover page
+  doc.setFillColor(30, 77, 183);
+  doc.rect(0, 0, pw, ph, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(28);
+  doc.text(template.cover_title || template.name, pw / 2, ph / 2 - 10, { align: "center" });
+  if (template.cover_subtitle) {
+    doc.setFontSize(14);
+    doc.text(template.cover_subtitle, pw / 2, ph / 2 + 5, { align: "center" });
+  }
+  if (settings?.company_name) {
+    doc.setFontSize(10);
+    doc.text(settings.company_name, pw / 2, ph - 30, { align: "center" });
+    if (settings.tel) doc.text(settings.tel, pw / 2, ph - 24, { align: "center" });
+    if (settings.email) doc.text(settings.email, pw / 2, ph - 18, { align: "center" });
+  }
+
+  // Fetch pricelist data
+  const { data: versions } = await supabase
+    .from("pricelist_versions")
+    .select("id, name")
+    .order("id", { ascending: true })
+    .limit(1);
+  const vId = versions?.[0]?.id;
+
+  if (vId) {
+    const { data: rows } = await supabase
+      .from("pricelist_catalog_rows")
+      .select("section, display_description, bbd_price, row_type, catalog_type")
+      .eq("pricelist_version_id", vId)
+      .order("sort_order");
+
+    const sections: Record<string, { description: string; price: number | null }[]> = {};
+    (rows ?? []).forEach((r: any) => {
+      if (!sections[r.section]) sections[r.section] = [];
+      sections[r.section].push({ description: r.display_description, price: r.bbd_price });
+    });
+
+    // TOC page
+    doc.addPage();
+    doc.setTextColor(30, 77, 183);
+    doc.setFontSize(18);
+    doc.text("Table of Contents", 20, 30);
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(11);
+    const sKeys = Object.keys(sections);
+    sKeys.forEach((s, i) => {
+      doc.text(`${i + 1}. ${s}`, 25, 48 + i * 8);
+    });
+
+    // Section pages
+    for (const sectionName of sKeys) {
+      doc.addPage();
+      // Header bar
+      doc.setFillColor(30, 77, 183);
+      doc.rect(0, 0, pw, 14, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.text(sectionName, 15, 10);
+
+      const tableRows = sections[sectionName].map((r) => [
+        r.description,
+        r.price != null ? `$${r.price.toFixed(2)}` : "—",
+      ]);
+
+      autoTable(doc, {
+        startY: 20,
+        head: [["Description", "Price (BBD)"]],
+        body: tableRows,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+        columnStyles: { 1: { halign: "right", cellWidth: 30 } },
+        margin: { left: 15, right: 15 },
+      });
+    }
+
+    // Add-ons
+    const { data: addons } = await supabase
+      .from("addons")
+      .select("name, price")
+      .eq("is_active", true)
+      .order("sort_order");
+
+    if (addons && addons.length > 0) {
+      doc.addPage();
+      doc.setFillColor(30, 77, 183);
+      doc.rect(0, 0, pw, 14, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.text("Add-Ons & Extras", 15, 10);
+
+      autoTable(doc, {
+        startY: 20,
+        head: [["Add-On", "Price (BBD)"]],
+        body: addons.map((a: any) => [a.name, `$${a.price.toFixed(2)}`]),
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+        columnStyles: { 1: { halign: "right", cellWidth: 30 } },
+        margin: { left: 15, right: 15 },
+      });
+    }
+  }
+
+  // Page numbers
+  const pages = doc.getNumberOfPages();
+  for (let i = 2; i <= pages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Page ${i - 1} of ${pages - 1}`, pw / 2, ph - 8, { align: "center" });
+    if (settings?.company_name) {
+      doc.text(settings.company_name, 15, ph - 8);
+    }
+  }
+
+  doc.save(`${template.name.replace(/\s+/g, "_")}_Catalog.pdf`);
+};
+
+/* ═══════════════════ Assign Dialog ═══════════════════ */
 const AssignDialog = ({ template, open, onClose }: { template: CatalogTemplate | null; open: boolean; onClose: () => void }) => {
   const { data: customers = [] } = useCustomersList();
   const { data: assignments = [], setAssignments } = useCatalogAssignments(template?.id);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [customerSearch, setCustomerSearch] = useState("");
   const { toast } = useToast();
+  const qc = useQueryClient();
 
-  // Sync when assignments load — using useEffect pattern
-  useState(() => {
-    // initial sync handled below
-  });
-  
-  // Effect-like sync via key change
-  const assignmentKey = assignments.map(a => a.customer_id).join(",");
-  useMemo(() => {
+  useEffect(() => {
     if (assignments.length > 0) {
       setSelected(new Set(assignments.map((a) => a.customer_id!).filter(Boolean)));
+    } else {
+      setSelected(new Set());
     }
-  }, [assignmentKey]);
+  }, [assignments]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch) return customers;
+    const s = customerSearch.toLowerCase();
+    return customers.filter((c) => c.name.toLowerCase().includes(s));
+  }, [customers, customerSearch]);
 
   const handleSave = async () => {
     if (!template) return;
     try {
       await setAssignments.mutateAsync({ templateId: template.id, customerIds: Array.from(selected) });
+      qc.invalidateQueries({ queryKey: ["catalog-assignment-counts"] });
       toast({ title: `Assigned to ${selected.size} customer(s)` });
       onClose();
     } catch (e: any) {
@@ -135,15 +391,19 @@ const AssignDialog = ({ template, open, onClose }: { template: CatalogTemplate |
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-sm">Assign "{template?.name}" to Customers</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2 mt-2">
-          {customers.length === 0 ? (
+        <div className="relative mb-2">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input placeholder="Search customers…" value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} className="h-8 pl-8 text-xs" />
+        </div>
+        <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
+          {filteredCustomers.length === 0 ? (
             <p className="text-xs text-muted-foreground py-4 text-center">No customers found</p>
           ) : (
-            customers.map((c) => (
+            filteredCustomers.map((c) => (
               <label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5">
                 <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggle(c.id)} />
                 {c.name}
@@ -151,36 +411,65 @@ const AssignDialog = ({ template, open, onClose }: { template: CatalogTemplate |
             ))
           )}
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClose}>Cancel</Button>
-          <Button size="sm" className="h-8 text-xs" onClick={handleSave} disabled={setAssignments.isPending}>Save</Button>
+        <div className="flex items-center justify-between gap-2 pt-3 border-t">
+          <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClose}>Cancel</Button>
+            <Button size="sm" className="h-8 text-xs" onClick={handleSave} disabled={setAssignments.isPending}>Save</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 };
 
-/* ────────────────── Catalogs Tab ────────────────── */
+/* ═══════════════════ Catalogs Tab ═══════════════════ */
 const CatalogsTab = ({ onEdit }: { onEdit: (t: CatalogTemplate) => void }) => {
   const { data: templates = [], isLoading, createMutation, deleteMutation, duplicateMutation } = useCatalogTemplates();
   const { data: counts = {} } = useAssignmentCounts();
+  const { data: settings } = useCompanySettings();
   const { canEditFeature } = useRolePermissions();
-  const canEdit = canEditFeature("catalog-publisher" as any);
+  const canEdit = canEditFeature("catalog-publisher");
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const [sortField, setSortField] = useState<SortField>("updated_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [preview, setPreview] = useState<CatalogTemplate | null>(null);
   const [assignTarget, setAssignTarget] = useState<CatalogTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CatalogTemplate | null>(null);
 
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(field); setSortDir("asc"); }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-30" />;
+    return sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
+  };
+
   const filtered = useMemo(() => {
-    if (!search) return templates;
-    const s = search.toLowerCase();
-    return templates.filter((t) => t.name.toLowerCase().includes(s));
-  }, [templates, search]);
+    let list = templates;
+    if (search) {
+      const s = search.toLowerCase();
+      list = list.filter((t) => t.name.toLowerCase().includes(s) || (t.cover_title ?? "").toLowerCase().includes(s));
+    }
+    return [...list].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "name") cmp = a.name.localeCompare(b.name);
+      else if (sortField === "updated_at") cmp = (a.updated_at ?? "").localeCompare(b.updated_at ?? "");
+      else if (sortField === "customers") cmp = (counts[a.id] ?? 0) - (counts[b.id] ?? 0);
+      return sortDir === "desc" ? -cmp : cmp;
+    });
+  }, [templates, search, sortField, sortDir, counts]);
 
   const handleNew = async () => {
     try {
-      const created = await createMutation.mutateAsync({ name: "Untitled Catalog" });
+      const created = await createMutation.mutateAsync({
+        name: "Untitled Catalog",
+        cover_title: settings?.company_name ?? "Product Catalog",
+        cover_subtitle: settings?.slogan ?? "",
+      });
       onEdit(created);
       toast({ title: "Catalog created" });
     } catch (e: any) {
@@ -209,11 +498,19 @@ const CatalogsTab = ({ onEdit }: { onEdit: (t: CatalogTemplate) => void }) => {
     }
   };
 
-  const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  const handleDownloadPdf = async (t: CatalogTemplate) => {
+    toast({ title: "Generating PDF…" });
+    try {
+      await generateCatalogPdf(t, settings);
+      toast({ title: "PDF downloaded" });
+    } catch (e: any) {
+      toast({ title: "PDF Error", description: e.message, variant: "destructive" });
+    }
+  };
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <div className="flex-1 space-y-3 overflow-auto">
+    <div className="flex flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+      <div className="flex-1 space-y-3 overflow-auto pr-1">
         <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -230,11 +527,17 @@ const CatalogsTab = ({ onEdit }: { onEdit: (t: CatalogTemplate) => void }) => {
           <Table>
             <TableHeader>
               <TableRow className="text-xs">
-                <TableHead className="h-8">Name</TableHead>
-                <TableHead className="h-8">Last Edited</TableHead>
-                <TableHead className="h-8 text-center"># Customers</TableHead>
+                <TableHead className="h-8 cursor-pointer select-none" onClick={() => toggleSort("name")}>
+                  <span className="flex items-center gap-1">Name <SortIcon field="name" /></span>
+                </TableHead>
+                <TableHead className="h-8 cursor-pointer select-none" onClick={() => toggleSort("updated_at")}>
+                  <span className="flex items-center gap-1">Last Edited <SortIcon field="updated_at" /></span>
+                </TableHead>
+                <TableHead className="h-8 text-center cursor-pointer select-none" onClick={() => toggleSort("customers")}>
+                  <span className="flex items-center gap-1 justify-center"># Customers <SortIcon field="customers" /></span>
+                </TableHead>
                 <TableHead className="h-8">Status</TableHead>
-                {canEdit && <TableHead className="h-8 w-36" />}
+                {canEdit && <TableHead className="h-8 w-40" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -243,45 +546,50 @@ const CatalogsTab = ({ onEdit }: { onEdit: (t: CatalogTemplate) => void }) => {
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="text-center text-xs py-8 text-muted-foreground">No catalogs found. Click "New Catalog" to create one.</TableCell></TableRow>
               ) : (
-                filtered.map((t) => (
-                  <TableRow
-                    key={t.id}
-                    className={`cursor-pointer hover:bg-muted/50 text-xs ${preview?.id === t.id ? "bg-muted/30" : ""}`}
-                    onClick={() => setPreview(t)}
-                  >
-                    <TableCell className="py-1.5 font-medium">{t.name}</TableCell>
-                    <TableCell className="py-1.5">{fmtDate(t.updated_at)}</TableCell>
-                    <TableCell className="py-1.5 text-center">
-                      <Badge variant="outline" className="text-[10px]">{counts[t.id] || 0}</Badge>
-                    </TableCell>
-                    <TableCell className="py-1.5">
-                      <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/30">
-                        Draft
-                      </Badge>
-                    </TableCell>
-                    {canEdit && (
-                      <TableCell className="py-1.5">
-                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Edit" onClick={() => onEdit(t)}>
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Assign to Customers" onClick={() => setAssignTarget(t)}>
-                            <Users className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => handleDuplicate(t)}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Download PDF" onClick={() => toast({ title: "PDF export coming soon" })}>
-                            <FileDown className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="Delete" onClick={() => setDeleteTarget(t)}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                filtered.map((t) => {
+                  const custCount = counts[t.id] ?? 0;
+                  return (
+                    <TableRow
+                      key={t.id}
+                      className={`cursor-pointer hover:bg-muted/50 text-xs ${preview?.id === t.id ? "bg-primary/5" : ""}`}
+                      onClick={() => setPreview(t)}
+                    >
+                      <TableCell className="py-1.5 font-medium">{t.name}</TableCell>
+                      <TableCell className="py-1.5 text-muted-foreground">{fmtDate(t.updated_at)}</TableCell>
+                      <TableCell className="py-1.5 text-center">
+                        <Badge variant="outline" className={`text-[10px] ${custCount > 0 ? "bg-primary/10 text-primary border-primary/30" : ""}`}>
+                          {custCount}
+                        </Badge>
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))
+                      <TableCell className="py-1.5">
+                        <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/30">
+                          Draft
+                        </Badge>
+                      </TableCell>
+                      {canEdit && (
+                        <TableCell className="py-1.5">
+                          <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Edit" onClick={() => onEdit(t)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Assign to Customers" onClick={() => setAssignTarget(t)}>
+                              <Users className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => handleDuplicate(t)}>
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" title="Download PDF" onClick={() => handleDownloadPdf(t)}>
+                              <FileDown className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="Delete" onClick={() => setDeleteTarget(t)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -296,7 +604,7 @@ const CatalogsTab = ({ onEdit }: { onEdit: (t: CatalogTemplate) => void }) => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Catalog?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete "{deleteTarget?.name}" and its customer assignments.</AlertDialogDescription>
+            <AlertDialogDescription>This will permanently delete "{deleteTarget?.name}" and all customer assignments.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -308,13 +616,21 @@ const CatalogsTab = ({ onEdit }: { onEdit: (t: CatalogTemplate) => void }) => {
   );
 };
 
-/* ────────────────── Editor Tab (placeholder for next prompt) ────────────────── */
+/* ═══════════════════ Editor Tab (placeholder for next prompt) ═══════════════════ */
 const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onExit: () => void }) => {
   const { updateMutation } = useCatalogTemplates();
   const { toast } = useToast();
   const [name, setName] = useState(template?.name ?? "");
   const [coverTitle, setCoverTitle] = useState(template?.cover_title ?? "");
   const [coverSubtitle, setCoverSubtitle] = useState(template?.cover_subtitle ?? "");
+
+  useEffect(() => {
+    if (template) {
+      setName(template.name);
+      setCoverTitle(template.cover_title ?? "");
+      setCoverSubtitle(template.cover_subtitle ?? "");
+    }
+  }, [template]);
 
   const handleSave = async () => {
     if (!template) return;
@@ -336,7 +652,6 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
 
   return (
     <div className="space-y-4">
-      {/* Top bar */}
       <div className="flex items-center justify-between gap-3 px-1">
         <h2 className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
           Editing: {template.name}
@@ -350,7 +665,6 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
         </div>
       </div>
 
-      {/* Basic editor fields */}
       <div className="grid grid-cols-2 gap-4 max-w-2xl">
         <div>
           <label className="text-xs font-medium mb-1 block">Template Name</label>
@@ -366,7 +680,6 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
         </div>
       </div>
 
-      {/* Cover preview */}
       <div
         className="rounded-lg p-8 text-white flex flex-col items-center justify-center text-center max-w-2xl"
         style={{
@@ -379,13 +692,13 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
       </div>
 
       <p className="text-xs text-muted-foreground italic">
-        Full section builder (drag & drop pricelist sections, articles, cover customization) will be available in the next update.
+        Full section builder (drag &amp; drop pricelist sections, articles, cover customization) will be available in the next update.
       </p>
     </div>
   );
 };
 
-/* ────────────────── Main Page ────────────────── */
+/* ═══════════════════ Main Page ═══════════════════ */
 const CatalogPublisherPage = () => {
   const [tab, setTab] = useState("catalogs");
   const [editingTemplate, setEditingTemplate] = useState<CatalogTemplate | null>(null);
@@ -396,11 +709,11 @@ const CatalogPublisherPage = () => {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>📖 Catalog Publisher</h1>
+    <div className="p-4 flex flex-col h-full overflow-hidden">
+      <h1 className="text-lg font-semibold mb-3" style={{ color: "hsl(215 30% 15%)" }}>📖 Catalog Publisher</h1>
 
-      <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <TabsList className="h-8 p-0.5 gap-0.5" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
+      <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
+        <TabsList className="h-8 p-0.5 gap-0.5 shrink-0" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
           <TabsTrigger value="catalogs" className="text-xs h-7 px-3 data-[state=active]:shadow-none flex items-center gap-1.5" style={{ borderRadius: "3px" }}>
             <BookOpen className="h-3.5 w-3.5" /> Catalogs
           </TabsTrigger>
@@ -409,10 +722,10 @@ const CatalogPublisherPage = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="catalogs" className="mt-3">
+        <TabsContent value="catalogs" className="mt-3 flex-1 flex min-h-0">
           <CatalogsTab onEdit={handleEdit} />
         </TabsContent>
-        <TabsContent value="editor" className="mt-3">
+        <TabsContent value="editor" className="mt-3 flex-1 overflow-auto">
           <EditorTab template={editingTemplate} onExit={() => setTab("catalogs")} />
         </TabsContent>
       </Tabs>
