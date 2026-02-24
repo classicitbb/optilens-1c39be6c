@@ -416,7 +416,7 @@ const ListCatalogTab = ({
   const renderRow = (row: CatalogRow, i: number, rowType: "lens" | "addon" | "supply", section: string, totalRows?: number) => {
     const isEditingThisDesc = editingDesc?.key === row.key;
     const isPending = pendingMatrixRowKeys?.has(row.key);
-    const showReorder = rowType === "addon" || rowType === "supply";
+    const showReorder = true;
     const rowCost = getRowCost(row);
 
     // Check for line-level override
@@ -541,7 +541,7 @@ const ListCatalogTab = ({
           <table className="w-full text-xs border-collapse">
               <thead>
                 <tr>
-                  {(rowType === "addon" || rowType === "supply") && <th className="w-8 no-print border border-slate-300" style={{ background: "hsl(215 15% 93%)" }} />}
+                  <th className="w-8 no-print border border-slate-300" style={{ background: "hsl(215 15% 93%)" }} />
                   <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
                   <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
                   {/* Matrix Cell header — screen only, before BBD */}
