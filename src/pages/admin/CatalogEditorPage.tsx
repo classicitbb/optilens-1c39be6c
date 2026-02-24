@@ -10,10 +10,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil } from "lucide-react";
 import SectionContentDialog from "@/components/admin/SectionContentDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { compareCategoryOrder } from "@/lib/sortOrder";
 
 /* ─── Types ─── */
 interface CatalogSection {
@@ -350,8 +352,14 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
     background: "white",
   };
 
+  const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
+
+  /** Sort section keys by canonical category order */
+  const sortSectionKeys = (keys: string[]) =>
+    [...keys].sort((a, b) => compareCategoryOrder(a, b));
+
   return (
-    <div className="border-l flex flex-col h-full" style={{ borderColor: "hsl(var(--border))", minWidth: 300, maxWidth: "50%", width: 420, resize: "horizontal", overflow: "hidden", cursor: "ew-resize" }}>
+    <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40" style={{ borderColor: "hsl(var(--border))" }}>
         <div className="flex gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
@@ -427,7 +435,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
               const catalogType = SECTION_TO_CATALOG_TYPE[s.section_type];
               const dataKey = s.pricelist_version_id ? `${s.pricelist_version_id}-${catalogType}` : null;
               const sectionData = dataKey ? rowsByVersionType[dataKey] : null;
-              const sectionKeys = sectionData ? Object.keys(sectionData) : [];
+              const sectionKeys = sectionData ? sortSectionKeys(Object.keys(sectionData)) : [];
 
               return (
                 <div key={s.id ?? i} style={{ padding: "20px 24px", borderBottom: "1px solid #e2e8f0" }}>
@@ -449,21 +457,26 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                     <div>
                       {sectionKeys.map((sectionName) => (
                         <div key={sectionName} style={{ marginBottom: "12px" }}>
-                          <div style={{ fontSize: "9px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px", color: "#718096", marginBottom: "4px", paddingBottom: "2px", borderBottom: "1px solid #e2e8f0" }}>
-                            {sectionName} ({sectionData![sectionName].length})
-                          </div>
                           <table style={{ width: "100%", borderCollapse: "collapse" }}>
                             <thead>
                               <tr>
-                                <th style={{ textAlign: "left", padding: "4px 6px", fontSize: "8px", fontWeight: 600, textTransform: "uppercase", color: "#4a5568", background: "#f7fafc", borderBottom: "1px solid #e2e8f0" }}>Description</th>
-                                <th style={{ textAlign: "right", padding: "4px 6px", fontSize: "8px", fontWeight: 600, textTransform: "uppercase", color: "#4a5568", background: "#f7fafc", borderBottom: "1px solid #e2e8f0", width: "70px" }}>Price</th>
+                                <th
+                                  colSpan={2}
+                                  style={{
+                                    textAlign: "left", padding: "6px 10px", fontSize: "9px", fontWeight: 700,
+                                    textTransform: "uppercase", letterSpacing: "0.4px", color: "white",
+                                    background: "#1e4db7",
+                                  }}
+                                >
+                                  {sectionName} ({sectionData![sectionName].length})
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
                               {sectionData![sectionName].map((row, idx) => (
                                 <tr key={idx}>
-                                  <td style={{ padding: "3px 6px", fontSize: "9px", borderBottom: "1px solid #edf2f7", color: "#2d3748" }}>{row.description}</td>
-                                  <td style={{ padding: "3px 6px", fontSize: "9px", borderBottom: "1px solid #edf2f7", textAlign: "right", fontFamily: "'SF Mono', monospace", color: "#1a202c", fontWeight: 500 }}>
+                                  <td style={{ padding: "4px 10px", fontSize: "9px", borderBottom: "1px solid #edf2f7", color: "#2d3748" }}>{row.description}</td>
+                                  <td style={{ padding: "4px 10px", fontSize: "9px", borderBottom: "1px solid #edf2f7", textAlign: "right", fontWeight: 600, color: "#1a202c", width: "70px" }}>
                                     ${fmtPrice(row.price)}
                                   </td>
                                 </tr>
@@ -488,9 +501,17 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                       {art.description && (
                         <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{art.description}</p>
                       )}
-                      <div style={{ fontSize: "9px", color: "#2d3748", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                        {art.content?.slice(0, 600)}{(art.content?.length ?? 0) > 600 ? "…" : ""}
-                      </div>
+                      {art.content && isHtml(art.content) ? (
+                        <div
+                          className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
+                          style={{ color: "#2d3748", lineHeight: 1.6 }}
+                          dangerouslySetInnerHTML={{ __html: art.content.slice(0, 800) + ((art.content.length ?? 0) > 800 ? "…" : "") }}
+                        />
+                      ) : (
+                        <div style={{ fontSize: "9px", color: "#2d3748", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                          {art.content?.slice(0, 600)}{(art.content?.length ?? 0) > 600 ? "…" : ""}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -704,84 +725,91 @@ const CatalogEditorPage = () => {
           </div>
         </div>
 
-        {/* Center: Cover + Section Builder */}
-        <div className="flex-1 overflow-auto px-4 py-3 space-y-4 min-w-0">
-          {/* Cover Settings */}
-          <div className="border rounded-lg p-4" style={{ borderColor: "hsl(var(--border))" }}>
-            <h3 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
-              <Palette className="h-3.5 w-3.5 text-primary" /> Cover Settings
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-[10px]">Catalog Name</Label>
-                <Input className="h-7 text-xs mt-0.5" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-[10px]">Cover Title</Label>
-                <Input className="h-7 text-xs mt-0.5" value={coverTitle} onChange={(e) => setCoverTitle(e.target.value)} />
-              </div>
-              <div className="col-span-2">
-                <Label className="text-[10px]">Cover Subtitle</Label>
-                <Input className="h-7 text-xs mt-0.5" value={coverSubtitle} onChange={(e) => setCoverSubtitle(e.target.value)} />
-              </div>
-              <div className="flex items-center gap-3 col-span-2">
-                <div>
-                  <Label className="text-[10px]">Gradient Start</Label>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <input type="color" value={gradStart} onChange={(e) => setGradStart(e.target.value)} className="h-7 w-8 rounded border cursor-pointer" style={{ borderColor: "hsl(var(--border))" }} />
-                    <Input className="h-7 text-[10px] w-20 font-mono" value={gradStart} onChange={(e) => setGradStart(e.target.value)} />
+        {/* Center builder + Right preview with resizable handle on left of preview */}
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
+          <ResizablePanel defaultSize={55} minSize={35}>
+            <div className="overflow-auto h-full px-4 py-3 space-y-4">
+              {/* Cover Settings */}
+              <div className="border rounded-lg p-4" style={{ borderColor: "hsl(var(--border))" }}>
+                <h3 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
+                  <Palette className="h-3.5 w-3.5 text-primary" /> Cover Settings
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px]">Catalog Name</Label>
+                    <Input className="h-7 text-xs mt-0.5" value={name} onChange={(e) => setName(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">Cover Title</Label>
+                    <Input className="h-7 text-xs mt-0.5" value={coverTitle} onChange={(e) => setCoverTitle(e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Subtitle</Label>
+                    <Input className="h-7 text-xs mt-0.5" value={coverSubtitle} onChange={(e) => setCoverSubtitle(e.target.value)} />
+                  </div>
+                  <div className="flex items-center gap-3 col-span-2">
+                    <div>
+                      <Label className="text-[10px]">Gradient Start</Label>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <input type="color" value={gradStart} onChange={(e) => setGradStart(e.target.value)} className="h-7 w-8 rounded border cursor-pointer" style={{ borderColor: "hsl(var(--border))" }} />
+                        <Input className="h-7 text-[10px] w-20 font-mono" value={gradStart} onChange={(e) => setGradStart(e.target.value)} />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">Gradient End</Label>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <input type="color" value={gradEnd} onChange={(e) => setGradEnd(e.target.value)} className="h-7 w-8 rounded border cursor-pointer" style={{ borderColor: "hsl(var(--border))" }} />
+                        <Input className="h-7 text-[10px] w-20 font-mono" value={gradEnd} onChange={(e) => setGradEnd(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="flex-1 rounded-md h-7 ml-2" style={{ background: `linear-gradient(90deg, ${gradStart}, ${gradEnd})` }} />
                   </div>
                 </div>
-                <div>
-                  <Label className="text-[10px]">Gradient End</Label>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <input type="color" value={gradEnd} onChange={(e) => setGradEnd(e.target.value)} className="h-7 w-8 rounded border cursor-pointer" style={{ borderColor: "hsl(var(--border))" }} />
-                    <Input className="h-7 text-[10px] w-20 font-mono" value={gradEnd} onChange={(e) => setGradEnd(e.target.value)} />
+              </div>
+
+              {/* Section Builder */}
+              <div>
+                <h3 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5 text-primary" /> Sections ({sections.length})
+                </h3>
+                {sections.length === 0 ? (
+                  <div className="border border-dashed rounded-lg py-8 text-center text-xs text-muted-foreground" style={{ borderColor: "hsl(var(--border))" }}>
+                    Click sections from the palette on the left to add them here.
                   </div>
-                </div>
-                <div className="flex-1 rounded-md h-7 ml-2" style={{ background: `linear-gradient(90deg, ${gradStart}, ${gradEnd})` }} />
+                ) : (
+                  <div className="space-y-2">
+                    {sections.map((s, i) => (
+                      <SectionRow
+                        key={s.id ?? i}
+                        section={s}
+                        index={i}
+                        total={sections.length}
+                        versions={versions}
+                        articles={articles}
+                        onUpdate={handleUpdateSection}
+                        onRemove={handleRemoveSection}
+                        onMoveUp={() => handleMove(i, -1)}
+                        onMoveDown={() => handleMove(i, 1)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          </ResizablePanel>
 
-          {/* Section Builder */}
-          <div>
-            <h3 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-              <Layers className="h-3.5 w-3.5 text-primary" /> Sections ({sections.length})
-            </h3>
-            {sections.length === 0 ? (
-              <div className="border border-dashed rounded-lg py-8 text-center text-xs text-muted-foreground" style={{ borderColor: "hsl(var(--border))" }}>
-                Click sections from the palette on the left to add them here.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {sections.map((s, i) => (
-                  <SectionRow
-                    key={s.id ?? i}
-                    section={s}
-                    index={i}
-                    total={sections.length}
-                    versions={versions}
-                    articles={articles}
-                    onUpdate={handleUpdateSection}
-                    onRemove={handleRemoveSection}
-                    onMoveUp={() => handleMove(i, -1)}
-                    onMoveDown={() => handleMove(i, 1)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+          <ResizableHandle withHandle />
 
-        {/* Right: Live Preview */}
-        <EditorLivePreview
-          template={liveTemplate}
-          sections={sections}
-          versions={versions}
-          articles={articles}
-          settings={settings}
-        />
+          <ResizablePanel defaultSize={45} minSize={25} maxSize={55}>
+            <EditorLivePreview
+              template={liveTemplate}
+              sections={sections}
+              versions={versions}
+              articles={articles}
+              settings={settings}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
