@@ -19,7 +19,7 @@ interface Props {
 
 const UnsavedChangesDialog = ({ open, onSave, onDiscard, onCancel }: Props) => (
   <AlertDialog open={open} onOpenChange={(v) => { if (!v) onCancel(); }}>
-    <AlertDialogContent style={{ borderRadius: "4px", top: "80px", left: "50%", translate: "-50% 0", maxWidth: "340px" }} className="p-4">
+    <AlertDialogContent style={{ borderRadius: "4px", maxWidth: "340px" }} className="p-4">
       <AlertDialogFooter className="gap-2 flex-row justify-end sm:flex-row sm:space-x-0">
         <AlertDialogCancel className="h-7 text-xs mt-0" onClick={onCancel}>Cancel</AlertDialogCancel>
         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onDiscard}>Discard</Button>

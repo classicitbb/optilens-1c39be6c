@@ -164,7 +164,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
   const isDirty = () => JSON.stringify(form) !== initialFormRef.current;
 
   const handleNavigate = (target: Addon) => {
-    if (isDirty()) {
+    if (isDirty() && form.cost > 0) {
       setPendingNavTarget(target);
       setUnsavedDialogOpen(true);
     } else {
