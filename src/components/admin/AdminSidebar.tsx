@@ -3,10 +3,11 @@ import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import {
   Database, Upload, Download,
-  PanelLeftClose, PanelLeft, Layers, BookOpen,
+  PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
   ChevronDown, ChevronRight, Glasses,
   FlaskConical, ShoppingCart, BookMarked } from
 "lucide-react";
+import { Link } from "react-router-dom";
 
 interface MenuItem {
   label: string;
@@ -169,6 +170,10 @@ const AdminSidebar = () => {
             {!collapsed && <span>Help / Wiki</span>}
           </RouterNavLink>
         }
+        <Link to="/" className={`${linkBase} w-full`} style={{ color: "hsl(210 15% 65%)" }} title={collapsed ? "Back to Site" : undefined}>
+          <ArrowLeft className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>Back to Site</span>}
+        </Link>
       </div>
     </aside>);
 
