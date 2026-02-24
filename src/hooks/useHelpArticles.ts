@@ -49,17 +49,24 @@ export const useHelpArticles = (pageSlug?: string) => {
   });
 
   const upsertMutation = useMutation({
-    mutationFn: async (article: Partial<HelpArticle> & { title: string; content: string; page_slug: string }) => {
+    mutationFn: async (article: Partial<HelpArticle> & { title: string; content: string; page_slug: string; category?: string }) => {
+      const payload: any = {
+        title: article.title,
+        content: article.content,
+        page_slug: article.page_slug,
+        sort_order: article.sort_order ?? 0,
+      };
+      if (article.category !== undefined) payload.category = article.category;
       if (article.id) {
         const { error } = await supabase
           .from("help_articles")
-          .update({ title: article.title, content: article.content, page_slug: article.page_slug, sort_order: article.sort_order ?? 0 })
+          .update(payload)
           .eq("id", article.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("help_articles")
-          .insert({ title: article.title, content: article.content, page_slug: article.page_slug, sort_order: article.sort_order ?? 0 });
+          .insert(payload);
         if (error) throw error;
       }
     },

@@ -206,6 +206,10 @@ const CompanySettingsPage = () => {
                   </Field>
                 </div>
                 <Field label="Slogan"><Input className="h-8 text-xs" value={form.slogan ?? ""} onChange={(e) => set("slogan", e.target.value)} disabled={!canEdit} /></Field>
+                <Field label="Feedback Email">
+                  <Input className="h-8 text-xs" type="email" placeholder="feedback@company.com" value={form.feedback_email ?? ""} onChange={(e) => set("feedback_email", e.target.value)} disabled={!canEdit} />
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Help feedback and suggestions are sent to this address</p>
+                </Field>
               </Section>
 
               {/* Logo */}

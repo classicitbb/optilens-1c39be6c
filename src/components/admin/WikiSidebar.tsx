@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import type { WikiCategory } from "@/data/wikiContent";
 
 interface WikiSidebarProps {
@@ -10,26 +11,47 @@ interface WikiSidebarProps {
   onSelectArticle: (categoryId: string, articleId: string) => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
+  canEdit?: boolean;
+  onAddHeading?: (title: string) => void;
 }
 
-const WikiSidebar = ({ categories, activeArticleId, onSelectArticle, searchTerm, onSearchChange }: WikiSidebarProps) => {
+const WikiSidebar = ({
+  categories,
+  activeArticleId,
+  onSelectArticle,
+  searchTerm,
+  onSearchChange,
+  canEdit,
+  onAddHeading,
+}: WikiSidebarProps) => {
   const [openCategories, setOpenCategories] = useState<Set<string>>(() => {
     const s = new Set<string>();
     for (const cat of categories) {
-      if (cat.articles.some(a => a.id === activeArticleId)) {
+      if (cat.articles.some((a) => a.id === activeArticleId)) {
         s.add(cat.id);
       }
     }
     if (s.size === 0 && categories.length > 0) s.add(categories[0].id);
     return s;
   });
+  const [addingHeading, setAddingHeading] = useState(false);
+  const [newHeadingTitle, setNewHeadingTitle] = useState("");
 
   const toggleCategory = (id: string) => {
-    setOpenCategories(prev => {
+    setOpenCategories((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
+  };
+
+  const handleAddHeading = () => {
+    if (newHeadingTitle.trim() && onAddHeading) {
+      onAddHeading(newHeadingTitle.trim());
+      setNewHeadingTitle("");
+      setAddingHeading(false);
+    }
   };
 
   return (
@@ -51,22 +73,25 @@ const WikiSidebar = ({ categories, activeArticleId, onSelectArticle, searchTerm,
           {categories.map((cat) => {
             const isOpen = openCategories.has(cat.id);
             const Icon = cat.icon;
-            const hasActive = cat.articles.some(a => a.id === activeArticleId);
+            const hasActive = cat.articles.some((a) => a.id === activeArticleId);
 
             return (
               <div key={cat.id}>
                 <button
                   onClick={() => toggleCategory(cat.id)}
                   className={`flex items-center gap-2 w-full px-3 py-1.5 text-[13px] rounded-sm transition-colors hover:bg-muted/60 ${
-                    hasActive ? "text-primary font-semibold" : "text-foreground"
+                    hasActive
+                      ? "text-primary font-semibold"
+                      : "text-foreground"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
                   <span className="flex-1 text-left">{cat.title}</span>
-                  {isOpen
-                    ? <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    : <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
-                  }
+                  {isOpen ? (
+                    <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  )}
                 </button>
                 {isOpen && (
                   <div className="ml-4 space-y-0.5 mt-0.5">
@@ -91,6 +116,39 @@ const WikiSidebar = ({ categories, activeArticleId, onSelectArticle, searchTerm,
               </div>
             );
           })}
+
+          {/* Add Heading button */}
+          {canEdit && (
+            <div className="px-3 pt-2">
+              {addingHeading ? (
+                <div className="flex gap-1">
+                  <Input
+                    value={newHeadingTitle}
+                    onChange={(e) => setNewHeadingTitle(e.target.value)}
+                    placeholder="Heading name…"
+                    className="h-7 text-xs flex-1"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddHeading();
+                      if (e.key === "Escape") setAddingHeading(false);
+                    }}
+                  />
+                  <Button size="sm" className="h-7 text-xs px-2" onClick={handleAddHeading}>
+                    Add
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground w-full justify-start"
+                  onClick={() => setAddingHeading(true)}
+                >
+                  <Plus className="h-3 w-3" /> Add Heading
+                </Button>
+              )}
+            </div>
+          )}
         </nav>
       </ScrollArea>
     </div>
