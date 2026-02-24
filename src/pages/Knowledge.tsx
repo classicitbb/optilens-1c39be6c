@@ -7,6 +7,21 @@ import { Search, BookOpen, HelpCircle, Layers, Droplets, Sun, Lightbulb } from "
 import { useState, useMemo } from "react";
 import { usePublicKnowledge, ContentArticle } from "@/hooks/useContentArticles";
 import { Skeleton } from "@/components/ui/skeleton";
+import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
+
+const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
+
+const RichContent = ({ content }: { content: string }) => {
+  if (isHtml(content)) {
+    return (
+      <div
+        className="prose prose-sm max-w-none text-muted-foreground [&_strong]:text-foreground [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1 [&_p]:leading-relaxed [&_ul]:pl-4 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_li]:my-0.5 [&_li]:leading-relaxed [&_li]:marker:text-primary [&_a]:text-primary [&_a]:underline [&_br]:leading-3"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    );
+  }
+  return <span>{content}</span>;
+};
 
 const ICON_MAP: Record<string, React.ElementType> = {
   "Lens Materials": Layers,
@@ -126,8 +141,9 @@ const Knowledge = () => {
                               <AccordionTrigger className="text-left text-sm font-medium">
                                 {article.title}
                               </AccordionTrigger>
-                              <AccordionContent className="text-sm text-muted-foreground">
-                                {article.content}
+                              <AccordionContent className="text-sm text-muted-foreground space-y-3">
+                                <RichContent content={article.content} />
+                                <HelpFeedbackButtons articleId={article.id} pageSlug="knowledge" />
                               </AccordionContent>
                             </AccordionItem>
                           ))}
@@ -163,8 +179,9 @@ const Knowledge = () => {
                             <AccordionTrigger className="text-left font-medium">
                               {faq.title}
                             </AccordionTrigger>
-                            <AccordionContent className="text-muted-foreground">
-                              {faq.content}
+                            <AccordionContent className="text-muted-foreground space-y-3">
+                              <RichContent content={faq.content} />
+                              <HelpFeedbackButtons articleId={faq.id} pageSlug="knowledge" />
                             </AccordionContent>
                           </AccordionItem>
                         ))}
