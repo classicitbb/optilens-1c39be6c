@@ -13,6 +13,8 @@ interface MarginBadgeProps {
   className?: string;
   /** Show as inline bubble (no separate column) */
   inline?: boolean;
+  /** Configurable margin floor percentage (default 20) */
+  marginFloor?: number;
 }
 
 const getMarginColor = (m: number | null) => {
@@ -29,6 +31,7 @@ const MarginBadge = ({
   itemName,
   className,
   inline = false,
+  marginFloor = 20,
 }: MarginBadgeProps) => {
   const colors = getMarginColor(marginPercent);
   const label = marginPercent != null ? `${marginPercent.toFixed(1)}%` : "—";
@@ -81,7 +84,7 @@ const MarginBadge = ({
           </span>
         </div>
 
-        {marginPercent != null && marginPercent < 20 && (
+        {marginPercent != null && marginPercent < marginFloor && (
           <div
             className="flex items-center gap-1.5 rounded px-2 py-1.5 mt-1"
             style={{
@@ -91,7 +94,7 @@ const MarginBadge = ({
             }}
           >
             <span className="text-[10px] font-medium">
-              ⚠ Margin is below 20% floor — review before saving
+              ⚠ Margin is below {marginFloor}% floor — review before saving
             </span>
           </div>
         )}

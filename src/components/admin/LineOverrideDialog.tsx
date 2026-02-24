@@ -46,6 +46,8 @@ interface LineOverrideDialogProps {
   cost: number | null;
   /** Current sell price (before override) */
   currentPrice: number | null;
+  /** Configurable margin floor percentage (default 20) */
+  marginFloor?: number;
 }
 
 const LineOverrideDialog = ({
@@ -58,6 +60,7 @@ const LineOverrideDialog = ({
   itemName,
   cost,
   currentPrice,
+  marginFloor = 20,
 }: LineOverrideDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -240,6 +243,7 @@ const LineOverrideDialog = ({
                 cost={cost}
                 sellPrice={parsedPrice}
                 itemName={itemName}
+                marginFloor={marginFloor}
               />
             </div>
           </div>
@@ -262,7 +266,7 @@ const LineOverrideDialog = ({
             </Select>
           </div>
 
-          {margin != null && margin < 20 && (
+          {margin != null && margin < marginFloor && (
             <div
               className="flex items-center gap-1.5 rounded px-2 py-1.5"
               style={{
@@ -272,7 +276,7 @@ const LineOverrideDialog = ({
               }}
             >
               <span className="text-[10px] font-medium">
-                ⚠ This price results in a margin below 20%. A reason is
+                ⚠ This price results in a margin below {marginFloor}%. A reason is
                 required.
               </span>
             </div>
@@ -306,7 +310,7 @@ const LineOverrideDialog = ({
             disabled={
               saving ||
               parsedPrice == null ||
-              (margin != null && margin < 20 && !reason)
+              (margin != null && margin < marginFloor && !reason)
             }
           >
             {saving && <Loader2 className="h-3 w-3 animate-spin mr-1" />}

@@ -18,6 +18,7 @@ import { useReferenceData } from "@/hooks/useReferenceData";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { compareCategoryOrder } from "@/lib/sortOrder";
+import { usePricingSettings } from "@/hooks/usePricingSettings";
 
 const BLUE_BG = "#1e4db7";
 const GREEN_BG = "#d4edda";
@@ -84,7 +85,18 @@ const ListCatalogTab = ({
   const { toast } = useToast();
   const { data: companySettings } = useCompanySettings();
   const { hasOverride, lineOverrides } = usePriceHierarchy(versionId);
+  const { versions: pricingVersions } = usePricingSettings();
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Determine the margin floor based on catalog type
+  const marginFloorPercent = useMemo(() => {
+    const active = pricingVersions.find((v) => v.is_active) ?? pricingVersions[0];
+    if (!active) return 20;
+    const floors = active.category_margin_floors as Record<string, number>;
+    if (catalogType === "stock") return (floors.wspl ?? 0.25) * 100;
+    if (catalogType === "buysell") return (floors.supplies ?? 0.25) * 100;
+    return (floors.lenses ?? 0.30) * 100;
+  }, [pricingVersions, catalogType]);
 
   const [lensRows, setLensRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [addonRows, setAddonRows] = useState<Map<string, CatalogRow[]>>(new Map());
@@ -496,7 +508,8 @@ const ListCatalogTab = ({
             marginPercent={displayMargin}
             cost={rowCost}
             sellPrice={displayBbd}
-            itemName={row.description} />
+            itemName={row.description}
+            marginFloor={marginFloorPercent} />
 
         </td>
         {/* Pencil override icon */}
@@ -769,7 +782,8 @@ const ListCatalogTab = ({
         referenceId={overrideTarget?.referenceId ?? ""}
         itemName={overrideTarget?.itemName ?? ""}
         cost={overrideTarget?.cost ?? null}
-        currentPrice={overrideTarget?.currentPrice ?? null} />
+        currentPrice={overrideTarget?.currentPrice ?? null}
+        marginFloor={marginFloorPercent} />
 
     </div>);
 
