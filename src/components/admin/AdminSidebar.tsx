@@ -5,7 +5,7 @@ import {
   Database, Upload, Download,
   Settings, Users, PanelLeftClose, PanelLeft, ArrowLeft, Layers, BookOpen,
   ChevronDown, ChevronRight, Ship, FileSpreadsheet, Glasses,
-  FlaskConical, ShoppingCart, Globe } from
+  FlaskConical, ShoppingCart, Globe, BookMarked } from
 "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -45,6 +45,7 @@ const NAV: NavItem[] = [
 { label: "Supplies Prices", icon: ShoppingCart, path: "/admin/supplies-prices", feature: "supplies-prices" } as MenuItem,
 { label: "Quotations", icon: FileSpreadsheet, path: "/admin/quotations", feature: "quotations" } as MenuItem,
 { label: "Import Costings", icon: Ship, path: "/admin/costings/shipments", feature: "costings" } as MenuItem,
+{ label: "Catalog Publisher", icon: BookMarked, path: "/admin/catalog-publisher", feature: "catalog-publisher" } as MenuItem,
 { label: "Users", icon: Users, path: "/admin/users", feature: "users" } as MenuItem];
 
 
