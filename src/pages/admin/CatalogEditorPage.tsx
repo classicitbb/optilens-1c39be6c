@@ -352,10 +352,16 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
 
   return (
     <div className="border-l flex flex-col h-full" style={{ borderColor: "hsl(var(--border))", minWidth: 300, maxWidth: "50%", width: 420, resize: "horizontal", overflow: "hidden", cursor: "ew-resize" }}>
-      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30" style={{ borderColor: "hsl(var(--border))" }}>
-        <FileText className="h-3.5 w-3.5 text-primary" />
-        <span className="text-xs font-semibold text-foreground">PDF Preview</span>
-        <span className="text-[9px] text-muted-foreground ml-auto">Live · {includedSections.length} sections</span>
+      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40" style={{ borderColor: "hsl(var(--border))" }}>
+        <div className="flex gap-1">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+          <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+        </div>
+        <span className="text-[10px] text-muted-foreground font-mono flex-1 text-center truncate">
+          {template.name} — PDF Preview
+        </span>
+        <span className="text-[9px] text-muted-foreground">{includedSections.length} sections</span>
       </div>
       <ScrollArea className="flex-1 bg-muted/20">
         <div className="p-4">
