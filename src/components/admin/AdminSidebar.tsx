@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import {
@@ -50,10 +50,16 @@ const NAV: NavItem[] = [
 
 
 const AdminSidebar = () => {
-  const [collapsed, setCollapsed] = useState(false);
-  const { canView } = useRolePermissions();
   const location = useLocation();
   const currentPath = location.pathname;
+  const isEditorRoute = /^\/admin\/catalog-publisher\/\d+/.test(currentPath) || /^\/admin\/quotations\/[^/]+$/.test(currentPath);
+  const [collapsed, setCollapsed] = useState(isEditorRoute);
+  const { canView } = useRolePermissions();
+
+  // Force collapse when entering editor routes
+  useEffect(() => {
+    if (isEditorRoute) setCollapsed(true);
+  }, [isEditorRoute]);
 
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const s = new Set<string>();
