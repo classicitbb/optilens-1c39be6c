@@ -29,7 +29,6 @@ type NavItem = MenuItem | MenuGroup;
 const isGroup = (item: NavItem): item is MenuGroup => "children" in item;
 
 const NAV: NavItem[] = [
-{ label: "Catalog Publisher", icon: BookMarked, path: "/admin/catalog-publisher", feature: "catalog-publisher" } as MenuItem,
 {
   label: "Product Catalog",
   icon: Layers,
@@ -39,11 +38,11 @@ const NAV: NavItem[] = [
   { label: "Reference Data", icon: Database, path: "/admin/reference", feature: "reference" },
   { label: "Imports", icon: Upload, path: "/admin/imports", feature: "imports" },
   { label: "Exports", icon: Download, path: "/admin/exports", feature: "exports" }]
-
 } as MenuGroup,
 { label: "RX Lens Prices", icon: FlaskConical, path: "/admin/rx-lens-prices", feature: "rx-lens-prices" } as MenuItem,
 { label: "Stock Lens Prices", icon: Glasses, path: "/admin/stock-lens-prices", feature: "stock-lens-prices" } as MenuItem,
 { label: "Supplies Prices", icon: ShoppingCart, path: "/admin/supplies-prices", feature: "supplies-prices" } as MenuItem,
+{ label: "Catalog Publisher", icon: BookMarked, path: "/admin/catalog-publisher", feature: "catalog-publisher" } as MenuItem,
 ];
 
 
