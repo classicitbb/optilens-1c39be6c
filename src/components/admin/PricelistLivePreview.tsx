@@ -8,6 +8,7 @@ import { useLenses } from "@/hooks/useLenses";
 import { PricelistVersion } from "@/hooks/usePricelistVersions";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { cn } from "@/lib/utils";
+import { CATEGORY_ORDER, compareCategoryOrder, compareMaterialOrder } from "@/lib/sortOrder";
 
 const TREATMENT_LABELS: Record<TreatmentType, string> = {
   clear: "Clear Lenses",
@@ -18,9 +19,9 @@ const TREATMENT_LABELS: Record<TreatmentType, string> = {
 };
 
 const CATALOG_TITLES: Record<string, string> = {
-  rx: "Rx Lens Prices",
-  stock: "Stock Lens Prices",
-  buysell: "Supplies Price List",
+  rx: "RX LENS PRICES",
+  stock: "STOCK LENS PRICES",
+  buysell: "SUPPLIES PRICE LIST",
 };
 
 interface Props {
@@ -72,7 +73,11 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     return m;
   }, [allLenses]);
 
-  const categories = useMemo(() => [...new Set(matrixRows.map((r) => r.category))], [matrixRows]);
+  // Use canonical category order, falling back to price_matrix categories
+  const categories = useMemo(() => {
+    const rawCats = [...new Set(matrixRows.map((r) => r.category))];
+    return rawCats.sort(compareCategoryOrder);
+  }, [matrixRows]);
 
   const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
   const lensSections = useMemo(() => {
@@ -109,61 +114,75 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   };
 
   // ── Matrix preview ───────────────────────────────────────────────────────────
-  const MatrixPreview = () => (
-    <div className="space-y-6">
-      {TREATMENT_TYPES.map((tt) => {
-        const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
-        if (tt !== "clear" && ttAllocs.length === 0) return null;
+  const MatrixPreview = () => {
+    // Get active material columns sorted by canonical order
+    const getActiveCols = (tt: TreatmentType) => {
+      const active = MATERIAL_COLUMNS.filter((col) =>
+        allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
+      );
+      return active.length > 0 ? [...active].sort((a, b) => compareMaterialOrder(a.key, b.key)) : [...MATERIAL_COLUMNS].sort((a, b) => compareMaterialOrder(a.key, b.key));
+    };
 
-        const activeCols = MATERIAL_COLUMNS.filter((col) =>
-          allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
-        );
-        if (activeCols.length === 0 && tt !== "clear") return null;
+    return (
+      <div className="space-y-6">
+        {TREATMENT_TYPES.map((tt) => {
+          const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
+          if (tt !== "clear" && ttAllocs.length === 0) return null;
 
-        const getColAvg = (mat: string, treatType: TreatmentType) => {
-          const vals = categories
-            .map((cat) => {
-              const a = allocations.find((al) => al.category === cat && al.material_index === mat && al.treatment_type === treatType);
-              return hierarchyMatrixNum(a?.allocated_price_bbd ?? null, a?.id ? String(a.id) : undefined);
-            })
-            .filter((v): v is number => v !== null);
-          if (!vals.length) return null;
-          return vals.reduce((s, v) => s + v, 0) / vals.length;
-        };
+          const visibleCols = getActiveCols(tt);
 
-        const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
+          // Get active categories for this treatment, sorted canonically
+          const activeCats = categories.filter((cat) =>
+            visibleCols.some((col) =>
+              allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
+            )
+          );
+          if (activeCats.length === 0 && tt !== "clear") return null;
 
-        return (
-          <div key={tt}>
-            <table className="w-full text-xs border-collapse border border-border" style={{ tableLayout: "auto", borderRadius: 0 }}>
-              <thead>
-                <tr style={{ background: "#1e4db7" }}>
-                  <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "180px", color: "white", borderRadius: 0 }}>
-                    {TREATMENT_LABELS[tt]}
-                  </th>
-                  {visibleCols.map((col) => (
-                    <th key={col.key} className="px-3 py-2 text-center border-r border-white/20 last:border-r-0 font-bold uppercase tracking-wide whitespace-nowrap" style={{ minWidth: "80px", color: "white", borderRadius: 0 }}>
-                      {col.key}
+          const getColAvg = (mat: string, treatType: TreatmentType) => {
+            const vals = activeCats
+              .map((cat) => {
+                const a = allocations.find((al) => al.category === cat && al.material_index === mat && al.treatment_type === treatType);
+                return hierarchyMatrixNum(a?.allocated_price_bbd ?? null, a?.id ? String(a.id) : undefined);
+              })
+              .filter((v): v is number => v !== null);
+            if (!vals.length) return null;
+            return vals.reduce((s, v) => s + v, 0) / vals.length;
+          };
+
+          return (
+            <div key={tt}>
+              <table className="w-full text-xs border-collapse" style={{ tableLayout: "auto" }}>
+                <thead>
+                  <tr>
+                    <th
+                      className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm"
+                      style={{ background: "#1e4db7", color: "white", borderBottom: "none" }}
+                      colSpan={1}
+                    >
+                      {TREATMENT_LABELS[tt]}
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {categories
-                  .filter((cat) =>
-                    visibleCols.some((col) =>
-                      allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
-                    )
-                  )
-                  .map((cat, i) => (
-                    <tr key={cat} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                      <td className="px-3 py-1 font-medium border-r border-border text-foreground">{cat}</td>
+                    {visibleCols.map((col) => (
+                      <th
+                        key={col.key}
+                        className="px-3 py-2.5 text-center font-bold uppercase tracking-wider"
+                        style={{ background: "#1e4db7", color: "white", minWidth: "90px", borderBottom: "none" }}
+                      >
+                        {col.key}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeCats.map((cat, i) => (
+                    <tr key={cat} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                      <td className="px-4 py-2 font-medium" style={{ color: "#1a202c" }}>{cat}</td>
                       {visibleCols.map((col) => {
                         const alloc = allocations.find(
                           (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
                         );
                         return (
-                          <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 text-foreground">
+                          <td key={col.key} className="px-3 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
                             {alloc?.allocated_price_bbd != null
                               ? hierarchyMatrixPrice(alloc.allocated_price_bbd, alloc.id ? String(alloc.id) : undefined)
                               : "—"}
@@ -172,73 +191,72 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                       })}
                     </tr>
                   ))}
-                <tr className="bg-muted/50 border-t-2 border-border">
-                  <td className="px-3 py-1 text-muted-foreground italic border-r border-border text-[10px]">Col. Averages</td>
-                  {visibleCols.map((col) => {
-                    const avg = getColAvg(col.key, tt);
-                    return (
-                      <td key={col.key} className="px-3 py-1 text-right border-r border-border last:border-r-0 text-foreground">
-                        {avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}
-                      </td>
-                    );
-                  })}
-                </tr>
-                {tt !== "clear" && (
-                  <tr className="bg-amber-50/40 dark:bg-amber-900/10 border-t border-border">
-                    <td className="px-3 py-1 text-amber-700 dark:text-amber-400 italic border-r border-border text-[10px]">Δ vs Clear</td>
+                  <tr style={{ borderTop: "2px solid #cbd5e0", background: "#f7fafc" }}>
+                    <td className="px-4 py-2 italic text-xs" style={{ color: "#718096" }}>Col. Averages</td>
                     {visibleCols.map((col) => {
-                      const treatAvg = getColAvg(col.key, tt);
-                      const clearAvg = getColAvg(col.key, "clear");
-                      const delta = treatAvg != null && clearAvg != null ? treatAvg - clearAvg : null;
+                      const avg = getColAvg(col.key, tt);
                       return (
-                        <td
-                          key={col.key}
-                          className={cn(
-                            "px-3 py-1 text-right border-r border-border last:border-r-0 font-semibold text-[10px]",
-                            delta == null ? "text-muted-foreground" : delta > 0 ? "text-emerald-600" : "text-red-500"
-                          )}
-                        >
-                          {delta != null ? `${delta > 0 ? "+" : ""}${fmtDisplay(delta, showUSD, fxRate)}` : "—"}
+                        <td key={col.key} className="px-3 py-2 text-right italic" style={{ color: "#4a5568" }}>
+                          {avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}
                         </td>
                       );
                     })}
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        );
-      })}
-
-      {/* Treatments & Add-ons grouped by category */}
-      {addonsBySection.size > 0 && (
-        <div className="space-y-3">
-          {[...addonsBySection.entries()].map(([sec, rows]) => (
-            <div key={sec}>
-              <table className="w-full text-xs border-collapse border border-border" style={{ borderRadius: 0 }}>
-                <thead>
-                  <tr style={{ background: "#1e4db7" }}>
-                    <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide" style={{ color: "white", borderRadius: 0 }}>{sec}</th>
-                    <th className="px-3 py-2 text-right font-bold uppercase tracking-wide w-28" style={{ color: "white", borderRadius: 0 }}>{currency} Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row, i) => (
-                    <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                      <td className="px-3 py-1 border-r border-border text-foreground">{row.display_description}</td>
-                      <td className="px-3 py-1 text-right text-foreground">
-                        {hierarchyCatalogPrice(row)}
-                      </td>
+                  {tt !== "clear" && (
+                    <tr style={{ background: "#fffbeb", borderTop: "1px solid #e2e8f0" }}>
+                      <td className="px-4 py-2 italic text-xs" style={{ color: "#b7791f" }}>Δ vs Clear</td>
+                      {visibleCols.map((col) => {
+                        const treatAvg = getColAvg(col.key, tt);
+                        const clearAvg = getColAvg(col.key, "clear");
+                        const delta = treatAvg != null && clearAvg != null ? treatAvg - clearAvg : null;
+                        return (
+                          <td
+                            key={col.key}
+                            className="px-3 py-2 text-right font-semibold text-xs"
+                            style={{ color: delta == null ? "#a0aec0" : delta > 0 ? "#38a169" : "#e53e3e" }}
+                          >
+                            {delta != null ? `${delta > 0 ? "+" : ""}${fmtDisplay(delta, showUSD, fxRate)}` : "—"}
+                          </td>
+                        );
+                      })}
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+          );
+        })}
+
+        {/* Treatments & Add-ons grouped by category */}
+        {addonsBySection.size > 0 && (
+          <div className="space-y-4">
+            {[...addonsBySection.entries()].map(([sec, rows]) => (
+              <div key={sec}>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white" }}>{sec}</th>
+                      <th className="px-4 py-2.5 text-right font-bold uppercase tracking-wider w-32" style={{ background: "#1e4db7", color: "white" }}>{currency} PRICE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, i) => (
+                      <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                        <td className="px-4 py-2" style={{ color: "#1a202c" }}>{row.display_description}</td>
+                        <td className="px-4 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
+                          {hierarchyCatalogPrice(row)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ── List preview ─────────────────────────────────────────────────────────────
   const ListPreview = () => {
@@ -246,18 +264,18 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
     const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
       <div>
-        <table className="w-full text-xs border-collapse border border-border" style={{ borderRadius: 0 }}>
+        <table className="w-full text-xs border-collapse">
           <thead>
-            <tr style={{ background: "#1e4db7" }}>
-              <th className="px-3 py-2 text-left border-r border-white/20 font-bold uppercase tracking-wide" style={{ color: "white", borderRadius: 0 }}>{label}</th>
-              <th className="px-3 py-2 text-right font-bold uppercase tracking-wide w-24" style={{ color: "white", borderRadius: 0 }}>{currency} Price</th>
+            <tr>
+              <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white" }}>{label}</th>
+              <th className="px-4 py-2.5 text-right font-bold uppercase tracking-wider w-32" style={{ background: "#1e4db7", color: "white" }}>{currency} PRICE</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={row.id ?? row.row_key} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                <td className="px-3 py-1.5 border-r border-border text-foreground">{row.display_description}</td>
-                <td className="px-3 py-1.5 text-right text-foreground">
+              <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                <td className="px-4 py-2.5" style={{ color: "#1a202c" }}>{row.display_description}</td>
+                <td className="px-4 py-2.5 text-right font-semibold" style={{ color: "#1a202c" }}>
                   {hierarchyCatalogPrice(row)}
                 </td>
               </tr>
@@ -267,14 +285,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
       </div>
     );
 
-    const sortedLensSections = [...lensSections.entries()].sort((a, b) => {
-      const aIdx = categories.indexOf(a[0]);
-      const bIdx = categories.indexOf(b[0]);
-      if (aIdx === -1 && bIdx === -1) return 0;
-      if (aIdx === -1) return 1;
-      if (bIdx === -1) return -1;
-      return aIdx - bIdx;
-    });
+    const sortedLensSections = [...lensSections.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
 
     return (
       <div className="space-y-5">
@@ -299,7 +310,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
             {addonsBySection.size > 0 && (
               <>
-                <div className="border-t-2 border-border pt-2" />
                 {[...addonsBySection.entries()].map(([sec, rows]) => (
                   <SectionTable key={sec} label={sec} rows={rows} />
                 ))}
@@ -311,56 +321,28 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     );
   };
 
-  const headerHtml = company?.pdf_header_html?.trim();
-  const footerHtml = company?.pdf_footer_html?.trim();
-
   return (
-    <div className="space-y-3">
-      {/* Branded header */}
-      <div className="flex items-start justify-between pb-3 border-b border-border">
-        <div className="flex-shrink-0">
-          {company?.logo_url && (
-            <img src={company.logo_url} alt={company?.company_name ?? "Logo"} className="max-h-12 mb-1 object-contain" />
-          )}
-          {headerHtml ? (
-            <div
-              className="text-xs text-foreground [&_h1]:text-sm [&_h1]:font-bold [&_h2]:text-[10px] [&_h2]:text-muted-foreground [&_p]:text-[10px] [&_p]:text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: headerHtml }}
-            />
-          ) : (
-            <>
-              <p className="text-sm font-bold text-foreground">{company?.company_name ?? "Company"}</p>
-              <p className="text-[10px] text-muted-foreground">{company?.slogan}</p>
-              <p className="text-[10px] text-muted-foreground">{company?.tel} · {company?.email}</p>
-            </>
-          )}
-        </div>
-        <div className="flex-1 text-center self-center">
-          <h1 className="text-lg font-bold text-foreground tracking-wide uppercase">
-            {CATALOG_TITLES[catalogType] ?? "Price List"}
+    <div className="space-y-4" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}>
+      {/* Header — matching reference screenshot */}
+      <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
+        <div className="flex-1 text-center">
+          <h1 className="font-bold tracking-wide uppercase" style={{ fontSize: "22px", letterSpacing: "2px", color: "#1a202c" }}>
+            {CATALOG_TITLES[catalogType] ?? "PRICE LIST"}
           </h1>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-xs font-semibold text-foreground">{version.name}</p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs" style={{ color: "#4a5568" }}>
             {previewFormat === "matrix" ? "Matrix Format" : "List Format"} · {today}
           </p>
-          <p className="text-[10px] text-muted-foreground">{currency}</p>
+          <p className="text-xs font-semibold" style={{ color: "#2d3748" }}>{currency}</p>
         </div>
       </div>
 
       {previewFormat === "matrix" ? <MatrixPreview /> : <ListPreview />}
 
-      {footerHtml ? (
-        <div
-          className="text-[9px] text-muted-foreground pt-2 border-t border-border text-center"
-          dangerouslySetInnerHTML={{ __html: footerHtml }}
-        />
-      ) : (
-        <p className="text-[9px] text-muted-foreground pt-2 border-t border-border text-center">
-          All prices in {currency}. Prices subject to change without notice. · {company?.company_name}
-        </p>
-      )}
+      <p className="text-center pt-3" style={{ fontSize: "9px", color: "#a0aec0", borderTop: "1px solid #e2e8f0" }}>
+        All prices in {currency}. Prices subject to change without notice. · {company?.company_name}
+      </p>
     </div>
   );
 };
