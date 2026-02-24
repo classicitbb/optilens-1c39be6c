@@ -630,6 +630,7 @@ interface CatalogSection {
   pricelist_version_id: number | null;
   format_choice: string | null;
   article_id: number | null;
+  custom_title: string | null;
 }
 
 const useCatalogSectionsEditor = (templateId?: number) => {
@@ -684,15 +685,17 @@ const useCatalogSectionsEditor = (templateId?: number) => {
   return { ...query, addSection, updateSection, removeSection, reorderSections };
 };
 
-/* ─── Help Articles for Knowledge section ─── */
+/* ─── Help Articles for Knowledge section (public only) ─── */
 const useHelpArticlesForCatalog = () => {
   return useQuery({
-    queryKey: ["help-articles-catalog"],
+    queryKey: ["help-articles-catalog-public"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("help_articles")
-        .select("id, title, category, visibility")
+        .select("id, title, category, visibility, content, description")
         .eq("is_active", true)
+        .in("content_type", ["knowledge", "faq"])
+        .in("visibility", ["public", "customer"])
         .order("category")
         .order("title");
       if (error) throw error;
@@ -732,7 +735,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
   template: CatalogTemplate;
   sections: CatalogSection[];
   versions: { id: number; name: string }[];
-  articles: { id: string; title: string; category: string }[];
+  articles: { id: string; title: string; category: string; content?: string; description?: string }[];
   settings: any;
 }) => {
   const includedSections = sections.filter((s) => s.is_included !== false);
@@ -765,8 +768,10 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
               <h3 className="text-[10px] font-bold mb-1.5 uppercase tracking-wider text-primary">Table of Contents</h3>
               {includedSections.map((s, i) => {
                 const vName = s.pricelist_version_id ? versions.find((v) => v.id === s.pricelist_version_id)?.name : null;
-                const artTitle = s.article_id ? articles.find((a) => String(a.id) === String(s.article_id))?.title : null;
-                const label = s.section_type === "knowledge_article" ? (artTitle || "Article") : getSectionLabel(s.section_type);
+                const art = s.article_id ? articles.find((a) => String(a.id) === String(s.article_id)) : null;
+                const label = s.section_type === "knowledge_article"
+                  ? (s.custom_title || art?.title || "Article")
+                  : getSectionLabel(s.section_type);
                 return (
                   <div key={s.id ?? i} className="flex items-center justify-between text-[10px] py-0.5 text-muted-foreground">
                     <span className="truncate mr-2">{label}{vName ? ` (${vName})` : ""}</span>
@@ -779,8 +784,11 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
 
           {/* Section previews */}
           {includedSections.map((s, i) => {
+            const art = s.section_type === "knowledge_article"
+              ? articles.find((a) => String(a.id) === String(s.article_id))
+              : null;
             const label = s.section_type === "knowledge_article"
-              ? articles.find((a) => String(a.id) === String(s.article_id))?.title || "Knowledge Article"
+              ? (s.custom_title || art?.title || "Knowledge Article")
               : getSectionLabel(s.section_type);
             const isPricing = ["rx_prices", "stock_prices", "supplies_prices"].includes(s.section_type);
             return (
@@ -799,6 +807,11 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                       </div>
                     ))}
                     <p className="text-[8px] text-muted-foreground text-center pt-0.5">Pricing data from pricelist</p>
+                  </div>
+                ) : art ? (
+                  <div className="text-[9px] text-muted-foreground space-y-0.5">
+                    {art.description && <p className="italic">{art.description}</p>}
+                    <p className="line-clamp-3">{art.content?.slice(0, 200)}…</p>
                   </div>
                 ) : (
                   <p className="text-[9px] text-muted-foreground italic">Content section</p>
@@ -822,7 +835,7 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
   index: number;
   total: number;
   versions: { id: number; name: string; format_type: string | null }[];
-  articles: { id: string; title: string; category: string }[];
+  articles: { id: string; title: string; category: string; content?: string; description?: string }[];
   onUpdate: (id: number, updates: Partial<CatalogSection>) => void;
   onRemove: (id: number) => void;
   onMoveUp: () => void;
@@ -894,22 +907,47 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
 
       {/* Knowledge article selector */}
       {isKnowledge && (
-        <div className="mt-2 pl-14">
-          <Select
-            value={section.article_id ? String(section.article_id) : ""}
-            onValueChange={(v) => section.id && onUpdate(section.id, { article_id: Number(v) })}
-          >
-            <SelectTrigger className="h-7 text-[11px] w-72">
-              <SelectValue placeholder="Select article…" />
-            </SelectTrigger>
-            <SelectContent>
-              {articles.map((a) => (
-                <SelectItem key={a.id} value={String(a.id)} className="text-xs">
-                  <span className="text-muted-foreground mr-1">[{a.category}]</span> {a.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="mt-2 pl-14 space-y-2">
+          <div>
+            <Label className="text-[10px] text-muted-foreground">Article (public Knowledge Base only)</Label>
+            <Select
+              value={section.article_id ? String(section.article_id) : ""}
+              onValueChange={(v) => section.id && onUpdate(section.id, { article_id: Number(v) })}
+            >
+              <SelectTrigger className="h-7 text-[11px] w-72">
+                <SelectValue placeholder="Select article…" />
+              </SelectTrigger>
+              <SelectContent>
+                {(() => {
+                  const grouped: Record<string, typeof articles> = {};
+                  articles.forEach((a) => {
+                    const cat = a.category || "Uncategorized";
+                    if (!grouped[cat]) grouped[cat] = [];
+                    grouped[cat].push(a);
+                  });
+                  return Object.entries(grouped).map(([cat, items]) => (
+                    <div key={cat}>
+                      <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</div>
+                      {items.map((a) => (
+                        <SelectItem key={a.id} value={String(a.id)} className="text-xs">
+                          {a.title}
+                        </SelectItem>
+                      ))}
+                    </div>
+                  ));
+                })()}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground">Custom Title Override (optional)</Label>
+            <Input
+              className="h-7 text-xs w-72 mt-0.5"
+              placeholder={articles.find((a) => String(a.id) === String(section.article_id))?.title || "Use original title"}
+              value={section.custom_title ?? ""}
+              onChange={(e) => section.id && onUpdate(section.id, { custom_title: e.target.value || null })}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -971,6 +1009,7 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
         pricelist_version_id: null,
         format_choice: sectionType === "rx_prices" ? "list" : null,
         article_id: null,
+        custom_title: null,
       });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -1026,7 +1065,9 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
           Editing: {name || "Untitled"}
         </h2>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onExit}>Exit to Catalogs</Button>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { handleSave().then(() => onExit()); }}>
+            Save &amp; Exit to Catalogs List
+          </Button>
           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>Save Template</Button>
           <Button size="sm" className="h-8 text-xs" onClick={() => { handleSave(); toast({ title: "Published" }); }}>
             Save &amp; Publish
@@ -1061,6 +1102,9 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
             >
               📖 Knowledge Article
             </button>
+            <p className="text-[9px] text-muted-foreground px-2 mt-1 leading-relaxed">
+              Knowledge articles are pulled from Website Content → Knowledge Base (public ones only).
+            </p>
           </div>
           <div>
             <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
