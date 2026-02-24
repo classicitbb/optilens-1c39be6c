@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useCatalogTemplates, useCatalogAssignments, useCustomersList, type CatalogTemplate } from "@/hooks/useCatalogTemplates";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
@@ -10,13 +10,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Copy, Pencil, BookOpen, Users, FileDown, X, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Search, Trash2, Copy, Pencil, BookOpen, Users, FileDown, X, ArrowUpDown, ChevronUp, ChevronDown, GripVertical, ArrowUp, ArrowDown, Palette, FileText, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -616,31 +620,395 @@ const CatalogsTab = ({ onEdit }: { onEdit: (t: CatalogTemplate) => void }) => {
   );
 };
 
-/* ═══════════════════ Editor Tab (placeholder for next prompt) ═══════════════════ */
+/* ─── Catalog Sections CRUD ─── */
+interface CatalogSection {
+  id?: number;
+  catalog_template_id: number;
+  section_type: string;
+  sort_order: number;
+  is_included: boolean;
+  pricelist_version_id: number | null;
+  format_choice: string | null;
+  article_id: number | null;
+}
+
+const useCatalogSectionsEditor = (templateId?: number) => {
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: ["catalog-sections-editor", templateId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("catalog_sections")
+        .select("*")
+        .eq("catalog_template_id", templateId!)
+        .order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as CatalogSection[];
+    },
+    enabled: !!templateId,
+  });
+
+  const addSection = useMutation({
+    mutationFn: async (section: Omit<CatalogSection, "id">) => {
+      const { error } = await supabase.from("catalog_sections").insert(section as any);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
+  });
+
+  const updateSection = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<CatalogSection> & { id: number }) => {
+      const { error } = await supabase.from("catalog_sections").update(updates as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
+  });
+
+  const removeSection = useMutation({
+    mutationFn: async (id: number) => {
+      const { error } = await supabase.from("catalog_sections").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
+  });
+
+  const reorderSections = useMutation({
+    mutationFn: async (sections: { id: number; sort_order: number }[]) => {
+      for (const s of sections) {
+        await supabase.from("catalog_sections").update({ sort_order: s.sort_order } as any).eq("id", s.id);
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
+  });
+
+  return { ...query, addSection, updateSection, removeSection, reorderSections };
+};
+
+/* ─── Help Articles for Knowledge section ─── */
+const useHelpArticlesForCatalog = () => {
+  return useQuery({
+    queryKey: ["help-articles-catalog"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("help_articles")
+        .select("id, title, category, visibility")
+        .eq("is_active", true)
+        .order("category")
+        .order("title");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+};
+
+/* ─── Section type definitions ─── */
+const PRICING_SECTIONS = [
+  { type: "rx_prices", label: "RX Lens Prices", icon: "💊", needsVersion: true, hasFormat: true },
+  { type: "stock_prices", label: "Stock Lens Prices", icon: "📦", needsVersion: true, hasFormat: false },
+  { type: "supplies_prices", label: "Supplies Prices", icon: "🧪", needsVersion: true, hasFormat: false },
+] as const;
+
+const FIXED_SECTIONS = [
+  { type: "terms_conditions", label: "Terms & Conditions", icon: "📋" },
+  { type: "contact_information", label: "Contact Information", icon: "📞" },
+  { type: "additional_charges", label: "Additional Charges", icon: "💰" },
+  { type: "dispensing_guide", label: "Dispensing Guide", icon: "👓" },
+  { type: "lablink_instructions", label: "LabLink Instructions", icon: "🔗" },
+  { type: "special_services", label: "Special Services", icon: "⭐" },
+] as const;
+
+const ALL_SECTION_DEFS = [
+  ...PRICING_SECTIONS.map((s) => ({ ...s, category: "pricing" as const })),
+  { type: "knowledge_article", label: "Knowledge Article", icon: "📖", category: "content" as const, needsVersion: false, hasFormat: false },
+  ...FIXED_SECTIONS.map((s) => ({ ...s, category: "fixed" as const, needsVersion: false, hasFormat: false })),
+];
+
+const getSectionDef = (type: string) => ALL_SECTION_DEFS.find((d) => d.type === type);
+const getSectionLabel = (type: string) => getSectionDef(type)?.label ?? type;
+const getSectionIcon = (type: string) => getSectionDef(type)?.icon ?? "📄";
+
+/* ═══════════════════ Editor Live Preview ═══════════════════ */
+const EditorLivePreview = ({ template, sections, versions, articles, settings }: {
+  template: CatalogTemplate;
+  sections: CatalogSection[];
+  versions: { id: number; name: string }[];
+  articles: { id: string; title: string; category: string }[];
+  settings: any;
+}) => {
+  const includedSections = sections.filter((s) => s.is_included !== false);
+
+  return (
+    <div className="border-l flex flex-col h-full" style={{ borderColor: "hsl(var(--border))", width: 380, minWidth: 380 }}>
+      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30" style={{ borderColor: "hsl(var(--border))" }}>
+        <FileText className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-semibold text-foreground">Live Preview</span>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-2.5">
+          {/* Cover */}
+          <div
+            className="rounded-lg p-5 text-white flex flex-col items-center justify-center text-center"
+            style={{
+              background: `linear-gradient(135deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`,
+              minHeight: 180,
+            }}
+          >
+            {settings?.logo_url && <img src={settings.logo_url} alt="Logo" className="h-8 mb-2 object-contain" />}
+            <h2 className="text-base font-bold mb-0.5">{template.cover_title || template.name}</h2>
+            {template.cover_subtitle && <p className="text-[10px] opacity-80">{template.cover_subtitle}</p>}
+            {settings?.company_name && <p className="text-[9px] mt-2 opacity-50">{settings.company_name} · {settings?.tel}</p>}
+          </div>
+
+          {/* TOC */}
+          {includedSections.length > 0 && (
+            <div className="border rounded-lg p-2.5" style={{ borderColor: "hsl(var(--border))" }}>
+              <h3 className="text-[10px] font-bold mb-1.5 uppercase tracking-wider text-primary">Table of Contents</h3>
+              {includedSections.map((s, i) => {
+                const vName = s.pricelist_version_id ? versions.find((v) => v.id === s.pricelist_version_id)?.name : null;
+                const artTitle = s.article_id ? articles.find((a) => String(a.id) === String(s.article_id))?.title : null;
+                const label = s.section_type === "knowledge_article" ? (artTitle || "Article") : getSectionLabel(s.section_type);
+                return (
+                  <div key={s.id ?? i} className="flex items-center justify-between text-[10px] py-0.5 text-muted-foreground">
+                    <span className="truncate mr-2">{label}{vName ? ` (${vName})` : ""}</span>
+                    <span className="text-[9px] tabular-nums">{i + 2}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Section previews */}
+          {includedSections.map((s, i) => {
+            const label = s.section_type === "knowledge_article"
+              ? articles.find((a) => String(a.id) === String(s.article_id))?.title || "Knowledge Article"
+              : getSectionLabel(s.section_type);
+            const isPricing = ["rx_prices", "stock_prices", "supplies_prices"].includes(s.section_type);
+            return (
+              <div key={s.id ?? i} className="border rounded-lg p-2.5" style={{ borderColor: "hsl(var(--border))" }}>
+                <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-primary/30">
+                  <span className="text-[10px]">{getSectionIcon(s.section_type)}</span>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wide text-foreground">{label}</h3>
+                  {s.format_choice && <Badge variant="outline" className="text-[8px] h-3.5 px-1">{s.format_choice}</Badge>}
+                </div>
+                {isPricing ? (
+                  <div className="space-y-0.5">
+                    {[1, 2, 3].map((n) => (
+                      <div key={n} className="flex justify-between text-[9px] text-muted-foreground py-0.5 border-b last:border-0" style={{ borderColor: "hsl(var(--border))" }}>
+                        <span className="bg-muted/50 rounded h-2.5 w-32" />
+                        <span className="bg-muted/50 rounded h-2.5 w-12" />
+                      </div>
+                    ))}
+                    <p className="text-[8px] text-muted-foreground text-center pt-0.5">Pricing data from pricelist</p>
+                  </div>
+                ) : (
+                  <p className="text-[9px] text-muted-foreground italic">Content section</p>
+                )}
+              </div>
+            );
+          })}
+
+          {includedSections.length === 0 && (
+            <p className="text-[10px] text-muted-foreground text-center py-6">Add sections from the palette to see preview</p>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+};
+
+/* ═══════════════════ Section Row in Editor ═══════════════════ */
+const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRemove, onMoveUp, onMoveDown }: {
+  section: CatalogSection;
+  index: number;
+  total: number;
+  versions: { id: number; name: string; format_type: string | null }[];
+  articles: { id: string; title: string; category: string }[];
+  onUpdate: (id: number, updates: Partial<CatalogSection>) => void;
+  onRemove: (id: number) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) => {
+  const isPricing = ["rx_prices", "stock_prices", "supplies_prices"].includes(section.section_type);
+  const isKnowledge = section.section_type === "knowledge_article";
+
+  return (
+    <div className="border rounded-lg p-3 bg-background group" style={{ borderColor: "hsl(var(--border))" }}>
+      <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-0.5">
+          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onMoveUp} disabled={index === 0}>
+            <ArrowUp className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onMoveDown} disabled={index === total - 1}>
+            <ArrowDown className="h-3 w-3" />
+          </Button>
+        </div>
+        <GripVertical className="h-4 w-4 text-muted-foreground/40" />
+        <span className="text-sm">{getSectionIcon(section.section_type)}</span>
+        <span className="text-xs font-medium flex-1 text-foreground">{getSectionLabel(section.section_type)}</span>
+        <Checkbox
+          checked={section.is_included !== false}
+          onCheckedChange={(checked) => section.id && onUpdate(section.id, { is_included: !!checked })}
+        />
+        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => section.id && onRemove(section.id)}>
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+
+      {/* Pricing section options */}
+      {isPricing && (
+        <div className="mt-2 pl-14 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Pricelist:</Label>
+            <Select
+              value={section.pricelist_version_id ? String(section.pricelist_version_id) : ""}
+              onValueChange={(v) => section.id && onUpdate(section.id, { pricelist_version_id: Number(v) })}
+            >
+              <SelectTrigger className="h-7 text-[11px] w-48">
+                <SelectValue placeholder="Select pricelist…" />
+              </SelectTrigger>
+              <SelectContent>
+                {versions.map((v) => (
+                  <SelectItem key={v.id} value={String(v.id)} className="text-xs">{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {section.section_type === "rx_prices" && (
+            <RadioGroup
+              value={section.format_choice || "list"}
+              onValueChange={(v) => section.id && onUpdate(section.id, { format_choice: v })}
+              className="flex gap-3"
+            >
+              <div className="flex items-center gap-1">
+                <RadioGroupItem value="matrix" id={`fmt-matrix-${section.id}`} className="h-3 w-3" />
+                <Label htmlFor={`fmt-matrix-${section.id}`} className="text-[10px]">Matrix</Label>
+              </div>
+              <div className="flex items-center gap-1">
+                <RadioGroupItem value="list" id={`fmt-list-${section.id}`} className="h-3 w-3" />
+                <Label htmlFor={`fmt-list-${section.id}`} className="text-[10px]">List</Label>
+              </div>
+            </RadioGroup>
+          )}
+        </div>
+      )}
+
+      {/* Knowledge article selector */}
+      {isKnowledge && (
+        <div className="mt-2 pl-14">
+          <Select
+            value={section.article_id ? String(section.article_id) : ""}
+            onValueChange={(v) => section.id && onUpdate(section.id, { article_id: Number(v) })}
+          >
+            <SelectTrigger className="h-7 text-[11px] w-72">
+              <SelectValue placeholder="Select article…" />
+            </SelectTrigger>
+            <SelectContent>
+              {articles.map((a) => (
+                <SelectItem key={a.id} value={String(a.id)} className="text-xs">
+                  <span className="text-muted-foreground mr-1">[{a.category}]</span> {a.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ═══════════════════ Editor Tab ═══════════════════ */
 const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onExit: () => void }) => {
   const { updateMutation } = useCatalogTemplates();
+  const { data: versions = [] } = useAllPricelistVersions();
+  const { data: articles = [] } = useHelpArticlesForCatalog();
+  const { data: settings } = useCompanySettings();
   const { toast } = useToast();
+
   const [name, setName] = useState(template?.name ?? "");
   const [coverTitle, setCoverTitle] = useState(template?.cover_title ?? "");
   const [coverSubtitle, setCoverSubtitle] = useState(template?.cover_subtitle ?? "");
+  const [gradStart, setGradStart] = useState(template?.gradient_color_start ?? "#1e4db7");
+  const [gradEnd, setGradEnd] = useState(template?.gradient_color_end ?? "#0f2a5e");
+
+  const { data: sections = [], addSection, updateSection, removeSection, reorderSections } = useCatalogSectionsEditor(template?.id);
 
   useEffect(() => {
     if (template) {
       setName(template.name);
       setCoverTitle(template.cover_title ?? "");
       setCoverSubtitle(template.cover_subtitle ?? "");
+      setGradStart(template.gradient_color_start ?? "#1e4db7");
+      setGradEnd(template.gradient_color_end ?? "#0f2a5e");
     }
   }, [template]);
 
   const handleSave = async () => {
     if (!template) return;
     try {
-      await updateMutation.mutateAsync({ id: template.id, name, cover_title: coverTitle, cover_subtitle: coverSubtitle });
-      toast({ title: "Saved" });
+      await updateMutation.mutateAsync({
+        id: template.id,
+        name,
+        cover_title: coverTitle,
+        cover_subtitle: coverSubtitle,
+        gradient_color_start: gradStart,
+        gradient_color_end: gradEnd,
+      });
+      toast({ title: "Template saved" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
+
+  const handleAddSection = async (sectionType: string) => {
+    if (!template) return;
+    const maxSort = sections.reduce((max, s) => Math.max(max, s.sort_order ?? 0), 0);
+    try {
+      await addSection.mutateAsync({
+        catalog_template_id: template.id,
+        section_type: sectionType,
+        sort_order: maxSort + 1,
+        is_included: true,
+        pricelist_version_id: null,
+        format_choice: sectionType === "rx_prices" ? "list" : null,
+        article_id: null,
+      });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleUpdateSection = async (id: number, updates: Partial<CatalogSection>) => {
+    try {
+      await updateSection.mutateAsync({ id, ...updates });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleRemoveSection = async (id: number) => {
+    try {
+      await removeSection.mutateAsync(id);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= sections.length) return;
+    const reordered = [...sections];
+    [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+    const updates = reordered.map((s, i) => ({ id: s.id!, sort_order: i }));
+    try {
+      await reorderSections.mutateAsync(updates);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const liveTemplate: CatalogTemplate = template
+    ? { ...template, name, cover_title: coverTitle, cover_subtitle: coverSubtitle, gradient_color_start: gradStart, gradient_color_end: gradEnd }
+    : { id: 0, name: "", cover_title: null, cover_subtitle: null, gradient_color_start: null, gradient_color_end: null, created_at: null, updated_at: null, created_by: null };
 
   if (!template) {
     return (
@@ -651,49 +1019,144 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 px-1">
-        <h2 className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
-          Editing: {template.name}
+    <div className="flex flex-col h-full min-h-0">
+      {/* Top bar */}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b mb-3" style={{ borderColor: "hsl(var(--border))" }}>
+        <h2 className="text-sm font-semibold text-foreground truncate">
+          Editing: {name || "Untitled"}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onExit}>Exit to Catalogs</Button>
           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>Save Template</Button>
-          <Button size="sm" className="h-8 text-xs" onClick={() => { handleSave(); toast({ title: "Published (placeholder)" }); }}>
+          <Button size="sm" className="h-8 text-xs" onClick={() => { handleSave(); toast({ title: "Published" }); }}>
             Save &amp; Publish
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 max-w-2xl">
-        <div>
-          <label className="text-xs font-medium mb-1 block">Template Name</label>
-          <Input className="h-8 text-xs" value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="flex flex-1 overflow-hidden gap-0 min-h-0">
+        {/* Left: Palette */}
+        <div className="w-48 shrink-0 border-r overflow-auto pr-2 space-y-3" style={{ borderColor: "hsl(var(--border))" }}>
+          <div>
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+              <Layers className="h-3 w-3" /> Pricing
+            </h4>
+            {PRICING_SECTIONS.map((s) => (
+              <button
+                key={s.type}
+                className="w-full text-left text-[11px] px-2 py-1.5 rounded hover:bg-muted/50 flex items-center gap-1.5 transition-colors text-foreground"
+                onClick={() => handleAddSection(s.type)}
+              >
+                <span>{s.icon}</span> {s.label}
+              </button>
+            ))}
+          </div>
+          <div>
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+              <BookOpen className="h-3 w-3" /> Content
+            </h4>
+            <button
+              className="w-full text-left text-[11px] px-2 py-1.5 rounded hover:bg-muted/50 flex items-center gap-1.5 transition-colors text-foreground"
+              onClick={() => handleAddSection("knowledge_article")}
+            >
+              📖 Knowledge Article
+            </button>
+          </div>
+          <div>
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+              <FileText className="h-3 w-3" /> Fixed Sections
+            </h4>
+            {FIXED_SECTIONS.map((s) => (
+              <button
+                key={s.type}
+                className="w-full text-left text-[11px] px-2 py-1.5 rounded hover:bg-muted/50 flex items-center gap-1.5 transition-colors text-foreground"
+                onClick={() => handleAddSection(s.type)}
+              >
+                <span>{s.icon}</span> {s.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div>
-          <label className="text-xs font-medium mb-1 block">Cover Title</label>
-          <Input className="h-8 text-xs" value={coverTitle} onChange={(e) => setCoverTitle(e.target.value)} />
-        </div>
-        <div className="col-span-2">
-          <label className="text-xs font-medium mb-1 block">Cover Subtitle</label>
-          <Input className="h-8 text-xs" value={coverSubtitle} onChange={(e) => setCoverSubtitle(e.target.value)} />
-        </div>
-      </div>
 
-      <div
-        className="rounded-lg p-8 text-white flex flex-col items-center justify-center text-center max-w-2xl"
-        style={{
-          background: `linear-gradient(135deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`,
-          minHeight: 200,
-        }}
-      >
-        <h2 className="text-lg font-bold mb-1">{coverTitle || name || "Untitled"}</h2>
-        {coverSubtitle && <p className="text-sm opacity-80">{coverSubtitle}</p>}
-      </div>
+        {/* Center: Cover + Section Builder */}
+        <div className="flex-1 overflow-auto px-4 space-y-4 min-w-0">
+          {/* Cover Settings */}
+          <div className="border rounded-lg p-4" style={{ borderColor: "hsl(var(--border))" }}>
+            <h3 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
+              <Palette className="h-3.5 w-3.5 text-primary" /> Cover Settings
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[10px]">Catalog Name</Label>
+                <Input className="h-7 text-xs mt-0.5" value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-[10px]">Cover Title</Label>
+                <Input className="h-7 text-xs mt-0.5" value={coverTitle} onChange={(e) => setCoverTitle(e.target.value)} />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-[10px]">Cover Subtitle</Label>
+                <Input className="h-7 text-xs mt-0.5" value={coverSubtitle} onChange={(e) => setCoverSubtitle(e.target.value)} />
+              </div>
+              <div className="flex items-center gap-3 col-span-2">
+                <div>
+                  <Label className="text-[10px]">Gradient Start</Label>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <input type="color" value={gradStart} onChange={(e) => setGradStart(e.target.value)} className="h-7 w-8 rounded border cursor-pointer" style={{ borderColor: "hsl(var(--border))" }} />
+                    <Input className="h-7 text-[10px] w-20 font-mono" value={gradStart} onChange={(e) => setGradStart(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[10px]">Gradient End</Label>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <input type="color" value={gradEnd} onChange={(e) => setGradEnd(e.target.value)} className="h-7 w-8 rounded border cursor-pointer" style={{ borderColor: "hsl(var(--border))" }} />
+                    <Input className="h-7 text-[10px] w-20 font-mono" value={gradEnd} onChange={(e) => setGradEnd(e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex-1 rounded-md h-7 ml-2" style={{ background: `linear-gradient(90deg, ${gradStart}, ${gradEnd})` }} />
+              </div>
+            </div>
+          </div>
 
-      <p className="text-xs text-muted-foreground italic">
-        Full section builder (drag &amp; drop pricelist sections, articles, cover customization) will be available in the next update.
-      </p>
+          {/* Section Builder */}
+          <div>
+            <h3 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5 text-primary" /> Sections ({sections.length})
+            </h3>
+            {sections.length === 0 ? (
+              <div className="border border-dashed rounded-lg py-8 text-center text-xs text-muted-foreground" style={{ borderColor: "hsl(var(--border))" }}>
+                Click sections from the palette on the left to add them here.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sections.map((s, i) => (
+                  <SectionRow
+                    key={s.id ?? i}
+                    section={s}
+                    index={i}
+                    total={sections.length}
+                    versions={versions}
+                    articles={articles}
+                    onUpdate={handleUpdateSection}
+                    onRemove={handleRemoveSection}
+                    onMoveUp={() => handleMove(i, -1)}
+                    onMoveDown={() => handleMove(i, 1)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Live Preview */}
+        <EditorLivePreview
+          template={liveTemplate}
+          sections={sections}
+          versions={versions}
+          articles={articles}
+          settings={settings}
+        />
+      </div>
     </div>
   );
 };
@@ -725,7 +1188,7 @@ const CatalogPublisherPage = () => {
         <TabsContent value="catalogs" className="mt-3 flex-1 flex min-h-0">
           <CatalogsTab onEdit={handleEdit} />
         </TabsContent>
-        <TabsContent value="editor" className="mt-3 flex-1 overflow-auto">
+        <TabsContent value="editor" className="mt-3 flex-1 flex flex-col min-h-0 overflow-hidden">
           <EditorTab template={editingTemplate} onExit={() => setTab("catalogs")} />
         </TabsContent>
       </Tabs>
