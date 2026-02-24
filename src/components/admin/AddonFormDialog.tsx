@@ -242,7 +242,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               {addon ? "Edit Add-On" : "New Add-On"}
             </DialogTitle>
             {addon && onNavigate && addons && (
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+              <div className="flex items-center gap-1.5 text-xs mr-[30px]" style={{ color: "hsl(215 15% 50%)" }}>
                 <span>{currentIndex + 1} / {addons.length}</span>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
                   disabled={!canGoPrev || isPending}
