@@ -366,6 +366,7 @@ export type Database = {
           default_vat: number
           email: string
           fax: string
+          feedback_email: string
           frames_duty: number
           id: string
           import_duty: number
@@ -413,6 +414,7 @@ export type Database = {
           default_vat?: number
           email?: string
           fax?: string
+          feedback_email?: string
           frames_duty?: number
           id?: string
           import_duty?: number
@@ -460,6 +462,7 @@ export type Database = {
           default_vat?: number
           email?: string
           fax?: string
+          feedback_email?: string
           frames_duty?: number
           id?: string
           import_duty?: number

@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Link2 } from "lucide-react";
+import { Link2, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { WikiCategory } from "@/data/wikiContent";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
 
 interface WikiContentPanelProps {
   categories: WikiCategory[];
   activeArticleId: string | null;
+  canEdit?: boolean;
+  onEditArticle?: (article: { id: string; title: string; content: string }, categoryId: string) => void;
 }
 
 /** Extract section anchors from **bold** lines that start a paragraph (act as headings) */
@@ -80,7 +83,7 @@ const renderContent = (text: string) => {
   return elements;
 };
 
-const WikiContentPanel = ({ categories, activeArticleId }: WikiContentPanelProps) => {
+const WikiContentPanel = ({ categories, activeArticleId, canEdit, onEditArticle }: WikiContentPanelProps) => {
   let activeCategory: WikiCategory | undefined;
   let activeArticle: { id: string; title: string; content: string } | undefined;
 
@@ -113,12 +116,25 @@ const WikiContentPanel = ({ categories, activeArticleId }: WikiContentPanelProps
   return (
     <ScrollArea className="flex-1 bg-background">
       <div className="max-w-3xl mx-auto p-8 space-y-4">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <Icon className="h-3 w-3" />
-          <span>{activeCategory.title}</span>
-          <span>/</span>
-          <span className="text-foreground">{activeArticle.title}</span>
+        {/* Breadcrumb + Edit */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <Icon className="h-3 w-3" />
+            <span>{activeCategory.title}</span>
+            <span>/</span>
+            <span className="text-foreground">{activeArticle.title}</span>
+          </div>
+          {canEdit && onEditArticle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title="Edit article"
+              onClick={() => onEditArticle(activeArticle!, activeCategory!.id)}
+            >
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          )}
         </div>
 
         {/* Title */}

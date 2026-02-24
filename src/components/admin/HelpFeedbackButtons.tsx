@@ -1,21 +1,24 @@
 import { useState } from "react";
-import { ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
+import { ThumbsUp, ThumbsDown, MessageSquare, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useHelpFeedback } from "@/hooks/useHelpFeedback";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminRole } from "@/contexts/AdminRoleContext";
 
 interface Props {
   articleId: string;
   pageSlug?: string;
+  onEdit?: (articleId: string) => void;
 }
 
-const HelpFeedbackButtons = ({ articleId, pageSlug }: Props) => {
+const HelpFeedbackButtons = ({ articleId, pageSlug, onEdit }: Props) => {
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [suggestion, setSuggestion] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
   const { submitFeedback, isSubmitting } = useHelpFeedback();
   const { toast } = useToast();
+  const { canEdit } = useAdminRole();
 
   const handleFeedback = async (type: "helpful" | "not_helpful" | "suggestion") => {
     try {
@@ -45,7 +48,20 @@ const HelpFeedbackButtons = ({ articleId, pageSlug }: Props) => {
 
   return (
     <div className="space-y-2 pt-3 border-t" style={{ borderColor: "hsl(215 15% 85%)" }}>
-      <p className="text-[11px] font-medium" style={{ color: "hsl(215 20% 45%)" }}>Was this helpful?</p>
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium" style={{ color: "hsl(215 20% 45%)" }}>Was this helpful?</p>
+        {canEdit && onEdit && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            title="Edit this article"
+            onClick={() => onEdit(articleId)}
+          >
+            <Pencil className="h-3 w-3 text-muted-foreground" />
+          </Button>
+        )}
+      </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <Button
           variant="outline"
