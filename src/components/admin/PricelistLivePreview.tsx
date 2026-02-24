@@ -94,7 +94,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   }, [catalogRows]);
 
   const today = format(new Date(), "dd MMMM yyyy");
-  const currency = showUSD ? "USD" : (version.base_currency ?? "BBD");
+  const currency = showUSD ? "USD" : "BBD";
 
   /** Apply hierarchy to a matrix allocation price */
   const hierarchyMatrixPrice = (allocPrice: number | null, allocId?: string) => {
