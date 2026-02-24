@@ -82,6 +82,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<Addon | null>(null);
   const initialFormRef = useRef<string>("");
+  const userEditedRef = useRef(false);
   const { data: suppliers } = useReferenceData("suppliers");
   const activeSuppliers = (suppliers ?? []).filter((s) => s.is_active);
   const { calculate, settings } = usePricingEngine();
@@ -114,6 +115,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
   useEffect(() => {
     if (open) {
+      userEditedRef.current = false;
       const timer = setTimeout(() => { initialFormRef.current = JSON.stringify(form); }, 0);
       return () => clearTimeout(timer);
     }
@@ -133,7 +135,10 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
   const governance = useMemo(() => checkGovernance(calc, settings, form.cost), [calc, settings, form.cost]);
 
-  const set = (key: keyof AddonFormData, value: any) => setForm((f) => ({ ...f, [key]: value }));
+  const set = (key: keyof AddonFormData, value: any) => {
+    userEditedRef.current = true;
+    setForm((f) => ({ ...f, [key]: value }));
+  };
 
   const handleAutoToggle = (checked: boolean) => {
     set("is_auto", checked);
@@ -164,9 +169,13 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
   const isDirty = () => JSON.stringify(form) !== initialFormRef.current;
 
   const handleNavigate = (target: Addon) => {
-    if (isDirty() && form.cost > 0) {
+    if (userEditedRef.current && isDirty() && form.cost > 0) {
       setPendingNavTarget(target);
       setUnsavedDialogOpen(true);
+    } else if (userEditedRef.current && isDirty()) {
+      const assignments = getAssignments();
+      onSubmit(form, assignments);
+      setTimeout(() => onNavigate?.(target), 100);
     } else {
       onNavigate?.(target);
     }
