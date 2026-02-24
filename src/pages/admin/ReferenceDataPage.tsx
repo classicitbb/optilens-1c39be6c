@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import ReferenceDataTable from "@/components/admin/ReferenceDataTable";
 
 const ENTITIES = [
@@ -14,12 +16,18 @@ const ENTITIES = [
 const ReferenceDataPage = () => {
   const [activeTab, setActiveTab] = useState(ENTITIES[0].key);
   const active = ENTITIES.find((e) => e.key === activeTab)!;
+  const navigate = useNavigate();
 
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
-        Reference Data
-      </h1>
+      <div className="flex items-center gap-2">
+        <button onClick={() => navigate("/admin/catalog")} className="p-1 rounded hover:bg-muted transition-colors">
+          <ArrowLeft className="h-4 w-4" style={{ color: "hsl(215 30% 40%)" }} />
+        </button>
+        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+          Reference Data
+        </h1>
+      </div>
 
       <div className="flex gap-0 border-b" style={{ borderColor: "hsl(215 15% 85%)" }}>
         {ENTITIES.map((e) => (
