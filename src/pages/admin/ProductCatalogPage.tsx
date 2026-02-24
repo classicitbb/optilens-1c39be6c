@@ -10,7 +10,11 @@ import { useAuditLog, buildPricingSummary } from "@/hooks/useAuditLog";
 import { useCatalogFilterStore, CatalogFilterStore } from "@/hooks/useCatalogFilterStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, FilterX, Download } from "lucide-react";
+import { Plus, Search, FilterX, Download, Settings, Database, Upload } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -40,6 +44,7 @@ const Spinner = () => (
 
 /* ─── Main Page ─── */
 const ProductCatalogPage = () => {
+  const navigate = useNavigate();
   const store = useCatalogFilterStore();
   const activeTab = store.activeTab;
   const [filterVersion, setFilterVersion] = useState(0);
@@ -150,6 +155,21 @@ const ProductCatalogPage = () => {
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Product Catalog</h1>
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-7 w-7 p-0" style={{ borderRadius: "4px" }}>
+                <Settings className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-popover z-50">
+              <DropdownMenuItem onClick={() => navigate("/admin/reference")} className="gap-2 text-xs cursor-pointer">
+                <Database className="h-3.5 w-3.5" /> Reference Data
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/admin/imports")} className="gap-2 text-xs cursor-pointer">
+                <Upload className="h-3.5 w-3.5" /> Imports
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" size="sm" className="h-7 text-xs gap-1" style={{ borderRadius: "4px" }} onClick={handleExportCatalog}>
             <Download className="h-3.5 w-3.5" /> Export Catalog
           </Button>
