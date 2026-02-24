@@ -17,6 +17,12 @@ export const useAdminRole = () => {
   return ctx;
 };
 
+/** Safe version that returns defaults when used outside AdminRoleProvider */
+export const useAdminRoleSafe = (): AdminRoleContextType => {
+  const ctx = useContext(AdminRoleContext);
+  return ctx ?? { role: null, isLoading: false, canEdit: false, isAdmin: false, hasAccess: false };
+};
+
 export const AdminRoleProvider = ({ children }: { children: ReactNode }) => {
   const roleData = useUserRole();
   return <AdminRoleContext.Provider value={roleData}>{children}</AdminRoleContext.Provider>;

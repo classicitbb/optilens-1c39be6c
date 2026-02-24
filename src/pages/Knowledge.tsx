@@ -9,18 +9,48 @@ import { usePublicKnowledge, ContentArticle } from "@/hooks/useContentArticles";
 import { Skeleton } from "@/components/ui/skeleton";
 import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
 
+/** Convert a string to Sentence case – first letter upper, rest lower */
+const toSentenceCase = (text: string) =>
+  text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+
+/**
+ * Sentence-case each segment around " - " (space-dash-space only)
+ * e.g. "PROGRESSIVE - BEST" → "Progressive – Best"
+ * but "Getting-Started" stays "Getting-started"
+ */
+const formatHeading = (text: string) => {
+  // Only split on " - " with surrounding spaces
+  const parts = text.split(" - ");
+  if (parts.length > 1) {
+    return parts.map((seg) => toSentenceCase(seg.trim())).join(" – ");
+  }
+  // No " - " delimiter: just sentence-case the whole string
+  return toSentenceCase(text);
+};
+
 const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
 
 const RichContent = ({ content }: { content: string }) => {
   if (isHtml(content)) {
     return (
       <div
-        className="prose prose-sm max-w-none text-muted-foreground [&_strong]:text-foreground [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1 [&_p]:leading-relaxed [&_ul]:pl-4 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_li]:my-0.5 [&_li]:leading-relaxed [&_li]:marker:text-primary [&_a]:text-primary [&_a]:underline [&_br]:leading-3"
+        className="prose prose-sm max-w-none text-muted-foreground
+          [&_strong]:text-foreground
+          [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-2
+          [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-3 [&_h2]:mb-1.5
+          [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1.5
+          [&_p]:my-1.5 [&_p]:leading-relaxed
+          [&_ul]:pl-5 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1
+          [&_ol]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1
+          [&_li]:leading-relaxed [&_li]:marker:text-primary
+          [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2
+          [&_br]:leading-3
+          [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground"
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
   }
-  return <span>{content}</span>;
+  return <p className="leading-relaxed text-muted-foreground whitespace-pre-line">{content}</p>;
 };
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -37,7 +67,6 @@ const Knowledge = () => {
   const kbArticles = useMemo(() => articles.filter((a) => a.content_type === "knowledge"), [articles]);
   const faqArticles = useMemo(() => articles.filter((a) => a.content_type === "faq"), [articles]);
 
-  // Group KB articles by category
   const categories = useMemo(() => {
     const map = new Map<string, ContentArticle[]>();
     for (const a of kbArticles) {
@@ -78,9 +107,10 @@ const Knowledge = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4 lg:px-8">
+          {/* Page header */}
           <div className="mb-12 text-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-4 py-2 text-sm font-medium text-accent">
               <BookOpen className="h-4 w-4" />
@@ -92,6 +122,7 @@ const Knowledge = () => {
             </p>
           </div>
 
+          {/* Search */}
           <div className="mx-auto mb-12 max-w-xl">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
@@ -112,38 +143,46 @@ const Knowledge = () => {
             </div>
           ) : (
             <>
-              {/* Categories Grid */}
+              {/* Category cards */}
               <div className="mb-16 grid gap-8 lg:grid-cols-2">
                 {filteredCategories.map((category, catIndex) => {
                   const hashId = category.title.toLowerCase().replace(/\s+/g, "-");
                   const Icon = category.icon;
                   return (
-                    <Card 
+                    <Card
                       key={category.title}
                       id={hashId}
                       variant="default"
-                      className="opacity-0 animate-fade-in scroll-mt-24"
+                      className="opacity-0 animate-fade-in scroll-mt-24 overflow-hidden"
                       style={{ animationDelay: `${catIndex * 100}ms` }}
                     >
-                      <CardHeader>
+                      <CardHeader className="pb-3">
                         <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-accent">
                           <Icon className="h-6 w-6 text-accent-foreground" />
                         </div>
-                        <CardTitle className="text-xl">{category.title}</CardTitle>
+                        <CardTitle className="text-xl">{formatHeading(category.title)}</CardTitle>
                         <CardDescription>
                           {category.articles.length} article{category.articles.length !== 1 ? "s" : ""}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent>
-                        <Accordion type="single" collapsible className="w-full">
-                          {category.articles.map((article, articleIndex) => (
-                            <AccordionItem key={article.id} value={article.id}>
-                              <AccordionTrigger className="text-left text-sm font-medium">
-                                {article.title}
+                      <CardContent className="pt-0">
+                        <Accordion type="single" collapsible className="w-full -mx-1">
+                          {category.articles.map((article) => (
+                            <AccordionItem
+                              key={article.id}
+                              value={article.id}
+                              className="border-b border-border/50 last:border-b-0 px-1"
+                            >
+                              <AccordionTrigger className="text-left text-sm font-medium py-3.5 hover:no-underline hover:text-primary transition-colors gap-3">
+                                {formatHeading(article.title)}
                               </AccordionTrigger>
-                              <AccordionContent className="text-sm text-muted-foreground space-y-3">
-                                <RichContent content={article.content} />
-                                <HelpFeedbackButtons articleId={article.id} pageSlug="knowledge" />
+                              <AccordionContent className="pb-5 pt-1">
+                                <div className="rounded-lg bg-muted/30 p-4">
+                                  <RichContent content={article.content} />
+                                </div>
+                                <div className="mt-3">
+                                  <HelpFeedbackButtons articleId={article.id} pageSlug="knowledge" />
+                                </div>
                               </AccordionContent>
                             </AccordionItem>
                           ))}
@@ -171,17 +210,25 @@ const Knowledge = () => {
                     <h2 className="text-2xl font-bold text-foreground">Frequently Asked Questions</h2>
                   </div>
 
-                  <Card variant="default">
+                  <Card variant="default" className="overflow-hidden">
                     <CardContent className="p-6">
                       <Accordion type="single" collapsible className="w-full">
                         {filteredFaqs.map((faq) => (
-                          <AccordionItem key={faq.id} value={faq.id}>
-                            <AccordionTrigger className="text-left font-medium">
-                              {faq.title}
+                          <AccordionItem
+                            key={faq.id}
+                            value={faq.id}
+                            className="border-b border-border/50 last:border-b-0"
+                          >
+                            <AccordionTrigger className="text-left font-medium py-4 hover:no-underline hover:text-primary transition-colors gap-3">
+                              {formatHeading(faq.title)}
                             </AccordionTrigger>
-                            <AccordionContent className="text-muted-foreground space-y-3">
-                              <RichContent content={faq.content} />
-                              <HelpFeedbackButtons articleId={faq.id} pageSlug="knowledge" />
+                            <AccordionContent className="pb-5 pt-1">
+                              <div className="rounded-lg bg-muted/30 p-4">
+                                <RichContent content={faq.content} />
+                              </div>
+                              <div className="mt-3">
+                                <HelpFeedbackButtons articleId={faq.id} pageSlug="knowledge" />
+                              </div>
                             </AccordionContent>
                           </AccordionItem>
                         ))}

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useHelpFeedback } from "@/hooks/useHelpFeedback";
 import { useToast } from "@/hooks/use-toast";
-import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { useAdminRoleSafe } from "@/contexts/AdminRoleContext";
 
 interface Props {
   articleId: string;
@@ -18,7 +18,7 @@ const HelpFeedbackButtons = ({ articleId, pageSlug, onEdit }: Props) => {
   const [submitted, setSubmitted] = useState<string | null>(null);
   const { submitFeedback, isSubmitting } = useHelpFeedback();
   const { toast } = useToast();
-  const { canEdit } = useAdminRole();
+  const { canEdit } = useAdminRoleSafe();
 
   const handleFeedback = async (type: "helpful" | "not_helpful" | "suggestion") => {
     try {
