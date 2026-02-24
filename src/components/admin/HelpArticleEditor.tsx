@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useHelpArticles, HelpArticle } from "@/hooks/useHelpArticles";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Pencil, Trash2, Save, X } from "lucide-react";
+const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
 import {
   Select,
   SelectContent,
@@ -135,34 +135,17 @@ const HelpArticleEditor = () => {
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-slate-400 mb-1 block">
-              Content <span className="text-slate-500">(Markdown: **bold**, • bullets, line breaks)</span>
+            <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
+              Content
             </label>
-            <Textarea
-              value={editing.content || ""}
-              onChange={(e) => setEditing({ ...editing, content: e.target.value })}
-              className="text-xs bg-slate-800 border-slate-700 text-slate-200 min-h-[200px] font-mono"
-            />
-          </div>
-
-          {/* Live preview */}
-          <div>
-            <label className="text-[11px] font-medium text-slate-400 mb-1 block">Preview</label>
-            <div className="border border-slate-700 rounded-lg p-3 bg-slate-800/50 text-[12px] leading-relaxed text-slate-300 space-y-1">
-              {(editing.content || "").split("\n").map((line, i) => {
-                const trimmed = line.trim();
-                if (!trimmed) return <div key={i} className="h-2" />;
-                const parts = trimmed.split(/(\*\*[^*]+\*\*)/).map((p, j) =>
-                  p.startsWith("**") && p.endsWith("**")
-                    ? <strong key={j} className="text-slate-100 font-semibold">{p.slice(2, -2)}</strong>
-                    : p
-                );
-                if (trimmed.startsWith("• ") || trimmed.startsWith("- ")) {
-                  return <div key={i} className="flex gap-2 pl-2"><span className="text-blue-400">•</span><span>{parts}</span></div>;
-                }
-                return <p key={i}>{parts}</p>;
-              })}
-            </div>
+            <Suspense fallback={<div className="h-[200px] border border-border rounded-lg animate-pulse bg-muted/20" />}>
+              <RichTextEditor
+                content={editing.content || ""}
+                onChange={(html) => setEditing({ ...editing, content: html })}
+                placeholder="Write a description..."
+                minHeight="200px"
+              />
+            </Suspense>
           </div>
         </div>
 
