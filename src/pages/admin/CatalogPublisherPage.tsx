@@ -629,7 +629,7 @@ interface CatalogSection {
   is_included: boolean;
   pricelist_version_id: number | null;
   format_choice: string | null;
-  article_id: number | null;
+  article_id: string | null;
   custom_title: string | null;
 }
 
@@ -1081,7 +1081,7 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
             <Label className="text-[10px] text-muted-foreground">Article (public Knowledge Base only)</Label>
             <Select
               value={section.article_id ? String(section.article_id) : ""}
-              onValueChange={(v) => section.id && onUpdate(section.id, { article_id: Number(v) })}
+              onValueChange={(v) => section.id && onUpdate(section.id, { article_id: v })}
             >
               <SelectTrigger className="h-7 text-[11px] w-72">
                 <SelectValue placeholder="Select article…" />

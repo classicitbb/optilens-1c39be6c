@@ -258,7 +258,7 @@ export type Database = {
       }
       catalog_sections: {
         Row: {
-          article_id: number | null
+          article_id: string | null
           catalog_template_id: number | null
           custom_title: string | null
           format_choice: string | null
@@ -269,7 +269,7 @@ export type Database = {
           sort_order: number | null
         }
         Insert: {
-          article_id?: number | null
+          article_id?: string | null
           catalog_template_id?: number | null
           custom_title?: string | null
           format_choice?: string | null
@@ -280,7 +280,7 @@ export type Database = {
           sort_order?: number | null
         }
         Update: {
-          article_id?: number | null
+          article_id?: string | null
           catalog_template_id?: number | null
           custom_title?: string | null
           format_choice?: string | null
@@ -291,6 +291,13 @@ export type Database = {
           sort_order?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "catalog_sections_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "catalog_sections_catalog_template_id_fkey"
             columns: ["catalog_template_id"]
