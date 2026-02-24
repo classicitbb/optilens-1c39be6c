@@ -14,7 +14,14 @@ const AdminTopBar = () => {
   const { role } = useAdminRole();
   const navigate = useNavigate();
   const [helpOpen, setHelpOpen] = useState(false);
-  const [launcherOpen, setLauncherOpen] = useState(false);
+  const [launcherOpen, setLauncherOpen] = useState(() => {
+    const shown = sessionStorage.getItem("admin-launcher-shown");
+    if (!shown) {
+      sessionStorage.setItem("admin-launcher-shown", "1");
+      return true;
+    }
+    return false;
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -50,15 +57,6 @@ const AdminTopBar = () => {
           <GlobalSearch />
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setHelpOpen(!helpOpen)}
-            title="Help">
-
-            <HelpCircle className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
-          </Button>
           <Link to="/profile" className="text-xs hover:underline transition-colors" style={{ color: "hsl(215 30% 15%)" }}>{user?.email}</Link>
           {role &&
           <Badge
