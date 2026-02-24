@@ -555,10 +555,13 @@ export type Database = {
           industry_id: string | null
           is_archived: boolean
           is_company: boolean
+          is_customer: boolean
+          lead_source: string
           name: string
           notes: string | null
           parent_id: string | null
           phone: string | null
+          pipeline_stage: string
           salesperson: string | null
           state: string | null
           street: string | null
@@ -578,10 +581,13 @@ export type Database = {
           industry_id?: string | null
           is_archived?: boolean
           is_company?: boolean
+          is_customer?: boolean
+          lead_source?: string
           name: string
           notes?: string | null
           parent_id?: string | null
           phone?: string | null
+          pipeline_stage?: string
           salesperson?: string | null
           state?: string | null
           street?: string | null
@@ -601,10 +607,13 @@ export type Database = {
           industry_id?: string | null
           is_archived?: boolean
           is_company?: boolean
+          is_customer?: boolean
+          lead_source?: string
           name?: string
           notes?: string | null
           parent_id?: string | null
           phone?: string | null
+          pipeline_stage?: string
           salesperson?: string | null
           state?: string | null
           street?: string | null
@@ -664,6 +673,7 @@ export type Database = {
         Row: {
           address: string | null
           assigned_pricelist_id: number | null
+          contact_id: string | null
           created_at: string | null
           email: string | null
           id: number
@@ -677,6 +687,7 @@ export type Database = {
         Insert: {
           address?: string | null
           assigned_pricelist_id?: number | null
+          contact_id?: string | null
           created_at?: string | null
           email?: string | null
           id?: number
@@ -690,6 +701,7 @@ export type Database = {
         Update: {
           address?: string | null
           assigned_pricelist_id?: number | null
+          contact_id?: string | null
           created_at?: string | null
           email?: string | null
           id?: number
@@ -706,6 +718,13 @@ export type Database = {
             columns: ["assigned_pricelist_id"]
             isOneToOne: false
             referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]

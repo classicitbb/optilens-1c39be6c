@@ -4,16 +4,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, ChevronDown, Building2, User, X, Trash2, Settings, Upload, Download } from "lucide-react";
+import { Plus, Search, ChevronDown, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
-type FilterMode = "all" | "companies" | "persons";
+type FilterMode = "all" | "companies" | "persons" | "customers";
+
+const LEAD_SOURCES = [
+  { value: "", label: "Not specified" },
+  { value: "lead_form", label: "Lead Form" },
+  { value: "new_business_application", label: "New Business Application" },
+  { value: "referral", label: "Referral" },
+  { value: "website", label: "Website" },
+  { value: "walk_in", label: "Walk-in" },
+  { value: "phone_inquiry", label: "Phone Inquiry" },
+  { value: "trade_show", label: "Trade Show" },
+  { value: "other", label: "Other" },
+];
+
+const PIPELINE_STAGES = ["New", "Prospect", "Qualified", "Active Customer", "Inactive"];
 
 const emptyContact = (isCompany: boolean): Partial<Contact> => ({
   name: "",
@@ -34,6 +51,9 @@ const emptyContact = (isCompany: boolean): Partial<Contact> => ({
   parent_id: null,
   is_archived: false,
   avatar_url: "",
+  is_customer: false,
+  lead_source: "",
+  pipeline_stage: "New",
 });
 
 const ContactsPage = () => {
@@ -44,6 +64,7 @@ const ContactsPage = () => {
   const deleteContact = useDeleteContact();
   const setContactTags = useSetContactTags();
   const { toast } = useToast();
+  const qc = useQueryClient();
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
@@ -59,6 +80,7 @@ const ContactsPage = () => {
     if (!showArchived) list = list.filter((c) => !c.is_archived);
     if (filter === "companies") list = list.filter((c) => c.is_company);
     if (filter === "persons") list = list.filter((c) => !c.is_company);
+    if (filter === "customers") list = list.filter((c) => c.is_customer);
     if (search) {
       const s = search.toLowerCase();
       list = list.filter(
@@ -145,11 +167,70 @@ const ContactsPage = () => {
       return;
     }
     try {
-      await saveContact.mutateAsync(editContact);
-      // Save tags if editing existing
-      if (editContact.id) {
-        await setContactTags.mutateAsync({ contactId: editContact.id, tagIds: selectedTagIds });
+      // If new contact, insert and get id back
+      let contactId = editContact.id;
+      if (!contactId) {
+        const { data: inserted, error: insErr } = await supabase
+          .from("contacts")
+          .insert({
+            name: editContact.name,
+            is_company: editContact.is_company ?? true,
+            email: editContact.email ?? "",
+            phone: editContact.phone ?? "",
+            street: editContact.street ?? "",
+            street2: editContact.street2 ?? "",
+            city: editContact.city ?? "",
+            state: editContact.state ?? "",
+            zip: editContact.zip ?? "",
+            country_code: editContact.country_code ?? "",
+            tax_id: editContact.tax_id ?? "",
+            website: editContact.website ?? "",
+            industry_id: editContact.industry_id ?? null,
+            notes: editContact.notes ?? "",
+            salesperson: editContact.salesperson ?? "",
+            parent_id: editContact.parent_id ?? null,
+            is_archived: editContact.is_archived ?? false,
+            avatar_url: editContact.avatar_url ?? "",
+            is_customer: editContact.is_customer ?? false,
+            lead_source: editContact.lead_source ?? "",
+            pipeline_stage: editContact.pipeline_stage ?? "New",
+          } as any)
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        contactId = inserted.id;
+      } else {
+        await saveContact.mutateAsync(editContact);
       }
+
+      // Save tags
+      if (contactId) {
+        await setContactTags.mutateAsync({ contactId, tagIds: selectedTagIds });
+      }
+
+      // Auto-create/sync customer record when is_customer is true
+      if (editContact.is_customer && contactId) {
+        // Check if customer already linked
+        const { data: existing } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("contact_id", contactId as any)
+          .maybeSingle();
+        if (!existing) {
+          await supabase.from("customers").insert({
+            name: editContact.name,
+            email: editContact.email ?? null,
+            phone: editContact.phone ?? null,
+            address: [editContact.street, editContact.city, editContact.state, editContact.country_code].filter(Boolean).join(", ") || null,
+            type: editContact.is_company ? "Company" : "Person",
+            pipeline_stage: editContact.pipeline_stage ?? "Prospect",
+            contact_id: contactId,
+          } as any);
+        }
+      }
+
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["customers-list"] });
       toast({ title: editContact.id ? "Contact updated" : "Contact created" });
       setEditContact(null);
     } catch (e: any) {
@@ -246,7 +327,7 @@ const ContactsPage = () => {
           />
         </div>
         <div className="flex items-center border rounded-md overflow-hidden" style={{ borderColor: "hsl(215 25% 88%)" }}>
-          {(["all", "companies", "persons"] as FilterMode[]).map((f) => (
+          {(["all", "companies", "persons", "customers"] as FilterMode[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -301,15 +382,22 @@ const ContactsPage = () => {
                 <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
                   <TableCell className="font-medium text-xs">{c.name}</TableCell>
                   <TableCell>
-                    <Badge
-                      className="text-[10px] px-1.5 py-0 h-5 border-0"
-                      style={{
-                        background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
-                        color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
-                      }}
-                    >
-                      {c.is_company ? "Company" : "Person"}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge
+                        className="text-[10px] px-1.5 py-0 h-5 border-0"
+                        style={{
+                          background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
+                          color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
+                        }}
+                      >
+                        {c.is_company ? "Company" : "Person"}
+                      </Badge>
+                      {c.is_customer && (
+                        <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
+                          Customer
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-xs">{c.email}</TableCell>
                   <TableCell className="text-xs">{c.phone}</TableCell>
@@ -439,7 +527,62 @@ const ContactsPage = () => {
                 </div>
               </div>
 
-              {/* Tags */}
+              {/* Customer & Lead Source */}
+              <div className="border rounded-lg p-3 space-y-3" style={{ borderColor: "hsl(var(--border))" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    <Label className="text-xs font-semibold">Customer Status</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[10px] text-muted-foreground">{editContact.is_customer ? "Active Customer" : "Not a Customer"}</Label>
+                    <Switch
+                      checked={editContact.is_customer ?? false}
+                      onCheckedChange={(checked) => setEditContact({ ...editContact, is_customer: checked, pipeline_stage: checked ? (editContact.pipeline_stage === "New" ? "Prospect" : editContact.pipeline_stage) : editContact.pipeline_stage })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">Lead Source</label>
+                    <Select
+                      value={editContact.lead_source ?? ""}
+                      onValueChange={(v) => setEditContact({ ...editContact, lead_source: v })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select source…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LEAD_SOURCES.map((s) => (
+                          <SelectItem key={s.value} value={s.value} className="text-xs">{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">Pipeline Stage</label>
+                    <Select
+                      value={editContact.pipeline_stage ?? "New"}
+                      onValueChange={(v) => setEditContact({ ...editContact, pipeline_stage: v })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PIPELINE_STAGES.map((s) => (
+                          <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {editContact.is_customer && (
+                  <p className="text-[10px] text-muted-foreground">
+                    This contact will be available for pricelist assignments and catalog distribution.
+                  </p>
+                )}
+              </div>
+
               {editContact.id && (
                 <div>
                   <label className="text-xs font-medium mb-1 block">Tags</label>
