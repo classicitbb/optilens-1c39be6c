@@ -771,7 +771,9 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_public: boolean | null
           page_slug: string
+          slug: string | null
           sort_order: number
           title: string
           updated_at: string
@@ -785,7 +787,9 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_public?: boolean | null
           page_slug: string
+          slug?: string | null
           sort_order?: number
           title: string
           updated_at?: string
@@ -799,7 +803,9 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_public?: boolean | null
           page_slug?: string
+          slug?: string | null
           sort_order?: number
           title?: string
           updated_at?: string
