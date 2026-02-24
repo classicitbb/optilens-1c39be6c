@@ -220,6 +220,90 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_sections: {
+        Row: {
+          article_id: number | null
+          catalog_template_id: number | null
+          format_choice: string | null
+          id: number
+          is_included: boolean | null
+          pricelist_version_id: number | null
+          section_type: string
+          sort_order: number | null
+        }
+        Insert: {
+          article_id?: number | null
+          catalog_template_id?: number | null
+          format_choice?: string | null
+          id?: number
+          is_included?: boolean | null
+          pricelist_version_id?: number | null
+          section_type: string
+          sort_order?: number | null
+        }
+        Update: {
+          article_id?: number | null
+          catalog_template_id?: number | null
+          format_choice?: string | null
+          id?: number
+          is_included?: boolean | null
+          pricelist_version_id?: number | null
+          section_type?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_sections_catalog_template_id_fkey"
+            columns: ["catalog_template_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_sections_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_templates: {
+        Row: {
+          cover_subtitle: string | null
+          cover_title: string | null
+          created_at: string | null
+          created_by: string | null
+          gradient_color_end: string | null
+          gradient_color_start: string | null
+          id: number
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          cover_subtitle?: string | null
+          cover_title?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          gradient_color_end?: string | null
+          gradient_color_start?: string | null
+          id?: number
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          cover_subtitle?: string | null
+          cover_title?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          gradient_color_end?: string | null
+          gradient_color_start?: string | null
+          id?: number
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           base_currency: string
@@ -363,6 +447,153 @@ export type Database = {
           wholesale_stock_percentage?: number
         }
         Relationships: []
+      }
+      contact_tag_links: {
+        Row: {
+          contact_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          contact_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          contact_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tag_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tag_links_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "contact_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_tags: {
+        Row: {
+          category: string
+          color: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          avatar_url: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string
+          email: string | null
+          id: string
+          industry_id: string | null
+          is_archived: boolean
+          is_company: boolean
+          name: string
+          notes: string | null
+          parent_id: string | null
+          phone: string | null
+          salesperson: string | null
+          state: string | null
+          street: string | null
+          street2: string | null
+          tax_id: string | null
+          updated_at: string
+          website: string | null
+          zip: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          industry_id?: string | null
+          is_archived?: boolean
+          is_company?: boolean
+          name: string
+          notes?: string | null
+          parent_id?: string | null
+          phone?: string | null
+          salesperson?: string | null
+          state?: string | null
+          street?: string | null
+          street2?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          industry_id?: string | null
+          is_archived?: boolean
+          is_company?: boolean
+          name?: string
+          notes?: string | null
+          parent_id?: string | null
+          phone?: string | null
+          salesperson?: string | null
+          state?: string | null
+          street?: string | null
+          street2?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_pricing_access: {
         Row: {
@@ -563,6 +794,33 @@ export type Database = {
           id?: string
           mapped_id?: string
           ref_table?: string
+        }
+        Relationships: []
+      }
+      industries: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

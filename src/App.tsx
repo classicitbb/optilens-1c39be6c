@@ -36,6 +36,12 @@ import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
 import QuotationsListPage from "./pages/admin/QuotationsListPage";
 import QuoteEditorPage from "./pages/admin/QuoteEditorPage";
 
+// ERP modules
+import ContactsPage from "./pages/admin/erp/ContactsPage";
+import ContactTagsConfigPage from "./pages/admin/erp/ContactTagsConfigPage";
+import IndustriesConfigPage from "./pages/admin/erp/IndustriesConfigPage";
+import ErpPlaceholderPage from "./pages/admin/erp/ErpPlaceholderPage";
+
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
@@ -104,6 +110,16 @@ const App = () => (
                 <Route path="costings/shipments/new" element={<ShipmentDetailPage />} />
                 <Route path="costings/shipments/:id" element={<ShipmentDetailPage />} />
                 <Route path="costings/reports" element={<CostingsReportsPage />} />
+                {/* ERP modules */}
+                <Route path="erp" element={<Navigate to="/admin/erp/contacts" replace />} />
+                <Route path="erp/contacts" element={<ContactsPage />} />
+                <Route path="erp/config/contact-tags" element={<ContactTagsConfigPage />} />
+                <Route path="erp/config/industries" element={<IndustriesConfigPage />} />
+                <Route path="erp/crm" element={<ErpPlaceholderPage />} />
+                <Route path="erp/helpdesk" element={<ErpPlaceholderPage />} />
+                <Route path="erp/web-orders" element={<ErpPlaceholderPage />} />
+                <Route path="erp/rx-orders" element={<ErpPlaceholderPage />} />
+                <Route path="erp/website" element={<ErpPlaceholderPage />} />
               </Route>
 
               {/* ZenVue brand microsite */}
