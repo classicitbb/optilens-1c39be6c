@@ -101,8 +101,19 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
     ? articles.find((a) => a.id === editArticleId)
     : null;
 
-  /** Render markdown-ish content */
+  /** Detect if content is HTML */
+  const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
+
+  /** Render content – supports both HTML (from rich editor) and legacy markdown-ish */
   const renderContent = (text: string) => {
+    if (isHtml(text)) {
+      return (
+        <div
+          className="prose prose-sm max-w-none text-muted-foreground [&_strong]:text-foreground [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_ul]:pl-4 [&_ol]:pl-4 [&_li]:marker:text-primary [&_a]:text-primary"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      );
+    }
     const normalized = text.replace(/\\n/g, "\n");
     return normalized.split("\n").map((line, i) => {
       const trimmed = line.trim();
