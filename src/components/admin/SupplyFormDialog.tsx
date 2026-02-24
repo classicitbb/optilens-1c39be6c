@@ -62,6 +62,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [catEditItem, setCatEditItem] = useState<{ id: string; name: string; abbrev: string; code: string } | null>(null);
   const initialFormRef = useRef<string>("");
+  const userEditedRef = useRef(false);
   const { data: suppliers } = useReferenceData("suppliers");
   const { data: brands } = useReferenceData("brands");
   const { data: supplyCategories, createMutation: createCat, updateMutation: updateCat } = useReferenceData("supply_categories");
@@ -94,6 +95,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
   useEffect(() => {
     if (open) {
+      userEditedRef.current = false;
       const timer = setTimeout(() => { initialFormRef.current = JSON.stringify(form); }, 0);
       return () => clearTimeout(timer);
     }
@@ -113,7 +115,10 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
   const governance = useMemo(() => checkGovernance(calc, settings, form.base_price), [calc, settings, form.base_price]);
 
-  const set = (key: keyof SupplyFormData, value: any) => setForm((f) => ({ ...f, [key]: value }));
+  const set = (key: keyof SupplyFormData, value: any) => {
+    userEditedRef.current = true;
+    setForm((f) => ({ ...f, [key]: value }));
+  };
 
   const currentIndex = supply && supplies ? supplies.findIndex((s) => s.id === supply.id) : -1;
   const canGoPrev = currentIndex > 0;
@@ -122,9 +127,12 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
   const isDirty = () => JSON.stringify(form) !== initialFormRef.current;
 
   const handleNavigate = (target: Supply) => {
-    if (isDirty()) {
+    if (userEditedRef.current && isDirty() && form.base_price > 0) {
       setPendingNavTarget(target);
       setUnsavedDialogOpen(true);
+    } else if (userEditedRef.current && isDirty()) {
+      onSubmit(form);
+      setTimeout(() => onNavigate?.(target), 100);
     } else {
       onNavigate?.(target);
     }
@@ -183,21 +191,24 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            {supply && onNavigate && (
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoPrev || isPending}
-                onClick={() => canGoPrev && supplies && handleNavigate(supplies[currentIndex - 1])}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            )}
-            <DialogTitle className="text-sm font-semibold flex-1" style={{ color: "hsl(215 30% 15%)" }}>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
               {supply ? "Edit Supply Item" : "New Supply"}
             </DialogTitle>
-            {supply && onNavigate && (
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoNext || isPending}
-                onClick={() => canGoNext && supplies && handleNavigate(supplies[currentIndex + 1])}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            {supply && onNavigate && supplies && (
+              <div className="flex items-center gap-1.5 text-xs mr-[30px]" style={{ color: "hsl(215 15% 50%)" }}>
+                <span>{currentIndex + 1} / {supplies.length}</span>
+                <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                  disabled={!canGoPrev || isPending}
+                  onClick={() => canGoPrev && handleNavigate(supplies[currentIndex - 1])}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                  disabled={!canGoNext || isPending}
+                  onClick={() => canGoNext && handleNavigate(supplies[currentIndex + 1])}>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             )}
           </div>
         </DialogHeader>

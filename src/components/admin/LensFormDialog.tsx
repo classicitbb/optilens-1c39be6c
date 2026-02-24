@@ -57,6 +57,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<Lens | null>(null);
   const initialFormRef = useRef<string>("");
+  const userEditedRef = useRef(false);
 
   const suppliers = useReferenceData("suppliers", open);
   const brands = useReferenceData("brands", open);
@@ -102,8 +103,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   }, [open, lens]);
 
   useEffect(() => {
-    // Snapshot form state after initialization for dirty checking
     if (open) {
+      userEditedRef.current = false;
       const timer = setTimeout(() => { initialFormRef.current = JSON.stringify(form); }, 0);
       return () => clearTimeout(timer);
     }
@@ -150,8 +151,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
   const governance = useMemo(() => checkGovernance(calc, settings, form.base_price), [calc, settings, form.base_price]);
 
-  const set = <K extends keyof LensFormData>(key: K, value: LensFormData[K]) =>
+  const set = <K extends keyof LensFormData>(key: K, value: LensFormData[K]) => {
+    userEditedRef.current = true;
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   const setNum = (key: keyof LensFormData, raw: string) => {
     const v = raw === "" ? 0 : parseFloat(raw);
@@ -212,9 +215,13 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const isDirty = () => JSON.stringify(form) !== initialFormRef.current;
 
   const handleNavigate = (target: Lens) => {
-    if (isDirty()) {
+    if (userEditedRef.current && isDirty() && form.base_price > 0) {
       setPendingNavTarget(target);
       setUnsavedDialogOpen(true);
+    } else if (userEditedRef.current && isDirty()) {
+      const finalForm = buildFinalForm();
+      onSubmit(finalForm);
+      setTimeout(() => onNavigate?.(target), 100);
     } else {
       onNavigate?.(target);
     }
@@ -292,21 +299,24 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            {lens && onNavigate && (
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoPrev || isPending}
-                onClick={() => canGoPrev && lenses && handleNavigate(lenses[currentIndex - 1])}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            )}
-            <DialogTitle className="text-sm font-semibold flex-1" style={{ color: "hsl(215 30% 15%)" }}>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
               {lens ? "Edit Lens" : "Add Lens"}
             </DialogTitle>
-            {lens && onNavigate && (
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={!canGoNext || isPending}
-                onClick={() => canGoNext && lenses && handleNavigate(lenses[currentIndex + 1])}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            {lens && onNavigate && lenses && (
+              <div className="flex items-center gap-1.5 text-xs mr-[30px]" style={{ color: "hsl(215 15% 50%)" }}>
+                <span>{currentIndex + 1} / {lenses.length}</span>
+                <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                  disabled={!canGoPrev || isPending}
+                  onClick={() => canGoPrev && handleNavigate(lenses[currentIndex - 1])}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                  disabled={!canGoNext || isPending}
+                  onClick={() => canGoNext && handleNavigate(lenses[currentIndex + 1])}>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             )}
           </div>
         </DialogHeader>
