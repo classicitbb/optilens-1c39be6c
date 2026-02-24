@@ -1,0 +1,1 @@
+ALTER TABLE public.catalog_sections ADD COLUMN IF NOT EXISTS custom_title text DEFAULT NULL;

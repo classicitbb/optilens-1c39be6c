@@ -260,6 +260,7 @@ export type Database = {
         Row: {
           article_id: number | null
           catalog_template_id: number | null
+          custom_title: string | null
           format_choice: string | null
           id: number
           is_included: boolean | null
@@ -270,6 +271,7 @@ export type Database = {
         Insert: {
           article_id?: number | null
           catalog_template_id?: number | null
+          custom_title?: string | null
           format_choice?: string | null
           id?: number
           is_included?: boolean | null
@@ -280,6 +282,7 @@ export type Database = {
         Update: {
           article_id?: number | null
           catalog_template_id?: number | null
+          custom_title?: string | null
           format_choice?: string | null
           id?: number
           is_included?: boolean | null
