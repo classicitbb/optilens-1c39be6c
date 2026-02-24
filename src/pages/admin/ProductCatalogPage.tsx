@@ -168,11 +168,11 @@ const ProductCatalogPage = () => {
               <DropdownMenuItem onClick={() => navigate("/admin/imports")} className="gap-2 text-xs cursor-pointer">
                 <Upload className="h-3.5 w-3.5" /> Imports
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCatalog} className="gap-2 text-xs cursor-pointer">
+                <Download className="h-3.5 w-3.5" /> Export Catalog
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" style={{ borderRadius: "4px" }} onClick={handleExportCatalog}>
-            <Download className="h-3.5 w-3.5" /> Export Catalog
-          </Button>
           {canEdit && (
             <Button size="sm" className="h-7 text-xs gap-1" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} onClick={handleAdd}>
               <Plus className="h-3.5 w-3.5" /> {currentTab.addLabel}
