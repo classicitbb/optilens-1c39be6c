@@ -1220,7 +1220,7 @@ const EditorTab = ({ template, onExit }: { template: CatalogTemplate | null; onE
 
   if (!template) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
+      <div className="flex items-center justify-center h-20 text-muted-foreground text-xs">
         Select or create a catalog from the Catalogs tab to start editing.
       </div>
     );
