@@ -289,6 +289,11 @@
 @media print {
   .no-print { display: none !important; }
   body { background: white !important; font-size: 11px; }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
   .catalog-print-area { break-inside: avoid; }
   .catalog-print-area table { page-break-inside: avoid; }
   /* Hide admin sidebar/topbar when printing */
