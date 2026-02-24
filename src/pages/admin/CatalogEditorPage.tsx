@@ -351,7 +351,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
   };
 
   return (
-    <div className="border-l flex flex-col h-full" style={{ borderColor: "hsl(var(--border))", minWidth: 300, maxWidth: "50%", width: 420, resize: "horizontal", overflow: "auto" }}>
+    <div className="border-l flex flex-col h-full" style={{ borderColor: "hsl(var(--border))", minWidth: 300, maxWidth: "50%", width: 420, resize: "horizontal", overflow: "hidden", cursor: "ew-resize" }}>
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30" style={{ borderColor: "hsl(var(--border))" }}>
         <FileText className="h-3.5 w-3.5 text-primary" />
         <span className="text-xs font-semibold text-foreground">PDF Preview</span>

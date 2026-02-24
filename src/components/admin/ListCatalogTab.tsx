@@ -17,6 +17,7 @@ import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
+import { compareCategoryOrder } from "@/lib/sortOrder";
 
 const BLUE_BG = "#1e4db7";
 const GREEN_BG = "#d4edda";
@@ -589,14 +590,7 @@ const ListCatalogTab = ({
       categoryMap.get(category)!.push(key);
     }
 
-    return [...categoryMap.entries()].sort((a, b) => {
-      const aIdx = matrixCategories.indexOf(a[0]);
-      const bIdx = matrixCategories.indexOf(b[0]);
-      if (aIdx === -1 && bIdx === -1) return 0;
-      if (aIdx === -1) return 1;
-      if (bIdx === -1) return -1;
-      return aIdx - bIdx;
-    }).map(([category, sectionKeys]) => {
+    return [...categoryMap.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0])).map(([category, sectionKeys]) => {
       // Merge all rows for this category regardless of treatment type
       const allRows = sectionKeys.flatMap((sk) => effectiveLensRows.get(sk) ?? []);
       const accKey = `cat::${category}`;

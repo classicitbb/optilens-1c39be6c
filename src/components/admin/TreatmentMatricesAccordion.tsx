@@ -44,6 +44,7 @@ import {
 "lucide-react";
 import { cn } from "@/lib/utils";
 import { fieldsMatch } from "@/lib/wildcardMatch";
+import { sortCategories } from "@/lib/sortOrder";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import LensFormDialog from "@/components/admin/LensFormDialog";
@@ -632,7 +633,7 @@ const TreatmentMatricesAccordion = ({
   );
 
   const categories = useMemo(
-    () => (matrixRows ?? []).map((r) => r.category),
+    () => sortCategories((matrixRows ?? []).map((r) => r.category)),
     [matrixRows]
   );
 

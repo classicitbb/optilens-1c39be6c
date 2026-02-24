@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { compareCategoryOrder, compareMaterialOrder, sortCategories } from "@/lib/sortOrder";
 
 const TREATMENT_LABELS: Record<TreatmentType, string> = {
   clear: "Clear Lenses",
@@ -58,7 +59,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
 
   const currency = showUSD ? "USD" : (version.base_currency ?? "BBD");
   const today = format(new Date(), "dd MMMM yyyy");
-  const categories = [...new Set(matrixRows.map((r) => r.category))];
+  const categories = sortCategories([...new Set(matrixRows.map((r) => r.category))]);
 
   // ── Standardised branding ─────────────────────────────────────────────────
   const companyName = company?.company_name ?? "Classic Visions";
@@ -122,17 +123,19 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
     return catalogRows.filter((r) => r.row_type === primaryType);
   };
 
-  const getActiveCols = (tt: TreatmentType) =>
-    MATERIAL_COLUMNS.filter((col) =>
+  const getActiveCols = (tt: TreatmentType) => {
+    const cols = MATERIAL_COLUMNS.filter((col) =>
       allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
     );
+    return [...cols].sort((a, b) => compareMaterialOrder(a.key, b.key));
+  };
 
   const getActiveCats = (tt: TreatmentType, cols: readonly { key: string; label: string }[]) =>
-    categories.filter((cat) =>
+    sortCategories(categories.filter((cat) =>
       cols.some((col) =>
         allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
       )
-    );
+    ));
 
   const isCustomerExport = !canEdit;
 
@@ -476,7 +479,7 @@ ${addonsHtml}
     aoa.push([]);
 
     const lensRows = getPrimaryRows();
-    const sections = [...new Set(lensRows.map((r) => r.section))].sort();
+    const sections = [...new Set(lensRows.map((r) => r.section))].sort(compareCategoryOrder);
     sections.forEach((sec) => {
       aoa.push([sec]);
       const headers = [sec, `${currency} Price`];
@@ -522,7 +525,7 @@ ${addonsHtml}
     lines.push("");
 
     const lensRows = getPrimaryRows();
-    const sections = [...new Set(lensRows.map((r) => r.section))].sort();
+    const sections = [...new Set(lensRows.map((r) => r.section))].sort(compareCategoryOrder);
     sections.forEach((sec) => {
       lines.push(`"${sec}"`);
       const csvHeaders = [`"${sec}"`, `${currency} Price`];
@@ -565,7 +568,7 @@ ${addonsHtml}
   // ── List HTML ────────────────────────────────────────────────────────────────
   const exportListHTML = () => {
     const lensRows = getPrimaryRows();
-    const sections = [...new Set(lensRows.map((r) => r.section))].sort();
+    const sections = [...new Set(lensRows.map((r) => r.section))].sort(compareCategoryOrder);
     const sectionsHtml = sections
       .map((sec) => {
         const rowsHtml = lensRows
@@ -638,14 +641,7 @@ ${addonsHtml}
       lensSectionMap.get(category)!.push(r);
     }
 
-    const sortedSections = [...lensSectionMap.entries()].sort((a, b) => {
-      const aIdx = categories.indexOf(a[0]);
-      const bIdx = categories.indexOf(b[0]);
-      if (aIdx === -1 && bIdx === -1) return 0;
-      if (aIdx === -1) return 1;
-      if (bIdx === -1) return -1;
-      return aIdx - bIdx;
-    });
+    const sortedSections = [...lensSectionMap.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
 
     const lensIdxMap = new Map<string, number>();
     allLenses.forEach((l) => lensIdxMap.set(l.id, l.index_value));
