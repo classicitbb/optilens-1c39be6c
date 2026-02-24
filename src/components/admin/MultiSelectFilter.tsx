@@ -17,7 +17,13 @@ interface Props {
 const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [draft, setDraft] = useState<Set<string>>(new Set(selected));
   const ref = useRef<HTMLDivElement>(null);
+
+  // Sync draft when opening
+  useEffect(() => {
+    if (open) setDraft(new Set(selected));
+  }, [open]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -33,17 +39,22 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
     return options.filter((o) => fieldsMatch(q, o.label));
   }, [options, search]);
 
-  const allSelected = selected.size === 0; // empty = no filter = all
+  const allSelected = draft.size === 0;
   const activeCount = selected.size;
 
   const toggle = (value: string) => {
-    const next = new Set(selected);
+    const next = new Set(draft);
     if (next.has(value)) next.delete(value);
     else next.add(value);
-    onChange(next);
+    setDraft(next);
   };
 
-  const selectAll = () => onChange(new Set());
+  const selectAll = () => setDraft(new Set());
+
+  const applyAndClose = () => {
+    onChange(draft);
+    setOpen(false);
+  };
 
   return (
     <div className="relative" ref={ref}>
@@ -99,7 +110,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
               <span className="font-medium">Select All</span>
             </label>
             {filtered.map((opt) => {
-              const checked = selected.has(opt.value);
+              const checked = draft.has(opt.value);
               return (
                 <label
                   key={opt.value}
@@ -131,7 +142,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
             <button
               className="px-2.5 py-1 text-xs rounded"
               style={{ background: "hsl(215 65% 50%)", color: "white" }}
-              onClick={() => setOpen(false)}
+              onClick={applyAndClose}
             >
               OK
             </button>
