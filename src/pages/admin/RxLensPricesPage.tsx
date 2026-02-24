@@ -10,6 +10,7 @@ import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersion
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
 import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
+import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import { Button } from "@/components/ui/button";
 import { Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -157,30 +158,26 @@ const RxLensPricesPage = () => {
           </Tabs>
 
           {/* ── Live Preview Section ──────────────────────────────────────────── */}
-          <div ref={previewRef} className="border border-border rounded-lg overflow-hidden mt-6" id="live-preview">
-            <div className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border">
-              <div>
-                <span className="text-sm font-semibold text-foreground">Live Preview</span>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  — showing exactly what the customer receives for <strong>{activeVersion.name}</strong>
-                </span>
-              </div>
-              {/* Format toggle */}
-              <div className="flex items-center gap-2 no-print">
-                <span className={`text-xs font-medium transition-colors ${previewFormat === "matrix" ? "text-primary" : "text-muted-foreground"}`}>
-                  Matrix
-                </span>
-                <Switch
-                  checked={previewFormat === "list"}
-                  onCheckedChange={(v) => setPreviewFormat(v ? "list" : "matrix")}
-                  aria-label="Toggle preview format"
-                />
-                <span className={`text-xs font-medium transition-colors ${previewFormat === "list" ? "text-primary" : "text-muted-foreground"}`}>
-                  List
-                </span>
-              </div>
-            </div>
-            <div className="p-5 bg-background overflow-auto max-h-[70vh]">
+          <div ref={previewRef} className="mt-6">
+            <PdfPreviewShell
+              title={`${activeVersion.name} — Preview`}
+              formatLabel={previewFormat === "matrix" ? "Matrix" : "List"}
+              headerRight={
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-medium transition-colors ${previewFormat === "matrix" ? "text-primary" : "text-muted-foreground"}`}>
+                    Matrix
+                  </span>
+                  <Switch
+                    checked={previewFormat === "list"}
+                    onCheckedChange={(v) => setPreviewFormat(v ? "list" : "matrix")}
+                    aria-label="Toggle preview format"
+                  />
+                  <span className={`text-xs font-medium transition-colors ${previewFormat === "list" ? "text-primary" : "text-muted-foreground"}`}>
+                    List
+                  </span>
+                </div>
+              }
+            >
               <PricelistLivePreview
                 version={activeVersion}
                 previewFormat={previewFormat}
@@ -188,7 +185,7 @@ const RxLensPricesPage = () => {
                 fxRate={fxRate}
                 catalogType="rx"
               />
-            </div>
+            </PdfPreviewShell>
           </div>
         </div>
       )}

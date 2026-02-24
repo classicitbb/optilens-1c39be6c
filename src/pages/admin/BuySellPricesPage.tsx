@@ -4,6 +4,7 @@ import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import RxExportBar from "@/components/admin/RxExportBar";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
+import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
 
 const BuySellPricesPage = () => {
@@ -53,17 +54,11 @@ const BuySellPricesPage = () => {
           />
 
           {/* Live Preview */}
-          <div ref={previewRef} className="border border-border rounded-lg overflow-hidden mt-6" id="live-preview">
-            <div className="flex items-center justify-between px-4 py-3 bg-muted/20 border-b border-border">
-              <div>
-                <span className="text-sm font-semibold text-foreground">Live Preview</span>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  — showing exactly what the customer receives for <strong>{activeVersion.name}</strong>
-                </span>
-              </div>
-              <span className="text-xs font-medium text-primary">List</span>
-            </div>
-            <div className="p-5 bg-background overflow-auto max-h-[70vh]">
+          <div ref={previewRef} className="mt-6">
+            <PdfPreviewShell
+              title={`${activeVersion.name} — Supplies Preview`}
+              formatLabel="List"
+            >
               <PricelistLivePreview
                 version={activeVersion}
                 previewFormat={previewFormat}
@@ -71,7 +66,7 @@ const BuySellPricesPage = () => {
                 fxRate={fxRate}
                 catalogType="buysell"
               />
-            </div>
+            </PdfPreviewShell>
           </div>
         </div>
       )}
