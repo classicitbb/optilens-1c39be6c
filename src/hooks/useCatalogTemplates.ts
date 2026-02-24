@@ -1,0 +1,144 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export interface CatalogTemplate {
+  id: number;
+  name: string;
+  cover_title: string | null;
+  cover_subtitle: string | null;
+  gradient_color_start: string | null;
+  gradient_color_end: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  created_by: string | null;
+}
+
+export interface CatalogAssignment {
+  id: number;
+  catalog_template_id: number | null;
+  customer_id: number | null;
+  assigned_at: string | null;
+}
+
+export const useCatalogTemplates = () => {
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["catalog-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("catalog_templates")
+        .select("*")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data as CatalogTemplate[];
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (template: Partial<CatalogTemplate>) => {
+      const { data, error } = await supabase
+        .from("catalog_templates")
+        .insert(template as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as CatalogTemplate;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-templates"] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<CatalogTemplate> & { id: number }) => {
+      const { error } = await supabase
+        .from("catalog_templates")
+        .update({ ...updates, updated_at: new Date().toISOString() } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-templates"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      // Delete assignments first
+      await supabase.from("catalog_assignments").delete().eq("catalog_template_id", id);
+      await supabase.from("catalog_sections").delete().eq("catalog_template_id", id);
+      const { error } = await supabase.from("catalog_templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-templates"] }),
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (template: CatalogTemplate) => {
+      const { id, created_at, updated_at, ...rest } = template;
+      const { data, error } = await supabase
+        .from("catalog_templates")
+        .insert({ ...rest, name: `${template.name} (Copy)` } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as CatalogTemplate;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-templates"] }),
+  });
+
+  return {
+    ...query,
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    duplicateMutation,
+  };
+};
+
+export const useCatalogAssignments = (templateId?: number) => {
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["catalog-assignments", templateId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("catalog_assignments")
+        .select("*")
+        .eq("catalog_template_id", templateId!);
+      if (error) throw error;
+      return data as CatalogAssignment[];
+    },
+    enabled: !!templateId,
+  });
+
+  const setAssignments = useMutation({
+    mutationFn: async ({ templateId, customerIds }: { templateId: number; customerIds: number[] }) => {
+      // Remove existing
+      await supabase.from("catalog_assignments").delete().eq("catalog_template_id", templateId);
+      // Insert new
+      if (customerIds.length > 0) {
+        const rows = customerIds.map((cid) => ({
+          catalog_template_id: templateId,
+          customer_id: cid,
+        }));
+        const { error } = await supabase.from("catalog_assignments").insert(rows);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-assignments"] }),
+  });
+
+  return { ...query, setAssignments };
+};
+
+export const useCustomersList = () => {
+  return useQuery({
+    queryKey: ["customers-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id, name")
+        .order("name");
+      if (error) throw error;
+      return data as { id: number; name: string }[];
+    },
+  });
+};

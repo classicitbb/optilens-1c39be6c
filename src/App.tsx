@@ -35,6 +35,7 @@ import ShipmentDetailPage from "./pages/admin/costings/ShipmentDetailPage";
 import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
 import QuotationsListPage from "./pages/admin/QuotationsListPage";
 import QuoteEditorPage from "./pages/admin/QuoteEditorPage";
+import CatalogPublisherPage from "./pages/admin/CatalogPublisherPage";
 
 // ERP modules
 import ContactsPage from "./pages/admin/erp/ContactsPage";
@@ -105,6 +106,7 @@ const App = () => (
                 <Route path="content" element={<ContentManagerPage />} />
                 <Route path="quotations" element={<QuotationsListPage />} />
                 <Route path="quotations/:id" element={<QuoteEditorPage />} />
+                <Route path="catalog-publisher" element={<CatalogPublisherPage />} />
                 {/* Import Costings */}
                 <Route path="costings/shipments" element={<ImportCostingsPage />} />
                 <Route path="costings/shipments/new" element={<ShipmentDetailPage />} />
