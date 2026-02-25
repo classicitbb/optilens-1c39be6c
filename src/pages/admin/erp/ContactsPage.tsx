@@ -19,7 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 type FilterMode = "all" | "companies" | "persons" | "customers";
 
 const LEAD_SOURCES = [
-  { value: "", label: "Not specified" },
+  { value: "not_specified", label: "Not specified" },
   { value: "lead_form", label: "Lead Form" },
   { value: "new_business_application", label: "New Business Application" },
   { value: "referral", label: "Referral" },
