@@ -434,7 +434,7 @@ const ContactsPage = () => {
                       {editContact.id ? "Edit Contact" : editContact.is_company ? "New Company" : "New Person"}
                     </DialogTitle>
                     {editContact.id && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 mr-8">
                         <span className="text-[10px] mr-1" style={{ color: "hsl(215 15% 55%)" }}>
                           {currentIndex + 1} / {filtered.length}
                         </span>
