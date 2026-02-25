@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, ChevronDown, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -413,233 +414,235 @@ const ContactsPage = () => {
 
       {/* Edit Dialog */}
       <Dialog open={!!editContact} onOpenChange={(v) => !v && setEditContact(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              {editContact?.is_company ? <Building2 className="h-5 w-5" style={{ color: "hsl(215 65% 50%)" }} /> : <User className="h-5 w-5" style={{ color: "hsl(168 76% 42%)" }} />}
-              {editContact?.id ? "Edit Contact" : editContact?.is_company ? "New Company" : "New Person"}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden" style={{ maxHeight: "calc(100vh - 48px)" }}>
+          {editContact && (() => {
+            const currentIndex = filtered.findIndex((c) => c.id === editContact.id);
+            const canGoPrev = editContact.id && currentIndex > 0;
+            const canGoNext = editContact.id && currentIndex >= 0 && currentIndex < filtered.length - 1;
+            const goTo = (contact: Contact) => {
+              setEditContact(contact);
+              setSelectedTagIds([]);
+            };
 
-          {editContact && (
-            <div className="space-y-4">
-              {/* Name */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Name *</label>
-                  <Input
-                    className="h-8 text-xs"
-                    value={editContact.name ?? ""}
-                    onChange={(e) => setEditContact({ ...editContact, name: e.target.value })}
-                  />
-                </div>
-                {!editContact.is_company && (
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Parent Company</label>
-                    <Select
-                      value={editContact.parent_id ?? "none"}
-                      onValueChange={(v) => setEditContact({ ...editContact, parent_id: v === "none" ? null : v })}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select company" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {companies.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+            return (
+              <>
+                {/* Header with nav */}
+                <DialogHeader className="px-4 py-2.5 border-b shrink-0" style={{ borderColor: "hsl(215 25% 88%)" }}>
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="flex items-center gap-2 text-sm">
+                      {editContact.is_company ? <Building2 className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} /> : <User className="h-4 w-4" style={{ color: "hsl(168 76% 42%)" }} />}
+                      {editContact.id ? "Edit Contact" : editContact.is_company ? "New Company" : "New Person"}
+                    </DialogTitle>
+                    {editContact.id && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] mr-1" style={{ color: "hsl(215 15% 55%)" }}>
+                          {currentIndex + 1} / {filtered.length}
+                        </span>
+                        <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                          disabled={!canGoPrev}
+                          onClick={() => canGoPrev && goTo(filtered[currentIndex - 1])}>
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                          disabled={!canGoNext}
+                          onClick={() => canGoNext && goTo(filtered[currentIndex + 1])}>
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </DialogHeader>
 
-              {/* Contact info */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Email</label>
-                  <Input className="h-8 text-xs" value={editContact.email ?? ""} onChange={(e) => setEditContact({ ...editContact, email: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Phone</label>
-                  <Input className="h-8 text-xs" value={editContact.phone ?? ""} onChange={(e) => setEditContact({ ...editContact, phone: e.target.value })} />
-                </div>
-              </div>
+                {/* Body with tabs */}
+                <Tabs defaultValue="details" className="flex flex-col min-h-0 flex-1">
+                  <TabsList className="px-4 pt-2 pb-0 h-auto bg-transparent justify-start gap-2 shrink-0">
+                    <TabsTrigger value="details" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Details</TabsTrigger>
+                    <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
+                  </TabsList>
 
-              {/* Address */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Street</label>
-                  <Input className="h-8 text-xs" value={editContact.street ?? ""} onChange={(e) => setEditContact({ ...editContact, street: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Street 2</label>
-                  <Input className="h-8 text-xs" value={editContact.street2 ?? ""} onChange={(e) => setEditContact({ ...editContact, street2: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">City</label>
-                  <Input className="h-8 text-xs" value={editContact.city ?? ""} onChange={(e) => setEditContact({ ...editContact, city: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">State</label>
-                  <Input className="h-8 text-xs" value={editContact.state ?? ""} onChange={(e) => setEditContact({ ...editContact, state: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">ZIP</label>
-                  <Input className="h-8 text-xs" value={editContact.zip ?? ""} onChange={(e) => setEditContact({ ...editContact, zip: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Country Code</label>
-                  <Input className="h-8 text-xs" value={editContact.country_code ?? ""} onChange={(e) => setEditContact({ ...editContact, country_code: e.target.value })} />
-                </div>
-              </div>
+                  <TabsContent value="details" className="flex-1 px-4 py-3 m-0 overflow-hidden">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5 gap-y-2.5 h-full">
+                      {/* Column 1: Identity */}
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "hsl(215 15% 55%)" }}>Identity</h4>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Name *</label>
+                          <Input className="h-7 text-xs" value={editContact.name ?? ""} onChange={(e) => setEditContact({ ...editContact, name: e.target.value })} />
+                        </div>
+                        {!editContact.is_company && (
+                          <div>
+                            <label className="text-[11px] font-medium mb-0.5 block">Parent Company</label>
+                            <Select value={editContact.parent_id ?? "none"} onValueChange={(v) => setEditContact({ ...editContact, parent_id: v === "none" ? null : v })}>
+                              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select company" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {companies.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Email</label>
+                          <Input className="h-7 text-xs" value={editContact.email ?? ""} onChange={(e) => setEditContact({ ...editContact, email: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Phone</label>
+                          <Input className="h-7 text-xs" value={editContact.phone ?? ""} onChange={(e) => setEditContact({ ...editContact, phone: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Website</label>
+                          <Input className="h-7 text-xs" value={editContact.website ?? ""} onChange={(e) => setEditContact({ ...editContact, website: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Salesperson</label>
+                          <Input className="h-7 text-xs" value={editContact.salesperson ?? ""} onChange={(e) => setEditContact({ ...editContact, salesperson: e.target.value })} />
+                        </div>
+                      </div>
 
-              {/* Other fields */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Tax ID</label>
-                  <Input className="h-8 text-xs" value={editContact.tax_id ?? ""} onChange={(e) => setEditContact({ ...editContact, tax_id: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Website</label>
-                  <Input className="h-8 text-xs" value={editContact.website ?? ""} onChange={(e) => setEditContact({ ...editContact, website: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Salesperson</label>
-                  <Input className="h-8 text-xs" value={editContact.salesperson ?? ""} onChange={(e) => setEditContact({ ...editContact, salesperson: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Industry</label>
-                  <Select
-                    value={editContact.industry_id ?? "none"}
-                    onValueChange={(v) => setEditContact({ ...editContact, industry_id: v === "none" ? null : v })}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select industry" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {industries.map((i) => (
-                        <SelectItem key={i.id} value={i.id}>{i.full_name || i.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                      {/* Column 2: Address */}
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "hsl(215 15% 55%)" }}>Address</h4>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Street</label>
+                          <Input className="h-7 text-xs" value={editContact.street ?? ""} onChange={(e) => setEditContact({ ...editContact, street: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Street 2</label>
+                          <Input className="h-7 text-xs" value={editContact.street2 ?? ""} onChange={(e) => setEditContact({ ...editContact, street2: e.target.value })} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] font-medium mb-0.5 block">City</label>
+                            <Input className="h-7 text-xs" value={editContact.city ?? ""} onChange={(e) => setEditContact({ ...editContact, city: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-medium mb-0.5 block">State</label>
+                            <Input className="h-7 text-xs" value={editContact.state ?? ""} onChange={(e) => setEditContact({ ...editContact, state: e.target.value })} />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] font-medium mb-0.5 block">ZIP</label>
+                            <Input className="h-7 text-xs" value={editContact.zip ?? ""} onChange={(e) => setEditContact({ ...editContact, zip: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-medium mb-0.5 block">Country</label>
+                            <Input className="h-7 text-xs" value={editContact.country_code ?? ""} onChange={(e) => setEditContact({ ...editContact, country_code: e.target.value })} />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Tax ID</label>
+                          <Input className="h-7 text-xs" value={editContact.tax_id ?? ""} onChange={(e) => setEditContact({ ...editContact, tax_id: e.target.value })} />
+                        </div>
+                      </div>
 
-              {/* Customer & Lead Source */}
-              <div className="border rounded-lg p-3 space-y-3" style={{ borderColor: "hsl(var(--border))" }}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    <Label className="text-xs font-semibold">Customer Status</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-[10px] text-muted-foreground">{editContact.is_customer ? "Active Customer" : "Not a Customer"}</Label>
-                    <Switch
-                      checked={editContact.is_customer ?? false}
-                      onCheckedChange={(checked) => setEditContact({ ...editContact, is_customer: checked, pipeline_stage: checked ? (editContact.pipeline_stage === "New" ? "Prospect" : editContact.pipeline_stage) : editContact.pipeline_stage })}
+                      {/* Column 3: Classification */}
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "hsl(215 15% 55%)" }}>Classification</h4>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Industry</label>
+                          <Select value={editContact.industry_id ?? "none"} onValueChange={(v) => setEditContact({ ...editContact, industry_id: v === "none" ? null : v })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select industry" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {industries.map((i) => (<SelectItem key={i.id} value={i.id}>{i.full_name || i.name}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Lead Source</label>
+                          <Select value={editContact.lead_source || "not_specified"} onValueChange={(v) => setEditContact({ ...editContact, lead_source: v })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select source…" /></SelectTrigger>
+                            <SelectContent>
+                              {LEAD_SOURCES.map((s) => (<SelectItem key={s.value} value={s.value} className="text-xs">{s.label}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Pipeline Stage</label>
+                          <Select value={editContact.pipeline_stage ?? "New"} onValueChange={(v) => setEditContact({ ...editContact, pipeline_stage: v })}>
+                            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {PIPELINE_STAGES.map((s) => (<SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Customer toggle */}
+                        <div className="border rounded-md p-2 space-y-1.5 mt-1" style={{ borderColor: "hsl(var(--border))" }}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                              <Label className="text-[11px] font-semibold">Customer</Label>
+                            </div>
+                            <Switch
+                              checked={editContact.is_customer ?? false}
+                              onCheckedChange={(checked) => setEditContact({ ...editContact, is_customer: checked, pipeline_stage: checked ? (editContact.pipeline_stage === "New" ? "Prospect" : editContact.pipeline_stage) : editContact.pipeline_stage })}
+                            />
+                          </div>
+                          <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
+                            {editContact.is_customer ? "Available for pricelist assignments" : "Not a customer"}
+                          </p>
+                        </div>
+
+                        {/* Tags */}
+                        {editContact.id && (
+                          <div>
+                            <label className="text-[11px] font-medium mb-0.5 block">Tags</label>
+                            <div className="flex flex-wrap gap-1">
+                              {tags.map((tag) => {
+                                const selected = selectedTagIds.includes(tag.id);
+                                return (
+                                  <button
+                                    key={tag.id}
+                                    onClick={() => setSelectedTagIds((prev) => selected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id])}
+                                    className="px-1.5 py-0.5 rounded-full text-[10px] font-medium border transition-all"
+                                    style={{
+                                      background: selected ? tag.color + "20" : "transparent",
+                                      color: selected ? tag.color : "hsl(215 15% 50%)",
+                                      borderColor: selected ? tag.color : "hsl(215 25% 88%)",
+                                    }}
+                                  >
+                                    {tag.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="notes" className="flex-1 px-4 py-3 m-0">
+                    <Textarea
+                      className="text-xs min-h-[120px] h-full resize-none"
+                      placeholder="Add notes about this contact…"
+                      value={editContact.notes ?? ""}
+                      onChange={(e) => setEditContact({ ...editContact, notes: e.target.value })}
                     />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+                  </TabsContent>
+                </Tabs>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between px-4 py-2.5 border-t shrink-0" style={{ borderColor: "hsl(215 25% 88%)" }}>
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Lead Source</label>
-                    <Select
-                      value={editContact.lead_source ?? ""}
-                      onValueChange={(v) => setEditContact({ ...editContact, lead_source: v })}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select source…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LEAD_SOURCES.map((s) => (
-                          <SelectItem key={s.value} value={s.value} className="text-xs">{s.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {editContact.id && (
+                      <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
+                        <Trash2 className="h-3 w-3" /> Delete
+                      </Button>
+                    )}
                   </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Pipeline Stage</label>
-                    <Select
-                      value={editContact.pipeline_stage ?? "New"}
-                      onValueChange={(v) => setEditContact({ ...editContact, pipeline_stage: v })}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PIPELINE_STAGES.map((s) => (
-                          <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {editContact.is_customer && (
-                  <p className="text-[10px] text-muted-foreground">
-                    This contact will be available for pricelist assignments and catalog distribution.
-                  </p>
-                )}
-              </div>
-
-              {editContact.id && (
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Tags</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tags.map((tag) => {
-                      const selected = selectedTagIds.includes(tag.id);
-                      return (
-                        <button
-                          key={tag.id}
-                          onClick={() =>
-                            setSelectedTagIds((prev) =>
-                              selected ? prev.filter((t) => t !== tag.id) : [...prev, tag.id]
-                            )
-                          }
-                          className="px-2 py-0.5 rounded-full text-[10px] font-medium border transition-all"
-                          style={{
-                            background: selected ? tag.color + "20" : "transparent",
-                            color: selected ? tag.color : "hsl(215 15% 50%)",
-                            borderColor: selected ? tag.color : "hsl(215 25% 88%)",
-                          }}
-                        >
-                          {tag.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              <div>
-                <label className="text-xs font-medium mb-1 block">Notes</label>
-                <Textarea
-                  className="text-xs min-h-[60px]"
-                  value={editContact.notes ?? ""}
-                  onChange={(e) => setEditContact({ ...editContact, notes: e.target.value })}
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "hsl(215 25% 88%)" }}>
-                <div>
-                  {editContact.id && (
-                    <Button variant="ghost" size="sm" className="text-xs h-8 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditContact(null)}>Cancel</Button>
+                    <Button size="sm" className="h-7 text-xs" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={handleSave} disabled={saveContact.isPending}>
+                      {saveContact.isPending ? "Saving..." : "Save"}
                     </Button>
-                  )}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditContact(null)}>Cancel</Button>
-                  <Button size="sm" className="h-8 text-xs" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={handleSave} disabled={saveContact.isPending}>
-                    {saveContact.isPending ? "Saving..." : "Save"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
