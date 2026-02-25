@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, ChevronDown, Check, X, Lock } from "lucide-react";
+import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, ChevronDown, Check, X, Lock, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -26,7 +26,7 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 };
 
 const UsersPage = () => {
-  const { users, isLoading, assignRole, removeRole, resetPassword } = useAdminUsers();
+  const { users, isLoading, assignRole, removeRole, resetPassword, inviteUser, createUser } = useAdminUsers();
   const { toast } = useToast();
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("viewer");
@@ -43,6 +43,16 @@ const UsersPage = () => {
   const [pwDialogUser, setPwDialogUser] = useState<AdminUser | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [settingPw, setSettingPw] = useState(false);
+
+  // Invite dialog
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+
+  // Create user dialog
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createName, setCreateName] = useState("");
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -149,9 +159,19 @@ const UsersPage = () => {
           <Shield className="h-5 w-5" style={{ color: "hsl(215 65% 50%)" }} />
           <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>User Management</h1>
         </div>
-        <span className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
-          {filtered.length} of {users.length} user{users.length !== 1 ? "s" : ""}
-        </span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setInviteEmail(""); setInviteOpen(true); }}>
+            <Mail className="h-3.5 w-3.5" />
+            Invite
+          </Button>
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setCreateEmail(""); setCreatePassword(""); setCreateName(""); setCreateOpen(true); }}>
+            <UserPlus className="h-3.5 w-3.5" />
+            Add User
+          </Button>
+          <span className="text-xs ml-2" style={{ color: "hsl(215 15% 50%)" }}>
+            {filtered.length} of {users.length} user{users.length !== 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
       {/* Permission Grid Accordion */}
@@ -345,6 +365,108 @@ const UsersPage = () => {
               disabled={settingPw || newPassword.length < 8}
             >
               {settingPw ? "Setting…" : "Set Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite User Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+              <Mail className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
+              Invite User by Email
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs" style={{ color: "hsl(215 15% 45%)" }}>
+              Send an invitation email. The user will receive a link to set their password and sign in.
+            </p>
+            <Input
+              type="email"
+              placeholder="user@example.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="h-8 text-xs"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setInviteOpen(false)}>Cancel</Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              disabled={inviteUser.isPending || !inviteEmail.includes("@")}
+              onClick={async () => {
+                try {
+                  await inviteUser.mutateAsync(inviteEmail);
+                  toast({ title: "Invitation sent", description: `Invite email sent to ${inviteEmail}.` });
+                  setInviteOpen(false);
+                } catch {
+                  toast({ title: "Error", description: "Failed to send invitation.", variant: "destructive" });
+                }
+              }}
+            >
+              {inviteUser.isPending ? "Sending…" : "Send Invite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+              <UserPlus className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
+              Create User
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs" style={{ color: "hsl(215 15% 45%)" }}>
+              Create a new user account with a password. The user can sign in immediately.
+            </p>
+            <Input
+              type="text"
+              placeholder="Display name (optional)"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              className="h-8 text-xs"
+              autoFocus
+            />
+            <Input
+              type="email"
+              placeholder="Email address"
+              value={createEmail}
+              onChange={(e) => setCreateEmail(e.target.value)}
+              className="h-8 text-xs"
+            />
+            <Input
+              type="password"
+              placeholder="Password (min 8 characters)"
+              value={createPassword}
+              onChange={(e) => setCreatePassword(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              disabled={createUser.isPending || !createEmail.includes("@") || createPassword.length < 8}
+              onClick={async () => {
+                try {
+                  await createUser.mutateAsync({ email: createEmail, password: createPassword, displayName: createName || undefined });
+                  toast({ title: "User created", description: `Account created for ${createEmail}.` });
+                  setCreateOpen(false);
+                } catch {
+                  toast({ title: "Error", description: "Failed to create user.", variant: "destructive" });
+                }
+              }}
+            >
+              {createUser.isPending ? "Creating…" : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>
