@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
+import { useAdminRoleSafe } from "@/contexts/AdminRoleContext";
 
 export interface RolePermission {
   id: string;
@@ -58,8 +59,12 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
 };
 
 export const useRolePermissions = () => {
-  const { role } = useUserRole();
+  const { role: realRole } = useUserRole();
+  const { role: activeRole } = useAdminRoleSafe();
   const qc = useQueryClient();
+  
+  // Use impersonated role if available, otherwise fall back to real role
+  const effectiveRole = activeRole ?? realRole;
 
   const { data: allPermissions = [], isLoading } = useQuery({
     queryKey: ["role-permissions"],
@@ -75,7 +80,7 @@ export const useRolePermissions = () => {
   });
 
   /** Permissions for the current user's role */
-  const myPermissions = allPermissions.filter((p) => p.role === role);
+  const myPermissions = allPermissions.filter((p) => p.role === effectiveRole);
 
   const canView = (feature: Feature): boolean =>
     myPermissions.some((p) => p.feature === feature && p.can_view);
