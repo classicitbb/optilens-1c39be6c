@@ -99,5 +99,30 @@ export const useAdminUsers = () => {
     },
   });
 
-  return { users, isLoading, error, assignRole, removeRole, resetPassword };
+  const inviteUser = useMutation({
+    mutationFn: async (email: string) => {
+      const { data, error } = await supabase.functions.invoke(
+        "admin-user-management",
+        { body: { action: "invite-user", email } }
+      );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
+  const createUser = useMutation({
+    mutationFn: async ({ email, password, displayName }: { email: string; password: string; displayName?: string }) => {
+      const { data, error } = await supabase.functions.invoke(
+        "admin-user-management",
+        { body: { action: "create-user", email, password, displayName } }
+      );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
+  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser };
 };

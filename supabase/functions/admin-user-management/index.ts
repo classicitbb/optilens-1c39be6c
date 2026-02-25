@@ -126,6 +126,55 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "invite-user") {
+      const { email } = body;
+      if (!email) {
+        return new Response(
+          JSON.stringify({ error: "Email is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+        redirectTo: "https://optilens.lovable.app/reset-password",
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "create-user") {
+      const { email, password, displayName } = body;
+      if (!email || !password) {
+        return new Response(
+          JSON.stringify({ error: "Email and password are required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (password.length < 8) {
+        return new Response(
+          JSON.stringify({ error: "Password must be at least 8 characters" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: newUser, error } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
+      if (error) throw error;
+      // Update display name if provided
+      if (displayName && newUser?.user) {
+        await adminClient
+          .from("profiles")
+          .update({ display_name: displayName })
+          .eq("user_id", newUser.user.id);
+      }
+      return new Response(JSON.stringify({ success: true, userId: newUser?.user?.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
