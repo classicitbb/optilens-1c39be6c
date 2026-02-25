@@ -143,7 +143,7 @@ const AdminSidebar = () => {
   return (
     <aside className={`admin-sidebar ${w} shrink-0 flex flex-col transition-all duration-200 border-r`} style={{ borderColor: "hsl(215 25% 18%)" }}>
       <div className="h-11 flex items-center justify-between px-3 border-b rounded-none" style={{ borderColor: "hsl(215 25% 18%)" }}>
-        {!collapsed && <span className="text-sm font-semibold tracking-tight" style={{ color: "hsl(0 0% 100%)" }}>OptiPricing</span>}
+        {!collapsed && <span className="text-sm font-semibold tracking-tight" style={{ color: "hsl(0 0% 100%)" }}>OpticAdmin</span>}
         <button onClick={() => setCollapsed(!collapsed)} className="p-1 rounded hover:bg-white/10">
           {collapsed ? <PanelLeft className="h-4 w-4" style={{ color: "hsl(210 20% 85%)" }} /> : <PanelLeftClose className="h-4 w-4" style={{ color: "hsl(210 20% 85%)" }} />}
         </button>

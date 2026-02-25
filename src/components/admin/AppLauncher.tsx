@@ -11,7 +11,7 @@ interface AppLauncherProps {
 }
 
 const apps = [
-  { label: "Optilens", icon: Glasses, path: "/admin/catalog-publisher", color: "hsl(215 65% 50%)" },
+  { label: "OpticAdmin", icon: Glasses, path: "/admin/catalog-publisher", color: "hsl(215 65% 50%)" },
   { label: "Contacts", icon: Users, path: "/admin/erp/contacts", color: "hsl(168 76% 42%)" },
   { label: "CRM", icon: Target, path: "/admin/erp/crm", color: "hsl(280 60% 55%)" },
   { label: "Helpdesk", icon: LifeBuoy, path: "/admin/erp/helpdesk", color: "hsl(38 92% 50%)" },
