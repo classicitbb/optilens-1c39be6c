@@ -44,11 +44,13 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
   useEffect(() => {
     if (!open || isMobile) return;
     const handleClick = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      // Don't close if clicking the Apps toggle button itself (AdminTopBar handles that)
+      if (target.closest('[data-apps-toggle]')) return;
+      if (panelRef.current && !panelRef.current.contains(target)) {
         onClose();
       }
     };
-    // Delay to avoid catching the toggle click
     const timer = setTimeout(() => document.addEventListener("mousedown", handleClick), 0);
     return () => { clearTimeout(timer); document.removeEventListener("mousedown", handleClick); };
   }, [open, isMobile, onClose]);
