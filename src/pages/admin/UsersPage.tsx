@@ -2,12 +2,13 @@ import { useState, useMemo, Fragment } from "react";
 import { useAdminUsers, type AdminUser } from "@/hooks/useAdminUsers";
 import type { AppRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, ChevronDown, Check, X, Lock, Mail } from "lucide-react";
+import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, ChevronDown, Check, X, Lock, Mail, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -27,6 +28,7 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 
 const UsersPage = () => {
   const { users, isLoading, assignRole, removeRole, resetPassword, inviteUser, createUser } = useAdminUsers();
+  const { realRole, startImpersonation } = useAdminRole();
   const { toast } = useToast();
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("viewer");
@@ -291,6 +293,16 @@ const UsersPage = () => {
                   <td className="px-3 py-2 text-right">
                     {editingUser !== user.user_id && (
                       <div className="flex items-center justify-end gap-1">
+                        {realRole === "admin" && user.role && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title={`Preview as ${user.display_name || user.email}`}
+                            onClick={() => {
+                              startImpersonation(user.role!, user.display_name || user.email || user.role!);
+                              toast({ title: "Impersonating", description: `Now viewing as ${user.role} role.` });
+                            }}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" className="h-7 w-7" title="Set password" onClick={() => { setPwDialogUser(user); setNewPassword(""); }}>
                           <Lock className="h-3.5 w-3.5" />
                         </Button>

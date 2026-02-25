@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutGrid, Bell, HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, ChevronDown
+  BookOpen, User, Download, ChevronDown, Eye, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -48,7 +48,7 @@ function getRouteLabel(pathname: string): string {
 
 const AdminTopBar = () => {
   const { user, signOut } = useAuth();
-  const { role } = useAdminRole();
+  const { role, realRole, isImpersonating, impersonatedUserName, stopImpersonation } = useAdminRole();
   const navigate = useNavigate();
   const location = useLocation();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -140,6 +140,26 @@ const AdminTopBar = () => {
         {/* ── RIGHT GROUP ── */}
         <div className="flex items-center gap-1 shrink-0">
           <TooltipProvider delayDuration={300}>
+            {/* Revert impersonation */}
+            {role !== realRole && isImpersonating && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                style={{
+                  borderColor: "hsl(45 93% 47%)",
+                  background: "hsl(48 100% 96%)",
+                  color: "hsl(32 95% 35%)",
+                }}
+                onClick={stopImpersonation}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Viewing as {impersonatedUserName || role}</span>
+                <span className="sm:hidden">Revert</span>
+                <X className="h-3 w-3 ml-1" />
+              </Button>
+            )}
+
             {/* Bell */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -161,7 +181,7 @@ const AdminTopBar = () => {
             </Tooltip>
 
             {/* Lovable link — admin only */}
-            {role === "admin" && (
+            {realRole === "admin" && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <a
