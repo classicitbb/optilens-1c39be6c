@@ -118,6 +118,7 @@ const AdminTopBar = () => {
             className="h-7 w-7 shrink-0"
             onClick={() => setLauncherOpen(!launcherOpen)}
             title="Applications"
+            data-apps-toggle
           >
             <LayoutGrid className="h-[18px] w-[18px]" style={{ color: "hsl(215 15% 50%)" }} />
           </Button>
