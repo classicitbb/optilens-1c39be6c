@@ -2,8 +2,9 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Glasses, Users, Target, LifeBuoy, ShoppingCart, FileText, Globe,
-  Settings, Ship, FileSpreadsheet, ArrowLeft, HelpCircle
+  Settings, Ship, FileSpreadsheet, ArrowLeft, HelpCircle, X
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AppLauncherProps {
   open: boolean;
@@ -28,6 +29,7 @@ const apps = [
 const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!open) return;
@@ -38,80 +40,127 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
+  // Close on outside click (desktop only)
+  useEffect(() => {
+    if (!open || isMobile) return;
+    const handleClick = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    // Delay to avoid catching the toggle click
+    const timer = setTimeout(() => document.addEventListener("mousedown", handleClick), 0);
+    return () => { clearTimeout(timer); document.removeEventListener("mousedown", handleClick); };
+  }, [open, isMobile, onClose]);
+
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      {/* Backdrop */}
-      <div className="absolute inset-0" style={{ background: "hsl(215 30% 8% / 0.7)", backdropFilter: "blur(4px)" }} />
-      {/* Panel */}
-      <div
-        ref={panelRef}
-        onClick={(e) => e.stopPropagation()}
-        className="relative z-10 p-6 border flex flex-col"
-        style={{
-          background: "hsl(215 28% 14%)",
-          borderColor: "hsl(215 25% 22%)",
-          borderRadius: "12px",
-          boxShadow: "0 25px 60px -12px hsl(215 40% 5% / 0.5)",
-          maxWidth: "480px",
-          width: "90vw",
-        }}
-      >
-        {/* Header with title and help */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold" style={{ color: "hsl(210 20% 85%)" }}>
-            Applications
-          </h3>
-          <button
-            onClick={() => { navigate("/admin/wiki"); onClose(); }}
-            className="p-1 rounded hover:bg-white/10 transition-colors"
-            title="Help / Wiki"
-          >
-            <HelpCircle className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
+  // Mobile: fullscreen overlay
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "hsl(215 28% 14%)" }}>
+        {/* Mobile header */}
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid hsl(215 25% 22%)" }}>
+          <h3 className="text-sm font-semibold" style={{ color: "hsl(210 20% 85%)" }}>Applications</h3>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-white/10 transition-colors">
+            <X className="h-5 w-5" style={{ color: "hsl(210 20% 85%)" }} />
           </button>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-          {apps.map((app) => (
-            <button
-              key={app.label}
-              onClick={() => { navigate(app.path); onClose(); }}
-              className="flex flex-col items-center justify-center gap-1.5 transition-all duration-200 hover:scale-105 group"
-              style={{
-                width: "80px",
-                height: "80px",
-                background: "hsl(215 25% 18%)",
-                borderRadius: "8px",
-                border: "1px solid hsl(215 25% 22%)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "hsl(168 76% 42%)";
-                e.currentTarget.style.background = "hsl(215 25% 20%)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "hsl(215 25% 22%)";
-                e.currentTarget.style.background = "hsl(215 25% 18%)";
-              }}
-            >
-              <app.icon className="h-8 w-8" style={{ color: app.color }} />
-              <span className="text-[10px] font-medium" style={{ color: "hsl(210 20% 85%)" }}>
-                {app.label}
-              </span>
-            </button>
-          ))}
+        {/* Grid */}
+        <div className="flex-1 overflow-auto p-4">
+          <div className="grid grid-cols-3 gap-3">
+            {apps.map((app) => (
+              <button
+                key={app.label}
+                onClick={() => { navigate(app.path); onClose(); }}
+                className="flex flex-col items-center justify-center gap-2 py-4 rounded-lg transition-colors"
+                style={{ background: "hsl(215 25% 18%)", border: "1px solid hsl(215 25% 22%)" }}
+              >
+                <app.icon className="h-8 w-8" style={{ color: app.color }} />
+                <span className="text-[11px] font-medium" style={{ color: "hsl(210 20% 85%)" }}>{app.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Back to site */}
         <button
           onClick={() => { navigate("/"); onClose(); }}
-          className="mt-5 flex items-center justify-center gap-2 w-full py-2 rounded-md transition-colors hover:bg-white/10"
+          className="flex items-center justify-center gap-2 py-3 transition-colors hover:bg-white/10"
           style={{ color: "hsl(210 15% 65%)", borderTop: "1px solid hsl(215 25% 22%)" }}
         >
           <ArrowLeft className="h-4 w-4" />
           <span className="text-xs font-medium">Back to Site</span>
         </button>
       </div>
+    );
+  }
+
+  // Desktop: flyout from top-left, anchored below the header
+  return (
+    <div
+      ref={panelRef}
+      className="fixed z-50 p-5 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200"
+      style={{
+        top: "44px", // below the h-11 header
+        left: "4px",
+        background: "hsl(215 28% 14%)",
+        borderColor: "hsl(215 25% 22%)",
+        border: "1px solid hsl(215 25% 22%)",
+        borderRadius: "0 0 12px 12px",
+        boxShadow: "0 20px 50px -12px hsl(215 40% 5% / 0.6)",
+        width: "380px",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold" style={{ color: "hsl(210 20% 85%)" }}>Applications</h3>
+        <button
+          onClick={() => { navigate("/admin/wiki"); onClose(); }}
+          className="p-1 rounded hover:bg-white/10 transition-colors"
+          title="Help / Wiki"
+        >
+          <HelpCircle className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2.5">
+        {apps.map((app) => (
+          <button
+            key={app.label}
+            onClick={() => { navigate(app.path); onClose(); }}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-lg transition-all duration-150 hover:scale-105"
+            style={{
+              width: "76px",
+              height: "76px",
+              background: "hsl(215 25% 18%)",
+              border: "1px solid hsl(215 25% 22%)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "hsl(168 76% 42%)";
+              e.currentTarget.style.background = "hsl(215 25% 20%)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "hsl(215 25% 22%)";
+              e.currentTarget.style.background = "hsl(215 25% 18%)";
+            }}
+          >
+            <app.icon className="h-7 w-7" style={{ color: app.color }} />
+            <span className="text-[10px] font-medium" style={{ color: "hsl(210 20% 85%)" }}>{app.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Back to site */}
+      <button
+        onClick={() => { navigate("/"); onClose(); }}
+        className="mt-4 flex items-center justify-center gap-2 w-full py-2 rounded-md transition-colors hover:bg-white/10"
+        style={{ color: "hsl(210 15% 65%)", borderTop: "1px solid hsl(215 25% 22%)" }}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        <span className="text-xs font-medium">Back to Site</span>
+      </button>
     </div>
   );
 };
