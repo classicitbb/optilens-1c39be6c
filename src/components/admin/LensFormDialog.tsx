@@ -36,7 +36,7 @@ const emptyForm: LensFormData = {
   index_value: 1.5, base_price: 0, sell_price: 0,
   sph_min: -6, sph_max: 6, cyl_min: -4, cyl_max: 0,
   add_min: null, add_max: null,
-  is_active: true, show_in_pricelist: true, full_lab: false, show_in_ws_pricelist: false, show_on_website: false, notes: null, option: null,
+  is_active: true, show_in_pricelist: true, full_lab: false, show_in_ws_pricelist: false, show_on_website: false, notes: null, option: null
 };
 
 const fmt = (n: number) => n.toFixed(2);
@@ -46,7 +46,7 @@ const MARGIN_STATUS_COLORS: Record<string, string> = {
   healthy: "bg-green-100 text-green-800",
   thin: "bg-yellow-100 text-yellow-800",
   below_floor: "bg-orange-100 text-orange-800",
-  loss: "bg-red-100 text-red-800",
+  loss: "bg-red-100 text-red-800"
 };
 
 const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAndClose, onNavigate, isPending }: Props) => {
@@ -93,9 +93,9 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
         show_in_ws_pricelist: lens.show_in_ws_pricelist ?? false,
         show_on_website: lens.show_on_website ?? false,
         notes: lens.notes,
-        option: lens.lens_lens_options.length > 0
-          ? { lens_option_id: lens.lens_lens_options[0].lens_option_id, extra_cost: lens.lens_lens_options[0].extra_cost }
-          : null,
+        option: lens.lens_lens_options.length > 0 ?
+        { lens_option_id: lens.lens_lens_options[0].lens_option_id, extra_cost: lens.lens_lens_options[0].extra_cost } :
+        null
       });
     } else {
       setForm(emptyForm);
@@ -105,7 +105,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   useEffect(() => {
     if (open) {
       userEditedRef.current = false;
-      const timer = setTimeout(() => { initialFormRef.current = JSON.stringify(form); }, 0);
+      const timer = setTimeout(() => {initialFormRef.current = JSON.stringify(form);}, 0);
       return () => clearTimeout(timer);
     }
   }, [open, lens]);
@@ -115,18 +115,18 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const selectedLensType = (lenstypes.data ?? []).find((lt) => lt.id === form.lenstype_id);
   const selectedFinishType = (finishtypes.data ?? []).find((f) => f.id === form.finishtype_id);
   const selectedOption = (lensOptions.data ?? []).find((o) => o.id === form.option?.lens_option_id);
-  const showAdd = selectedLensType
-    ? PROGRESSIVE_KEYWORDS.some((kw) => selectedLensType.name.toLowerCase().includes(kw))
-    : false;
+  const showAdd = selectedLensType ?
+  PROGRESSIVE_KEYWORDS.some((kw) => selectedLensType.name.toLowerCase().includes(kw)) :
+  false;
 
   const generateName = useCallback(() => {
     const parts = [
-      selectedMaterial?.abbrev,
-      selectedFinishType?.abbrev,
-      selectedMftype?.abbrev,
-      selectedLensType?.name,
-      selectedOption?.name,
-    ].filter(Boolean);
+    selectedMaterial?.abbrev,
+    selectedFinishType?.abbrev,
+    selectedMftype?.abbrev,
+    selectedLensType?.name,
+    selectedOption?.name].
+    filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "";
   }, [selectedMaterial, selectedMftype, selectedLensType, selectedFinishType, selectedOption]);
 
@@ -146,12 +146,12 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
     duty_applicable: false,
     labour_cost: form.full_lab ? form.base_price * 0.05 : 0,
     category: "lenses",
-    sell_price: form.sell_price,
+    sell_price: form.sell_price
   }), [form.base_price, form.sell_price, form.full_lab, calculate]);
 
   const governance = useMemo(() => checkGovernance(calc, settings, form.base_price), [calc, settings, form.base_price]);
 
-  const set = <K extends keyof LensFormData>(key: K, value: LensFormData[K]) => {
+  const set = <K extends keyof LensFormData,>(key: K, value: LensFormData[K]) => {
     userEditedRef.current = true;
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -164,20 +164,20 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const setOption = (optionId: string) => {
     setForm((prev) => ({
       ...prev,
-      option: optionId ? { lens_option_id: optionId, extra_cost: prev.option?.extra_cost ?? 0 } : null,
+      option: optionId ? { lens_option_id: optionId, extra_cost: prev.option?.extra_cost ?? 0 } : null
     }));
   };
 
   const setOptionCost = (cost: number) => {
     setForm((prev) => ({
       ...prev,
-      option: prev.option ? { ...prev.option, extra_cost: cost } : null,
+      option: prev.option ? { ...prev.option, extra_cost: cost } : null
     }));
   };
 
   const buildFinalForm = () => {
     const finalForm = { ...form };
-    if (!showAdd) { finalForm.add_min = null; finalForm.add_max = null; }
+    if (!showAdd) {finalForm.add_min = null;finalForm.add_max = null;}
     return finalForm;
   };
 
@@ -189,15 +189,15 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
       return;
     }
     const finalForm = buildFinalForm();
-    if (action === "save") onSubmit(finalForm);
-    else onSubmitAndClose?.(finalForm);
+    if (action === "save") onSubmit(finalForm);else
+    onSubmitAndClose?.(finalForm);
   };
 
   const handleReasonConfirm = (reason: string) => {
     setReasonDialogOpen(false);
     const finalForm = buildFinalForm();
-    if (pendingAction === "save") onSubmit(finalForm, reason);
-    else onSubmitAndClose?.(finalForm, reason);
+    if (pendingAction === "save") onSubmit(finalForm, reason);else
+    onSubmitAndClose?.(finalForm, reason);
     setPendingAction(null);
   };
 
@@ -254,11 +254,11 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const labelCls = "text-xs font-medium";
   const sectionCls = "text-[11px] font-semibold uppercase tracking-wider mb-2";
 
-  const RefSelect = ({ label, value, onChange, items }: { label: string; value: string; onChange: (v: string) => void; items: ReferenceItem[] }) => {
+  const RefSelect = ({ label, value, onChange, items }: {label: string;value: string;onChange: (v: string) => void;items: ReferenceItem[];}) => {
     const [open, setOpen] = useState(false);
     const selected = items.find((i) => i.id === value);
     return (
-      <div className="space-y-0.5">
+      <div className="space-y-0.5 rounded-md bg-slate-100">
         <Label className="text-[11px]">{label}</Label>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
@@ -273,27 +273,27 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
               <CommandList>
                 <CommandEmpty className="py-2 text-xs text-center">No results.</CommandEmpty>
                 <CommandGroup>
-                  {items.map((i) => (
-                    <CommandItem key={i.id} value={i.name} onSelect={() => { onChange(i.id); setOpen(false); }} className="text-xs">
+                  {items.map((i) =>
+                  <CommandItem key={i.id} value={i.name} onSelect={() => {onChange(i.id);setOpen(false);}} className="text-xs">
                       <Check className={`mr-1.5 h-3 w-3 ${value === i.id ? "opacity-100" : "opacity-0"}`} />
                       {i.name}
                     </CommandItem>
-                  ))}
+                  )}
                 </CommandGroup>
               </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
-      </div>
-    );
+      </div>);
+
   };
 
-  const NumInput = ({ label, value, onChange, step = "0.25" }: { label: string; value: number | null; step?: string; onChange: (v: string) => void }) => (
-    <div className="space-y-0.5">
+  const NumInput = ({ label, value, onChange, step = "0.25" }: {label: string;value: number | null;step?: string;onChange: (v: string) => void;}) =>
+  <div className="space-y-0.5">
       <Label className="text-[11px]">{label}</Label>
       <Input type="number" step={step} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={inputCls} />
-    </div>
-  );
+    </div>;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -303,21 +303,21 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
             <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
               {lens ? "Edit Lens" : "Add Lens"}
             </DialogTitle>
-            {lens && onNavigate && lenses && (
-              <div className="flex items-center gap-1.5 text-xs mr-[30px]" style={{ color: "hsl(215 15% 50%)" }}>
+            {lens && onNavigate && lenses &&
+            <div className="flex items-center gap-1.5 text-xs mr-[30px]" style={{ color: "hsl(215 15% 50%)" }}>
                 <span>{currentIndex + 1} / {lenses.length}</span>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-                  disabled={!canGoPrev || isPending}
-                  onClick={() => canGoPrev && handleNavigate(lenses[currentIndex - 1])}>
+              disabled={!canGoPrev || isPending}
+              onClick={() => canGoPrev && handleNavigate(lenses[currentIndex - 1])}>
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </Button>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-                  disabled={!canGoNext || isPending}
-                  onClick={() => canGoNext && handleNavigate(lenses[currentIndex + 1])}>
+              disabled={!canGoNext || isPending}
+              onClick={() => canGoNext && handleNavigate(lenses[currentIndex + 1])}>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
-            )}
+            }
           </div>
         </DialogHeader>
 
@@ -332,19 +332,19 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     <Label className="text-[11px]">Name</Label>
                     <div className="flex gap-1">
                       <Input value={form.name} readOnly={nameLocked} onChange={(e) => set("name", e.target.value)}
-                        className={`${inputCls} flex-1 ${nameLocked ? "bg-muted" : ""}`} placeholder="Lens SKU name" />
+                      className={`${inputCls} flex-1 ${nameLocked ? "bg-muted" : ""}`} placeholder="Lens SKU name" />
                       <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Regenerate name"
-                        onClick={() => { const name = generateName(); if (name) set("name", name); }}>
+                      onClick={() => {const name = generateName();if (name) set("name", name);}}>
                         <RefreshCw className="h-3 w-3" />
                       </Button>
                       <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0"
-                        title={nameLocked ? "Unlock to edit manually" : "Lock to auto-generate"}
-                        onClick={() => setNameLocked((v) => !v)}>
+                      title={nameLocked ? "Unlock to edit manually" : "Lock to auto-generate"}
+                      onClick={() => setNameLocked((v) => !v)}>
                         {nameLocked ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
                       </Button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 bg-slate-100 rounded-md shadow-sm">
                     <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeSuppliers} />
                     <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeBrands} />
                     <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} />
@@ -352,9 +352,9 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeLenstypes} />
                     <RefSelect label="Finish Type" value={form.finishtype_id ?? ""} onChange={(v) => set("finishtype_id", v || null)} items={activeFinishtypes} />
                     <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} />
-                    {form.option && (
-                      <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
-                    )}
+                    {form.option &&
+                    <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
+                    }
                   </div>
                 </div>
               </div>
@@ -370,12 +370,12 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                   <NumInput label="SPH Max" value={form.sph_max} onChange={(v) => setNum("sph_max", v)} />
                   <NumInput label="CYL Min" value={form.cyl_min} onChange={(v) => setNum("cyl_min", v)} />
                   <NumInput label="CYL Max" value={form.cyl_max} onChange={(v) => setNum("cyl_max", v)} />
-                  {showAdd && (
-                    <>
+                  {showAdd &&
+                  <>
                       <NumInput label="ADD Min" value={form.add_min} onChange={(v) => set("add_min", v === "" ? null : parseFloat(v) as any)} />
                       <NumInput label="ADD Max" value={form.add_max} onChange={(v) => set("add_max", v === "" ? null : parseFloat(v) as any)} />
                     </>
-                  )}
+                  }
                 </div>
               </div>
             </div>
@@ -394,17 +394,17 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                 <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Flags</p>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                   {([
-                    ["is_active", "Active"],
-                    ["show_in_pricelist", "Price List"],
-                    ["full_lab", "Full Lab"],
-                    ["show_in_ws_pricelist", "WSPL"],
-                    ["show_on_website", "Website"],
-                  ] as [keyof LensFormData, string][]).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-1.5 text-xs">
+                  ["is_active", "Active"],
+                  ["show_in_pricelist", "Price List"],
+                  ["full_lab", "Full Lab"],
+                  ["show_in_ws_pricelist", "WSPL"],
+                  ["show_on_website", "Website"]] as
+                  [keyof LensFormData, string][]).map(([key, label]) =>
+                  <label key={key} className="flex items-center gap-1.5 text-xs">
                       <Switch checked={!!form[key]} onCheckedChange={(v) => set(key, v as any)} />
                       {label}
                     </label>
-                  ))}
+                  )}
                 </div>
               </div>
               <Separator />
@@ -427,18 +427,18 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
               <Separator />
 
               {/* Calculated Values */}
-              <div>
+              <div className="px-[10px] py-[10px] border rounded">
                 <div className="flex items-center gap-2 mb-2">
                   <p className={sectionCls + " mb-0"} style={{ color: "hsl(215 15% 45%)" }}>Calculated Values</p>
-                  {calc?.margin_status && (
-                    <Badge className={`text-[10px] px-1.5 py-0 ${MARGIN_STATUS_COLORS[calc.margin_status]}`}>
+                  {calc?.margin_status &&
+                  <Badge className={`text-[10px] px-1.5 py-0 ${MARGIN_STATUS_COLORS[calc.margin_status]}`}>
                       {calc.margin_status === "loss" && <AlertTriangle className="h-3 w-3 mr-0.5" />}
                       {calc.margin_status}
                     </Badge>
-                  )}
+                  }
                 </div>
-                {calc ? (
-                  <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-xs">
+                {calc ?
+                <div className="grid grid-cols-4 gap-x-4 gap-y-1.5 text-xs">
                     <ReadOnly label="FX Rate" value={calc.fx_rate_used.toFixed(4)} />
                     <ReadOnly label="Converted (BBD)" value={fmt(calc.converted_cost)} />
                     <ReadOnly label="CIF (BBD)" value={fmt(calc.cif)} />
@@ -455,17 +455,17 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     <ReadOnly label="Strat. Price (BBD)" value={fmt(calc.strategic_price)} />
                     <ReadOnly label="Margin" value={calc.margin != null ? fmtPct(calc.margin) : "—"} />
                     <ReadOnly label="Sell (USD)" value={calc.sell_price_usd != null ? fmt(calc.sell_price_usd) : "—"} />
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Loading pricing settings…</p>
-                )}
-                {calc?.governance_flags && (calc.governance_flags.at_loss || calc.governance_flags.below_floor || calc.governance_flags.below_target) && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                  </div> :
+
+                <p className="text-xs text-muted-foreground">Loading pricing settings…</p>
+                }
+                {calc?.governance_flags && (calc.governance_flags.at_loss || calc.governance_flags.below_floor || calc.governance_flags.below_target) &&
+                <div className="mt-2 flex flex-wrap gap-1.5">
                     {calc.governance_flags.at_loss && <Badge variant="destructive" className="text-[10px]">At Loss</Badge>}
                     {calc.governance_flags.below_floor && <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-700">Below Floor</Badge>}
                     {calc.governance_flags.below_target && <Badge variant="outline" className="text-[10px]">Below Target</Badge>}
                   </div>
-                )}
+                }
               </div>
 
               {/* Governance Alert */}
@@ -476,15 +476,15 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }}
-              disabled={!isValid || isPending || governance.blocked}>
+            disabled={!isValid || isPending || governance.blocked}>
               {isPending ? "Saving…" : "Save"}
             </Button>
-            {onSubmitAndClose && (
-              <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }}
-                disabled={!isValid || isPending || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
+            {onSubmitAndClose &&
+            <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }}
+            disabled={!isValid || isPending || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
                 Save & Close
               </Button>
-            )}
+            }
           </DialogFooter>
         </form>
       </DialogContent>
@@ -492,30 +492,30 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
       <ConcessionReasonDialog
         open={reasonDialogOpen}
         onConfirm={handleReasonConfirm}
-        onCancel={() => { setReasonDialogOpen(false); setPendingAction(null); }}
-      />
+        onCancel={() => {setReasonDialogOpen(false);setPendingAction(null);}} />
+
       <UnsavedChangesDialog
         open={unsavedDialogOpen}
         onSave={handleUnsavedSave}
         onDiscard={handleUnsavedDiscard}
-        onCancel={handleUnsavedCancel}
-      />
-    </Dialog>
-  );
+        onCancel={handleUnsavedCancel} />
+
+    </Dialog>);
+
 };
 
-const ReadOnly = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
-  <div>
+const ReadOnly = ({ label, value, highlight }: {label: string;value: string;highlight?: boolean;}) =>
+<div>
     <span className="text-[10px]" style={{ color: "hsl(215 15% 50%)" }}>{label}</span>
     <div className="h-7 flex items-center px-2 rounded text-xs tabular-nums"
-      style={{
-        background: highlight ? "hsl(215 60% 95%)" : "hsl(215 20% 97%)",
-        color: "hsl(215 30% 15%)",
-        fontWeight: highlight ? 600 : 400,
-      }}>
+  style={{
+    background: highlight ? "hsl(215 60% 95%)" : "hsl(215 20% 97%)",
+    color: "hsl(215 30% 15%)",
+    fontWeight: highlight ? 600 : 400
+  }}>
       {value}
     </div>
-  </div>
-);
+  </div>;
+
 
 export default LensFormDialog;
