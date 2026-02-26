@@ -8,14 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Trash2, Copy, BarChart3, Ship } from "lucide-react";
+import { Plus, Search, Trash2, Copy, Ship } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import CostingsReportsPage from "./CostingsReportsPage";
 
 const statusColor: Record<string, string> = {
   draft: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
@@ -205,24 +203,7 @@ const ImportCostingsPage = () => {
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Costings</h1>
-
-      <Tabs defaultValue="shipments" className="w-full">
-        <TabsList className="h-8 p-0.5 gap-0.5" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
-          <TabsTrigger value="shipments" className="text-xs h-7 px-3 data-[state=active]:shadow-none flex items-center gap-1.5" style={{ borderRadius: "3px" }}>
-            <Ship className="h-3.5 w-3.5" /> Shipments
-          </TabsTrigger>
-          <TabsTrigger value="reports" className="text-xs h-7 px-3 data-[state=active]:shadow-none flex items-center gap-1.5" style={{ borderRadius: "3px" }}>
-            <BarChart3 className="h-3.5 w-3.5" /> Reports
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="shipments" className="mt-3">
-          <ShipmentsTab />
-        </TabsContent>
-        <TabsContent value="reports" className="mt-3">
-          <CostingsReportsPage embedded />
-        </TabsContent>
-      </Tabs>
+      <ShipmentsTab />
     </div>
   );
 };
