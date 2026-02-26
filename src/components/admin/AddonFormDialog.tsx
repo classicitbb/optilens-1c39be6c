@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, X } from "lucide-react";
 import type { Addon, AddonFormData } from "@/hooks/useAddons";
 import type { PricingSheet } from "@/hooks/usePricingSheets";
 import type { AddonPricingSheet } from "@/hooks/useAddonPricingSheets";
@@ -235,27 +235,32 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
               {addon ? "Edit Add-On" : "New Add-On"}
             </DialogTitle>
-            {addon && onNavigate && addons &&
-            <div className="flex items-center gap-1.5 text-xs mr-[30px]" style={{ color: "hsl(215 15% 50%)" }}>
-                <span>{currentIndex + 1} / {addons.length}</span>
-                <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-              disabled={!canGoPrev || isPending}
-              onClick={() => canGoPrev && handleNavigate(addons[currentIndex - 1])}>
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-                <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-              disabled={!canGoNext || isPending}
-              onClick={() => canGoNext && handleNavigate(addons[currentIndex + 1])}>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
+            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                {addon && onNavigate && addons && <>
+                  <span>{currentIndex + 1} / {addons.length}</span>
+                  <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                    disabled={!canGoPrev || isPending}
+                    onClick={() => canGoPrev && handleNavigate(addons[currentIndex - 1])}>
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button type="button" variant="outline" size="icon" className="h-6 w-6"
+                    disabled={!canGoNext || isPending}
+                    onClick={() => canGoNext && handleNavigate(addons[currentIndex + 1])}>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </>}
+                <DialogClose asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6">
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </DialogClose>
               </div>
-            }
           </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
