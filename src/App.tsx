@@ -28,6 +28,7 @@ import BuySellPricesPage from "./pages/admin/BuySellPricesPage";
 import ImportsPage from "./pages/admin/ImportsPage";
 import UsersPage from "./pages/admin/UsersPage";
 import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
+import RolesPermissionsPage from "./pages/admin/RolesPermissionsPage";
 import AdminWikiPage from "./pages/admin/AdminWikiPage";
 import ContentManagerPage from "./pages/admin/ContentManagerPage";
 import ImportCostingsPage from "./pages/admin/costings/ImportCostingsPage";
@@ -149,7 +150,7 @@ const App = () => (
                 <Route path="settings" element={<Navigate to="/admin/settings/company" replace />} />
                 <Route path="settings/company" element={<CompanySettingsPage />} />
                 <Route path="settings/users" element={<UsersPage />} />
-                <Route path="settings/roles" element={<PlaceholderPage />} />
+                <Route path="settings/roles" element={<RolesPermissionsPage />} />
                 <Route path="settings/audit" element={<AuditLogPage />} />
                 <Route path="settings/integrations" element={<PlaceholderPage />} />
 
