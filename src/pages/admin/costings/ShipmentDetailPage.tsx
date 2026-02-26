@@ -270,7 +270,7 @@ const ShipmentDetailPage = () => {
         if (error) throw error;
         logChange({ table_name: "shipments", record_id: data.id, action: "create", new_data: data });
         toast({ title: "Shipment created" });
-        navigate(`/admin/costings/shipments/${data.id}`, { replace: true });
+        navigate(`/admin/pricing/costings/${data.id}`, { replace: true });
       } else {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
         const { error } = await (supabase.from("shipments" as any) as any).update(form).eq("id", id);

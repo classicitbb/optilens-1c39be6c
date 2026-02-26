@@ -152,13 +152,15 @@ const AssignDialog = ({ template, open, onClose }: { template: CatalogTemplate |
   const { toast } = useToast();
   const qc = useQueryClient();
 
+  const assignmentKey = useMemo(
+    () => JSON.stringify(assignments.map((a) => a.customer_id).filter(Boolean).sort()),
+    [assignments]
+  );
+
   useEffect(() => {
-    if (assignments.length > 0) {
-      setSelected(new Set(assignments.map((a) => a.customer_id!).filter(Boolean)));
-    } else {
-      setSelected(new Set());
-    }
-  }, [assignments]);
+    const ids = JSON.parse(assignmentKey) as number[];
+    setSelected(new Set(ids));
+  }, [assignmentKey]);
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers;
@@ -269,7 +271,7 @@ const CatalogPublisherPage = () => {
         cover_subtitle: settings?.slogan ?? "",
       });
       toast({ title: "Catalog created" });
-      navigate(`/admin/catalog-publisher/${created.id}`);
+      navigate(`/admin/pricing/publisher/${created.id}`);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -375,7 +377,7 @@ const CatalogPublisherPage = () => {
                   <TableRow
                     key={t.id}
                     className="cursor-pointer"
-                    onClick={() => navigate(`/admin/catalog-publisher/${t.id}`)}
+                    onClick={() => navigate(`/admin/pricing/publisher/${t.id}`)}
                   >
                     <TableCell className="text-xs font-medium py-1.5">{t.name}</TableCell>
                     <TableCell className="text-xs py-1.5" style={{ color: "hsl(215 15% 55%)" }}>{fmtDate(t.updated_at)}</TableCell>
@@ -392,7 +394,7 @@ const CatalogPublisherPage = () => {
                     {canEdit && (
                       <TableCell className="text-xs py-1.5">
                         <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Edit" onClick={() => navigate(`/admin/catalog-publisher/${t.id}`)}>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Edit" onClick={() => navigate(`/admin/pricing/publisher/${t.id}`)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-6 w-6" title="Assign to Customers" onClick={() => setAssignTarget(t)}>
