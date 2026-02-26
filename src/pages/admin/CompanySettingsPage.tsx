@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import PricingSettingsTab from "@/components/admin/PricingSettingsTab";
 
 import { Upload, ImageIcon } from "lucide-react";
 
@@ -173,7 +172,6 @@ const CompanySettingsPage = () => {
       <Tabs defaultValue="company" className="w-full">
         <TabsList className="h-9">
           <TabsTrigger value="company" className="text-xs">Company Variables</TabsTrigger>
-          <TabsTrigger value="pricing" className="text-xs">Pricing Settings</TabsTrigger>
         </TabsList>
 
         {/* ── Company Variables ── */}
@@ -289,13 +287,6 @@ const CompanySettingsPage = () => {
                 </Button>
               </div>
             }
-          </div>
-        </TabsContent>
-
-        {/* ── Pricing Settings (now includes Legacy Rates) ── */}
-        <TabsContent value="pricing">
-          <div className="pt-2">
-            <PricingSettingsTab />
           </div>
         </TabsContent>
 

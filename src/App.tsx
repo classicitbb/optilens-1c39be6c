@@ -42,6 +42,7 @@ import ContactsPage from "./pages/admin/erp/ContactsPage";
 import ContactTagsConfigPage from "./pages/admin/erp/ContactTagsConfigPage";
 import IndustriesConfigPage from "./pages/admin/erp/IndustriesConfigPage";
 import ErpPlaceholderPage from "./pages/admin/erp/ErpPlaceholderPage";
+import PricingSettingsPage from "./pages/admin/PricingSettingsPage";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
@@ -100,6 +101,7 @@ const App = () => (
                 <Route path="pricing/costings/reports" element={<CostingsReportsPage />} />
                 <Route path="pricing/reference" element={<ReferenceDataPage />} />
                 <Route path="pricing/imports" element={<ImportsPage />} />
+                <Route path="pricing/settings" element={<PricingSettingsPage />} />
                 {/* Legacy pricing route */}
                 <Route path="pricing/legacy" element={<LensPricesPage />} />
 

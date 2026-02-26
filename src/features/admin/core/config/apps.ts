@@ -1,6 +1,6 @@
 import {
   DollarSign, ShoppingCart, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
-  Package, Eye, Layers, BoxSelect, FileText, Ship, BarChart3, Database, Upload,
+  Package, Eye, Layers, BoxSelect, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal,
   FileEdit, ShoppingBag, ClipboardList,
   Contact, Tags, Factory,
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
@@ -38,6 +38,7 @@ export const ADMIN_APPS = {
       { label: 'Costing Reports', route: '/admin/pricing/costings/reports', icon: BarChart3 },
       { label: 'Reference Data', route: '/admin/pricing/reference', icon: Database },
       { label: 'Imports', route: '/admin/pricing/imports', icon: Upload },
+      { label: 'Pricing Settings', route: '/admin/pricing/settings', icon: SlidersHorizontal },
     ] satisfies SidebarItem[],
   },
   sales: {
