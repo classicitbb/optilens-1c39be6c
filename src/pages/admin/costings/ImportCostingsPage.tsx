@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useShipments, Shipment } from "@/hooks/useShipments";
+import { useShipmentTypes } from "@/hooks/useImportCostingRefs";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuditLog } from "@/hooks/useAuditLog";
@@ -22,10 +23,9 @@ const statusColor: Record<string, string> = {
   locked: "bg-green-500/20 text-green-300 border-green-500/30",
 };
 
-type TypeFilter = "all" | "lens" | "non-lens";
-
 const ShipmentsTab = () => {
   const { data: shipments = [], isLoading, createMutation, deleteMutation } = useShipments();
+  const { data: shipmentTypes = [] } = useShipmentTypes();
   const { canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
   const canEdit = canEditFeature("costings");
@@ -33,13 +33,13 @@ const ShipmentsTab = () => {
   const { toast } = useToast();
   const { logChange } = useAuditLog();
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<Shipment | null>(null);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     return shipments.filter((sh) => {
-      if (typeFilter !== "all" && sh.type !== typeFilter) return false;
+      if (typeFilter !== "all" && sh.type !== typeFilter && sh.commodity !== typeFilter) return false;
       if (!s) return true;
       return (
         sh.invoice_number.toLowerCase().includes(s) ||
@@ -50,8 +50,10 @@ const ShipmentsTab = () => {
     });
   }, [shipments, search, typeFilter]);
 
+  const activeShipmentTypes = shipmentTypes.filter(t => t.is_active);
+
   const handleCreate = () => {
-    const typePath = typeFilter === "lens" ? "?type=lens" : typeFilter === "non-lens" ? "?type=non-lens" : "";
+    const typePath = typeFilter !== "all" ? `?type=${typeFilter}` : "";
     navigate(`/admin/pricing/costings/new${typePath}`);
   };
 
@@ -90,17 +92,17 @@ const ShipmentsTab = () => {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-1.5">
-          {(["all", "lens", "non-lens"] as TypeFilter[]).map((f) => (
+          {[{ code: "all", name: "All" }, ...activeShipmentTypes].map((f) => (
             <button
-              key={f}
-              onClick={() => setTypeFilter(f)}
+              key={f.code}
+              onClick={() => setTypeFilter(f.code)}
               className={`h-7 px-3 text-xs rounded font-medium transition-colors border ${
-                typeFilter === f
+                typeFilter === f.code
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-background text-muted-foreground border-border hover:bg-muted"
               }`}
             >
-              {f === "all" ? "All" : f === "lens" ? "Lens" : "Non-Lens"}
+              {f.name}
             </button>
           ))}
         </div>
