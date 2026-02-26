@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useShipmentCharges, useShipmentLines, computeShipmentTotals, computeLineCosts, CHARGE_TYPES, type Shipment, type ShipmentCharge, type ShipmentLine } from "@/hooks/useShipments";
+import { useShipmentTypes } from "@/hooks/useImportCostingRefs";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { useLenses } from "@/hooks/useLenses";
 import { useSupplies } from "@/hooks/useSupplies";
@@ -220,6 +221,7 @@ const ShipmentDetailPage = () => {
   const [invoiceTouched, setInvoiceTouched] = useState(false);
 
   const { data: suppliers } = useReferenceData("suppliers");
+  const { data: shipmentTypes = [] } = useShipmentTypes();
   const { data: lenses = [] } = useLenses();
   const { data: supplies = [] } = useSupplies();
   const { data: addons = [] } = useAddons();
@@ -412,8 +414,9 @@ const ShipmentDetailPage = () => {
           <Select value={shipment.type} onValueChange={(v) => updateField("type", v)} disabled={!editable}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="lens">Lens</SelectItem>
-              <SelectItem value="non-lens">Non-Lens</SelectItem>
+              {shipmentTypes.filter(t => t.is_active).map(t => (
+                <SelectItem key={t.id} value={t.code}>{t.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </Field>
