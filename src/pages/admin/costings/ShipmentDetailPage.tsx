@@ -2,8 +2,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useShipmentCharges, useShipmentLines, computeShipmentTotals, computeLineCosts, CHARGE_TYPES, type Shipment, type ShipmentCharge, type ShipmentLine } from "@/hooks/useShipments";
-import { useShipmentTypes } from "@/hooks/useImportCostingRefs";
+import { useShipmentCharges, useShipmentLines, computeShipmentTotals, computeLineCosts, type Shipment, type ShipmentCharge, type ShipmentLine } from "@/hooks/useShipments";
+import { useShipmentTypes, useChargeTypes } from "@/hooks/useImportCostingRefs";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { useLenses } from "@/hooks/useLenses";
 import { useSupplies } from "@/hooks/useSupplies";
@@ -222,6 +222,8 @@ const ShipmentDetailPage = () => {
 
   const { data: suppliers } = useReferenceData("suppliers");
   const { data: shipmentTypes = [] } = useShipmentTypes();
+  const { data: chargeTypes = [] } = useChargeTypes();
+  const activeChargeTypes = chargeTypes.filter(ct => ct.is_active);
   const { data: lenses = [] } = useLenses();
   const { data: supplies = [] } = useSupplies();
   const { data: addons = [] } = useAddons();
@@ -310,7 +312,7 @@ const ShipmentDetailPage = () => {
 
   const addCharge = async () => {
     if (!id || isNew) return;
-    await upsertCharge.mutateAsync({ shipment_id: id, charge_type: CHARGE_TYPES[0], amount_bbd: 0, sort_order: charges.length });
+    await upsertCharge.mutateAsync({ shipment_id: id, charge_type: activeChargeTypes[0]?.name ?? "Miscellaneous", amount_bbd: 0, sort_order: charges.length });
   };
 
   const addLine = async () => {
@@ -516,7 +518,7 @@ const ShipmentDetailPage = () => {
                         <TableCell className="py-1">
                           <Select value={c.charge_type} disabled={!editable} onValueChange={(v) => updateCharge(c, "charge_type", v)}>
                             <SelectTrigger className="h-7 text-xs border-0 shadow-none"><SelectValue /></SelectTrigger>
-                            <SelectContent>{CHARGE_TYPES.map((ct) => <SelectItem key={ct} value={ct}>{ct}</SelectItem>)}</SelectContent>
+                            <SelectContent>{activeChargeTypes.map((ct) => <SelectItem key={ct.id} value={ct.name}>{ct.name}</SelectItem>)}</SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell className="py-1">
