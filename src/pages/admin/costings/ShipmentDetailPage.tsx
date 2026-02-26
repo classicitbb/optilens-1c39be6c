@@ -484,16 +484,16 @@ const ShipmentDetailPage = () => {
               {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addCharge}><Plus className="h-3 w-3" /> Add Charge</Button>}
             </div>
             <div className="border rounded overflow-hidden">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow className="text-xs">
-                    <TableHead className="h-8">Charge Type</TableHead>
-                    <TableHead className="h-8 text-right">Amount</TableHead>
-                    <TableHead className="h-8 text-right">VAT</TableHead>
-                    <TableHead className="h-8 text-right">Duty</TableHead>
-                    <TableHead className="h-8">VAT Reclaimable</TableHead>
-                    <TableHead className="h-8">Notes</TableHead>
-                    <TableHead className="h-8 text-right">Row Total</TableHead>
+                    <TableHead className="h-8 w-[160px]">Charge Type</TableHead>
+                    <TableHead className="h-8 text-right w-[96px]">Amount</TableHead>
+                    <TableHead className="h-8 text-right w-[96px]">VAT</TableHead>
+                    <TableHead className="h-8 text-right w-[96px]">Duty</TableHead>
+                    <TableHead className="h-8 w-[100px]">VAT Reclaimable</TableHead>
+                    <TableHead className="h-8 w-[140px]">Notes</TableHead>
+                    <TableHead className="h-8 text-right w-[96px]">Row Total</TableHead>
                     {editable && <TableHead className="h-8 w-10" />}
                   </TableRow>
                 </TableHeader>
@@ -510,16 +510,16 @@ const ShipmentDetailPage = () => {
                           </Select>
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-24"
+                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-24"
+                          <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
                           {isDutyRow ? (
-                            <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-24"
+                            <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
                               onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => {}} />
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
@@ -530,7 +530,7 @@ const ShipmentDetailPage = () => {
                           ) : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="py-1">
-                          <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-32"
+                          <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-full"
                             onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(rowTotal)}</TableCell>
