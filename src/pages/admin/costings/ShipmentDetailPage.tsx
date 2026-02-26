@@ -449,13 +449,13 @@ const ShipmentDetailPage = () => {
           </Select>
         </Field>
         <Field label="Exchange Rate (BBD per 1 FX) *">
-          <NumericInput value={shipment.exchange_rate} onChange={(v) => updateField("exchange_rate", v)} disabled={!editable} className="h-8 text-xs" />
+          <NumericInput value={shipment.exchange_rate} onChange={(v) => updateField("exchange_rate", v)} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
         <Field label={`FOB (${shipment.currency}) *`}>
-          <NumericInput value={shipment.fob_foreign} onChange={(v) => updateField("fob_foreign", v)} disabled={!editable} className="h-8 text-xs" />
+          <NumericInput value={shipment.fob_foreign} onChange={(v) => updateField("fob_foreign", v)} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
         <Field label={`Invoice Total (${shipment.currency}) *`}>
-          <NumericInput value={shipment.invoice_total_foreign} onChange={(v) => updateField("invoice_total_foreign", v)} disabled={!editable} className="h-8 text-xs" />
+          <NumericInput value={shipment.invoice_total_foreign} onChange={(v) => updateField("invoice_total_foreign", v)} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
       </div>
 
