@@ -37,12 +37,14 @@ import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
 import QuotationsListPage from "./pages/admin/QuotationsListPage";
 import QuoteEditorPage from "./pages/admin/QuoteEditorPage";
 import CatalogPublisherPage from "./pages/admin/CatalogPublisherPage";
+import CatalogPublisherV2Page from "./pages/admin/CatalogPublisherV2Page";
 import CatalogEditorPage from "./pages/admin/CatalogEditorPage";
 import ContactsPage from "./pages/admin/erp/ContactsPage";
 import ContactTagsConfigPage from "./pages/admin/erp/ContactTagsConfigPage";
 import IndustriesConfigPage from "./pages/admin/erp/IndustriesConfigPage";
 import ErpPlaceholderPage from "./pages/admin/erp/ErpPlaceholderPage";
 import PricingSettingsPage from "./pages/admin/PricingSettingsPage";
+import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
@@ -93,7 +95,8 @@ const App = () => (
                 <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
                 <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
                 <Route path="pricing/supplies" element={<BuySellPricesPage />} />
-                <Route path="pricing/publisher" element={<CatalogPublisherPage />} />
+                <Route path="pricing/publisher" element={<CatalogPublisherV2Page />} />
+                <Route path="pricing/publisher-old" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
                 <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
                 <Route path="pricing/costings" element={<ImportCostingsPage />} />
                 <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
@@ -167,6 +170,7 @@ const App = () => (
                 <Route path="supplies-prices" element={<Navigate to="/admin/pricing/supplies" replace />} />
                 <Route path="imports" element={<Navigate to="/admin/pricing/imports" replace />} />
                 <Route path="catalog-publisher" element={<Navigate to="/admin/pricing/publisher" replace />} />
+                <Route path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher-old" replace />} />
                 <Route path="catalog-publisher/:id" element={<Navigate to="/admin/pricing/publisher" replace />} />
                 <Route path="quotations" element={<Navigate to="/admin/sales/quotations" replace />} />
                 <Route path="costings/shipments" element={<Navigate to="/admin/pricing/costings" replace />} />
