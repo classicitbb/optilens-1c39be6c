@@ -37,8 +37,6 @@ import QuotationsListPage from "./pages/admin/QuotationsListPage";
 import QuoteEditorPage from "./pages/admin/QuoteEditorPage";
 import CatalogPublisherPage from "./pages/admin/CatalogPublisherPage";
 import CatalogEditorPage from "./pages/admin/CatalogEditorPage";
-
-// ERP modules
 import ContactsPage from "./pages/admin/erp/ContactsPage";
 import ContactTagsConfigPage from "./pages/admin/erp/ContactTagsConfigPage";
 import IndustriesConfigPage from "./pages/admin/erp/IndustriesConfigPage";
@@ -83,47 +81,107 @@ const App = () => (
               <Route path="/terms" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
               <Route path="/return-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
 
-              {/* Admin pricing tool */}
+              {/* Admin — all apps share AdminLayout */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
-                <Route index element={<Navigate to="/admin/catalog" replace />} />
-                <Route path="catalog" element={<ProductCatalogPage />} />
-                <Route path="reference" element={<ReferenceDataPage />} />
-                {/* Redirects for old bookmarks */}
-                <Route path="lenses" element={<Navigate to="/admin/catalog" replace />} />
-                <Route path="supplies" element={<Navigate to="/admin/catalog" replace />} />
-                <Route path="addons" element={<Navigate to="/admin/catalog" replace />} />
-                <Route path="pricing" element={<LensPricesPage />} />
-                {/* New dedicated price modules */}
-                <Route path="rx-lens-prices" element={<RxLensPricesPage />} />
-                <Route path="stock-lens-prices" element={<StockLensPricesPage />} />
-                <Route path="supplies-prices" element={<BuySellPricesPage />} />
-                <Route path="imports" element={<ImportsPage />} />
-                <Route path="history" element={<PlaceholderPage />} />
-                
-                <Route path="parameters" element={<CompanySettingsPage />} />
-                <Route path="users" element={<UsersPage />} />
-                <Route path="audit" element={<Navigate to="/admin/parameters" replace />} />
-                <Route path="wiki" element={<AdminWikiPage />} />
-                <Route path="content" element={<ContentManagerPage />} />
-                <Route path="quotations" element={<QuotationsListPage />} />
-                <Route path="quotations/:id" element={<QuoteEditorPage />} />
-                <Route path="catalog-publisher" element={<CatalogPublisherPage />} />
-                <Route path="catalog-publisher/:id" element={<CatalogEditorPage />} />
-                {/* Import Costings */}
-                <Route path="costings/shipments" element={<ImportCostingsPage />} />
-                <Route path="costings/shipments/new" element={<ShipmentDetailPage />} />
-                <Route path="costings/shipments/:id" element={<ShipmentDetailPage />} />
-                <Route path="costings/reports" element={<CostingsReportsPage />} />
-                {/* ERP modules */}
-                <Route path="erp" element={<Navigate to="/admin/erp/contacts" replace />} />
-                <Route path="erp/contacts" element={<ContactsPage />} />
-                <Route path="erp/config/contact-tags" element={<ContactTagsConfigPage />} />
-                <Route path="erp/config/industries" element={<IndustriesConfigPage />} />
-                <Route path="erp/crm" element={<ErpPlaceholderPage />} />
-                <Route path="erp/helpdesk" element={<ErpPlaceholderPage />} />
-                <Route path="erp/web-orders" element={<ErpPlaceholderPage />} />
-                <Route path="erp/rx-orders" element={<ErpPlaceholderPage />} />
-                <Route path="erp/website" element={<ErpPlaceholderPage />} />
+                <Route index element={<Navigate to="/admin/pricing/catalog" replace />} />
+
+                {/* ═══ Pricing App ═══ */}
+                <Route path="pricing" element={<Navigate to="/admin/pricing/catalog" replace />} />
+                <Route path="pricing/catalog" element={<ProductCatalogPage />} />
+                <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
+                <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
+                <Route path="pricing/supplies" element={<BuySellPricesPage />} />
+                <Route path="pricing/publisher" element={<CatalogPublisherPage />} />
+                <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
+                <Route path="pricing/costings" element={<ImportCostingsPage />} />
+                <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
+                <Route path="pricing/costings/:id" element={<ShipmentDetailPage />} />
+                <Route path="pricing/costings/reports" element={<CostingsReportsPage />} />
+                <Route path="pricing/reference" element={<ReferenceDataPage />} />
+                <Route path="pricing/imports" element={<ImportsPage />} />
+                {/* Legacy pricing route */}
+                <Route path="pricing/legacy" element={<LensPricesPage />} />
+
+                {/* ═══ Sales App ═══ */}
+                <Route path="sales" element={<Navigate to="/admin/sales/quotations" replace />} />
+                <Route path="sales/quotations" element={<QuotationsListPage />} />
+                <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
+                <Route path="sales/web-orders" element={<PlaceholderPage />} />
+                <Route path="sales/rx-orders" element={<PlaceholderPage />} />
+
+                {/* ═══ Contacts App ═══ */}
+                <Route path="contacts" element={<ContactsPage />} />
+                <Route path="contacts/config/tags" element={<ContactTagsConfigPage />} />
+                <Route path="contacts/config/industries" element={<IndustriesConfigPage />} />
+
+                {/* ═══ Leads App ═══ */}
+                <Route path="leads" element={<Navigate to="/admin/leads/finder" replace />} />
+                <Route path="leads/finder" element={<PlaceholderPage />} />
+                <Route path="leads/campaigns" element={<PlaceholderPage />} />
+                <Route path="leads/reports" element={<PlaceholderPage />} />
+                <Route path="leads/ai" element={<PlaceholderPage />} />
+                <Route path="leads/settings" element={<PlaceholderPage />} />
+
+                {/* ═══ CRM App ═══ */}
+                <Route path="crm" element={<Navigate to="/admin/crm/pipeline" replace />} />
+                <Route path="crm/pipeline" element={<PlaceholderPage />} />
+                <Route path="crm/activities" element={<PlaceholderPage />} />
+
+                {/* ═══ Helpdesk App ═══ */}
+                <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
+                <Route path="helpdesk/tickets" element={<PlaceholderPage />} />
+                <Route path="helpdesk/teams" element={<PlaceholderPage />} />
+                <Route path="helpdesk/sla" element={<PlaceholderPage />} />
+
+                {/* ═══ Website App ═══ */}
+                <Route path="website" element={<Navigate to="/admin/website/content" replace />} />
+                <Route path="website/content" element={<ContentManagerPage />} />
+                <Route path="website/microsites" element={<PlaceholderPage />} />
+                <Route path="website/portals" element={<PlaceholderPage />} />
+                <Route path="website/store" element={<PlaceholderPage />} />
+
+                {/* ═══ Knowledge App ═══ */}
+                <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
+                <Route path="knowledge/wiki" element={<AdminWikiPage />} />
+                <Route path="knowledge/help" element={<PlaceholderPage />} />
+
+                {/* ═══ Settings App ═══ */}
+                <Route path="settings" element={<Navigate to="/admin/settings/company" replace />} />
+                <Route path="settings/company" element={<CompanySettingsPage />} />
+                <Route path="settings/users" element={<UsersPage />} />
+                <Route path="settings/roles" element={<PlaceholderPage />} />
+                <Route path="settings/audit" element={<AuditLogPage />} />
+                <Route path="settings/integrations" element={<PlaceholderPage />} />
+
+                {/* ═══ Legacy redirects ═══ */}
+                <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
+                <Route path="reference" element={<Navigate to="/admin/pricing/reference" replace />} />
+                <Route path="lenses" element={<Navigate to="/admin/pricing/catalog" replace />} />
+                <Route path="supplies" element={<Navigate to="/admin/pricing/catalog" replace />} />
+                <Route path="addons" element={<Navigate to="/admin/pricing/catalog" replace />} />
+                <Route path="rx-lens-prices" element={<Navigate to="/admin/pricing/rx-lenses" replace />} />
+                <Route path="stock-lens-prices" element={<Navigate to="/admin/pricing/stock-lenses" replace />} />
+                <Route path="supplies-prices" element={<Navigate to="/admin/pricing/supplies" replace />} />
+                <Route path="imports" element={<Navigate to="/admin/pricing/imports" replace />} />
+                <Route path="catalog-publisher" element={<Navigate to="/admin/pricing/publisher" replace />} />
+                <Route path="catalog-publisher/:id" element={<Navigate to="/admin/pricing/publisher" replace />} />
+                <Route path="quotations" element={<Navigate to="/admin/sales/quotations" replace />} />
+                <Route path="costings/shipments" element={<Navigate to="/admin/pricing/costings" replace />} />
+                <Route path="costings/reports" element={<Navigate to="/admin/pricing/costings/reports" replace />} />
+                <Route path="parameters" element={<Navigate to="/admin/settings/company" replace />} />
+                <Route path="users" element={<Navigate to="/admin/settings/users" replace />} />
+                <Route path="audit" element={<Navigate to="/admin/settings/audit" replace />} />
+                <Route path="wiki" element={<Navigate to="/admin/knowledge/wiki" replace />} />
+                <Route path="content" element={<Navigate to="/admin/website/content" replace />} />
+                <Route path="erp/contacts" element={<Navigate to="/admin/contacts" replace />} />
+                <Route path="erp/config/contact-tags" element={<Navigate to="/admin/contacts/config/tags" replace />} />
+                <Route path="erp/config/industries" element={<Navigate to="/admin/contacts/config/industries" replace />} />
+                <Route path="erp/crm" element={<Navigate to="/admin/crm/pipeline" replace />} />
+                <Route path="erp/helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
+                <Route path="erp/web-orders" element={<Navigate to="/admin/sales/web-orders" replace />} />
+                <Route path="erp/rx-orders" element={<Navigate to="/admin/sales/rx-orders" replace />} />
+                <Route path="erp/website" element={<Navigate to="/admin/website/content" replace />} />
+                <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
               </Route>
 
               {/* ZenVue brand microsite */}
