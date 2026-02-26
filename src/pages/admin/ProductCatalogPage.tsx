@@ -210,7 +210,7 @@ const ProductCatalogPage = () => {
       </div>
 
       {/* Tab content – fills remaining height */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 flex flex-col">
         {activeTab === "lenses" && <LensesTab search={search} filterVersion={filterVersion} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} store={store} />}
         {activeTab === "addons" && <AddonsTab search={search} filterVersion={filterVersion} formOpen={addonFormOpen} setFormOpen={setAddonFormOpen} store={store} />}
         {activeTab === "supplies" && <SuppliesTab search={search} filterVersion={filterVersion} formOpen={supplyFormOpen} setFormOpen={setSupplyFormOpen} store={store} />}
@@ -280,7 +280,7 @@ const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { se
   if (isLoading) return <Spinner />;
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <LensDataTable lenses={lenses ?? []} search={search} filterVersion={filterVersion} onRowClick={(lens) => canEdit && setEditLens(lens)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(lens) => setDeleteTarget(lens)} canDelete={isAdmin} />
       <LensFormDialog open={formOpen} onOpenChange={setFormOpen} lens={null} onSubmit={handleCreate} isPending={createMutation.isPending} />
       <LensFormDialog open={!!editLens} onOpenChange={(open) => !open && setEditLens(null)} lens={editLens} lenses={lenses ?? []} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(l) => setEditLens(l)} isPending={updateMutation.isPending} />
@@ -296,7 +296,7 @@ const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { se
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 
@@ -378,7 +378,7 @@ const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { se
   if (isLoading) return <Spinner />;
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <AddonDataTable addons={addons ?? []} search={search} canEdit={canEdit} filterVersion={filterVersion} onRowClick={(addon) => setEditAddon(addon)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(addon) => setDeleteTarget(addon)} canDelete={isAdmin} />
       <AddonFormDialog open={formOpen} onOpenChange={setFormOpen} addon={null} onSubmit={handleCreate} isPending={createMutation.isPending} pricingSheets={pricingSheets ?? []} addonPricingSheets={[]} />
       <AddonFormDialog open={!!editAddon} onOpenChange={(open) => !open && setEditAddon(null)} addon={editAddon} addons={addons ?? []} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(a) => setEditAddon(a)} isPending={updateMutation.isPending} pricingSheets={pricingSheets ?? []} addonPricingSheets={addonSheets ?? []} />
@@ -394,7 +394,7 @@ const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { se
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 
@@ -463,7 +463,7 @@ const SuppliesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { 
   if (isLoading) return <Spinner />;
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <SupplyDataTable supplies={supplies ?? []} search={search} canEdit={canEdit} filterVersion={filterVersion} onRowClick={(supply) => setEditSupply(supply)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(supply) => setDeleteTarget(supply)} canDelete={isAdmin} />
       <SupplyFormDialog open={formOpen} onOpenChange={setFormOpen} supply={null} onSubmit={handleCreate} isPending={createMutation.isPending} />
       <SupplyFormDialog open={!!editSupply} onOpenChange={(open) => !open && setEditSupply(null)} supply={editSupply} supplies={filtered} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(s) => setEditSupply(s)} isPending={updateMutation.isPending} />
@@ -479,7 +479,7 @@ const SuppliesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: { 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 
