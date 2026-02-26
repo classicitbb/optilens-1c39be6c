@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { usePricingSettings, PricingSettings } from "@/hooks/usePricingSettings";
 import { useLegacyRates, LegacyRate } from "@/hooks/useCompanySettings";
+import { useChargeTypes, useShipmentTypes, ChargeType, ShipmentType } from "@/hooks/useImportCostingRefs";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X } from "lucide-react";
+import { Plus, X, GripVertical } from "lucide-react";
 import CurrencyFxSection from "./CurrencyFxSection";
 
 type FormData = Omit<PricingSettings, "id" | "created_at" | "created_by" | "version" | "is_active">;
@@ -242,6 +243,99 @@ const PricingSettingsTab = () => {
     );
   };
 
+  const ChargeTypesWidget = ({ disabled: d }: { disabled: boolean }) => {
+    const { data: items = [], isLoading: loading, upsertMutation, deleteMutation } = useChargeTypes();
+    const [newName, setNewName] = useState("");
+
+    if (loading) return <Section title="Charge Types"><p className="text-xs text-muted-foreground">Loading…</p></Section>;
+
+    const handleAdd = () => {
+      if (!newName.trim()) return;
+      const maxSort = items.reduce((m, i) => Math.max(m, i.sort_order), 0);
+      upsertMutation.mutate({ name: newName.trim(), sort_order: maxSort + 1, is_active: true }, {
+        onSuccess: () => { toast({ title: "Charge type added" }); setNewName(""); },
+        onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+      });
+    };
+
+    const toggleActive = (item: ChargeType) => {
+      upsertMutation.mutate({ id: item.id, name: item.name, is_active: !item.is_active });
+    };
+
+    return (
+      <Section title="Charge Types">
+        <p className="text-[10px] text-muted-foreground mb-1">Charge categories available on shipment cost allocation.</p>
+        <div className="flex flex-wrap gap-2">
+          {items.map((item) => (
+            <div key={item.id} className={`flex items-center gap-1 rounded border px-2 py-1 ${item.is_active ? 'border-border bg-muted/50' : 'border-border/50 bg-muted/20 opacity-60'}`}>
+              <span className="text-[10px] font-medium">{item.name}</span>
+              {!d && (
+                <>
+                  <Switch className="h-3 w-6 scale-75" checked={item.is_active} onCheckedChange={() => toggleActive(item)} />
+                  <button onClick={() => deleteMutation.mutate(item.id)} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
+                </>
+              )}
+            </div>
+          ))}
+          {!d && (
+            <div className="flex items-center gap-1">
+              <Input className="h-6 w-32 text-[10px]" placeholder="New charge type" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+              <button onClick={handleAdd} className="text-primary hover:text-primary/80"><Plus className="h-3 w-3" /></button>
+            </div>
+          )}
+        </div>
+      </Section>
+    );
+  };
+
+  const ShipmentTypesWidget = ({ disabled: d }: { disabled: boolean }) => {
+    const { data: items = [], isLoading: loading, upsertMutation, deleteMutation } = useShipmentTypes();
+    const [newName, setNewName] = useState("");
+    const [newCode, setNewCode] = useState("");
+
+    if (loading) return <Section title="Shipment Types"><p className="text-xs text-muted-foreground">Loading…</p></Section>;
+
+    const handleAdd = () => {
+      if (!newName.trim() || !newCode.trim()) return;
+      const maxSort = items.reduce((m, i) => Math.max(m, i.sort_order), 0);
+      upsertMutation.mutate({ name: newName.trim(), code: newCode.trim().toLowerCase(), sort_order: maxSort + 1, is_active: true }, {
+        onSuccess: () => { toast({ title: "Shipment type added" }); setNewName(""); setNewCode(""); },
+        onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+      });
+    };
+
+    const toggleActive = (item: ShipmentType) => {
+      upsertMutation.mutate({ id: item.id, name: item.name, code: item.code, is_active: !item.is_active });
+    };
+
+    return (
+      <Section title="Shipment Types">
+        <p className="text-[10px] text-muted-foreground mb-1">Shipment categories used in the import costing module.</p>
+        <div className="flex flex-wrap gap-2">
+          {items.map((item) => (
+            <div key={item.id} className={`flex items-center gap-1 rounded border px-2 py-1 ${item.is_active ? 'border-border bg-muted/50' : 'border-border/50 bg-muted/20 opacity-60'}`}>
+              <span className="text-[10px] font-medium">{item.name}</span>
+              <Badge variant="outline" className="text-[8px] px-1 py-0 h-3">{item.code}</Badge>
+              {!d && (
+                <>
+                  <Switch className="h-3 w-6 scale-75" checked={item.is_active} onCheckedChange={() => toggleActive(item)} />
+                  <button onClick={() => deleteMutation.mutate(item.id)} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
+                </>
+              )}
+            </div>
+          ))}
+          {!d && (
+            <div className="flex items-center gap-1">
+              <Input className="h-6 w-24 text-[10px]" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+              <Input className="h-6 w-16 text-[10px]" placeholder="Code" value={newCode} onChange={(e) => setNewCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+              <button onClick={handleAdd} className="text-primary hover:text-primary/80"><Plus className="h-3 w-3" /></button>
+            </div>
+          )}
+        </div>
+      </Section>
+    );
+  };
+
   const disabled = !isEditable;
 
   return (
@@ -351,6 +445,13 @@ const PricingSettingsTab = () => {
 
         {/* Legacy Rates (tag-style like Duty Rates) */}
         <LegacyRatesWidget disabled={disabled} />
+      </div>
+
+      {/* Import Costing segment */}
+      <h2 className="text-sm font-semibold text-foreground pt-2">Import Costing</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <ChargeTypesWidget disabled={disabled} />
+        <ShipmentTypesWidget disabled={disabled} />
       </div>
 
       {/* Save */}
