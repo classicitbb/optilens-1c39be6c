@@ -8,13 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, ChevronDown, Check, X, Lock, Mail, Eye } from "lucide-react";
+import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, Check, X, Lock, Mail, Eye } from "lucide-react";
 import { format } from "date-fns";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import PermissionGrid from "@/components/admin/PermissionGrid";
 import CustomerPricingPanel from "@/components/admin/CustomerPricingPanel";
 
 const ROLES: AppRole[] = ["admin", "operator", "viewer", "customer"];
@@ -33,7 +31,7 @@ const UsersPage = () => {
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("viewer");
   const [search, setSearch] = useState("");
-  const [permOpen, setPermOpen] = useState(false);
+  
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
 
   // Inline name editing
@@ -175,26 +173,6 @@ const UsersPage = () => {
           </span>
         </div>
       </div>
-
-      {/* Permission Grid Accordion */}
-      <Collapsible open={permOpen} onOpenChange={setPermOpen}>
-        <CollapsibleTrigger asChild>
-          <button
-            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium rounded border transition-colors"
-            style={{
-              borderColor: "hsl(215 15% 85%)",
-              background: permOpen ? "hsl(215 65% 50% / 0.05)" : "hsl(210 20% 97%)",
-              color: "hsl(215 30% 15%)",
-            }}
-          >
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${permOpen ? "rotate-180" : ""}`} />
-            Role Permissions Matrix
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-2">
-          <PermissionGrid />
-        </CollapsibleContent>
-      </Collapsible>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
