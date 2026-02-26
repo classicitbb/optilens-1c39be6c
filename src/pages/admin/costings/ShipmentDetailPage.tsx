@@ -565,21 +565,21 @@ const ShipmentDetailPage = () => {
               {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addLine}><Plus className="h-3 w-3" /> Add Line</Button>}
             </div>
             <div className="border rounded overflow-auto">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow className="text-xs">
-                    <TableHead className="h-8">Type</TableHead>
-                    <TableHead className="h-8">Product</TableHead>
-                    <TableHead className="h-8">Description</TableHead>
-                    <TableHead className="h-8 text-right">Qty</TableHead>
-                    <TableHead className="h-8 text-right">Unit FOB ({shipment.currency})</TableHead>
-                    <TableHead className="h-8 text-right">Line FOB ({shipment.currency})</TableHead>
-                    <TableHead className="h-8 text-right">Line FOB (BBD)</TableHead>
-                    <TableHead className="h-8 text-right">Landed/Unit (BBD)</TableHead>
-                    <TableHead className="h-8 text-right">Landed/Unit (USD)</TableHead>
-                    <TableHead className="h-8 text-right">Markup %</TableHead>
-                    <TableHead className="h-8 text-right">Sell (BBD)</TableHead>
-                    <TableHead className="h-8 text-right">Sell (USD)</TableHead>
+                    <TableHead className="h-8 w-[80px]">Type</TableHead>
+                    <TableHead className="h-8 w-[160px]">Product</TableHead>
+                    <TableHead className="h-8 w-[150px]">Description</TableHead>
+                    <TableHead className="h-8 text-right w-[60px]">Qty</TableHead>
+                    <TableHead className="h-8 text-right w-[100px]">Unit FOB ({shipment.currency})</TableHead>
+                    <TableHead className="h-8 text-right w-[100px]">Line FOB ({shipment.currency})</TableHead>
+                    <TableHead className="h-8 text-right w-[100px]">Line FOB (BBD)</TableHead>
+                    <TableHead className="h-8 text-right w-[100px]">Landed/Unit (BBD)</TableHead>
+                    <TableHead className="h-8 text-right w-[100px]">Landed/Unit (USD)</TableHead>
+                    <TableHead className="h-8 text-right w-[70px]">Markup %</TableHead>
+                    <TableHead className="h-8 text-right w-[90px]">Sell (BBD)</TableHead>
+                    <TableHead className="h-8 text-right w-[90px]">Sell (USD)</TableHead>
                     {editable && <TableHead className="h-8 w-10" />}
                   </TableRow>
                 </TableHeader>
@@ -592,7 +592,7 @@ const ShipmentDetailPage = () => {
                       <TableRow key={l.id} className="text-xs">
                         <TableCell className="py-1">
                           <Select value={l.product_type} disabled={!editable} onValueChange={(v) => handleProductTypeChange(l, v)}>
-                            <SelectTrigger className="h-7 text-xs border-0 shadow-none w-20"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-7 text-xs border-0 shadow-none w-full"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {shipment.type === "lens" ? (
                                 <SelectItem value="lens">Lens</SelectItem>
@@ -619,26 +619,26 @@ const ShipmentDetailPage = () => {
                           )}
                         </TableCell>
                         <TableCell className="py-1">
-                          <TextInput value={l.description} disabled={!editable} className="h-7 text-xs w-36"
+                          <TextInput value={l.description} disabled={!editable} className="h-7 text-xs w-full"
                             onChange={(v) => updateLine(l, { description: v })} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={l.quantity} disabled={!editable} className="h-7 text-xs text-right w-16"
+                          <NumericInput value={l.quantity} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(qty) => updateLine(l, { quantity: qty, line_fob_foreign: l.unit_fob_foreign * qty })} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={l.unit_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-20"
+                          <NumericInput value={l.unit_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(unitFob) => updateLine(l, { unit_fob_foreign: unitFob, line_fob_foreign: unitFob * l.quantity })} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={l.line_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-20"
+                          <NumericInput value={l.line_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(v) => updateLine(l, { line_fob_foreign: v })} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.lineFobBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.landedUnitBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.landedUnitUsd)}</TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={l.markup_percent} disabled={!editable} className="h-7 text-xs text-right w-16"
+                          <NumericInput value={l.markup_percent} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(v) => updateLine(l, { markup_percent: v })} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.sellBbd)}</TableCell>
