@@ -233,7 +233,7 @@ const LensDataTable = ({
   const colCount = 14 + costCols + (showActions ? 2 : 0);
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col h-full gap-3">
       <div className="flex gap-1">
         {filterTabs.map((t) => (
           <button
@@ -262,7 +262,7 @@ const LensDataTable = ({
         </span>
       </div>
 
-      <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)", maxHeight: "calc(100vh - 280px)" }}>
+      <div className="border rounded overflow-auto flex-1 min-h-0" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)" }}>
         <Table>
           <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
             <TableRow>

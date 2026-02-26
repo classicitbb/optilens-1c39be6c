@@ -163,7 +163,7 @@ const SupplyDataTable = ({
   );
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col h-full gap-3">
       <div className="flex gap-1">
         {filterTabs.map((t) => (
           <button
@@ -187,7 +187,7 @@ const SupplyDataTable = ({
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
-      <div className="rounded border overflow-auto max-h-[calc(100vh-280px)]" style={{ borderColor: "hsl(215 20% 88%)" }}>
+      <div className="rounded border overflow-auto flex-1 min-h-0" style={{ borderColor: "hsl(215 20% 88%)" }}>
         <Table>
           <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
             <TableRow style={{ background: "hsl(215 30% 96%)" }}>
