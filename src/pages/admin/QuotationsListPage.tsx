@@ -45,7 +45,7 @@ const QuotationsListPage = () => {
         onSuccess: (data) => {
           setNewQuoteOpen(false);
           toast({ title: `${quoteType} quote created` });
-          navigate(`/admin/quotations/${data.id}`);
+          navigate(`/admin/sales/quotations/${data.id}`);
         },
         onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
       }
@@ -58,7 +58,7 @@ const QuotationsListPage = () => {
       {
         onSuccess: (data) => {
           toast({ title: "Quote duplicated" });
-          navigate(`/admin/quotations/${data.id}`);
+          navigate(`/admin/sales/quotations/${data.id}`);
         },
         onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
       }
@@ -163,7 +163,7 @@ const QuotationsListPage = () => {
               <TableRow
                 key={q.id}
                 className="cursor-pointer"
-                onClick={() => navigate(`/admin/quotations/${q.id}`)}
+                onClick={() => navigate(`/admin/sales/quotations/${q.id}`)}
               >
                 <TableCell className="text-xs font-medium">{q.quote_number}</TableCell>
                 <TableCell className="text-xs">{q.customer_name || "—"}</TableCell>
@@ -195,7 +195,7 @@ const QuotationsListPage = () => {
                 <TableCell className="text-xs">
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={() => navigate(`/admin/quotations/${q.id}`)}
+                      onClick={() => navigate(`/admin/sales/quotations/${q.id}`)}
                       className="p-1 rounded hover:bg-black/5"
                       title="View/Edit"
                     >

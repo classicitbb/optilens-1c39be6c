@@ -51,7 +51,7 @@ const ShipmentListPage = ({ typeFilter, title }: Props) => {
   const handleCreate = () => {
     // Navigate to new shipment form — no DB insert until user saves
     const typePath = typeFilter === "lens" ? "?type=lens" : typeFilter === "non-lens" ? "?type=non-lens" : "";
-    navigate(`/admin/costings/shipments/new${typePath}`);
+    navigate(`/admin/pricing/costings/new${typePath}`);
   };
 
   const handleDelete = async () => {
@@ -77,7 +77,7 @@ const ShipmentListPage = ({ typeFilter, title }: Props) => {
       } as any);
       logChange({ table_name: "shipments", record_id: res.id, action: "create", new_data: { ...res, revision_of: sh.id } });
       toast({ title: "Revision created" });
-      navigate(`/admin/costings/shipments/${res.id}`);
+      navigate(`/admin/pricing/costings/${res.id}`);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -133,7 +133,7 @@ const ShipmentListPage = ({ typeFilter, title }: Props) => {
                 <TableRow
                   key={sh.id}
                   className="cursor-pointer hover:bg-muted/50 text-xs"
-                  onClick={() => navigate(`/admin/costings/shipments/${sh.id}`)}
+                  onClick={() => navigate(`/admin/pricing/costings/${sh.id}`)}
                 >
                   <TableCell className="py-1.5 font-medium">{sh.invoice_number || "—"}</TableCell>
                   <TableCell className="py-1.5 capitalize">{sh.type}</TableCell>

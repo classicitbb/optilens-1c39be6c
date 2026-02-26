@@ -210,7 +210,7 @@ const QuoteEditorPage = () => {
     <div className="flex flex-col h-full">
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
-        <button onClick={() => navigate("/admin/quotations")} className="p-1 rounded hover:bg-muted">
+        <button onClick={() => navigate("/admin/sales/quotations")} className="p-1 rounded hover:bg-muted">
           <ArrowLeft className="h-4 w-4 text-muted-foreground" />
         </button>
         <div className="flex-1 min-w-0">
