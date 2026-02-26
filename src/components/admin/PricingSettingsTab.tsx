@@ -246,6 +246,8 @@ const PricingSettingsTab = () => {
   const ChargeTypesWidget = ({ disabled: d }: { disabled: boolean }) => {
     const { data: items = [], isLoading: loading, upsertMutation, deleteMutation } = useChargeTypes();
     const [newName, setNewName] = useState("");
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState("");
 
     if (loading) return <Section title="Charge Types"><p className="text-xs text-muted-foreground">Loading…</p></Section>;
 
@@ -262,13 +264,38 @@ const PricingSettingsTab = () => {
       upsertMutation.mutate({ id: item.id, name: item.name, is_active: !item.is_active });
     };
 
+    const startEdit = (item: ChargeType) => {
+      if (d) return;
+      setEditingId(item.id);
+      setEditValue(item.name);
+    };
+
+    const commitEdit = (item: ChargeType) => {
+      const trimmed = editValue.trim();
+      if (trimmed && trimmed !== item.name) {
+        upsertMutation.mutate({ id: item.id, name: trimmed });
+      }
+      setEditingId(null);
+    };
+
     return (
       <Section title="Charge Types">
         <p className="text-[10px] text-muted-foreground mb-1">Charge categories available on shipment cost allocation.</p>
         <div className="flex flex-wrap gap-2">
           {items.map((item) => (
             <div key={item.id} className={`flex items-center gap-1 rounded border px-2 py-1 ${item.is_active ? 'border-border bg-muted/50' : 'border-border/50 bg-muted/20 opacity-60'}`}>
-              <span className="text-[10px] font-medium">{item.name}</span>
+              {editingId === item.id ? (
+                <Input
+                  autoFocus
+                  className="h-5 w-28 text-[10px] px-1 py-0"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => commitEdit(item)}
+                  onKeyDown={(e) => { if (e.key === "Enter") commitEdit(item); if (e.key === "Escape") setEditingId(null); }}
+                />
+              ) : (
+                <span className={`text-[10px] font-medium ${!d ? 'cursor-pointer hover:underline' : ''}`} onClick={() => startEdit(item)}>{item.name}</span>
+              )}
               {!d && (
                 <>
                   <Switch className="h-3 w-6 scale-75" checked={item.is_active} onCheckedChange={() => toggleActive(item)} />
@@ -292,6 +319,9 @@ const PricingSettingsTab = () => {
     const { data: items = [], isLoading: loading, upsertMutation, deleteMutation } = useShipmentTypes();
     const [newName, setNewName] = useState("");
     const [newCode, setNewCode] = useState("");
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editField, setEditField] = useState<"name" | "code">("name");
+    const [editValue, setEditValue] = useState("");
 
     if (loading) return <Section title="Shipment Types"><p className="text-xs text-muted-foreground">Loading…</p></Section>;
 
@@ -308,14 +338,54 @@ const PricingSettingsTab = () => {
       upsertMutation.mutate({ id: item.id, name: item.name, code: item.code, is_active: !item.is_active });
     };
 
+    const startEdit = (item: ShipmentType, field: "name" | "code") => {
+      if (d) return;
+      setEditingId(item.id);
+      setEditField(field);
+      setEditValue(item[field]);
+    };
+
+    const commitEdit = (item: ShipmentType) => {
+      const trimmed = editValue.trim();
+      if (trimmed && trimmed !== item[editField]) {
+        const updates = editField === "code"
+          ? { id: item.id, name: item.name, code: trimmed.toLowerCase() }
+          : { id: item.id, name: trimmed, code: item.code };
+        upsertMutation.mutate(updates);
+      }
+      setEditingId(null);
+    };
+
     return (
       <Section title="Shipment Types">
         <p className="text-[10px] text-muted-foreground mb-1">Shipment categories used in the import costing module.</p>
         <div className="flex flex-wrap gap-2">
           {items.map((item) => (
             <div key={item.id} className={`flex items-center gap-1 rounded border px-2 py-1 ${item.is_active ? 'border-border bg-muted/50' : 'border-border/50 bg-muted/20 opacity-60'}`}>
-              <span className="text-[10px] font-medium">{item.name}</span>
-              <Badge variant="outline" className="text-[8px] px-1 py-0 h-3">{item.code}</Badge>
+              {editingId === item.id && editField === "name" ? (
+                <Input
+                  autoFocus
+                  className="h-5 w-24 text-[10px] px-1 py-0"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => commitEdit(item)}
+                  onKeyDown={(e) => { if (e.key === "Enter") commitEdit(item); if (e.key === "Escape") setEditingId(null); }}
+                />
+              ) : (
+                <span className={`text-[10px] font-medium ${!d ? 'cursor-pointer hover:underline' : ''}`} onClick={() => startEdit(item, "name")}>{item.name}</span>
+              )}
+              {editingId === item.id && editField === "code" ? (
+                <Input
+                  autoFocus
+                  className="h-5 w-16 text-[8px] px-1 py-0"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => commitEdit(item)}
+                  onKeyDown={(e) => { if (e.key === "Enter") commitEdit(item); if (e.key === "Escape") setEditingId(null); }}
+                />
+              ) : (
+                <Badge variant="outline" className={`text-[8px] px-1 py-0 h-3 ${!d ? 'cursor-pointer hover:underline' : ''}`} onClick={() => startEdit(item, "code")}>{item.code}</Badge>
+              )}
               {!d && (
                 <>
                   <Switch className="h-3 w-6 scale-75" checked={item.is_active} onCheckedChange={() => toggleActive(item)} />
