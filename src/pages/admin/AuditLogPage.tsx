@@ -3,7 +3,8 @@ import { useAuditLogQuery, AuditLogEntry } from "@/hooks/useAuditLog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, ClipboardList } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { format } from "date-fns";
 
 const TABS = [
@@ -55,7 +56,7 @@ const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
 
   return (
     <div className={embedded ? "space-y-4" : "p-4 space-y-4"}>
-      {!embedded && <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Audit Log</h1>}
+      {!embedded && <AdminPageHeader icon={ClipboardList} title="Audit Log" />}
 
       {/* Tabs */}
       <div className="flex gap-0 border-b" style={{ borderColor: "hsl(215 15% 85%)" }}>

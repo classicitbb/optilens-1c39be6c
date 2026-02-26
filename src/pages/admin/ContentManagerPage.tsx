@@ -25,8 +25,9 @@ import {
 } from "@/components/ui/select";
 import {
   Plus, Pencil, Trash2, Save, X, Search, Eye, EyeOff,
-  BookOpen, HelpCircle, FileText, Scale,
+  BookOpen, HelpCircle, FileText, Scale, Globe,
 } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const TAB_CONFIG: { value: ContentType; label: string; icon: React.ElementType; description: string }[] = [
   { value: "knowledge", label: "Knowledge Base", icon: BookOpen, description: "Public-facing articles for the website knowledge base" },
@@ -321,7 +322,7 @@ const ContentManagerPage = () => {
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-sm font-semibold text-foreground">Website Content</h1>
+          <AdminPageHeader icon={Globe} title="Website Content" />
           {canEdit && (
             <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleNew}>
               <Plus className="h-3 w-3" /> New {tabConfig.label.replace(/s$/, "")}

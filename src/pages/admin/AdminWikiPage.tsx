@@ -5,7 +5,8 @@ import WikiContentPanel from "@/components/admin/WikiContentPanel";
 import WikiArticleEditDialog from "@/components/admin/WikiArticleEditDialog";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, BookOpen } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const AdminWikiPage = () => {
   const { canEdit } = useAdminRole();
@@ -84,7 +85,7 @@ const AdminWikiPage = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
-        <h1 className="text-sm font-semibold text-foreground">Help / Wiki</h1>
+        <AdminPageHeader icon={BookOpen} title="Help / Wiki" />
         {canEdit && (
           <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleNewArticle}>
             <Plus className="h-3 w-3" /> New Article

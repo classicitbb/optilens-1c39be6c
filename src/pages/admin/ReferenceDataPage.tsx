@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Database } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ReferenceDataTable from "@/components/admin/ReferenceDataTable";
 
 const ENTITIES = [
@@ -24,9 +25,7 @@ const ReferenceDataPage = () => {
         <button onClick={() => navigate("/admin/catalog")} className="p-1 rounded hover:bg-muted transition-colors">
           <ArrowLeft className="h-4 w-4" style={{ color: "hsl(215 30% 40%)" }} />
         </button>
-        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
-          Reference Data
-        </h1>
+        <AdminPageHeader icon={Database} title="Reference Data" />
       </div>
 
       <div className="flex gap-0 border-b" style={{ borderColor: "hsl(215 15% 85%)" }}>

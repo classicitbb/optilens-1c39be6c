@@ -105,3 +105,12 @@ A simple lookup object maps pathname prefixes to friendly labels:
 - Avatar uses existing `Avatar` / `AvatarFallback` components with user initials
 
 ## Foundation Step 1 Completed: ADMIN_APPS registry + dynamic Sidebar/Launcher
+
+## UI Rule: Admin Page Headers
+
+Every admin page with a heading **must** use the shared `<AdminPageHeader icon={Icon} title="Page Title" />` component from `src/components/admin/AdminPageHeader.tsx`.
+
+- Always pass a relevant Lucide icon and a properly capitalised title.
+- Optional `children` slot renders right-aligned actions (e.g. buttons).
+- Do **not** write inline `<h1>` elements with manual icon/style on admin pages.
+- This rule applies to all existing and future admin pages.

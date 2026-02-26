@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 
 import { Upload, ImageIcon, Building2 } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const CURRENCIES = ["BBD", "USD", "EUR", "GBP", "CAD"];
 const CALENDARS = ["Business HRS", "24/7", "Mon–Fri", "Mon–Sat"];
@@ -167,10 +168,7 @@ const CompanySettingsPage = () => {
 
   return (
     <div className="h-full overflow-auto p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <Building2 className="h-5 w-5" style={{ color: "hsl(215 65% 50%)" }} />
-        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Company Settings</h1>
-      </div>
+      <AdminPageHeader icon={Building2} title="Company Settings" />
 
           <div className="pt-2 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

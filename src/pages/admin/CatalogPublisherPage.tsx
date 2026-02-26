@@ -14,7 +14,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Copy, Pencil, Users, FileDown, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Search, Trash2, Copy, Pencil, Users, FileDown, ArrowUpDown, ChevronUp, ChevronDown, BookOpen } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import jsPDF from "jspdf";
@@ -318,7 +319,7 @@ const CatalogPublisherPage = () => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>📖 Catalog Publisher</h1>
+        <AdminPageHeader icon={BookOpen} title="Catalog Publisher" />
         {canEdit && (
           <Button
             size="sm"

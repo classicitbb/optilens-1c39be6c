@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Trash2, Copy } from "lucide-react";
+import { Plus, Search, Trash2, Copy, Ship } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -88,7 +89,7 @@ const ShipmentListPage = ({ typeFilter, title }: Props) => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>{title}</h1>
+        <AdminPageHeader icon={Ship} title={title} />
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
