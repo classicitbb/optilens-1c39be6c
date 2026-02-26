@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Ship, DollarSign, TrendingUp, Package } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -51,7 +52,7 @@ const CostingsReportsPage = ({ embedded = false }: { embedded?: boolean }) => {
 
   return (
     <div className={`space-y-6 max-w-6xl ${embedded ? "" : "p-4"}`}>
-      {!embedded && <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Costing Reports</h1>}
+      {!embedded && <AdminPageHeader icon={TrendingUp} title="Import Costing Reports" />}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Upload } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ImportLensesTab from "@/components/admin/ImportLensesTab";
 import ImportSuppliesTab from "@/components/admin/ImportSuppliesTab";
@@ -15,7 +16,7 @@ const ImportsPage = () => {
         <button onClick={() => navigate("/admin/catalog")} className="p-1 rounded hover:bg-muted transition-colors">
           <ArrowLeft className="h-4 w-4" style={{ color: "hsl(215 30% 40%)" }} />
         </button>
-        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Data</h1>
+        <AdminPageHeader icon={Upload} title="Import Data" />
       </div>
 
       <Tabs defaultValue="lenses" className="w-full">

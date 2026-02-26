@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Trash2, Copy, Ship } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -202,7 +203,7 @@ const ShipmentsTab = () => {
 const ImportCostingsPage = () => {
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Import Costings</h1>
+      <AdminPageHeader icon={Ship} title="Import Costings" />
       <ShipmentsTab />
     </div>
   );

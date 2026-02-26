@@ -10,7 +10,8 @@ import { useAuditLog, buildPricingSummary } from "@/hooks/useAuditLog";
 import { useCatalogFilterStore, CatalogFilterStore } from "@/hooks/useCatalogFilterStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, FilterX, Download, Settings, Database, Upload } from "lucide-react";
+import { Plus, Search, FilterX, Download, Settings, Database, Upload, Package as PackageIcon } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -153,7 +154,7 @@ const ProductCatalogPage = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden p-4 gap-4">
       <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Product Catalog</h1>
+        <AdminPageHeader icon={PackageIcon} title="Product Catalog" />
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, ArrowLeft, Settings } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
@@ -30,10 +31,7 @@ const IndustriesConfigPage = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link to="/admin/erp/contacts"><Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button></Link>
-          <div>
-            <h1 className="text-lg font-bold" style={{ color: "hsl(215 30% 15%)" }}>Industries</h1>
-            <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>Configure industry categories</p>
-          </div>
+          <AdminPageHeader icon={Settings} title="Industries" />
         </div>
         <Button size="sm" className="h-8 text-xs gap-1" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={() => setEditItem({ name: "", full_name: "" })}>
           <Plus className="h-3.5 w-3.5" /> New Industry

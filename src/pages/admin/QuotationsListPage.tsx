@@ -16,6 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Plus, Copy, FileText, Search } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { format } from "date-fns";
 
 const statusColors: Record<string, string> = {
@@ -89,7 +90,7 @@ const QuotationsListPage = () => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Quotations</h1>
+        <AdminPageHeader icon={FileText} title="Quotations" />
         {canEdit && (
           <Button
             size="sm"

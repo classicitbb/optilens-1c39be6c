@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, Tag } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
@@ -43,10 +44,7 @@ const ContactTagsConfigPage = () => {
           <Link to="/admin/erp/contacts">
             <Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
-          <div>
-            <h1 className="text-lg font-bold" style={{ color: "hsl(215 30% 15%)" }}>Contact Tags</h1>
-            <p className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>Manage tags for categorizing contacts</p>
-          </div>
+          <AdminPageHeader icon={Tag} title="Contact Tags" />
         </div>
         <Button size="sm" className="h-8 text-xs gap-1" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={() => setEditTag({ name: "", color: "#14b8a6", category: "" })}>
           <Plus className="h-3.5 w-3.5" /> New Tag

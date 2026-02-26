@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, Check, X, Lock, Mail, Eye } from "lucide-react";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { format } from "date-fns";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -155,10 +156,7 @@ const UsersPage = () => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5" style={{ color: "hsl(215 65% 50%)" }} />
-          <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>User Management</h1>
-        </div>
+        <AdminPageHeader icon={Shield} title="User Management" />
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setInviteEmail(""); setInviteOpen(true); }}>
             <Mail className="h-3.5 w-3.5" />
