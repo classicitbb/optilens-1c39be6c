@@ -71,6 +71,7 @@ const AdminSidebar = () => {
       <nav className="flex-1 overflow-y-auto py-2 space-y-0.5 rounded-none">
         {activeApp?.sidebarItems.map((item) => {
           const active = isActive(item.route);
+          const Icon = item.icon;
           return (
             <RouterNavLink
               key={item.route}
@@ -86,19 +87,8 @@ const AdminSidebar = () => {
                   : "transparent",
               }}
             >
-              {/* Use a small dot indicator instead of per-item icons */}
-              {collapsed ? (
-                <span
-                  className="h-1.5 w-1.5 rounded-full shrink-0"
-                  style={{
-                    background: active
-                      ? "hsl(215 65% 65%)"
-                      : "hsl(210 15% 40%)",
-                  }}
-                />
-              ) : (
-                <span>{item.label}</span>
-              )}
+              <Icon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>{item.label}</span>}
             </RouterNavLink>
           );
         })}
