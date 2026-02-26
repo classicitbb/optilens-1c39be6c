@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useCompanySettings, CompanySettings } from "@/hooks/useCompanySettings";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
-import { useAuditLog } from "@/hooks/useAuditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import PricingSettingsTab from "@/components/admin/PricingSettingsTab";
-import AuditLogPage from "@/pages/admin/AuditLogPage";
+
 import { Upload, ImageIcon } from "lucide-react";
 
 const CURRENCIES = ["BBD", "USD", "EUR", "GBP", "CAD"];
@@ -86,7 +85,7 @@ const CompanySettingsPage = () => {
   const { data: settings, isLoading, updateMutation } = useCompanySettings();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
-  const { logChange } = useAuditLog();
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
@@ -127,7 +126,6 @@ const CompanySettingsPage = () => {
     updateMutation.mutate(updates, {
       onSuccess: () => {
         toast({ title: "Settings saved" });
-        logChange({ table_name: "company_settings", record_id: settings?.id ?? "", action: "update", old_data: settings as any, new_data: { ...updates, name: "Company Settings" } });
       },
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" })
     });
@@ -176,7 +174,6 @@ const CompanySettingsPage = () => {
         <TabsList className="h-9">
           <TabsTrigger value="company" className="text-xs">Company Variables</TabsTrigger>
           <TabsTrigger value="pricing" className="text-xs">Pricing Settings</TabsTrigger>
-          <TabsTrigger value="audit" className="text-xs">Audit Log</TabsTrigger>
         </TabsList>
 
         {/* ── Company Variables ── */}
@@ -302,12 +299,6 @@ const CompanySettingsPage = () => {
           </div>
         </TabsContent>
 
-        {/* ── Audit Log ── */}
-        <TabsContent value="audit">
-          <div className="pt-2">
-            <AuditLogPage embedded />
-          </div>
-        </TabsContent>
       </Tabs>
     </div>);
 
