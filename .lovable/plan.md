@@ -103,3 +103,5 @@ A simple lookup object maps pathname prefixes to friendly labels:
 - No changes to AdminLayout needed? -- the header is already full-width within the flex container
 - Profile dropdown uses existing `DropdownMenu` from shadcn/ui for consistency
 - Avatar uses existing `Avatar` / `AvatarFallback` components with user initials
+
+## Foundation Step 1 Completed: ADMIN_APPS registry + dynamic Sidebar/Launcher
