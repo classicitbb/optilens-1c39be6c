@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { checkGovernance } from "@/hooks/useGovernanceCheck";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandItem, CommandGroup } from "@/components/ui/command";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Lock, LockOpen } from "lucide-react";
+import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Lock, LockOpen, X } from "lucide-react";
 import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
 import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
@@ -297,27 +297,32 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
               {lens ? "Edit Lens" : "Add Lens"}
             </DialogTitle>
-            {lens && onNavigate && lenses &&
-            <div className="flex items-center gap-1.5 text-xs mr-[30px]" style={{ color: "hsl(215 15% 50%)" }}>
+            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+              {lens && onNavigate && lenses && <>
                 <span>{currentIndex + 1} / {lenses.length}</span>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-              disabled={!canGoPrev || isPending}
-              onClick={() => canGoPrev && handleNavigate(lenses[currentIndex - 1])}>
+                  disabled={!canGoPrev || isPending}
+                  onClick={() => canGoPrev && handleNavigate(lenses[currentIndex - 1])}>
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </Button>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-              disabled={!canGoNext || isPending}
-              onClick={() => canGoNext && handleNavigate(lenses[currentIndex + 1])}>
+                  disabled={!canGoNext || isPending}
+                  onClick={() => canGoNext && handleNavigate(lenses[currentIndex + 1])}>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
-              </div>
-            }
+              </>}
+              <DialogClose asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-6 w-6">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DialogClose>
+            </div>
           </div>
         </DialogHeader>
 
