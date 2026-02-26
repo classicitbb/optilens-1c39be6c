@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, AlertTriangle, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, Settings2, X } from "lucide-react";
 import type { Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
@@ -189,14 +189,14 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto" style={{ borderRadius: "4px" }}>
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
               {supply ? "Edit Supply Item" : "New Supply"}
             </DialogTitle>
-            {supply && onNavigate && supplies && (
-              <div className="flex items-center gap-1.5 text-xs mr-[30px]" style={{ color: "hsl(215 15% 50%)" }}>
+            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+              {supply && onNavigate && supplies && <>
                 <span>{currentIndex + 1} / {supplies.length}</span>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
                   disabled={!canGoPrev || isPending}
@@ -208,8 +208,13 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                   onClick={() => canGoNext && handleNavigate(supplies[currentIndex + 1])}>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
-              </div>
-            )}
+              </>}
+              <DialogClose asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-6 w-6">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DialogClose>
+            </div>
           </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
