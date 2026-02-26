@@ -245,6 +245,8 @@ const ShipmentDetailPage = () => {
 
   const isLocked = shipment?.status === "locked";
   const editable = canEdit && !isLocked;
+  const LENS_CODES = ["lens", "stklens", "osrxlens"];
+  const isLensShipment = LENS_CODES.includes(shipment?.type ?? "");
 
   const totals = useMemo(() => {
     if (!shipment) return { fobBbd: 0, invoiceBbd: 0, totalChargesBbd: 0, totalLandedBbd: 0, multiplier: 1 };
@@ -317,7 +319,7 @@ const ShipmentDetailPage = () => {
 
   const addLine = async () => {
     if (!id || isNew) return;
-    await upsertLine.mutateAsync({ shipment_id: id, product_type: shipment?.type === "lens" ? "lens" : "free", description: "", quantity: 1, unit_fob_foreign: 0, line_fob_foreign: 0, markup_percent: 30, sort_order: lines.length });
+    await upsertLine.mutateAsync({ shipment_id: id, product_type: isLensShipment ? "lens" : "free", description: "", quantity: 1, unit_fob_foreign: 0, line_fob_foreign: 0, markup_percent: 30, sort_order: lines.length });
   };
 
   const exportCSV = (data: Record<string, any>[], filename: string) => {
@@ -511,7 +513,6 @@ const ShipmentDetailPage = () => {
                 </TableHeader>
                 <TableBody>
                   {charges.map((c) => {
-                    const isDutyRow = c.charge_type === "Duties & VAT";
                     const rowTotal = (c.amount_bbd || 0) + (c.vat_bbd || 0) + (c.duty_bbd || 0);
                     return (
                       <TableRow key={c.id} className="text-xs">
@@ -530,16 +531,12 @@ const ShipmentDetailPage = () => {
                             onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
-                          {isDutyRow ? (
-                            <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
-                              onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => {}} />
-                          ) : <span className="text-muted-foreground">—</span>}
+                          <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
+                            onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
-                          {isDutyRow ? (
-                            <Switch checked={c.vat_reclaimable} disabled={!editable}
-                              onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} />
-                          ) : <span className="text-muted-foreground">—</span>}
+                          <Switch checked={c.vat_reclaimable} disabled={!editable}
+                            onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} />
                         </TableCell>
                         <TableCell className="py-1">
                           <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-full"
@@ -606,7 +603,7 @@ const ShipmentDetailPage = () => {
                           <Select value={l.product_type} disabled={!editable} onValueChange={(v) => handleProductTypeChange(l, v)}>
                             <SelectTrigger className="h-7 text-xs border-0 shadow-none w-full"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {shipment.type === "lens" ? (
+                              {isLensShipment ? (
                                 <SelectItem value="lens">Lens</SelectItem>
                               ) : (
                                 <>
