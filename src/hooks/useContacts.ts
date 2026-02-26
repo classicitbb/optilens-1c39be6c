@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface Contact {
   id: string;
   name: string;
+  type: string;
+  business_name: string | null;
   is_company: boolean;
   parent_id: string | null;
   email: string;
@@ -14,8 +16,13 @@ export interface Contact {
   state: string;
   zip: string;
   country_code: string;
+  country: string;
+  address: string | null;
   tax_id: string;
   website: string;
+  google_place_id: string | null;
+  facebook_page_id: string | null;
+  instagram_handle: string | null;
   industry_id: string | null;
   notes: string;
   salesperson: string;
@@ -24,6 +31,8 @@ export interface Contact {
   is_customer: boolean;
   lead_source: string;
   pipeline_stage: string;
+  status: string;
+  lead_score: number;
   created_at: string;
   updated_at: string;
 }
