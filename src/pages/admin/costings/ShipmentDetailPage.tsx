@@ -217,6 +217,7 @@ const ShipmentDetailPage = () => {
   const [shipment, setShipment] = useState<Shipment | null>(isNew ? defaultShipment : null);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [invoiceTouched, setInvoiceTouched] = useState(false);
 
   const { data: suppliers } = useReferenceData("suppliers");
   const { data: lenses = [] } = useLenses();
@@ -231,7 +232,9 @@ const ShipmentDetailPage = () => {
     (async () => {
       const { data, error } = await (supabase.from("shipments" as any) as any).select("*").eq("id", id).single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-      setShipment(data as Shipment);
+      const s = data as Shipment;
+      setShipment(s);
+      if (s.invoice_total_foreign !== s.fob_foreign) setInvoiceTouched(true);
       setLoading(false);
     })();
   }, [id]);
@@ -246,7 +249,11 @@ const ShipmentDetailPage = () => {
 
   const updateField = (field: string, value: any) => {
     if (!shipment) return;
-    setShipment({ ...shipment, [field]: value } as Shipment);
+    if (field === "fob_foreign" && !invoiceTouched) {
+      setShipment({ ...shipment, fob_foreign: value, invoice_total_foreign: value } as Shipment);
+    } else {
+      setShipment({ ...shipment, [field]: value } as Shipment);
+    }
   };
 
   const handleSave = async () => {
@@ -455,7 +462,7 @@ const ShipmentDetailPage = () => {
           <NumericInput value={shipment.fob_foreign} onChange={(v) => updateField("fob_foreign", v)} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
         <Field label={`Invoice Total (${shipment.currency}) *`}>
-          <NumericInput value={shipment.invoice_total_foreign} onChange={(v) => updateField("invoice_total_foreign", v)} disabled={!editable} className="h-8 text-xs text-right" />
+          <NumericInput value={shipment.invoice_total_foreign} onChange={(v) => { setInvoiceTouched(true); updateField("invoice_total_foreign", v); }} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
       </div>
 
