@@ -107,12 +107,23 @@ export const useRolePermissions = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["role-permissions"] }),
   });
 
+  /** Check if user has access to at least one feature under an app's featurePrefix */
+  const hasAppAccess = (featurePrefix: string): boolean => {
+    // Admin always has access to everything
+    if (effectiveRole === "admin") return true;
+    // Check if any permission with a matching feature prefix grants view access
+    return myPermissions.some(
+      (p) => (p.feature === featurePrefix || p.feature.startsWith(featurePrefix + "-")) && p.can_view
+    );
+  };
+
   return {
     allPermissions,
     myPermissions,
     isLoading,
     canView,
     canEditFeature,
+    hasAppAccess,
     updatePermission,
   };
 };
