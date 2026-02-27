@@ -93,7 +93,7 @@ export const useOpportunities = () => {
         .select("id,title,stage,country,volume_tier,estimated_value,contact_id,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Opportunity[];
+      return (data ?? []) as unknown as Opportunity[];
     },
   });
 };
@@ -109,33 +109,5 @@ export const useUpdateOpportunityStage = () => {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-opportunities"] }),
-  });
-};
-
-export const useCreateOpportunity = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: CreateOpportunityInput) => {
-      await upsertOpportunity(input);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["crm-opportunities"] });
-      qc.invalidateQueries({ queryKey: ["leads-v1"] });
-    },
-  });
-};
-
-export const useSeedSampleOpportunities = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      for (const sample of SAMPLE_OPPORTUNITIES) {
-        await upsertOpportunity(sample);
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["crm-opportunities"] });
-      qc.invalidateQueries({ queryKey: ["leads-v1"] });
-    },
   });
 };
