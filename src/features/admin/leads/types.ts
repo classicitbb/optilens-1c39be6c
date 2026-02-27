@@ -7,7 +7,7 @@ export interface LeadRecord {
   city: string | null;
   website: string | null;
   instagram_handle: string | null;
-  facebook_page: string | null;
+  facebook_page_id: string | null;
   google_rating: number | null;
   google_reviews_count: number | null;
   ai_intent_score: number | null;

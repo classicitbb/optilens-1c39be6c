@@ -102,7 +102,7 @@ export const useOpportunities = () => {
         .select("id,title,stage,country,volume_tier,estimated_value,contact_id,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Opportunity[];
+      return (data ?? []) as unknown as Opportunity[];
     },
   });
 };
@@ -115,7 +115,7 @@ export const useUpdateOpportunityStage = () => {
         .from("opportunities" as any)
         .select("id,contact_id,title")
         .eq("id", id)
-        .single();
+        .single() as any;
       if (oppGetErr) throw oppGetErr;
 
       const { error } = await supabase
