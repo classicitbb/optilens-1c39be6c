@@ -12,20 +12,6 @@ This SQL includes:
 - RLS enabled + baseline authenticated policies
 - Explicit guarantee that `price_catalog.web_enabled` and `price_catalog.wspl_enabled` exist
 
-### Direct execution (Step A)
-If you have direct DB access, run:
-
-```bash
-export DATABASE_URL="postgresql://..."
-./scripts/run_phase2_step_a.sh
-```
-
-This will apply:
-- `supabase/migrations/20260226190000_phase2_database_foundation.sql`
-
-and then verify with:
-- `scripts/phase2_step_a_verify.sql`
-
 ### Confirmation checklist (post-migration)
 Run these SQL checks in Supabase SQL editor:
 
@@ -48,17 +34,6 @@ Expected:
 - All 7 tables returned.
 - Both `web_enabled` and `wspl_enabled` returned.
 
-### Phase 2 completion matrix
-Phase 2 is considered complete when verification confirms:
-- Contacts remains the source of truth with enrichment columns present.
-- Core CRM/lead tables exist: opportunities, lead_audits, activities, notes.
-- price_catalog exists with `web_enabled` + `wspl_enabled`.
-- RLS is enabled on all new Phase 2 tables.
-- Baseline authenticated policies exist for each new Phase 2 table.
-- Required indexes exist for contact/opportunity lookups and filter paths.
-
-`./scripts/run_phase2_step_a.sh` now executes migration + all checks in `scripts/phase2_step_a_verify.sql`.
-
 ---
 
 ## Phase 3 — file/folder structure, components/hooks, queries, prompts, sequence JSON
@@ -74,7 +49,6 @@ src/
       useLeadScoring.ts
       useInstagramPostPack.ts
       useLeadSequenceBuilder.ts
-      useLeadFinder.ts
   pages/admin/leads/
     MyLeadsPage.tsx
     LeadFinderPage.tsx
@@ -85,9 +59,6 @@ src/
 
 supabase/migrations/
   20260226190000_phase2_database_foundation.sql
-
-supabase/functions/
-  lead-intelligence/index.ts
 ```
 
 ## Components/pages delivered
@@ -103,14 +74,8 @@ supabase/functions/
 - `useLeadScoring`: 5-component score + AI boost → Hot/Warm/Cold band
 - `useInstagramPostPack`: prompt builder + mock pack shape
 - `useLeadSequenceBuilder`: default 5-step WhatsApp/Email/IG-DM flow
-- `useLeadFinder`: invokes Supabase Edge Function `lead-intelligence` (Google Places + Graph enrichment adapter)
 
 ## Supabase queries used
-- Edge Function invoke:
-```ts
-await supabase.functions.invoke("lead-intelligence", { body: { query, country, cities } })
-```
-
 - Leads list:
 ```sql
 select id,name,country,city,website,instagram_handle,facebook_page,
@@ -165,31 +130,5 @@ Output strict JSON fields: carousel, captions, hashtags, reel, stories."
     "manualReviewForInstagramDM": true
   }
 }
-```
-
-
-
-## Step C status (CRM first implementation)
-- Implemented `/admin/crm/pipeline` with Kanban-style stage columns (`new`, `contacted`, `meeting_completed`, `proposal`).
-- Added quick action to open Catalog Publisher with opportunity prefill context.
-- Implemented `/admin/crm/activities` list bound to `activities` table.
-- Added hooks:
-  - `src/features/admin/crm/hooks/useOpportunities.ts`
-  - `src/features/admin/crm/hooks/useActivities.ts`
-
-Supabase queries for Step C:
-```sql
-select id,title,stage,country,volume_tier,estimated_value,contact_id,created_at
-from opportunities
-order by created_at desc;
-
-update opportunities
-set stage = :stage, updated_at = now()
-where id = :id;
-
-select id,activity_type,status,due_at,opportunity_id,contact_id,created_at
-from activities
-order by created_at desc
-limit 300;
 ```
 
