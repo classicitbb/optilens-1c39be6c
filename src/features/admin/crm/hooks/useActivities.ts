@@ -44,6 +44,7 @@ export const useCreateActivity = () => {
         opportunity_id: input.opportunityId || null,
         contact_id: input.contactId || null,
         status: input.status || "open",
+        payload: {},
       };
 
       const { error } = await supabase
