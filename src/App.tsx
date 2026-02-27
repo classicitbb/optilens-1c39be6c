@@ -121,12 +121,12 @@ const App = () => (
                 <Route path="contacts/config/industries" element={<IndustriesConfigPage />} />
 
                 {/* ═══ Leads App ═══ */}
-                <Route path="leads" element={<Navigate to="/admin/leads/finder" replace />} />
-                <Route path="leads/finder" element={<PlaceholderPage />} />
-                <Route path="leads/campaigns" element={<PlaceholderPage />} />
-                <Route path="leads/reports" element={<PlaceholderPage />} />
-                <Route path="leads/ai" element={<PlaceholderPage />} />
-                <Route path="leads/settings" element={<PlaceholderPage />} />
+                <Route path="leads" element={<MyLeadsPage />} />
+                <Route path="leads/finder" element={<LeadFinderPage />} />
+                <Route path="leads/campaigns" element={<LeadCampaignsPage />} />
+                <Route path="leads/reports" element={<LeadAuditReportsPage />} />
+                <Route path="leads/ai" element={<LeadsAiAssistantPage />} />
+                <Route path="leads/settings" element={<LeadSettingsPage />} />
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/pipeline" replace />} />
