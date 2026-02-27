@@ -105,16 +105,14 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
   return (
     <div
       ref={panelRef}
-      className="fixed z-50 p-5 flex-col animate-in fade-in slide-in-from-top-2 duration-200 flex items-start justify-start my-[55px] mx-[10px]"
+      className="fixed z-50 p-5 flex-col animate-in fade-in slide-in-from-top-2 duration-200 flex items-start justify-start my-[55px] mx-[10px] rounded-md"
       style={{
         top: "44px",
         left: "4px",
-        background: "hsl(215 28% 14% / 0.75)",
-        backdropFilter: "blur(24px) saturate(1.4)",
-        WebkitBackdropFilter: "blur(24px) saturate(1.4)",
-        border: "1px solid hsl(215 25% 40% / 0.25)",
+        background: "hsl(215 28% 14%)",
+        border: "1px solid hsl(215 25% 22%)",
         borderRadius: "0 0 12px 12px",
-        boxShadow: "0 20px 50px -12px hsl(215 40% 5% / 0.6), inset 0 1px 0 0 hsl(0 0% 100% / 0.06)",
+        boxShadow: "0 20px 50px -12px hsl(215 40% 5% / 0.6)",
         width: "380px"
       }}>
 
@@ -138,8 +136,8 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
           style={{
             width: "76px",
             height: "76px",
-            background: "hsl(215 25% 18% / 0.5)",
-            border: "1px solid hsl(215 25% 40% / 0.2)"
+            background: "hsl(215 25% 18%)",
+            border: "1px solid hsl(215 25% 22%)"
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = "hsl(168 76% 42%)";
