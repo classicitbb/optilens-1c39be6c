@@ -51,6 +51,8 @@ import LeadCampaignsPage from "./pages/admin/leads/LeadCampaignsPage";
 import LeadAuditReportsPage from "./pages/admin/leads/LeadAuditReportsPage";
 import LeadsAiAssistantPage from "./pages/admin/leads/LeadsAiAssistantPage";
 import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
+import CrmPipelinePage from "./pages/admin/crm/CrmPipelinePage";
+import CrmActivitiesPage from "./pages/admin/crm/CrmActivitiesPage";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
