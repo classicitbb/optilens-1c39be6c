@@ -109,7 +109,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
       style={{
         top: "54px",
         left: "10px",
-        background: "hsl(215 20% 28% / 0.65)",
+        background: "hsl(215 15% 42% / 0.7)",
         backdropFilter: "blur(32px) saturate(1.5)",
         WebkitBackdropFilter: "blur(32px) saturate(1.5)",
         border: "1px solid hsl(215 25% 40% / 0.2)",
