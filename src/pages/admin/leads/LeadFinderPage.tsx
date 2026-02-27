@@ -115,7 +115,7 @@ const LeadFinderPage = () => {
                   </div>
                   <p className="text-muted-foreground">{lead.city || "—"}, {lead.country || "—"}</p>
                   <p>Google: {lead.google_rating ?? "—"} ({lead.google_reviews_count ?? 0})</p>
-                  <p>IG/FB: {lead.instagram_handle || lead.facebook_page_id ? "Active" : "Unknown"}</p>
+                  <p>IG/FB: {lead.instagram_handle || lead.facebook_page ? "Active" : "Unknown"}</p>
                   <div className="pt-1 flex gap-2">
                     <Button size="sm" variant="outline" className="h-7 text-[11px]">Enrich & Preview</Button>
                     <Button

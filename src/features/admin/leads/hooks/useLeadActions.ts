@@ -12,7 +12,7 @@ export const useSaveLeadToCrm = () => {
         city: lead.city,
         website: lead.website,
         instagram_handle: lead.instagram_handle,
-        facebook_page_id: lead.facebook_page_id,
+        facebook_page: lead.facebook_page,
         google_rating: lead.google_rating,
         google_reviews_count: lead.google_reviews_count,
         ai_intent_score: lead.ai_intent_score,
