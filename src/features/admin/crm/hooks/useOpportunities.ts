@@ -111,3 +111,25 @@ export const useUpdateOpportunityStage = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-opportunities"] }),
   });
 };
+
+export const useCreateOpportunity = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateOpportunityInput) => {
+      await upsertOpportunity(input);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-opportunities"] }),
+  });
+};
+
+export const useSeedSampleOpportunities = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      for (const sample of SAMPLE_OPPORTUNITIES) {
+        await upsertOpportunity(sample);
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-opportunities"] }),
+  });
+};

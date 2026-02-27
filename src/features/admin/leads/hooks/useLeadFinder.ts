@@ -22,7 +22,7 @@ export const useLeadFinder = () => {
         country: lead.country ?? null,
         website: lead.website ?? null,
         instagram_handle: lead.instagram_handle ?? null,
-        facebook_page: lead.facebook_page ?? null,
+        facebook_page_id: lead.facebook_page ?? null,
         google_rating: lead.google_rating ?? null,
         google_reviews_count: lead.google_reviews_count ?? null,
         ai_intent_score: null,

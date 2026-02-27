@@ -16,30 +16,39 @@ export type Database = {
     Tables: {
       activities: {
         Row: {
+          activity_type: string | null
           contact_id: string
           content: string | null
           created_at: string | null
           created_by: string | null
+          due_at: string | null
           id: string
           opportunity_id: string | null
+          status: string | null
           type: string
         }
         Insert: {
+          activity_type?: string | null
           contact_id: string
           content?: string | null
           created_at?: string | null
           created_by?: string | null
+          due_at?: string | null
           id?: string
           opportunity_id?: string | null
+          status?: string | null
           type: string
         }
         Update: {
+          activity_type?: string | null
           contact_id?: string
           content?: string | null
           created_at?: string | null
           created_by?: string | null
+          due_at?: string | null
           id?: string
           opportunity_id?: string | null
+          status?: string | null
           type?: string
         }
         Relationships: [
@@ -632,6 +641,7 @@ export type Database = {
       contacts: {
         Row: {
           address: string | null
+          ai_intent_score: number | null
           avatar_url: string | null
           business_name: string | null
           city: string | null
@@ -641,6 +651,8 @@ export type Database = {
           email: string | null
           facebook_page_id: string | null
           google_place_id: string | null
+          google_rating: number | null
+          google_reviews_count: number | null
           id: string
           industry_id: string | null
           instagram_handle: string | null
@@ -667,6 +679,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          ai_intent_score?: number | null
           avatar_url?: string | null
           business_name?: string | null
           city?: string | null
@@ -676,6 +689,8 @@ export type Database = {
           email?: string | null
           facebook_page_id?: string | null
           google_place_id?: string | null
+          google_rating?: number | null
+          google_reviews_count?: number | null
           id?: string
           industry_id?: string | null
           instagram_handle?: string | null
@@ -702,6 +717,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          ai_intent_score?: number | null
           avatar_url?: string | null
           business_name?: string | null
           city?: string | null
@@ -711,6 +727,8 @@ export type Database = {
           email?: string | null
           facebook_page_id?: string | null
           google_place_id?: string | null
+          google_rating?: number | null
+          google_reviews_count?: number | null
           id?: string
           industry_id?: string | null
           instagram_handle?: string | null
@@ -1528,34 +1546,49 @@ export type Database = {
           audit_pdf_url: string | null
           close_date: string | null
           contact_id: string
+          country: string | null
           created_at: string | null
+          estimated_value: number | null
           expected_value: number | null
           id: string
           source: string | null
+          stage: string | null
           status: string | null
+          title: string | null
           updated_at: string | null
+          volume_tier: string | null
         }
         Insert: {
           audit_pdf_url?: string | null
           close_date?: string | null
           contact_id: string
+          country?: string | null
           created_at?: string | null
+          estimated_value?: number | null
           expected_value?: number | null
           id?: string
           source?: string | null
+          stage?: string | null
           status?: string | null
+          title?: string | null
           updated_at?: string | null
+          volume_tier?: string | null
         }
         Update: {
           audit_pdf_url?: string | null
           close_date?: string | null
           contact_id?: string
+          country?: string | null
           created_at?: string | null
+          estimated_value?: number | null
           expected_value?: number | null
           id?: string
           source?: string | null
+          stage?: string | null
           status?: string | null
+          title?: string | null
           updated_at?: string | null
+          volume_tier?: string | null
         }
         Relationships: [
           {
