@@ -136,8 +136,8 @@ const App = () => (
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/pipeline" replace />} />
-                <Route path="crm/pipeline" element={<PlaceholderPage />} />
-                <Route path="crm/activities" element={<PlaceholderPage />} />
+                <Route path="crm/pipeline" element={<CrmPipelinePage />} />
+                <Route path="crm/activities" element={<CrmActivitiesPage />} />
 
                 {/* ═══ Helpdesk App ═══ */}
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
