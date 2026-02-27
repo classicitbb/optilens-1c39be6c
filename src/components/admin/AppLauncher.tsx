@@ -109,11 +109,13 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
       style={{
         top: "44px",
         left: "4px",
-        background: "hsl(215 28% 14%)",
-        border: "1px solid hsl(215 25% 22%)",
+        background: "hsl(215 28% 14% / 0.6)",
+        backdropFilter: "blur(32px) saturate(1.5)",
+        WebkitBackdropFilter: "blur(32px) saturate(1.5)",
+        border: "1px solid hsl(215 25% 40% / 0.2)",
         borderRadius: "0 0 12px 12px",
-        boxShadow: "0 20px 50px -12px hsl(215 40% 5% / 0.6)",
-        width: "380px"
+        boxShadow: "0 20px 50px -12px hsl(215 40% 5% / 0.7), inset 0 1px 0 0 hsl(0 0% 100% / 0.08)",
+        width: "460px"
       }}>
 
       <div className="flex items-center justify-between mb-3">
@@ -122,34 +124,34 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
           onClick={() => {navigate("/admin/knowledge/wiki");onClose();}}
           className="p-1 rounded hover:bg-white/10 transition-colors"
           title="Help / Wiki">
-
           <HelpCircle className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-4 gap-3">
         {visibleApps.map((app) =>
         <button
           key={app.key}
           onClick={() => handleSelect(app)}
-          className="flex flex-col items-center justify-center gap-1.5 rounded-lg transition-all duration-150 hover:scale-105"
+          className="flex flex-col items-center justify-center gap-2 rounded-lg transition-all duration-150 hover:scale-105"
           style={{
-            width: "76px",
-            height: "76px",
-            background: "hsl(215 25% 18%)",
-            border: "1px solid hsl(215 25% 22%)"
+            width: "100px",
+            height: "100px",
+            background: "hsl(215 25% 16% / 0.7)",
+            border: "1px solid hsl(215 25% 35% / 0.3)",
+            boxShadow: "0 2px 8px -2px hsl(215 40% 5% / 0.4), inset 0 1px 0 0 hsl(0 0% 100% / 0.05)"
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "hsl(168 76% 42%)";
-            e.currentTarget.style.background = "hsl(215 25% 20%)";
+            e.currentTarget.style.borderColor = "hsl(168 76% 42% / 0.6)";
+            e.currentTarget.style.background = "hsl(215 25% 20% / 0.8)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "hsl(215 25% 22%)";
-            e.currentTarget.style.background = "hsl(215 25% 18%)";
+            e.currentTarget.style.borderColor = "hsl(215 25% 35% / 0.3)";
+            e.currentTarget.style.background = "hsl(215 25% 16% / 0.7)";
           }}>
 
-            <app.icon className="h-7 w-7" style={{ color: APP_COLORS[app.key] ?? "hsl(210 20% 85%)" }} />
-            <span className="text-[10px] font-medium" style={{ color: "hsl(210 20% 85%)" }}>{app.title}</span>
+            <app.icon className="h-8 w-8" style={{ color: APP_COLORS[app.key] ?? "hsl(210 20% 85%)" }} />
+            <span className="text-[11px] font-medium" style={{ color: "hsl(210 20% 85%)" }}>{app.title}</span>
           </button>
         )}
       </div>
