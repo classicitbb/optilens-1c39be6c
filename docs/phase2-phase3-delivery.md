@@ -12,20 +12,6 @@ This SQL includes:
 - RLS enabled + baseline authenticated policies
 - Explicit guarantee that `price_catalog.web_enabled` and `price_catalog.wspl_enabled` exist
 
-### Direct execution (Step A)
-If you have direct DB access, run:
-
-```bash
-export DATABASE_URL="postgresql://..."
-./scripts/run_phase2_step_a.sh
-```
-
-This will apply:
-- `supabase/migrations/20260226190000_phase2_database_foundation.sql`
-
-and then verify with:
-- `scripts/phase2_step_a_verify.sql`
-
 ### Confirmation checklist (post-migration)
 Run these SQL checks in Supabase SQL editor:
 
@@ -63,7 +49,6 @@ src/
       useLeadScoring.ts
       useInstagramPostPack.ts
       useLeadSequenceBuilder.ts
-      useLeadFinder.ts
   pages/admin/leads/
     MyLeadsPage.tsx
     LeadFinderPage.tsx
@@ -74,9 +59,6 @@ src/
 
 supabase/migrations/
   20260226190000_phase2_database_foundation.sql
-
-supabase/functions/
-  lead-intelligence/index.ts
 ```
 
 ## Components/pages delivered
@@ -92,14 +74,8 @@ supabase/functions/
 - `useLeadScoring`: 5-component score + AI boost → Hot/Warm/Cold band
 - `useInstagramPostPack`: prompt builder + mock pack shape
 - `useLeadSequenceBuilder`: default 5-step WhatsApp/Email/IG-DM flow
-- `useLeadFinder`: invokes Supabase Edge Function `lead-intelligence` (Google Places + Graph enrichment adapter)
 
 ## Supabase queries used
-- Edge Function invoke:
-```ts
-await supabase.functions.invoke("lead-intelligence", { body: { query, country, cities } })
-```
-
 - Leads list:
 ```sql
 select id,name,country,city,website,instagram_handle,facebook_page,
