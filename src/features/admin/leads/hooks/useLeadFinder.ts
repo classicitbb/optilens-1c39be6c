@@ -6,6 +6,7 @@ interface FinderInput {
   query: string;
   country?: string;
   cities?: string[];
+<<<<<<< codex/examine-project-files-and-report-findings-6lnatk
   globalSearch?: boolean;
 }
 
@@ -29,13 +30,21 @@ export interface LeadFinderDiagnostics {
 export interface LeadFinderResult {
   leads: LeadRecord[];
   diagnostics: LeadFinderDiagnostics | null;
+=======
+>>>>>>> main
 }
 
 export const useLeadFinder = () => {
   return useMutation({
+<<<<<<< codex/examine-project-files-and-report-findings-6lnatk
     mutationFn: async ({ query, country, cities, globalSearch }: FinderInput): Promise<LeadFinderResult> => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
         body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true },
+=======
+    mutationFn: async ({ query, country, cities }: FinderInput) => {
+      const { data, error } = await supabase.functions.invoke("lead-intelligence", {
+        body: { query, country, cities },
+>>>>>>> main
       });
       if (error) throw error;
       const leads = ((data?.leads ?? []) as any[]).map((lead) => ({
@@ -53,10 +62,14 @@ export const useLeadFinder = () => {
         score: Number(lead.score ?? 0),
         notes: null,
       })) as LeadRecord[];
+<<<<<<< codex/examine-project-files-and-report-findings-6lnatk
       return {
         leads,
         diagnostics: (data?.diagnostics ?? null) as LeadFinderDiagnostics | null,
       };
+=======
+      return leads;
+>>>>>>> main
     },
   });
 };

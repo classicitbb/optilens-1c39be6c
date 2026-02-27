@@ -214,6 +214,7 @@ limit 300;
 - `src/features/admin/leads/hooks/useLeadActions.ts`
 - `src/pages/admin/leads/LeadCampaignsPage.tsx`
 - `src/pages/admin/leads/LeadAuditReportsPage.tsx`
+<<<<<<< codex/examine-project-files-and-report-findings-6lnatk
 
 ## Sprint B execution update (quality + scale)
 - ✅ Cross-browser UI hardening for shared controls (switch, checkbox, avatar) using explicit appearance and radius guards in UI primitives.
@@ -233,3 +234,5 @@ Current diagnostics report these provider states in-app:
 2. Implement provider adapter in `supabase/functions/lead-intelligence/index.ts`.
 3. Append provider to `providersUsed` diagnostics output.
 4. Validate from `/admin/leads/finder` diagnostics panel.
+=======
+>>>>>>> main
