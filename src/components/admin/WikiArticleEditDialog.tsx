@@ -1,14 +1,15 @@
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { Save } from "lucide-react";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useToast } from "@/hooks/use-toast";
-
-const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
+import { renderWikiContent } from "./wikiFormatting";
 
 const PAGE_SLUGS = [
   { value: "all", label: "All Pages" },
@@ -60,7 +61,6 @@ const WikiArticleEditDialog = ({
     sort_order: article?.sort_order ?? 0,
   });
 
-  // Reset form when article changes
   const [lastArticleId, setLastArticleId] = useState(article?.id);
   if (article?.id !== lastArticleId) {
     setLastArticleId(article?.id);
@@ -161,18 +161,28 @@ const WikiArticleEditDialog = ({
 
           <div>
             <Label className="text-xs font-medium mb-1 block">Content</Label>
-            <Suspense
-              fallback={
-                <div className="h-[200px] border border-border rounded-lg animate-pulse bg-muted/20" />
-              }
-            >
-              <RichTextEditor
-                content={form.content}
-                onChange={(html) => setForm({ ...form, content: html })}
-                placeholder="Write a description..."
-                minHeight="250px"
-              />
-            </Suspense>
+            <Tabs defaultValue="edit" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="edit">Edit Source</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
+              <TabsContent value="edit" className="space-y-2">
+                <Textarea
+                  value={form.content}
+                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  placeholder="Use **Heading** for section titles, bullets with - or •, and blank lines between sections."
+                  className="min-h-[280px] font-mono text-xs leading-relaxed"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Tip: use <span className="font-medium">**Heading**</span> for section titles and regular lines for paragraph copy.
+                </p>
+              </TabsContent>
+              <TabsContent value="preview" className="rounded-md border border-border bg-muted/20 p-4">
+                <div className="text-[13px] leading-relaxed space-y-1.5 text-muted-foreground">
+                  {renderWikiContent(form.content)}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <div className="flex justify-end">
