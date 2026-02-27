@@ -167,3 +167,29 @@ Output strict JSON fields: carousel, captions, hashtags, reel, stories."
 }
 ```
 
+
+
+## Step C status (CRM first implementation)
+- Implemented `/admin/crm/pipeline` with Kanban-style stage columns (`new`, `contacted`, `meeting_completed`, `proposal`).
+- Added quick action to open Catalog Publisher with opportunity prefill context.
+- Implemented `/admin/crm/activities` list bound to `activities` table.
+- Added hooks:
+  - `src/features/admin/crm/hooks/useOpportunities.ts`
+  - `src/features/admin/crm/hooks/useActivities.ts`
+
+Supabase queries for Step C:
+```sql
+select id,title,stage,country,volume_tier,estimated_value,contact_id,created_at
+from opportunities
+order by created_at desc;
+
+update opportunities
+set stage = :stage, updated_at = now()
+where id = :id;
+
+select id,activity_type,status,due_at,opportunity_id,contact_id,created_at
+from activities
+order by created_at desc
+limit 300;
+```
+

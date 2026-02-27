@@ -50,6 +50,8 @@ import LeadCampaignsPage from "./pages/admin/leads/LeadCampaignsPage";
 import LeadAuditReportsPage from "./pages/admin/leads/LeadAuditReportsPage";
 import LeadsAiAssistantPage from "./pages/admin/leads/LeadsAiAssistantPage";
 import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
+import CrmPipelinePage from "./pages/admin/crm/CrmPipelinePage";
+import CrmActivitiesPage from "./pages/admin/crm/CrmActivitiesPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 
 // ZenVue microsite
@@ -136,8 +138,8 @@ const App = () => (
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/pipeline" replace />} />
-                <Route path="crm/pipeline" element={<PlaceholderPage />} />
-                <Route path="crm/activities" element={<PlaceholderPage />} />
+                <Route path="crm/pipeline" element={<CrmPipelinePage />} />
+                <Route path="crm/activities" element={<CrmActivitiesPage />} />
 
                 {/* ═══ Helpdesk App ═══ */}
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
