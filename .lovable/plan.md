@@ -1,116 +1,179 @@
-## Redesign Admin Top Bar (Header)
+## Admin Experience Plan (Updated to Current Codebase)
 
-### Summary
-
-Rebuild `AdminTopBar` to be a full-width, well-organized header bar with proper left/right anchoring, rename "OptiPricing" to "OpticAdmin" everywhere, and add a profile dropdown menu with contextual items.
+### Plan intent
+This plan is now aligned with the **current modular admin architecture** (`/admin/<app>/...`) and the work that already exists in the repository.
 
 ---
 
-### Layout (left to right)
+## 1) Current state snapshot (what is already done)
 
-```text
-|-- LEFT ANCHORED ------------------------------------------------|-- RIGHT ANCHORED -------------------------|
-| [Apps] | OpticAdmin | App Name (Page Name) | Global Search      | [Bell] [Help] [Lovable] | UserName [Avatar v] |
-```
+### 1.1 Admin shell and navigation foundation
+- ✅ `ADMIN_APPS` registry is implemented and drives app metadata, default routes, and sidebar items.
+- ✅ App Launcher and Sidebar are dynamic and role-filtered.
+- ✅ Admin route groups are modularized by app domain:
+  - Pricing (`/admin/pricing/*`)
+  - Sales (`/admin/sales/*`)
+  - Contacts (`/admin/contacts/*`)
+  - Leads (`/admin/leads/*`)
+  - CRM (`/admin/crm/*`)
+  - Helpdesk (`/admin/helpdesk/*`)
+  - Website (`/admin/website/*`)
+  - Knowledge (`/admin/knowledge/*`)
+  - Settings (`/admin/settings/*`)
+- ✅ Legacy routes are redirected to the new structure.
 
-- **Apps Button**: Existing grid icon to toggle AppLauncher
-- **OpticAdmin**: Brand label, always visible
-- **App Name (Page Name)**: Derived from current route (e.g. "Pricing > Product Catalog")
-- **Global Search**: Centered in the remaining space (Ctrl+K)
-- **Notifications Bell**: Placeholder icon (disabled/tooltip "Coming soon")
-- **Help icon**: Existing help panel toggle
-- **Edit with Lovable icon**: External link to Lovable editor, visible only for admin role
-- **User display name** (falls back to email if no name set)
-- **Avatar icon** with dropdown menu containing:
-  - Helpdesk / Wiki (links to /admin/wiki)
-  - My Profile (links to /profile)
-  - Install App (triggers `beforeinstallprompt` PWA or opens window for bookmarking)
+### 1.2 Admin Top Bar redesign status
+- ✅ Top bar exists with the intended structure:
+  - Apps toggle
+  - `OpticAdmin` brand label
+  - Page label
+  - Global search
+  - Bell placeholder
+  - Help toggle
+  - Lovable external link (admin-only)
+  - User display name + avatar dropdown
+- ✅ User display name resolves from `profiles.display_name` with email fallback.
+- ✅ Avatar dropdown includes:
+  - Helpdesk / Wiki
+  - My Profile
+  - Install App
   - Logout
 
----
-
-### Files Changed
-
-#### 1. `src/components/admin/AdminTopBar.tsx` -- Full rewrite
-
-- Fetch user profile (display_name) from profiles table via a small query or context
-- Build a route-to-label map to derive "App Name > Page Name" from `useLocation()`
-- Layout: `flex items-center w-full` with left group, center search, right group
-- Right side: Bell icon (placeholder), Help icon, Lovable link (admin only), user name, Avatar with DropdownMenu
-- DropdownMenu items: Wiki, Profile, Install App, Logout
-
-#### 2. `src/components/admin/AdminSidebar.tsx` -- Rename only
-
-- Line 146: Change "OptiPricing" to "OpticAdmin"
-
-#### 3. `src/data/wikiContent.ts` -- Rename only
-
-- Replace "OptiPricing" with "OpticAdmin" in the wiki content string
-
-#### 4. `src/components/admin/AppLauncher.tsx` -- Rename label
-
-- Line 14: Change `label: "Optilens"` to `label: "OpticAdmin"` (or keep "Optilens" for the pricing app tile and update the launcher title)
+### 1.3 Branding updates
+- ✅ `OpticAdmin` branding is present in top bar and wiki content.
 
 ---
 
-### Route-to-Label Map (for breadcrumb in header)
+## 2) Gaps to close (next actions)
 
-A simple lookup object maps pathname prefixes to friendly labels:
+### 2.1 Route label map in `AdminTopBar`
+The route label map should prioritize **new canonical paths** (`/admin/pricing/...`, `/admin/sales/...`, etc.) first, then include legacy fallbacks only if needed.
 
+**Action**
+- Update `ROUTE_LABELS` in `src/components/admin/AdminTopBar.tsx` to match active canonical route paths.
 
-| Route prefix               | Display                     |
-| -------------------------- | --------------------------- |
-| `/admin/catalog`           | Pricing - Product Catalog   |
-| `/admin/rx-lens-prices`    | Pricing - RX Lens Prices    |
-| `/admin/stock-lens-prices` | Pricing - Stock Lens Prices |
-| `/admin/supplies-prices`   | Pricing - Supplies Prices   |
-| `/admin/catalog-publisher` | Pricing - Catalog Publisher |
-| `/admin/imports`           | Pricing - Imports           |
-| `/admin/reference`         | Pricing - Reference Data    |
-| `/admin/costings`          | Costings                    |
-| `/admin/quotations`        | Sales - Quotations          |
-| `/admin/users`             | Settings - Users            |
-| `/admin/parameters`        | Settings - Company          |
-| `/admin/wiki`              | Knowledge - Wiki            |
-| `/admin/content`           | Website - Content           |
-| `/admin/erp/contacts`      | Contacts                    |
-| `/admin/erp/crm`           | CRM                         |
-| `/admin/erp/helpdesk`      | Helpdesk                    |
+### 2.2 Sidebar/header interaction cleanup
+The previous note about removing the sidebar header is not currently implemented.
 
+**Action options (pick one explicitly)**
+1. Keep sidebar header + collapse button (document as intentional), or
+2. Move collapse behavior to hover/flyout interaction and remove static header row.
+
+### 2.3 Copy consistency for placeholder screens
+Current placeholder message is: **"Coming in a future phase."**
+
+**Action**
+- Standardize placeholder copy strategy per module (friendly/neutral/enterprise tone), with optional module-specific variants.
 
 ---
 
-### User Display Name
+## 3) Placeholder Pages Delivery Backlog (description-ready)
 
-- Query `profiles.display_name` for the current user (already available via existing profile fetch patterns)
-- Show display_name if set, otherwise fall back to `user.email`
-- Use a small `useQuery` hook inside AdminTopBar or a shared hook
+> Purpose: every placeholder route gets a stable slot so full feature descriptions can be added later.
+
+Use this template for each page as details are discovered:
+- **Purpose**
+- **Primary users / roles**
+- **Core workflows**
+- **Data entities**
+- **Permissions**
+- **Integrations**
+- **MVP acceptance criteria**
+- **Future phase notes**
+
+### 3.1 Sales app placeholders
+1. `/admin/sales/web-orders`
+   - Status: Placeholder
+   - Description: _TBD_
+2. `/admin/sales/rx-orders`
+   - Status: Placeholder
+   - Description: _TBD_
+
+### 3.2 Leads app placeholders
+3. `/admin/leads/finder`
+   - Status: Placeholder
+   - Description: _TBD_
+4. `/admin/leads/campaigns`
+   - Status: Placeholder
+   - Description: _TBD_
+5. `/admin/leads/reports`
+   - Status: Placeholder
+   - Description: _TBD_
+6. `/admin/leads/ai`
+   - Status: Placeholder
+   - Description: _TBD_
+7. `/admin/leads/settings`
+   - Status: Placeholder
+   - Description: _TBD_
+
+### 3.3 CRM app placeholders
+8. `/admin/crm/pipeline`
+   - Status: Placeholder
+   - Description: _TBD_
+9. `/admin/crm/activities`
+   - Status: Placeholder
+   - Description: _TBD_
+
+### 3.4 Helpdesk app placeholders
+10. `/admin/helpdesk/tickets`
+    - Status: Placeholder
+    - Description: _TBD_
+11. `/admin/helpdesk/teams`
+    - Status: Placeholder
+    - Description: _TBD_
+12. `/admin/helpdesk/sla`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.5 Website app placeholders
+13. `/admin/website/microsites`
+    - Status: Placeholder
+    - Description: _TBD_
+14. `/admin/website/portals`
+    - Status: Placeholder
+    - Description: _TBD_
+15. `/admin/website/store`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.6 Knowledge app placeholders
+16. `/admin/knowledge/help`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.7 Settings app placeholders
+17. `/admin/settings/integrations`
+    - Status: Placeholder
+    - Description: _TBD_
 
 ---
 
-### Install App Button
+## 4) Suggested micro-copy change (quick win)
 
-- Use the `beforeinstallprompt` event if available (PWA install)
-- If not available, show a tooltip "Add to home screen from your browser menu" or open current URL in a minimal window via `window.open`
+### Proposal
+For `/admin/crm/pipeline`, change placeholder text from:
+- **"Coming in a future phase."**
+
+to:
+- **"See you soon."**
+
+### Why
+- Warmer and less formal tone for a customer-facing-feeling CRM surface.
+- Good as an experiment for module-specific placeholder messaging.
+
+### Implementation approach
+- Preferred: add an optional copy override map in `PlaceholderPage` keyed by route.
+- Fallback: global replacement if we want one message everywhere.
 
 ---
 
-### Technical Notes
+## 5) UI Rule: Admin Page Headers (still active)
 
-- The header height stays at `h-11` 
-- The header spans full width of the window area 
-- Remove the sidebar header (sidebar collapses under the header. Put a little flyout button to click to collapse on sidebar mouseover. )
-- No changes to AdminLayout needed? -- the header is already full-width within the flex container
-- Profile dropdown uses existing `DropdownMenu` from shadcn/ui for consistency
-- Avatar uses existing `Avatar` / `AvatarFallback` components with user initials
+Every admin page with a heading **must** use the shared:
+`<AdminPageHeader icon={Icon} title="Page Title" />`
+from `src/components/admin/AdminPageHeader.tsx`.
 
-## Foundation Step 1 Completed: ADMIN_APPS registry + dynamic Sidebar/Launcher
+- Always pass a relevant Lucide icon and a properly capitalized title.
+- Optional `children` slot renders right-aligned actions.
+- Do not use ad hoc inline `<h1>` patterns on admin pages.
 
-## UI Rule: Admin Page Headers
-
-Every admin page with a heading **must** use the shared `<AdminPageHeader icon={Icon} title="Page Title" />` component from `src/components/admin/AdminPageHeader.tsx`.
-
-- Always pass a relevant Lucide icon and a properly capitalised title.
-- Optional `children` slot renders right-aligned actions (e.g. buttons).
-- Do **not** write inline `<h1>` elements with manual icon/style on admin pages.
-- This rule applies to all existing and future admin pages.
