@@ -37,12 +37,24 @@ import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
 import QuotationsListPage from "./pages/admin/QuotationsListPage";
 import QuoteEditorPage from "./pages/admin/QuoteEditorPage";
 import CatalogPublisherPage from "./pages/admin/CatalogPublisherPage";
+import CatalogPublisherV2Page from "./pages/admin/CatalogPublisherV2Page";
 import CatalogEditorPage from "./pages/admin/CatalogEditorPage";
 import ContactsPage from "./pages/admin/erp/ContactsPage";
 import ContactTagsConfigPage from "./pages/admin/erp/ContactTagsConfigPage";
 import IndustriesConfigPage from "./pages/admin/erp/IndustriesConfigPage";
 import ErpPlaceholderPage from "./pages/admin/erp/ErpPlaceholderPage";
 import PricingSettingsPage from "./pages/admin/PricingSettingsPage";
+import LeadFinderPage from "./pages/admin/leads/LeadFinderPage";
+import MyLeadsPage from "./pages/admin/leads/MyLeadsPage";
+import LeadCampaignsPage from "./pages/admin/leads/LeadCampaignsPage";
+import LeadAuditReportsPage from "./pages/admin/leads/LeadAuditReportsPage";
+import LeadsAiAssistantPage from "./pages/admin/leads/LeadsAiAssistantPage";
+import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
+import CrmPipelinePage from "./pages/admin/crm/CrmPipelinePage";
+import CrmActivitiesPage from "./pages/admin/crm/CrmActivitiesPage";
+import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
+import GlobalErrorLogger from "./components/GlobalErrorLogger";
+import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
@@ -68,6 +80,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <GlobalErrorLogger />
       <BrowserRouter>
         <AuthProvider>
           <CartProvider>
@@ -93,7 +106,8 @@ const App = () => (
                 <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
                 <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
                 <Route path="pricing/supplies" element={<BuySellPricesPage />} />
-                <Route path="pricing/publisher" element={<CatalogPublisherPage />} />
+                <Route path="pricing/publisher" element={<CatalogPublisherV2Page />} />
+                <Route path="pricing/publisher-old" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
                 <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
                 <Route path="pricing/costings" element={<ImportCostingsPage />} />
                 <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
@@ -118,17 +132,17 @@ const App = () => (
                 <Route path="contacts/config/industries" element={<IndustriesConfigPage />} />
 
                 {/* ═══ Leads App ═══ */}
-                <Route path="leads" element={<Navigate to="/admin/leads/finder" replace />} />
-                <Route path="leads/finder" element={<PlaceholderPage />} />
-                <Route path="leads/campaigns" element={<PlaceholderPage />} />
-                <Route path="leads/reports" element={<PlaceholderPage />} />
-                <Route path="leads/ai" element={<PlaceholderPage />} />
-                <Route path="leads/settings" element={<PlaceholderPage />} />
+                <Route path="leads" element={<MyLeadsPage />} />
+                <Route path="leads/finder" element={<LeadFinderPage />} />
+                <Route path="leads/campaigns" element={<LeadCampaignsPage />} />
+                <Route path="leads/reports" element={<LeadAuditReportsPage />} />
+                <Route path="leads/ai" element={<LeadsAiAssistantPage />} />
+                <Route path="leads/settings" element={<LeadSettingsPage />} />
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/pipeline" replace />} />
-                <Route path="crm/pipeline" element={<PlaceholderPage />} />
-                <Route path="crm/activities" element={<PlaceholderPage />} />
+                <Route path="crm/pipeline" element={<CrmPipelinePage />} />
+                <Route path="crm/activities" element={<CrmActivitiesPage />} />
 
                 {/* ═══ Helpdesk App ═══ */}
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
@@ -155,6 +169,7 @@ const App = () => (
                 <Route path="settings/roles" element={<RolesPermissionsPage />} />
                 <Route path="settings/audit" element={<AuditLogPage />} />
                 <Route path="settings/integrations" element={<PlaceholderPage />} />
+                <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
 
                 {/* ═══ Legacy redirects ═══ */}
                 <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
@@ -167,6 +182,7 @@ const App = () => (
                 <Route path="supplies-prices" element={<Navigate to="/admin/pricing/supplies" replace />} />
                 <Route path="imports" element={<Navigate to="/admin/pricing/imports" replace />} />
                 <Route path="catalog-publisher" element={<Navigate to="/admin/pricing/publisher" replace />} />
+                <Route path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher-old" replace />} />
                 <Route path="catalog-publisher/:id" element={<Navigate to="/admin/pricing/publisher" replace />} />
                 <Route path="quotations" element={<Navigate to="/admin/sales/quotations" replace />} />
                 <Route path="costings/shipments" element={<Navigate to="/admin/pricing/costings" replace />} />
