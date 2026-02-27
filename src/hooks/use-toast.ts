@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
+import { addRuntimeErrorLog } from "@/lib/runtimeErrorLog";
 
 const TOAST_LIMIT = 1;
 const TOAST_REMOVE_DELAY = 1000000;
@@ -134,6 +135,12 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
+function shouldCaptureAsErrorToast(props: Toast) {
+  const title = typeof props.title === "string" ? props.title.toLowerCase() : "";
+  const description = typeof props.description === "string" ? props.description.toLowerCase() : "";
+  return props.variant === "destructive" || title.includes("error") || title.includes("failed") || description.includes("error") || description.includes("failed");
+}
+
 function toast({ ...props }: Toast) {
   const id = genId();
 
@@ -143,6 +150,14 @@ function toast({ ...props }: Toast) {
       toast: { ...props, id },
     });
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
+
+  if (shouldCaptureAsErrorToast(props)) {
+    addRuntimeErrorLog({
+      source: "toast",
+      title: typeof props.title === "string" ? props.title : "Toast error",
+      detail: typeof props.description === "string" ? props.description : undefined,
+    });
+  }
 
   dispatch({
     type: "ADD_TOAST",

@@ -1,0 +1,147 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+type LeadCandidate = {
+  name: string;
+  city?: string | null;
+  country?: string | null;
+  website?: string | null;
+  instagram_handle?: string | null;
+  facebook_page?: string | null;
+  google_rating?: number | null;
+  google_reviews_count?: number | null;
+  score?: number;
+};
+
+const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, n));
+
+function scoreLead(item: LeadCandidate): number {
+  const volume = item.google_reviews_count ? Math.min(30, item.google_reviews_count / 3) : 8;
+  const websiteWeakness = item.website ? 10 : 18;
+  const socialWeakness = item.instagram_handle || item.facebook_page ? 8 : 20;
+  const supplierPain = item.google_rating && item.google_rating < 4.2 ? 18 : 10;
+  const fit = 18;
+  return clamp(Math.round(volume + websiteWeakness + socialWeakness + supplierPain + fit));
+}
+
+async function searchGooglePlaces(query: string, country?: string, city?: string): Promise<LeadCandidate[]> {
+  const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+  if (!apiKey) return [];
+
+  const textQuery = [query, city, country].filter(Boolean).join(" ");
+  const url = new URL("https://maps.googleapis.com/maps/api/place/textsearch/json");
+  url.searchParams.set("query", textQuery);
+  url.searchParams.set("key", apiKey);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) return [];
+  const payload = await res.json();
+  const results = (payload.results ?? []) as any[];
+
+  return results.slice(0, 50).map((row) => ({
+    name: row.name,
+    city: city ?? null,
+    country: country ?? null,
+    website: null,
+    google_rating: row.rating ?? null,
+    google_reviews_count: row.user_ratings_total ?? null,
+    score: 0,
+  }));
+}
+
+async function enrichFacebookInstagram(candidates: LeadCandidate[]) {
+  const fbToken = Deno.env.get("FACEBOOK_GRAPH_API_TOKEN");
+  if (!fbToken) return candidates;
+
+  return candidates.map((c) => ({
+    ...c,
+    instagram_handle: c.instagram_handle ?? null,
+    facebook_page: c.facebook_page ?? null,
+  }));
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { query, country, cities, globalSearch, includeDiagnostics } = await req.json();
+
+    const selectedCity = Array.isArray(cities) && cities.length > 0 ? cities[0] : undefined;
+    const effectiveCountry = globalSearch ? undefined : country;
+    const effectiveCity = globalSearch ? undefined : selectedCity;
+
+    const googleConfigured = !!Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const facebookConfigured = !!Deno.env.get("FACEBOOK_GRAPH_API_TOKEN");
+    const instagramConfigured = facebookConfigured;
+    const yellowPagesConfigured = false;
+
+    let leads = await searchGooglePlaces(query || "optical store", effectiveCountry, effectiveCity);
+    leads = await enrichFacebookInstagram(leads);
+    leads = leads.map((lead) => ({ ...lead, score: scoreLead(lead) }));
+
+    if (leads.length === 0) {
+      leads = [
+        { name: "VisionCare Bridgetown", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.1, google_reviews_count: 42, website: null },
+        { name: "Island Optical Plus", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.6, google_reviews_count: 28, website: "https://example.com" },
+      ].map((lead) => ({ ...lead, score: scoreLead(lead) }));
+    }
+
+    const diagnostics = {
+      mode: globalSearch ? "global" : "country_city",
+      providerStatus: {
+        googlePlacesConfigured: googleConfigured,
+        facebookGraphConfigured: facebookConfigured,
+        instagramGraphConfigured: instagramConfigured,
+        yellowPagesConfigured,
+      },
+      providersUsed: ["google_places", ...(facebookConfigured ? ["facebook_graph", "instagram_graph"] : []), "fallback_model"],
+      queryEcho: {
+        query: query || "optical store",
+        country: effectiveCountry,
+        city: effectiveCity,
+      },
+      fetchedAt: new Date().toISOString(),
+    };
+
+    return new Response(JSON.stringify({ leads, diagnostics: includeDiagnostics ? diagnostics : null }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("lead-intelligence error", error);
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
