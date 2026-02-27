@@ -1,11 +1,13 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { X, BookOpen, ChevronRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { renderWikiContent } from "./wikiFormatting";
 
 const WikiArticleEditDialog = lazy(() => import("./WikiArticleEditDialog"));
 
@@ -14,7 +16,6 @@ interface HelpPanelProps {
   onClose: () => void;
 }
 
-/** Map admin route to page_slug */
 const routeToSlug = (pathname: string): string => {
   const path = pathname.replace(/^\/admin\/?/, "").replace(/\/$/, "");
   if (!path || path === "catalog") return "catalog";
@@ -49,26 +50,33 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
   const location = useLocation();
   const slug = routeToSlug(location.pathname);
   const { articles, isLoading } = useHelpArticles(slug);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [width, setWidth] = useState(380);
   const [resizing, setResizing] = useState(false);
   const { canEdit } = useAdminRole();
   const [editArticleId, setEditArticleId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  // Auto-expand first article
+  const scopedArticles = useMemo(() => {
+    const exact = articles.filter((a) => a.page_slug === slug);
+    const shared = articles.filter((a) => a.page_slug === "all");
+    const other = articles.filter((a) => a.page_slug !== slug && a.page_slug !== "all");
+    return [...exact, ...shared, ...other];
+  }, [articles, slug]);
+
   useEffect(() => {
-    if (articles.length > 0 && !expandedId) {
-      setExpandedId(articles[0].id);
+    const exactIds = scopedArticles.filter((a) => a.page_slug === slug).map((a) => a.id);
+    if (exactIds.length > 0) {
+      setExpandedIds(exactIds);
+      return;
     }
-  }, [articles]);
+    if (scopedArticles.length > 0) {
+      setExpandedIds([scopedArticles[0].id]);
+      return;
+    }
+    setExpandedIds([]);
+  }, [slug, scopedArticles]);
 
-  // Reset expanded when page changes
-  useEffect(() => {
-    setExpandedId(null);
-  }, [slug]);
-
-  // Resize handler
   useEffect(() => {
     if (!resizing) return;
     const onMove = (e: MouseEvent) => {
@@ -88,7 +96,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
   }, [resizing]);
 
   const handleEditFromFeedback = (articleId: string) => {
-    const article = articles.find((a) => a.id === articleId);
+    const article = scopedArticles.find((a) => a.id === articleId);
     if (article) {
       setEditArticleId(articleId);
       setEditDialogOpen(true);
@@ -98,13 +106,11 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
   if (!open) return null;
 
   const editingArticle = editArticleId
-    ? articles.find((a) => a.id === editArticleId)
+    ? scopedArticles.find((a) => a.id === editArticleId)
     : null;
 
-  /** Detect if content is HTML */
   const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
 
-  /** Render content – supports both HTML (from rich editor) and legacy markdown-ish */
   const renderContent = (text: string) => {
     if (isHtml(text)) {
       return (
@@ -114,29 +120,12 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
         />
       );
     }
-    const normalized = text.replace(/\\n/g, "\n");
-    return normalized.split("\n").map((line, i) => {
-      const trimmed = line.trim();
-      if (!trimmed) return <div key={i} className="h-2" />;
 
-      const withBold = trimmed.split(/(\*\*[^*]+\*\*)/).map((part, j) => {
-        if (part.startsWith("**") && part.endsWith("**")) {
-          return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
-        }
-        return part;
-      });
+    return <div className="space-y-1">{renderWikiContent(text.replace(/\\n/g, "\n"))}</div>;
+  };
 
-      if (trimmed.startsWith("• ") || trimmed.startsWith("- ")) {
-        return (
-          <div key={i} className="flex gap-2 pl-2">
-            <span className="shrink-0 text-primary">•</span>
-            <span>{withBold.map((p) => typeof p === "string" ? p.replace(/^[•\-]\s*/, "") : p)}</span>
-          </div>
-        );
-      }
-
-      return <p key={i}>{withBold}</p>;
-    });
+  const toggleArticle = (id: string) => {
+    setExpandedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   return (
@@ -144,16 +133,13 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
       className="fixed top-0 right-0 h-full z-50 flex"
       style={{ width }}
     >
-      {/* Resize handle */}
       <div
         className="w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors shrink-0"
         onMouseDown={() => setResizing(true)}
         style={{ background: resizing ? "hsl(215 65% 50% / 0.3)" : "transparent" }}
       />
 
-      {/* Panel */}
       <div className="flex-1 flex flex-col border-l shadow-xl bg-background border-border min-w-0">
-        {/* Header */}
         <div className="flex items-center justify-between px-4 h-11 border-b border-border shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <BookOpen className="h-4 w-4 shrink-0 text-primary" />
@@ -164,28 +150,29 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
           </Button>
         </div>
 
-        {/* Content */}
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-4 space-y-2">
             {isLoading && (
               <p className="text-xs text-muted-foreground">Loading...</p>
             )}
 
-            {!isLoading && articles.length === 0 && (
+            {!isLoading && scopedArticles.length === 0 && (
               <p className="text-xs text-muted-foreground">
                 No help articles available for this page.
               </p>
             )}
 
-            {articles.map((article) => {
-              const isExpanded = expandedId === article.id;
+            {scopedArticles.map((article) => {
+              const isExpanded = expandedIds.includes(article.id);
+              const isExactContext = article.page_slug === slug;
+
               return (
                 <div
                   key={article.id}
                   className="border border-border rounded-lg overflow-hidden"
                 >
                   <button
-                    onClick={() => setExpandedId(isExpanded ? null : article.id)}
+                    onClick={() => toggleArticle(article.id)}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
                   >
                     <ChevronRight
@@ -194,9 +181,10 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
                         transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                       }}
                     />
-                    <span className="text-[13px] font-medium text-foreground">
-                      {article.title}
-                    </span>
+                    <span className="text-[13px] font-medium text-foreground flex-1">{article.title}</span>
+                    <Badge variant={isExactContext ? "default" : "outline"} className="text-[10px] h-5 px-1.5">
+                      {isExactContext ? "Page" : article.page_slug === "all" ? "Global" : article.page_slug}
+                    </Badge>
                   </button>
 
                   {isExpanded && (
@@ -218,7 +206,6 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
         </ScrollArea>
       </div>
 
-      {/* Edit dialog for admin */}
       {canEdit && (
         <Suspense fallback={null}>
           <WikiArticleEditDialog
