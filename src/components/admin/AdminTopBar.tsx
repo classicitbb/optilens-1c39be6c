@@ -20,6 +20,25 @@ import HelpPanel from "./HelpPanel";
 import AppLauncher from "./AppLauncher";
 
 const ROUTE_LABELS: [string, string][] = [
+  ["/admin/pricing/publisher-old", "Pricing · Catalog Publisher (Legacy)"],
+  ["/admin/pricing/publisher", "Pricing · Catalog Publisher"],
+  ["/admin/pricing/catalog", "Pricing · Product Catalog"],
+  ["/admin/pricing/rx-lenses", "Pricing · RX Lens Prices"],
+  ["/admin/pricing/stock-lenses", "Pricing · Stock Lens Prices"],
+  ["/admin/pricing/supplies", "Pricing · Supplies Prices"],
+  ["/admin/pricing/imports", "Pricing · Imports"],
+  ["/admin/pricing/reference", "Pricing · Reference Data"],
+  ["/admin/pricing/costings", "Costings"],
+  ["/admin/sales/quotations", "Sales · Quotations"],
+  ["/admin/settings/users", "Settings · Users"],
+  ["/admin/settings/company", "Settings · Company"],
+  ["/admin/knowledge/wiki", "Knowledge · Wiki"],
+  ["/admin/website/content", "Website · Content"],
+  ["/admin/contacts", "Contacts"],
+  ["/admin/crm", "CRM"],
+  ["/admin/helpdesk", "Helpdesk"],
+  ["/admin/settings/audit", "Settings · Audit Log"],
+  // legacy fallbacks
   ["/admin/catalog-publisher", "Pricing · Catalog Publisher"],
   ["/admin/catalog", "Pricing · Product Catalog"],
   ["/admin/rx-lens-prices", "Pricing · RX Lens Prices"],
