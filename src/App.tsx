@@ -45,6 +45,12 @@ import IndustriesConfigPage from "./pages/admin/erp/IndustriesConfigPage";
 import ErpPlaceholderPage from "./pages/admin/erp/ErpPlaceholderPage";
 import PricingSettingsPage from "./pages/admin/PricingSettingsPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
+import MyLeadsPage from "./pages/admin/leads/MyLeadsPage";
+import LeadFinderPage from "./pages/admin/leads/LeadFinderPage";
+import LeadCampaignsPage from "./pages/admin/leads/LeadCampaignsPage";
+import LeadAuditReportsPage from "./pages/admin/leads/LeadAuditReportsPage";
+import LeadsAiAssistantPage from "./pages/admin/leads/LeadsAiAssistantPage";
+import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
