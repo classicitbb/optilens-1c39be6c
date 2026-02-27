@@ -63,6 +63,7 @@ src/
       useLeadScoring.ts
       useInstagramPostPack.ts
       useLeadSequenceBuilder.ts
+      useLeadFinder.ts
   pages/admin/leads/
     MyLeadsPage.tsx
     LeadFinderPage.tsx
@@ -73,6 +74,9 @@ src/
 
 supabase/migrations/
   20260226190000_phase2_database_foundation.sql
+
+supabase/functions/
+  lead-intelligence/index.ts
 ```
 
 ## Components/pages delivered
@@ -88,8 +92,14 @@ supabase/migrations/
 - `useLeadScoring`: 5-component score + AI boost → Hot/Warm/Cold band
 - `useInstagramPostPack`: prompt builder + mock pack shape
 - `useLeadSequenceBuilder`: default 5-step WhatsApp/Email/IG-DM flow
+- `useLeadFinder`: invokes Supabase Edge Function `lead-intelligence` (Google Places + Graph enrichment adapter)
 
 ## Supabase queries used
+- Edge Function invoke:
+```ts
+await supabase.functions.invoke("lead-intelligence", { body: { query, country, cities } })
+```
+
 - Leads list:
 ```sql
 select id,name,country,city,website,instagram_handle,facebook_page,
