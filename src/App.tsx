@@ -52,6 +52,8 @@ import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
 import CrmPipelinePage from "./pages/admin/crm/CrmPipelinePage";
 import CrmActivitiesPage from "./pages/admin/crm/CrmActivitiesPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
+import GlobalErrorLogger from "./components/GlobalErrorLogger";
+import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
@@ -77,6 +79,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <GlobalErrorLogger />
       <BrowserRouter>
         <AuthProvider>
           <CartProvider>
@@ -165,6 +168,7 @@ const App = () => (
                 <Route path="settings/roles" element={<RolesPermissionsPage />} />
                 <Route path="settings/audit" element={<AuditLogPage />} />
                 <Route path="settings/integrations" element={<PlaceholderPage />} />
+                <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
 
                 {/* ═══ Legacy redirects ═══ */}
                 <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />

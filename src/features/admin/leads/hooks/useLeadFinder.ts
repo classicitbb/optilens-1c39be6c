@@ -6,13 +6,36 @@ interface FinderInput {
   query: string;
   country?: string;
   cities?: string[];
+  globalSearch?: boolean;
+}
+
+export interface LeadFinderDiagnostics {
+  mode: "global" | "country_city";
+  providerStatus: {
+    googlePlacesConfigured: boolean;
+    facebookGraphConfigured: boolean;
+    instagramGraphConfigured: boolean;
+    yellowPagesConfigured: boolean;
+  };
+  providersUsed: string[];
+  queryEcho: {
+    query: string;
+    country?: string;
+    city?: string;
+  };
+  fetchedAt: string;
+}
+
+export interface LeadFinderResult {
+  leads: LeadRecord[];
+  diagnostics: LeadFinderDiagnostics | null;
 }
 
 export const useLeadFinder = () => {
   return useMutation({
-    mutationFn: async ({ query, country, cities }: FinderInput) => {
+    mutationFn: async ({ query, country, cities, globalSearch }: FinderInput): Promise<LeadFinderResult> => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
-        body: { query, country, cities },
+        body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true },
       });
       if (error) throw error;
       const leads = ((data?.leads ?? []) as any[]).map((lead) => ({
@@ -22,7 +45,7 @@ export const useLeadFinder = () => {
         country: lead.country ?? null,
         website: lead.website ?? null,
         instagram_handle: lead.instagram_handle ?? null,
-        facebook_page_id: lead.facebook_page_id ?? lead.facebook_page ?? null,
+        facebook_page: lead.facebook_page ?? null,
         google_rating: lead.google_rating ?? null,
         google_reviews_count: lead.google_reviews_count ?? null,
         ai_intent_score: null,
@@ -30,7 +53,10 @@ export const useLeadFinder = () => {
         score: Number(lead.score ?? 0),
         notes: null,
       })) as LeadRecord[];
-      return leads;
+      return {
+        leads,
+        diagnostics: (data?.diagnostics ?? null) as LeadFinderDiagnostics | null,
+      };
     },
   });
 };

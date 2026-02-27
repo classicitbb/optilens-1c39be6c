@@ -33,7 +33,8 @@ const LeadFinderPage = () => {
   const saveLead = useSaveLeadToCrm();
   const { toast } = useToast();
 
-  const leads = finder.data ?? [];
+  const leads = finder.data?.leads ?? [];
+  const diagnostics = finder.data?.diagnostics ?? null;
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
@@ -47,7 +48,7 @@ const LeadFinderPage = () => {
   const smartBatch = useMemo(() => [...filteredLeads].sort((a, b) => b.score - a.score).slice(0, 20), [filteredLeads]);
   const displayLeads = smartBatch.length > 0 ? smartBatch : filteredLeads;
 
-  const runSearch = () => finder.mutate({ query, country, cities: [city] });
+  const runSearch = () => finder.mutate({ query, country, cities: [city], globalSearch });
 
   return (
     <div className="space-y-4">
@@ -104,10 +105,22 @@ const LeadFinderPage = () => {
           <Card className="bg-muted/30">
             <CardContent className="pt-4 space-y-2 text-xs">
               <p className="font-medium inline-flex items-center gap-1"><ActivitySquare className="h-3.5 w-3.5" /> Real-time provider trace</p>
-              <p>Mode: <span className="font-medium">{globalSearch ? "global" : "country_city"}</span></p>
+              <p>Mode: <span className="font-medium">{diagnostics?.mode ?? (globalSearch ? "global" : "country_city")}</span></p>
               <p>Query: <span className="font-medium">{query}</span></p>
               <p>Scope: <span className="font-medium">{globalSearch ? "Global" : `${country} / ${city}`}</span></p>
-              <p className="text-muted-foreground">Run search to display results.</p>
+              <div className="flex flex-wrap gap-1">
+                {(diagnostics?.providersUsed ?? []).map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
+              </div>
+              {diagnostics ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+                  <p>Google: {diagnostics.providerStatus.googlePlacesConfigured ? "configured" : "not configured"}</p>
+                  <p>Facebook: {diagnostics.providerStatus.facebookGraphConfigured ? "configured" : "not configured"}</p>
+                  <p>Instagram: {diagnostics.providerStatus.instagramGraphConfigured ? "configured" : "not configured"}</p>
+                  <p>Yellow Pages: {diagnostics.providerStatus.yellowPagesConfigured ? "configured" : "not configured"}</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">Run search to display live provider diagnostics.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -122,7 +135,7 @@ const LeadFinderPage = () => {
                   </div>
                   <p className="text-muted-foreground">{lead.city || "—"}, {lead.country || "—"}</p>
                   <p>Google: {lead.google_rating ?? "—"} ({lead.google_reviews_count ?? 0})</p>
-                  <p>IG/FB: {lead.instagram_handle || lead.facebook_page_id ? "Active" : "Unknown"}</p>
+                  <p>IG/FB: {lead.instagram_handle || lead.facebook_page ? "Active" : "Unknown"}</p>
                   <div className="pt-1 flex gap-2">
                     <Button size="sm" variant="outline" className="h-7 text-[11px]">Enrich & Preview</Button>
                     <Button

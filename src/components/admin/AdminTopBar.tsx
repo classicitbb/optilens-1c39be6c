@@ -38,6 +38,7 @@ const ROUTE_LABELS: [string, string][] = [
   ["/admin/crm", "CRM"],
   ["/admin/helpdesk", "Helpdesk"],
   ["/admin/settings/audit", "Settings · Audit Log"],
+  ["/admin/settings/runtime-errors", "Settings · Runtime Errors"],
   // legacy fallbacks
   ["/admin/catalog-publisher", "Pricing · Catalog Publisher"],
   ["/admin/catalog", "Pricing · Product Catalog"],

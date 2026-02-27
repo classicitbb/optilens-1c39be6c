@@ -13,7 +13,7 @@ export const useSaveLeadToCrm = () => {
         city: lead.city,
         website: lead.website,
         instagram_handle: lead.instagram_handle,
-        facebook_page_id: lead.facebook_page_id,
+        facebook_page: lead.facebook_page,
         google_rating: lead.google_rating,
         google_reviews_count: lead.google_reviews_count,
         ai_intent_score: lead.ai_intent_score,
@@ -102,7 +102,7 @@ export const useGenerateLeadAuditReport = () => {
         .from("opportunities" as any)
         .select("id,contact_id,title")
         .eq("id", opportunityId)
-        .single() as any;
+        .single();
       if (oppErr) throw oppErr;
 
       const generatedAt = new Date().toISOString();
@@ -117,7 +117,7 @@ export const useGenerateLeadAuditReport = () => {
           ai_summary: `Audit generated for ${opp.title}.`,
         } as any)
         .select("id,score,ai_summary,created_at")
-        .single() as any;
+        .single();
       if (auditErr) throw auditErr;
 
       const { error: attachErr } = await supabase
