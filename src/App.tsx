@@ -42,7 +42,6 @@ import CatalogEditorPage from "./pages/admin/CatalogEditorPage";
 import ContactsPage from "./pages/admin/erp/ContactsPage";
 import ContactTagsConfigPage from "./pages/admin/erp/ContactTagsConfigPage";
 import IndustriesConfigPage from "./pages/admin/erp/IndustriesConfigPage";
-import ErpPlaceholderPage from "./pages/admin/erp/ErpPlaceholderPage";
 import PricingSettingsPage from "./pages/admin/PricingSettingsPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import MyLeadsPage from "./pages/admin/leads/MyLeadsPage";
