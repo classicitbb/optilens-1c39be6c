@@ -65,7 +65,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
   // Mobile: fullscreen overlay
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "hsl(215 28% 14%)" }}>
+      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "hsl(215 15% 42% / 0.7)", backdropFilter: "blur(32px) saturate(1.5)", WebkitBackdropFilter: "blur(32px) saturate(1.5)" }}>
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid hsl(215 25% 22%)" }}>
           <h3 className="text-sm font-semibold" style={{ color: "hsl(210 20% 85%)" }}>Applications</h3>
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-white/10 transition-colors">
