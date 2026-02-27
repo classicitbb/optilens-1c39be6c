@@ -214,3 +214,25 @@ limit 300;
 - `src/features/admin/leads/hooks/useLeadActions.ts`
 - `src/pages/admin/leads/LeadCampaignsPage.tsx`
 - `src/pages/admin/leads/LeadAuditReportsPage.tsx`
+<<<<<<< codex/examine-project-files-and-report-findings-6lnatk
+
+## Sprint B execution update (quality + scale)
+- ✅ Cross-browser UI hardening for shared controls (switch, checkbox, avatar) using explicit appearance and radius guards in UI primitives.
+- ✅ Lead Finder now supports **Global search** mode (country/city constraints disabled when global mode is on).
+- ✅ Added real-time **provider diagnostics** panel to Lead Finder so operators can verify provider usage and query scope live.
+- ✅ Lead-intelligence edge function now returns diagnostics payload (provider configured flags + providers used + effective query context).
+
+### Provider connectivity status model
+Current diagnostics report these provider states in-app:
+- Google Places: configured/not configured
+- Facebook Graph: configured/not configured
+- Instagram Graph: configured/not configured
+- Yellow Pages: configured/not configured (currently false placeholder until adapter is implemented)
+
+### How to start execution for additional providers
+1. Add secret keys in Supabase Edge Function environment.
+2. Implement provider adapter in `supabase/functions/lead-intelligence/index.ts`.
+3. Append provider to `providersUsed` diagnostics output.
+4. Validate from `/admin/leads/finder` diagnostics panel.
+=======
+>>>>>>> main

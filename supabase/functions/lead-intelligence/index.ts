@@ -1,28 +1,28 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 type LeadCandidate = {
   name: string;
-  city?: string;
-  country?: string;
+  city?: string | null;
+  country?: string | null;
   website?: string | null;
-  google_rating?: number | null;
-  google_reviews_count?: number | null;
   instagram_handle?: string | null;
   facebook_page?: string | null;
+  google_rating?: number | null;
+  google_reviews_count?: number | null;
   score?: number;
 };
 
 const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, n));
 
-function scoreLead(item: LeadCandidate) {
-  const volume = Math.min((item.google_reviews_count ?? 0) / 3, 25);
-  const websiteWeakness = item.website ? 5 : 20;
+function scoreLead(item: LeadCandidate): number {
+  const volume = item.google_reviews_count ? Math.min(30, item.google_reviews_count / 3) : 8;
+  const websiteWeakness = item.website ? 10 : 18;
   const socialWeakness = item.instagram_handle || item.facebook_page ? 8 : 20;
   const supplierPain = item.google_rating && item.google_rating < 4.2 ? 18 : 10;
   const fit = 18;
@@ -45,8 +45,8 @@ async function searchGooglePlaces(query: string, country?: string, city?: string
 
   return results.slice(0, 50).map((row) => ({
     name: row.name,
-    city,
-    country,
+    city: city ?? null,
+    country: country ?? null,
     website: null,
     google_rating: row.rating ?? null,
     google_reviews_count: row.user_ratings_total ?? null,
@@ -58,7 +58,6 @@ async function enrichFacebookInstagram(candidates: LeadCandidate[]) {
   const fbToken = Deno.env.get("FACEBOOK_GRAPH_API_TOKEN");
   if (!fbToken) return candidates;
 
-  // Official Graph API placeholder enrichment; safe no-op when data unavailable.
   return candidates.map((c) => ({
     ...c,
     instagram_handle: c.instagram_handle ?? null,
@@ -96,22 +95,46 @@ serve(async (req) => {
       });
     }
 
-    const { query, country, cities } = await req.json();
-    const city = Array.isArray(cities) && cities.length > 0 ? cities[0] : undefined;
+    const { query, country, cities, globalSearch, includeDiagnostics } = await req.json();
 
-    let leads = await searchGooglePlaces(query || "optical store", country, city);
+    const selectedCity = Array.isArray(cities) && cities.length > 0 ? cities[0] : undefined;
+    const effectiveCountry = globalSearch ? undefined : country;
+    const effectiveCity = globalSearch ? undefined : selectedCity;
+
+    const googleConfigured = !!Deno.env.get("GOOGLE_PLACES_API_KEY");
+    const facebookConfigured = !!Deno.env.get("FACEBOOK_GRAPH_API_TOKEN");
+    const instagramConfigured = facebookConfigured;
+    const yellowPagesConfigured = false;
+
+    let leads = await searchGooglePlaces(query || "optical store", effectiveCountry, effectiveCity);
     leads = await enrichFacebookInstagram(leads);
     leads = leads.map((lead) => ({ ...lead, score: scoreLead(lead) }));
 
-    // fallback to avoid empty UI if external APIs are not configured
     if (leads.length === 0) {
       leads = [
-        { name: "VisionCare Bridgetown", country: country ?? "Barbados", city: city ?? "Bridgetown", google_rating: 4.1, google_reviews_count: 42, website: null },
-        { name: "Island Optical Plus", country: country ?? "Barbados", city: city ?? "Bridgetown", google_rating: 4.6, google_reviews_count: 28, website: "https://example.com" },
+        { name: "VisionCare Bridgetown", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.1, google_reviews_count: 42, website: null },
+        { name: "Island Optical Plus", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.6, google_reviews_count: 28, website: "https://example.com" },
       ].map((lead) => ({ ...lead, score: scoreLead(lead) }));
     }
 
-    return new Response(JSON.stringify({ leads }), {
+    const diagnostics = {
+      mode: globalSearch ? "global" : "country_city",
+      providerStatus: {
+        googlePlacesConfigured: googleConfigured,
+        facebookGraphConfigured: facebookConfigured,
+        instagramGraphConfigured: instagramConfigured,
+        yellowPagesConfigured,
+      },
+      providersUsed: ["google_places", ...(facebookConfigured ? ["facebook_graph", "instagram_graph"] : []), "fallback_model"],
+      queryEcho: {
+        query: query || "optical store",
+        country: effectiveCountry,
+        city: effectiveCity,
+      },
+      fetchedAt: new Date().toISOString(),
+    };
+
+    return new Response(JSON.stringify({ leads, diagnostics: includeDiagnostics ? diagnostics : null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
