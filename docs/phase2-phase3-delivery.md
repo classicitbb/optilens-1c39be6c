@@ -198,3 +198,19 @@ limit 300;
 - Lead Finder now includes premium filters (min rating, min reviews, has website) + map toggle mode + Save to CRM action.
 - Save to CRM creates/updates contact, creates opportunity baseline, and writes summary note (`useLeadActions`).
 - My Leads now supports command-centre style table/kanban toggle and visible bulk action controls (Enrich All, Generate Audits, Send Sequence, Generate IG Posts).
+
+## Sprint A execution update (operational hardening)
+- ✅ Stage transitions now auto-create next-step CRM activities (`useUpdateOpportunityStage`).
+- ✅ CRM Activities page now supports manual activity creation, status filtering, and completion actions.
+- ✅ CRM Pipeline now has quick "Follow-up" task creation per opportunity card.
+- ✅ Campaigns page can now run the default 5-step sequence against selected leads (or first 20 by default), creating activities + sequence notes.
+- ✅ Audit Reports page now generates a lead audit record and attaches it to the selected opportunity.
+
+### Implementation files
+- `src/features/admin/crm/hooks/useOpportunities.ts`
+- `src/features/admin/crm/hooks/useActivities.ts`
+- `src/pages/admin/crm/CrmPipelinePage.tsx`
+- `src/pages/admin/crm/CrmActivitiesPage.tsx`
+- `src/features/admin/leads/hooks/useLeadActions.ts`
+- `src/pages/admin/leads/LeadCampaignsPage.tsx`
+- `src/pages/admin/leads/LeadAuditReportsPage.tsx`

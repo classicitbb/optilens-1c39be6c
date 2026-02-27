@@ -84,6 +84,15 @@ const upsertOpportunity = async (input: CreateOpportunityInput) => {
   if (oppErr) throw oppErr;
 };
 
+const stageTaskMap: Record<Opportunity["stage"], string> = {
+  new: "Initial outreach",
+  contacted: "Book discovery call",
+  meeting_completed: "Send proposal summary",
+  proposal: "Proposal follow-up",
+  won: "Onboarding handoff",
+  lost: "Loss review",
+};
+
 export const useOpportunities = () => {
   return useQuery({
     queryKey: ["crm-opportunities"],
@@ -102,13 +111,37 @@ export const useUpdateOpportunityStage = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: Opportunity["stage"] }) => {
+      const { data: opp, error: oppGetErr } = await supabase
+        .from("opportunities" as any)
+        .select("id,contact_id,title")
+        .eq("id", id)
+        .single();
+      if (oppGetErr) throw oppGetErr;
+
       const { error } = await supabase
         .from("opportunities" as any)
         .update({ stage, updated_at: new Date().toISOString() } as any)
         .eq("id", id);
       if (error) throw error;
+
+      const dueAt = new Date();
+      dueAt.setDate(dueAt.getDate() + 2);
+      const { error: activityErr } = await supabase
+        .from("activities" as any)
+        .insert({
+          opportunity_id: id,
+          contact_id: opp.contact_id,
+          activity_type: stageTaskMap[stage],
+          status: "open",
+          due_at: dueAt.toISOString(),
+          payload: { stage, source: "stage_transition", opportunityTitle: opp.title },
+        } as any);
+      if (activityErr) throw activityErr;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-opportunities"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm-opportunities"] });
+      qc.invalidateQueries({ queryKey: ["crm-activities"] });
+    },
   });
 };
 

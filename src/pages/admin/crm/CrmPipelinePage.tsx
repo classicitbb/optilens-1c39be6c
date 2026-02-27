@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useCreateOpportunity, useOpportunities, useSeedSampleOpportunities, useUpdateOpportunityStage } from "@/features/admin/crm/hooks/useOpportunities";
+import { useCreateActivity } from "@/features/admin/crm/hooks/useActivities";
 import { useToast } from "@/hooks/use-toast";
 
 const COLUMNS = [
@@ -23,6 +24,7 @@ const CrmPipelinePage = () => {
   const updateStage = useUpdateOpportunityStage();
   const createOpportunity = useCreateOpportunity();
   const seedOpportunities = useSeedSampleOpportunities();
+  const createActivity = useCreateActivity();
 
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ contactName: "", opportunityTitle: "", country: "", city: "", estimatedValue: "" });
@@ -112,6 +114,29 @@ const CrmPipelinePage = () => {
                     </div>
                     <div className="flex gap-1 flex-wrap">
                       <Button size="sm" className="h-7 text-[11px]" variant="outline" onClick={() => updateStage.mutate({ id: o.id, stage: "meeting_completed" })}>Meeting Done</Button>
+
+                      <Button
+                        size="sm"
+                        className="h-7 text-[11px]"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            const due = new Date();
+                            due.setDate(due.getDate() + 1);
+                            await createActivity.mutateAsync({
+                              activityType: "Pipeline follow-up",
+                              opportunityId: o.id,
+                              contactId: o.contact_id,
+                              dueAt: due.toISOString(),
+                            });
+                            toast({ title: "Follow-up task created" });
+                          } catch {
+                            toast({ title: "Unable to create follow-up", variant: "destructive" });
+                          }
+                        }}
+                      >
+                        Follow-up
+                      </Button>
                       <Button
                         size="sm"
                         className="h-7 text-[11px]"
