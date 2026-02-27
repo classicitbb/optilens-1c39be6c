@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          contact_id: string
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          opportunity_id: string | null
+          type: string
+        }
+        Insert: {
+          contact_id: string
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          opportunity_id?: string | null
+          type: string
+        }
+        Update: {
+          contact_id?: string
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          opportunity_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addon_pricing_sheets: {
         Row: {
           addon_id: string
@@ -586,16 +631,23 @@ export type Database = {
       }
       contacts: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          business_name: string | null
           city: string | null
+          country: string
           country_code: string | null
           created_at: string
           email: string | null
+          facebook_page_id: string | null
+          google_place_id: string | null
           id: string
           industry_id: string | null
+          instagram_handle: string | null
           is_archived: boolean
           is_company: boolean
           is_customer: boolean
+          lead_score: number
           lead_source: string
           name: string
           notes: string | null
@@ -604,24 +656,33 @@ export type Database = {
           pipeline_stage: string
           salesperson: string | null
           state: string | null
+          status: string
           street: string | null
           street2: string | null
           tax_id: string | null
+          type: string
           updated_at: string
           website: string | null
           zip: string | null
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          business_name?: string | null
           city?: string | null
+          country?: string
           country_code?: string | null
           created_at?: string
           email?: string | null
+          facebook_page_id?: string | null
+          google_place_id?: string | null
           id?: string
           industry_id?: string | null
+          instagram_handle?: string | null
           is_archived?: boolean
           is_company?: boolean
           is_customer?: boolean
+          lead_score?: number
           lead_source?: string
           name: string
           notes?: string | null
@@ -630,24 +691,33 @@ export type Database = {
           pipeline_stage?: string
           salesperson?: string | null
           state?: string | null
+          status?: string
           street?: string | null
           street2?: string | null
           tax_id?: string | null
+          type?: string
           updated_at?: string
           website?: string | null
           zip?: string | null
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          business_name?: string | null
           city?: string | null
+          country?: string
           country_code?: string | null
           created_at?: string
           email?: string | null
+          facebook_page_id?: string | null
+          google_place_id?: string | null
           id?: string
           industry_id?: string | null
+          instagram_handle?: string | null
           is_archived?: boolean
           is_company?: boolean
           is_customer?: boolean
+          lead_score?: number
           lead_source?: string
           name?: string
           notes?: string | null
@@ -656,9 +726,11 @@ export type Database = {
           pipeline_stage?: string
           salesperson?: string | null
           state?: string | null
+          status?: string
           street?: string | null
           street2?: string | null
           tax_id?: string | null
+          type?: string
           updated_at?: string
           website?: string | null
           zip?: string | null
@@ -974,6 +1046,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lead_audits: {
+        Row: {
+          contact_id: string
+          generated_at: string | null
+          id: string
+          pdf_url: string | null
+          raw_data: Json | null
+          summary: string | null
+        }
+        Insert: {
+          contact_id: string
+          generated_at?: string | null
+          id?: string
+          pdf_url?: string | null
+          raw_data?: Json | null
+          summary?: string | null
+        }
+        Update: {
+          contact_id?: string
+          generated_at?: string | null
+          id?: string
+          pdf_url?: string | null
+          raw_data?: Json | null
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_audits_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       legacy_rates: {
         Row: {
@@ -1384,6 +1491,82 @@ export type Database = {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          contact_id: string
+          content: string
+          created_at: string | null
+          id: string
+          is_ai_generated: boolean | null
+        }
+        Insert: {
+          contact_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+        }
+        Update: {
+          contact_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunities: {
+        Row: {
+          audit_pdf_url: string | null
+          close_date: string | null
+          contact_id: string
+          created_at: string | null
+          expected_value: number | null
+          id: string
+          source: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          audit_pdf_url?: string | null
+          close_date?: string | null
+          contact_id: string
+          created_at?: string | null
+          expected_value?: number | null
+          id?: string
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          audit_pdf_url?: string | null
+          close_date?: string | null
+          contact_id?: string
+          created_at?: string | null
+          expected_value?: number | null
+          id?: string
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -1449,6 +1632,30 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      price_catalog: {
+        Row: {
+          id: string
+          product_id: string | null
+          web_enabled: boolean | null
+          web_price: number | null
+          wspl_enabled: boolean | null
+        }
+        Insert: {
+          id: string
+          product_id?: string | null
+          web_enabled?: boolean | null
+          web_price?: number | null
+          wspl_enabled?: boolean | null
+        }
+        Update: {
+          id?: string
+          product_id?: string | null
+          web_enabled?: boolean | null
+          web_price?: number | null
+          wspl_enabled?: boolean | null
         }
         Relationships: []
       }
