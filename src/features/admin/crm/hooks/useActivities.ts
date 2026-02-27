@@ -21,7 +21,7 @@ export const useActivities = () => {
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
-      return (data ?? []) as CrmActivity[];
+      return (data ?? []) as unknown as CrmActivity[];
     },
   });
 };

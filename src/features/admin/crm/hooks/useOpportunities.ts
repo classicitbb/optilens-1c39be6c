@@ -21,7 +21,7 @@ export const useOpportunities = () => {
         .select("id,title,stage,country,volume_tier,estimated_value,contact_id,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Opportunity[];
+      return (data ?? []) as unknown as Opportunity[];
     },
   });
 };
