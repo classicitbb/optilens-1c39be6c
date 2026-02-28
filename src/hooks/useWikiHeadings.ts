@@ -20,7 +20,7 @@ export const useWikiHeadings = () => {
   const query = useQuery({
     queryKey: ["wiki_headings"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("wiki_headings")
         .select("*")
         .eq("is_active", true)
@@ -38,7 +38,7 @@ export const useWikiHeadings = () => {
       const slug = toSlug(trimmed);
       if (!slug) throw new Error("Heading title is required");
 
-      const { data: existing, error: existingError } = await supabase
+      const { data: existing, error: existingError } = await (supabase as any)
         .from("wiki_headings")
         .select("id")
         .eq("slug", slug)
@@ -47,7 +47,7 @@ export const useWikiHeadings = () => {
       if (existingError) throw existingError;
       if (existing) return existing;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("wiki_headings")
         .insert({ title: trimmed, slug })
         .select("id")
