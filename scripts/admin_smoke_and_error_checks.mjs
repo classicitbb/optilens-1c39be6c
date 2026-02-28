@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 const PORT = Number(process.env.SMOKE_PORT ?? 4173);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const ROUTES = [
+  "/auth",
   "/admin",
   "/admin/leads",
   "/admin/leads/finder",
@@ -18,6 +19,10 @@ const REQUIRED_SNIPPETS = [
   {
     file: "src/App.tsx",
     snippets: ["<GlobalErrorLogger />", 'path="settings/runtime-errors"'],
+  },
+  {
+    file: "src/pages/Auth.tsx",
+    snippets: ["Welcome Back", "Sign In", "Sign in with Google"],
   },
   {
     file: "src/hooks/use-toast.ts",
