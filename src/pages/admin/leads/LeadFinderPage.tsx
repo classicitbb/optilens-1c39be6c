@@ -82,8 +82,13 @@ const LeadFinderPage = () => {
       } catch {
         // silently ignore
       }
-    } catch {
-      // mutation error is already surfaced by the caller UI state
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Could not run lead search.";
+      toast({
+        title: "Search blocked or failed",
+        description: message,
+        variant: "destructive",
+      });
     }
   };
 

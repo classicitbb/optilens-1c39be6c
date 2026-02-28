@@ -31,13 +31,25 @@ export interface LeadFinderResult {
   diagnostics: LeadFinderDiagnostics | null;
 }
 
+interface ComplianceErrorPayload {
+  error?: string;
+  compliant_alternatives?: string[];
+  blocked_category?: string;
+}
+
 export const useLeadFinder = () => {
   return useMutation({
     mutationFn: async ({ query, country, cities, globalSearch }: FinderInput): Promise<LeadFinderResult> => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
         body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true },
       });
-      if (error) throw error;
+      if (error) {
+        const payload = (data ?? {}) as ComplianceErrorPayload;
+        const alternatives = Array.isArray(payload.compliant_alternatives)
+          ? ` Alternatives: ${payload.compliant_alternatives.join(" ")}`
+          : "";
+        throw new Error(payload.error ? `${payload.error}${alternatives}` : error.message);
+      }
       const leads = ((data?.leads ?? []) as any[]).map((lead) => ({
         id: lead.id ?? crypto.randomUUID(),
         name: lead.name,

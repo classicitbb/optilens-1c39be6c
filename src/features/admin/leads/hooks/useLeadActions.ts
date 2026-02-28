@@ -2,9 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { LeadRecord } from "../types";
 import { DEFAULT_SEQUENCE } from "./useLeadSequenceBuilder";
+import { formatComplianceError, validateTargetingInput } from "../utils/targetingCompliance";
 
 const logLeadEvent = async (payload: {
-  event_type: "saved_to_crm" | "sequence_started";
+  event_type: "saved_to_crm" | "sequence_started" | "blocked_request";
   contact_id?: string | null;
   opportunity_id?: string | null;
   provider_diagnostics_summary?: Record<string, unknown>;
@@ -95,6 +96,22 @@ export const useRunLeadSequence = () => {
   return useMutation({
     mutationFn: async (contactIds: string[]) => {
       if (contactIds.length === 0) return;
+
+      for (const step of DEFAULT_SEQUENCE) {
+        const compliance = validateTargetingInput(step.prompt);
+        if (compliance.blocked) {
+          await logLeadEvent({
+            event_type: "blocked_request",
+            provider_diagnostics_summary: {
+              source: "sequence_runner",
+              blocked_category: compliance.category,
+              matched_term: compliance.matchedTerm,
+              input: step.prompt,
+            },
+          });
+          throw new Error(formatComplianceError("Campaign sequence generation", compliance));
+        }
+      }
 
       const now = Date.now();
       for (const contactId of contactIds) {

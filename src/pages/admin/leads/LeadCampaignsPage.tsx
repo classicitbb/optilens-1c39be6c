@@ -31,8 +31,13 @@ const LeadCampaignsPage = () => {
     try {
       await runSequence.mutateAsync(targets);
       toast({ title: "Sequence queued", description: `${targets.length} lead(s) queued.` });
-    } catch {
-      toast({ title: "Unable to queue sequence", variant: "destructive" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Campaign request failed compliance or queueing.";
+      toast({
+        title: "Unable to queue sequence",
+        description: message,
+        variant: "destructive",
+      });
     }
   };
 
