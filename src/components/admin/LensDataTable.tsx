@@ -149,13 +149,17 @@ const LensDataTable = ({
     };
   }, [lenses]);
 
-  const filtered = useMemo(() => {
+  const applyStatusFilter = useCallback((items: Lens[], targetFilter: Filter) => {
+    if (targetFilter === "active") return items.filter((i) => i.is_active);
+    if (targetFilter === "inactive") return items.filter((i) => !i.is_active);
+    if (targetFilter === "web") return items.filter((i) => i.show_on_website);
+    if (targetFilter === "zero_cost") return items.filter((i) => i.base_price === 0);
+    if (targetFilter === "zero_sell") return items.filter((i) => i.sell_price === 0);
+    return items;
+  }, []);
+
+  const baseFiltered = useMemo(() => {
     let items = lenses;
-    if (filter === "active") items = items.filter((i) => i.is_active);
-    else if (filter === "inactive") items = items.filter((i) => !i.is_active);
-    else if (filter === "web") items = items.filter((i) => i.show_on_website);
-    else if (filter === "zero_cost") items = items.filter((i) => i.base_price === 0);
-    else if (filter === "zero_sell") items = items.filter((i) => i.sell_price === 0);
 
     if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(fkName(i.supplier)));
     if (colFilters.brand.size > 0) items = items.filter((i) => colFilters.brand.has(fkName(i.brand)));
@@ -177,6 +181,21 @@ const LensDataTable = ({
           fkName(i.mftype), fkAbbrev(i.mftype), optionNames(i), optionAbbrevs(i), i.notes)
       );
     }
+
+    return items;
+  }, [lenses, colFilters, search]);
+
+  const filterCounts = useMemo(() => ({
+    active: applyStatusFilter(baseFiltered, "active").length,
+    inactive: applyStatusFilter(baseFiltered, "inactive").length,
+    all: baseFiltered.length,
+    web: applyStatusFilter(baseFiltered, "web").length,
+    zero_cost: applyStatusFilter(baseFiltered, "zero_cost").length,
+    zero_sell: applyStatusFilter(baseFiltered, "zero_sell").length,
+  }), [baseFiltered, applyStatusFilter]);
+
+  const filtered = useMemo(() => {
+    const items = applyStatusFilter(baseFiltered, filter);
     return [...items].sort((a, b) => {
       let av: string | number, bv: string | number;
       switch (sortKey) {
@@ -193,18 +212,18 @@ const LensDataTable = ({
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : Number(av) - Number(bv);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [lenses, filter, search, sortKey, sortDir, colFilters]);
+  }, [baseFiltered, filter, sortKey, sortDir, applyStatusFilter]);
 
   const visibleItems = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
 
-  const filterTabs: { label: string; value: Filter }[] = [
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
-    { label: "All", value: "all" },
-    { label: "Web", value: "web" },
-    { label: "Zero Cost", value: "zero_cost" },
-    { label: "Zero Sell", value: "zero_sell" },
+  const filterTabs: { label: string; value: Filter; count: number }[] = [
+    { label: "Active", value: "active", count: filterCounts.active },
+    { label: "Inactive", value: "inactive", count: filterCounts.inactive },
+    { label: "All", value: "all", count: filterCounts.all },
+    { label: "Web", value: "web", count: filterCounts.web },
+    { label: "Zero Cost", value: "zero_cost", count: filterCounts.zero_cost },
+    { label: "Zero Sell", value: "zero_sell", count: filterCounts.zero_sell },
   ];
 
   const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
@@ -245,7 +264,7 @@ const LensDataTable = ({
               color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
             }}
           >
-            {t.label}
+            {`${t.label} (${t.count})`}
           </button>
         ))}
         <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
@@ -262,7 +281,7 @@ const LensDataTable = ({
         </span>
       </div>
 
-      <div className="border rounded overflow-auto flex-1 min-h-0" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)" }}>
+      <div className="border rounded overflow-hidden flex-1 min-h-0" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)" }}>
         <Table>
           <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
             <TableRow>
