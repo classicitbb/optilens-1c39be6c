@@ -21,6 +21,17 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
   const [draft, setDraft] = useState<Set<string>>(new Set(selected));
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 200 });
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const updateMenuPosition = () => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuStyle({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: Math.max(200, rect.width),
+    });
+  };
 
   const updateMenuPosition = () => {
     const rect = ref.current?.getBoundingClientRect();
@@ -43,7 +54,10 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const clickedTrigger = !!ref.current?.contains(target);
+      const clickedMenu = !!menuRef.current?.contains(target);
+      if (!clickedTrigger && !clickedMenu) setOpen(false);
     };
 
     const reposition = () => updateMenuPosition();
@@ -102,6 +116,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
 
       {open && createPortal(
         <div
+          ref={menuRef}
           className="fixed rounded border shadow-lg z-[140] max-h-[320px] flex flex-col"
           style={{
             background: "hsl(0 0% 100%)",
@@ -128,6 +143,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
             <label
               className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-50/60 border-b"
               style={{ borderColor: "hsl(215 15% 92%)" }}
+              onClick={selectAll}
             >
               <span
                 className="flex items-center justify-center h-3.5 w-3.5 rounded border"

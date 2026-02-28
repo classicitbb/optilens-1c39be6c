@@ -2,6 +2,23 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-02-28 — Product Catalog Regression Fix (Row Scroll + Working Filters)
+
+### Plan
+- Restore vertical row scrolling in product catalog segment tables while keeping headers visible.
+- Fix the filter popover interaction regression so selections actually apply.
+- Re-validate catalog behavior with credentialed UI checks and smoke tests.
+
+### Release Notes
+- Product catalog table rows now scroll again inside their table frames.
+- Filter popovers now stay interactive after opening, so option selection and apply behavior work as expected.
+- "Select All" in filter popovers is now directly clickable to clear narrowed selections quickly.
+
+### Technical Changelog
+- Updated `src/components/ui/table.tsx` table wrapper to fill available height (`h-full`) so internal row scrolling works in flex layouts.
+- Updated `src/components/admin/MultiSelectFilter.tsx` to track both trigger and portal menu refs for outside-click handling, preventing immediate close on menu interaction.
+- Wired the popover "Select All" row to call `selectAll` directly.
+
 ## 2026-02-28 — Product Catalog Table UX Fixes (Sticky Headers + Filter Overlay + Tab Counts)
 
 ### Plan
