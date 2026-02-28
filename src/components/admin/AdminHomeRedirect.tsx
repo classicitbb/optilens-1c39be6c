@@ -1,8 +1,8 @@
 import { Navigate } from "react-router-dom";
-import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const AdminHomeRedirect = () => {
-  const { isLoading, canView } = useRolePermissions();
+  const { role, isLoading } = useUserRole();
 
   if (isLoading) {
     return (
@@ -12,23 +12,8 @@ const AdminHomeRedirect = () => {
     );
   }
 
-  if (canView("crm")) {
-    return <Navigate to="/admin/crm/dashboard" replace />;
-  }
-
-  if (canView("catalog")) {
-    return <Navigate to="/admin/pricing/catalog" replace />;
-  }
-
-  if (canView("quotations")) {
-    return <Navigate to="/admin/sales/quotations" replace />;
-  }
-
-  if (canView("contacts")) {
-    return <Navigate to="/admin/contacts" replace />;
-  }
-
-  return <Navigate to="/admin/pricing/catalog" replace />;
+  const hasCrmAccess = role === "admin" || role === "operator" || role === "viewer";
+  return <Navigate to={hasCrmAccess ? "/admin/crm/pipeline" : "/admin/pricing/catalog"} replace />;
 };
 
 export default AdminHomeRedirect;
