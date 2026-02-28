@@ -17,6 +17,7 @@ import LegalPage from "./pages/LegalPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
+import AdminHomeRedirect from "./components/admin/AdminHomeRedirect";
 import ReferenceDataPage from "./pages/admin/ReferenceDataPage";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
