@@ -56,8 +56,6 @@ import CrmDashboardPage from "./pages/admin/crm/CrmDashboardPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
-import AdminHomeRedirect from "./components/admin/AdminHomeRedirect";
-
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
