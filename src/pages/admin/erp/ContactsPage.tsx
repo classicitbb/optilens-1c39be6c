@@ -86,7 +86,7 @@ const ContactsPage = () => {
         .select("id,contact_id,title")
         .limit(3000);
       if (error) throw error;
-      return (data ?? []) as { id: string; contact_id: string; title: string | null }[];
+      return (data ?? []) as unknown as { id: string; contact_id: string; title: string }[];
     },
   });
 
