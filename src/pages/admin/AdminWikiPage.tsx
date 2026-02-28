@@ -11,19 +11,20 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
 import { useToast } from "@/hooks/use-toast";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { canViewContextSlug } from "@/lib/wikiPermissions";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isUuid = (value?: string) => !!value && UUID_RE.test(value);
 
 const AdminWikiPage = () => {
   const { canEdit } = useAdminRole();
+  const { canView } = useRolePermissions();
   const { toast } = useToast();
   const { articles: dbArticles } = useHelpArticles("knowledge/wiki");
   const { headings: dbHeadings, createHeading } = useWikiHeadings();
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeArticleId, setActiveArticleId] = useState<string | null>(
-    wikiCategories[0]?.articles[0]?.id ?? null
-  );
+  const [activeArticleId, setActiveArticleId] = useState<string | null>(wikiCategories[0]?.articles[0]?.id ?? null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<any>(null);
 
@@ -33,10 +34,13 @@ const AdminWikiPage = () => {
       title: heading.title,
       icon: BookOpen,
       articles: dbArticles
-        .filter((article) => (article.category || "") === heading.slug)
+        .filter((article) => {
+          const contexts = article.context_slugs?.length ? article.context_slugs : [article.page_slug];
+          return (article.category || "") === heading.slug && contexts.some((contextSlug) => canViewContextSlug(contextSlug, canView));
+        })
         .map((article) => ({ id: article.id, title: article.title, content: article.content })),
     }));
-  }, [dbArticles, dbHeadings]);
+  }, [dbArticles, dbHeadings, canView]);
 
   const allHeadings = useMemo(() => {
     const base = wikiCategories.map((c) => ({ id: c.id, title: c.title }));
@@ -56,10 +60,7 @@ const AdminWikiPage = () => {
         .map((cat) => ({
           ...cat,
           articles: cat.articles.filter(
-            (a) =>
-              !searchTerm ||
-              a.title.toLowerCase().includes(lower) ||
-              a.content.toLowerCase().includes(lower)
+            (a) => !searchTerm || a.title.toLowerCase().includes(lower) || a.content.toLowerCase().includes(lower)
           ),
         }))
         .filter((cat) => cat.articles.length > 0),
@@ -67,14 +68,8 @@ const AdminWikiPage = () => {
   );
 
   useEffect(() => {
-    const stillVisible = filtered.some((c) =>
-      c.articles.some((a) => a.id === activeArticleId)
-    );
-    if (
-      !stillVisible &&
-      filtered.length > 0 &&
-      filtered[0].articles.length > 0
-    ) {
+    const stillVisible = filtered.some((c) => c.articles.some((a) => a.id === activeArticleId));
+    if (!stillVisible && filtered.length > 0 && filtered[0].articles.length > 0) {
       setActiveArticleId(filtered[0].articles[0].id);
     }
   }, [filtered, activeArticleId]);
@@ -130,19 +125,14 @@ const AdminWikiPage = () => {
           onAddHeading={handleAddHeading}
         />
         <WikiContentPanel
-          categories={mergedCategories}
+          categories={filtered}
           activeArticleId={activeArticleId}
           canEdit={canEdit}
           onEditArticle={handleEditArticle}
         />
       </div>
 
-      <WikiArticleEditDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        article={editingArticle}
-        wikiHeadings={allHeadings}
-      />
+      <WikiArticleEditDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} article={editingArticle} wikiHeadings={allHeadings} />
     </div>
   );
 };

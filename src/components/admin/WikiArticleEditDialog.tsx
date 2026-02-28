@@ -1,17 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Save } from "lucide-react";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useToast } from "@/hooks/use-toast";
 import { renderWikiContent } from "./wikiFormatting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
+import RichTextEditor from "./RichTextEditor";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { canViewContextSlug } from "@/lib/wikiPermissions";
 
 interface WikiArticleEditDialogProps {
   open: boolean;
@@ -37,6 +39,7 @@ const WikiArticleEditDialog = ({
   onSaved,
 }: WikiArticleEditDialogProps) => {
   const { upsertArticle } = useHelpArticles();
+  const { canView } = useRolePermissions();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -58,6 +61,11 @@ const WikiArticleEditDialog = ({
       sort_order: article?.sort_order ?? 0,
     });
   }, [article, wikiHeadings]);
+
+  const visibleContextOptions = useMemo(
+    () => ADMIN_CONTEXT_OPTIONS.filter((option) => canViewContextSlug(option.value, canView)),
+    [canView]
+  );
 
   const toggleContext = (slug: string) => {
     setForm((prev) => {
@@ -96,14 +104,14 @@ const WikiArticleEditDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[100vw] max-w-none h-[100dvh] rounded-none p-0 sm:rounded-lg sm:p-6 sm:h-auto sm:max-h-[95vh] sm:max-w-5xl lg:max-w-6xl overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="text-sm">
+          <DialogTitle className="text-sm px-4 pt-4 sm:px-0 sm:pt-0">
             {form.id ? "Edit Article" : "New Article"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2">
+        <div className="space-y-4 pt-2 px-4 sm:px-0 pb-24 sm:pb-0 overflow-y-auto">
           <div>
             <Label className="text-xs font-medium">Title</Label>
             <Input
@@ -113,7 +121,7 @@ const WikiArticleEditDialog = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs font-medium">Wiki Heading</Label>
               <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
@@ -133,7 +141,7 @@ const WikiArticleEditDialog = ({
             <div>
               <Label className="text-xs font-medium">Context Pages</Label>
               <div className="mt-1 border border-border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
-                {ADMIN_CONTEXT_OPTIONS.map((option) => (
+                {visibleContextOptions.map((option) => (
                   <label key={option.value} className="flex items-center gap-2 text-xs cursor-pointer">
                     <Checkbox
                       checked={form.context_slugs.includes(option.value)}
@@ -158,20 +166,20 @@ const WikiArticleEditDialog = ({
 
           <div>
             <Label className="text-xs font-medium mb-1 block">Content</Label>
-            <Tabs defaultValue="edit" className="w-full">
+            <Tabs defaultValue="rich" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="edit">Edit Source</TabsTrigger>
+                <TabsTrigger value="rich">Edit</TabsTrigger>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
               </TabsList>
-              <TabsContent value="edit" className="space-y-2">
-                <Textarea
-                  value={form.content}
-                  onChange={(e) => setForm({ ...form, content: e.target.value })}
-                  placeholder="Use **Heading** for section titles, bullets with - or •, and blank lines between sections."
-                  className="min-h-[280px] font-mono text-xs leading-relaxed"
+              <TabsContent value="rich" className="space-y-2">
+                <RichTextEditor
+                  content={form.content}
+                  onChange={(value) => setForm({ ...form, content: value })}
+                  placeholder="Write wiki content..."
+                  minHeight="280px"
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Tip: use <span className="font-medium">**Heading**</span> for section titles and regular lines for paragraph copy.
+                  Tip: use headings and lists to keep help content easy to scan.
                 </p>
               </TabsContent>
               <TabsContent value="preview" className="rounded-md border border-border bg-muted/20 p-4">
@@ -182,7 +190,7 @@ const WikiArticleEditDialog = ({
             </Tabs>
           </div>
 
-          <div className="flex justify-end">
+          <div className="fixed bottom-0 left-0 right-0 sm:static bg-background/95 backdrop-blur-sm border-t sm:border-0 border-border px-4 py-3 sm:px-0 sm:py-0 flex justify-end">
             <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
               <Save className="h-3.5 w-3.5" />
               {saving ? "Saving…" : "Save Article"}

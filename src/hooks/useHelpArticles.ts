@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { canViewContextSlug } from "@/lib/wikiPermissions";
 
 export interface HelpArticle {
   id: string;
@@ -32,26 +34,23 @@ const normalizeArticle = (row: HelpArticleRow): HelpArticle => {
 
 export const useHelpArticles = (pageSlug?: string) => {
   const qc = useQueryClient();
+  const { canView } = useRolePermissions();
 
   const query = useQuery({
     queryKey: ["help_articles", pageSlug],
     queryFn: async () => {
-      let q = supabase
-        .from("help_articles")
-        .select("*, help_article_contexts(context_slug)")
-        .eq("is_active", true)
-        .order("sort_order");
-
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc("get_visible_help_articles", {
+        requested_page_slug: pageSlug ?? null,
+      });
       if (error) throw error;
-      const normalized = ((data ?? []) as HelpArticleRow[]).map(normalizeArticle);
 
-      if (!pageSlug) return normalized;
+      const normalized = ((data ?? []) as HelpArticleRow[])
+        .map(normalizeArticle)
+        .filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
 
-      return normalized.filter(
-        (article) => article.context_slugs.includes(pageSlug) || article.context_slugs.includes("all")
-      );
+      return normalized;
     },
+    enabled: canView("wiki"),
   });
 
   const allArticlesQuery = useQuery({

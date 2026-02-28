@@ -24,14 +24,15 @@ const WikiSidebar = ({
   canEdit,
   onAddHeading,
 }: WikiSidebarProps) => {
+  const displayCategories = categories.filter((category) => category.articles.length > 0);
   const [openCategories, setOpenCategories] = useState<Set<string>>(() => {
     const s = new Set<string>();
-    for (const cat of categories) {
+    for (const cat of displayCategories) {
       if (cat.articles.some((a) => a.id === activeArticleId)) {
         s.add(cat.id);
       }
     }
-    if (s.size === 0 && categories.length > 0) s.add(categories[0].id);
+    if (s.size === 0 && displayCategories.length > 0) s.add(displayCategories[0].id);
     return s;
   });
   const [addingHeading, setAddingHeading] = useState(false);
@@ -76,7 +77,7 @@ const WikiSidebar = ({
 
       <ScrollArea className="flex-1">
         <nav className="py-2 space-y-0.5">
-          {categories.map((cat) => {
+          {displayCategories.map((cat) => {
             const isOpen = openCategories.has(cat.id);
             const Icon = cat.icon;
             const hasActive = cat.articles.some((a) => a.id === activeArticleId);
