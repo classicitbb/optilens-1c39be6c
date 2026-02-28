@@ -17,6 +17,7 @@ import LegalPage from "./pages/LegalPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
+import AdminHomeRedirect from "./components/admin/AdminHomeRedirect";
 import ReferenceDataPage from "./pages/admin/ReferenceDataPage";
 import PlaceholderPage from "./pages/admin/PlaceholderPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
@@ -51,10 +52,11 @@ import LeadsAiAssistantPage from "./pages/admin/leads/LeadsAiAssistantPage";
 import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
 import CrmPipelinePage from "./pages/admin/crm/CrmPipelinePage";
 import CrmActivitiesPage from "./pages/admin/crm/CrmActivitiesPage";
-import DashboardPage from "./pages/admin/DashboardPage";
+import CrmDashboardPage from "./pages/admin/crm/CrmDashboardPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
+import AdminHomeRedirect from "./components/admin/AdminHomeRedirect";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
@@ -98,7 +100,7 @@ const App = () => (
 
               {/* Admin — all apps share AdminLayout */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
-                <Route index element={<Navigate to="/admin/pricing/catalog" replace />} />
+                <Route index element={<AdminHomeRedirect />} />
 
                 {/* ═══ Pricing App ═══ */}
                 <Route path="pricing" element={<Navigate to="/admin/pricing/catalog" replace />} />
@@ -141,7 +143,7 @@ const App = () => (
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
-                <Route path="crm/dashboard" element={<DashboardPage />} />
+                <Route path="crm/dashboard" element={<CrmDashboardPage />} />
                 <Route path="crm/pipeline" element={<CrmPipelinePage />} />
                 <Route path="crm/activities" element={<CrmActivitiesPage />} />
 
