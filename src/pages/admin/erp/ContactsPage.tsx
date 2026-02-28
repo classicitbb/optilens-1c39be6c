@@ -73,6 +73,7 @@ const ContactsPage = () => {
   const [filter, setFilter] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
+  const [initialParentId, setInitialParentId] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -88,6 +89,20 @@ const ContactsPage = () => {
         .limit(3000);
       if (error) throw error;
       return (data ?? []) as { id: string; contact_id: string; title: string | null }[];
+    },
+  });
+
+  const { data: linkedContacts = [], isLoading: isLoadingLinkedContacts } = useQuery({
+    queryKey: ["contacts-by-parent", editContact?.id],
+    enabled: !!editContact?.id && !!editContact?.is_company,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("parent_id", editContact!.id as any)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as Contact[];
     },
   });
 
@@ -159,6 +174,48 @@ const ContactsPage = () => {
   }, [contacts, filter, search, showArchived]);
 
   const companies = contacts.filter((c) => c.is_company);
+  const linkedCompany = useMemo(
+    () => companies.find((company) => company.id === editContact?.parent_id) ?? null,
+    [companies, editContact?.parent_id],
+  );
+
+  const peopleLinkedContacts = useMemo(
+    () => linkedContacts.filter((contact) => !contact.is_company),
+    [linkedContacts],
+  );
+
+  const companyIndustryName = (company?: Contact | null) => {
+    if (!company?.industry_id) return "Not specified";
+    const industry = industries.find((item) => item.id === company.industry_id);
+    return industry?.full_name || industry?.name || "Not specified";
+  };
+
+  const canAssignParent = (contact: Partial<Contact>, parentId?: string | null) => {
+    if (!parentId) return { ok: true };
+    if (contact.id === parentId) return { ok: false, message: "A contact cannot be linked to itself." };
+
+    const parent = contacts.find((item) => item.id === parentId);
+    if (!parent) return { ok: false, message: "Selected parent company no longer exists." };
+    if (!parent.is_company) return { ok: false, message: "Parent link must point to a company." };
+
+    const nextParentById = new Map<string, string | null>();
+    contacts.forEach((item) => {
+      nextParentById.set(item.id, item.parent_id ?? null);
+    });
+    if (contact.id) nextParentById.set(contact.id, parentId);
+
+    const visited = new Set<string>(contact.id ? [contact.id] : []);
+    let cursor: string | null = parentId;
+    while (cursor) {
+      if (visited.has(cursor)) {
+        return { ok: false, message: "This parent assignment creates a cyclic relationship." };
+      }
+      visited.add(cursor);
+      cursor = nextParentById.get(cursor) ?? null;
+    }
+
+    return { ok: true };
+  };
 
   const getOpportunityCount = (contactId?: string | null) => (contactId ? opportunityCounts.get(contactId) ?? 0 : 0);
 
@@ -254,6 +311,14 @@ const ContactsPage = () => {
       toast({ title: "Name is required", variant: "destructive" });
       return;
     }
+
+    const parentValidation = canAssignParent(editContact, editContact.parent_id ?? null);
+    if (!parentValidation.ok) {
+      toast({ title: "Invalid company link", description: parentValidation.message, variant: "destructive" });
+      return;
+    }
+
+    const nextParentId = editContact.parent_id ?? null;
     try {
       // If new contact, insert and get id back
       let contactId = editContact.id;
@@ -318,9 +383,14 @@ const ContactsPage = () => {
       }
 
       qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["contacts-by-parent", initialParentId] });
+      qc.invalidateQueries({ queryKey: ["contacts-by-parent", nextParentId] });
+      qc.invalidateQueries({ queryKey: ["contact-by-id", initialParentId] });
+      qc.invalidateQueries({ queryKey: ["contact-by-id", nextParentId] });
       qc.invalidateQueries({ queryKey: ["customers-list"] });
       toast({ title: editContact.id ? "Contact updated" : "Contact created" });
       setEditContact(null);
+      setInitialParentId(null);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -338,11 +408,13 @@ const ContactsPage = () => {
 
   const openEdit = (contact: Contact) => {
     setEditContact(contact);
+    setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
   };
 
   const openNew = (isCompany: boolean) => {
     setEditContact(emptyContact(isCompany));
+    setInitialParentId(null);
     setSelectedTagIds([]);
   };
 
@@ -532,6 +604,7 @@ const ContactsPage = () => {
             const canGoNext = editContact.id && currentIndex >= 0 && currentIndex < filtered.length - 1;
             const goTo = (contact: Contact) => {
               setEditContact(contact);
+              setInitialParentId(contact.parent_id ?? null);
               setSelectedTagIds([]);
             };
 
@@ -606,6 +679,34 @@ const ContactsPage = () => {
                                 {companies.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
                               </SelectContent>
                             </Select>
+                          </div>
+                        )}
+                        {!editContact.is_company && (
+                          <div className="border rounded-md p-2 space-y-2" style={{ borderColor: "hsl(var(--border))" }}>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-[11px] font-semibold">Linked Company</p>
+                              {linkedCompany ? (
+                                <Button type="button" variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={() => openEdit(linkedCompany)}>
+                                  Open Company
+                                </Button>
+                              ) : null}
+                            </div>
+                            {linkedCompany ? (
+                              <>
+                                <p className="text-xs font-medium">{linkedCompany.name}</p>
+                                <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
+                                  {companyIndustryName(linkedCompany)} · {[linkedCompany.city, linkedCompany.country_code].filter(Boolean).join(", ") || "Location not specified"}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => setEditContact({ ...editContact, parent_id: null })}>
+                                    Clear
+                                  </Button>
+                                  <span className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Use Parent Company to reassign.</span>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>No company linked. Select one above to assign.</p>
+                            )}
                           </div>
                         )}
                         <div>
@@ -773,6 +874,38 @@ const ContactsPage = () => {
                                 );
                               })}
                             </div>
+                          </div>
+                        )}
+                        {editContact.is_company && (
+                          <div className="border rounded-md p-2 space-y-2" style={{ borderColor: "hsl(var(--border))" }}>
+                            <div className="flex items-center justify-between">
+                              <Label className="text-[11px] font-semibold">Linked Contacts</Label>
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{peopleLinkedContacts.length}</Badge>
+                            </div>
+                            {isLoadingLinkedContacts ? (
+                              <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Loading linked contacts…</p>
+                            ) : peopleLinkedContacts.length === 0 ? (
+                              <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>No people linked to this company.</p>
+                            ) : (
+                              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                                {peopleLinkedContacts.map((contact) => (
+                                  <div key={contact.id} className="border rounded-sm p-1.5" style={{ borderColor: "hsl(215 25% 88%)" }}>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div>
+                                        <p className="text-[11px] font-medium leading-tight">{contact.name}</p>
+                                        {!!contact.type && <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>{contact.type}</p>}
+                                      </div>
+                                      <Button type="button" variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={() => openEdit(contact)}>
+                                        Open
+                                      </Button>
+                                    </div>
+                                    <p className="text-[10px] mt-1" style={{ color: "hsl(215 15% 55%)" }}>
+                                      {[contact.email, contact.phone].filter(Boolean).join(" · ") || "No contact details"}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
