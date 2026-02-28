@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useToast } from "@/hooks/use-toast";
-import { renderWikiContent } from "./wikiFormatting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import RichTextEditor from "./RichTextEditor";
@@ -104,14 +102,14 @@ const WikiArticleEditDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[100vw] max-w-none h-[100dvh] rounded-none p-0 sm:rounded-lg sm:p-6 sm:h-auto sm:max-h-[95vh] sm:max-w-5xl lg:max-w-6xl overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="text-sm px-4 pt-4 sm:px-0 sm:pt-0">
+      <DialogContent className="sm:max-w-5xl lg:max-w-6xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-5 pt-5 pb-3 border-b border-border shrink-0">
+          <DialogTitle className="text-sm font-semibold">
             {form.id ? "Edit Article" : "New Article"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2 px-4 sm:px-0 pb-24 sm:pb-0 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
           <div>
             <Label className="text-xs font-medium">Title</Label>
             <Input
@@ -121,7 +119,7 @@ const WikiArticleEditDialog = ({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs font-medium">Wiki Heading</Label>
               <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
@@ -152,51 +150,38 @@ const WikiArticleEditDialog = ({
                 ))}
               </div>
             </div>
-          </div>
 
-          <div>
-            <Label className="text-xs font-medium">Sort Order</Label>
-            <Input
-              type="number"
-              value={form.sort_order}
-              onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })}
-              className="h-8 text-xs w-20 mt-1"
-            />
+            <div>
+              <Label className="text-xs font-medium">Sort Order</Label>
+              <Input
+                type="number"
+                value={form.sort_order}
+                onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })}
+                className="h-8 text-xs w-20 mt-1"
+              />
+            </div>
           </div>
 
           <div>
             <Label className="text-xs font-medium mb-1 block">Content</Label>
-            <Tabs defaultValue="rich" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="rich">Edit</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-              </TabsList>
-              <TabsContent value="rich" className="space-y-2">
-                <RichTextEditor
-                  content={form.content}
-                  onChange={(value) => setForm({ ...form, content: value })}
-                  placeholder="Write wiki content..."
-                  minHeight="280px"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Tip: use headings and lists to keep help content easy to scan.
-                </p>
-              </TabsContent>
-              <TabsContent value="preview" className="rounded-md border border-border bg-muted/20 p-4">
-                <div className="text-[13px] leading-relaxed space-y-1.5 text-muted-foreground">
-                  {renderWikiContent(form.content)}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          <div className="fixed bottom-0 left-0 right-0 sm:static bg-background/95 backdrop-blur-sm border-t sm:border-0 border-border px-4 py-3 sm:px-0 sm:py-0 flex justify-end">
-            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
-              <Save className="h-3.5 w-3.5" />
-              {saving ? "Saving…" : "Save Article"}
-            </Button>
+            <RichTextEditor
+              content={form.content}
+              onChange={(value) => setForm({ ...form, content: value })}
+              placeholder="Write wiki content..."
+              minHeight="320px"
+            />
           </div>
         </div>
+
+        <DialogFooter className="px-5 py-3 border-t border-border shrink-0">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {saving ? "Saving…" : "Save Article"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

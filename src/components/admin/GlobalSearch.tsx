@@ -20,14 +20,6 @@ interface SearchResult {
   group: string;
 }
 
-interface WikiSearchRow {
-  id: string;
-  title: string;
-  category: string | null;
-  page_slug: string;
-  context_slugs: string[];
-}
-
 const GlobalSearch = () => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -72,16 +64,19 @@ const GlobalSearch = () => {
         }))
       );
 
-      const { data, error } = await supabase.rpc("get_visible_help_articles", {
-        requested_page_slug: null,
-      });
+      const { data, error } = await supabase
+        .from("help_articles")
+        .select("id, title, category, page_slug, help_article_contexts(context_slug)")
+        .eq("is_active", true)
+        .order("sort_order");
 
       if (error) throw error;
 
-      const dbResults: SearchResult[] = ((data ?? []) as WikiSearchRow[])
+      const dbResults: SearchResult[] = ((data ?? []) as any[])
         .map((article) => {
-          const contexts = article.context_slugs?.length ? article.context_slugs : [article.page_slug];
-          const allowedContexts = contexts.filter((contextSlug) => canViewContextSlug(contextSlug, canView));
+          const contexts = article.help_article_contexts?.map((c: any) => c.context_slug).filter(Boolean) ?? [];
+          const effectiveContexts = contexts.length > 0 ? contexts : [article.page_slug];
+          const allowedContexts = effectiveContexts.filter((contextSlug: string) => canViewContextSlug(contextSlug, canView));
           const context = allowedContexts.find((slug: string) => slug !== "all") ?? allowedContexts[0] ?? "knowledge/wiki";
 
           if (allowedContexts.length === 0) return null;
@@ -95,7 +90,7 @@ const GlobalSearch = () => {
             group: "Help / Wiki",
           };
         })
-        .filter((result): result is SearchResult => !!result);
+        .filter((result): result is NonNullable<typeof result> => !!result) as SearchResult[];
 
       return [...staticResults, ...dbResults];
     },
