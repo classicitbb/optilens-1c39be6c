@@ -14,6 +14,7 @@ export interface LeadRecord {
   status: LeadStatus;
   score: number;
   notes: string | null;
+  search_run_id?: string | null;
 }
 
 export interface InstagramPostPack {

@@ -29,20 +29,36 @@ type PlannerDiagnostics = {
   rankedIntents: Array<{
     rank: number;
     score: number;
+    strategyId: string;
     searchIntent: string;
     query: string;
     industry: string;
     channelHints: string[];
     rationale: string[];
+    whySuggested: string[];
+    historicalPerformance: {
+      sampleSize: number;
+      winRate: number;
+      avgDealSize: number | null;
+      cacProxy: number | null;
+    } | null;
   }>;
   selectedIntent: {
     rank: number;
     score: number;
+    strategyId: string;
     searchIntent: string;
     query: string;
     industry: string;
     channelHints: string[];
     rationale: string[];
+    whySuggested: string[];
+    historicalPerformance: {
+      sampleSize: number;
+      winRate: number;
+      avgDealSize: number | null;
+      cacProxy: number | null;
+    } | null;
   } | null;
 };
 
@@ -332,8 +348,9 @@ serve(async (req) => {
       fetchedAt: new Date().toISOString(),
     };
 
+    let searchRunId: string | null = null;
     try {
-      await supabaseClient.from("lead_search_runs" as any).insert({
+      const { data: runData } = await supabaseClient.from("lead_search_runs" as any).insert({
         mode: searchMode,
         query_input: query ?? null,
         strategy_constraints: autopilotConstraints,
@@ -343,12 +360,22 @@ serve(async (req) => {
         providers_used: providersUsed,
         provider_telemetry: telemetry,
         leads_count: leads.length,
-      } as any);
+      } as any).select("id").single();
+
+      searchRunId = runData?.id ?? null;
     } catch {
       // silently ignore run persistence failures
     }
 
-    return new Response(JSON.stringify({ leads, diagnostics: includeDiagnostics ? diagnostics : null }), {
+    const leadsWithRunId = leads.map((lead) => ({
+      ...lead,
+      search_run_id: searchRunId,
+    }));
+
+    return new Response(JSON.stringify({
+      leads: leadsWithRunId,
+      diagnostics: includeDiagnostics ? { ...diagnostics, searchRunId } : null,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

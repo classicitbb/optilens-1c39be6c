@@ -207,6 +207,23 @@ const LeadFinderPage = () => {
               {diagnostics?.planner?.selectedIntent ? (
                 <p>Top Intent: <span className="font-medium">{diagnostics.planner.selectedIntent.searchIntent}</span> ({diagnostics.planner.selectedIntent.score})</p>
               ) : null}
+              {diagnostics?.planner?.selectedIntent?.whySuggested?.length ? (
+                <div className="space-y-1">
+                  <p className="font-medium">Why this was suggested</p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {diagnostics.planner.selectedIntent.whySuggested.map((reason, idx) => <li key={`${reason}-${idx}`}>{reason}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+              {diagnostics?.planner?.selectedIntent?.historicalPerformance ? (
+                <div className="space-y-1">
+                  <p className="font-medium">Historical performance of similar leads</p>
+                  <p>Sample Size: <span className="font-medium">{diagnostics.planner.selectedIntent.historicalPerformance.sampleSize}</span></p>
+                  <p>Win Rate: <span className="font-medium">{(diagnostics.planner.selectedIntent.historicalPerformance.winRate * 100).toFixed(1)}%</span></p>
+                  <p>CAC Proxy: <span className="font-medium">{diagnostics.planner.selectedIntent.historicalPerformance.cacProxy?.toFixed(2) ?? "—"}</span></p>
+                  <p>Avg Won Deal Size: <span className="font-medium">{diagnostics.planner.selectedIntent.historicalPerformance.avgDealSize ?? "—"}</span></p>
+                </div>
+              ) : null}
               <div className="flex flex-wrap gap-1">
                 {(diagnostics?.providersUsed ?? []).map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
               </div>

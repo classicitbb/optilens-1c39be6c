@@ -55,6 +55,7 @@ export const useSaveLeadToCrm = () => {
           stage: "new",
           country: lead.country,
           volume_tier: "medium",
+          source_search_run_id: lead.search_run_id ?? null,
         } as any, { onConflict: "contact_id,title" })
         .select("id")
         .single();
@@ -80,6 +81,7 @@ export const useSaveLeadToCrm = () => {
           score: lead.score,
           country: lead.country,
           city: lead.city,
+          search_run_id: lead.search_run_id ?? null,
         },
       });
     },
