@@ -26,6 +26,8 @@ export interface LeadRecord {
   score: number;
   notes: string | null;
   search_run_id?: string | null;
+  lead_source?: string | null;
+  lead_segment?: "decision_makers" | "operators" | "procurement_influencers" | null;
 }
 
 export interface InstagramPostPack {
