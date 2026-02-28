@@ -89,8 +89,9 @@ const WikiArticleEditDialog = ({
       toast({ title: form.id ? "Article updated" : "Article created" });
       onOpenChange(false);
       onSaved?.();
-    } catch {
-      toast({ title: "Error saving article", variant: "destructive" });
+    } catch (err: any) {
+      console.error("Wiki article save error:", err);
+      toast({ title: "Error saving article", description: err?.message ?? String(err), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -98,7 +99,7 @@ const WikiArticleEditDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm">
             {form.id ? "Edit Article" : "New Article"}
