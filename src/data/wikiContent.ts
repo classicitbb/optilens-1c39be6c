@@ -224,46 +224,114 @@ export const wikiCategories: WikiCategory[] = [
         title: "Major Update Ledger (Plan + Release Notes + Changelog)",
         content: `Use this date-stamped format for every major feature release so operators can review plan, outcome, and key changes in one place.
 
-## 2026-02-28 — Automated QA Harness + Runtime Logging Hardening
+## 2026-02-28 — Product Catalog Regression Fix (Row Scroll + Working Filters)
 
 ### Plan
-1. Strengthen smoke coverage for auth/admin entry points.
-2. Enforce runtime-error logging wiring and output contract checks.
-3. Keep docs synchronized with a human-readable changelog.
+- Restore vertical row scrolling in product catalog segment tables while keeping headers visible.
+- Fix the filter popover interaction regression so selections actually apply.
+- Re-validate catalog behavior with credentialed UI checks and smoke tests.
 
 ### Release Notes
-- Added smoke coverage for \`/auth\` in the QA harness.
-- Added static wiring checks for Auth page login UX strings and runtime logging pathways.
-- Preserved route smoke checks for leads, CRM pipeline, runtime errors, and publisher pages.
+- Product catalog table rows now scroll again inside their table frames.
+- Filter popovers now stay interactive after opening, so option selection and apply behavior work as expected.
+- "Select All" in filter popovers is now directly clickable to clear narrowed selections quickly.
 
-### Changelog (Human-readable)
-- QA harness now validates auth route availability and key login copy.
-- Runtime logging contract checks remain enforced for one-line error capture format.
-- Changelog now uses date-stamped entries for major updates.
+### Technical Changelog
+- Updated \`src/components/ui/table.tsx\` table wrapper to fill available height (\`h-full\`) so internal row scrolling works in flex layouts.
+- Updated \`src/components/admin/MultiSelectFilter.tsx\` to track both trigger and portal menu refs for outside-click handling, preventing immediate close on menu interaction.
+- Wired the popover "Select All" row to call \`selectAll\` directly.
+
+## 2026-02-28 — Product Catalog Table UX Fixes (Sticky Headers + Filter Overlay + Tab Counts)
+
+### Plan
+- Keep product catalog table headers pinned while row data scrolls underneath.
+- Ensure column-filter dialogs render above table content instead of appearing hidden.
+- Add filter-tab impact counts so users can see constrained record totals before switching tabs.
+
+### Release Notes
+- Product catalog segment tables now keep one sticky header layer, preventing header cells from drifting out of frame while rows scroll.
+- Column filter popovers now render in a top-level portal with fixed positioning and stronger z-index stacking, so they appear above rows and sticky headers.
+- Lens, Add-ons, and Supplies filter tabs now display live counts (e.g., \`Active (42)\`) based on the current search and column-filter context.
+
+### Technical Changelog
+- Updated \`src/components/admin/AddonDataTable.tsx\` and \`src/components/admin/SupplyDataTable.tsx\` to remove redundant per-column sticky classes and add computed tab-count labels.
+- Updated \`src/components/admin/LensDataTable.tsx\` to compute status counts from base-filtered records and show count-bearing tab labels.
+- Updated \`src/components/admin/MultiSelectFilter.tsx\` to use \`createPortal\` with dynamic fixed positioning for reliable popover layering.
+
+## 2026-02-28 — E2E Stability Pass (Help Panel + Wiki Keying)
+
+### Plan
+- Execute credentialed end-to-end navigation across core admin surfaces.
+- Fix runtime loops and React key warnings surfaced by browser-console checks.
+- Re-run smoke harness to confirm regressions are closed.
+
+### Release Notes
+- Fixed an update-loop issue in Help Panel expansion state initialization.
+- Fixed duplicate-key warning in wiki section table-of-contents generation for repeated headings.
+- Re-validated core admin route smoke checks and credentialed browser flow.
+
+### Technical Changelog
+- \`src/components/admin/HelpPanel.tsx\`: guarded \`setExpandedIds\` to avoid unnecessary state updates that triggered maximum update-depth warnings.
+- \`src/components/admin/wikiFormatting.tsx\`: added deterministic unique section IDs for duplicate heading labels.
+- Added credentialed browser verification artifacts for wiki/admin navigation console-health.
+
+## 2026-02-28 — Admin CRM Homepage + Wiki Markdown Visibility
+
+### Plan
+- Route admin homepage to CRM pipeline for users with CRM access.
+- Make changelog, release notes, and delivery plan visible in Help/Wiki in markdown form.
+- Improve wiki markdown rendering for clearer human-readable headings and code blocks.
+
+### Release Notes
+- \`/admin\` now redirects admins/operators/viewers to \`/admin/crm/pipeline\`.
+- Help/Wiki now includes a dedicated **Release Ledger** section with markdown-backed Release Notes, Changelog, and Delivery Plan articles.
+- Wiki content renderer now supports markdown headings (\`#\`, \`##\`, \`###\`) and fenced code blocks.
+
+### Technical Changelog
+- Added \`src/components/admin/AdminHomeRedirect.tsx\` and wired admin index route to it.
+- Added raw markdown imports in \`src/data/wikiContent.ts\` from \`CHANGELOG.md\`, \`docs/release-notes.md\`, and \`docs/phase2-phase3-delivery.md\`.
+- Added \`docs/release-notes.md\` and enhanced \`src/components/admin/wikiFormatting.tsx\` parsing/rendering logic.
 
 ## 2026-02-28 — Smoke Harness Reliability + Credentialed Login Validation
 
 ### Plan
-1. Prevent false-positive smoke passes when dev server compilation fails.
-2. Validate credentialed login interaction on \`/auth\`.
-3. Keep changelog/wiki governance synchronized per major update.
+- Prevent false-positive smoke passes when Vite reports transform/startup errors.
+- Validate credentialed login flow and protected-route redirect behavior.
+- Keep release ledger process synchronized between repo changelog and in-app wiki.
 
 ### Release Notes
-- Smoke harness now fails if Vite emits pre-transform, syntax, or startup errors.
-- Credentialed login interaction was executed against the auth form.
-- Protected \`/admin/knowledge/wiki\` route behavior confirmed to redirect unauthenticated sessions to auth.
+- Smoke harness now fails when dev server emits pre-transform/syntax/startup errors.
+- Verified login interaction on \`/auth\` with provided credentials and submit flow automation.
+- Verified protected wiki route \`/admin/knowledge/wiki\` redirects to auth when not already authenticated in browser session.
 
-### Changelog (Human-readable)
-- Added dev-server diagnostics capture/failure gating in the smoke harness.
-- Retained runtime-error contract checks and auth/admin route checks.
-- Continued use of date-stamped Plan/Release Notes/Changelog governance across docs.
+### Technical Changelog
+- Added dev-server diagnostic pattern capture and failure gating in \`scripts/admin_smoke_and_error_checks.mjs\`.
+- Kept runtime logging format/wiring checks and auth/admin route smoke checks intact.
+- Aligned date-stamped update governance across \`CHANGELOG.md\` and wiki ledger article.
+
+## 2026-02-28 — Automated QA Harness + Runtime Logging Hardening
+
+### Plan
+- Strengthen smoke coverage for login/auth and high-traffic admin routes.
+- Add stricter assertions for runtime error logging wiring across app/page surfaces.
+- Enforce stable one-line runtime-error output contract for downstream automation.
+
+### Release Notes
+- Added \`/auth\` to automated smoke route checks.
+- Added Auth page checks to ensure login UX strings remain present.
+- Added/kept runtime logging checks for app wiring and one-line error format contract.
+
+### Technical Changelog
+- Updated \`scripts/admin_smoke_and_error_checks.mjs\` with additional route and snippet assertions.
+- Preserved runtime log format contract checks for \`[runtime-error] <timestamp> | <source> | <title> | <detail> | <route>\`.
+- Added this date-stamped changelog structure for future major updates.
 
 ### Update Rule (Required)
 For each major feature update, append a new entry with:
 - Date (\`YYYY-MM-DD\`)
 - Plan (3–5 bullets)
 - Release Notes (what shipped)
-- Changelog (what changed technically)`,
+- Technical Changelog (what changed technically)`,
       },
     ],
   },
