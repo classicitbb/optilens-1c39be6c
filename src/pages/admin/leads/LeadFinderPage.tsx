@@ -149,8 +149,7 @@ const LeadFinderPage = () => {
     <div className="space-y-4">
       <AdminPageHeader
         title="Lead Finder"
-        subtitle="Search prospects, inspect explainable score factors, then save to CRM with confidence."
-        icon={<Sparkles className="h-4 w-4" />}
+        icon={Sparkles}
       />
 
       <Card>

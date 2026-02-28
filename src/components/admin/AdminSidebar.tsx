@@ -33,7 +33,7 @@ const AdminSidebar = () => {
         .eq("tenant_key", "default")
         .maybeSingle();
       if (error) throw error;
-      return (data?.status as "connected" | "error" | "not_configured" | null) ?? "not_configured";
+      return ((data as any)?.status as "connected" | "error" | "not_configured" | null) ?? "not_configured";
     },
     enabled: activeAppKey === "settings",
   });
