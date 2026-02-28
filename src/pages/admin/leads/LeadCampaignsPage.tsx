@@ -147,7 +147,7 @@ const LeadCampaignsPage = () => {
         <CardContent className="space-y-3 text-xs">
           {(profiles as ActivationProfileRow[]).slice(0, 6).map((profile) => (
             <div key={profile.id} className="border rounded p-2 space-y-2">
-              <p className="font-medium">{profile.lead_segment.replaceAll("_", " ")} · Source: {profile.lead_source}</p>
+              <p className="font-medium">{profile.lead_segment.split("_").join(" ")} · Source: {profile.lead_source}</p>
               <p>Audience hypotheses: {(profile.packet?.audienceHypotheses ?? []).join(" | ")}</p>
               <p>Creative angles: {(profile.packet?.creativeAngles ?? []).join(" | ")}</p>
               <p>Meta audiences (policy-compliant): {(profile.packet?.metaAudienceDefinitions ?? []).join(" | ")}</p>

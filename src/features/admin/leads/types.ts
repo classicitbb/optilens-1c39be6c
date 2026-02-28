@@ -24,6 +24,7 @@ export interface LeadRecord {
   ai_intent_score: number | null;
   status: LeadStatus;
   score: number;
+  lead_score_breakdown?: LeadScoreBreakdown | null;
   notes: string | null;
   search_run_id?: string | null;
   lead_source?: string | null;
