@@ -3232,25 +3232,6 @@ export type Database = {
           vat_paid: boolean
         }[]
       }
-      context_slug_feature: {
-        Args: { _context_slug: string }
-        Returns: string
-      }
-      get_visible_help_articles: {
-        Args: { requested_page_slug?: string | null }
-        Returns: {
-          category: string | null
-          content: string
-          created_at: string
-          help_article_contexts: Json
-          id: string
-          is_active: boolean
-          page_slug: string
-          sort_order: number
-          title: string
-          updated_at: string
-        }[]
-      }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_edit_role: { Args: { _user_id: string }; Returns: boolean }
       has_restricted_role: { Args: { _user_id: string }; Returns: boolean }
