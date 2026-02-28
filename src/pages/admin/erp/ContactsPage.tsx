@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, useMemo } from "react";
+import { Fragment, useEffect, useState, useMemo, useRef } from "react";
 import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, type Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign } from "lucide-react";
+import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, ExternalLink, ImageIcon } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -56,6 +56,9 @@ const emptyContact = (isCompany: boolean): Partial<Contact> => ({
   parent_id: null,
   is_archived: false,
   avatar_url: "",
+  business_card_image_url: null,
+  business_card_uploaded_at: null,
+  business_card_file_name: null,
   is_customer: false,
   lead_source: "",
   pipeline_stage: "New",
@@ -82,6 +85,9 @@ const ContactsPage = () => {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [collapsedCountryGroups, setCollapsedCountryGroups] = useState<Record<string, boolean>>({});
+  const [businessCardFile, setBusinessCardFile] = useState<File | null>(null);
+  const [isUploadingBusinessCard, setIsUploadingBusinessCard] = useState(false);
+  const businessCardInputRef = useRef<HTMLInputElement>(null);
 
   // Load tags when editing
   const { data: editTagIds = [] } = useContactTagLinks(editContact?.id);
@@ -277,6 +283,74 @@ const ContactsPage = () => {
     navigate("/admin/pricing/catalog", { state: { pricingSheetId, contactName: contact.name } });
   };
 
+  const getStoragePathFromPublicUrl = (url?: string | null) => {
+    if (!url) return null;
+    const marker = "/storage/v1/object/public/data-files/";
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.slice(idx + marker.length);
+  };
+
+  const handleBusinessCardUpload = async () => {
+    if (!businessCardFile) {
+      toast({ title: "Select an image first", variant: "destructive" });
+      return;
+    }
+
+    const oldPath = getStoragePathFromPublicUrl(editContact?.business_card_image_url ?? null);
+    const contactIdPart = editContact?.id ?? "new";
+    const safeName = businessCardFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `contact-business-cards/${contactIdPart}/${Date.now()}-${safeName}`;
+
+    setIsUploadingBusinessCard(true);
+    try {
+      const { error: uploadError } = await supabase.storage.from("data-files").upload(path, businessCardFile, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from("data-files").getPublicUrl(path);
+      setEditContact((prev) => prev ? {
+        ...prev,
+        business_card_image_url: publicUrlData.publicUrl,
+        business_card_uploaded_at: new Date().toISOString(),
+        business_card_file_name: businessCardFile.name,
+      } : prev);
+
+      if (oldPath && oldPath !== path) {
+        await supabase.storage.from("data-files").remove([oldPath]);
+      }
+
+      setBusinessCardFile(null);
+      if (businessCardInputRef.current) {
+        businessCardInputRef.current.value = "";
+      }
+      toast({ title: "Business card uploaded" });
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message ?? "Could not upload business card", variant: "destructive" });
+    } finally {
+      setIsUploadingBusinessCard(false);
+    }
+  };
+
+  const handleBusinessCardRemove = async () => {
+    try {
+      const oldPath = getStoragePathFromPublicUrl(editContact?.business_card_image_url ?? null);
+      if (oldPath) {
+        await supabase.storage.from("data-files").remove([oldPath]);
+      }
+      setEditContact((prev) => prev ? {
+        ...prev,
+        business_card_image_url: null,
+        business_card_uploaded_at: null,
+        business_card_file_name: null,
+      } : prev);
+      setBusinessCardFile(null);
+      if (businessCardInputRef.current) {
+        businessCardInputRef.current.value = "";
+      }
+    } catch (error: any) {
+      toast({ title: "Failed to remove image", description: error.message ?? "Please try again.", variant: "destructive" });
+    }
+  };
 
   const exportCsv = () => {
     const headers = ["name","is_company","email","phone","street","street2","city","state","zip","country_code","tax_id","website","salesperson","notes"];
@@ -451,6 +525,9 @@ const ContactsPage = () => {
             parent_id: editContact.parent_id ?? null,
             is_archived: editContact.is_archived ?? false,
             avatar_url: editContact.avatar_url ?? "",
+            business_card_image_url: editContact.business_card_image_url ?? null,
+            business_card_uploaded_at: editContact.business_card_uploaded_at ?? null,
+            business_card_file_name: editContact.business_card_file_name ?? null,
             is_customer: editContact.is_customer ?? false,
             lead_source: editContact.lead_source ?? "",
             pipeline_stage: editContact.pipeline_stage ?? "New",
@@ -498,6 +575,10 @@ const ContactsPage = () => {
       toast({ title: editContact.id ? "Contact updated" : "Contact created" });
       setEditContact(null);
       setInitialParentId(null);
+      setBusinessCardFile(null);
+      if (businessCardInputRef.current) {
+        businessCardInputRef.current.value = "";
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -517,12 +598,20 @@ const ContactsPage = () => {
     setEditContact(contact);
     setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
+    setBusinessCardFile(null);
+    if (businessCardInputRef.current) {
+      businessCardInputRef.current.value = "";
+    }
   };
 
   const openNew = (isCompany: boolean) => {
     setEditContact(emptyContact(isCompany));
     setInitialParentId(null);
     setSelectedTagIds([]);
+    setBusinessCardFile(null);
+    if (businessCardInputRef.current) {
+      businessCardInputRef.current.value = "";
+    }
   };
 
   // Sync tag ids when editTagIds loads
@@ -1020,13 +1109,80 @@ const ContactsPage = () => {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="notes" className="flex-1 px-4 py-3 m-0">
+                  <TabsContent value="notes" className="flex-1 px-4 py-3 m-0 space-y-3">
                     <Textarea
-                      className="text-xs min-h-[120px] h-full resize-none"
+                      className="text-xs min-h-[120px] resize-none"
                       placeholder="Add notes about this contact…"
                       value={editContact.notes ?? ""}
                       onChange={(e) => setEditContact({ ...editContact, notes: e.target.value })}
                     />
+                    <div className="border rounded-md p-3 space-y-2" style={{ borderColor: "hsl(var(--border))" }}>
+                      <div className="flex items-center gap-2 text-xs font-medium">
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        Business card image
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          ref={businessCardInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="text-xs h-8 max-w-sm"
+                          onChange={(e) => setBusinessCardFile(e.target.files?.[0] ?? null)}
+                          disabled={isUploadingBusinessCard}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={handleBusinessCardUpload}
+                          disabled={!businessCardFile || isUploadingBusinessCard}
+                        >
+                          {isUploadingBusinessCard ? "Uploading..." : "Upload"}
+                        </Button>
+                        {editContact.business_card_image_url && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 text-xs"
+                            onClick={handleBusinessCardRemove}
+                            disabled={isUploadingBusinessCard}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      {editContact.business_card_image_url ? (
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={editContact.business_card_image_url}
+                            alt="Business card"
+                            className="w-24 h-16 rounded border object-cover"
+                            style={{ borderColor: "hsl(215 25% 88%)" }}
+                          />
+                          <div className="space-y-1">
+                            <a
+                              href={editContact.business_card_image_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs underline inline-flex items-center gap-1"
+                            >
+                              View full image <ExternalLink className="h-3 w-3" />
+                            </a>
+                            {editContact.business_card_file_name && (
+                              <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
+                                {editContact.business_card_file_name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
+                          No business card uploaded yet.
+                        </p>
+                      )}
+                    </div>
                   </TabsContent>
                 </Tabs>
 
@@ -1041,7 +1197,7 @@ const ContactsPage = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditContact(null)}>Cancel</Button>
-                    <Button size="sm" className="h-7 text-xs" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={handleSave} disabled={saveContact.isPending}>
+                    <Button size="sm" className="h-7 text-xs" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={handleSave} disabled={saveContact.isPending || isUploadingBusinessCard}>
                       {saveContact.isPending ? "Saving..." : "Save"}
                     </Button>
                   </div>
