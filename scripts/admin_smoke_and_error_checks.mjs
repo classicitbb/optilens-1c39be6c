@@ -13,7 +13,12 @@ const ROUTES = [
   "/admin/pricing/publisher",
 ];
 
+
 const REQUIRED_SNIPPETS = [
+  {
+    file: "src/App.tsx",
+    snippets: ["<GlobalErrorLogger />", 'path="settings/runtime-errors"'],
+  },
   {
     file: "src/hooks/use-toast.ts",
     snippets: ["shouldCaptureAsErrorToast", "addRuntimeErrorLog"],
@@ -23,8 +28,29 @@ const REQUIRED_SNIPPETS = [
     snippets: ["window.addEventListener(\"error\"", "window.addEventListener(\"unhandledrejection\""],
   },
   {
+    file: "src/pages/admin/leads/MyLeadsPage.tsx",
+    snippets: ["My Leads", "Bulk Actions"],
+  },
+  {
+    file: "src/pages/admin/leads/LeadFinderPage.tsx",
+    snippets: ["Lead Finder", "Find 50 Leads"],
+  },
+  {
+    file: "src/pages/admin/crm/CrmPipelinePage.tsx",
+    snippets: ["CRM Pipeline", "Manual Opportunity Intake"],
+  },
+  {
     file: "src/pages/admin/RuntimeErrorsPage.tsx",
     snippets: ["Runtime Error Log", "clearRuntimeErrorLog", "getRuntimeErrorLog"],
+  },
+  {
+    file: "src/lib/runtimeErrorLog.ts",
+    snippets: [
+      'const STORAGE_KEY = "optilens.runtime_error_log"',
+      "const MAX_ENTRIES = 100",
+      "[runtime-error]",
+      "console.error(",
+    ],
   },
 ];
 
@@ -70,6 +96,17 @@ async function checkRoutes() {
   }
 }
 
+async function checkRuntimeErrorFormatContract() {
+  const source = await readFile("src/lib/runtimeErrorLog.ts", "utf8");
+  const requiredSequence = "[runtime-error] ${nextEntry.timestamp} | ${nextEntry.source} | ${nextEntry.title} | ${nextEntry.detail ?? \"\"} | ${nextEntry.route ?? \"\"}";
+
+  if (!source.includes(requiredSequence)) {
+    throw new Error("Runtime error log format changed: expected one-line '[runtime-error] <timestamp> | <source> | <title> | <detail> | <route>' contract.");
+  }
+
+  console.log("✔ runtime format contract: src/lib/runtimeErrorLog.ts");
+}
+
 async function checkRuntimeLoggingWiring() {
   const failures = [];
 
@@ -101,6 +138,7 @@ async function main() {
     await waitForServer();
     await checkRoutes();
     await checkRuntimeLoggingWiring();
+    await checkRuntimeErrorFormatContract();
     console.log("\nSmoke harness passed.");
   } finally {
     devServer.kill("SIGTERM");
