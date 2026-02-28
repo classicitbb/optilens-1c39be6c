@@ -52,6 +52,7 @@ import LeadsAiAssistantPage from "./pages/admin/leads/LeadsAiAssistantPage";
 import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
 import CrmPipelinePage from "./pages/admin/crm/CrmPipelinePage";
 import CrmActivitiesPage from "./pages/admin/crm/CrmActivitiesPage";
+import DashboardPage from "./pages/admin/DashboardPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
@@ -140,7 +141,8 @@ const App = () => (
                 <Route path="leads/settings" element={<LeadSettingsPage />} />
 
                 {/* ═══ CRM App ═══ */}
-                <Route path="crm" element={<Navigate to="/admin/crm/pipeline" replace />} />
+                <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
+                <Route path="crm/dashboard" element={<DashboardPage />} />
                 <Route path="crm/pipeline" element={<CrmPipelinePage />} />
                 <Route path="crm/activities" element={<CrmActivitiesPage />} />
 
@@ -195,7 +197,7 @@ const App = () => (
                 <Route path="erp/contacts" element={<Navigate to="/admin/contacts" replace />} />
                 <Route path="erp/config/contact-tags" element={<Navigate to="/admin/contacts/config/tags" replace />} />
                 <Route path="erp/config/industries" element={<Navigate to="/admin/contacts/config/industries" replace />} />
-                <Route path="erp/crm" element={<Navigate to="/admin/crm/pipeline" replace />} />
+                <Route path="erp/crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
                 <Route path="erp/helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
                 <Route path="erp/web-orders" element={<Navigate to="/admin/sales/web-orders" replace />} />
                 <Route path="erp/rx-orders" element={<Navigate to="/admin/sales/rx-orders" replace />} />
