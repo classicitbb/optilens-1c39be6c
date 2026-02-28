@@ -56,6 +56,7 @@ import CrmDashboardPage from "./pages/admin/crm/CrmDashboardPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
+import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
@@ -169,7 +170,7 @@ const App = () => (
                 <Route path="settings/users" element={<UsersPage />} />
                 <Route path="settings/roles" element={<RolesPermissionsPage />} />
                 <Route path="settings/audit" element={<AuditLogPage />} />
-                <Route path="settings/integrations" element={<PlaceholderPage />} />
+                <Route path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>} />
                 <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
 
                 {/* ═══ Legacy redirects ═══ */}

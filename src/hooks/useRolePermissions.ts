@@ -31,6 +31,7 @@ export const FEATURES = [
   "users",
   "roles",
   "audit",
+  "integrations",
   "parameters",
   "history",
 ] as const;
@@ -62,6 +63,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/settings/users": "users",
   "/admin/settings/roles": "roles",
   "/admin/settings/audit": "audit",
+  "/admin/settings/integrations": "integrations",
   // Legacy paths
   "/admin/catalog": "catalog",
   "/admin/reference": "reference",
