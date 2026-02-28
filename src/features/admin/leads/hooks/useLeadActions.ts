@@ -3,6 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 import type { LeadRecord } from "../types";
 import { DEFAULT_SEQUENCE } from "./useLeadSequenceBuilder";
 
+const logLeadEvent = async (payload: {
+  event_type: "saved_to_crm" | "sequence_started";
+  contact_id?: string | null;
+  opportunity_id?: string | null;
+  provider_diagnostics_summary?: Record<string, unknown>;
+}) => {
+  try {
+    await supabase.from("lead_events" as any).insert({
+      event_type: payload.event_type,
+      contact_id: payload.contact_id ?? null,
+      opportunity_id: payload.opportunity_id ?? null,
+      provider_diagnostics_summary: payload.provider_diagnostics_summary ?? {},
+    } as any);
+  } catch {
+    // silently ignore
+  }
+};
+
 export const useSaveLeadToCrm = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -28,7 +46,7 @@ export const useSaveLeadToCrm = () => {
         .single();
       if (contactErr) throw contactErr;
 
-      const { error: oppErr } = await supabase
+      const { data: oppRaw, error: oppErr } = await supabase
         .from("opportunities" as any)
         .upsert({
           contact_id: contact.id,
@@ -36,8 +54,11 @@ export const useSaveLeadToCrm = () => {
           stage: "new",
           country: lead.country,
           volume_tier: "medium",
-        } as any, { onConflict: "contact_id,title" });
+        } as any, { onConflict: "contact_id,title" })
+        .select("id")
+        .single();
       if (oppErr) throw oppErr;
+      const opportunity = oppRaw as unknown as { id: string } | null;
 
       const { error: noteErr } = await supabase
         .from("notes" as any)
@@ -47,6 +68,19 @@ export const useSaveLeadToCrm = () => {
           content: `Lead imported via Lead Finder. Score: ${lead.score}`,
         } as any);
       if (noteErr) throw noteErr;
+
+      await logLeadEvent({
+        event_type: "saved_to_crm",
+        contact_id: contact.id,
+        opportunity_id: opportunity?.id ?? null,
+        provider_diagnostics_summary: {
+          source: "lead_finder",
+          lead_name: lead.name,
+          score: lead.score,
+          country: lead.country,
+          city: lead.city,
+        },
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leads-v1"] });
@@ -86,6 +120,16 @@ export const useRunLeadSequence = () => {
             content: "5-step outreach sequence queued.",
           } as any);
         if (noteErr) throw noteErr;
+
+        await logLeadEvent({
+          event_type: "sequence_started",
+          contact_id: contactId,
+          provider_diagnostics_summary: {
+            source: "sequence_runner",
+            sequence_name: "default-5-step",
+            steps_count: DEFAULT_SEQUENCE.length,
+          },
+        });
       }
     },
     onSuccess: () => {
@@ -98,15 +142,16 @@ export const useGenerateLeadAuditReport = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ opportunityId, score = 70 }: { opportunityId: string; score?: number }) => {
-      const { data: opp, error: oppErr } = await supabase
+      const { data: oppRaw, error: oppErr } = await supabase
         .from("opportunities" as any)
         .select("id,contact_id,title")
         .eq("id", opportunityId)
         .single();
       if (oppErr) throw oppErr;
+      const opp = oppRaw as unknown as { id: string; contact_id: string; title: string };
 
       const generatedAt = new Date().toISOString();
-      const { data: audit, error: auditErr } = await supabase
+      const { data: auditRaw, error: auditErr } = await supabase
         .from("lead_audits" as any)
         .insert({
           contact_id: opp.contact_id,
@@ -119,6 +164,7 @@ export const useGenerateLeadAuditReport = () => {
         .select("id,score,ai_summary,created_at")
         .single();
       if (auditErr) throw auditErr;
+      const audit = auditRaw as unknown as { id: string; score: number; ai_summary: string; created_at: string };
 
       const { error: attachErr } = await supabase
         .from("opportunity_attachments" as any)
@@ -126,10 +172,10 @@ export const useGenerateLeadAuditReport = () => {
           opportunity_id: opp.id,
           attachment_type: "audit_report",
           payload: {
-            audit_id: audit.id,
-            score: audit.score,
-            summary: audit.ai_summary,
-            generated_at: audit.created_at,
+            audit_id: audit?.id,
+            score: audit?.score,
+            summary: audit?.ai_summary,
+            generated_at: audit?.created_at,
           },
         } as any);
       if (attachErr) throw attachErr;

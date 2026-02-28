@@ -11,7 +11,7 @@ export const usePriceCatalogItems = () => {
         .select("id, sku, name, category, description, unit_price, web_enabled, wspl_enabled")
         .order("name");
       if (error) throw error;
-      return (data ?? []) as PriceCatalogItem[];
+      return (data ?? []) as unknown as PriceCatalogItem[];
     },
   });
 };
