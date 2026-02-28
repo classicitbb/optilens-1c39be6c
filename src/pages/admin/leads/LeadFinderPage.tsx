@@ -11,6 +11,7 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useLeadFinder } from "@/features/admin/leads/hooks/useLeadFinder";
 import { useSaveLeadToCrm } from "@/features/admin/leads/hooks/useLeadActions";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const CARIBBEAN_COUNTRIES = ["Barbados", "Trinidad and Tobago", "Jamaica", "Saint Lucia", "Guyana"];
 
@@ -48,7 +49,35 @@ const LeadFinderPage = () => {
   const smartBatch = useMemo(() => [...filteredLeads].sort((a, b) => b.score - a.score).slice(0, 20), [filteredLeads]);
   const displayLeads = smartBatch.length > 0 ? smartBatch : filteredLeads;
 
-  const runSearch = () => finder.mutate({ query, country, cities: [city], globalSearch });
+  const runSearch = async () => {
+    const providerDiagnosticsSummary = {
+      mode: globalSearch ? "global" : "country_city",
+      query,
+      country: globalSearch ? null : country,
+      city: globalSearch ? null : city,
+    };
+
+    await supabase.from("lead_events" as any).insert({
+      event_type: "search_executed",
+      provider_diagnostics_summary: providerDiagnosticsSummary,
+    } as any).catch(() => undefined);
+
+    try {
+      const result = await finder.mutateAsync({ query, country, cities: [city], globalSearch });
+      await supabase.from("lead_events" as any).insert({
+        event_type: "result_rendered",
+        provider_diagnostics_summary: {
+          ...providerDiagnosticsSummary,
+          providers_used: result.diagnostics?.providersUsed ?? [],
+          provider_status: result.diagnostics?.providerStatus ?? null,
+          results_count: result.leads.length,
+          fetched_at: result.diagnostics?.fetchedAt ?? null,
+        },
+      } as any).catch(() => undefined);
+    } catch {
+      // mutation error is already surfaced by the caller UI state
+    }
+  };
 
   return (
     <div className="space-y-4">

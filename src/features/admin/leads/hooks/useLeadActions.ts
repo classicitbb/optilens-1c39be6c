@@ -3,6 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import type { LeadRecord } from "../types";
 import { DEFAULT_SEQUENCE } from "./useLeadSequenceBuilder";
 
+const logLeadEvent = async (payload: {
+  event_type: "saved_to_crm" | "sequence_started";
+  contact_id?: string | null;
+  opportunity_id?: string | null;
+  provider_diagnostics_summary?: Record<string, unknown>;
+}) => {
+  await supabase.from("lead_events" as any).insert({
+    event_type: payload.event_type,
+    contact_id: payload.contact_id ?? null,
+    opportunity_id: payload.opportunity_id ?? null,
+    provider_diagnostics_summary: payload.provider_diagnostics_summary ?? {},
+  } as any).catch(() => undefined);
+};
+
 export const useSaveLeadToCrm = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -28,7 +42,7 @@ export const useSaveLeadToCrm = () => {
         .single();
       if (contactErr) throw contactErr;
 
-      const { error: oppErr } = await supabase
+      const { data: opportunity, error: oppErr } = await supabase
         .from("opportunities" as any)
         .upsert({
           contact_id: contact.id,
@@ -36,7 +50,9 @@ export const useSaveLeadToCrm = () => {
           stage: "new",
           country: lead.country,
           volume_tier: "medium",
-        } as any, { onConflict: "contact_id,title" });
+        } as any, { onConflict: "contact_id,title" })
+        .select("id")
+        .single();
       if (oppErr) throw oppErr;
 
       const { error: noteErr } = await supabase
@@ -47,6 +63,19 @@ export const useSaveLeadToCrm = () => {
           content: `Lead imported via Lead Finder. Score: ${lead.score}`,
         } as any);
       if (noteErr) throw noteErr;
+
+      await logLeadEvent({
+        event_type: "saved_to_crm",
+        contact_id: contact.id,
+        opportunity_id: opportunity?.id ?? null,
+        provider_diagnostics_summary: {
+          source: "lead_finder",
+          lead_name: lead.name,
+          score: lead.score,
+          country: lead.country,
+          city: lead.city,
+        },
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leads-v1"] });
@@ -86,6 +115,16 @@ export const useRunLeadSequence = () => {
             content: "5-step outreach sequence queued.",
           } as any);
         if (noteErr) throw noteErr;
+
+        await logLeadEvent({
+          event_type: "sequence_started",
+          contact_id: contactId,
+          provider_diagnostics_summary: {
+            source: "sequence_runner",
+            sequence_name: "default-5-step",
+            steps_count: DEFAULT_SEQUENCE.length,
+          },
+        });
       }
     },
     onSuccess: () => {
