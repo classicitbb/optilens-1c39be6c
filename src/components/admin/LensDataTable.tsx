@@ -262,7 +262,7 @@ const LensDataTable = ({
         </span>
       </div>
 
-      <div className="border rounded overflow-auto flex-1 min-h-0" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)" }}>
+      <div className="border rounded overflow-hidden flex-1 min-h-0" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)" }}>
         <Table>
           <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
             <TableRow>
