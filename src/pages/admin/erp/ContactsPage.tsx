@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff } from "lucide-react";
+import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -118,9 +118,27 @@ const ContactsPage = () => {
   const transcriptSnapshotRef = useRef("");
   const interimTimerRef = useRef<number | null>(null);
   const pendingTranscriptRef = useRef("");
+  const businessCardInputRef = useRef<HTMLInputElement>(null);
+  const [businessCardFile, setBusinessCardFile] = useState<File | null>(null);
+  const [isUploadingBusinessCard, setIsUploadingBusinessCard] = useState(false);
 
   // Load tags when editing
   const { data: editTagIds = [] } = useContactTagLinks(editContact?.id);
+
+  const { data: linkedContacts = [], isLoading: isLoadingLinkedContacts } = useQuery({
+    queryKey: ["contacts-by-parent", editContact?.id],
+    queryFn: async () => {
+      if (!editContact?.id) return [];
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("parent_id", editContact.id as any)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as unknown as Contact[];
+    },
+    enabled: !!editContact?.id && !!editContact?.is_company,
+  });
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["contact-opportunity-links"],
@@ -130,7 +148,7 @@ const ContactsPage = () => {
         .select("id,contact_id,title")
         .limit(3000);
       if (error) throw error;
-      return (data ?? []) as { id: string; contact_id: string; title: string | null }[];
+      return (data ?? []) as unknown as { id: string; contact_id: string; title: string | null }[];
     },
   });
 
@@ -541,28 +559,6 @@ const ContactsPage = () => {
     }
   };
 
-  const getOpportunityCount = (contactId?: string | null) => (contactId ? opportunityCounts.get(contactId) ?? 0 : 0);
-
-  const getAssignedPriceProfileId = (contact?: Partial<Contact> | null) => {
-    const key = contact?.name?.trim().toLowerCase();
-    if (!key) return null;
-    return pricingProfileByName.get(key) ?? null;
-  };
-
-  const openCrmForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
-    event?.stopPropagation();
-    navigate("/admin/crm/pipeline", { state: { contactId: contact.id, contactName: contact.name } });
-  };
-
-  const openPricingForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
-    event?.stopPropagation();
-    const pricingSheetId = getAssignedPriceProfileId(contact);
-    if (!pricingSheetId) {
-      toast({ title: "No assigned pricelist found", description: "Assign a pricing sheet from Users / customer pricing access first.", variant: "destructive" });
-      return;
-    }
-    navigate("/admin/pricing/catalog", { state: { pricingSheetId, contactName: contact.name } });
-  };
 
 
   const exportCsv = () => {
@@ -1514,3 +1510,4 @@ const ContactsPage = () => {
 };
 
 export default ContactsPage;
+

@@ -112,14 +112,22 @@ export const useLeadFinder = () => {
         return {
           leads: [],
           diagnostics: {
-            mode: globalSearch ? "global" : "country_city",
+            mode: globalSearch ? "autopilot" : "manual",
+            scopeMode: globalSearch ? "global" : "country_city",
+            searchRunId: null,
+            planner: { mode: "manual", rankedIntents: [], selectedIntent: null },
             providerStatus: {
               googlePlacesConfigured: false,
               facebookGraphConfigured: false,
               instagramGraphConfigured: false,
+              whatsappBusinessSignalsConfigured: false,
               yellowPagesConfigured: false,
+              bingConfigured: false,
+              yahooConfigured: false,
             },
             providersUsed: [],
+            providerTelemetry: {},
+            emptyReason: "no_providers_configured",
             queryEcho: { query, country, city: cities?.[0] },
             fetchedAt: new Date().toISOString(),
           },
@@ -141,7 +149,7 @@ export const useLeadFinder = () => {
         status: "lead",
         score: Number(lead.score ?? 0),
         notes: null,
-        search_run_id: lead.search_run_id ?? diagnostics?.searchRunId ?? null,
+        search_run_id: lead.search_run_id ?? data?.diagnostics?.searchRunId ?? null,
       })) as LeadRecord[];
       return {
         leads,

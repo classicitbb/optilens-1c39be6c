@@ -63,7 +63,7 @@ export const useContacts = () => {
         .select("*")
         .order("name");
       if (error) throw error;
-      return data as Contact[];
+      return (data ?? []) as unknown as Contact[];
     },
   });
 };
