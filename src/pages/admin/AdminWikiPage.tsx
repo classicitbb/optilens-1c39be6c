@@ -12,7 +12,7 @@ import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
 import { useToast } from "@/hooks/use-toast";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
-import { canViewContextSlug } from "@/lib/wikiPermissions";
+import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isUuid = (value?: string) => !!value && UUID_RE.test(value);
@@ -38,7 +38,12 @@ const AdminWikiPage = () => {
           const contexts = article.context_slugs?.length ? article.context_slugs : [article.page_slug];
           return (article.category || "") === heading.slug && contexts.some((contextSlug) => canViewContextSlug(contextSlug, canView));
         })
-        .map((article) => ({ id: article.id, title: article.title, content: article.content })),
+        .map((article) => ({
+          id: article.id,
+          title: article.title,
+          content: article.content,
+          context_slugs: article.context_slugs,
+        })),
     }));
   }, [dbArticles, dbHeadings, canView]);
 
@@ -50,7 +55,10 @@ const AdminWikiPage = () => {
     return [...base, ...extra];
   }, [dbHeadings]);
 
-  const mergedCategories = useMemo(() => [...wikiCategories, ...editableCategories], [editableCategories]);
+  const mergedCategories = useMemo(
+    () => [...wikiCategories.filter((category) => canViewWikiCategory(category.id, canView)), ...editableCategories],
+    [editableCategories, canView]
+  );
 
   const lower = searchTerm.toLowerCase();
 
@@ -79,12 +87,13 @@ const AdminWikiPage = () => {
   };
 
   const handleEditArticle = (article: { id: string; title: string; content: string }, categoryId?: string) => {
+    const dbArticle = dbArticles.find((entry) => entry.id === article.id);
     setEditingArticle({
       id: isUuid(article.id) ? article.id : undefined,
       title: article.title,
       content: article.content,
       category: categoryId ?? "",
-      context_slugs: ["knowledge/wiki"],
+      context_slugs: dbArticle?.context_slugs?.length ? dbArticle.context_slugs : ["knowledge/wiki"],
     });
     setEditDialogOpen(true);
   };
@@ -123,16 +132,23 @@ const AdminWikiPage = () => {
           onSearchChange={setSearchTerm}
           canEdit={canEdit}
           onAddHeading={handleAddHeading}
+          isCategoryVisible={(categoryId) => canViewWikiCategory(categoryId, canView)}
         />
         <WikiContentPanel
           categories={filtered}
           activeArticleId={activeArticleId}
           canEdit={canEdit}
           onEditArticle={handleEditArticle}
+          isCategoryVisible={(categoryId) => canViewWikiCategory(categoryId, canView)}
         />
       </div>
 
-      <WikiArticleEditDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} article={editingArticle} wikiHeadings={allHeadings} />
+      <WikiArticleEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        article={editingArticle}
+        wikiHeadings={allHeadings}
+      />
     </div>
   );
 };

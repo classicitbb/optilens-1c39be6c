@@ -5,7 +5,7 @@ import { Search, BookOpen, ArrowRight } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
-import { canViewContextSlug } from "@/lib/wikiPermissions";
+import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,22 +53,22 @@ const GlobalSearch = () => {
     queryFn: async () => {
       if (!canView("wiki")) return [] as SearchResult[];
 
-      const staticResults = wikiCategories.flatMap((cat) =>
-        cat.articles.map((article) => ({
-          id: `wiki-static-${cat.id}-${article.id}`,
-          label: article.title,
-          sublabel: cat.title,
-          path: `/admin/knowledge/wiki#${article.id}`,
-          icon: BookOpen,
-          group: "Help / Wiki",
-        }))
-      );
+      const staticResults = wikiCategories
+        .filter((category) => canViewWikiCategory(category.id, canView))
+        .flatMap((cat) =>
+          cat.articles.map((article) => ({
+            id: `wiki-static-${cat.id}-${article.id}`,
+            label: article.title,
+            sublabel: cat.title,
+            path: `/admin/knowledge/wiki#${article.id}`,
+            icon: BookOpen,
+            group: "Help / Wiki",
+          }))
+        );
 
-      const { data, error } = await supabase
-        .from("help_articles")
-        .select("id, title, category, page_slug, help_article_contexts(context_slug)")
-        .eq("is_active", true)
-        .order("sort_order");
+      const { data, error } = await supabase.rpc("get_visible_help_articles", {
+        requested_page_slug: null,
+      });
 
       if (error) throw error;
 

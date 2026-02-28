@@ -39,24 +39,14 @@ export const useHelpArticles = (pageSlug?: string) => {
   const query = useQuery({
     queryKey: ["help_articles", pageSlug],
     queryFn: async () => {
-      let q = supabase
-        .from("help_articles")
-        .select("*, help_article_contexts(context_slug)")
-        .eq("is_active", true)
-        .order("sort_order");
-
-      if (pageSlug) {
-        q = q.eq("page_slug", pageSlug);
-      }
-
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc("get_visible_help_articles", {
+        requested_page_slug: pageSlug ?? null,
+      });
       if (error) throw error;
 
-      const normalized = ((data ?? []) as HelpArticleRow[])
+      return ((data ?? []) as HelpArticleRow[])
         .map(normalizeArticle)
         .filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
-
-      return normalized;
     },
     enabled: canView("wiki"),
   });

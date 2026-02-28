@@ -102,14 +102,14 @@ const WikiArticleEditDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl lg:max-w-6xl max-h-[90vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="px-5 pt-5 pb-3 border-b border-border shrink-0">
+      <DialogContent className="w-screen h-[100dvh] max-w-none sm:h-[92vh] sm:w-[94vw] sm:max-w-6xl lg:max-w-7xl flex flex-col p-0 gap-0 rounded-none sm:rounded-lg">
+        <DialogHeader className="px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b border-border shrink-0">
           <DialogTitle className="text-sm font-semibold">
             {form.id ? "Edit Article" : "New Article"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-4 min-h-0">
           <div>
             <Label className="text-xs font-medium">Title</Label>
             <Input
@@ -162,18 +162,27 @@ const WikiArticleEditDialog = ({
             </div>
           </div>
 
-          <div>
-            <Label className="text-xs font-medium mb-1 block">Content</Label>
-            <RichTextEditor
-              content={form.content}
-              onChange={(value) => setForm({ ...form, content: value })}
-              placeholder="Write wiki content..."
-              minHeight="320px"
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-medium mb-1 block">Content</Label>
+              <RichTextEditor
+                content={form.content}
+                onChange={(value) => setForm({ ...form, content: value })}
+                placeholder="Write wiki content..."
+                minHeight="320px"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-medium mb-1 block">Preview</Label>
+              <div className="border border-border rounded-lg p-3 min-h-[320px] max-h-[420px] overflow-y-auto prose prose-sm max-w-none [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_p]:text-sm [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-4 [&_ol]:pl-4">
+                <div dangerouslySetInnerHTML={{ __html: form.content || "<p class='text-muted-foreground'>Nothing to preview yet.</p>" }} />
+              </div>
+            </div>
           </div>
         </div>
 
-        <DialogFooter className="px-5 py-3 border-t border-border shrink-0">
+        <DialogFooter className="px-4 sm:px-5 py-3 border-t border-border shrink-0 bg-background sticky bottom-0">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
