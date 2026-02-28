@@ -154,12 +154,24 @@ const LeadFinderPage = () => {
                 {(diagnostics?.providersUsed ?? []).map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
               </div>
               {diagnostics ? (
+                <>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
                   <p>Google: {diagnostics.providerStatus.googlePlacesConfigured ? "configured" : "not configured"}</p>
                   <p>Facebook: {diagnostics.providerStatus.facebookGraphConfigured ? "configured" : "not configured"}</p>
                   <p>Instagram: {diagnostics.providerStatus.instagramGraphConfigured ? "configured" : "not configured"}</p>
+                  <p>WhatsApp: {diagnostics.providerStatus.whatsappBusinessSignalsConfigured ? "configured" : "not configured"}</p>
                   <p>Yellow Pages: {diagnostics.providerStatus.yellowPagesConfigured ? "configured" : "not configured"}</p>
+                  <p>Bing: {diagnostics.providerStatus.bingConfigured ? "configured" : "not configured"}</p>
+                  <p>Yahoo: {diagnostics.providerStatus.yahooConfigured ? "configured" : "not configured"}</p>
                 </div>
+                <div className="space-y-1">
+                  {Object.entries(diagnostics.providerTelemetry).map(([provider, outcome]) => (
+                    <p key={provider} className="text-[11px]">
+                      {provider}: attempted={String(outcome.attempted)} · results={outcome.resultCount} · latency={outcome.latencyMs}ms · error={outcome.errorCode ?? "none"}
+                    </p>
+                  ))}
+                </div>
+                </>
               ) : (
                 <p className="text-muted-foreground">Run search to display live provider diagnostics.</p>
               )}

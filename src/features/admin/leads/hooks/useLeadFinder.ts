@@ -15,9 +15,18 @@ export interface LeadFinderDiagnostics {
     googlePlacesConfigured: boolean;
     facebookGraphConfigured: boolean;
     instagramGraphConfigured: boolean;
+    whatsappBusinessSignalsConfigured: boolean;
     yellowPagesConfigured: boolean;
+    bingConfigured: boolean;
+    yahooConfigured: boolean;
   };
   providersUsed: string[];
+  providerTelemetry: Record<string, {
+    attempted: boolean;
+    resultCount: number;
+    latencyMs: number;
+    errorCode: string | null;
+  }>;
   queryEcho: {
     query: string;
     country?: string;
