@@ -33,6 +33,16 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
     });
   };
 
+  const updateMenuPosition = () => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuStyle({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: Math.max(200, rect.width),
+    });
+  };
+
   // Sync draft when opening
   useEffect(() => {
     if (open) {
