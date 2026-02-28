@@ -2,6 +2,23 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-02-28 — Product Catalog Table UX Fixes (Sticky Headers + Filter Overlay + Tab Counts)
+
+### Plan
+- Keep product catalog table headers pinned while row data scrolls underneath.
+- Ensure column-filter dialogs render above table content instead of appearing hidden.
+- Add filter-tab impact counts so users can see constrained record totals before switching tabs.
+
+### Release Notes
+- Product catalog segment tables now keep one sticky header layer, preventing header cells from drifting out of frame while rows scroll.
+- Column filter popovers now render in a top-level portal with fixed positioning and stronger z-index stacking, so they appear above rows and sticky headers.
+- Lens, Add-ons, and Supplies filter tabs now display live counts (e.g., `Active (42)`) based on the current search and column-filter context.
+
+### Technical Changelog
+- Updated `src/components/admin/AddonDataTable.tsx` and `src/components/admin/SupplyDataTable.tsx` to remove redundant per-column sticky classes and add computed tab-count labels.
+- Updated `src/components/admin/LensDataTable.tsx` to compute status counts from base-filtered records and show count-bearing tab labels.
+- Updated `src/components/admin/MultiSelectFilter.tsx` to use `createPortal` with dynamic fixed positioning for reliable popover layering.
+
 ## 2026-02-28 — E2E Stability Pass (Help Panel + Wiki Keying)
 
 ### Plan

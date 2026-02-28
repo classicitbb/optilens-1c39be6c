@@ -115,11 +115,15 @@ const SupplyDataTable = ({
     return (rates["USD"] ?? 1) * (1 + settings.fx_risk_buffer);
   }, [settings]);
 
-  const filtered = useMemo(() => {
+  const applyStatusFilter = useCallback((items: Supply[], targetFilter: Filter) => {
+    if (targetFilter === "active") return items.filter((i) => i.is_active);
+    if (targetFilter === "inactive") return items.filter((i) => !i.is_active);
+    if (targetFilter === "web") return items.filter((i) => i.show_on_website);
+    return items;
+  }, []);
+
+  const baseFiltered = useMemo(() => {
     let items = supplies;
-    if (filter === "active") items = items.filter((i) => i.is_active);
-    else if (filter === "inactive") items = items.filter((i) => !i.is_active);
-    else if (filter === "web") items = items.filter((i) => i.show_on_website);
     if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(i.supplier_name ?? "—"));
     if (colFilters.category.size > 0) items = items.filter((i) => colFilters.category.has(catLabels[i.category] || i.category));
     if (search) {
@@ -128,6 +132,18 @@ const SupplyDataTable = ({
         fieldsMatch(q, s.name, s.sku, s.category, catLabels[s.category], s.description, s.supplier_name, s.unit, s.bin, s.detail)
       );
     }
+    return items;
+  }, [supplies, search, colFilters, catLabels]);
+
+  const filterCounts = useMemo(() => ({
+    active: applyStatusFilter(baseFiltered, "active").length,
+    inactive: applyStatusFilter(baseFiltered, "inactive").length,
+    all: baseFiltered.length,
+    web: applyStatusFilter(baseFiltered, "web").length,
+  }), [baseFiltered, applyStatusFilter]);
+
+  const filtered = useMemo(() => {
+    const items = applyStatusFilter(baseFiltered, filter);
     return [...items].sort((a, b) => {
       let av: string | number, bv: string | number;
       switch (sortKey) {
@@ -140,20 +156,22 @@ const SupplyDataTable = ({
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : Number(av) - Number(bv);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [supplies, search, filter, sortKey, sortDir, fxRate, colFilters]);
+  }, [baseFiltered, filter, sortKey, sortDir, fxRate, applyStatusFilter]);
 
   const supplierOptions = useMemo(() => [...new Set(supplies.map((s) => s.supplier_name ?? "—"))].sort().map((v) => ({ value: v, label: v })), [supplies]);
   const categoryOptions = useMemo(() => [...new Set(supplies.map((s) => catLabels[s.category] || s.category))].sort().map((v) => ({ value: v, label: v })), [supplies, catLabels]);
 
-  const filterTabs: { label: string; value: Filter }[] = [
-    { label: "Active", value: "active" }, { label: "Inactive", value: "inactive" },
-    { label: "All", value: "all" }, { label: "Web", value: "web" },
+  const filterTabs: { label: string; value: Filter; count: number }[] = [
+    { label: "Active", value: "active", count: filterCounts.active },
+    { label: "Inactive", value: "inactive", count: filterCounts.inactive },
+    { label: "All", value: "all", count: filterCounts.all },
+    { label: "Web", value: "web", count: filterCounts.web },
   ];
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
   const showActions = unlocked && canEdit;
-  const thCls = "text-[11px] font-semibold uppercase tracking-wider py-2 px-3 sticky top-0 z-10";
+  const thCls = "text-[11px] font-semibold uppercase tracking-wider py-2 px-3";
   const tdCls = "text-xs py-1.5 px-3 whitespace-nowrap";
 
   const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
@@ -175,7 +193,7 @@ const SupplyDataTable = ({
               color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
             }}
           >
-            {t.label}
+            {`${t.label} (${t.count})`}
           </button>
         ))}
         <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
@@ -187,7 +205,7 @@ const SupplyDataTable = ({
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
-      <div className="rounded border overflow-auto flex-1 min-h-0" style={{ borderColor: "hsl(215 20% 88%)" }}>
+      <div className="rounded border overflow-hidden flex-1 min-h-0" style={{ borderColor: "hsl(215 20% 88%)" }}>
         <Table>
           <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
             <TableRow style={{ background: "hsl(215 30% 96%)" }}>
