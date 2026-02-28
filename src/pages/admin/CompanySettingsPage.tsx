@@ -201,31 +201,6 @@ const CompanySettingsPage = () => {
                 </Field>
               </Section>
 
-              {/* Logo */}
-              <Section title="Logo">
-                <div className="flex items-center gap-3">
-                  {form.logo_url ?
-                  <img src={form.logo_url} alt="Company logo" className="h-16 w-auto object-contain border border-border p-1 bg-background" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none';}} /> :
-
-                  <div className="h-16 w-16 flex items-center justify-center border border-dashed border-border bg-muted/30">
-                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  }
-                  <div className="flex-1 space-y-1">
-                    {form.logo_file_name && <p className="text-xs font-medium">{form.logo_file_name}</p>}
-                    {canEdit &&
-                    <>
-                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                          <Upload className="h-3 w-3" />
-                          {uploading ? "Uploading…" : "Upload Logo"}
-                        </Button>
-                      </>
-                    }
-                  </div>
-                </div>
-              </Section>
-
               {/* Physical Address */}
               <Section title="Physical Address">
                 <div className="grid grid-cols-2 gap-2">
@@ -271,6 +246,31 @@ const CompanySettingsPage = () => {
                     disabled={!canEdit} />
 
                 </Field>
+              </Section>
+
+              {/* Logo */}
+              <Section title="Logo">
+                <div className="flex items-center gap-3">
+                  {form.logo_url ?
+                  <img src={form.logo_url} alt="Company logo" className="h-16 w-auto object-contain border border-border p-1 bg-background" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none';}} /> :
+
+                  <div className="h-16 w-16 flex items-center justify-center border border-dashed border-border bg-muted/30">
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  }
+                  <div className="flex-1 space-y-1">
+                    {form.logo_file_name && <p className="text-xs font-medium">{form.logo_file_name}</p>}
+                    {canEdit &&
+                    <>
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                          <Upload className="h-3 w-3" />
+                          {uploading ? "Uploading…" : "Upload Logo"}
+                        </Button>
+                      </>
+                    }
+                  </div>
+                </div>
               </Section>
             </div>
 
