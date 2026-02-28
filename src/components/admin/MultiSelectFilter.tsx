@@ -23,7 +23,6 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Position the dropdown menu relative to the trigger button
   const updateMenuPosition = () => {
     const rect = ref.current?.getBoundingClientRect();
     if (!rect) return;

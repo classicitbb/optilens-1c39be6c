@@ -42,7 +42,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
   }, [articles, slug, canView]);
 
   useEffect(() => {
-    const exactIds = scopedArticles.filter((a) => a.context_slugs.includes(slug)).map((a) => a.id);
+    const exactIds = scopedArticles.filter((a) => a.page_slug === slug).map((a) => a.id);
     const nextIds = exactIds.length > 0 ? exactIds : scopedArticles.length > 0 ? [scopedArticles[0].id] : [];
 
     setExpandedIds((prev) => {

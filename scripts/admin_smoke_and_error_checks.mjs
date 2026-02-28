@@ -58,26 +58,6 @@ const REQUIRED_SNIPPETS = [
       "console.error(",
     ],
   },
-  {
-    file: "src/pages/admin/AdminWikiPage.tsx",
-    snippets: ["handleAddHeading", "onAddHeading={handleAddHeading}", "category: categoryId ?? \"\""],
-  },
-  {
-    file: "src/components/admin/WikiArticleEditDialog.tsx",
-    snippets: ["context_slugs", 'Tabs defaultValue="rich"', "RichTextEditor", "onValueChange={(v) => setForm({ ...form, category: v })}"],
-  },
-  {
-    file: "src/components/admin/HelpPanel.tsx",
-    snippets: ["canViewContextSlug", "visible = articles.filter"],
-  },
-  {
-    file: "src/components/admin/GlobalSearch.tsx",
-    snippets: ["get_visible_help_articles", "canViewContextSlug", "allowedContexts"],
-  },
-  {
-    file: "src/hooks/useHelpArticles.ts",
-    snippets: ["get_visible_help_articles", "canViewContextSlug"],
-  },
 ];
 
 const DEV_SERVER_ERROR_PATTERNS = [

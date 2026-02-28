@@ -2,6 +2,24 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-02-28 — Contacts/CRM Location UX Upgrade (Country→State/City constrained dropdowns)
+
+### Plan
+- Replace free-text country/state/city fields with guided dropdowns in Contacts edit flow.
+- Apply the same constrained location selection model to CRM Manual Opportunity Intake.
+- Keep persistence backward compatible with existing contact/opportunity records.
+
+### Release Notes
+- Contacts edit dialog now shows Country first, with State and City dropdown options constrained by selected country.
+- CRM Manual Opportunity Intake now uses Country, State, and City dropdowns with country-constrained options.
+- Existing saved location values continue to display and remain selectable even if legacy/custom text was used previously.
+
+### Technical Changelog
+- Added `src/lib/locationOptions.ts` with country/state/city option helpers and backward-compatible option hydration (`ensureOption`).
+- Updated `src/pages/admin/erp/ContactsPage.tsx` to swap address free-text fields for constrained `Select` controls and reorder country above state/city.
+- Updated `src/pages/admin/crm/CrmPipelinePage.tsx` intake form to use constrained location dropdowns.
+- Updated `src/features/admin/crm/hooks/useOpportunities.ts` to persist optional `state` into contact upsert payload during manual intake.
+
 ## 2026-02-28 — Product Catalog Regression Fix (Row Scroll + Working Filters)
 
 ### Plan

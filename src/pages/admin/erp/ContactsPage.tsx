@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptionsByCountry } from "@/lib/locationOptions";
 
 type FilterMode = "all" | "companies" | "persons" | "customers";
 
@@ -86,7 +87,7 @@ const ContactsPage = () => {
         .select("id,contact_id,title")
         .limit(3000);
       if (error) throw error;
-      return (data ?? []) as unknown as { id: string; contact_id: string; title: string }[];
+      return (data ?? []) as { id: string; contact_id: string; title: string | null }[];
     },
   });
 
@@ -124,6 +125,19 @@ const ContactsPage = () => {
     }
     return m;
   }, [quotePriceProfiles]);
+
+  const countryOptions = useMemo(
+    () => ensureOption(COUNTRY_OPTIONS, editContact?.country_code),
+    [editContact?.country_code],
+  );
+  const stateOptions = useMemo(
+    () => ensureOption(getStateOptionsByCountry(editContact?.country_code), editContact?.state),
+    [editContact?.country_code, editContact?.state],
+  );
+  const cityOptions = useMemo(
+    () => ensureOption(getCityOptionsByCountry(editContact?.country_code), editContact?.city),
+    [editContact?.country_code, editContact?.city],
+  );
 
   const filtered = useMemo(() => {
     let list = contacts;
@@ -623,25 +637,63 @@ const ContactsPage = () => {
                           <label className="text-[11px] font-medium mb-0.5 block">Street 2</label>
                           <Input className="h-7 text-xs" value={editContact.street2 ?? ""} onChange={(e) => setEditContact({ ...editContact, street2: e.target.value })} />
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[11px] font-medium mb-0.5 block">City</label>
-                            <Input className="h-7 text-xs" value={editContact.city ?? ""} onChange={(e) => setEditContact({ ...editContact, city: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="text-[11px] font-medium mb-0.5 block">State</label>
-                            <Input className="h-7 text-xs" value={editContact.state ?? ""} onChange={(e) => setEditContact({ ...editContact, state: e.target.value })} />
-                          </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Country</label>
+                          <Select
+                            value={editContact.country_code || "__none"}
+                            onValueChange={(v) => {
+                              if (v === "__none") {
+                                setEditContact({ ...editContact, country_code: "", state: "", city: "" });
+                                return;
+                              }
+                              const nextStateOptions = getStateOptionsByCountry(v);
+                              const nextCityOptions = getCityOptionsByCountry(v);
+                              setEditContact({
+                                ...editContact,
+                                country_code: v,
+                                state: nextStateOptions.some((opt) => opt.value === (editContact.state ?? "")) ? (editContact.state ?? "") : "",
+                                city: nextCityOptions.some((opt) => opt.value === (editContact.city ?? "")) ? (editContact.city ?? "") : "",
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select country" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none" className="text-xs">Not specified</SelectItem>
+                              {countryOptions.map((country) => (
+                                <SelectItem key={country.value} value={country.value} className="text-xs">{country.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-[11px] font-medium mb-0.5 block">ZIP</label>
-                            <Input className="h-7 text-xs" value={editContact.zip ?? ""} onChange={(e) => setEditContact({ ...editContact, zip: e.target.value })} />
+                            <label className="text-[11px] font-medium mb-0.5 block">State</label>
+                            <Select value={editContact.state || "__none"} onValueChange={(v) => setEditContact({ ...editContact, state: v === "__none" ? "" : v })}>
+                              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select state" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none" className="text-xs">Not specified</SelectItem>
+                                {stateOptions.map((state) => (
+                                  <SelectItem key={state.value} value={state.value} className="text-xs">{state.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
-                            <label className="text-[11px] font-medium mb-0.5 block">Country</label>
-                            <Input className="h-7 text-xs" value={editContact.country_code ?? ""} onChange={(e) => setEditContact({ ...editContact, country_code: e.target.value })} />
+                            <label className="text-[11px] font-medium mb-0.5 block">City</label>
+                            <Select value={editContact.city || "__none"} onValueChange={(v) => setEditContact({ ...editContact, city: v === "__none" ? "" : v })}>
+                              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select city" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none" className="text-xs">Not specified</SelectItem>
+                                {cityOptions.map((city) => (
+                                  <SelectItem key={city.value} value={city.value} className="text-xs">{city.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">ZIP</label>
+                          <Input className="h-7 text-xs" value={editContact.zip ?? ""} onChange={(e) => setEditContact({ ...editContact, zip: e.target.value })} />
                         </div>
                         <div>
                           <label className="text-[11px] font-medium mb-0.5 block">Tax ID</label>
