@@ -214,6 +214,23 @@ export const wikiCategories: WikiCategory[] = [
 - Runtime logging contract checks remain enforced for one-line error capture format.
 - Changelog now uses date-stamped entries for major updates.
 
+## 2026-02-28 — Smoke Harness Reliability + Credentialed Login Validation
+
+### Plan
+1. Prevent false-positive smoke passes when dev server compilation fails.
+2. Validate credentialed login interaction on \`/auth\`.
+3. Keep changelog/wiki governance synchronized per major update.
+
+### Release Notes
+- Smoke harness now fails if Vite emits pre-transform, syntax, or startup errors.
+- Credentialed login interaction was executed against the auth form.
+- Protected \`/admin/knowledge/wiki\` route behavior confirmed to redirect unauthenticated sessions to auth.
+
+### Changelog (Human-readable)
+- Added dev-server diagnostics capture/failure gating in the smoke harness.
+- Retained runtime-error contract checks and auth/admin route checks.
+- Continued use of date-stamped Plan/Release Notes/Changelog governance across docs.
+
 ### Update Rule (Required)
 For each major feature update, append a new entry with:
 - Date (\`YYYY-MM-DD\`)

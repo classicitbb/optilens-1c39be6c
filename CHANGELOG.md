@@ -2,6 +2,23 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-02-28 — Smoke Harness Reliability + Credentialed Login Validation
+
+### Plan
+- Prevent false-positive smoke passes when Vite reports transform/startup errors.
+- Validate credentialed login flow and protected-route redirect behavior.
+- Keep release ledger process synchronized between repo changelog and in-app wiki.
+
+### Release Notes
+- Smoke harness now fails when dev server emits pre-transform/syntax/startup errors.
+- Verified login interaction on `/auth` with provided credentials and submit flow automation.
+- Verified protected wiki route `/admin/knowledge/wiki` redirects to auth when not already authenticated in browser session.
+
+### Technical Changelog
+- Added dev-server diagnostic pattern capture and failure gating in `scripts/admin_smoke_and_error_checks.mjs`.
+- Kept runtime logging format/wiring checks and auth/admin route smoke checks intact.
+- Aligned date-stamped update governance across `CHANGELOG.md` and wiki ledger article.
+
 ## 2026-02-28 — Automated QA Harness + Runtime Logging Hardening
 
 ### Plan

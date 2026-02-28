@@ -59,6 +59,13 @@ const REQUIRED_SNIPPETS = [
   },
 ];
 
+const DEV_SERVER_ERROR_PATTERNS = [
+  /pre-transform error/i,
+  /syntax error/i,
+  /failed to resolve import/i,
+  /error when starting dev server/i,
+];
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -136,14 +143,38 @@ async function main() {
     env: { ...process.env, CI: "1" },
   });
 
-  devServer.stdout.on("data", (chunk) => process.stdout.write(`[dev] ${chunk}`));
-  devServer.stderr.on("data", (chunk) => process.stderr.write(`[dev] ${chunk}`));
+  const devServerDiagnostics = [];
+
+  const captureDevOutput = (chunk) => {
+    const text = chunk.toString();
+    for (const pattern of DEV_SERVER_ERROR_PATTERNS) {
+      if (pattern.test(text)) {
+        devServerDiagnostics.push(text.trim());
+        break;
+      }
+    }
+    return text;
+  };
+
+  devServer.stdout.on("data", (chunk) => {
+    const text = captureDevOutput(chunk);
+    process.stdout.write(`[dev] ${text}`);
+  });
+  devServer.stderr.on("data", (chunk) => {
+    const text = captureDevOutput(chunk);
+    process.stderr.write(`[dev] ${text}`);
+  });
 
   try {
     await waitForServer();
     await checkRoutes();
     await checkRuntimeLoggingWiring();
     await checkRuntimeErrorFormatContract();
+
+    if (devServerDiagnostics.length > 0) {
+      throw new Error(`Dev server reported transform/startup errors:\n- ${devServerDiagnostics.join("\n- ")}`);
+    }
+
     console.log("\nSmoke harness passed.");
   } finally {
     devServer.kill("SIGTERM");
