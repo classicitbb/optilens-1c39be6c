@@ -23,25 +23,42 @@ interface FinderInput {
 export interface LeadFinderDiagnostics {
   mode: "manual" | "autopilot";
   scopeMode: "global" | "country_city";
+  searchRunId: string | null;
   planner: {
     mode: "manual" | "autopilot";
     rankedIntents: Array<{
       rank: number;
       score: number;
+      strategyId: string;
       searchIntent: string;
       query: string;
       industry: string;
       channelHints: string[];
       rationale: string[];
+      whySuggested: string[];
+      historicalPerformance: {
+        sampleSize: number;
+        winRate: number;
+        avgDealSize: number | null;
+        cacProxy: number | null;
+      } | null;
     }>;
     selectedIntent: {
       rank: number;
       score: number;
+      strategyId: string;
       searchIntent: string;
       query: string;
       industry: string;
       channelHints: string[];
       rationale: string[];
+      whySuggested: string[];
+      historicalPerformance: {
+        sampleSize: number;
+        winRate: number;
+        avgDealSize: number | null;
+        cacProxy: number | null;
+      } | null;
     } | null;
   };
   providerStatus: {
@@ -93,6 +110,7 @@ export const useLeadFinder = () => {
           : "";
         throw new Error(payload.error ? `${payload.error}${alternatives}` : error.message);
       }
+      const diagnostics = (data?.diagnostics ?? null) as LeadFinderDiagnostics | null;
       const leads = ((data?.leads ?? []) as any[]).map((lead) => ({
         id: lead.id ?? crypto.randomUUID(),
         name: lead.name,
@@ -107,11 +125,11 @@ export const useLeadFinder = () => {
         status: "lead",
         score: Number(lead.score ?? 0),
         notes: null,
-        lead_score_breakdown: lead.lead_score_breakdown ?? undefined,
+        search_run_id: lead.search_run_id ?? diagnostics?.searchRunId ?? null,
       })) as LeadRecord[];
       return {
         leads,
-        diagnostics: (data?.diagnostics ?? null) as LeadFinderDiagnostics | null,
+        diagnostics,
       };
     },
   });

@@ -191,6 +191,51 @@ const LeadFinderPage = () => {
               <p>Mode: <span className="font-medium">{diagnostics?.mode ?? autopilotMode}</span></p>
               <p>Scope: <span className="font-medium">{globalSearch ? "Global" : `${country} / ${city}`}</span></p>
               <p>Resolved Query: <span className="font-medium">{diagnostics?.queryEcho.query ?? query}</span></p>
+              {diagnostics?.planner?.selectedIntent ? (
+                <p>Top Intent: <span className="font-medium">{diagnostics.planner.selectedIntent.searchIntent}</span> ({diagnostics.planner.selectedIntent.score})</p>
+              ) : null}
+              {diagnostics?.planner?.selectedIntent?.whySuggested?.length ? (
+                <div className="space-y-1">
+                  <p className="font-medium">Why this was suggested</p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {diagnostics.planner.selectedIntent.whySuggested.map((reason, idx) => <li key={`${reason}-${idx}`}>{reason}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+              {diagnostics?.planner?.selectedIntent?.historicalPerformance ? (
+                <div className="space-y-1">
+                  <p className="font-medium">Historical performance of similar leads</p>
+                  <p>Sample Size: <span className="font-medium">{diagnostics.planner.selectedIntent.historicalPerformance.sampleSize}</span></p>
+                  <p>Win Rate: <span className="font-medium">{(diagnostics.planner.selectedIntent.historicalPerformance.winRate * 100).toFixed(1)}%</span></p>
+                  <p>CAC Proxy: <span className="font-medium">{diagnostics.planner.selectedIntent.historicalPerformance.cacProxy?.toFixed(2) ?? "—"}</span></p>
+                  <p>Avg Won Deal Size: <span className="font-medium">{diagnostics.planner.selectedIntent.historicalPerformance.avgDealSize ?? "—"}</span></p>
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-1">
+                {(diagnostics?.providersUsed ?? []).map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
+              </div>
+              {diagnostics ? (
+                <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+                  <p>Google: {diagnostics.providerStatus.googlePlacesConfigured ? "configured" : "not configured"}</p>
+                  <p>Facebook: {diagnostics.providerStatus.facebookGraphConfigured ? "configured" : "not configured"}</p>
+                  <p>Instagram: {diagnostics.providerStatus.instagramGraphConfigured ? "configured" : "not configured"}</p>
+                  <p>WhatsApp: {diagnostics.providerStatus.whatsappBusinessSignalsConfigured ? "configured" : "not configured"}</p>
+                  <p>Yellow Pages: {diagnostics.providerStatus.yellowPagesConfigured ? "configured" : "not configured"}</p>
+                  <p>Bing: {diagnostics.providerStatus.bingConfigured ? "configured" : "not configured"}</p>
+                  <p>Yahoo: {diagnostics.providerStatus.yahooConfigured ? "configured" : "not configured"}</p>
+                </div>
+                <div className="space-y-1">
+                  {Object.entries(diagnostics.providerTelemetry).map(([provider, outcome]) => (
+                    <p key={provider} className="text-[11px]">
+                      {provider}: attempted={String(outcome.attempted)} · results={outcome.resultCount} · latency={outcome.latencyMs}ms · error={outcome.errorCode ?? "none"}
+                    </p>
+                  ))}
+                </div>
+                </>
+              ) : (
+                <p className="text-muted-foreground">Run search to display live provider diagnostics.</p>
+              )}
             </CardContent>
           </Card>
 
