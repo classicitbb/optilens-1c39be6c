@@ -33,7 +33,7 @@ const scoreBand = (score: number) => {
 };
 
 const EMPTY_REASON_GUIDANCE: Record<"no_providers_configured" | "provider_failures" | "no_matches", string> = {
-  no_providers_configured: "No lead data providers are configured yet. Add provider API keys in your environment settings, then run search again.",
+  no_providers_configured: "No lead data providers are configured yet. Add provider API keys in /admin/leads/settings, then run search again.",
   provider_failures: "Configured providers failed to return data. Check provider credentials/quotas and retry.",
   no_matches: "No businesses matched this search. Broaden your region or intent, or relax filters like rating/reviews.",
 };

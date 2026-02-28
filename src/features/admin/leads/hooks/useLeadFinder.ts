@@ -131,7 +131,7 @@ export const useLeadFinder = () => {
             queryEcho: { query, country, city: cities?.[0] },
             fetchedAt: new Date().toISOString(),
           },
-          warning: "Live provider search is temporarily unavailable. Confirm Edge Function deployment and provider keys.",
+          warning: "Live provider search is temporarily unavailable. Confirm Edge Function deployment and provider credentials in /admin/leads/settings.",
         };
       }
 
