@@ -12,7 +12,7 @@ interface WikiSidebarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   canEdit?: boolean;
-  onAddHeading?: (title: string) => void;
+  onAddHeading?: (title: string) => void | Promise<void>;
 }
 
 const WikiSidebar = ({
@@ -24,17 +24,19 @@ const WikiSidebar = ({
   canEdit,
   onAddHeading,
 }: WikiSidebarProps) => {
+  const displayCategories = categories.filter((category) => category.articles.length > 0);
   const [openCategories, setOpenCategories] = useState<Set<string>>(() => {
     const s = new Set<string>();
-    for (const cat of categories) {
+    for (const cat of displayCategories) {
       if (cat.articles.some((a) => a.id === activeArticleId)) {
         s.add(cat.id);
       }
     }
-    if (s.size === 0 && categories.length > 0) s.add(categories[0].id);
+    if (s.size === 0 && displayCategories.length > 0) s.add(displayCategories[0].id);
     return s;
   });
   const [addingHeading, setAddingHeading] = useState(false);
+  const [savingHeading, setSavingHeading] = useState(false);
   const [newHeadingTitle, setNewHeadingTitle] = useState("");
 
   const toggleCategory = (id: string) => {
@@ -46,11 +48,16 @@ const WikiSidebar = ({
     });
   };
 
-  const handleAddHeading = () => {
+  const handleAddHeading = async () => {
     if (newHeadingTitle.trim() && onAddHeading) {
-      onAddHeading(newHeadingTitle.trim());
-      setNewHeadingTitle("");
-      setAddingHeading(false);
+      setSavingHeading(true);
+      try {
+        await onAddHeading(newHeadingTitle.trim());
+        setNewHeadingTitle("");
+        setAddingHeading(false);
+      } finally {
+        setSavingHeading(false);
+      }
     }
   };
 
@@ -70,7 +77,7 @@ const WikiSidebar = ({
 
       <ScrollArea className="flex-1">
         <nav className="py-2 space-y-0.5">
-          {categories.map((cat) => {
+          {displayCategories.map((cat) => {
             const isOpen = openCategories.has(cat.id);
             const Icon = cat.icon;
             const hasActive = cat.articles.some((a) => a.id === activeArticleId);
@@ -129,12 +136,12 @@ const WikiSidebar = ({
                     className="h-7 text-xs flex-1"
                     autoFocus
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddHeading();
+                      if (e.key === "Enter") void handleAddHeading();
                       if (e.key === "Escape") setAddingHeading(false);
                     }}
                   />
-                  <Button size="sm" className="h-7 text-xs px-2" onClick={handleAddHeading}>
-                    Add
+                  <Button size="sm" className="h-7 text-xs px-2" onClick={handleAddHeading} disabled={savingHeading}>
+                    {savingHeading ? "Adding..." : "Add"}
                   </Button>
                 </div>
               ) : (

@@ -18,7 +18,25 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 const CURRENCIES = ["BBD", "USD", "EUR", "GBP", "CAD"];
 const CALENDARS = ["Business HRS", "24/7", "Mon–Fri", "Mon–Sat"];
-const COUNTRIES = ["Barbados", "Trinidad & Tobago", "Jamaica", "Guyana", "St. Lucia", "Antigua & Barbuda", "United States", "United Kingdom", "Canada"];
+
+const COUNTRY_DATA: Record<string, { states: string[]; cities: string[] }> = {
+  "Barbados": { states: ["Christ Church", "St. Andrew", "St. George", "St. James", "St. John", "St. Joseph", "St. Lucy", "St. Michael", "St. Peter", "St. Philip", "St. Thomas"], cities: ["Bridgetown", "Speightstown", "Holetown", "Oistins", "Bathsheba", "Crane"] },
+  "Trinidad & Tobago": { states: ["Arima", "Chaguanas", "Couva-Tabaquite-Talparo", "Diego Martin", "Mayaro-Rio Claro", "Penal-Debe", "Point Fortin", "Port of Spain", "Princes Town", "San Fernando", "San Juan-Laventille", "Sangre Grande", "Siparia", "Tobago", "Tunapuna-Piarco"], cities: ["Port of Spain", "San Fernando", "Chaguanas", "Arima", "Point Fortin", "Scarborough"] },
+  "Jamaica": { states: ["Clarendon", "Hanover", "Kingston", "Manchester", "Portland", "St. Andrew", "St. Ann", "St. Catherine", "St. Elizabeth", "St. James", "St. Mary", "St. Thomas", "Trelawny", "Westmoreland"], cities: ["Kingston", "Montego Bay", "Spanish Town", "Portmore", "Mandeville", "May Pen", "Old Harbour"] },
+  "Guyana": { states: ["Barima-Waini", "Cuyuni-Mazaruni", "Demerara-Mahaica", "East Berbice-Corentyne", "Essequibo Islands-West Demerara", "Mahaica-Berbice", "Pomeroon-Supenaam", "Potaro-Siparuni", "Upper Demerara-Berbice", "Upper Takutu-Upper Essequibo"], cities: ["Georgetown", "Linden", "New Amsterdam", "Anna Regina", "Bartica", "Corriverton"] },
+  "St. Lucia": { states: ["Anse la Raye", "Canaries", "Castries", "Choiseul", "Dennery", "Gros Islet", "Laborie", "Micoud", "Soufrière", "Vieux Fort"], cities: ["Castries", "Vieux Fort", "Soufrière", "Gros Islet", "Micoud", "Dennery"] },
+  "Grenada": { states: ["St. Andrew", "St. David", "St. George", "St. John", "St. Mark", "St. Patrick", "Carriacou and Petite Martinique"], cities: ["St. George's", "Gouyave", "Grenville", "Sauteurs", "Victoria", "Hillsborough"] },
+  "Antigua & Barbuda": { states: ["St. George", "St. John", "St. Mary", "St. Paul", "St. Peter", "St. Philip", "Barbuda", "Redonda"], cities: ["St. John's", "All Saints", "Liberta", "Potter's Village", "Bolans", "Codrington"] },
+  "Dominica": { states: ["St. Andrew", "St. David", "St. George", "St. John", "St. Joseph", "St. Luke", "St. Mark", "St. Patrick", "St. Paul", "St. Peter"], cities: ["Roseau", "Portsmouth", "Marigot", "Berekua", "Mahaut", "St. Joseph"] },
+  "St. Vincent": { states: ["Charlotte", "Grenadines", "St. Andrew", "St. David", "St. George", "St. Patrick"], cities: ["Kingstown", "Georgetown", "Barrouallie", "Chateaubelair", "Layou", "Calliaqua"] },
+  "Bahamas": { states: ["New Providence", "Grand Bahama", "Abaco", "Andros", "Eleuthera", "Exuma", "Long Island", "Cat Island", "Bimini", "Inagua"], cities: ["Nassau", "Freeport", "West End", "Coopers Town", "Marsh Harbour", "George Town"] },
+  "Cayman": { states: ["Grand Cayman", "Cayman Brac", "Little Cayman"], cities: ["George Town", "West Bay", "Bodden Town", "North Side", "East End", "Stake Bay"] },
+  "Turks and Caicos": { states: ["Grand Turk", "Salt Cay", "South Caicos", "Middle Caicos", "North Caicos", "Providenciales"], cities: ["Cockburn Town", "Providenciales", "Balfour Town", "Kew", "Bottle Creek", "Conch Bar"] },
+  "United States": { states: ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"], cities: ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "Miami"] },
+  "United Kingdom": { states: ["England", "Scotland", "Wales", "Northern Ireland"], cities: ["London", "Birmingham", "Manchester", "Glasgow", "Liverpool", "Edinburgh", "Leeds", "Bristol", "Cardiff", "Belfast"] },
+  "Canada": { states: ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"], cities: ["Toronto", "Montreal", "Vancouver", "Calgary", "Edmonton", "Ottawa", "Winnipeg", "Quebec City", "Hamilton", "Halifax"] },
+};
+const COUNTRIES = Object.keys(COUNTRY_DATA);
 
 // ─── Reusable field components ───────────────────────────────────────────────
 const Field = ({ label, children }: {label: string;children: React.ReactNode;}) =>
@@ -62,20 +80,38 @@ const AddressCard = ({
         <Label htmlFor={`${prefix}_use_physical`} className="text-xs cursor-pointer">Use Physical Address</Label>
         {usePhysical && <Badge variant="secondary" className="text-[10px]">Mirroring</Badge>}
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="Country">
-          <Select value={get("country")} onValueChange={(v) => set("country", v)} disabled={locked}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
-          </Select>
-        </Field>
-        <Field label="State"><Input className="h-8 text-xs" value={get("state")} onChange={(e) => set("state", e.target.value)} disabled={locked} /></Field>
-        <Field label="County"><Input className="h-8 text-xs" value={get("county")} onChange={(e) => set("county", e.target.value)} disabled={locked} /></Field>
-        <Field label="City"><Input className="h-8 text-xs" value={get("city")} onChange={(e) => set("city", e.target.value)} disabled={locked} /></Field>
-        <Field label="Line 1"><Input className="h-8 text-xs" value={get("line1")} onChange={(e) => set("line1", e.target.value)} disabled={locked} /></Field>
-        <Field label="Line 2"><Input className="h-8 text-xs" value={get("line2")} onChange={(e) => set("line2", e.target.value)} disabled={locked} /></Field>
-        <Field label="Postcode"><Input className="h-8 text-xs" value={get("postcode")} onChange={(e) => set("postcode", e.target.value)} disabled={locked} /></Field>
-      </div>
+      {(() => {
+        const country = get("country");
+        const countryInfo = COUNTRY_DATA[country];
+        const states = countryInfo?.states ?? [];
+        const cities = countryInfo?.cities ?? [];
+        return (
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Country">
+              <Select value={country} onValueChange={(v) => { set("country", v); set("state", ""); set("city", ""); }} disabled={locked}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
+              </Select>
+            </Field>
+            <Field label="State">
+              <Select value={get("state")} onValueChange={(v) => set("state", v)} disabled={locked}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select state" /></SelectTrigger>
+                <SelectContent>{states.map((s) => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </Field>
+            <Field label="City">
+              <Select value={get("city")} onValueChange={(v) => set("city", v)} disabled={locked}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select city" /></SelectTrigger>
+                <SelectContent>{cities.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
+              </Select>
+            </Field>
+            <Field label="County"><Input className="h-8 text-xs" value={get("county")} onChange={(e) => set("county", e.target.value)} disabled={locked} /></Field>
+            <Field label="Line 1"><Input className="h-8 text-xs" value={get("line1")} onChange={(e) => set("line1", e.target.value)} disabled={locked} /></Field>
+            <Field label="Line 2"><Input className="h-8 text-xs" value={get("line2")} onChange={(e) => set("line2", e.target.value)} disabled={locked} /></Field>
+            <Field label="Postcode"><Input className="h-8 text-xs" value={get("postcode")} onChange={(e) => set("postcode", e.target.value)} disabled={locked} /></Field>
+          </div>
+        );
+      })()}
     </Section>);
 
 };
@@ -201,47 +237,40 @@ const CompanySettingsPage = () => {
                 </Field>
               </Section>
 
-              {/* Logo */}
-              <Section title="Logo">
-                <div className="flex items-center gap-3">
-                  {form.logo_url ?
-                  <img src={form.logo_url} alt="Company logo" className="h-16 w-auto object-contain border border-border p-1 bg-background" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none';}} /> :
-
-                  <div className="h-16 w-16 flex items-center justify-center border border-dashed border-border bg-muted/30">
-                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  }
-                  <div className="flex-1 space-y-1">
-                    {form.logo_file_name && <p className="text-xs font-medium">{form.logo_file_name}</p>}
-                    {canEdit &&
-                    <>
-                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                          <Upload className="h-3 w-3" />
-                          {uploading ? "Uploading…" : "Upload Logo"}
-                        </Button>
-                      </>
-                    }
-                  </div>
-                </div>
-              </Section>
-
               {/* Physical Address */}
               <Section title="Physical Address">
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Country">
-                    <Select value={form.physical_country ?? "Barbados"} onValueChange={(v) => set("physical_country", v)} disabled={!canEdit}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="State"><Input className="h-8 text-xs" value={form.physical_state ?? ""} onChange={(e) => set("physical_state", e.target.value)} disabled={!canEdit} /></Field>
-                  <Field label="County"><Input className="h-8 text-xs" value={form.physical_county ?? ""} onChange={(e) => set("physical_county", e.target.value)} disabled={!canEdit} /></Field>
-                  <Field label="City"><Input className="h-8 text-xs" value={form.physical_city ?? ""} onChange={(e) => set("physical_city", e.target.value)} disabled={!canEdit} /></Field>
-                  <Field label="Line 1"><Input className="h-8 text-xs" value={form.physical_line1 ?? ""} onChange={(e) => set("physical_line1", e.target.value)} disabled={!canEdit} /></Field>
-                  <Field label="Line 2"><Input className="h-8 text-xs" value={form.physical_line2 ?? ""} onChange={(e) => set("physical_line2", e.target.value)} disabled={!canEdit} /></Field>
-                  <Field label="Postcode"><Input className="h-8 text-xs" value={form.physical_postcode ?? ""} onChange={(e) => set("physical_postcode", e.target.value)} disabled={!canEdit} /></Field>
-                </div>
+                {(() => {
+                  const country = form.physical_country ?? "Barbados";
+                  const countryInfo = COUNTRY_DATA[country];
+                  const states = countryInfo?.states ?? [];
+                  const cities = countryInfo?.cities ?? [];
+                  return (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="Country">
+                        <Select value={country} onValueChange={(v) => { set("physical_country", v); set("physical_state", ""); set("physical_city", ""); }} disabled={!canEdit}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="State">
+                        <Select value={form.physical_state ?? ""} onValueChange={(v) => set("physical_state", v)} disabled={!canEdit}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select state" /></SelectTrigger>
+                          <SelectContent>{states.map((s) => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="City">
+                        <Select value={form.physical_city ?? ""} onValueChange={(v) => set("physical_city", v)} disabled={!canEdit}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select city" /></SelectTrigger>
+                          <SelectContent>{cities.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="County"><Input className="h-8 text-xs" value={form.physical_county ?? ""} onChange={(e) => set("physical_county", e.target.value)} disabled={!canEdit} /></Field>
+                      <Field label="Line 1"><Input className="h-8 text-xs" value={form.physical_line1 ?? ""} onChange={(e) => set("physical_line1", e.target.value)} disabled={!canEdit} /></Field>
+                      <Field label="Line 2"><Input className="h-8 text-xs" value={form.physical_line2 ?? ""} onChange={(e) => set("physical_line2", e.target.value)} disabled={!canEdit} /></Field>
+                      <Field label="Postcode"><Input className="h-8 text-xs" value={form.physical_postcode ?? ""} onChange={(e) => set("physical_postcode", e.target.value)} disabled={!canEdit} /></Field>
+                    </div>
+                  );
+                })()}
               </Section>
 
               {/* Bill-To */}
@@ -271,6 +300,31 @@ const CompanySettingsPage = () => {
                     disabled={!canEdit} />
 
                 </Field>
+              </Section>
+
+              {/* Logo */}
+              <Section title="Logo">
+                <div className="flex items-center gap-3">
+                  {form.logo_url ?
+                  <img src={form.logo_url} alt="Company logo" className="h-16 w-auto object-contain border border-border p-1 bg-background" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none';}} /> :
+
+                  <div className="h-16 w-16 flex items-center justify-center border border-dashed border-border bg-muted/30">
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  }
+                  <div className="flex-1 space-y-1">
+                    {form.logo_file_name && <p className="text-xs font-medium">{form.logo_file_name}</p>}
+                    {canEdit &&
+                    <>
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                          <Upload className="h-3 w-3" />
+                          {uploading ? "Uploading…" : "Upload Logo"}
+                        </Button>
+                      </>
+                    }
+                  </div>
+                </div>
               </Section>
             </div>
 

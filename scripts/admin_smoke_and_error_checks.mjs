@@ -12,6 +12,7 @@ const ROUTES = [
   "/admin/crm/pipeline",
   "/admin/settings/runtime-errors",
   "/admin/pricing/publisher",
+  "/admin/knowledge/wiki",
 ];
 
 
