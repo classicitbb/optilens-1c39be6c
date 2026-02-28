@@ -8,6 +8,7 @@ import type { LeadCandidate, ProviderAdapter } from "./providers/types.ts";
 import { whatsappBusinessSignalsProvider } from "./providers/whatsappBusinessSignals.ts";
 import { yahooProvider } from "./providers/yahoo.ts";
 import { yellowPagesProvider } from "./providers/yellowPages.ts";
+import { loadScoringWeights, scoreLead } from "./scoring.ts";
 import { generateSearchPlan, type AutopilotConstraints } from "./strategy.ts";
 
 const corsHeaders = {
@@ -115,17 +116,6 @@ async function logBlockedLeadEvent(
   } catch {
     // silently ignore logging failure
   }
-}
-
-const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, n));
-
-function scoreLead(item: LeadCandidate): number {
-  const volume = item.google_reviews_count ? Math.min(30, item.google_reviews_count / 3) : 8;
-  const websiteWeakness = item.website ? 10 : 18;
-  const socialWeakness = item.instagram_handle || item.facebook_page ? 8 : 20;
-  const supplierPain = item.google_rating && item.google_rating < 4.2 ? 18 : 10;
-  const fit = 18;
-  return clamp(Math.round(volume + websiteWeakness + socialWeakness + supplierPain + fit));
 }
 
 async function executeProviders(
@@ -276,14 +266,30 @@ serve(async (req) => {
       city: effectiveCity,
     });
 
+    const scoringWeights = await loadScoringWeights(supabaseClient);
+
     let leads = await enrichFacebookInstagram(providerLeads);
-    leads = leads.map((lead) => ({ ...lead, score: scoreLead(lead) }));
+    leads = leads.map((lead) => {
+      const scored = scoreLead(lead, scoringWeights, {
+        country: effectiveCountry,
+        city: effectiveCity,
+        query: resolvedQuery,
+      });
+      return { ...lead, score: scored.score, lead_score_breakdown: scored.lead_score_breakdown };
+    });
 
     if (leads.length === 0 && allowMockResults) {
       leads = [
         { name: "VisionCare Bridgetown", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.1, google_reviews_count: 42, website: null },
         { name: "Island Optical Plus", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.6, google_reviews_count: 28, website: "https://example.com" },
-      ].map((lead) => ({ ...lead, score: scoreLead(lead) }));
+      ].map((lead) => {
+        const scored = scoreLead(lead, scoringWeights, {
+          country: effectiveCountry,
+          city: effectiveCity,
+          query: resolvedQuery,
+        });
+        return { ...lead, score: scored.score, lead_score_breakdown: scored.lead_score_breakdown };
+      });
     }
 
     const providersUsed = Object.entries(telemetry)

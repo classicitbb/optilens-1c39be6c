@@ -38,6 +38,7 @@ export const useSaveLeadToCrm = () => {
         ai_intent_score: lead.ai_intent_score,
         status: "lead",
         notes: lead.notes,
+        lead_score: lead.score,
       };
 
       const { data: contact, error: contactErr } = await supabase
@@ -69,6 +70,23 @@ export const useSaveLeadToCrm = () => {
           content: `Lead imported via Lead Finder. Score: ${lead.score}`,
         } as any);
       if (noteErr) throw noteErr;
+
+
+      try {
+        await supabase.from("lead_scoring_outcomes" as any).insert({
+          contact_id: contact.id,
+          opportunity_id: opportunity?.id ?? null,
+          outcome_stage: "imported_to_crm",
+          model_score: lead.score,
+          score_breakdown: lead.lead_score_breakdown ?? {},
+          metadata: {
+            source: "lead_finder",
+            lead_name: lead.name,
+          },
+        } as any);
+      } catch {
+        // silently ignore outcome logging failures
+      }
 
       await logLeadEvent({
         event_type: "saved_to_crm",

@@ -107,6 +107,7 @@ export const useLeadFinder = () => {
         status: "lead",
         score: Number(lead.score ?? 0),
         notes: null,
+        lead_score_breakdown: lead.lead_score_breakdown ?? undefined,
       })) as LeadRecord[];
       return {
         leads,
