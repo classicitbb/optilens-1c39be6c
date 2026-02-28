@@ -2,6 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 import { PanelLeftClose, PanelLeft, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -20,6 +23,21 @@ const AdminSidebar = () => {
 
   const activeApp = activeAppKey ? ADMIN_APPS[activeAppKey] : null;
 
+  const { data: integrationStatus } = useQuery({
+    queryKey: ["integration-connection-status", "odoo"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("integration_connections" as never)
+        .select("status")
+        .eq("provider", "odoo")
+        .eq("tenant_key", "default")
+        .maybeSingle();
+      if (error) throw error;
+      return ((data as any)?.status as "connected" | "error" | "not_configured" | null) ?? "not_configured";
+    },
+    enabled: activeAppKey === "settings",
+  });
+
   // Auto-collapse on editor/builder routes
   const isEditorRoute =
     /\/publisher\/\d+/.test(currentPath) ||
@@ -36,6 +54,13 @@ const AdminSidebar = () => {
   const w = collapsed ? "w-14" : "w-60";
   const linkBase =
     "flex items-center gap-2 px-3 py-1.5 text-[13px] rounded transition-colors";
+
+  const integrationStatusLabel =
+    integrationStatus === "connected"
+      ? "Connected"
+      : integrationStatus === "error"
+        ? "Error"
+        : "Not configured";
 
   return (
     <aside
@@ -88,7 +113,16 @@ const AdminSidebar = () => {
               }}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && (
+                <>
+                  <span>{item.label}</span>
+                  {item.route === "/admin/settings/integrations" && (
+                    <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4">
+                      {integrationStatusLabel}
+                    </Badge>
+                  )}
+                </>
+              )}
             </RouterNavLink>
           );
         })}

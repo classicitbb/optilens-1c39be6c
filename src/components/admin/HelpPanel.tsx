@@ -7,7 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { renderWikiContent } from "./wikiFormatting";
+import { getContextLabel, pathnameToContextSlug } from "@/lib/adminContexts";
+import { useWikiHeadings } from "@/hooks/useWikiHeadings";
+import { canViewContextSlug } from "@/lib/wikiPermissions";
 
 const WikiArticleEditDialog = lazy(() => import("./WikiArticleEditDialog"));
 
@@ -16,53 +20,26 @@ interface HelpPanelProps {
   onClose: () => void;
 }
 
-const routeToSlug = (pathname: string): string => {
-  const path = pathname.replace(/^\/admin\/?/, "").replace(/\/$/, "");
-  if (!path || path === "catalog") return "catalog";
-  const parts = path.split("/");
-  if (parts[0] === "costings") return "costings/shipments";
-  if (parts[0] === "quotations" || parts[0] === "quote-editor") return "quotations";
-  if (parts[0] === "rx-lens-prices") return "rx-lens-prices";
-  if (parts[0] === "stock-lens-prices") return "stock-lens-prices";
-  if (parts[0] === "supplies-prices") return "supplies-prices";
-  if (parts[0] === "reference") return "reference";
-  if (parts[0] === "imports") return "imports";
-  if (parts[0] === "parameters") return "parameters";
-  if (parts[0] === "users") return "users";
-  if (parts[0] === "wiki") return "wiki";
-  if (parts[0] === "content") return "content";
-  return parts[0];
-};
-
-const WIKI_HEADINGS = [
-  { id: "getting-started", title: "Getting Started" },
-  { id: "catalog-publisher", title: "Catalog Publisher" },
-  { id: "product-catalog", title: "Product Catalog" },
-  { id: "supplies-addons", title: "Supplies & Add-Ons" },
-  { id: "pricing-engine", title: "Pricing Engine" },
-  { id: "reference-imports", title: "Reference Data & Imports" },
-  { id: "import-costings", title: "Import Costings" },
-  { id: "quotations", title: "Quotations" },
-  { id: "administration", title: "Administration" },
-];
-
 const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
   const location = useLocation();
-  const slug = routeToSlug(location.pathname);
+  const slug = pathnameToContextSlug(location.pathname);
   const { articles, isLoading } = useHelpArticles(slug);
+  const { headings } = useWikiHeadings();
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [width, setWidth] = useState(380);
   const [resizing, setResizing] = useState(false);
   const { canEdit } = useAdminRole();
+  const { canView } = useRolePermissions();
   const [editArticleId, setEditArticleId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const scopedArticles = useMemo(() => {
-    const exact = articles.filter((a) => a.page_slug === slug);
-    const shared = articles.filter((a) => a.page_slug === "all");
-    const other = articles.filter((a) => a.page_slug !== slug && a.page_slug !== "all");
+    const visible = articles.filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
+    const exact = visible.filter((a) => a.context_slugs.includes(slug));
+    const shared = visible.filter((a) => a.context_slugs.includes("all"));
+    const other = visible.filter((a) => !a.context_slugs.includes(slug) && !a.context_slugs.includes("all"));
     return [...exact, ...shared, ...other];
-  }, [articles, slug]);
+  }, [articles, slug, canView]);
 
   useEffect(() => {
     const exactIds = scopedArticles.filter((a) => a.page_slug === slug).map((a) => a.id);
@@ -163,7 +140,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
 
             {scopedArticles.map((article) => {
               const isExpanded = expandedIds.includes(article.id);
-              const isExactContext = article.page_slug === slug;
+              const isExactContext = article.context_slugs.includes(slug);
 
               return (
                 <div
@@ -182,7 +159,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
                     />
                     <span className="text-[13px] font-medium text-foreground flex-1">{article.title}</span>
                     <Badge variant={isExactContext ? "default" : "outline"} className="text-[10px] h-5 px-1.5">
-                      {isExactContext ? "Page" : article.page_slug === "all" ? "Global" : article.page_slug}
+                      {isExactContext ? "Page" : article.context_slugs.includes("all") ? "Global" : getContextLabel(article.context_slugs[0] ?? "all")}
                     </Badge>
                   </button>
 
@@ -217,11 +194,12 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
                     title: editingArticle.title,
                     content: editingArticle.content,
                     page_slug: editingArticle.page_slug,
+                    context_slugs: editingArticle.context_slugs,
                     sort_order: editingArticle.sort_order,
                   }
                 : null
             }
-            wikiHeadings={WIKI_HEADINGS}
+            wikiHeadings={headings.map((heading) => ({ id: heading.slug, title: heading.title }))}
           />
         </Suspense>
       )}

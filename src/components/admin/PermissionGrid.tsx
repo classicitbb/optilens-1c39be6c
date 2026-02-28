@@ -19,6 +19,7 @@ const FEATURE_LABELS: Record<string, string> = {
   costings: "Import Costings",
   "catalog-publisher": "Catalog Publisher",
   quotations: "Quotations",
+  crm: "CRM",
   contacts: "Contacts",
   content: "Content Manager",
   wiki: "Help / Wiki",

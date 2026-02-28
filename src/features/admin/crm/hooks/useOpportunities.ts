@@ -95,6 +95,15 @@ const stageTaskMap: Record<Opportunity["stage"], string> = {
   lost: "Loss review",
 };
 
+const toLifecycleStage = (stage: Opportunity["stage"]): "contacted" | "meeting" | "proposal" | "won" | "lost" | null => {
+  if (stage === "contacted") return "contacted";
+  if (stage === "meeting_completed") return "meeting";
+  if (stage === "proposal") return "proposal";
+  if (stage === "won") return "won";
+  if (stage === "lost") return "lost";
+  return null;
+};
+
 export const useOpportunities = () => {
   return useQuery({
     queryKey: ["crm-opportunities"],
@@ -104,7 +113,7 @@ export const useOpportunities = () => {
         .select("id,title,stage,country,volume_tier,estimated_value,contact_id,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Opportunity[];
+      return (data ?? []) as unknown as Opportunity[];
     },
   });
 };
@@ -113,12 +122,19 @@ export const useUpdateOpportunityStage = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: Opportunity["stage"] }) => {
-      const { data: opp, error: oppGetErr } = await supabase
+      const { data: oppRaw, error: oppGetErr } = await supabase
         .from("opportunities" as any)
-        .select("id,contact_id,title")
+        .select("id,contact_id,title,estimated_value,source_search_run_id")
         .eq("id", id)
         .single();
       if (oppGetErr) throw oppGetErr;
+      const opp = oppRaw as unknown as {
+        id: string;
+        contact_id: string;
+        title: string;
+        estimated_value: number | null;
+        source_search_run_id: string | null;
+      };
 
       const { error } = await supabase
         .from("opportunities" as any)
@@ -139,6 +155,24 @@ export const useUpdateOpportunityStage = () => {
           payload: { stage, source: "stage_transition", opportunityTitle: opp.title },
         } as any);
       if (activityErr) throw activityErr;
+
+      const lifecycleStage = toLifecycleStage(stage);
+      if (lifecycleStage) {
+        const { error: outcomeErr } = await supabase
+          .from("lead_search_outcomes" as any)
+          .upsert({
+            opportunity_id: id,
+            contact_id: opp.contact_id,
+            lead_search_run_id: opp.source_search_run_id,
+            lifecycle_stage: lifecycleStage,
+            is_won: stage === "won" ? true : stage === "lost" ? false : null,
+            deal_size: stage === "won" ? opp.estimated_value : null,
+            metadata: { stage, source: "crm_pipeline" },
+            recorded_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as any, { onConflict: "opportunity_id" });
+        if (outcomeErr) throw outcomeErr;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["crm-opportunities"] });

@@ -1,57 +1,182 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { bingProvider } from "./providers/bing.ts";
+import { facebookGraphProvider } from "./providers/facebookGraph.ts";
+import { googlePlacesProvider } from "./providers/googlePlaces.ts";
+import { instagramGraphProvider } from "./providers/instagramGraph.ts";
+import type { LeadCandidate, ProviderAdapter } from "./providers/types.ts";
+import { whatsappBusinessSignalsProvider } from "./providers/whatsappBusinessSignals.ts";
+import { yahooProvider } from "./providers/yahoo.ts";
+import { yellowPagesProvider } from "./providers/yellowPages.ts";
+import { loadScoringWeights, scoreLead } from "./scoring.ts";
+import { generateSearchPlan, type AutopilotConstraints } from "./strategy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type LeadCandidate = {
-  name: string;
-  city?: string | null;
-  country?: string | null;
-  website?: string | null;
-  instagram_handle?: string | null;
-  facebook_page?: string | null;
-  google_rating?: number | null;
-  google_reviews_count?: number | null;
-  score?: number;
+type ProviderTelemetry = {
+  attempted: boolean;
+  resultCount: number;
+  latencyMs: number;
+  errorCode: string | null;
 };
 
-const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, n));
 
-function scoreLead(item: LeadCandidate): number {
-  const volume = item.google_reviews_count ? Math.min(30, item.google_reviews_count / 3) : 8;
-  const websiteWeakness = item.website ? 10 : 18;
-  const socialWeakness = item.instagram_handle || item.facebook_page ? 8 : 20;
-  const supplierPain = item.google_rating && item.google_rating < 4.2 ? 18 : 10;
-  const fit = 18;
-  return clamp(Math.round(volume + websiteWeakness + socialWeakness + supplierPain + fit));
+
+type PlannerDiagnostics = {
+  mode: "manual" | "autopilot";
+  rankedIntents: Array<{
+    rank: number;
+    score: number;
+    strategyId: string;
+    searchIntent: string;
+    query: string;
+    industry: string;
+    channelHints: string[];
+    rationale: string[];
+    whySuggested: string[];
+    historicalPerformance: {
+      sampleSize: number;
+      winRate: number;
+      avgDealSize: number | null;
+      cacProxy: number | null;
+    } | null;
+  }>;
+  selectedIntent: {
+    rank: number;
+    score: number;
+    strategyId: string;
+    searchIntent: string;
+    query: string;
+    industry: string;
+    channelHints: string[];
+    rationale: string[];
+    whySuggested: string[];
+    historicalPerformance: {
+      sampleSize: number;
+      winRate: number;
+      avgDealSize: number | null;
+      cacProxy: number | null;
+    } | null;
+  } | null;
+};
+
+type EmptyReason = "no_providers_configured" | "provider_failures" | "no_matches";
+type BlockedIntentCategory = "illegal" | "exploitative_vulnerability" | "coercive_abusive_targeting";
+
+type ComplianceValidationResult = {
+  blocked: boolean;
+  category?: BlockedIntentCategory;
+  matchedTerm?: string;
+  message?: string;
+  alternatives: string[];
+};
+
+const BLOCKED_INTENT_RULES: Array<{ category: BlockedIntentCategory; terms: string[]; message: string }> = [
+  {
+    category: "illegal",
+    terms: ["fraud", "money laundering", "fake prescription", "counterfeit", "steal", "identity theft", "tax evasion"],
+    message: "Requests that facilitate illegal activity are not allowed.",
+  },
+  {
+    category: "exploitative_vulnerability",
+    terms: ["elderly victims", "desperate", "financially stressed", "terminally ill", "addicted", "grieving"],
+    message: "Requests that exploit vulnerable populations are not allowed.",
+  },
+  {
+    category: "coercive_abusive_targeting",
+    terms: ["harass", "blackmail", "threaten", "force them", "without consent", "stalk"],
+    message: "Coercive, abusive, or non-consensual targeting is not allowed.",
+  },
+];
+
+const COMPLIANT_ALTERNATIVES = [
+  "Use role-based targeting (e.g., clinic owner, purchasing manager, store manager).",
+  "Use industry-based targeting (e.g., independent optical retailers, eye clinics, pharmacies).",
+  "Use account-based targeting (e.g., named chains, priority accounts, territory-defined accounts).",
+];
+
+function validateTargetingInput(input: string): ComplianceValidationResult {
+  const normalized = input.toLowerCase();
+  for (const rule of BLOCKED_INTENT_RULES) {
+    const matchedTerm = rule.terms.find((term) => normalized.includes(term));
+    if (matchedTerm) {
+      return {
+        blocked: true,
+        category: rule.category,
+        matchedTerm,
+        message: `${rule.message} Matched term: "${matchedTerm}".`,
+        alternatives: COMPLIANT_ALTERNATIVES,
+      };
+    }
+  }
+  return { blocked: false, alternatives: COMPLIANT_ALTERNATIVES };
 }
 
-async function searchGooglePlaces(query: string, country?: string, city?: string): Promise<LeadCandidate[]> {
-  const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
-  if (!apiKey) return [];
+function formatComplianceError(action: string, validation: ComplianceValidationResult): string {
+  const alternatives = validation.alternatives.map((item, idx) => `${idx + 1}. ${item}`).join(" ");
+  return `${action} blocked by lead targeting safety policy (${validation.category}). ${validation.message} Try one of these compliant alternatives: ${alternatives}`;
+}
 
-  const textQuery = [query, city, country].filter(Boolean).join(" ");
-  const url = new URL("https://maps.googleapis.com/maps/api/place/textsearch/json");
-  url.searchParams.set("query", textQuery);
-  url.searchParams.set("key", apiKey);
+async function logBlockedLeadEvent(
+  supabaseClient: ReturnType<typeof createClient>,
+  details: Record<string, unknown>,
+) {
+  try {
+    await supabaseClient.from("lead_events" as any).insert({
+      event_type: "blocked_request",
+      provider_diagnostics_summary: details,
+    } as any);
+  } catch {
+    // silently ignore logging failure
+  }
+}
 
-  const res = await fetch(url.toString());
-  if (!res.ok) return [];
-  const payload = await res.json();
-  const results = (payload.results ?? []) as any[];
+async function executeProviders(
+  providers: ProviderAdapter[],
+  params: { query: string; country?: string; city?: string },
+): Promise<{ leads: LeadCandidate[]; telemetry: Record<string, ProviderTelemetry> }> {
+  const telemetry: Record<string, ProviderTelemetry> = {};
+  const leads: LeadCandidate[] = [];
 
-  return results.slice(0, 50).map((row) => ({
-    name: row.name,
-    city: city ?? null,
-    country: country ?? null,
-    website: null,
-    google_rating: row.rating ?? null,
-    google_reviews_count: row.user_ratings_total ?? null,
-    score: 0,
-  }));
+  for (const provider of providers) {
+    const configured = provider.isConfigured();
+    if (!configured) {
+      telemetry[provider.id] = {
+        attempted: false,
+        resultCount: 0,
+        latencyMs: 0,
+        errorCode: "NOT_CONFIGURED",
+      };
+      continue;
+    }
+
+    const start = performance.now();
+    try {
+      const result = await provider.search(params);
+      const latencyMs = Math.round(performance.now() - start);
+      telemetry[provider.id] = {
+        attempted: true,
+        resultCount: result.length,
+        latencyMs,
+        errorCode: null,
+      };
+      leads.push(...result);
+    } catch (error) {
+      const latencyMs = Math.round(performance.now() - start);
+      const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+      telemetry[provider.id] = {
+        attempted: true,
+        resultCount: 0,
+        latencyMs,
+        errorCode: message,
+      };
+    }
+  }
+
+  return { leads, telemetry };
 }
 
 async function enrichFacebookInstagram(candidates: LeadCandidate[]) {
@@ -80,7 +205,7 @@ serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const {
@@ -95,46 +220,168 @@ serve(async (req) => {
       });
     }
 
-    const { query, country, cities, globalSearch, includeDiagnostics } = await req.json();
+    const { query, country, cities, globalSearch, includeDiagnostics, mode, constraints } = await req.json();
+    const searchMode: "manual" | "autopilot" = mode === "manual" ? "manual" : "autopilot";
+    const autopilotConstraints = (constraints ?? {}) as AutopilotConstraints;
+    const fallbackQuery = typeof query === "string" && query.trim().length > 0 ? query.trim() : "optical store";
+
+    const planningResult = await generateSearchPlan(supabaseClient, autopilotConstraints);
+    const plannedQuery = searchMode === "autopilot"
+      ? planningResult.selectedIntent?.query ?? fallbackQuery
+      : fallbackQuery;
+
+    const compliance = validateTargetingInput(plannedQuery);
+    if (compliance.blocked) {
+      await logBlockedLeadEvent(supabaseClient, {
+        source: "lead_intelligence",
+        blocked_category: compliance.category,
+        matched_term: compliance.matchedTerm,
+        query: plannedQuery,
+      });
+      return new Response(JSON.stringify({
+        error: formatComplianceError("Lead search request", compliance),
+        compliant_alternatives: compliance.alternatives,
+        blocked_category: compliance.category,
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const selectedCity = Array.isArray(cities) && cities.length > 0 ? cities[0] : undefined;
     const effectiveCountry = globalSearch ? undefined : country;
     const effectiveCity = globalSearch ? undefined : selectedCity;
+    const resolvedQuery = plannedQuery;
 
-    const googleConfigured = !!Deno.env.get("GOOGLE_PLACES_API_KEY");
-    const facebookConfigured = !!Deno.env.get("FACEBOOK_GRAPH_API_TOKEN");
-    const instagramConfigured = facebookConfigured;
-    const yellowPagesConfigured = false;
+    const providers: ProviderAdapter[] = [
+      googlePlacesProvider,
+      facebookGraphProvider,
+      instagramGraphProvider,
+      whatsappBusinessSignalsProvider,
+      yellowPagesProvider,
+      bingProvider,
+      yahooProvider,
+    ];
 
-    let leads = await searchGooglePlaces(query || "optical store", effectiveCountry, effectiveCity);
-    leads = await enrichFacebookInstagram(leads);
-    leads = leads.map((lead) => ({ ...lead, score: scoreLead(lead) }));
+    const allowMockResults = Deno.env.get("DENO_ENV") !== "production" &&
+      Deno.env.get("LEAD_INTELLIGENCE_ENABLE_MOCK_RESULTS") === "true";
 
-    if (leads.length === 0) {
+    const providerStatus = {
+      googlePlacesConfigured: googlePlacesProvider.isConfigured(),
+      facebookGraphConfigured: facebookGraphProvider.isConfigured(),
+      instagramGraphConfigured: instagramGraphProvider.isConfigured(),
+      whatsappBusinessSignalsConfigured: whatsappBusinessSignalsProvider.isConfigured(),
+      yellowPagesConfigured: yellowPagesProvider.isConfigured(),
+      bingConfigured: bingProvider.isConfigured(),
+      yahooConfigured: yahooProvider.isConfigured(),
+    };
+
+    const { leads: providerLeads, telemetry } = await executeProviders(providers, {
+      query: resolvedQuery,
+      country: effectiveCountry,
+      city: effectiveCity,
+    });
+
+    const scoringWeights = await loadScoringWeights(supabaseClient);
+
+    let leads = await enrichFacebookInstagram(providerLeads);
+    leads = leads.map((lead) => {
+      const scored = scoreLead(lead, scoringWeights, {
+        country: effectiveCountry,
+        city: effectiveCity,
+        query: resolvedQuery,
+      });
+      return { ...lead, score: scored.score, lead_score_breakdown: scored.lead_score_breakdown };
+    });
+
+    if (leads.length === 0 && allowMockResults) {
       leads = [
         { name: "VisionCare Bridgetown", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.1, google_reviews_count: 42, website: null },
         { name: "Island Optical Plus", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.6, google_reviews_count: 28, website: "https://example.com" },
-      ].map((lead) => ({ ...lead, score: scoreLead(lead) }));
+      ].map((lead) => {
+        const scored = scoreLead(lead, scoringWeights, {
+          country: effectiveCountry,
+          city: effectiveCity,
+          query: resolvedQuery,
+        });
+        return { ...lead, score: scored.score, lead_score_breakdown: scored.lead_score_breakdown };
+      });
     }
 
+    const providersUsed = Object.entries(telemetry)
+      .filter(([, data]) => data.attempted && data.resultCount > 0)
+      .map(([providerId]) => providerId);
+
+    if (providerLeads.length === 0 && allowMockResults) {
+      providersUsed.push("mock_fallback");
+    }
+
+    const providerTelemetryEntries = Object.values(telemetry);
+    const configuredProviderCount = providerTelemetryEntries.filter((entry) => entry.errorCode !== "NOT_CONFIGURED").length;
+    const attemptedProviderEntries = providerTelemetryEntries.filter((entry) => entry.attempted);
+    const attemptedWithFailures = attemptedProviderEntries.filter((entry) => entry.errorCode !== null);
+
+    let emptyReason: EmptyReason | null = null;
+    if (leads.length === 0) {
+      if (configuredProviderCount === 0) {
+        emptyReason = "no_providers_configured";
+      } else if (attemptedProviderEntries.length > 0 && attemptedWithFailures.length === attemptedProviderEntries.length) {
+        emptyReason = "provider_failures";
+      } else {
+        emptyReason = "no_matches";
+      }
+    }
+
+    const plannerDiagnostics: PlannerDiagnostics = {
+      mode: searchMode,
+      rankedIntents: planningResult.rankedIntents,
+      selectedIntent: planningResult.selectedIntent,
+    };
+
     const diagnostics = {
-      mode: globalSearch ? "global" : "country_city",
-      providerStatus: {
-        googlePlacesConfigured: googleConfigured,
-        facebookGraphConfigured: facebookConfigured,
-        instagramGraphConfigured: instagramConfigured,
-        yellowPagesConfigured,
-      },
-      providersUsed: ["google_places", ...(facebookConfigured ? ["facebook_graph", "instagram_graph"] : []), "fallback_model"],
+      mode: searchMode,
+      scopeMode: globalSearch ? "global" : "country_city",
+      planner: plannerDiagnostics,
+      providerStatus,
+      providersUsed,
+      providerTelemetry: telemetry,
+      emptyReason,
       queryEcho: {
-        query: query || "optical store",
+        query: plannedQuery,
         country: effectiveCountry,
         city: effectiveCity,
       },
       fetchedAt: new Date().toISOString(),
     };
 
-    return new Response(JSON.stringify({ leads, diagnostics: includeDiagnostics ? diagnostics : null }), {
+    let searchRunId: string | null = null;
+    try {
+      const { data: runData } = await supabaseClient.from("lead_search_runs" as any).insert({
+        mode: searchMode,
+        query_input: query ?? null,
+        strategy_constraints: autopilotConstraints,
+        strategy_ranked_intents: planningResult.rankedIntents,
+        selected_intent: planningResult.selectedIntent,
+        provider_scope: { globalSearch: !!globalSearch, country: effectiveCountry ?? null, city: effectiveCity ?? null },
+        providers_used: providersUsed,
+        provider_telemetry: telemetry,
+        leads_count: leads.length,
+      } as any).select("id").single();
+
+      searchRunId = runData?.id ?? null;
+    } catch {
+      // silently ignore run persistence failures
+    }
+
+    const leadsWithRunId = leads.map((lead) => ({
+      ...lead,
+      search_run_id: searchRunId,
+    }));
+
+    return new Response(JSON.stringify({
+      leads: leadsWithRunId,
+      diagnostics: includeDiagnostics ? { ...diagnostics, searchRunId } : null,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
