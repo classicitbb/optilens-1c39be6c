@@ -1,10 +1,8 @@
-import { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { WikiCategory } from "@/data/wikiContent";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
-import { extractWikiSections, renderWikiContent } from "./wikiFormatting";
 
 interface WikiContentPanelProps {
   categories: WikiCategory[];
@@ -13,6 +11,20 @@ interface WikiContentPanelProps {
   onEditArticle?: (article: { id: string; title: string; content: string }, categoryId: string) => void;
   isCategoryVisible?: (categoryId: string) => boolean;
 }
+
+const PROSE_CLASSES =
+  "prose prose-sm max-w-none text-muted-foreground " +
+  "[&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 " +
+  "[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-1.5 " +
+  "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 " +
+  "[&_p]:text-sm [&_p]:leading-relaxed [&_p]:mb-1 " +
+  "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 " +
+  "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2 " +
+  "[&_li]:text-sm [&_li]:mb-0.5 " +
+  "[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer " +
+  "[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic " +
+  "[&_pre]:bg-muted/30 [&_pre]:rounded-md [&_pre]:p-3 [&_pre]:text-xs [&_pre]:overflow-x-auto " +
+  "[&_hr]:border-border [&_hr]:my-4";
 
 const WikiContentPanel = ({ categories, activeArticleId, canEdit, onEditArticle, isCategoryVisible }: WikiContentPanelProps) => {
   const displayCategories = categories.filter((category) => category.articles.length > 0 && (isCategoryVisible ? isCategoryVisible(category.id) : true));
@@ -27,11 +39,6 @@ const WikiContentPanel = ({ categories, activeArticleId, canEdit, onEditArticle,
       break;
     }
   }
-
-  const sections = useMemo(
-    () => (activeArticle ? extractWikiSections(activeArticle.content) : []),
-    [activeArticle]
-  );
 
   if (!activeArticle || !activeCategory) {
     return (
@@ -74,26 +81,11 @@ const WikiContentPanel = ({ categories, activeArticleId, canEdit, onEditArticle,
           {activeArticle.title}
         </h1>
 
-        {/* Table of Contents */}
-        {sections.length > 1 && (
-          <nav className="border border-border rounded-lg bg-muted/30 p-4 space-y-1">
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">On this page</p>
-            {sections.map((s) => (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                className="block text-[13px] text-primary hover:text-primary/80 transition-colors py-0.5"
-              >
-                {s.label}
-              </a>
-            ))}
-          </nav>
-        )}
-
-        {/* Content */}
-        <div className="text-[13px] leading-relaxed space-y-1.5 text-muted-foreground">
-          {renderWikiContent(activeArticle.content)}
-        </div>
+        {/* Content — rendered as HTML matching Tiptap editor output */}
+        <div
+          className={PROSE_CLASSES}
+          dangerouslySetInnerHTML={{ __html: activeArticle.content || "<p>No content yet.</p>" }}
+        />
 
         {/* Feedback */}
         <div className="pt-6">
