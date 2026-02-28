@@ -130,21 +130,7 @@ const ContactsPage = () => {
         .select("id,contact_id,title")
         .limit(3000);
       if (error) throw error;
-      return (data ?? []) as unknown as { id: string; contact_id: string; title: string | null }[];
-    },
-  });
-
-  const { data: linkedContacts = [], isLoading: isLoadingLinkedContacts } = useQuery({
-    queryKey: ["contacts-by-parent", editContact?.id],
-    enabled: !!editContact?.id && !!editContact?.is_company,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contacts")
-        .select("*")
-        .eq("parent_id", editContact!.id as any)
-        .order("name");
-      if (error) throw error;
-      return (data ?? []) as Contact[];
+      return (data ?? []) as { id: string; contact_id: string; title: string | null }[];
     },
   });
 
@@ -554,6 +540,30 @@ const ContactsPage = () => {
       toast({ title: "Failed to remove image", description: error.message ?? "Please try again.", variant: "destructive" });
     }
   };
+
+  const getOpportunityCount = (contactId?: string | null) => (contactId ? opportunityCounts.get(contactId) ?? 0 : 0);
+
+  const getAssignedPriceProfileId = (contact?: Partial<Contact> | null) => {
+    const key = contact?.name?.trim().toLowerCase();
+    if (!key) return null;
+    return pricingProfileByName.get(key) ?? null;
+  };
+
+  const openCrmForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    navigate("/admin/crm/pipeline", { state: { contactId: contact.id, contactName: contact.name } });
+  };
+
+  const openPricingForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const pricingSheetId = getAssignedPriceProfileId(contact);
+    if (!pricingSheetId) {
+      toast({ title: "No assigned pricelist found", description: "Assign a pricing sheet from Users / customer pricing access first.", variant: "destructive" });
+      return;
+    }
+    navigate("/admin/pricing/catalog", { state: { pricingSheetId, contactName: contact.name } });
+  };
+
 
   const exportCsv = () => {
     const headers = ["name","is_company","email","phone","street","street2","city","state","zip","country_code","tax_id","website","salesperson","notes"];
@@ -991,7 +1001,60 @@ const ContactsPage = () => {
                 );
               })
             ) : (
-              filtered.map((c) => renderContactRow(c))
+              filtered.map((c) => (
+                <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
+                  <TableCell className="font-medium text-xs">{c.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Badge
+                        className="text-[10px] px-1.5 py-0 h-5 border-0"
+                        style={{
+                          background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
+                          color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
+                        }}
+                      >
+                        {c.is_company ? "Company" : "Person"}
+                      </Badge>
+                      {c.is_customer && (
+                        <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
+                          Customer
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs">{c.email}</TableCell>
+                  <TableCell className="text-xs">{c.phone}</TableCell>
+                  <TableCell className="text-xs">{c.salesperson}</TableCell>
+                  <TableCell className="text-xs">{c.city}</TableCell>
+                  <TableCell className="text-xs">{c.country_code}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      {getOpportunityCount(c.id) > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={(e) => openCrmForContact(c, e)}
+                        >
+                          <Kanban className="h-3 w-3 mr-1" /> CRM ({getOpportunityCount(c.id)})
+                        </Button>
+                      )}
+                      {getAssignedPriceProfileId(c) && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={(e) => openPricingForContact(c, e)}
+                        >
+                          <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>

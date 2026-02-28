@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Search, MapPinned, Sparkles, Save, Globe2, ActivitySquare, WandSparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, MapPinned, Sparkles, Save, Globe2, ActivitySquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,72 +78,22 @@ const LeadFinderPage = () => {
   const smartBatch = useMemo(() => [...filteredLeads].sort((a, b) => b.score - a.score).slice(0, 20), [filteredLeads]);
   const displayLeads = smartBatch.length > 0 ? smartBatch : filteredLeads;
 
-  const emptyStateMessage = useMemo(() => {
-    if (finder.isPending || displayLeads.length > 0) return null;
-    if (leads.length === 0) {
-      if (diagnostics?.emptyReason) return EMPTY_REASON_GUIDANCE[diagnostics.emptyReason];
-      return "No leads were returned. Try broadening region/intent and confirm providers are configured.";
-    }
-    return "No leads match current filters. Try lowering minimum rating/reviews or disabling website-only.";
-  }, [finder.isPending, displayLeads.length, leads.length, diagnostics?.emptyReason]);
-
-  const toList = (raw: string) => raw.split(",").map((item) => item.trim()).filter(Boolean);
-  const scoreForSave = (lead: LeadRecord) => {
-    const override = Number(overrideScores[lead.id]);
-    if (Number.isFinite(override) && override >= 0 && override <= 100) return override;
-    return lead.score;
-  };
-
   const runSearch = async () => {
-    const constraints = {
-      productCategories: toList(productCategories),
-      marginTiers: toList(marginTiers),
-      fulfillmentGeography: globalSearch ? "Global" : `${country}${city ? ` / ${city}` : ""}`,
-      existingCustomerProfile: existingCustomerProfile.trim() || undefined,
-      exclusions: toList(manualExclusions),
-    };
-
-    const providerDiagnosticsSummary = {
-      mode: autopilotMode,
-      scope_mode: globalSearch ? "global" : "country_city",
-      query,
-      country: globalSearch ? null : country,
-      city: globalSearch ? null : city,
-      constraints,
-    };
-
     try {
-      await supabase.from("lead_events" as any).insert({
-        event_type: "search_executed",
-        provider_diagnostics_summary: providerDiagnosticsSummary,
-      } as any);
-    } catch {
-      // silently ignore
-    }
-
-    try {
-      const result = await finder.mutateAsync({ query, country, cities: [city], globalSearch, mode: autopilotMode, constraints });
-      setOverrideScores({});
-      try {
-        await supabase.from("lead_events" as any).insert({
-          event_type: "result_rendered",
-          provider_diagnostics_summary: {
-            ...providerDiagnosticsSummary,
-            providers_used: result.diagnostics?.providersUsed ?? [],
-            provider_status: result.diagnostics?.providerStatus ?? null,
-            planner: result.diagnostics?.planner ?? null,
-            resolved_query: result.diagnostics?.queryEcho?.query ?? query,
-            results_count: result.leads.length,
-            fetched_at: result.diagnostics?.fetchedAt ?? null,
-          },
-        } as any);
-      } catch {
-        // silently ignore
-      }
-    } catch (error: unknown) {
-      toast({ title: "Search failed", description: error instanceof Error ? error.message : "Unable to fetch leads.", variant: "destructive" });
+      await finder.mutateAsync({ query, country, cities: [city], globalSearch });
+    } catch (e: any) {
+      toast({
+        title: "Search failed",
+        description: e?.message || "Unable to run lead search right now.",
+        variant: "destructive",
+      });
     }
   };
+
+  useEffect(() => {
+    if (!finder.data?.warning) return;
+    toast({ title: "Search provider unavailable", description: finder.data.warning });
+  }, [finder.data?.warning, toast]);
 
   return (
     <div className="space-y-4">
@@ -237,6 +187,12 @@ const LeadFinderPage = () => {
               )}
             </CardContent>
           </Card>
+
+          {finder.data?.warning ? (
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {finder.data.warning}
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
             {displayLeads.map((lead) => {

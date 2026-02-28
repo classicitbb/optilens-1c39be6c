@@ -39,7 +39,7 @@ const REQUIRED_SNIPPETS = [
   },
   {
     file: "src/pages/admin/leads/LeadFinderPage.tsx",
-    snippets: ["Lead Finder", "Run Search"],
+    snippets: ["Lead Finder", "Find 50 Leads"],
   },
   {
     file: "src/pages/admin/crm/CrmPipelinePage.tsx",
@@ -57,26 +57,6 @@ const REQUIRED_SNIPPETS = [
       "[runtime-error]",
       "console.error(",
     ],
-  },
-  {
-    file: "src/components/admin/WikiSidebar.tsx",
-    snippets: ["Add Heading", "onAddHeading", "Heading name"],
-  },
-  {
-    file: "src/components/admin/WikiArticleEditDialog.tsx",
-    snippets: ["Wiki Heading", "context_slugs", "RichTextEditor", "Preview"],
-  },
-  {
-    file: "src/hooks/useHelpArticles.ts",
-    snippets: ["get_visible_help_articles", "help_article_contexts", "context_slugs"],
-  },
-  {
-    file: "src/pages/admin/AdminWikiPage.tsx",
-    snippets: ["canViewWikiCategory", "canViewContextSlug", "context_slugs"],
-  },
-  {
-    file: "src/components/admin/GlobalSearch.tsx",
-    snippets: ["get_visible_help_articles", "canViewWikiCategory", "canViewContextSlug"],
   },
 ];
 

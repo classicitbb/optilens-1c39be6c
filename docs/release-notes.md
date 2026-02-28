@@ -1,46 +1,19 @@
 # Release Notes
 
-Summarized release outcomes for each major date-stamped update.
-
-## 2026-02-28 — Contacts/CRM Location UX Upgrade (Country→State/City constrained dropdowns)
-
-### Release Notes
-- Contacts edit dialog now shows Country first, with State and City dropdown options constrained by selected country.
-- CRM Manual Opportunity Intake now uses Country, State, and City dropdowns with country-constrained options.
-- Existing saved location values continue to display and remain selectable even if legacy/custom text was used previously.
-
-## 2026-02-28 — Product Catalog Regression Fix (Row Scroll + Working Filters)
-
-### Release Notes
-- Product catalog table rows now scroll again inside their table frames.
-- Filter popovers now stay interactive after opening, so option selection and apply behavior work as expected.
-- "Select All" in filter popovers is now directly clickable to clear narrowed selections quickly.
-
-## 2026-02-28 — Product Catalog Table UX Fixes (Sticky Headers + Filter Overlay + Tab Counts)
-
-### Release Notes
-- Product catalog segment tables now keep one sticky header layer, preventing header cells from drifting out of frame while rows scroll.
-- Column filter popovers now render in a top-level portal with fixed positioning and stronger z-index stacking, so they appear above rows and sticky headers.
-- Lens, Add-ons, and Supplies filter tabs now display live counts (e.g., `Active (42)`) based on the current search and column-filter context.
-
-## 2026-02-28 — E2E Stability Pass (Help Panel + Wiki Keying)
-
-### Release Notes
-- Fixed an update-loop issue in Help Panel expansion state initialization.
-- Fixed duplicate-key warning in wiki section table-of-contents generation for repeated headings.
-- Re-validated core admin route smoke checks and credentialed browser flow.
-
-## 2026-02-28 — Admin CRM Homepage + Wiki Markdown Visibility
-
-### Release Notes
-- `/admin` now redirects admins/operators/viewers to `/admin/crm/pipeline`.
-- Help/Wiki now includes a dedicated **Release Ledger** section with markdown-backed Release Notes, Changelog, and Delivery Plan articles.
-- Wiki content renderer now supports markdown headings (`#`, `##`, `###`) and fenced code blocks.
-
 ## 2026-02-28 — Smoke Harness Reliability + Credentialed Login Validation
 
-### Release Notes
+### Highlights
+- Smoke harness now fails if dev server logs transform/startup diagnostics.
+- Auth/login checks are included in smoke coverage.
+- Runtime error one-line format contract remains enforced.
+
+### Operational Notes
+- Protected admin knowledge/wiki access redirects to auth for unauthenticated sessions.
+- Changelog and wiki release ledger are expected to stay in sync for major updates.
 
 ## 2026-02-28 — Automated QA Harness + Runtime Logging Hardening
 
-### Release Notes
+### Highlights
+- Added route smoke checks for admin core routes.
+- Added wiring assertions for runtime logging surfaces.
+- Added runtime error formatting contract checks.
