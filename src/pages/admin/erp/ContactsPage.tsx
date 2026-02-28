@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { Fragment, useEffect, useState, useMemo } from "react";
 import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, type Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptionsByCountry } from "@/lib/locationOptions";
 
 type FilterMode = "all" | "companies" | "persons" | "customers";
+type GroupByMode = "none" | "country";
+type CsvExportMode = "raw" | "grouped";
 
 const LEAD_SOURCES = [
   { value: "not_specified", label: "Not specified" },
@@ -71,10 +73,14 @@ const ContactsPage = () => {
   const navigate = useNavigate();
 
   const [filter, setFilter] = useState<FilterMode>("all");
+  const [groupBy, setGroupBy] = useState<GroupByMode>("none");
+  const [countryFilter, setCountryFilter] = useState("all");
+  const [csvExportMode, setCsvExportMode] = useState<CsvExportMode>("raw");
   const [search, setSearch] = useState("");
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [collapsedCountryGroups, setCollapsedCountryGroups] = useState<Record<string, boolean>>({});
 
   // Load tags when editing
   const { data: editTagIds = [] } = useContactTagLinks(editContact?.id);
@@ -145,6 +151,7 @@ const ContactsPage = () => {
     if (filter === "companies") list = list.filter((c) => c.is_company);
     if (filter === "persons") list = list.filter((c) => !c.is_company);
     if (filter === "customers") list = list.filter((c) => c.is_customer);
+    if (countryFilter !== "all") list = list.filter((c) => c.country_code === countryFilter);
     if (search) {
       const s = search.toLowerCase();
       list = list.filter(
@@ -156,7 +163,37 @@ const ContactsPage = () => {
       );
     }
     return list;
-  }, [contacts, filter, search, showArchived]);
+  }, [contacts, countryFilter, filter, search, showArchived]);
+
+  const groupedByCountry = useMemo(() => {
+    if (groupBy !== "country") return [] as { countryCode: string; contacts: Contact[] }[];
+    const groups = new Map<string, Contact[]>();
+    for (const contact of filtered) {
+      const key = contact.country_code || "No country";
+      groups.set(key, [...(groups.get(key) ?? []), contact]);
+    }
+    return [...groups.entries()]
+      .map(([countryCode, items]) => ({ countryCode, contacts: items }))
+      .sort((a, b) => a.countryCode.localeCompare(b.countryCode));
+  }, [filtered, groupBy]);
+
+  useEffect(() => {
+    if (groupBy !== "country") return;
+    setCollapsedCountryGroups((prev) => {
+      const next = { ...prev };
+      for (const group of groupedByCountry) {
+        if (!(group.countryCode in next)) {
+          next[group.countryCode] = true;
+        }
+      }
+      for (const key of Object.keys(next)) {
+        if (!groupedByCountry.some((group) => group.countryCode === key)) {
+          delete next[key];
+        }
+      }
+      return next;
+    });
+  }, [groupBy, groupedByCountry]);
 
   const companies = contacts.filter((c) => c.is_company);
 
@@ -186,15 +223,23 @@ const ContactsPage = () => {
 
   const exportCsv = () => {
     const headers = ["name","is_company","email","phone","street","street2","city","state","zip","country_code","tax_id","website","salesperson","notes"];
-    const rows = filtered.map((c) =>
-      headers.map((h) => {
-        const val = (c as any)[h] ?? "";
-        const str = String(val);
-        return str.includes(",") || str.includes('"') || str.includes("\n")
-          ? `"${str.replace(/"/g, '""')}"`
-          : str;
-      }).join(",")
+    const toCsvValue = (value: unknown) => {
+      const str = String(value ?? "");
+      return str.includes(",") || str.includes('"') || str.includes("\n")
+        ? `"${str.replace(/"/g, '""')}"`
+        : str;
+    };
+    const baseRows = filtered.map((c) =>
+      headers.map((h) => toCsvValue((c as any)[h])).join(",")
     );
+
+    const groupedRows = groupedByCountry.flatMap((group) => [
+      [toCsvValue(`Country: ${group.countryCode}`), toCsvValue(`Count: ${group.contacts.length}`), ...Array(headers.length - 2).fill("")].join(","),
+      ...group.contacts.map((c) => headers.map((h) => toCsvValue((c as any)[h])).join(",")),
+    ]);
+
+    const useGroupedExport = csvExportMode === "grouped" && groupBy === "country";
+    const rows = useGroupedExport ? groupedRows : baseRows;
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -203,8 +248,70 @@ const ContactsPage = () => {
     a.download = `contacts-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: `Exported ${filtered.length} contacts` });
+    toast({ title: `Exported ${filtered.length} contacts (${useGroupedExport ? "grouped" : "raw"} mode)` });
   };
+
+  const toggleCountryGroup = (countryCode: string) => {
+    setCollapsedCountryGroups((prev) => ({
+      ...prev,
+      [countryCode]: !(prev[countryCode] ?? true),
+    }));
+  };
+
+  const renderContactRow = (c: Contact) => (
+    <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
+      <TableCell className="font-medium text-xs">{c.name}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Badge
+            className="text-[10px] px-1.5 py-0 h-5 border-0"
+            style={{
+              background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
+              color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
+            }}
+          >
+            {c.is_company ? "Company" : "Person"}
+          </Badge>
+          {c.is_customer && (
+            <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
+              Customer
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-xs">{c.email}</TableCell>
+      <TableCell className="text-xs">{c.phone}</TableCell>
+      <TableCell className="text-xs">{c.salesperson}</TableCell>
+      <TableCell className="text-xs">{c.city}</TableCell>
+      <TableCell className="text-xs">{c.country_code}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-1">
+          {getOpportunityCount(c.id) > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[10px]"
+              onClick={(e) => openCrmForContact(c, e)}
+            >
+              <Kanban className="h-3 w-3 mr-1" /> CRM ({getOpportunityCount(c.id)})
+            </Button>
+          )}
+          {getAssignedPriceProfileId(c) && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[10px]"
+              onClick={(e) => openPricingForContact(c, e)}
+            >
+              <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
+            </Button>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
 
   const importCsv = () => {
     const input = document.createElement("input");
@@ -430,6 +537,38 @@ const ContactsPage = () => {
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
           Archived
         </label>
+        <Select value={countryFilter} onValueChange={setCountryFilter}>
+          <SelectTrigger className="h-8 text-xs w-[150px]">
+            <SelectValue placeholder="Country" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All countries</SelectItem>
+            {COUNTRY_OPTIONS.map((country) => (
+              <SelectItem key={country.value} value={country.value}>{country.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={groupBy} onValueChange={(value) => setGroupBy(value as GroupByMode)}>
+          <SelectTrigger className="h-8 text-xs w-[130px]">
+            <SelectValue placeholder="Group by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No grouping</SelectItem>
+            <SelectItem value="country">Country</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={csvExportMode} onValueChange={(value) => setCsvExportMode(value as CsvExportMode)}>
+          <SelectTrigger className="h-8 text-xs w-[150px]">
+            <SelectValue placeholder="CSV mode" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="raw">CSV: raw rows</SelectItem>
+            <SelectItem value="grouped">CSV: grouped view</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
+          Grouped export mirrors country sections; raw export always outputs a flat filtered list.
+        </span>
         <span className="text-xs ml-auto" style={{ color: "hsl(215 15% 50%)" }}>
           {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
         </span>
@@ -463,61 +602,30 @@ const ContactsPage = () => {
                   No contacts found. Click "New" to create one.
                 </TableCell>
               </TableRow>
+            ) : groupBy === "country" ? (
+              groupedByCountry.map((group) => {
+                const isCollapsed = collapsedCountryGroups[group.countryCode] ?? true;
+                return (
+                  <Fragment key={group.countryCode}>
+                    <TableRow className="bg-muted/30">
+                      <TableCell colSpan={8}>
+                        <button
+                          type="button"
+                          onClick={() => toggleCountryGroup(group.countryCode)}
+                          className="w-full flex items-center justify-between text-xs font-medium"
+                          aria-expanded={!isCollapsed}
+                        >
+                          <span>{group.countryCode}</span>
+                          <span>{group.contacts.length} contact{group.contacts.length !== 1 ? "s" : ""} {isCollapsed ? "(collapsed)" : "(expanded)"}</span>
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                    {!isCollapsed && group.contacts.map((c) => renderContactRow(c))}
+                  </Fragment>
+                );
+              })
             ) : (
-              filtered.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
-                  <TableCell className="font-medium text-xs">{c.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Badge
-                        className="text-[10px] px-1.5 py-0 h-5 border-0"
-                        style={{
-                          background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
-                          color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
-                        }}
-                      >
-                        {c.is_company ? "Company" : "Person"}
-                      </Badge>
-                      {c.is_customer && (
-                        <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
-                          Customer
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs">{c.email}</TableCell>
-                  <TableCell className="text-xs">{c.phone}</TableCell>
-                  <TableCell className="text-xs">{c.salesperson}</TableCell>
-                  <TableCell className="text-xs">{c.city}</TableCell>
-                  <TableCell className="text-xs">{c.country_code}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {getOpportunityCount(c.id) > 0 && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-6 px-2 text-[10px]"
-                          onClick={(e) => openCrmForContact(c, e)}
-                        >
-                          <Kanban className="h-3 w-3 mr-1" /> CRM ({getOpportunityCount(c.id)})
-                        </Button>
-                      )}
-                      {getAssignedPriceProfileId(c) && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-6 px-2 text-[10px]"
-                          onClick={(e) => openPricingForContact(c, e)}
-                        >
-                          <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              filtered.map((c) => renderContactRow(c))
             )}
           </TableBody>
         </Table>
