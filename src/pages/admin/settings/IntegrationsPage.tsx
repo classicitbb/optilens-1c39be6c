@@ -184,7 +184,7 @@ export default function IntegrationsPage() {
         p_credential_value: credential || null,
         p_test_connection: testConnection,
       };
-      const { error } = await supabase.rpc("upsert_integration_connection_with_secret" as never, payload as never);
+      const { error } = await supabase.rpc("upsert_integration_connection" as never, payload as never);
       if (error) throw error;
     },
     onSuccess: (_, testConnection) => {
