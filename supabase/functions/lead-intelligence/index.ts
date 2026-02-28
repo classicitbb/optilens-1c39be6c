@@ -45,6 +45,8 @@ type PlannerDiagnostics = {
     rationale: string[];
   } | null;
 };
+
+type EmptyReason = "no_providers_configured" | "provider_failures" | "no_matches";
 type BlockedIntentCategory = "illegal" | "exploitative_vulnerability" | "coercive_abusive_targeting";
 
 type ComplianceValidationResult = {
@@ -255,6 +257,9 @@ serve(async (req) => {
       yahooProvider,
     ];
 
+    const allowMockResults = Deno.env.get("DENO_ENV") !== "production" &&
+      Deno.env.get("LEAD_INTELLIGENCE_ENABLE_MOCK_RESULTS") === "true";
+
     const providerStatus = {
       googlePlacesConfigured: googlePlacesProvider.isConfigured(),
       facebookGraphConfigured: facebookGraphProvider.isConfigured(),
@@ -274,7 +279,7 @@ serve(async (req) => {
     let leads = await enrichFacebookInstagram(providerLeads);
     leads = leads.map((lead) => ({ ...lead, score: scoreLead(lead) }));
 
-    if (leads.length === 0) {
+    if (leads.length === 0 && allowMockResults) {
       leads = [
         { name: "VisionCare Bridgetown", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.1, google_reviews_count: 42, website: null },
         { name: "Island Optical Plus", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.6, google_reviews_count: 28, website: "https://example.com" },
@@ -285,8 +290,24 @@ serve(async (req) => {
       .filter(([, data]) => data.attempted && data.resultCount > 0)
       .map(([providerId]) => providerId);
 
-    if (providerLeads.length === 0) {
-      providersUsed.push("fallback_model");
+    if (providerLeads.length === 0 && allowMockResults) {
+      providersUsed.push("mock_fallback");
+    }
+
+    const providerTelemetryEntries = Object.values(telemetry);
+    const configuredProviderCount = providerTelemetryEntries.filter((entry) => entry.errorCode !== "NOT_CONFIGURED").length;
+    const attemptedProviderEntries = providerTelemetryEntries.filter((entry) => entry.attempted);
+    const attemptedWithFailures = attemptedProviderEntries.filter((entry) => entry.errorCode !== null);
+
+    let emptyReason: EmptyReason | null = null;
+    if (leads.length === 0) {
+      if (configuredProviderCount === 0) {
+        emptyReason = "no_providers_configured";
+      } else if (attemptedProviderEntries.length > 0 && attemptedWithFailures.length === attemptedProviderEntries.length) {
+        emptyReason = "provider_failures";
+      } else {
+        emptyReason = "no_matches";
+      }
     }
 
     const plannerDiagnostics: PlannerDiagnostics = {
@@ -302,6 +323,7 @@ serve(async (req) => {
       providerStatus,
       providersUsed,
       providerTelemetry: telemetry,
+      emptyReason,
       queryEcho: {
         query: plannedQuery,
         country: effectiveCountry,
