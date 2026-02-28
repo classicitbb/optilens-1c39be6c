@@ -11,6 +11,7 @@ const toAnchorId = (label: string) =>
 /** Extract section anchors from markdown headings and bold pseudo-headings */
 export const extractWikiSections = (text: string) => {
   const sections: { id: string; label: string }[] = [];
+  const seen = new Map<string, number>();
 
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
@@ -20,8 +21,14 @@ export const extractWikiSections = (text: string) => {
     const label = markdownHeading?.[1]?.trim() ?? boldHeading?.[1]?.replace(/:$/, "").trim();
     if (!label) continue;
 
-    const id = toAnchorId(label);
-    if (id) sections.push({ id, label });
+    const baseId = toAnchorId(label);
+    if (!baseId) continue;
+
+    const count = seen.get(baseId) ?? 0;
+    seen.set(baseId, count + 1);
+    const id = count === 0 ? baseId : `${baseId}-${count + 1}`;
+
+    sections.push({ id, label });
   }
 
   return sections;

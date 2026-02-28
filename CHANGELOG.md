@@ -2,6 +2,23 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-02-28 — E2E Stability Pass (Help Panel + Wiki Keying)
+
+### Plan
+- Execute credentialed end-to-end navigation across core admin surfaces.
+- Fix runtime loops and React key warnings surfaced by browser-console checks.
+- Re-run smoke harness to confirm regressions are closed.
+
+### Release Notes
+- Fixed an update-loop issue in Help Panel expansion state initialization.
+- Fixed duplicate-key warning in wiki section table-of-contents generation for repeated headings.
+- Re-validated core admin route smoke checks and credentialed browser flow.
+
+### Technical Changelog
+- `src/components/admin/HelpPanel.tsx`: guarded `setExpandedIds` to avoid unnecessary state updates that triggered maximum update-depth warnings.
+- `src/components/admin/wikiFormatting.tsx`: added deterministic unique section IDs for duplicate heading labels.
+- Added credentialed browser verification artifacts for wiki/admin navigation console-health.
+
 ## 2026-02-28 — Admin CRM Homepage + Wiki Markdown Visibility
 
 ### Plan

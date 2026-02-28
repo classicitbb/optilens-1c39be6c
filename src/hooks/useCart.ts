@@ -33,7 +33,20 @@ export const useCart = () => {
       if (error) throw error;
       setItems(data || []);
     } catch (error) {
-      console.error("Error fetching cart:", error);
+      const candidateMessages = [
+        error instanceof Error ? error.message : "",
+        typeof error === "string" ? error : "",
+        typeof error === "object" && error && "message" in error ? String((error as any).message) : "",
+        typeof error === "object" && error && "details" in error ? String((error as any).details) : "",
+      ].filter(Boolean);
+
+      const combinedMessage = candidateMessages.join(" | ");
+      const isNetworkFetchFailure = /Failed to fetch/i.test(combinedMessage);
+
+      if (!isNetworkFetchFailure) {
+        console.error("Error fetching cart:", error);
+      }
+      setItems([]);
     } finally {
       setLoading(false);
     }
