@@ -180,17 +180,17 @@ const WikiArticleEditDialog = ({
               </div>
             </div>
           </div>
-        </div>
 
-        <DialogFooter className="px-4 sm:px-5 py-3 border-t border-border shrink-0 bg-background sticky bottom-0">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            {saving ? "Saving…" : "Save Article"}
-          </Button>
-        </DialogFooter>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {saving ? "Saving…" : "Save Article"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
