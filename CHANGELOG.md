@@ -2,6 +2,23 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-02-28 — Admin CRM Homepage + Wiki Markdown Visibility
+
+### Plan
+- Route admin homepage to CRM pipeline for users with CRM access.
+- Make changelog, release notes, and delivery plan visible in Help/Wiki in markdown form.
+- Improve wiki markdown rendering for clearer human-readable headings and code blocks.
+
+### Release Notes
+- `/admin` now redirects admins/operators/viewers to `/admin/crm/pipeline`.
+- Help/Wiki now includes a dedicated **Release Ledger** section with markdown-backed Release Notes, Changelog, and Delivery Plan articles.
+- Wiki content renderer now supports markdown headings (`#`, `##`, `###`) and fenced code blocks.
+
+### Technical Changelog
+- Added `src/components/admin/AdminHomeRedirect.tsx` and wired admin index route to it.
+- Added raw markdown imports in `src/data/wikiContent.ts` from `CHANGELOG.md`, `docs/release-notes.md`, and `docs/phase2-phase3-delivery.md`.
+- Added `docs/release-notes.md` and enhanced `src/components/admin/wikiFormatting.tsx` parsing/rendering logic.
+
 ## 2026-02-28 — Smoke Harness Reliability + Credentialed Login Validation
 
 ### Plan

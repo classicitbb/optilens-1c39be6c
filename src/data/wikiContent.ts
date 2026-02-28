@@ -8,7 +8,12 @@ import {
   BookMarked,
   Globe,
   Settings,
+  ScrollText,
 } from "lucide-react";
+
+import changelogMarkdown from "../../CHANGELOG.md?raw";
+import deliveryPlanMarkdown from "../../docs/phase2-phase3-delivery.md?raw";
+import releaseNotesMarkdown from "../../docs/release-notes.md?raw";
 
 export interface WikiArticle {
   id: string;
@@ -24,6 +29,28 @@ export interface WikiCategory {
 }
 
 export const wikiCategories: WikiCategory[] = [
+  {
+    id: "release-ledger",
+    icon: ScrollText,
+    title: "Release Ledger",
+    articles: [
+      {
+        id: "release-notes-md",
+        title: "Release Notes (Markdown)",
+        content: releaseNotesMarkdown,
+      },
+      {
+        id: "changelog-md",
+        title: "Changelog (Markdown)",
+        content: changelogMarkdown,
+      },
+      {
+        id: "delivery-plan-md",
+        title: "Delivery Plan (Markdown)",
+        content: deliveryPlanMarkdown,
+      },
+    ],
+  },
   {
     id: "getting-started",
     icon: BookOpen,
