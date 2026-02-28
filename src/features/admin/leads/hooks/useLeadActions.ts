@@ -9,12 +9,16 @@ const logLeadEvent = async (payload: {
   opportunity_id?: string | null;
   provider_diagnostics_summary?: Record<string, unknown>;
 }) => {
-  await supabase.from("lead_events" as any).insert({
-    event_type: payload.event_type,
-    contact_id: payload.contact_id ?? null,
-    opportunity_id: payload.opportunity_id ?? null,
-    provider_diagnostics_summary: payload.provider_diagnostics_summary ?? {},
-  } as any).catch(() => undefined);
+  try {
+    await supabase.from("lead_events" as any).insert({
+      event_type: payload.event_type,
+      contact_id: payload.contact_id ?? null,
+      opportunity_id: payload.opportunity_id ?? null,
+      provider_diagnostics_summary: payload.provider_diagnostics_summary ?? {},
+    } as any);
+  } catch {
+    // silently ignore
+  }
 };
 
 export const useSaveLeadToCrm = () => {
@@ -42,7 +46,7 @@ export const useSaveLeadToCrm = () => {
         .single();
       if (contactErr) throw contactErr;
 
-      const { data: opportunity, error: oppErr } = await supabase
+      const { data: oppRaw, error: oppErr } = await supabase
         .from("opportunities" as any)
         .upsert({
           contact_id: contact.id,
@@ -54,6 +58,7 @@ export const useSaveLeadToCrm = () => {
         .select("id")
         .single();
       if (oppErr) throw oppErr;
+      const opportunity = oppRaw as unknown as { id: string } | null;
 
       const { error: noteErr } = await supabase
         .from("notes" as any)
@@ -137,15 +142,16 @@ export const useGenerateLeadAuditReport = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ opportunityId, score = 70 }: { opportunityId: string; score?: number }) => {
-      const { data: opp, error: oppErr } = await supabase
+      const { data: oppRaw, error: oppErr } = await supabase
         .from("opportunities" as any)
         .select("id,contact_id,title")
         .eq("id", opportunityId)
         .single();
       if (oppErr) throw oppErr;
+      const opp = oppRaw as unknown as { id: string; contact_id: string; title: string };
 
       const generatedAt = new Date().toISOString();
-      const { data: audit, error: auditErr } = await supabase
+      const { data: auditRaw, error: auditErr } = await supabase
         .from("lead_audits" as any)
         .insert({
           contact_id: opp.contact_id,
@@ -158,6 +164,7 @@ export const useGenerateLeadAuditReport = () => {
         .select("id,score,ai_summary,created_at")
         .single();
       if (auditErr) throw auditErr;
+      const audit = auditRaw as unknown as { id: string; score: number; ai_summary: string; created_at: string };
 
       const { error: attachErr } = await supabase
         .from("opportunity_attachments" as any)
@@ -165,10 +172,10 @@ export const useGenerateLeadAuditReport = () => {
           opportunity_id: opp.id,
           attachment_type: "audit_report",
           payload: {
-            audit_id: audit.id,
-            score: audit.score,
-            summary: audit.ai_summary,
-            generated_at: audit.created_at,
+            audit_id: audit?.id,
+            score: audit?.score,
+            summary: audit?.ai_summary,
+            generated_at: audit?.created_at,
           },
         } as any);
       if (attachErr) throw attachErr;

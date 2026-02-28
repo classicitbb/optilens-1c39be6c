@@ -102,7 +102,7 @@ export const useOpportunities = () => {
         .select("id,title,stage,country,volume_tier,estimated_value,contact_id,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Opportunity[];
+      return (data ?? []) as unknown as Opportunity[];
     },
   });
 };
@@ -111,12 +111,13 @@ export const useUpdateOpportunityStage = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: Opportunity["stage"] }) => {
-      const { data: opp, error: oppGetErr } = await supabase
+      const { data: oppRaw, error: oppGetErr } = await supabase
         .from("opportunities" as any)
         .select("id,contact_id,title")
         .eq("id", id)
         .single();
       if (oppGetErr) throw oppGetErr;
+      const opp = oppRaw as unknown as { id: string; contact_id: string; title: string };
 
       const { error } = await supabase
         .from("opportunities" as any)

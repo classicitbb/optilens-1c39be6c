@@ -57,23 +57,31 @@ const LeadFinderPage = () => {
       city: globalSearch ? null : city,
     };
 
-    await supabase.from("lead_events" as any).insert({
-      event_type: "search_executed",
-      provider_diagnostics_summary: providerDiagnosticsSummary,
-    } as any).catch(() => undefined);
+    try {
+      await supabase.from("lead_events" as any).insert({
+        event_type: "search_executed",
+        provider_diagnostics_summary: providerDiagnosticsSummary,
+      } as any);
+    } catch {
+      // silently ignore
+    }
 
     try {
       const result = await finder.mutateAsync({ query, country, cities: [city], globalSearch });
-      await supabase.from("lead_events" as any).insert({
-        event_type: "result_rendered",
-        provider_diagnostics_summary: {
-          ...providerDiagnosticsSummary,
-          providers_used: result.diagnostics?.providersUsed ?? [],
-          provider_status: result.diagnostics?.providerStatus ?? null,
-          results_count: result.leads.length,
-          fetched_at: result.diagnostics?.fetchedAt ?? null,
-        },
-      } as any).catch(() => undefined);
+      try {
+        await supabase.from("lead_events" as any).insert({
+          event_type: "result_rendered",
+          provider_diagnostics_summary: {
+            ...providerDiagnosticsSummary,
+            providers_used: result.diagnostics?.providersUsed ?? [],
+            provider_status: result.diagnostics?.providerStatus ?? null,
+            results_count: result.leads.length,
+            fetched_at: result.diagnostics?.fetchedAt ?? null,
+          },
+        } as any);
+      } catch {
+        // silently ignore
+      }
     } catch {
       // mutation error is already surfaced by the caller UI state
     }
