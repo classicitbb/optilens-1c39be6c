@@ -14,10 +14,11 @@ interface WikiContentPanelProps {
 }
 
 const WikiContentPanel = ({ categories, activeArticleId, canEdit, onEditArticle }: WikiContentPanelProps) => {
+  const displayCategories = categories.filter((category) => category.articles.length > 0);
   let activeCategory: WikiCategory | undefined;
   let activeArticle: { id: string; title: string; content: string } | undefined;
 
-  for (const cat of categories) {
+  for (const cat of displayCategories) {
     const found = cat.articles.find(a => a.id === activeArticleId);
     if (found) {
       activeCategory = cat;

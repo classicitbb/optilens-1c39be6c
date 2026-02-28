@@ -7,9 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { renderWikiContent } from "./wikiFormatting";
 import { getContextLabel, pathnameToContextSlug } from "@/lib/adminContexts";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
+import { canViewContextSlug } from "@/lib/wikiPermissions";
 
 const WikiArticleEditDialog = lazy(() => import("./WikiArticleEditDialog"));
 
@@ -27,15 +29,17 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
   const [width, setWidth] = useState(380);
   const [resizing, setResizing] = useState(false);
   const { canEdit } = useAdminRole();
+  const { canView } = useRolePermissions();
   const [editArticleId, setEditArticleId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const scopedArticles = useMemo(() => {
-    const exact = articles.filter((a) => a.context_slugs.includes(slug));
-    const shared = articles.filter((a) => a.context_slugs.includes("all"));
-    const other = articles.filter((a) => !a.context_slugs.includes(slug) && !a.context_slugs.includes("all"));
+    const visible = articles.filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
+    const exact = visible.filter((a) => a.context_slugs.includes(slug));
+    const shared = visible.filter((a) => a.context_slugs.includes("all"));
+    const other = visible.filter((a) => !a.context_slugs.includes(slug) && !a.context_slugs.includes("all"));
     return [...exact, ...shared, ...other];
-  }, [articles, slug]);
+  }, [articles, slug, canView]);
 
   useEffect(() => {
     const exactIds = scopedArticles.filter((a) => a.context_slugs.includes(slug)).map((a) => a.id);

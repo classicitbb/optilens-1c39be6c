@@ -5,6 +5,7 @@ import { Search, BookOpen, ArrowRight } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
+import { canViewContextSlug } from "@/lib/wikiPermissions";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +24,8 @@ interface WikiSearchRow {
   id: string;
   title: string;
   category: string | null;
-  help_article_contexts?: { context_slug: string }[] | null;
+  page_slug: string;
+  context_slugs: string[];
 }
 
 const GlobalSearch = () => {
@@ -70,27 +72,30 @@ const GlobalSearch = () => {
         }))
       );
 
-      const { data, error } = await supabase
-        .from("help_articles")
-        .select("id, title, category, help_article_contexts(context_slug)")
-        .eq("is_active", true)
-        .order("sort_order");
+      const { data, error } = await supabase.rpc("get_visible_help_articles", {
+        requested_page_slug: null,
+      });
 
       if (error) throw error;
 
-      const dbResults: SearchResult[] = ((data ?? []) as WikiSearchRow[]).map((article) => {
-        const contexts = (article.help_article_contexts ?? []).map((entry) => entry.context_slug);
-        const context = contexts.find((slug: string) => slug !== "all") ?? "knowledge/wiki";
+      const dbResults: SearchResult[] = ((data ?? []) as WikiSearchRow[])
+        .map((article) => {
+          const contexts = article.context_slugs?.length ? article.context_slugs : [article.page_slug];
+          const allowedContexts = contexts.filter((contextSlug) => canViewContextSlug(contextSlug, canView));
+          const context = allowedContexts.find((slug: string) => slug !== "all") ?? allowedContexts[0] ?? "knowledge/wiki";
 
-        return {
-          id: `wiki-db-${article.id}`,
-          label: article.title,
-          sublabel: article.category || "Custom",
-          path: `${contextSlugToPath(context)}#${article.id}`,
-          icon: BookOpen,
-          group: "Help / Wiki",
-        };
-      });
+          if (allowedContexts.length === 0) return null;
+
+          return {
+            id: `wiki-db-${article.id}`,
+            label: article.title,
+            sublabel: article.category || "Custom",
+            path: `${contextSlugToPath(context)}#${article.id}`,
+            icon: BookOpen,
+            group: "Help / Wiki",
+          };
+        })
+        .filter((result): result is SearchResult => !!result);
 
       return [...staticResults, ...dbResults];
     },
