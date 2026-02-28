@@ -50,6 +50,22 @@ interface IntegrationHealthMetric {
   records_processed_per_run: number;
 }
 
+type SyncErrorStatus = "open" | "retry_queued" | "resolved" | "ignored";
+
+interface IntegrationSyncError {
+  id: string;
+  integration_connection_id: string;
+  source_model: string;
+  source_identifier: string;
+  error_code: string | null;
+  error_message: string;
+  status: SyncErrorStatus;
+  retry_count: number;
+  first_seen_at: string;
+  last_seen_at: string;
+  resolved_at: string | null;
+}
+
 const fmt = (value: string | null | undefined) =>
   value ? new Date(value).toLocaleString() : "—";
 
@@ -92,6 +108,30 @@ export default function IntegrationsPage() {
       return (data ?? []) as IntegrationHealthMetric[];
     },
     enabled: isAdmin,
+  });
+
+  const [syncErrorStatusFilter, setSyncErrorStatusFilter] = useState<"all" | SyncErrorStatus>("open");
+
+  const { data: syncErrors = [], isLoading: syncErrorsLoading } = useQuery({
+    queryKey: ["integration-sync-errors", data?.id, syncErrorStatusFilter],
+    queryFn: async () => {
+      if (!data?.id) return [] as IntegrationSyncError[];
+      let query = supabase
+        .from("integration_sync_errors" as never)
+        .select("id,integration_connection_id,source_model,source_identifier,error_code,error_message,status,retry_count,first_seen_at,last_seen_at,resolved_at")
+        .eq("integration_connection_id", data.id)
+        .order("last_seen_at", { ascending: false })
+        .limit(100);
+
+      if (syncErrorStatusFilter !== "all") {
+        query = query.eq("status", syncErrorStatusFilter);
+      }
+
+      const { data: rows, error } = await query;
+      if (error) throw error;
+      return (rows ?? []) as IntegrationSyncError[];
+    },
+    enabled: isAdmin && !!data?.id,
   });
 
   const [connectionForm, setConnectionForm] = useState({
@@ -182,6 +222,27 @@ export default function IntegrationsPage() {
     },
     onError: (error: PostgrestError) => {
       toast({ title: "Unable to queue sync", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const manageSyncErrorMutation = useMutation({
+    mutationFn: async ({ errorId, action }: { errorId: string; action: "retry" | "resolve" | "ignore" }) => {
+      const { error } = await supabase.rpc("manage_integration_sync_error" as never, {
+        p_error_id: errorId,
+        p_action: action,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["integration-sync-errors"] });
+      qc.invalidateQueries({ queryKey: ["integration-connection", "odoo"] });
+      toast({
+        title: "Sync error updated",
+        description: `Marked error as ${vars.action === "resolve" ? "resolved" : vars.action === "retry" ? "retry queued" : "ignored"}.`,
+      });
+    },
+    onError: (error: PostgrestError) => {
+      toast({ title: "Unable to update sync error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -382,6 +443,98 @@ export default function IntegrationsPage() {
           <div className="md:col-span-2 flex items-center gap-2 text-muted-foreground">
             {currentStatus === "connected" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-amber-600" />}
             {currentStatus === "connected" ? "Connection healthy." : "Connection requires attention."}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-base">Sync error management</CardTitle>
+              <CardDescription>Review sync failures and quickly retry, resolve, or ignore records from this tenant.</CardDescription>
+            </div>
+            <Select value={syncErrorStatusFilter} onValueChange={(value: "all" | SyncErrorStatus) => setSyncErrorStatusFilter(value)}>
+              <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="retry_queued">Retry queued</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="ignored">Ignored</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Source</th>
+                  <th className="px-3 py-2 font-medium">Error</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">Retries</th>
+                  <th className="px-3 py-2 font-medium">Last seen</th>
+                  <th className="px-3 py-2 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {syncErrorsLoading && (
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={6}>Loading sync errors…</td>
+                  </tr>
+                )}
+                {!syncErrorsLoading && syncErrors.length === 0 && (
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={6}>No sync errors found for this filter.</td>
+                  </tr>
+                )}
+                {syncErrors.map((syncError) => (
+                  <tr key={syncError.id} className="border-t align-top">
+                    <td className="px-3 py-2">
+                      <div className="font-medium">{syncError.source_model}</div>
+                      <div className="text-xs text-muted-foreground">{syncError.source_identifier}</div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div>{syncError.error_message}</div>
+                      {syncError.error_code ? <div className="text-xs text-muted-foreground">Code: {syncError.error_code}</div> : null}
+                    </td>
+                    <td className="px-3 py-2 capitalize">{syncError.status.replace("_", " ")}</td>
+                    <td className="px-3 py-2">{syncError.retry_count}</td>
+                    <td className="px-3 py-2">{fmt(syncError.last_seen_at)}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => manageSyncErrorMutation.mutate({ errorId: syncError.id, action: "retry" })}
+                          disabled={manageSyncErrorMutation.isPending}
+                        >
+                          Retry
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => manageSyncErrorMutation.mutate({ errorId: syncError.id, action: "resolve" })}
+                          disabled={manageSyncErrorMutation.isPending}
+                        >
+                          Resolve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => manageSyncErrorMutation.mutate({ errorId: syncError.id, action: "ignore" })}
+                          disabled={manageSyncErrorMutation.isPending}
+                        >
+                          Ignore
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>
