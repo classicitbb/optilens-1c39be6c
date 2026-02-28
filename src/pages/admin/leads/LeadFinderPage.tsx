@@ -21,6 +21,12 @@ const scoreBand = (score: number) => {
   return { label: "Cold", className: "bg-sky-500/10 text-sky-700 border-sky-300" };
 };
 
+const EMPTY_REASON_GUIDANCE: Record<"no_providers_configured" | "provider_failures" | "no_matches", string> = {
+  no_providers_configured: "No lead data providers are configured yet. Add provider API keys in your environment settings, then run search again.",
+  provider_failures: "Configured providers failed to return data. Check provider credentials/quotas and retry.",
+  no_matches: "No businesses matched this search. Broaden your region or intent, or relax filters like rating/reviews.",
+};
+
 const LeadFinderPage = () => {
   const [query, setQuery] = useState("optical store");
   const [country, setCountry] = useState("Barbados");
@@ -53,6 +59,17 @@ const LeadFinderPage = () => {
 
   const smartBatch = useMemo(() => [...filteredLeads].sort((a, b) => b.score - a.score).slice(0, 20), [filteredLeads]);
   const displayLeads = smartBatch.length > 0 ? smartBatch : filteredLeads;
+
+  const emptyStateMessage = useMemo(() => {
+    if (finder.isPending || displayLeads.length > 0) return null;
+    if (leads.length === 0) {
+      if (diagnostics?.emptyReason) {
+        return EMPTY_REASON_GUIDANCE[diagnostics.emptyReason];
+      }
+      return "No leads were returned. Try broadening region/intent and confirm providers are configured.";
+    }
+    return "No leads match current filters. Try lowering minimum rating/reviews or disabling website-only.";
+  }, [finder.isPending, displayLeads.length, leads.length, diagnostics?.emptyReason]);
 
   const toList = (raw: string) => raw.split(",").map((item) => item.trim()).filter(Boolean);
 
@@ -250,7 +267,7 @@ const LeadFinderPage = () => {
                 </div>
               );
             })}
-            {!finder.isPending && displayLeads.length === 0 ? <p className="text-xs text-muted-foreground">No leads match current filters.</p> : null}
+            {emptyStateMessage ? <p className="text-xs text-muted-foreground">{emptyStateMessage}</p> : null}
           </div>
         </CardContent>
       </Card>

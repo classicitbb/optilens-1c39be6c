@@ -60,6 +60,7 @@ export interface LeadFinderDiagnostics {
     latencyMs: number;
     errorCode: string | null;
   }>;
+  emptyReason: "no_providers_configured" | "provider_failures" | "no_matches" | null;
   queryEcho: {
     query: string;
     country?: string;
