@@ -1,0 +1,8 @@
+{
+  "id": 501,
+  "name": "Acme Optical",
+  "email": "ops@acme.test",
+  "phone": "+1 246 555 1000",
+  "active": true,
+  "vat": "BB12345"
+}
