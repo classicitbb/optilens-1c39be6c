@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { fieldsMatch } from "@/lib/wildcardMatch";
-import { Search, BookOpen, Layers, DollarSign, Ship, Users, Settings, FileSpreadsheet, FlaskConical, Glasses, ShoppingCart, Upload, Database, ArrowRight } from "lucide-react";
+import { Search, BookOpen, ArrowRight } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
+import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
+import { ADMIN_APPS } from "@/features/admin/core/config/apps";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { contextSlugToPath } from "@/lib/adminContexts";
 
 interface SearchResult {
   id: string;
@@ -14,33 +19,12 @@ interface SearchResult {
   group: string;
 }
 
-const MODULE_RESULTS: SearchResult[] = [
-  { id: "catalog", label: "Product Catalog", sublabel: "Browse lenses, supplies, and add-ons", path: "/admin/catalog", icon: Layers, group: "Modules" },
-  { id: "reference", label: "Reference Data", sublabel: "Suppliers, brands, materials, lens types", path: "/admin/reference", icon: Database, group: "Modules" },
-  { id: "imports", label: "Imports", sublabel: "Import lenses, supplies, add-ons from CSV", path: "/admin/imports", icon: Upload, group: "Modules" },
-  { id: "rx-lens-prices", label: "RX Lens Prices", sublabel: "Prescription lens pricing", path: "/admin/rx-lens-prices", icon: FlaskConical, group: "Modules" },
-  { id: "stock-lens-prices", label: "Stock Lens Prices", sublabel: "Stock lens pricing", path: "/admin/stock-lens-prices", icon: Glasses, group: "Modules" },
-  { id: "supplies-prices", label: "Supplies Prices", sublabel: "Supplies price management", path: "/admin/supplies-prices", icon: ShoppingCart, group: "Modules" },
-  { id: "quotations", label: "Quotations", sublabel: "Build and export customer quotes", path: "/admin/quotations", icon: FileSpreadsheet, group: "Modules" },
-  { id: "costings", label: "Import Costings", sublabel: "Shipments and landed cost management", path: "/admin/costings/shipments", icon: Ship, group: "Modules" },
-  { id: "users", label: "Users", sublabel: "Manage users and roles", path: "/admin/users", icon: Users, group: "Modules" },
-  { id: "settings", label: "Settings", sublabel: "Company settings, legacy rates, pricing parameters", path: "/admin/parameters", icon: Settings, group: "Modules" },
-  { id: "wiki", label: "Help / Wiki", sublabel: "Documentation and guides", path: "/admin/wiki", icon: BookOpen, group: "Modules" },
-];
-
-// Flatten wiki articles into searchable results
-const WIKI_RESULTS: SearchResult[] = wikiCategories.flatMap((cat) =>
-  cat.articles.map((article) => ({
-    id: `wiki-${cat.id}-${article.id}`,
-    label: article.title,
-    sublabel: cat.title,
-    path: `/admin/wiki#${article.id}`,
-    icon: BookOpen,
-    group: "Help / Wiki",
-  }))
-);
-
-const ALL_RESULTS = [...MODULE_RESULTS, ...WIKI_RESULTS];
+interface WikiSearchRow {
+  id: string;
+  title: string;
+  category: string | null;
+  help_article_contexts?: { context_slug: string }[] | null;
+}
 
 const GlobalSearch = () => {
   const [query, setQuery] = useState("");
@@ -49,12 +33,77 @@ const GlobalSearch = () => {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { canView } = useRolePermissions();
+
+  const moduleResults = useMemo<SearchResult[]>(() => {
+    return Object.values(ADMIN_APPS)
+      .flatMap((app) =>
+        app.sidebarItems.map((item) => {
+          const feature = PATH_FEATURE_MAP[item.route];
+          if (!feature || !canView(feature)) return null;
+          return {
+            id: `module-${item.route}`,
+            label: item.label,
+            sublabel: app.title,
+            path: item.route,
+            icon: item.icon,
+            group: "Modules",
+          } as SearchResult;
+        })
+      )
+      .filter((item): item is SearchResult => !!item);
+  }, [canView]);
+
+  const { data: wikiResults = [] } = useQuery({
+    queryKey: ["global_search_wiki_articles"],
+    queryFn: async () => {
+      if (!canView("wiki")) return [] as SearchResult[];
+
+      const staticResults = wikiCategories.flatMap((cat) =>
+        cat.articles.map((article) => ({
+          id: `wiki-static-${cat.id}-${article.id}`,
+          label: article.title,
+          sublabel: cat.title,
+          path: `/admin/knowledge/wiki#${article.id}`,
+          icon: BookOpen,
+          group: "Help / Wiki",
+        }))
+      );
+
+      const { data, error } = await supabase
+        .from("help_articles")
+        .select("id, title, category, help_article_contexts(context_slug)")
+        .eq("is_active", true)
+        .order("sort_order");
+
+      if (error) throw error;
+
+      const dbResults: SearchResult[] = ((data ?? []) as WikiSearchRow[]).map((article) => {
+        const contexts = (article.help_article_contexts ?? []).map((entry) => entry.context_slug);
+        const context = contexts.find((slug: string) => slug !== "all") ?? "knowledge/wiki";
+
+        return {
+          id: `wiki-db-${article.id}`,
+          label: article.title,
+          sublabel: article.category || "Custom",
+          path: `${contextSlugToPath(context)}#${article.id}`,
+          icon: BookOpen,
+          group: "Help / Wiki",
+        };
+      });
+
+      return [...staticResults, ...dbResults];
+    },
+    enabled: canView("wiki"),
+  });
+
+  const allResults = useMemo(() => [...moduleResults, ...wikiResults], [moduleResults, wikiResults]);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return ALL_RESULTS.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group)).slice(0, 10);
-  }, [query]);
+    return allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group)).slice(0, 10);
+  }, [allResults, query]);
 
   // Group results
   const grouped = useMemo(() => {

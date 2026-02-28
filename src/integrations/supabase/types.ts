@@ -940,6 +940,32 @@ export type Database = {
         }
         Relationships: []
       }
+      help_article_contexts: {
+        Row: {
+          article_id: string
+          context_slug: string
+          created_at: string
+        }
+        Insert: {
+          article_id: string
+          context_slug: string
+          created_at?: string
+        }
+        Update: {
+          article_id?: string
+          context_slug?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_article_contexts_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_feedback: {
         Row: {
           article_id: string
@@ -1011,6 +1037,36 @@ export type Database = {
           total_rows?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      wiki_headings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
