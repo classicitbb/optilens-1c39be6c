@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { wikiCategories } from "@/data/wikiContent";
+import type { WikiCategory } from "@/data/wikiContent";
 import WikiSidebar from "@/components/admin/WikiSidebar";
 import WikiContentPanel from "@/components/admin/WikiContentPanel";
 import WikiArticleEditDialog from "@/components/admin/WikiArticleEditDialog";
@@ -7,28 +8,53 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { Button } from "@/components/ui/button";
 import { Plus, BookOpen } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { useHelpArticles } from "@/hooks/useHelpArticles";
+import { useWikiHeadings } from "@/hooks/useWikiHeadings";
+import { useToast } from "@/hooks/use-toast";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const isUuid = (value?: string) => !!value && UUID_RE.test(value);
 
 const AdminWikiPage = () => {
   const { canEdit } = useAdminRole();
+  const { toast } = useToast();
+  const { articles: dbArticles } = useHelpArticles("knowledge/wiki");
+  const { headings: dbHeadings, createHeading } = useWikiHeadings();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeArticleId, setActiveArticleId] = useState<string | null>(
     wikiCategories[0]?.articles[0]?.id ?? null
   );
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<any>(null);
-  const [customHeadings, setCustomHeadings] = useState<{ id: string; title: string }[]>([]);
+
+  const editableCategories = useMemo<WikiCategory[]>(() => {
+    return dbHeadings
+      .map((heading) => ({
+        id: heading.slug,
+        title: heading.title,
+        icon: BookOpen,
+        articles: dbArticles
+          .filter((article) => (article.category || "") === heading.slug)
+          .map((article) => ({ id: article.id, title: article.title, content: article.content })),
+      }))
+      .filter((category) => category.articles.length > 0);
+  }, [dbArticles, dbHeadings]);
 
   const allHeadings = useMemo(() => {
     const base = wikiCategories.map((c) => ({ id: c.id, title: c.title }));
-    const extra = customHeadings.filter((h) => !base.some((b) => b.id === h.id));
+    const extra = dbHeadings
+      .map((heading) => ({ id: heading.slug, title: heading.title }))
+      .filter((h) => !base.some((b) => b.id === h.id));
     return [...base, ...extra];
-  }, [customHeadings]);
+  }, [dbHeadings]);
+
+  const mergedCategories = useMemo(() => [...wikiCategories, ...editableCategories], [editableCategories]);
 
   const lower = searchTerm.toLowerCase();
 
   const filtered = useMemo(
     () =>
-      wikiCategories
+      mergedCategories
         .map((cat) => ({
           ...cat,
           articles: cat.articles.filter(
@@ -39,7 +65,7 @@ const AdminWikiPage = () => {
           ),
         }))
         .filter((cat) => cat.articles.length > 0),
-    [searchTerm, lower]
+    [searchTerm, lower, mergedCategories]
   );
 
   useEffect(() => {
@@ -61,11 +87,11 @@ const AdminWikiPage = () => {
 
   const handleEditArticle = (article: { id: string; title: string; content: string }, categoryId?: string) => {
     setEditingArticle({
-      id: article.id,
+      id: isUuid(article.id) ? article.id : undefined,
       title: article.title,
       content: article.content,
       category: categoryId ?? "",
-      page_slug: "wiki",
+      context_slugs: ["knowledge/wiki"],
     });
     setEditDialogOpen(true);
   };
@@ -75,10 +101,12 @@ const AdminWikiPage = () => {
     setEditDialogOpen(true);
   };
 
-  const handleAddHeading = (title: string) => {
-    const id = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    if (!allHeadings.some((h) => h.id === id)) {
-      setCustomHeadings((prev) => [...prev, { id, title }]);
+  const handleAddHeading = async (title: string) => {
+    try {
+      await createHeading(title);
+      toast({ title: "Heading added" });
+    } catch (error: any) {
+      toast({ title: "Error adding heading", description: error?.message ?? String(error), variant: "destructive" });
     }
   };
 
@@ -104,7 +132,7 @@ const AdminWikiPage = () => {
           onAddHeading={handleAddHeading}
         />
         <WikiContentPanel
-          categories={wikiCategories}
+          categories={mergedCategories}
           activeArticleId={activeArticleId}
           canEdit={canEdit}
           onEditArticle={handleEditArticle}

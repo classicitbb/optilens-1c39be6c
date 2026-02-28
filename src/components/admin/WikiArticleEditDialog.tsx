@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,22 +10,8 @@ import { Save } from "lucide-react";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useToast } from "@/hooks/use-toast";
 import { renderWikiContent } from "./wikiFormatting";
-
-const PAGE_SLUGS = [
-  { value: "all", label: "All Pages" },
-  { value: "wiki", label: "Wiki" },
-  { value: "catalog", label: "Product Catalog" },
-  { value: "reference", label: "Reference Data" },
-  { value: "imports", label: "Imports" },
-  { value: "rx-lens-prices", label: "RX Lens Prices" },
-  { value: "stock-lens-prices", label: "Stock Lens Prices" },
-  { value: "supplies-prices", label: "Supplies Prices" },
-  { value: "quotations", label: "Quotations" },
-  { value: "costings/shipments", label: "Import Costings" },
-  { value: "users", label: "Users" },
-  { value: "parameters", label: "Settings" },
-  { value: "content", label: "Content" },
-];
+import { Checkbox } from "@/components/ui/checkbox";
+import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 
 interface WikiArticleEditDialogProps {
   open: boolean;
@@ -36,6 +22,7 @@ interface WikiArticleEditDialogProps {
     content: string;
     category?: string;
     page_slug?: string;
+    context_slugs?: string[];
     sort_order?: number;
   } | null;
   wikiHeadings: { id: string; title: string }[];
@@ -57,22 +44,31 @@ const WikiArticleEditDialog = ({
     title: article?.title ?? "",
     content: article?.content ?? "",
     category: article?.category ?? wikiHeadings[0]?.id ?? "",
-    page_slug: article?.page_slug ?? "wiki",
+    context_slugs: article?.context_slugs?.length ? article.context_slugs : [article?.page_slug ?? "knowledge/wiki"],
     sort_order: article?.sort_order ?? 0,
   });
 
-  const [lastArticleId, setLastArticleId] = useState(article?.id);
-  if (article?.id !== lastArticleId) {
-    setLastArticleId(article?.id);
+  useEffect(() => {
     setForm({
       id: article?.id ?? "",
       title: article?.title ?? "",
       content: article?.content ?? "",
       category: article?.category ?? wikiHeadings[0]?.id ?? "",
-      page_slug: article?.page_slug ?? "wiki",
+      context_slugs: article?.context_slugs?.length ? article.context_slugs : [article?.page_slug ?? "knowledge/wiki"],
       sort_order: article?.sort_order ?? 0,
     });
-  }
+  }, [article, wikiHeadings]);
+
+  const toggleContext = (slug: string) => {
+    setForm((prev) => {
+      const hasSlug = prev.context_slugs.includes(slug);
+      if (hasSlug) {
+        const remaining = prev.context_slugs.filter((entry) => entry !== slug);
+        return { ...prev, context_slugs: remaining.length > 0 ? remaining : ["all"] };
+      }
+      return { ...prev, context_slugs: [...prev.context_slugs, slug] };
+    });
+  };
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
@@ -82,7 +78,8 @@ const WikiArticleEditDialog = ({
         id: form.id || undefined,
         title: form.title,
         content: form.content,
-        page_slug: form.page_slug,
+        page_slug: form.context_slugs[0] ?? "all",
+        context_slugs: form.context_slugs,
         sort_order: form.sort_order,
         category: form.category,
       } as any);
@@ -134,19 +131,18 @@ const WikiArticleEditDialog = ({
             </div>
 
             <div>
-              <Label className="text-xs font-medium">Context Page</Label>
-              <Select value={form.page_slug} onValueChange={(v) => setForm({ ...form, page_slug: v })}>
-                <SelectTrigger className="h-8 text-xs mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_SLUGS.map((s) => (
-                    <SelectItem key={s.value} value={s.value} className="text-xs">
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-xs font-medium">Context Pages</Label>
+              <div className="mt-1 border border-border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
+                {ADMIN_CONTEXT_OPTIONS.map((option) => (
+                  <label key={option.value} className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox
+                      checked={form.context_slugs.includes(option.value)}
+                      onCheckedChange={() => toggleContext(option.value)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 
