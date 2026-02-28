@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, MapPinned, Sparkles, Save, Globe2, ActivitySquare } from "lucide-react";
+import { Search, MapPinned, Sparkles, Save, Globe2, ActivitySquare, WandSparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,11 @@ const LeadFinderPage = () => {
   const [city, setCity] = useState("Bridgetown");
   const [globalSearch, setGlobalSearch] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [autopilotMode, setAutopilotMode] = useState<"manual" | "autopilot">("autopilot");
+  const [productCategories, setProductCategories] = useState("single vision, progressive");
+  const [marginTiers, setMarginTiers] = useState("premium");
+  const [existingCustomerProfile, setExistingCustomerProfile] = useState("independent optometrists");
+  const [manualExclusions, setManualExclusions] = useState("");
   const [minRating, setMinRating] = useState("3.5");
   const [minReviews, setMinReviews] = useState("10");
   const [hasWebsiteOnly, setHasWebsiteOnly] = useState(false);
@@ -49,12 +54,24 @@ const LeadFinderPage = () => {
   const smartBatch = useMemo(() => [...filteredLeads].sort((a, b) => b.score - a.score).slice(0, 20), [filteredLeads]);
   const displayLeads = smartBatch.length > 0 ? smartBatch : filteredLeads;
 
+  const toList = (raw: string) => raw.split(",").map((item) => item.trim()).filter(Boolean);
+
   const runSearch = async () => {
+    const constraints = {
+      productCategories: toList(productCategories),
+      marginTiers: toList(marginTiers),
+      fulfillmentGeography: globalSearch ? "Global" : `${country}${city ? ` / ${city}` : ""}`,
+      existingCustomerProfile: existingCustomerProfile.trim() || undefined,
+      exclusions: toList(manualExclusions),
+    };
+
     const providerDiagnosticsSummary = {
-      mode: globalSearch ? "global" : "country_city",
+      mode: autopilotMode,
+      scope_mode: globalSearch ? "global" : "country_city",
       query,
       country: globalSearch ? null : country,
       city: globalSearch ? null : city,
+      constraints,
     };
 
     try {
@@ -67,7 +84,14 @@ const LeadFinderPage = () => {
     }
 
     try {
-      const result = await finder.mutateAsync({ query, country, cities: [city], globalSearch });
+      const result = await finder.mutateAsync({
+        query,
+        country,
+        cities: [city],
+        globalSearch,
+        mode: autopilotMode,
+        constraints,
+      });
       try {
         await supabase.from("lead_events" as any).insert({
           event_type: "result_rendered",
@@ -75,6 +99,8 @@ const LeadFinderPage = () => {
             ...providerDiagnosticsSummary,
             providers_used: result.diagnostics?.providersUsed ?? [],
             provider_status: result.diagnostics?.providerStatus ?? null,
+            planner: result.diagnostics?.planner ?? null,
+            resolved_query: result.diagnostics?.queryEcho?.query ?? query,
             results_count: result.leads.length,
             fetched_at: result.diagnostics?.fetchedAt ?? null,
           },
@@ -109,7 +135,7 @@ const LeadFinderPage = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Google Places / FB / Instagram search" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Manual query override" disabled={autopilotMode === "autopilot"} />
             <Select value={country} onValueChange={setCountry} disabled={globalSearch}>
               <SelectTrigger><SelectValue placeholder="Country" /></SelectTrigger>
               <SelectContent>
@@ -119,7 +145,14 @@ const LeadFinderPage = () => {
             <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City/Town" disabled={globalSearch} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <Input value={productCategories} onChange={(e) => setProductCategories(e.target.value)} placeholder="Product categories (comma-separated)" />
+            <Input value={marginTiers} onChange={(e) => setMarginTiers(e.target.value)} placeholder="Margin tiers (comma-separated)" />
+            <Input value={existingCustomerProfile} onChange={(e) => setExistingCustomerProfile(e.target.value)} placeholder="Existing customer profile" />
+            <Input value={manualExclusions} onChange={(e) => setManualExclusions(e.target.value)} placeholder="Autopilot exclusions (comma-separated)" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
             <div>
               <Label className="text-[11px]">Min Rating</Label>
               <Input value={minRating} onChange={(e) => setMinRating(e.target.value)} className="h-8 text-xs" />
@@ -140,6 +173,10 @@ const LeadFinderPage = () => {
               <Switch checked={globalSearch} onCheckedChange={setGlobalSearch} id="global-toggle" />
               <Label htmlFor="global-toggle" className="text-[11px] inline-flex items-center gap-1"><Globe2 className="h-3 w-3" /> Global search</Label>
             </div>
+            <div className="flex items-center gap-2 h-8">
+              <Switch checked={autopilotMode === "autopilot"} onCheckedChange={(checked) => setAutopilotMode(checked ? "autopilot" : "manual")} id="autopilot-toggle" />
+              <Label htmlFor="autopilot-toggle" className="text-[11px] inline-flex items-center gap-1"><WandSparkles className="h-3 w-3" /> Autopilot</Label>
+            </div>
           </div>
 
           <p className="text-xs inline-flex items-center gap-1 text-muted-foreground"><MapPinned className="h-4 w-4" /> {showMap ? "Map mode enabled (pins integration next)." : "Card mode enabled."}</p>
@@ -147,9 +184,12 @@ const LeadFinderPage = () => {
           <Card className="bg-muted/30">
             <CardContent className="pt-4 space-y-2 text-xs">
               <p className="font-medium inline-flex items-center gap-1"><ActivitySquare className="h-3.5 w-3.5" /> Real-time provider trace</p>
-              <p>Mode: <span className="font-medium">{diagnostics?.mode ?? (globalSearch ? "global" : "country_city")}</span></p>
-              <p>Query: <span className="font-medium">{query}</span></p>
+              <p>Mode: <span className="font-medium">{diagnostics?.mode ?? autopilotMode}</span></p>
               <p>Scope: <span className="font-medium">{globalSearch ? "Global" : `${country} / ${city}`}</span></p>
+              <p>Resolved Query: <span className="font-medium">{diagnostics?.queryEcho.query ?? query}</span></p>
+              {diagnostics?.planner?.selectedIntent ? (
+                <p>Top Intent: <span className="font-medium">{diagnostics.planner.selectedIntent.searchIntent}</span> ({diagnostics.planner.selectedIntent.score})</p>
+              ) : null}
               <div className="flex flex-wrap gap-1">
                 {(diagnostics?.providersUsed ?? []).map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
               </div>

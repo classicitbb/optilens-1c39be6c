@@ -2,15 +2,48 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { LeadRecord } from "../types";
 
+interface FinderConstraints {
+  productCategories?: string[];
+  marginTiers?: string[];
+  fulfillmentGeography?: string;
+  existingCustomerProfile?: string;
+  exclusions?: string[];
+  maxIntents?: number;
+}
+
 interface FinderInput {
-  query: string;
+  query?: string;
   country?: string;
   cities?: string[];
   globalSearch?: boolean;
+  mode: "manual" | "autopilot";
+  constraints?: FinderConstraints;
 }
 
 export interface LeadFinderDiagnostics {
-  mode: "global" | "country_city";
+  mode: "manual" | "autopilot";
+  scopeMode: "global" | "country_city";
+  planner: {
+    mode: "manual" | "autopilot";
+    rankedIntents: Array<{
+      rank: number;
+      score: number;
+      searchIntent: string;
+      query: string;
+      industry: string;
+      channelHints: string[];
+      rationale: string[];
+    }>;
+    selectedIntent: {
+      rank: number;
+      score: number;
+      searchIntent: string;
+      query: string;
+      industry: string;
+      channelHints: string[];
+      rationale: string[];
+    } | null;
+  };
   providerStatus: {
     googlePlacesConfigured: boolean;
     facebookGraphConfigured: boolean;
@@ -48,9 +81,9 @@ interface ComplianceErrorPayload {
 
 export const useLeadFinder = () => {
   return useMutation({
-    mutationFn: async ({ query, country, cities, globalSearch }: FinderInput): Promise<LeadFinderResult> => {
+    mutationFn: async ({ query, country, cities, globalSearch, mode, constraints }: FinderInput): Promise<LeadFinderResult> => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
-        body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true },
+        body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true, mode, constraints },
       });
       if (error) {
         const payload = (data ?? {}) as ComplianceErrorPayload;
