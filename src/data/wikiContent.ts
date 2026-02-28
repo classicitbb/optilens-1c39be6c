@@ -197,46 +197,46 @@ export const wikiCategories: WikiCategory[] = [
         title: "Major Update Ledger (Plan + Release Notes + Changelog)",
         content: `Use this date-stamped format for every major feature release so operators can review plan, outcome, and key changes in one place.
 
-## 2026-02-28 — Automated QA Harness + Runtime Logging Hardening
-
-### Plan
-1. Strengthen smoke coverage for auth/admin entry points.
-2. Enforce runtime-error logging wiring and output contract checks.
-3. Keep docs synchronized with a human-readable changelog.
-
-### Release Notes
-- Added smoke coverage for \`/auth\` in the QA harness.
-- Added static wiring checks for Auth page login UX strings and runtime logging pathways.
-- Preserved route smoke checks for leads, CRM pipeline, runtime errors, and publisher pages.
-
-### Changelog (Human-readable)
-- QA harness now validates auth route availability and key login copy.
-- Runtime logging contract checks remain enforced for one-line error capture format.
-- Changelog now uses date-stamped entries for major updates.
-
 ## 2026-02-28 — Smoke Harness Reliability + Credentialed Login Validation
 
 ### Plan
-1. Prevent false-positive smoke passes when dev server compilation fails.
-2. Validate credentialed login interaction on \`/auth\`.
-3. Keep changelog/wiki governance synchronized per major update.
+- Prevent false-positive smoke passes when Vite reports transform/startup errors.
+- Validate credentialed login flow and protected-route redirect behavior.
+- Keep release ledger process synchronized between repo changelog and in-app wiki.
 
 ### Release Notes
-- Smoke harness now fails if Vite emits pre-transform, syntax, or startup errors.
-- Credentialed login interaction was executed against the auth form.
-- Protected \`/admin/knowledge/wiki\` route behavior confirmed to redirect unauthenticated sessions to auth.
+- Smoke harness now fails when dev server emits pre-transform/syntax/startup errors.
+- Verified login interaction on \`/auth\` with provided credentials and submit flow automation.
+- Verified protected wiki route \`/admin/knowledge/wiki\` redirects to auth when not already authenticated in browser session.
 
-### Changelog (Human-readable)
-- Added dev-server diagnostics capture/failure gating in the smoke harness.
-- Retained runtime-error contract checks and auth/admin route checks.
-- Continued use of date-stamped Plan/Release Notes/Changelog governance across docs.
+### Technical Changelog
+- Added dev-server diagnostic pattern capture and failure gating in \`scripts/admin_smoke_and_error_checks.mjs\`.
+- Kept runtime logging format/wiring checks and auth/admin route smoke checks intact.
+- Aligned date-stamped update governance across \`CHANGELOG.md\` and wiki ledger article.
+
+## 2026-02-28 — Automated QA Harness + Runtime Logging Hardening
+
+### Plan
+- Strengthen smoke coverage for login/auth and high-traffic admin routes.
+- Add stricter assertions for runtime error logging wiring across app/page surfaces.
+- Enforce stable one-line runtime-error output contract for downstream automation.
+
+### Release Notes
+- Added \`/auth\` to automated smoke route checks.
+- Added Auth page checks to ensure login UX strings remain present.
+- Added/kept runtime logging checks for app wiring and one-line error format contract.
+
+### Technical Changelog
+- Updated \`scripts/admin_smoke_and_error_checks.mjs\` with additional route and snippet assertions.
+- Preserved runtime log format contract checks for \`[runtime-error] <timestamp> | <source> | <title> | <detail> | <route>\`.
+- Added this date-stamped changelog structure for future major updates.
 
 ### Update Rule (Required)
 For each major feature update, append a new entry with:
 - Date (\`YYYY-MM-DD\`)
 - Plan (3–5 bullets)
 - Release Notes (what shipped)
-- Changelog (what changed technically)`,
+- Technical Changelog (what changed technically)`,
       },
     ],
   },
