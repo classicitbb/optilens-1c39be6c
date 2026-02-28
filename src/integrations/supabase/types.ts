@@ -578,6 +578,107 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_external_links: {
+        Row: {
+          created_at: string
+          etag: string | null
+          external_company_id: string
+          external_id: string
+          external_model: string
+          external_payload: Json
+          id: string
+          last_pulled_at: string | null
+          last_pushed_at: string | null
+          last_remote_write_date: string | null
+          local_contact_id: string
+          payload_hash: string | null
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          etag?: string | null
+          external_company_id: string
+          external_id: string
+          external_model?: string
+          external_payload?: Json
+          id?: string
+          last_pulled_at?: string | null
+          last_pushed_at?: string | null
+          last_remote_write_date?: string | null
+          local_contact_id: string
+          payload_hash?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          etag?: string | null
+          external_company_id?: string
+          external_id?: string
+          external_model?: string
+          external_payload?: Json
+          id?: string
+          last_pulled_at?: string | null
+          last_pushed_at?: string | null
+          last_remote_write_date?: string | null
+          local_contact_id?: string
+          payload_hash?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_external_links_local_contact_id_fkey"
+            columns: ["local_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_field_mappings: {
+        Row: {
+          created_at: string
+          external_field: string
+          external_model: string
+          id: string
+          is_required: boolean
+          local_field: string | null
+          notes: string | null
+          provider: string
+          sync_direction: string
+          transform_rule: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_field: string
+          external_model?: string
+          id?: string
+          is_required?: boolean
+          local_field?: string | null
+          notes?: string | null
+          provider?: string
+          sync_direction?: string
+          transform_rule?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_field?: string
+          external_model?: string
+          id?: string
+          is_required?: boolean
+          local_field?: string | null
+          notes?: string | null
+          provider?: string
+          sync_direction?: string
+          transform_rule?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contact_tag_links: {
         Row: {
           contact_id: string
@@ -661,6 +762,7 @@ export type Database = {
           is_customer: boolean
           lead_score: number
           lead_source: string
+          mobile: string | null
           name: string
           notes: string | null
           parent_id: string | null
@@ -699,6 +801,7 @@ export type Database = {
           is_customer?: boolean
           lead_score?: number
           lead_source?: string
+          mobile?: string | null
           name: string
           notes?: string | null
           parent_id?: string | null
@@ -737,6 +840,7 @@ export type Database = {
           is_customer?: boolean
           lead_score?: number
           lead_source?: string
+          mobile?: string | null
           name?: string
           notes?: string | null
           parent_id?: string | null
@@ -764,6 +868,62 @@ export type Database = {
           {
             foreignKeyName: "contacts_parent_id_fkey"
             columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_sync_states: {
+        Row: {
+          created_at: string
+          diff_checksum: string | null
+          external_company_id: string
+          external_model: string
+          id: string
+          last_compared_at: string | null
+          local_contact_id: string
+          local_field_checksums: Json
+          local_version: number
+          provider: string
+          remote_field_checksums: Json
+          remote_version: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          diff_checksum?: string | null
+          external_company_id: string
+          external_model?: string
+          id?: string
+          last_compared_at?: string | null
+          local_contact_id: string
+          local_field_checksums?: Json
+          local_version?: number
+          provider?: string
+          remote_field_checksums?: Json
+          remote_version?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          diff_checksum?: string | null
+          external_company_id?: string
+          external_model?: string
+          id?: string
+          last_compared_at?: string | null
+          local_contact_id?: string
+          local_field_checksums?: Json
+          local_version?: number
+          provider?: string
+          remote_field_checksums?: Json
+          remote_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_sync_states_local_contact_id_fkey"
+            columns: ["local_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
