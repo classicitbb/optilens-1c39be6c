@@ -28,6 +28,9 @@ export interface Contact {
   salesperson: string;
   is_archived: boolean;
   avatar_url: string;
+  business_card_image_url: string | null;
+  business_card_uploaded_at: string | null;
+  business_card_file_name: string | null;
   is_customer: boolean;
   lead_source: string;
   pipeline_stage: string;
