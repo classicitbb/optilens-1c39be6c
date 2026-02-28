@@ -40,24 +40,35 @@ export interface LeadFinderResult {
   diagnostics: LeadFinderDiagnostics | null;
 }
 
+interface ComplianceErrorPayload {
+  error?: string;
+  compliant_alternatives?: string[];
+  blocked_category?: string;
+}
+
 export const useLeadFinder = () => {
   return useMutation({
     mutationFn: async ({ query, country, cities, globalSearch }: FinderInput): Promise<LeadFinderResult> => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
         body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true },
       });
-      if (error) throw error;
-      const rawLeads = (data?.leads ?? []) as Array<Record<string, unknown>>;
-      const leads = rawLeads.map((lead) => ({
-        id: typeof lead.id === "string" ? lead.id : crypto.randomUUID(),
-        name: typeof lead.name === "string" ? lead.name : "Unknown",
-        city: typeof lead.city === "string" ? lead.city : null,
-        country: typeof lead.country === "string" ? lead.country : null,
-        website: typeof lead.website === "string" ? lead.website : null,
-        instagram_handle: typeof lead.instagram_handle === "string" ? lead.instagram_handle : null,
-        facebook_page: typeof lead.facebook_page === "string" ? lead.facebook_page : null,
-        google_rating: typeof lead.google_rating === "number" ? lead.google_rating : null,
-        google_reviews_count: typeof lead.google_reviews_count === "number" ? lead.google_reviews_count : null,
+      if (error) {
+        const payload = (data ?? {}) as ComplianceErrorPayload;
+        const alternatives = Array.isArray(payload.compliant_alternatives)
+          ? ` Alternatives: ${payload.compliant_alternatives.join(" ")}`
+          : "";
+        throw new Error(payload.error ? `${payload.error}${alternatives}` : error.message);
+      }
+      const leads = ((data?.leads ?? []) as any[]).map((lead) => ({
+        id: lead.id ?? crypto.randomUUID(),
+        name: lead.name,
+        city: lead.city ?? null,
+        country: lead.country ?? null,
+        website: lead.website ?? null,
+        instagram_handle: lead.instagram_handle ?? null,
+        facebook_page: lead.facebook_page ?? null,
+        google_rating: lead.google_rating ?? null,
+        google_reviews_count: lead.google_reviews_count ?? null,
         ai_intent_score: null,
         status: "lead",
         score: Number(lead.score ?? 0),
