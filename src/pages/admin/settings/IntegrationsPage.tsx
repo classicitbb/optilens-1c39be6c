@@ -40,6 +40,16 @@ interface IntegrationConnection {
   updated_at: string;
 }
 
+interface IntegrationHealthMetric {
+  integration_connection_id: string;
+  tenant_key: string;
+  provider: string;
+  last_successful_run_at: string | null;
+  lag_behind_source_seconds: number;
+  error_rate: number;
+  records_processed_per_run: number;
+}
+
 const fmt = (value: string | null | undefined) =>
   value ? new Date(value).toLocaleString() : "—";
 
@@ -66,6 +76,20 @@ export default function IntegrationsPage() {
         .maybeSingle();
       if (error) throw error;
       return (data ?? null) as IntegrationConnection | null;
+    },
+    enabled: isAdmin,
+  });
+
+  const { data: healthMetrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ["integration-health-metrics", "odoo"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("integration_health_metrics_dashboard" as never)
+        .select("*")
+        .eq("provider", "odoo")
+        .eq("tenant_key", "default");
+      if (error) throw error;
+      return (data ?? []) as IntegrationHealthMetric[];
     },
     enabled: isAdmin,
   });
@@ -125,6 +149,7 @@ export default function IntegrationsPage() {
     },
     onSuccess: (_, testConnection) => {
       qc.invalidateQueries({ queryKey: ["integration-connection", "odoo"] });
+      qc.invalidateQueries({ queryKey: ["integration-health-metrics", "odoo"] });
       setCredential("");
       toast({
         title: testConnection ? "Connection tested" : "Integration saved",
@@ -149,6 +174,7 @@ export default function IntegrationsPage() {
     },
     onSuccess: (_, syncKind) => {
       qc.invalidateQueries({ queryKey: ["integration-connection", "odoo"] });
+      qc.invalidateQueries({ queryKey: ["integration-health-metrics", "odoo"] });
       toast({
         title: "Sync queued",
         description: syncKind === "initial" ? "Initial import was queued." : "Incremental sync was queued.",
@@ -296,6 +322,47 @@ export default function IntegrationsPage() {
           <div className="md:col-span-2 flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => triggerSyncMutation.mutate("initial")} disabled={triggerSyncMutation.isPending}>Initial import</Button>
             <Button variant="outline" onClick={() => triggerSyncMutation.mutate("incremental")} disabled={triggerSyncMutation.isPending}>Incremental sync</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Integration health metrics</CardTitle>
+          <CardDescription>Tracks last successful run, lag behind source, error rate, and records processed per run.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Last successful run</th>
+                  <th className="px-3 py-2 font-medium">Lag behind source</th>
+                  <th className="px-3 py-2 font-medium">Error rate</th>
+                  <th className="px-3 py-2 font-medium">Records / run</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metricsLoading && (
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={4}>Loading integration metrics…</td>
+                  </tr>
+                )}
+                {!metricsLoading && (healthMetrics?.length ?? 0) === 0 && (
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={4}>No sync metrics available yet.</td>
+                  </tr>
+                )}
+                {(healthMetrics ?? []).map((metric) => (
+                  <tr key={metric.integration_connection_id} className="border-t">
+                    <td className="px-3 py-2">{fmt(metric.last_successful_run_at)}</td>
+                    <td className="px-3 py-2">{Math.max(metric.lag_behind_source_seconds ?? 0, 0)}s</td>
+                    <td className="px-3 py-2">{((metric.error_rate ?? 0) * 100).toFixed(2)}%</td>
+                    <td className="px-3 py-2">{(metric.records_processed_per_run ?? 0).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>

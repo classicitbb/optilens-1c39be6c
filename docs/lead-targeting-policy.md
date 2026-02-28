@@ -49,3 +49,9 @@ This log enables compliance review, policy tuning, and incident response.
 - Expand blocked term coverage when new abuse patterns appear.
 - Keep alternatives focused on legitimate B2B growth outcomes.
 - Communicate policy updates to sales and growth operators.
+
+
+## Lead scoring reweight cadence
+
+Lead Finder now records explainable score factors and conversion outcomes in CRM (`lead_scoring_outcomes`).
+Operations should review `reweight_lead_scoring_factors()` output at least monthly, then update `lead_scoring_weights` to rebalance factors based on observed win-rate impact.

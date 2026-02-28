@@ -1,5 +1,16 @@
 export type LeadStatus = "lead" | "contacted" | "meeting" | "proposal";
 
+export type LeadScoreFactor =
+  | "firmographic_fit"
+  | "role_likelihood"
+  | "procurement_readiness"
+  | "digital_maturity"
+  | "engagement_recency"
+  | "geography_fit"
+  | "catalog_match";
+
+export type LeadScoreBreakdown = Record<LeadScoreFactor, { points: number; evidence: string[] }>;
+
 export interface LeadRecord {
   id: string;
   name: string;

@@ -19,6 +19,7 @@ export interface WikiArticle {
   id: string;
   title: string;
   content: string;
+  context_slugs?: string[];
 }
 
 export interface WikiCategory {

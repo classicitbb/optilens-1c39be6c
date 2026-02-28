@@ -11,10 +11,11 @@ interface WikiContentPanelProps {
   activeArticleId: string | null;
   canEdit?: boolean;
   onEditArticle?: (article: { id: string; title: string; content: string }, categoryId: string) => void;
+  isCategoryVisible?: (categoryId: string) => boolean;
 }
 
-const WikiContentPanel = ({ categories, activeArticleId, canEdit, onEditArticle }: WikiContentPanelProps) => {
-  const displayCategories = categories.filter((category) => category.articles.length > 0);
+const WikiContentPanel = ({ categories, activeArticleId, canEdit, onEditArticle, isCategoryVisible }: WikiContentPanelProps) => {
+  const displayCategories = categories.filter((category) => category.articles.length > 0 && (isCategoryVisible ? isCategoryVisible(category.id) : true));
   let activeCategory: WikiCategory | undefined;
   let activeArticle: { id: string; title: string; content: string } | undefined;
 
