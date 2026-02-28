@@ -11,12 +11,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck } from "lucide-react";
+import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptionsByCountry } from "@/lib/locationOptions";
 
 type FilterMode = "all" | "companies" | "persons" | "customers";
 
@@ -67,6 +68,7 @@ const ContactsPage = () => {
   const setContactTags = useSetContactTags();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const [filter, setFilter] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
@@ -76,6 +78,66 @@ const ContactsPage = () => {
 
   // Load tags when editing
   const { data: editTagIds = [] } = useContactTagLinks(editContact?.id);
+
+  const { data: opportunities = [] } = useQuery({
+    queryKey: ["contact-opportunity-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("opportunities" as any)
+        .select("id,contact_id,title")
+        .limit(3000);
+      if (error) throw error;
+      return (data ?? []) as { id: string; contact_id: string; title: string | null }[];
+    },
+  });
+
+  const { data: quotePriceProfiles = [] } = useQuery({
+    queryKey: ["contact-quote-price-profile-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quotes")
+        .select("id,customer_name,contact_name,price_profile_id")
+        .not("price_profile_id", "is", null)
+        .limit(3000);
+      if (error) throw error;
+      return (data ?? []) as { id: string; customer_name: string | null; contact_name: string | null; price_profile_id: string | null }[];
+    },
+  });
+
+  const opportunityCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const opp of opportunities) {
+      m.set(opp.contact_id, (m.get(opp.contact_id) ?? 0) + 1);
+    }
+    return m;
+  }, [opportunities]);
+
+  const pricingProfileByName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const q of quotePriceProfiles) {
+      const profileId = q.price_profile_id ?? undefined;
+      if (!profileId) continue;
+      const keys = [q.customer_name, q.contact_name].filter(Boolean) as string[];
+      for (const k of keys) {
+        const key = k.trim().toLowerCase();
+        if (key && !m.has(key)) m.set(key, profileId);
+      }
+    }
+    return m;
+  }, [quotePriceProfiles]);
+
+  const countryOptions = useMemo(
+    () => ensureOption(COUNTRY_OPTIONS, editContact?.country_code),
+    [editContact?.country_code],
+  );
+  const stateOptions = useMemo(
+    () => ensureOption(getStateOptionsByCountry(editContact?.country_code), editContact?.state),
+    [editContact?.country_code, editContact?.state],
+  );
+  const cityOptions = useMemo(
+    () => ensureOption(getCityOptionsByCountry(editContact?.country_code), editContact?.city),
+    [editContact?.country_code, editContact?.city],
+  );
 
   const filtered = useMemo(() => {
     let list = contacts;
@@ -97,6 +159,30 @@ const ContactsPage = () => {
   }, [contacts, filter, search, showArchived]);
 
   const companies = contacts.filter((c) => c.is_company);
+
+  const getOpportunityCount = (contactId?: string | null) => (contactId ? opportunityCounts.get(contactId) ?? 0 : 0);
+
+  const getAssignedPriceProfileId = (contact?: Partial<Contact> | null) => {
+    const key = contact?.name?.trim().toLowerCase();
+    if (!key) return null;
+    return pricingProfileByName.get(key) ?? null;
+  };
+
+  const openCrmForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    navigate("/admin/crm/pipeline", { state: { contactId: contact.id, contactName: contact.name } });
+  };
+
+  const openPricingForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const pricingSheetId = getAssignedPriceProfileId(contact);
+    if (!pricingSheetId) {
+      toast({ title: "No assigned pricelist found", description: "Assign a pricing sheet from Users / customer pricing access first.", variant: "destructive" });
+      return;
+    }
+    navigate("/admin/pricing/catalog", { state: { pricingSheetId, contactName: contact.name } });
+  };
+
 
   const exportCsv = () => {
     const headers = ["name","is_company","email","phone","street","street2","city","state","zip","country_code","tax_id","website","salesperson","notes"];
@@ -361,18 +447,19 @@ const ContactsPage = () => {
               <TableHead>Salesperson</TableHead>
               <TableHead>City</TableHead>
               <TableHead>Country</TableHead>
+              <TableHead className="text-right">Connections</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   Loading...
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   No contacts found. Click "New" to create one.
                 </TableCell>
               </TableRow>
@@ -403,6 +490,32 @@ const ContactsPage = () => {
                   <TableCell className="text-xs">{c.salesperson}</TableCell>
                   <TableCell className="text-xs">{c.city}</TableCell>
                   <TableCell className="text-xs">{c.country_code}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      {getOpportunityCount(c.id) > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={(e) => openCrmForContact(c, e)}
+                        >
+                          <Kanban className="h-3 w-3 mr-1" /> CRM ({getOpportunityCount(c.id)})
+                        </Button>
+                      )}
+                      {getAssignedPriceProfileId(c) && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={(e) => openPricingForContact(c, e)}
+                        >
+                          <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -431,6 +544,22 @@ const ContactsPage = () => {
                       {editContact.is_company ? <Building2 className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} /> : <User className="h-4 w-4" style={{ color: "hsl(168 76% 42%)" }} />}
                       {editContact.id ? "Edit Contact" : editContact.is_company ? "New Company" : "New Person"}
                     </DialogTitle>
+                    {editContact.id && (
+                      <div className="flex items-center gap-2 mr-4">
+                        {getOpportunityCount(editContact.id) > 0 ? (
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openCrmForContact(editContact)}>
+                            <Kanban className="h-3.5 w-3.5 mr-1" />
+                            Open CRM ({getOpportunityCount(editContact.id)})
+                          </Button>
+                        ) : null}
+                        {getAssignedPriceProfileId(editContact) ? (
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openPricingForContact(editContact)}>
+                            <BadgeDollarSign className="h-3.5 w-3.5 mr-1" />
+                            Open Pricelist
+                          </Button>
+                        ) : null}
+                      </div>
+                    )}
                     {editContact.id && (
                       <div className="flex items-center gap-1 mr-8">
                         <span className="text-[10px] mr-1" style={{ color: "hsl(215 15% 55%)" }}>
@@ -508,25 +637,63 @@ const ContactsPage = () => {
                           <label className="text-[11px] font-medium mb-0.5 block">Street 2</label>
                           <Input className="h-7 text-xs" value={editContact.street2 ?? ""} onChange={(e) => setEditContact({ ...editContact, street2: e.target.value })} />
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[11px] font-medium mb-0.5 block">City</label>
-                            <Input className="h-7 text-xs" value={editContact.city ?? ""} onChange={(e) => setEditContact({ ...editContact, city: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="text-[11px] font-medium mb-0.5 block">State</label>
-                            <Input className="h-7 text-xs" value={editContact.state ?? ""} onChange={(e) => setEditContact({ ...editContact, state: e.target.value })} />
-                          </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">Country</label>
+                          <Select
+                            value={editContact.country_code || "__none"}
+                            onValueChange={(v) => {
+                              if (v === "__none") {
+                                setEditContact({ ...editContact, country_code: "", state: "", city: "" });
+                                return;
+                              }
+                              const nextStateOptions = getStateOptionsByCountry(v);
+                              const nextCityOptions = getCityOptionsByCountry(v);
+                              setEditContact({
+                                ...editContact,
+                                country_code: v,
+                                state: nextStateOptions.some((opt) => opt.value === (editContact.state ?? "")) ? (editContact.state ?? "") : "",
+                                city: nextCityOptions.some((opt) => opt.value === (editContact.city ?? "")) ? (editContact.city ?? "") : "",
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select country" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none" className="text-xs">Not specified</SelectItem>
+                              {countryOptions.map((country) => (
+                                <SelectItem key={country.value} value={country.value} className="text-xs">{country.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-[11px] font-medium mb-0.5 block">ZIP</label>
-                            <Input className="h-7 text-xs" value={editContact.zip ?? ""} onChange={(e) => setEditContact({ ...editContact, zip: e.target.value })} />
+                            <label className="text-[11px] font-medium mb-0.5 block">State</label>
+                            <Select value={editContact.state || "__none"} onValueChange={(v) => setEditContact({ ...editContact, state: v === "__none" ? "" : v })}>
+                              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select state" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none" className="text-xs">Not specified</SelectItem>
+                                {stateOptions.map((state) => (
+                                  <SelectItem key={state.value} value={state.value} className="text-xs">{state.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
-                            <label className="text-[11px] font-medium mb-0.5 block">Country</label>
-                            <Input className="h-7 text-xs" value={editContact.country_code ?? ""} onChange={(e) => setEditContact({ ...editContact, country_code: e.target.value })} />
+                            <label className="text-[11px] font-medium mb-0.5 block">City</label>
+                            <Select value={editContact.city || "__none"} onValueChange={(v) => setEditContact({ ...editContact, city: v === "__none" ? "" : v })}>
+                              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select city" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none" className="text-xs">Not specified</SelectItem>
+                                {cityOptions.map((city) => (
+                                  <SelectItem key={city.value} value={city.value} className="text-xs">{city.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium mb-0.5 block">ZIP</label>
+                          <Input className="h-7 text-xs" value={editContact.zip ?? ""} onChange={(e) => setEditContact({ ...editContact, zip: e.target.value })} />
                         </div>
                         <div>
                           <label className="text-[11px] font-medium mb-0.5 block">Tax ID</label>

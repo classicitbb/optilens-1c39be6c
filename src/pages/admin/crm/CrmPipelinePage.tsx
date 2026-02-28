@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateOpportunity, useOpportunities, useSeedSampleOpportunities, useUpdateOpportunityStage } from "@/features/admin/crm/hooks/useOpportunities";
 import { useCreateActivity } from "@/features/admin/crm/hooks/useActivities";
 import { useToast } from "@/hooks/use-toast";
+import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptionsByCountry } from "@/lib/locationOptions";
 
 const COLUMNS = [
   { key: "new", title: "New" },
@@ -27,7 +29,11 @@ const CrmPipelinePage = () => {
   const createActivity = useCreateActivity();
 
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState({ contactName: "", opportunityTitle: "", country: "", city: "", estimatedValue: "" });
+  const [form, setForm] = useState({ contactName: "", opportunityTitle: "", country: "", state: "", city: "", estimatedValue: "" });
+
+  const countryOptions = useMemo(() => ensureOption(COUNTRY_OPTIONS, form.country), [form.country]);
+  const stateOptions = useMemo(() => ensureOption(getStateOptionsByCountry(form.country), form.state), [form.country, form.state]);
+  const cityOptions = useMemo(() => ensureOption(getCityOptionsByCountry(form.country), form.city), [form.country, form.city]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
@@ -46,10 +52,11 @@ const CrmPipelinePage = () => {
         opportunityTitle: form.opportunityTitle.trim(),
         country: form.country || undefined,
         city: form.city || undefined,
+        state: form.state || undefined,
         estimatedValue: form.estimatedValue ? Number(form.estimatedValue) : undefined,
         stage: "new",
       });
-      setForm({ contactName: "", opportunityTitle: "", country: "", city: "", estimatedValue: "" });
+      setForm({ contactName: "", opportunityTitle: "", country: "", state: "", city: "", estimatedValue: "" });
       toast({ title: "Opportunity added" });
     } catch {
       toast({ title: "Unable to add opportunity", variant: "destructive" });
@@ -80,13 +87,54 @@ const CrmPipelinePage = () => {
         <CardHeader>
           <CardTitle className="text-sm">Manual Opportunity Intake</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+        <CardContent className="grid grid-cols-1 md:grid-cols-7 gap-2 items-end">
           <Input value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} placeholder="Contact / store name" className="h-8 text-xs" />
           <Input value={form.opportunityTitle} onChange={(e) => setForm({ ...form, opportunityTitle: e.target.value })} placeholder="Opportunity title" className="h-8 text-xs" />
-          <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="City" className="h-8 text-xs" />
-          <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="Country" className="h-8 text-xs" />
-          <div className="flex gap-2">
-            <Input value={form.estimatedValue} onChange={(e) => setForm({ ...form, estimatedValue: e.target.value })} placeholder="Est. value" className="h-8 text-xs w-24" />
+          <Select
+            value={form.country || "__none"}
+            onValueChange={(v) => {
+              if (v === "__none") {
+                setForm({ ...form, country: "", state: "", city: "" });
+                return;
+              }
+              const nextStateOptions = getStateOptionsByCountry(v);
+              const nextCityOptions = getCityOptionsByCountry(v);
+              setForm({
+                ...form,
+                country: v,
+                state: nextStateOptions.some((opt) => opt.value === form.state) ? form.state : "",
+                city: nextCityOptions.some((opt) => opt.value === form.city) ? form.city : "",
+              });
+            }}
+          >
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Country" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none" className="text-xs">Country</SelectItem>
+              {countryOptions.map((country) => (
+                <SelectItem key={country.value} value={country.value} className="text-xs">{country.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={form.state || "__none"} onValueChange={(v) => setForm({ ...form, state: v === "__none" ? "" : v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="State" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none" className="text-xs">State</SelectItem>
+              {stateOptions.map((state) => (
+                <SelectItem key={state.value} value={state.value} className="text-xs">{state.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={form.city || "__none"} onValueChange={(v) => setForm({ ...form, city: v === "__none" ? "" : v })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="City" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none" className="text-xs">City</SelectItem>
+              {cityOptions.map((city) => (
+                <SelectItem key={city.value} value={city.value} className="text-xs">{city.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex gap-2 md:col-span-2">
+            <Input value={form.estimatedValue} onChange={(e) => setForm({ ...form, estimatedValue: e.target.value })} placeholder="Est. value" className="h-8 text-xs w-28" />
             <Button size="sm" className="h-8 text-xs" onClick={handleCreateOpportunity} disabled={createOpportunity.isPending}>
               <PlusCircle className="h-3.5 w-3.5 mr-1" /> Add
             </Button>

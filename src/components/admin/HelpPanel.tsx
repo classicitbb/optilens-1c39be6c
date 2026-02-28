@@ -66,15 +66,14 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
 
   useEffect(() => {
     const exactIds = scopedArticles.filter((a) => a.page_slug === slug).map((a) => a.id);
-    if (exactIds.length > 0) {
-      setExpandedIds(exactIds);
-      return;
-    }
-    if (scopedArticles.length > 0) {
-      setExpandedIds([scopedArticles[0].id]);
-      return;
-    }
-    setExpandedIds([]);
+    const nextIds = exactIds.length > 0 ? exactIds : scopedArticles.length > 0 ? [scopedArticles[0].id] : [];
+
+    setExpandedIds((prev) => {
+      if (prev.length === nextIds.length && prev.every((id, idx) => id === nextIds[idx])) {
+        return prev;
+      }
+      return nextIds;
+    });
   }, [slug, scopedArticles]);
 
   useEffect(() => {

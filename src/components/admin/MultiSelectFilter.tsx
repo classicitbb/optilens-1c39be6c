@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Check } from "lucide-react";
 import { fieldsMatch } from "@/lib/wildcardMatch";
 
@@ -18,20 +19,48 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Set<string>>(new Set(selected));
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 200 });
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const updateMenuPosition = () => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuStyle({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: Math.max(200, rect.width),
+    });
+  };
 
   // Sync draft when opening
   useEffect(() => {
-    if (open) setDraft(new Set(selected));
-  }, [open]);
+    if (open) {
+      setDraft(new Set(selected));
+      updateMenuPosition();
+    }
+  }, [open, selected]);
 
   useEffect(() => {
+    if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const clickedTrigger = !!ref.current?.contains(target);
+      const clickedMenu = !!menuRef.current?.contains(target);
+      if (!clickedTrigger && !clickedMenu) setOpen(false);
     };
+
+    const reposition = () => updateMenuPosition();
+
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
+  }, [open]);
 
   const filtered = useMemo(() => {
     if (!search) return options;
@@ -75,10 +104,17 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
         <ChevronDown className="h-3 w-3" />
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
-          className="absolute top-full left-0 mt-1 rounded border shadow-lg z-50 min-w-[200px] max-h-[320px] flex flex-col"
-          style={{ background: "hsl(0 0% 100%)", borderColor: "hsl(215 15% 85%)" }}
+          ref={menuRef}
+          className="fixed rounded border shadow-lg z-[140] max-h-[320px] flex flex-col"
+          style={{
+            background: "hsl(0 0% 100%)",
+            borderColor: "hsl(215 15% 85%)",
+            top: menuStyle.top,
+            left: menuStyle.left,
+            minWidth: menuStyle.width,
+          }}
         >
           {options.length > 8 && (
             <div className="p-1.5 border-b" style={{ borderColor: "hsl(215 15% 90%)" }}>
@@ -97,6 +133,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
             <label
               className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-50/60 border-b"
               style={{ borderColor: "hsl(215 15% 92%)" }}
+              onClick={selectAll}
             >
               <span
                 className="flex items-center justify-center h-3.5 w-3.5 rounded border"
@@ -147,7 +184,8 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
               OK
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
