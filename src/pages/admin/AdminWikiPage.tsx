@@ -28,16 +28,14 @@ const AdminWikiPage = () => {
   const [editingArticle, setEditingArticle] = useState<any>(null);
 
   const editableCategories = useMemo<WikiCategory[]>(() => {
-    return dbHeadings
-      .map((heading) => ({
-        id: heading.slug,
-        title: heading.title,
-        icon: BookOpen,
-        articles: dbArticles
-          .filter((article) => (article.category || "") === heading.slug)
-          .map((article) => ({ id: article.id, title: article.title, content: article.content })),
-      }))
-      .filter((category) => category.articles.length > 0);
+    return dbHeadings.map((heading) => ({
+      id: heading.slug,
+      title: heading.title,
+      icon: BookOpen,
+      articles: dbArticles
+        .filter((article) => (article.category || "") === heading.slug)
+        .map((article) => ({ id: article.id, title: article.title, content: article.content })),
+    }));
   }, [dbArticles, dbHeadings]);
 
   const allHeadings = useMemo(() => {
