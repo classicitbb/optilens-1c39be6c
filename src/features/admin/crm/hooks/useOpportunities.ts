@@ -140,6 +140,19 @@ export const useUpdateOpportunityStage = () => {
           payload: { stage, source: "stage_transition", opportunityTitle: opp.title },
         } as any);
       if (activityErr) throw activityErr;
+
+      if (stage === "won" || stage === "lost") {
+        try {
+          await supabase.from("lead_scoring_outcomes" as any).insert({
+            contact_id: opp.contact_id,
+            opportunity_id: id,
+            outcome_stage: stage,
+            metadata: { source: "crm_pipeline_stage_transition", opportunityTitle: opp.title },
+          } as any);
+        } catch {
+          // silently ignore conversion logging failures
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["crm-opportunities"] });

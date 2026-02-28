@@ -8,6 +8,7 @@ export type LeadCandidate = {
   google_rating?: number | null;
   google_reviews_count?: number | null;
   score?: number;
+  lead_score_breakdown?: Record<string, { points: number; evidence: string[] }>;
 };
 
 export interface ProviderSearchParams {
