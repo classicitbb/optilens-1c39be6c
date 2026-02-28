@@ -51,7 +51,7 @@ import LeadsAiAssistantPage from "./pages/admin/leads/LeadsAiAssistantPage";
 import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
 import CrmPipelinePage from "./pages/admin/crm/CrmPipelinePage";
 import CrmActivitiesPage from "./pages/admin/crm/CrmActivitiesPage";
-import DashboardPage from "./pages/admin/DashboardPage";
+import CrmDashboardPage from "./pages/admin/crm/CrmDashboardPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
@@ -141,7 +141,7 @@ const App = () => (
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
-                <Route path="crm/dashboard" element={<DashboardPage />} />
+                <Route path="crm/dashboard" element={<CrmDashboardPage />} />
                 <Route path="crm/pipeline" element={<CrmPipelinePage />} />
                 <Route path="crm/activities" element={<CrmActivitiesPage />} />
 
