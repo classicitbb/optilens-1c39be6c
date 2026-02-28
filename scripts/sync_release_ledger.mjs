@@ -149,7 +149,7 @@ const escapedWikiLedgerMarkdown = wikiLedgerMarkdown
   .replace(/`/g, "\\`")
   .replace(/\$\{/g, "\\${");
 
-const wikiRegex = /(id:\s*"major-update-ledger",[\s\S]*?content:\s*`)\s*[\s\S]*?(`,)/;
+const wikiRegex = /(id:\s*"major-update-ledger",[\s\S]*?content:\s*`)\s*[\s\S]*?(`,\n\s*\},)/;
 if (!wikiRegex.test(wikiRaw)) {
   throw new Error("Could not find major-update-ledger content block in src/data/wikiContent.ts.");
 }

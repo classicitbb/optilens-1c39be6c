@@ -39,7 +39,7 @@ const REQUIRED_SNIPPETS = [
   },
   {
     file: "src/pages/admin/leads/LeadFinderPage.tsx",
-    snippets: ["Lead Finder", "Find 50 Leads"],
+    snippets: ["Lead Finder", "Run Search"],
   },
   {
     file: "src/pages/admin/crm/CrmPipelinePage.tsx",
