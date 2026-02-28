@@ -27,3 +27,24 @@ export const canViewContextSlug = (
   const feature = contextSlugToFeature(contextSlug);
   return feature ? canView(feature) : false;
 };
+
+const WIKI_CATEGORY_FEATURE_OVERRIDES: Record<string, Feature> = {
+  "release-ledger": "wiki",
+  "getting-started": "wiki",
+  "pricing-app": "catalog",
+  "sales-app": "quotations",
+  "contacts-app": "contacts",
+  "leads-app": "crm",
+  "crm-app": "crm",
+  "website-app": "content",
+  "knowledge-app": "wiki",
+  "settings-app": "roles",
+};
+
+export const canViewWikiCategory = (
+  categoryId: string,
+  canView: (feature: Feature) => boolean
+): boolean => {
+  const feature = WIKI_CATEGORY_FEATURE_OVERRIDES[categoryId] ?? "wiki";
+  return canView(feature);
+};

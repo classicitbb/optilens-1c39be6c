@@ -13,6 +13,7 @@ interface WikiSidebarProps {
   onSearchChange: (value: string) => void;
   canEdit?: boolean;
   onAddHeading?: (title: string) => void | Promise<void>;
+  isCategoryVisible?: (categoryId: string) => boolean;
 }
 
 const WikiSidebar = ({
@@ -23,8 +24,9 @@ const WikiSidebar = ({
   onSearchChange,
   canEdit,
   onAddHeading,
+  isCategoryVisible,
 }: WikiSidebarProps) => {
-  const displayCategories = categories.filter((category) => category.articles.length > 0);
+  const displayCategories = categories.filter((category) => category.articles.length > 0 && (isCategoryVisible ? isCategoryVisible(category.id) : true));
   const [openCategories, setOpenCategories] = useState<Set<string>>(() => {
     const s = new Set<string>();
     for (const cat of displayCategories) {
