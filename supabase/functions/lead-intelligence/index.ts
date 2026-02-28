@@ -8,6 +8,7 @@ import type { LeadCandidate, ProviderAdapter } from "./providers/types.ts";
 import { whatsappBusinessSignalsProvider } from "./providers/whatsappBusinessSignals.ts";
 import { yahooProvider } from "./providers/yahoo.ts";
 import { yellowPagesProvider } from "./providers/yellowPages.ts";
+import { generateSearchPlan, type AutopilotConstraints } from "./strategy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,29 @@ type ProviderTelemetry = {
   errorCode: string | null;
 };
 
+
+
+type PlannerDiagnostics = {
+  mode: "manual" | "autopilot";
+  rankedIntents: Array<{
+    rank: number;
+    score: number;
+    searchIntent: string;
+    query: string;
+    industry: string;
+    channelHints: string[];
+    rationale: string[];
+  }>;
+  selectedIntent: {
+    rank: number;
+    score: number;
+    searchIntent: string;
+    query: string;
+    industry: string;
+    channelHints: string[];
+    rationale: string[];
+  } | null;
+};
 type BlockedIntentCategory = "illegal" | "exploitative_vulnerability" | "coercive_abusive_targeting";
 
 type ComplianceValidationResult = {
@@ -188,16 +212,23 @@ serve(async (req) => {
       });
     }
 
-    const { query, country, cities, globalSearch, includeDiagnostics } = await req.json();
-    const searchQuery = typeof query === "string" && query.trim().length > 0 ? query.trim() : "optical store";
+    const { query, country, cities, globalSearch, includeDiagnostics, mode, constraints } = await req.json();
+    const searchMode: "manual" | "autopilot" = mode === "manual" ? "manual" : "autopilot";
+    const autopilotConstraints = (constraints ?? {}) as AutopilotConstraints;
+    const fallbackQuery = typeof query === "string" && query.trim().length > 0 ? query.trim() : "optical store";
 
-    const compliance = validateTargetingInput(searchQuery);
+    const planningResult = await generateSearchPlan(supabaseClient, autopilotConstraints);
+    const plannedQuery = searchMode === "autopilot"
+      ? planningResult.selectedIntent?.query ?? fallbackQuery
+      : fallbackQuery;
+
+    const compliance = validateTargetingInput(plannedQuery);
     if (compliance.blocked) {
       await logBlockedLeadEvent(supabaseClient, {
         source: "lead_intelligence",
         blocked_category: compliance.category,
         matched_term: compliance.matchedTerm,
-        query: searchQuery,
+        query: plannedQuery,
       });
       return new Response(JSON.stringify({
         error: formatComplianceError("Lead search request", compliance),
@@ -212,7 +243,7 @@ serve(async (req) => {
     const selectedCity = Array.isArray(cities) && cities.length > 0 ? cities[0] : undefined;
     const effectiveCountry = globalSearch ? undefined : country;
     const effectiveCity = globalSearch ? undefined : selectedCity;
-    const resolvedQuery = query || "optical store";
+    const resolvedQuery = plannedQuery;
 
     const providers: ProviderAdapter[] = [
       googlePlacesProvider,
@@ -240,8 +271,7 @@ serve(async (req) => {
       city: effectiveCity,
     });
 
-    let leads = await searchGooglePlaces(searchQuery, effectiveCountry, effectiveCity);
-    leads = await enrichFacebookInstagram(leads);
+    let leads = await enrichFacebookInstagram(providerLeads);
     leads = leads.map((lead) => ({ ...lead, score: scoreLead(lead) }));
 
     if (leads.length === 0) {
@@ -259,18 +289,42 @@ serve(async (req) => {
       providersUsed.push("fallback_model");
     }
 
+    const plannerDiagnostics: PlannerDiagnostics = {
+      mode: searchMode,
+      rankedIntents: planningResult.rankedIntents,
+      selectedIntent: planningResult.selectedIntent,
+    };
+
     const diagnostics = {
-      mode: globalSearch ? "global" : "country_city",
+      mode: searchMode,
+      scopeMode: globalSearch ? "global" : "country_city",
+      planner: plannerDiagnostics,
       providerStatus,
       providersUsed,
       providerTelemetry: telemetry,
       queryEcho: {
-        query: searchQuery,
+        query: plannedQuery,
         country: effectiveCountry,
         city: effectiveCity,
       },
       fetchedAt: new Date().toISOString(),
     };
+
+    try {
+      await supabaseClient.from("lead_search_runs" as any).insert({
+        mode: searchMode,
+        query_input: query ?? null,
+        strategy_constraints: autopilotConstraints,
+        strategy_ranked_intents: planningResult.rankedIntents,
+        selected_intent: planningResult.selectedIntent,
+        provider_scope: { globalSearch: !!globalSearch, country: effectiveCountry ?? null, city: effectiveCity ?? null },
+        providers_used: providersUsed,
+        provider_telemetry: telemetry,
+        leads_count: leads.length,
+      } as any);
+    } catch {
+      // silently ignore run persistence failures
+    }
 
     return new Response(JSON.stringify({ leads, diagnostics: includeDiagnostics ? diagnostics : null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
