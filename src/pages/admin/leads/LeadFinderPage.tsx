@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, MapPinned, Sparkles, Save, Globe2, ActivitySquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,22 @@ const LeadFinderPage = () => {
   const smartBatch = useMemo(() => [...filteredLeads].sort((a, b) => b.score - a.score).slice(0, 20), [filteredLeads]);
   const displayLeads = smartBatch.length > 0 ? smartBatch : filteredLeads;
 
-  const runSearch = () => finder.mutate({ query, country, cities: [city], globalSearch });
+  const runSearch = async () => {
+    try {
+      await finder.mutateAsync({ query, country, cities: [city], globalSearch });
+    } catch (e: any) {
+      toast({
+        title: "Search failed",
+        description: e?.message || "Unable to run lead search right now.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!finder.data?.warning) return;
+    toast({ title: "Search provider unavailable", description: finder.data.warning });
+  }, [finder.data?.warning, toast]);
 
   return (
     <div className="space-y-4">
@@ -123,6 +138,12 @@ const LeadFinderPage = () => {
               )}
             </CardContent>
           </Card>
+
+          {finder.data?.warning ? (
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {finder.data.warning}
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
             {displayLeads.map((lead) => {

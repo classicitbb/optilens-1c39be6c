@@ -17,6 +17,7 @@ interface CreateOpportunityInput {
   opportunityTitle: string;
   country?: string;
   city?: string;
+  state?: string;
   stage?: Opportunity["stage"];
   volumeTier?: string;
   estimatedValue?: number;
@@ -57,6 +58,7 @@ const upsertOpportunity = async (input: CreateOpportunityInput) => {
     name: input.contactName,
     country: input.country ?? null,
     city: input.city ?? null,
+    state: input.state ?? null,
     status: "lead",
   };
 

@@ -29,6 +29,7 @@ export interface LeadFinderDiagnostics {
 export interface LeadFinderResult {
   leads: LeadRecord[];
   diagnostics: LeadFinderDiagnostics | null;
+  warning?: string | null;
 }
 
 export const useLeadFinder = () => {
@@ -37,7 +38,29 @@ export const useLeadFinder = () => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
         body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true },
       });
-      if (error) throw error;
+
+      if (error) {
+        const message = `${error.message ?? ""}`;
+        const unavailable = message.includes("Failed to send a request to the Edge Function") || message.includes("FunctionsFetchError") || message.includes("404");
+        if (!unavailable) throw error;
+        return {
+          leads: [],
+          diagnostics: {
+            mode: globalSearch ? "global" : "country_city",
+            providerStatus: {
+              googlePlacesConfigured: false,
+              facebookGraphConfigured: false,
+              instagramGraphConfigured: false,
+              yellowPagesConfigured: false,
+            },
+            providersUsed: [],
+            queryEcho: { query, country, city: cities?.[0] },
+            fetchedAt: new Date().toISOString(),
+          },
+          warning: "Live provider search is temporarily unavailable. Confirm Edge Function deployment and provider keys.",
+        };
+      }
+
       const leads = ((data?.leads ?? []) as any[]).map((lead) => ({
         id: lead.id ?? crypto.randomUUID(),
         name: lead.name,
@@ -56,6 +79,7 @@ export const useLeadFinder = () => {
       return {
         leads,
         diagnostics: (data?.diagnostics ?? null) as LeadFinderDiagnostics | null,
+        warning: null,
       };
     },
   });
