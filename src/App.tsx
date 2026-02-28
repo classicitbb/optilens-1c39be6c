@@ -55,6 +55,7 @@ import DashboardPage from "./pages/admin/DashboardPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
+import AdminHomeRedirect from "./components/admin/AdminHomeRedirect";
 
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
@@ -98,7 +99,7 @@ const App = () => (
 
               {/* Admin — all apps share AdminLayout */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
-                <Route index element={<Navigate to="/admin/pricing/catalog" replace />} />
+                <Route index element={<AdminHomeRedirect />} />
 
                 {/* ═══ Pricing App ═══ */}
                 <Route path="pricing" element={<Navigate to="/admin/pricing/catalog" replace />} />
