@@ -117,7 +117,16 @@ const AdminSidebar = () => {
                 <>
                   <span>{item.label}</span>
                   {item.route === "/admin/settings/integrations" && (
-                    <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4">
+                    <Badge
+                      variant="outline"
+                      className={`ml-auto text-[10px] py-0 h-4 ${
+                        integrationStatus === "connected"
+                          ? "text-green-400 border-green-400/50"
+                          : integrationStatus === "error"
+                            ? "text-red-400 border-red-400/50"
+                            : ""
+                      }`}
+                    >
                       {integrationStatusLabel}
                     </Badge>
                   )}
