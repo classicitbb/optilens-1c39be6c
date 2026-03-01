@@ -184,8 +184,33 @@ export default function IntegrationsPage() {
         p_credential_value: credential || null,
         p_test_connection: testConnection,
       };
-      const { error } = await supabase.rpc("upsert_integration_connection" as never, payload as never);
-      if (error) throw error;
+
+      const rpcAttempts: Array<{ fn: string; args: Record<string, unknown> }> = [
+        { fn: "upsert_integration_connection", args: payload },
+        { fn: "upsert_integration_connection_with_secret", args: payload },
+        {
+          fn: "upsert_integration_connection_with_secret",
+          args: {
+            ...payload,
+            p_test_connection: undefined,
+          },
+        },
+      ];
+
+      let lastError: PostgrestError | null = null;
+      for (const attempt of rpcAttempts) {
+        const { error } = await supabase.rpc(attempt.fn as never, attempt.args as never);
+        if (!error) return;
+        lastError = error;
+
+        const isMissingFunctionError = /Could not find the function/i.test(error.message);
+        if (!isMissingFunctionError) {
+          throw error;
+        }
+      }
+
+      if (lastError) throw lastError;
+      throw new Error("Integration upsert failed without an explicit error.");
     },
     onSuccess: (_, testConnection) => {
       qc.invalidateQueries({ queryKey: ["integration-connection", "odoo"] });
