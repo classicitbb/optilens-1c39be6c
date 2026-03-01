@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Index from "./pages/Index";
@@ -84,6 +84,12 @@ const RedirectToProposals = () => {
   return <Navigate to={target} replace state={location.state} />;
 };
 
+const CustomerShell = () => (
+  <CartProvider>
+    <Outlet />
+  </CartProvider>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -92,8 +98,8 @@ const App = () => (
       <GlobalErrorLogger />
       <BrowserRouter>
         <AuthProvider>
-          <CartProvider>
-            <Routes>
+          <Routes>
+            <Route element={<CustomerShell />}>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
@@ -104,6 +110,19 @@ const App = () => (
               <Route path="/privacy-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
               <Route path="/terms" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
               <Route path="/return-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
+
+
+              {/* ZenVue brand microsite */}
+              <Route path="/zenvue" element={<ProtectedRoute><ZenvueLayout /></ProtectedRoute>}>
+                <Route index element={<ZenvueHome />} />
+                <Route path="brilliance" element={<ZenvueBrilliance />} />
+                <Route path="single-vision" element={<ZenvueSingleVision />} />
+                <Route path="sundun" element={<ZenvueSunDun />} />
+                <Route path="darkun" element={<ZenvueDarkun />} />
+                <Route path="compare" element={<ZenvueCompare />} />
+                <Route path="wholesale" element={<ZenvueWholesale />} />
+              </Route>
+            </Route>
 
               {/* Admin — all apps share AdminLayout */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
@@ -219,20 +238,8 @@ const App = () => (
                 <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
               </Route>
 
-              {/* ZenVue brand microsite */}
-              <Route path="/zenvue" element={<ProtectedRoute><ZenvueLayout /></ProtectedRoute>}>
-                <Route index element={<ZenvueHome />} />
-                <Route path="brilliance" element={<ZenvueBrilliance />} />
-                <Route path="single-vision" element={<ZenvueSingleVision />} />
-                <Route path="sundun" element={<ZenvueSunDun />} />
-                <Route path="darkun" element={<ZenvueDarkun />} />
-                <Route path="compare" element={<ZenvueCompare />} />
-                <Route path="wholesale" element={<ZenvueWholesale />} />
-              </Route>
-
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </CartProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
