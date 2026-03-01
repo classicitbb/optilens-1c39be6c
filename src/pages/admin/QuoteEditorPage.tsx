@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
 import QuotePdfExport from "@/components/admin/QuotePdfExport";
+import { resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { PrintSettings } from "@/features/admin/print/types";
 import RxQuoteWizard from "@/components/admin/RxQuoteWizard";
 
@@ -63,7 +64,7 @@ const QuoteEditorPage = () => {
   const [headerForm, setHeaderForm] = useState<Partial<Quote>>({});
   const [emailError, setEmailError] = useState("");
   const [showInternalExport, setShowInternalExport] = useState(false);
-  const [printSettings, setPrintSettings] = useState<PrintSettings>({ paperSize: "A4", orientation: "portrait" });
+  const [printSettings, setPrintSettings] = useState<PrintSettings>(resolvePrintSettings({ paperSize: "A4", orientation: "portrait" }));
 
   // STOCK-only state
   const [overrideDialogLine, setOverrideDialogLine] = useState<QuoteLine | null>(null);
@@ -248,6 +249,18 @@ const QuoteEditorPage = () => {
             <SelectTrigger className="h-6 w-[110px] text-[10px]"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
           </Select>
+          <Select value={printSettings.marginPreset ?? "normal"} onValueChange={(value: "narrow" | "normal" | "wide") => setPrintSettings((prev) => ({ ...prev, marginPreset: value }))}>
+            <SelectTrigger className="h-6 w-[92px] text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="narrow">Narrow</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="wide">Wide</SelectItem></SelectContent>
+          </Select>
+          <Input type="number" min={0} max={60} step={1} value={printSettings.marginXMm ?? ""} onChange={(e) => {
+            const parsed = Number(e.target.value);
+            setPrintSettings((prev) => resolvePrintSettings({ ...prev, marginXMm: Number.isFinite(parsed) ? parsed : undefined }));
+          }} className="h-6 w-[68px] text-[10px]" placeholder="H mm" />
+          <Input type="number" min={0} max={60} step={1} value={printSettings.marginYMm ?? ""} onChange={(e) => {
+            const parsed = Number(e.target.value);
+            setPrintSettings((prev) => resolvePrintSettings({ ...prev, marginYMm: Number.isFinite(parsed) ? parsed : undefined }));
+          }} className="h-6 w-[68px] text-[10px]" placeholder="V mm" />
           <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={showInternalExport} onChange={e => setShowInternalExport(e.target.checked)} className="h-3 w-3 rounded" />
             Internal

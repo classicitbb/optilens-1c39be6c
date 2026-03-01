@@ -1,8 +1,9 @@
 import { useState, useRef, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Printer } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { buildPrintStyles, resolvePrintSettings } from "@/features/admin/print/printStyles";
+import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
 
 interface PdfPreviewShellProps {
@@ -29,6 +30,7 @@ const PdfPreviewShell = ({
   const [visible, setVisible] = useState(defaultVisible);
   const [printSettings, setPrintSettings] = useState<PrintSettings>(resolvePrintSettings(defaultPrintSettings));
   const printRef = useRef<HTMLDivElement>(null);
+  const contentArea = getPrintableContentAreaMm(printSettings);
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -43,6 +45,11 @@ const PdfPreviewShell = ({
     setTimeout(() => {
       printWindow.print();
     }, 300);
+  };
+
+  const updateMargin = (field: "marginXMm" | "marginYMm", value: string) => {
+    const parsed = Number(value);
+    setPrintSettings((prev) => resolvePrintSettings({ ...prev, [field]: Number.isFinite(parsed) ? parsed : undefined }));
   };
 
   return (
@@ -84,6 +91,27 @@ const PdfPreviewShell = ({
                 <SelectItem value="landscape">Landscape</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select
+              value={printSettings.marginPreset ?? "normal"}
+              onValueChange={(value: "narrow" | "normal" | "wide") => setPrintSettings((prev) => ({ ...prev, marginPreset: value }))}
+            >
+              <SelectTrigger className="h-7 w-[96px] text-xs"><SelectValue placeholder="Margin" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="narrow">Narrow</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="wide">Wide</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground">H</span>
+              <Input type="number" min={0} max={60} step={1} value={printSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground">V</span>
+              <Input type="number" min={0} max={60} step={1} value={printSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+            </div>
           </div>
 
           {showPrint && visible && (
@@ -93,7 +121,10 @@ const PdfPreviewShell = ({
             </Button>
           )}
         </div>
-        {headerRight}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground">Content {Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm</span>
+          {headerRight}
+        </div>
       </div>
 
       {visible && (

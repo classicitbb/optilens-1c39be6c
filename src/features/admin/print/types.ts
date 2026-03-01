@@ -8,6 +8,10 @@ export interface PrintSettings {
   paperSize: PrintPaperSize;
   orientation: PrintOrientation;
   marginPreset?: PrintMarginPreset;
+  /** Explicit horizontal margin in millimeters. Overrides `marginPreset` when set. */
+  marginXMm?: number;
+  /** Explicit vertical margin in millimeters. Overrides `marginPreset` when set. */
+  marginYMm?: number;
   scale?: number;
 }
 

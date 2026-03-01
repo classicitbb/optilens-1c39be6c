@@ -1,8 +1,14 @@
 import { DEFAULT_PRINT_SETTINGS, PrintSettings } from "@/features/admin/print/types";
 
-const PAGE_WIDTH_MM: Record<PrintSettings["paperSize"], { portrait: number; landscape: number }> = {
-  A4: { portrait: 210, landscape: 297 },
-  Letter: { portrait: 216, landscape: 279 },
+const PAGE_SIZE_MM: Record<PrintSettings["paperSize"], { portrait: { width: number; height: number }; landscape: { width: number; height: number } }> = {
+  A4: {
+    portrait: { width: 210, height: 297 },
+    landscape: { width: 297, height: 210 },
+  },
+  Letter: {
+    portrait: { width: 216, height: 279 },
+    landscape: { width: 279, height: 216 },
+  },
 };
 
 const PAGE_MARGINS_MM: Record<NonNullable<PrintSettings["marginPreset"]>, number> = {
@@ -16,28 +22,55 @@ const clampScale = (value: number | undefined) => {
   return Math.min(1.25, Math.max(0.6, value));
 };
 
+const clampMargin = (value: number | undefined, fallback: number) => {
+  if (value == null || Number.isNaN(value)) return fallback;
+  return Math.min(60, Math.max(0, value));
+};
+
 export const resolvePrintSettings = (settings?: Partial<PrintSettings>): PrintSettings => ({
   ...DEFAULT_PRINT_SETTINGS,
   ...settings,
   scale: clampScale(settings?.scale ?? DEFAULT_PRINT_SETTINGS.scale),
 });
 
-export const getPrintableWidthMm = (settings?: Partial<PrintSettings>) => {
+export const getResolvedMarginsMm = (settings?: Partial<PrintSettings>) => {
   const resolved = resolvePrintSettings(settings);
-  const pageWidth = PAGE_WIDTH_MM[resolved.paperSize][resolved.orientation];
-  const margin = PAGE_MARGINS_MM[resolved.marginPreset ?? "normal"];
-  return Math.max(120, (pageWidth - margin * 2) * (resolved.scale ?? 1));
+  const presetMargin = PAGE_MARGINS_MM[resolved.marginPreset ?? "normal"];
+
+  return {
+    marginX: clampMargin(resolved.marginXMm, presetMargin),
+    marginY: clampMargin(resolved.marginYMm, presetMargin),
+  };
 };
+
+export const getPrintableContentAreaMm = (settings?: Partial<PrintSettings>) => {
+  const resolved = resolvePrintSettings(settings);
+  const page = PAGE_SIZE_MM[resolved.paperSize][resolved.orientation];
+  const { marginX, marginY } = getResolvedMarginsMm(resolved);
+
+  const contentWidth = Math.max(120, (page.width - marginX * 2) * (resolved.scale ?? 1));
+  const contentHeight = Math.max(80, page.height - marginY * 2);
+
+  return {
+    pageWidth: page.width,
+    pageHeight: page.height,
+    marginX,
+    marginY,
+    contentWidth,
+    contentHeight,
+  };
+};
+
+export const getPrintableWidthMm = (settings?: Partial<PrintSettings>) => getPrintableContentAreaMm(settings).contentWidth;
 
 export const buildPrintStyles = (settings?: Partial<PrintSettings>) => {
   const resolved = resolvePrintSettings(settings);
-  const margin = PAGE_MARGINS_MM[resolved.marginPreset ?? "normal"];
-  const printableWidth = getPrintableWidthMm(resolved);
+  const { marginX, marginY, contentWidth } = getPrintableContentAreaMm(resolved);
 
   return `
     @page {
       size: ${resolved.paperSize} ${resolved.orientation};
-      margin: ${margin}mm;
+      margin: ${marginY}mm ${marginX}mm;
     }
 
     * { box-sizing: border-box; }
@@ -55,7 +88,7 @@ export const buildPrintStyles = (settings?: Partial<PrintSettings>) => {
 
     .print-root {
       width: 100%;
-      max-width: ${printableWidth.toFixed(2)}mm;
+      max-width: ${contentWidth.toFixed(2)}mm;
       margin: 0 auto;
       transform-origin: top center;
       transform: scale(${resolved.scale ?? 1});
