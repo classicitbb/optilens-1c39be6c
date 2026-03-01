@@ -1,30 +1,10 @@
-import {
-  useEffect,
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-  useState,
-} from "react";
+import { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Download } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  buildPrintStyles,
-  getContentBoxDimensionsPx,
-  getPageDimensionsPx,
-  resolvePrintSettings,
-} from "@/features/admin/print/printStyles";
-import {
-  PrintOrientation,
-  PrintPaperSize,
-  PrintSettings,
-} from "@/features/admin/print/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
+import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
 import type { Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
 
 interface QuotePdfExportProps {
@@ -668,10 +648,19 @@ export const QuotePreviewPanel = ({
     return () => observer.disconnect();
   }, [localPrintSettings]);
 
+  useEffect(() => {
+    setLocalPrintSettings(resolvePrintSettings(printSettings));
+  }, [printSettings]);
+
   const handleSettingsUpdate = (next: Partial<PrintSettings>) => {
     const resolved = resolvePrintSettings({ ...localPrintSettings, ...next });
     setLocalPrintSettings(resolved);
     onPrintSettingsChange?.(resolved);
+  };
+
+  const updateMargin = (field: "marginXMm" | "marginYMm", value: string) => {
+    const parsed = Number(value);
+    handleSettingsUpdate({ [field]: Number.isFinite(parsed) ? parsed : undefined });
   };
   const cleanInternalNotes = stripFrameTag(quote.notes_internal);
   const formatDate = (d?: string | null) => {
@@ -688,6 +677,7 @@ export const QuotePreviewPanel = ({
   const lensLines = lines.filter((l) => l.line_type === "Lens");
 
   const fmt = (v: number | null | undefined) => (v != null ? v.toString() : "");
+  const previewArea = getPrintableContentAreaMm(localPrintSettings);
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm">
@@ -703,20 +693,10 @@ export const QuotePreviewPanel = ({
         </span>
       </div>
 
-      <div className="flex items-center justify-end gap-2 px-3 py-2 border-b border-border bg-muted/20 no-print">
-        <Select
-          value={localPrintSettings.paperSize}
-          onValueChange={(value: PrintPaperSize) =>
-            handleSettingsUpdate({ paperSize: value })
-          }
-        >
-          <SelectTrigger className="h-7 w-[88px] text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="A4">A4</SelectItem>
-            <SelectItem value="Letter">Letter</SelectItem>
-          </SelectContent>
+      <div className="flex items-center justify-end gap-2 px-3 py-2 border-b border-border bg-muted/20 no-print flex-wrap">
+        <Select value={localPrintSettings.paperSize} onValueChange={(value: PrintPaperSize) => handleSettingsUpdate({ paperSize: value })}>
+          <SelectTrigger className="h-7 w-[88px] text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
         </Select>
         <Select
           value={localPrintSettings.orientation}
@@ -732,6 +712,22 @@ export const QuotePreviewPanel = ({
             <SelectItem value="landscape">Landscape</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={localPrintSettings.marginPreset ?? "normal"} onValueChange={(value: "narrow" | "normal" | "wide") => handleSettingsUpdate({ marginPreset: value })}>
+          <SelectTrigger className="h-7 w-[96px] text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="narrow">Narrow</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="wide">Wide</SelectItem></SelectContent>
+        </Select>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>H</span>
+          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>V</span>
+          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+        </div>
+      </div>
+
+      <div className="px-3 py-1 text-[10px] text-muted-foreground border-b border-border bg-muted/10">
+        Preview content area: {Math.round(previewArea.contentWidth)}×{Math.round(previewArea.contentHeight)}mm
       </div>
 
       <div

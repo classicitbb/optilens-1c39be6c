@@ -1,24 +1,10 @@
 import { useEffect, useState, useRef, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Printer } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  buildPrintStyles,
-  getContentBoxDimensionsPx,
-  getPageDimensionsPx,
-  resolvePrintSettings,
-} from "@/features/admin/print/printStyles";
-import {
-  PrintOrientation,
-  PrintPaperSize,
-  PrintSettings,
-} from "@/features/admin/print/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
+import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
 
 interface PdfPreviewShellProps {
   title: string;
@@ -46,27 +32,7 @@ const PdfPreviewShell = ({
     resolvePrintSettings(defaultPrintSettings),
   );
   const printRef = useRef<HTMLDivElement>(null);
-  const paneRef = useRef<HTMLDivElement>(null);
-  const [previewScale, setPreviewScale] = useState(1);
-
-  useEffect(() => {
-    const pane = paneRef.current;
-    if (!pane || !visible) return;
-
-    const updateScale = () => {
-      const page = getPageDimensionsPx(printSettings);
-      const availableWidth = Math.max(1, pane.clientWidth - 24);
-      const availableHeight = Math.max(1, pane.clientHeight - 24);
-      setPreviewScale(
-        Math.min(availableWidth / page.width, availableHeight / page.height),
-      );
-    };
-
-    updateScale();
-    const observer = new ResizeObserver(updateScale);
-    observer.observe(pane);
-    return () => observer.disconnect();
-  }, [printSettings, visible]);
+  const contentArea = getPrintableContentAreaMm(printSettings);
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -82,6 +48,11 @@ const PdfPreviewShell = ({
     setTimeout(() => {
       printWindow.print();
     }, 300);
+  };
+
+  const updateMargin = (field: "marginXMm" | "marginYMm", value: string) => {
+    const parsed = Number(value);
+    setPrintSettings((prev) => resolvePrintSettings({ ...prev, [field]: Number.isFinite(parsed) ? parsed : undefined }));
   };
 
   return (
@@ -151,6 +122,27 @@ const PdfPreviewShell = ({
                 <SelectItem value="landscape">Landscape</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select
+              value={printSettings.marginPreset ?? "normal"}
+              onValueChange={(value: "narrow" | "normal" | "wide") => setPrintSettings((prev) => ({ ...prev, marginPreset: value }))}
+            >
+              <SelectTrigger className="h-7 w-[96px] text-xs"><SelectValue placeholder="Margin" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="narrow">Narrow</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="wide">Wide</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground">H</span>
+              <Input type="number" min={0} max={60} step={1} value={printSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground">V</span>
+              <Input type="number" min={0} max={60} step={1} value={printSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+            </div>
           </div>
 
           {showPrint && visible && (
@@ -165,7 +157,10 @@ const PdfPreviewShell = ({
             </Button>
           )}
         </div>
-        {headerRight}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground">Content {Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm</span>
+          {headerRight}
+        </div>
       </div>
 
       {visible && (

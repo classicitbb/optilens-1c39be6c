@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
 import QuotePdfExport, { QuotePreviewPanel, QuotePdfExportHandle } from "@/components/admin/QuotePdfExport";
+import { resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { PrintSettings } from "@/features/admin/print/types";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -622,7 +623,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   // PDF ref for "Print & Save"
   const pdfRef = useRef<QuotePdfExportHandle | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [printSettings, setPrintSettings] = useState<PrintSettings>({ paperSize: "A4", orientation: "portrait" });
+  const [printSettings, setPrintSettings] = useState<PrintSettings>(resolvePrintSettings({ paperSize: "A4", orientation: "portrait" }));
 
   // Derived frame data object for PDF/preview
   const frameDataForPdf = (frameRef || frameModel || frameA || frameB) ? {
