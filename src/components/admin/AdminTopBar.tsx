@@ -20,6 +20,7 @@ import GlobalSearch from "./GlobalSearch";
 import HelpPanel from "./HelpPanel";
 import AppLauncher from "./AppLauncher";
 import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
+import NotificationBell from "./NotificationBell";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -211,15 +212,8 @@ const AdminTopBar = () => {
               </Button>
             )}
 
-            {/* Bell */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" disabled>
-                  <Bell className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Notifications — coming soon</span></TooltipContent>
-            </Tooltip>
+            {/* Notifications Bell */}
+            <NotificationBell />
 
             <Tooltip>
               <TooltipTrigger asChild>
@@ -239,22 +233,7 @@ const AdminTopBar = () => {
               <TooltipContent side="bottom"><span className="text-xs">Toggle theme</span></TooltipContent>
             </Tooltip>
 
-            {/* Lovable link — admin only */}
-            {realRole === "admin" && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent side="bottom"><span className="text-xs">Edit with Lovable</span></TooltipContent>
-              </Tooltip>
-            )}
+            {/* Lovable link removed from toolbar — now in profile dropdown only */}
           </TooltipProvider>
 
           {/* User name */}
@@ -293,18 +272,6 @@ const AdminTopBar = () => {
                   </a>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
-                <DropdownMenuRadioItem value="light">
-                  <Sun className="mr-2 h-4 w-4" /> Theme · Light
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="dark">
-                  <Moon className="mr-2 h-4 w-4" /> Theme · Dark
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="system">
-                  <Monitor className="mr-2 h-4 w-4" /> Theme · System
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
               <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
                 <DropdownMenuRadioItem value="light">

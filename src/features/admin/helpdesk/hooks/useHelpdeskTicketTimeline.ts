@@ -18,7 +18,7 @@ export const useHelpdeskTicketTimeline = (ticketId?: string) => {
     queryFn: async () => {
       if (!ticketId) return [] as HelpdeskTicketEvent[];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("helpdesk_ticket_events")
         .select("id,ticket_id,event_type,actor_user_id,payload,created_at")
         .eq("ticket_id", ticketId)

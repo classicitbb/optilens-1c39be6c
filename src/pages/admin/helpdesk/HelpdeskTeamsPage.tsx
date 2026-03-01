@@ -36,8 +36,8 @@ const HelpdeskTeamsPage = () => {
     queryKey: ["helpdesk", "teams"],
     enabled: canViewTeams,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("helpdesk_teams" as never)
+      const { data, error } = await (supabase as any)
+        .from("helpdesk_teams")
         .select("id,name,assignment_mode,visibility,is_active,created_at")
         .order("name");
       if (error) throw error;
@@ -49,7 +49,7 @@ const HelpdeskTeamsPage = () => {
     mutationFn: async () => {
       const name = form.name.trim();
       if (!name) throw new Error("Team name is required.");
-      const { error } = await supabase.from("helpdesk_teams" as never).insert({
+      const { error } = await (supabase as any).from("helpdesk_teams").insert({
         name,
         assignment_mode: form.assignmentMode,
         visibility: form.visibility,
@@ -68,7 +68,7 @@ const HelpdeskTeamsPage = () => {
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase.from("helpdesk_teams" as never).update({ is_active: !isActive }).eq("id", id);
+      const { error } = await (supabase as any).from("helpdesk_teams").update({ is_active: !isActive }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

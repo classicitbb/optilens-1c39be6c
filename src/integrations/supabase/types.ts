@@ -1210,6 +1210,280 @@ export type Database = {
           },
         ]
       }
+      helpdesk_teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      helpdesk_ticket_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json | null
+          ticket_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          ticket_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helpdesk_ticket_stages: {
+        Row: {
+          created_at: string
+          id: string
+          is_closed: boolean
+          is_folded: boolean
+          name: string
+          sequence: number
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_closed?: boolean
+          is_folded?: boolean
+          name: string
+          sequence?: number
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_closed?: boolean
+          is_folded?: boolean
+          name?: string
+          sequence?: number
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      helpdesk_ticket_tag_rel: {
+        Row: {
+          id: string
+          tag_id: string
+          ticket_id: string
+        }
+        Insert: {
+          id?: string
+          tag_id: string
+          ticket_id: string
+        }
+        Update: {
+          id?: string
+          tag_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ticket_tag_rel_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_ticket_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_ticket_tag_rel_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helpdesk_ticket_tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          tenant_key: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          tenant_key?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_key?: string
+        }
+        Relationships: []
+      }
+      helpdesk_ticket_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      helpdesk_tickets: {
+        Row: {
+          assigned_at: string | null
+          closed_at: string | null
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          opened_at: string | null
+          owner_user_id: string | null
+          partner_contact_id: string | null
+          priority: number
+          source_channel: string
+          stage_id: string | null
+          team_id: string | null
+          tenant_key: string
+          ticket_number: string
+          ticket_type_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          opened_at?: string | null
+          owner_user_id?: string | null
+          partner_contact_id?: string | null
+          priority?: number
+          source_channel?: string
+          stage_id?: string | null
+          team_id?: string | null
+          tenant_key?: string
+          ticket_number: string
+          ticket_type_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          opened_at?: string | null
+          owner_user_id?: string | null
+          partner_contact_id?: string | null
+          priority?: number
+          source_channel?: string
+          stage_id?: string | null
+          team_id?: string | null
+          tenant_key?: string
+          ticket_number?: string
+          ticket_type_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_tickets_partner_contact_id_fkey"
+            columns: ["partner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_tickets_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_ticket_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_tickets_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_tickets_ticket_type_id_fkey"
+            columns: ["ticket_type_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_ticket_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           created_at: string

@@ -45,7 +45,7 @@ const HelpdeskTicketsPage = () => {
     queryKey: ["helpdesk", "teams", "options"],
     enabled: canViewTickets,
     queryFn: async () => {
-      const { data, error } = await supabase.from("helpdesk_teams" as never).select("id,name").eq("is_active", true).order("name");
+      const { data, error } = await (supabase as any).from("helpdesk_teams").select("id,name").eq("is_active", true).order("name");
       if (error) throw error;
       return (data ?? []) as TeamOption[];
     },
@@ -55,10 +55,8 @@ const HelpdeskTicketsPage = () => {
     queryKey: ["helpdesk", "stages", "options", teamId],
     enabled: canViewTickets,
     queryFn: async () => {
-      let query = supabase.from("helpdesk_ticket_stages" as never).select("id,name,is_closed,team_id").order("sequence");
-      if (teamId !== "all") {
-        query = query.or(`team_id.eq.${teamId},team_id.is.null`);
-      }
+      let query = (supabase as any).from("helpdesk_ticket_stages").select("id,name,is_closed").order("sequence");
+      // Stages are global (not team-specific), so no team filter needed
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as StageOption[];

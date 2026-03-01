@@ -49,7 +49,7 @@ const HelpdeskSlaPoliciesPage = () => {
     queryKey: ["helpdesk", "teams", "options"],
     enabled: canViewPolicies,
     queryFn: async () => {
-      const { data, error } = await supabase.from("helpdesk_teams" as never).select("id,name").eq("is_active", true).order("name");
+      const { data, error } = await (supabase as any).from("helpdesk_teams").select("id,name").eq("is_active", true).order("name");
       if (error) throw error;
       return (data ?? []) as TeamOption[];
     },
@@ -59,7 +59,7 @@ const HelpdeskSlaPoliciesPage = () => {
     queryKey: ["helpdesk", "stages", "options"],
     enabled: canViewPolicies,
     queryFn: async () => {
-      const { data, error } = await supabase.from("helpdesk_ticket_stages" as never).select("id,name").order("sequence");
+      const { data, error } = await (supabase as any).from("helpdesk_ticket_stages").select("id,name").order("sequence");
       if (error) throw error;
       return (data ?? []) as StageOption[];
     },
@@ -69,8 +69,8 @@ const HelpdeskSlaPoliciesPage = () => {
     queryKey: ["helpdesk", "sla-policies"],
     enabled: canViewPolicies,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("helpdesk_sla_policies" as never)
+      const { data, error } = await (supabase as any)
+        .from("helpdesk_sla_policies")
         .select("id,name,priority_filter,target_hours,active,team_id,target_stage_id,team:helpdesk_teams(id,name),target_stage:helpdesk_ticket_stages(id,name)")
         .order("name");
       if (error) throw error;
@@ -84,7 +84,7 @@ const HelpdeskSlaPoliciesPage = () => {
       if (!form.teamId) throw new Error("Team is required.");
       if (!form.targetStageId) throw new Error("Target stage is required.");
 
-      const { error } = await supabase.from("helpdesk_sla_policies" as never).insert({
+      const { error } = await (supabase as any).from("helpdesk_sla_policies").insert({
         name: form.name.trim(),
         team_id: form.teamId,
         target_stage_id: form.targetStageId,
@@ -106,7 +106,7 @@ const HelpdeskSlaPoliciesPage = () => {
 
   const togglePolicy = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from("helpdesk_sla_policies" as never).update({ active: !active }).eq("id", id);
+      const { error } = await (supabase as any).from("helpdesk_sla_policies").update({ active: !active }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
