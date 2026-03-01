@@ -21,10 +21,6 @@ import HelpPanel from "./HelpPanel";
 import AppLauncher from "./AppLauncher";
 import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-}
-
 const ROUTE_LABELS: [string, string][] = [
   ["/admin/pricing/publisher-old", "Pricing · Lens Catalog Builder"],
   ["/admin/pricing/publisher", "Pricing · Lens Catalog Builder"],
@@ -262,16 +258,6 @@ const AdminTopBar = () => {
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Help */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setHelpOpen(!helpOpen)}>
-                  <HelpCircle className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Help</span></TooltipContent>
-            </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>

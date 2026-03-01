@@ -26,7 +26,11 @@ function readSet(storageKey: string): Set<string> {
 
 function writeSet(storageKey: string, values: Set<string>) {
   if (!isBrowser) return;
-  window.localStorage.setItem(storageKey, JSON.stringify(Array.from(values)));
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(Array.from(values)));
+  } catch {
+    // Ignore storage write failures (private mode, quota exceeded, blocked policies).
+  }
 }
 
 export function useAdminNotifications() {
