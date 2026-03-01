@@ -11,11 +11,17 @@ const PAGE_SIZE_MM: Record<PrintSettings["paperSize"], { portrait: { width: numb
   },
 };
 
-const PAGE_MARGINS_MM: Record<NonNullable<PrintSettings["marginPreset"]>, number> = {
+const PAGE_MARGINS_MM: Record<
+  NonNullable<PrintSettings["marginPreset"]>,
+  number
+> = {
   narrow: 8,
   normal: 12,
   wide: 18,
 };
+
+const PX_PER_INCH = 96;
+const MM_PER_INCH = 25.4;
 
 const clampScale = (value: number | undefined) => {
   if (!value || Number.isNaN(value)) return 1;
