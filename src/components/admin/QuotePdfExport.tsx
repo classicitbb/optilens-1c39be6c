@@ -47,7 +47,29 @@ const stripFrameTag = (notes: string | null | undefined) => {
   return notes.replace(/\[\[FRAME:.*?\]\]\n?/s, "").trim();
 };
 
-const getQuoteDocumentStyles = (settings: PrintSettings) => `
+const getQuoteStyleMetrics = (settings: PrintSettings) => {
+  const sectionGapPx = settings.sectionGapPx ?? settings.sectionSpacing ?? 24;
+  const headingGapPx = settings.headingGapPx ?? 8;
+  const tableFontScale = settings.tableFontScale ?? settings.tableScale ?? 1;
+
+  return {
+    sectionGapPx,
+    headingGapPx,
+    tableFontScale,
+    tableHeaderPaddingY: 8 * tableFontScale,
+    tableHeaderPaddingX: 10 * tableFontScale,
+    tableHeaderFontSize: 10 * tableFontScale,
+    tableBodyPaddingY: 7 * tableFontScale,
+    tableBodyPaddingX: 10 * tableFontScale,
+    tableBodyFontSize: 11 * tableFontScale,
+    rxSectionGapPx: Math.round(sectionGapPx / 2),
+  };
+};
+
+const getQuoteDocumentStyles = (settings: PrintSettings) => {
+  const metrics = getQuoteStyleMetrics(settings);
+
+  return `
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; border-bottom: 3px solid #2b6cb0; padding-bottom: 20px; }
   .company-name { font-size: 22px; font-weight: 700; color: #2b6cb0; }
   .company-tagline { font-size: 10px; color: #718096; margin-top: 2px; }
@@ -55,17 +77,17 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => `
   .quote-number { font-size: 18px; font-weight: 700; }
   .quote-type { display: inline-block; background: #ebf4ff; color: #2b6cb0; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; margin-top: 4px; }
   .meta-row { font-size: 11px; color: #4a5568; margin-top: 3px; }
-  .section { margin-bottom: ${settings.sectionSpacing ?? 24}px; }
-  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; margin-bottom: 8px; }
+  .section { margin-bottom: ${metrics.sectionGapPx}px; }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; margin-bottom: ${metrics.headingGapPx}px; }
   .customer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
+  .frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: ${metrics.headingGapPx}px; }
   .field-label { font-size: 10px; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.3px; }
   .field-value { font-size: 12px; color: #1a202c; margin-top: 1px; }
   table { width: 100%; border-collapse: collapse; }
-  th { background: #f7fafc; text-align: left; padding: calc(8px * ${settings.tableScale ?? 1}) calc(10px * ${settings.tableScale ?? 1}); font-size: calc(10px * ${settings.tableScale ?? 1}); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
+  th { background: #f7fafc; text-align: left; padding: ${metrics.tableHeaderPaddingY}px ${metrics.tableHeaderPaddingX}px; font-size: ${metrics.tableHeaderFontSize}px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
   th.right { text-align: right; }
   th.center { text-align: center; }
-  td { padding: calc(7px * ${settings.tableScale ?? 1}) calc(10px * ${settings.tableScale ?? 1}); font-size: calc(11px * ${settings.tableScale ?? 1}); border-bottom: 1px solid #edf2f7; color: #2d3748; }
+  td { padding: ${metrics.tableBodyPaddingY}px ${metrics.tableBodyPaddingX}px; font-size: ${metrics.tableBodyFontSize}px; border-bottom: 1px solid #edf2f7; color: #2d3748; }
   td.right { text-align: right; font-family: 'SF Mono', 'Menlo', monospace; }
   td.center { text-align: center; }
   td.desc { max-width: 280px; }
@@ -77,17 +99,18 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => `
   .total-row .value { font-family: 'SF Mono', 'Menlo', monospace; }
   .total-row.grand { border-top: 2px solid #2b6cb0; padding-top: 8px; margin-top: 6px; font-size: 14px; font-weight: 700; }
   .total-row.internal { color: #a0aec0; font-style: italic; }
-  .notes-section { margin-top: ${settings.sectionSpacing ?? 24}px; padding: 16px; background: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
+  .notes-section { margin-top: ${metrics.sectionGapPx}px; padding: 16px; background: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
   .notes-text { font-size: 11px; color: #4a5568; white-space: pre-wrap; line-height: 1.5; }
   .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 10px; color: #a0aec0; }
   .internal-badge { background: #fed7d7; color: #c53030; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; }
-  .rx-section { margin-top: ${Math.round((settings.sectionSpacing ?? 24) / 2)}px; page-break-inside: avoid; }
-  .rx-title { font-size: 11px; font-weight: 600; margin-bottom: 6px; color: #2b6cb0; }
-  .rx-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .rx-section { margin-top: ${metrics.rxSectionGapPx}px; page-break-inside: avoid; }
+  .rx-title { font-size: 11px; font-weight: 600; margin-bottom: ${Math.max(4, metrics.headingGapPx - 2)}px; color: #2b6cb0; }
+  .rx-table { width: 100%; border-collapse: collapse; margin-bottom: ${metrics.headingGapPx}px; }
   .rx-table th, .rx-table td { border: 1px solid #e2e8f0; padding: 3px 6px; font-size: 10px; text-align: center; }
   .rx-table th { background: #f7fafc; font-weight: 600; font-size: 9px; text-transform: uppercase; color: #4a5568; }
   .rx-table td.label-cell { text-align: left; font-weight: 600; background: #f7fafc; width: 40px; }
 `;
+};
 
 const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
   (
@@ -683,6 +706,7 @@ export const QuotePreviewPanel = ({
 
   const fmt = (v: number | null | undefined) => (v != null ? v.toString() : "");
   const previewArea = getPrintableContentAreaMm(localPrintSettings);
+  const styleMetrics = getQuoteStyleMetrics(localPrintSettings);
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm">
@@ -731,11 +755,15 @@ export const QuotePreviewPanel = ({
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>Section</span>
-          <Input type="number" min={8} max={40} step={1} value={localPrintSettings.sectionSpacing ?? ""} onChange={(e) => handleSettingsUpdate({ sectionSpacing: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="px" />
+          <Input type="number" min={8} max={40} step={1} value={localPrintSettings.sectionGapPx ?? ""} onChange={(e) => handleSettingsUpdate({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="px" />
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>Heading</span>
+          <Input type="number" min={4} max={24} step={1} value={localPrintSettings.headingGapPx ?? ""} onChange={(e) => handleSettingsUpdate({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="px" />
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>Table</span>
-          <Input type="number" min={0.85} max={1.2} step={0.01} value={localPrintSettings.tableScale ?? ""} onChange={(e) => handleSettingsUpdate({ tableScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="1.0" />
+          <Input type="number" min={0.85} max={1.2} step={0.01} value={localPrintSettings.tableFontScale ?? ""} onChange={(e) => handleSettingsUpdate({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="1.0" />
         </div>
       </div>
 
@@ -855,7 +883,7 @@ export const QuotePreviewPanel = ({
                     </div>
 
                     {/* Customer */}
-                    <div style={{ marginBottom: "20px" }}>
+                    <div style={{ marginBottom: `${styleMetrics.sectionGapPx}px` }}>
                       <div
                         style={{
                           fontSize: "10px",
@@ -863,7 +891,7 @@ export const QuotePreviewPanel = ({
                           textTransform: "uppercase",
                           letterSpacing: "0.5px",
                           color: "#718096",
-                          marginBottom: "8px",
+                          marginBottom: `${styleMetrics.headingGapPx}px`,
                         }}
                       >
                         Customer Details
@@ -872,7 +900,7 @@ export const QuotePreviewPanel = ({
                         style={{
                           display: "grid",
                           gridTemplateColumns: "1fr 1fr",
-                          gap: "12px",
+                          gap: `${Math.max(12, styleMetrics.headingGapPx + 4)}px`,
                         }}
                       >
                         <div>
@@ -941,7 +969,7 @@ export const QuotePreviewPanel = ({
                     {/* Frame */}
                     {frameData &&
                       (frameData.ref || frameData.model || frameData.a) && (
-                        <div style={{ marginBottom: "20px" }}>
+                        <div style={{ marginBottom: `${styleMetrics.sectionGapPx}px` }}>
                           <div
                             style={{
                               fontSize: "10px",
@@ -949,7 +977,7 @@ export const QuotePreviewPanel = ({
                               textTransform: "uppercase",
                               letterSpacing: "0.5px",
                               color: "#718096",
-                              marginBottom: "8px",
+                              marginBottom: `${styleMetrics.headingGapPx}px`,
                             }}
                           >
                             Frame Details
@@ -958,7 +986,7 @@ export const QuotePreviewPanel = ({
                             style={{
                               display: "grid",
                               gridTemplateColumns: "repeat(4,1fr)",
-                              gap: "10px",
+                              gap: `${Math.max(8, styleMetrics.headingGapPx + 2)}px`,
                             }}
                           >
                             {frameData.ref && (
@@ -1076,7 +1104,7 @@ export const QuotePreviewPanel = ({
                       )}
 
                     {/* Lines */}
-                    <div style={{ marginBottom: "20px" }}>
+                    <div style={{ marginBottom: `${styleMetrics.sectionGapPx}px` }}>
                       <div
                         style={{
                           fontSize: "10px",
@@ -1084,7 +1112,7 @@ export const QuotePreviewPanel = ({
                           textTransform: "uppercase",
                           letterSpacing: "0.5px",
                           color: "#718096",
-                          marginBottom: "8px",
+                          marginBottom: `${styleMetrics.headingGapPx}px`,
                         }}
                       >
                         Line Items
@@ -1097,8 +1125,8 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "left",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
                                 color: "#4a5568",
@@ -1110,8 +1138,8 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "left",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
                                 color: "#4a5568",
@@ -1123,8 +1151,8 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "right",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
                                 color: "#4a5568",
@@ -1136,8 +1164,8 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "right",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
                                 color: "#4a5568",
@@ -1149,8 +1177,8 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "right",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
                                 color: "#4a5568",
@@ -1168,12 +1196,12 @@ export const QuotePreviewPanel = ({
                               style={{ borderBottom: "1px solid #edf2f7" }}
                             >
                               <td
-                                style={{ padding: "5px 8px", fontSize: "10px" }}
+                                style={{ padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`, fontSize: `${styleMetrics.tableBodyFontSize - 1}px` }}
                               >
                                 {i + 1}
                               </td>
                               <td
-                                style={{ padding: "5px 8px", fontSize: "10px" }}
+                                style={{ padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`, fontSize: `${styleMetrics.tableBodyFontSize - 1}px` }}
                               >
                                 {line.item_name}
                                 {line.description_override && (
@@ -1190,8 +1218,8 @@ export const QuotePreviewPanel = ({
                               <td
                                 style={{
                                   textAlign: "right",
-                                  padding: "5px 8px",
-                                  fontSize: "10px",
+                                  padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize - 1}px`,
                                   fontFamily: "monospace",
                                 }}
                               >
@@ -1200,8 +1228,8 @@ export const QuotePreviewPanel = ({
                               <td
                                 style={{
                                   textAlign: "right",
-                                  padding: "5px 8px",
-                                  fontSize: "10px",
+                                  padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize - 1}px`,
                                   fontFamily: "monospace",
                                 }}
                               >
@@ -1210,8 +1238,8 @@ export const QuotePreviewPanel = ({
                               <td
                                 style={{
                                   textAlign: "right",
-                                  padding: "5px 8px",
-                                  fontSize: "10px",
+                                  padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize - 1}px`,
                                   fontFamily: "monospace",
                                 }}
                               >
@@ -1228,7 +1256,7 @@ export const QuotePreviewPanel = ({
                     {/* Rx */}
                     {lensLines.length > 0 &&
                       lensLines.some((l) => rxMap[l.id]) && (
-                        <div style={{ marginBottom: "20px" }}>
+                        <div style={{ marginBottom: `${styleMetrics.sectionGapPx}px` }}>
                           <div
                             style={{
                               fontSize: "10px",
@@ -1236,7 +1264,7 @@ export const QuotePreviewPanel = ({
                               textTransform: "uppercase",
                               letterSpacing: "0.5px",
                               color: "#718096",
-                              marginBottom: "8px",
+                              marginBottom: `${styleMetrics.headingGapPx}px`,
                             }}
                           >
                             Prescription Details
