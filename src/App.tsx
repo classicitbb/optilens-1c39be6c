@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
-import { ThemeProvider } from "@/components/theme-provider";
+
 import Index from "./pages/Index";
 import Store from "./pages/Store";
 import Knowledge from "./pages/Knowledge";
@@ -96,7 +96,6 @@ const CustomerShell = () => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="optilens-theme">
       <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -248,7 +247,6 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
       </TooltipProvider>
-    </ThemeProvider>
   </QueryClientProvider>
 );
 
