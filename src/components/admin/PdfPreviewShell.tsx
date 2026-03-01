@@ -190,23 +190,23 @@ const PdfPreviewShell = ({
 
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">H mm</span>
-              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-[52px] text-xs" placeholder="mm" />
+              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">V mm</span>
-              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-[52px] text-xs" placeholder="mm" />
+              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Section</span>
-              <Input type="number" min={8} max={40} step={1} value={resolvedSettings.sectionGapPx ?? ""} onChange={(e) => updatePrintSettings({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-[52px] text-xs" placeholder="px" />
+              <Input type="number" min={8} max={40} step={1} value={resolvedSettings.sectionGapPx ?? ""} onChange={(e) => updatePrintSettings({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Heading</span>
-              <Input type="number" min={4} max={24} step={1} value={resolvedSettings.headingGapPx ?? ""} onChange={(e) => updatePrintSettings({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-[52px] text-xs" placeholder="px" />
+              <Input type="number" min={4} max={24} step={1} value={resolvedSettings.headingGapPx ?? ""} onChange={(e) => updatePrintSettings({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
             </div>
             <div className="flex flex-col gap-0.5">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Table</span>
-              <Input type="number" min={0.85} max={1.2} step={0.01} value={resolvedSettings.tableFontScale ?? ""} onChange={(e) => updatePrintSettings({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-[52px] text-xs" placeholder="1.0" />
+              <Input type="number" min={0.85} max={1.2} step={0.01} value={resolvedSettings.tableFontScale ?? ""} onChange={(e) => updatePrintSettings({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="1.0" />
             </div>
           </div>
 
