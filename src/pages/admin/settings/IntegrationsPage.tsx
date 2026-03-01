@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle2, Loader2, PlugZap } from "lucide-react";
 import type { PostgrestError } from "@supabase/supabase-js";
@@ -48,6 +49,16 @@ interface IntegrationHealthMetric {
   lag_behind_source_seconds: number;
   error_rate: number;
   records_processed_per_run: number;
+}
+
+interface IntegrationSyncJob {
+  id: string;
+  sync_kind: "initial" | "incremental";
+  status: "queued" | "running" | "success" | "failed";
+  requested_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error_message: string | null;
 }
 
 type SyncErrorStatus = "open" | "retry_queued" | "resolved" | "ignored";
@@ -108,6 +119,22 @@ export default function IntegrationsPage() {
       return (data ?? []) as IntegrationHealthMetric[];
     },
     enabled: isAdmin,
+  });
+
+  const { data: latestSyncJob, isLoading: latestSyncJobLoading } = useQuery({
+    queryKey: ["integration-latest-sync-job", data?.id],
+    queryFn: async () => {
+      if (!data?.id) return null as IntegrationSyncJob | null;
+      const { data: rows, error } = await supabase
+        .from("integration_sync_jobs" as never)
+        .select("id,sync_kind,status,requested_at,started_at,completed_at,error_message")
+        .eq("integration_connection_id", data.id)
+        .order("requested_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return ((rows ?? [])[0] ?? null) as IntegrationSyncJob | null;
+    },
+    enabled: isAdmin && !!data?.id,
   });
 
   const [syncErrorStatusFilter, setSyncErrorStatusFilter] = useState<"all" | SyncErrorStatus>("open");
@@ -272,6 +299,24 @@ export default function IntegrationsPage() {
   });
 
   const currentStatus = useMemo<IntegrationStatus>(() => data?.status ?? "not_configured", [data]);
+  const syncProgress = useMemo(() => {
+    if (!latestSyncJob) return { percent: 0, label: "No sync job has run yet." };
+
+    if (latestSyncJob.status === "queued") {
+      return { percent: 15, label: `Queued ${latestSyncJob.sync_kind} sync.` };
+    }
+
+    if (latestSyncJob.status === "running") {
+      return { percent: 65, label: `Running ${latestSyncJob.sync_kind} sync…` };
+    }
+
+    if (latestSyncJob.status === "failed") {
+      return { percent: 100, label: `Last sync failed${latestSyncJob.error_message ? `: ${latestSyncJob.error_message}` : "."}` };
+    }
+
+    return { percent: 100, label: `Last ${latestSyncJob.sync_kind} sync completed successfully.` };
+  }, [latestSyncJob]);
+
 
   if (roleLoading || isLoading) {
     return (
@@ -408,6 +453,14 @@ export default function IntegrationsPage() {
           <div className="md:col-span-2 flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => triggerSyncMutation.mutate("initial")} disabled={triggerSyncMutation.isPending}>Initial import</Button>
             <Button variant="outline" onClick={() => triggerSyncMutation.mutate("incremental")} disabled={triggerSyncMutation.isPending}>Incremental sync</Button>
+          </div>
+          <div className="md:col-span-2 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Sync progress</span>
+              <span>{syncProgress.percent}%</span>
+            </div>
+            <Progress value={syncProgress.percent} aria-label="Integration sync progress" />
+            <p className="text-xs text-muted-foreground">{latestSyncJobLoading ? "Loading latest sync status…" : syncProgress.label}</p>
           </div>
         </CardContent>
       </Card>
