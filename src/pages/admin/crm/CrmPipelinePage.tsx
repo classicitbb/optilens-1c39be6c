@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Columns3, ExternalLink, PlusCircle, Sprout } from "lucide-react";
+import { Columns3, ExternalLink, PlusCircle, Sprout, Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +77,9 @@ const CrmPipelinePage = () => {
       <AdminPageHeader title="CRM Pipeline" icon={Columns3}>
         <div className="flex gap-2 flex-wrap items-center">
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search opportunities" className="h-8 w-56 text-xs" />
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin/leads")} >
+            <Target className="h-4 w-4 mr-1" /> Get Leads
+          </Button>
           <Button variant="outline" size="sm" onClick={handleSeedOpportunities} disabled={seedOpportunities.isPending}>
             <Sprout className="h-4 w-4 mr-1" /> Seed Sample Opportunities
           </Button>
