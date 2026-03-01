@@ -13,12 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import GlobalSearch from "./GlobalSearch";
 import HelpPanel from "./HelpPanel";
 import AppLauncher from "./AppLauncher";
+import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -65,6 +66,17 @@ const ROUTE_LABELS: [string, string][] = [
   ["/admin/erp/helpdesk", "Helpdesk"],
   ["/admin/audit-log", "Settings · Audit Log"],
 ];
+
+
+
+const timeAgo = (value: string) => {
+  const diffMs = Date.now() - new Date(value).getTime();
+  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
+};
 
 function getRouteLabel(pathname: string): string {
   for (const [prefix, label] of ROUTE_LABELS) {
@@ -141,14 +153,7 @@ const AdminTopBar = () => {
   };
 
   const pageLabel = getRouteLabel(location.pathname);
-  const activeTheme = theme ?? "system";
-  const cycleTheme = () => {
-    if (activeTheme === "system") {
-      setTheme(resolvedTheme === "dark" ? "light" : "dark");
-      return;
-    }
-    setTheme(activeTheme === "dark" ? "light" : "dark");
-  };
+  const { notifications, unreadCount, markRead, markAllRead, clearNotification, clearAll } = useAdminNotifications();
 
   return (
     <>
@@ -200,14 +205,63 @@ const AdminTopBar = () => {
             )}
 
             {/* Bell */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" disabled>
-                  <Bell className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Notifications — coming soon</span></TooltipContent>
-            </Tooltip>
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 relative">
+                      <Bell className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-red-500 text-[9px] text-white leading-[14px] text-center font-semibold">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom"><span className="text-xs">Notifications</span></TooltipContent>
+              </Tooltip>
+
+              <DropdownMenuContent align="end" className="w-[340px] p-0">
+                <div className="p-2 border-b">
+                  <DropdownMenuLabel className="px-1 py-1.5 text-xs flex items-center justify-between">
+                    <span>Notifications</span>
+                    <span className="text-[10px] text-muted-foreground">{unreadCount} unread</span>
+                  </DropdownMenuLabel>
+                  <div className="flex items-center gap-1">
+                    <Button type="button" variant="outline" className="h-6 text-[10px] px-2" onClick={markAllRead}>Mark all read</Button>
+                    <Button type="button" variant="outline" className="h-6 text-[10px] px-2" onClick={clearAll}>Clear all</Button>
+                  </div>
+                </div>
+
+                <div className="max-h-[340px] overflow-auto p-1">
+                  {notifications.length === 0 ? (
+                    <p className="text-xs text-muted-foreground px-2 py-4">No active notifications.</p>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div key={notification.id} className="p-2 rounded-md hover:bg-accent/60 space-y-1 border-b last:border-b-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate">{notification.title}</p>
+                            <p className="text-[11px] text-muted-foreground leading-tight">{notification.message}</p>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">{timeAgo(notification.createdAt)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {notification.href && (
+                            <DropdownMenuItem asChild className="h-6 px-2 text-[10px] cursor-pointer">
+                              <Link to={notification.href} onClick={() => markRead(notification.id)}>Open</Link>
+                            </DropdownMenuItem>
+                          )}
+                          <Button type="button" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => markRead(notification.id)}>Mark read</Button>
+                          <Button type="button" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => clearNotification(notification.id)}>Clear</Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Help */}
             <Tooltip>

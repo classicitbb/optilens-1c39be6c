@@ -9,6 +9,7 @@ export type RuntimeErrorLogEntry = {
 
 const STORAGE_KEY = "optilens.runtime_error_log";
 const MAX_ENTRIES = 100;
+export const RUNTIME_ERROR_LOG_EVENT = "optilens:runtime-error-log:updated";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -48,6 +49,10 @@ export function addRuntimeErrorLog(entry: Omit<RuntimeErrorLogEntry, "id" | "tim
 
   const current = readLogEntries();
   writeLogEntries([nextEntry, ...current]);
+
+  if (isBrowser) {
+    window.dispatchEvent(new CustomEvent(RUNTIME_ERROR_LOG_EVENT, { detail: nextEntry }));
+  }
 
   // One-line console diagnostic for test automation/Codex capture.
   console.error(
