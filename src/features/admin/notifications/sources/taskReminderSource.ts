@@ -42,7 +42,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
     });
   }
 
-  const { data: campaignProfiles } = await supabase
+  const { data: campaignProfiles } = await (supabase as any)
     .from("lead_campaign_activation_profiles")
     .select("id,created_at")
     .order("created_at", { ascending: false })

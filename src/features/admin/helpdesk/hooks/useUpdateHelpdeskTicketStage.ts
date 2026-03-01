@@ -13,7 +13,7 @@ export const useUpdateHelpdeskTicketStage = () => {
 
   return useMutation({
     mutationFn: async ({ ticketId, stageId, actorUserId }: UpdateHelpdeskTicketStageInput) => {
-      const { data: previous, error: getError } = await supabase
+      const { data: previous, error: getError } = await (supabase as any)
         .from("helpdesk_tickets")
         .select("id,stage_id,owner_user_id")
         .eq("id", ticketId)
@@ -21,7 +21,7 @@ export const useUpdateHelpdeskTicketStage = () => {
 
       if (getError) throw getError;
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from("helpdesk_tickets")
         .update({
           stage_id: stageId,
@@ -32,16 +32,16 @@ export const useUpdateHelpdeskTicketStage = () => {
 
       if (updateError) throw updateError;
 
-      const { error: eventError } = await supabase
+      const { error: eventError } = await (supabase as any)
         .from("helpdesk_ticket_events")
         .insert({
           ticket_id: ticketId,
           event_type: "stage_updated",
           actor_user_id: actorUserId || null,
           payload: {
-            previous_stage_id: (previous as { stage_id: string | null }).stage_id,
+            previous_stage_id: previous?.stage_id ?? null,
             next_stage_id: stageId,
-            owner_user_id: (previous as { owner_user_id: string | null }).owner_user_id,
+            owner_user_id: previous?.owner_user_id ?? null,
           },
         });
 

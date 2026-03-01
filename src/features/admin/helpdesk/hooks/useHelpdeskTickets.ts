@@ -63,7 +63,7 @@ export const useHelpdeskTickets = (filters?: HelpdeskTicketFilters) => {
   return useQuery({
     queryKey: helpdeskTicketQueryKeys.list(normalized),
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from("helpdesk_tickets")
         .select(
           "id,ticket_number,title,description,priority,team_id,stage_id,owner_user_id,deadline,opened_at,assigned_at,closed_at,source_channel,created_at,updated_at,stage:helpdesk_ticket_stages(id,name,is_closed,is_folded,sequence),team:helpdesk_teams(id,name)"

@@ -40,7 +40,7 @@ export const useCreateHelpdeskTicket = () => {
         assigned_at: input.ownerUserId ? now : null,
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("helpdesk_tickets")
         .insert(payload)
         .select("id")
@@ -50,7 +50,7 @@ export const useCreateHelpdeskTicket = () => {
 
       const ticketId = (data as { id: string }).id;
 
-      const { error: eventErr } = await supabase
+      const { error: eventErr } = await (supabase as any)
         .from("helpdesk_ticket_events")
         .insert({
           ticket_id: ticketId,

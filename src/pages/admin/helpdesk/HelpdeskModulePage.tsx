@@ -80,7 +80,7 @@ const HelpdeskModulePage = ({ module }: Props) => {
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!canEditModule) throw new Error("You do not have permission to create records for this module.");
-      const now = new Date().toISOString().slice(11, 19).replaceAll(":", "");
+      const now = new Date().toISOString().slice(11, 19).replace(/:/g, "");
       return { id: `${module.toUpperCase()}-${now}`, name: "New Draft", status: "pending" as const };
     },
     onSuccess: (record) => {
