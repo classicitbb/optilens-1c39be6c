@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "qa:smoke": "node scripts/admin_smoke_and_error_checks.mjs",
     "release-ledger:sync": "node scripts/sync_release_ledger.mjs",
-    "qa:release-ledger": "node scripts/sync_release_ledger.mjs --check"
+    "qa:release-ledger": "node scripts/sync_release_ledger.mjs --check",
+    "supabase:types:generate": "npx supabase gen types typescript --local > src/integrations/supabase/types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
