@@ -57,16 +57,16 @@ export const preparePrintListChunks = <T,>(
     if (!section.rows.length) return;
 
     const sectionChunks = splitRowsIntoChunks(section.rows, rowsPerPage, minSplitThreshold);
+    const shouldBreakBeforeSection = remainingRowsOnPage < minSplitThreshold;
 
     sectionChunks.forEach((chunkRows, chunkIndex) => {
       const isContinuation = chunkIndex > 0;
       const rowsNeeded = chunkRows.length;
-      const isStandaloneSection = sectionChunks.length === 1;
-      const shouldMoveToNextPage =
-        remainingRowsOnPage < rowsNeeded &&
-        ((isStandaloneSection && remainingRowsOnPage < minSplitThreshold) || isContinuation);
 
-      const pageBreakBefore = chunkIndex === 0 ? shouldMoveToNextPage : true;
+      let pageBreakBefore = isContinuation || (chunkIndex === 0 && shouldBreakBeforeSection);
+      if (!pageBreakBefore && rowsNeeded > remainingRowsOnPage) {
+        pageBreakBefore = true;
+      }
 
       if (pageBreakBefore) {
         remainingRowsOnPage = rowsPerPage;
