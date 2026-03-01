@@ -48,16 +48,23 @@ const clampMargin = (value: number | undefined, fallback: number) => {
   return Math.min(60, Math.max(0, value));
 };
 
-export const resolvePrintSettings = (settings?: Partial<PrintSettings>): PrintSettings => ({
-  ...DEFAULT_PRINT_SETTINGS,
-  ...settings,
-  scale: clampScale(settings?.scale ?? DEFAULT_PRINT_SETTINGS.scale),
-  sectionGapPx: clampSectionGap(settings?.sectionGapPx ?? settings?.sectionSpacing ?? DEFAULT_PRINT_SETTINGS.sectionGapPx),
-  headingGapPx: clampHeadingGap(settings?.headingGapPx ?? DEFAULT_PRINT_SETTINGS.headingGapPx),
-  tableFontScale: clampTableFontScale(settings?.tableFontScale ?? settings?.tableScale ?? DEFAULT_PRINT_SETTINGS.tableFontScale),
-  sectionSpacing: clampSectionGap(settings?.sectionGapPx ?? settings?.sectionSpacing ?? DEFAULT_PRINT_SETTINGS.sectionGapPx),
-  tableScale: clampTableFontScale(settings?.tableFontScale ?? settings?.tableScale ?? DEFAULT_PRINT_SETTINGS.tableFontScale),
-});
+export const resolvePrintSettings = (settings?: Partial<PrintSettings>): PrintSettings => {
+  // Prefer deprecated aliases when present so legacy callers that only update
+  // `sectionSpacing` / `tableScale` continue to work during mixed-state merges.
+  const resolvedSectionGapSource = settings?.sectionSpacing ?? settings?.sectionGapPx;
+  const resolvedTableScaleSource = settings?.tableScale ?? settings?.tableFontScale;
+
+  return {
+    ...DEFAULT_PRINT_SETTINGS,
+    ...settings,
+    scale: clampScale(settings?.scale ?? DEFAULT_PRINT_SETTINGS.scale),
+    sectionGapPx: clampSectionGap(resolvedSectionGapSource ?? DEFAULT_PRINT_SETTINGS.sectionGapPx),
+    headingGapPx: clampHeadingGap(settings?.headingGapPx ?? DEFAULT_PRINT_SETTINGS.headingGapPx),
+    tableFontScale: clampTableFontScale(resolvedTableScaleSource ?? DEFAULT_PRINT_SETTINGS.tableFontScale),
+    sectionSpacing: clampSectionGap(resolvedSectionGapSource ?? DEFAULT_PRINT_SETTINGS.sectionGapPx),
+    tableScale: clampTableFontScale(resolvedTableScaleSource ?? DEFAULT_PRINT_SETTINGS.tableFontScale),
+  };
+};
 
 export const getResolvedMarginsMm = (settings?: Partial<PrintSettings>) => {
   const resolved = resolvePrintSettings(settings);
@@ -125,13 +132,21 @@ export const buildPrintStyles = (settings?: Partial<PrintSettings>) => {
     h1,
     h2,
     h3,
-    h4,
-    table,
-    thead,
-    tbody,
-    tr {
+    h4 {
       break-inside: avoid;
       page-break-inside: avoid;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    .print-list-breakable,
+    .print-list-breakable table,
+    .print-list-breakable tbody,
+    .print-list-breakable tr {
+      break-inside: auto;
+      page-break-inside: auto;
     }
 
     h1,

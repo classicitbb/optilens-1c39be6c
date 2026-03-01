@@ -61,7 +61,7 @@ export const wikiCategories: WikiCategory[] = [
         id: "platform-overview",
         title: "Platform Overview",
         content:
-          "OpticAdmin is organized by business apps (Pricing, Sales, Contacts, Leads, CRM, Website, Knowledge, Settings) under `/admin/<app>/...` routes.\n\nUse the App Launcher (grid icon) to switch apps quickly, then use the app-specific sidebar for page-level navigation.\n\n**Workflow principle:** start in Leads/CRM to identify opportunities, use Pricing/Catalog Publisher to build offers, and close in Sales/Quotations.",
+          "OpticAdmin is organized by business apps (Pricing, Sales, Contacts, Leads, CRM, Website, Knowledge, Settings) under `/admin/<app>/...` routes.\n\nUse the App Launcher (grid icon) to switch apps quickly, then use the app-specific sidebar for page-level navigation.\n\n**Workflow principle:** start in Leads/CRM to identify opportunities, use Pricing/Lens Catalog Builder to build offers, and close in Sales/Quotations.",
       },
       {
         id: "roles-and-visibility",
@@ -73,7 +73,7 @@ export const wikiCategories: WikiCategory[] = [
         id: "daily-rhythm",
         title: "Suggested Daily Workflow",
         content:
-          "1) **Lead Finder**: discover and score opportunities.\n2) **My Leads / CRM**: convert promising leads into opportunities and track stage.\n3) **Catalog Publisher**: build custom package/proposal and export PDF.\n4) **Sales / Quotations**: formalize quote and manage outcomes.\n5) **Knowledge/Wiki**: capture learnings so the team compounds improvements.",
+          "1) **Lead Finder**: discover and score opportunities.\n2) **My Leads / CRM**: convert promising leads into opportunities and track stage.\n3) **Proposals**: build custom packages/proposals and export PDF.\n4) **Sales / Quotations**: formalize quote and manage outcomes.\n5) **Knowledge/Wiki**: capture learnings so the team compounds improvements.",
       },
     ],
   },
@@ -86,19 +86,19 @@ export const wikiCategories: WikiCategory[] = [
         id: "pricing-pages",
         title: "Pricing Pages & What They Do",
         content:
-          "Pricing app includes Product Catalog, RX/Stock/Supplies pricing, Catalog Publisher, Costings, Reference, Imports, and Pricing Settings.\n\nUse Product Catalog + pricing pages to keep source data clean before proposal/quote generation.",
+          "Pricing app includes Product Catalog, RX/Stock/Supplies pricing, Lens Catalog Builder, Costings, Reference, Imports, and Pricing Settings.\n\nUse Product Catalog + pricing pages to keep source data clean before proposal/quote generation.",
       },
       {
         id: "catalog-publisher-v2",
-        title: "Catalog Publisher v2 Workflow",
+        title: "Proposals Workflow",
         content:
-          "Catalog Publisher v2 is the canonical route at `/admin/pricing/publisher`.\n\n**Typical flow:**\n1. Open publisher from Pricing or from Leads/CRM 'Build Custom Package' buttons.\n2. Add products from `price_catalog`.\n3. Refine section copy (Executive Snapshot → Offer + Next Step).\n4. Export clinical proposal PDF.\n5. Attach to opportunity for CRM continuity.",
+          "Proposals is available at `/admin/sales/proposals`.\n\n**Typical flow:**\n1. Open Proposals from Sales or from Leads/CRM 'Build Package' buttons.\n2. Add products from `price_catalog`.\n3. Refine section copy (Executive Snapshot → Offer + Next Step).\n4. Export clinical proposal PDF.\n5. Attach to opportunity for CRM continuity.",
       },
       {
         id: "publisher-legacy-access",
         title: "Legacy Publisher Access",
         content:
-          "Legacy publisher is available at `/admin/pricing/publisher-old` and is admin-only.\n\nUse it only for migration parity checks while v2 remains the primary path.",
+          "Lens Catalog Builder is available at `/admin/pricing/publisher` and is admin-only.\n\nUse it only for migration parity checks while v2 remains the primary path.",
       },
     ],
   },
@@ -180,7 +180,7 @@ export const wikiCategories: WikiCategory[] = [
         id: "pipeline-management",
         title: "Pipeline Management",
         content:
-          "CRM pipeline surfaces opportunities by stage and provides quick stage updates.\n\nUse 'Build Package' directly from pipeline cards to launch Catalog Publisher with opportunity context.",
+          "CRM pipeline surfaces opportunities by stage and provides quick stage updates.\n\nUse 'Build Package' directly from pipeline cards to launch Proposals with opportunity context.",
       },
       {
         id: "activities-discipline",

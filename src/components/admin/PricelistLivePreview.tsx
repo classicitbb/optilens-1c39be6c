@@ -9,6 +9,7 @@ import { PricelistVersion } from "@/hooks/usePricelistVersions";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { cn } from "@/lib/utils";
 import { CATEGORY_ORDER, compareCategoryOrder, compareMaterialOrder } from "@/lib/sortOrder";
+import { preparePrintListChunks, type PrintListSection } from "@/features/admin/print/printLayout";
 
 const TREATMENT_LABELS: Record<TreatmentType, string> = {
   clear: "Clear Lenses",
@@ -273,6 +274,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                 style={{ background: "#1e4db7", color: "white" }}
               >
                 {label}
+                {isContinuation ? " (cont.)" : ""}
               </th>
             </tr>
           </thead>
@@ -291,6 +293,25 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     );
 
     const sortedLensSections = [...lensSections.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
+    const lensListSections: PrintListSection<(typeof catalogRows)[number]>[] = sortedLensSections.map(([sec, rows]) => ({
+      key: `lens-${sec}`,
+      label: sec,
+      rows: [...rows].sort((a, b) => {
+        const aIdx = a.item_id ? (lensIndexMap.get(a.item_id) ?? 999) : 999;
+        const bIdx = b.item_id ? (lensIndexMap.get(b.item_id) ?? 999) : 999;
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        return a.sort_order - b.sort_order;
+      }),
+    }));
+    const addonListSections: PrintListSection<(typeof catalogRows)[number]>[] = [...addonsBySection.entries()].map(([sec, rows]) => ({
+      key: `addon-${sec}`,
+      label: sec,
+      rows,
+    }));
+    const listChunks = preparePrintListChunks([...lensListSections, ...addonListSections], {
+      rowsPerPage: 20,
+      minSplitThreshold: 5,
+    });
 
     return (
       <div className="space-y-5">
@@ -300,26 +321,15 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
           </p>
         ) : (
           <>
-            {sortedLensSections.map(([sec, rows]) => (
+            {listChunks.map((chunk) => (
               <SectionTable
-                key={sec}
-                label={sec}
-                rows={[...rows].sort((a, b) => {
-                  const aIdx = a.item_id ? (lensIndexMap.get(a.item_id) ?? 999) : 999;
-                  const bIdx = b.item_id ? (lensIndexMap.get(b.item_id) ?? 999) : 999;
-                  if (aIdx !== bIdx) return aIdx - bIdx;
-                  return a.sort_order - b.sort_order;
-                })}
+                key={chunk.key}
+                label={chunk.label}
+                rows={chunk.rows}
+                pageBreakBefore={chunk.pageBreakBefore}
+                isContinuation={chunk.isContinuation}
               />
             ))}
-
-            {addonsBySection.size > 0 && (
-              <>
-                {[...addonsBySection.entries()].map(([sec, rows]) => (
-                  <SectionTable key={sec} label={sec} rows={rows} />
-                ))}
-              </>
-            )}
           </>
         )}
       </div>
