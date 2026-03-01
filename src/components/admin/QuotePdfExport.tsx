@@ -753,7 +753,7 @@ export const QuotePreviewPanel = ({
   const styleMetrics = getQuoteStyleMetrics(localPrintSettings);
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm">
+    <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col h-full">
       {/* Preview chrome bar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
         <div className="flex gap-1">
@@ -817,8 +817,8 @@ export const QuotePreviewPanel = ({
 
       <div
         ref={paneRef}
-        className="bg-muted/10 overflow-auto p-3"
-        style={{ maxHeight: "600px", minHeight: "360px" }}
+        className="bg-muted/10 overflow-auto p-3 flex-1"
+        style={{ minHeight: "360px" }}
       >
         {(() => {
           const page = getPageDimensionsPx(localPrintSettings);
