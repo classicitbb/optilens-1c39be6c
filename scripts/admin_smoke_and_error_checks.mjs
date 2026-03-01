@@ -5,16 +5,96 @@ import { readFile } from "node:fs/promises";
 const PORT = Number(process.env.SMOKE_PORT ?? 4173);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const ROUTES = [
-  "/auth",
   "/admin",
+  "/admin/pricing",
+  "/admin/pricing/catalog",
+  "/admin/pricing/rx-lenses",
+  "/admin/pricing/stock-lenses",
+  "/admin/pricing/supplies",
+  "/admin/pricing/publisher",
+  "/admin/pricing/publisher-old",
+  "/admin/pricing/publisher/demo-id",
+  "/admin/pricing/costings",
+  "/admin/pricing/costings/new",
+  "/admin/pricing/costings/demo-id",
+  "/admin/pricing/costings/reports",
+  "/admin/pricing/reference",
+  "/admin/pricing/imports",
+  "/admin/pricing/settings",
+  "/admin/pricing/legacy",
+  "/admin/sales",
+  "/admin/sales/proposals",
+  "/admin/sales/quotations",
+  "/admin/sales/quotations/demo-id",
+  "/admin/sales/quotations/demo-id/print-preview",
+  "/admin/sales/web-orders",
+  "/admin/sales/rx-orders",
+  "/admin/contacts",
+  "/admin/contacts/config/tags",
+  "/admin/contacts/config/industries",
   "/admin/leads",
   "/admin/leads/finder",
+  "/admin/leads/campaigns",
+  "/admin/leads/reports",
+  "/admin/leads/ai",
+  "/admin/leads/settings",
+  "/admin/leads/proposals",
+  "/admin/leads/catalog-publisher",
+  "/admin/crm",
+  "/admin/crm/dashboard",
   "/admin/crm/pipeline",
-  "/admin/settings/runtime-errors",
-  "/admin/pricing/publisher",
+  "/admin/crm/activities",
+  "/admin/crm/proposals",
+  "/admin/crm/catalog-publisher",
+  "/admin/helpdesk",
+  "/admin/helpdesk/tickets",
+  "/admin/helpdesk/teams",
+  "/admin/helpdesk/sla",
+  "/admin/website",
+  "/admin/website/content",
+  "/admin/website/microsites",
+  "/admin/website/portals",
+  "/admin/website/store",
+  "/admin/knowledge",
   "/admin/knowledge/wiki",
+  "/admin/knowledge/help",
+  "/admin/settings",
+  "/admin/settings/company",
+  "/admin/settings/users",
+  "/admin/settings/roles",
+  "/admin/settings/audit",
+  "/admin/settings/integrations",
+  "/admin/settings/runtime-errors",
+  "/admin/catalog",
+  "/admin/reference",
+  "/admin/lenses",
+  "/admin/supplies",
+  "/admin/addons",
+  "/admin/rx-lens-prices",
+  "/admin/stock-lens-prices",
+  "/admin/supplies-prices",
+  "/admin/imports",
+  "/admin/catalog-publisher",
+  "/admin/catalogpub-old",
+  "/admin/catalog-publisher/demo-id",
+  "/admin/quotations",
+  "/admin/costings/shipments",
+  "/admin/costings/reports",
+  "/admin/parameters",
+  "/admin/users",
+  "/admin/audit",
+  "/admin/wiki",
+  "/admin/content",
+  "/admin/erp/contacts",
+  "/admin/erp/config/contact-tags",
+  "/admin/erp/config/industries",
+  "/admin/erp/crm",
+  "/admin/erp/helpdesk",
+  "/admin/erp/web-orders",
+  "/admin/erp/rx-orders",
+  "/admin/erp/website",
+  "/admin/history",
 ];
-
 
 const REQUIRED_SNIPPETS = [
   {
@@ -39,7 +119,7 @@ const REQUIRED_SNIPPETS = [
   },
   {
     file: "src/pages/admin/leads/LeadFinderPage.tsx",
-    snippets: ["Lead Finder", "Find 50 Leads"],
+    snippets: ["Lead Finder", "Search & Score"],
   },
   {
     file: "src/pages/admin/crm/CrmPipelinePage.tsx",
@@ -58,6 +138,25 @@ const REQUIRED_SNIPPETS = [
       "console.error(",
     ],
   },
+];
+
+const IMPLEMENTED_ADMIN_ROUTE_SNIPPETS = [
+  { path: "leads", snippet: 'path="leads" element={<MyLeadsPage />}' },
+  { path: "leads/finder", snippet: 'path="leads/finder" element={<LeadFinderPage />}' },
+  { path: "crm/pipeline", snippet: 'path="crm/pipeline" element={<CrmPipelinePage />}' },
+  { path: "knowledge/wiki", snippet: 'path="knowledge/wiki" element={<AdminWikiPage />}' },
+  { path: "website/content", snippet: 'path="website/content" element={<ContentManagerPage />}' },
+  { path: "sales/proposals", snippet: 'path="sales/proposals" element={<CatalogPublisherV2Page />}' },
+  { path: "settings/runtime-errors", snippet: 'path="settings/runtime-errors" element={<RuntimeErrorsPage />}' },
+];
+
+const LEGACY_REDIRECT_EXPECTATIONS = [
+  { legacy: "pricing/publisher-old", canonical: "/admin/pricing/publisher", snippet: 'path="pricing/publisher-old" element={<Navigate to="/admin/pricing/publisher" replace />}' },
+  { legacy: "catalog", canonical: "/admin/pricing/catalog", snippet: 'path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />}' },
+  { legacy: "imports", canonical: "/admin/pricing/imports", snippet: 'path="imports" element={<Navigate to="/admin/pricing/imports" replace />}' },
+  { legacy: "users", canonical: "/admin/settings/users", snippet: 'path="users" element={<Navigate to="/admin/settings/users" replace />}' },
+  { legacy: "erp/crm", canonical: "/admin/crm/dashboard", snippet: 'path="erp/crm" element={<Navigate to="/admin/crm/dashboard" replace />}' },
+  { legacy: "catalog-publisher", canonical: "/admin/sales/proposals", snippet: 'path="catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />}' },
 ];
 
 const DEV_SERVER_ERROR_PATTERNS = [
@@ -138,6 +237,56 @@ async function checkRuntimeLoggingWiring() {
   }
 }
 
+async function checkImplementedRoutesAreNotPlaceholder() {
+  const appSource = await readFile("src/App.tsx", "utf8");
+  const failures = [];
+
+  for (const { path, snippet } of IMPLEMENTED_ADMIN_ROUTE_SNIPPETS) {
+    if (!appSource.includes(snippet)) {
+      failures.push(`expected implemented route '${path}' to map to concrete page component`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(`Implemented route mapping failures:\n- ${failures.join("\n- ")}`);
+  }
+
+  console.log("✔ implemented admin routes are concrete (no PlaceholderPage mapping)");
+}
+
+async function checkLegacyRedirects() {
+  const appSource = await readFile("src/App.tsx", "utf8");
+  const failures = [];
+
+  for (const { legacy, canonical, snippet } of LEGACY_REDIRECT_EXPECTATIONS) {
+    if (!appSource.includes(snippet)) {
+      failures.push(`legacy route '${legacy}' should redirect to '${canonical}'`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(`Legacy redirect failures:\n- ${failures.join("\n- ")}`);
+  }
+
+  console.log("✔ legacy redirects map to canonical routes");
+}
+
+async function checkRoleScopedRouteAccessWiring() {
+  const appSource = await readFile("src/App.tsx", "utf8");
+
+  const runtimeErrorsSnippet = 'path="settings/runtime-errors" element={<RuntimeErrorsPage />}';
+  if (!appSource.includes(runtimeErrorsSnippet)) {
+    throw new Error("Runtime errors route wiring changed: expected '/admin/settings/runtime-errors' to remain directly accessible under AdminProtectedRoute.");
+  }
+
+  const integrationsSnippet = 'path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>}';
+  if (!appSource.includes(integrationsSnippet)) {
+    throw new Error("Integrations route wiring changed: expected '/admin/settings/integrations' to remain wrapped in AdminOnlyRoute.");
+  }
+
+  console.log("✔ runtime-errors and integrations role-based route wiring verified");
+}
+
 async function main() {
   const devServer = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(PORT)], {
     stdio: ["ignore", "pipe", "pipe"],
@@ -171,6 +320,9 @@ async function main() {
     await checkRoutes();
     await checkRuntimeLoggingWiring();
     await checkRuntimeErrorFormatContract();
+    await checkImplementedRoutesAreNotPlaceholder();
+    await checkLegacyRedirects();
+    await checkRoleScopedRouteAccessWiring();
 
     if (devServerDiagnostics.length > 0) {
       throw new Error(`Dev server reported transform/startup errors:\n- ${devServerDiagnostics.join("\n- ")}`);
