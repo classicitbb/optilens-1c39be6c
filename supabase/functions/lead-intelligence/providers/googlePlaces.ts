@@ -1,9 +1,10 @@
 import type { LeadCandidate, ProviderAdapter, ProviderSearchParams } from "./types.ts";
 
-const getApiKey = () => Deno.env.get("GOOGLE_PLACES_API_KEY")?.trim() ?? "";
+const getApiKey = (credentials?: Record<string, string>) =>
+  credentials?.["google_places"]?.trim() ?? Deno.env.get("GOOGLE_PLACES_API_KEY")?.trim() ?? "";
 
-const search = async ({ query, country, city }: ProviderSearchParams): Promise<LeadCandidate[]> => {
-  const apiKey = getApiKey();
+const search = async ({ query, country, city, credentials }: ProviderSearchParams): Promise<LeadCandidate[]> => {
+  const apiKey = getApiKey(credentials);
   if (!apiKey) {
     throw new Error("NOT_CONFIGURED");
   }
@@ -34,6 +35,6 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
 
 export const googlePlacesProvider: ProviderAdapter = {
   id: "google_places",
-  isConfigured: () => Boolean(getApiKey()),
+  isConfigured: (credentials) => Boolean(getApiKey(credentials)),
   search,
 };

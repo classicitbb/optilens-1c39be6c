@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Index from "./pages/Index";
@@ -76,6 +76,13 @@ const queryClient = new QueryClient({
   },
 });
 
+const RedirectToProposals = () => {
+  const location = useLocation();
+  const target = `/admin/sales/proposals${location.search}${location.hash}`;
+
+  return <Navigate to={target} replace state={location.state} />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -107,8 +114,8 @@ const App = () => (
                 <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
                 <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
                 <Route path="pricing/supplies" element={<BuySellPricesPage />} />
-                <Route path="pricing/publisher" element={<CatalogPublisherV2Page />} />
-                <Route path="pricing/publisher-old" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
+                <Route path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
+                <Route path="pricing/publisher-old" element={<Navigate to="/admin/pricing/publisher" replace />} />
                 <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
                 <Route path="pricing/costings" element={<ImportCostingsPage />} />
                 <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
@@ -122,6 +129,7 @@ const App = () => (
 
                 {/* ═══ Sales App ═══ */}
                 <Route path="sales" element={<Navigate to="/admin/sales/quotations" replace />} />
+                <Route path="sales/proposals" element={<CatalogPublisherV2Page />} />
                 <Route path="sales/quotations" element={<QuotationsListPage />} />
                 <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
                 <Route path="sales/web-orders" element={<PlaceholderPage />} />
@@ -139,12 +147,16 @@ const App = () => (
                 <Route path="leads/reports" element={<LeadAuditReportsPage />} />
                 <Route path="leads/ai" element={<LeadsAiAssistantPage />} />
                 <Route path="leads/settings" element={<LeadSettingsPage />} />
+                <Route path="leads/proposals" element={<RedirectToProposals />} />
+                <Route path="leads/catalog-publisher" element={<RedirectToProposals />} />
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
                 <Route path="crm/dashboard" element={<CrmDashboardPage />} />
                 <Route path="crm/pipeline" element={<CrmPipelinePage />} />
                 <Route path="crm/activities" element={<CrmActivitiesPage />} />
+                <Route path="crm/proposals" element={<RedirectToProposals />} />
+                <Route path="crm/catalog-publisher" element={<RedirectToProposals />} />
 
                 {/* ═══ Helpdesk App ═══ */}
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
@@ -183,7 +195,7 @@ const App = () => (
                 <Route path="stock-lens-prices" element={<Navigate to="/admin/pricing/stock-lenses" replace />} />
                 <Route path="supplies-prices" element={<Navigate to="/admin/pricing/supplies" replace />} />
                 <Route path="imports" element={<Navigate to="/admin/pricing/imports" replace />} />
-                <Route path="catalog-publisher" element={<Navigate to="/admin/pricing/publisher" replace />} />
+                <Route path="catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
                 <Route path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher-old" replace />} />
                 <Route path="catalog-publisher/:id" element={<Navigate to="/admin/pricing/publisher" replace />} />
                 <Route path="quotations" element={<Navigate to="/admin/sales/quotations" replace />} />

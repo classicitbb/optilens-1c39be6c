@@ -15,10 +15,11 @@ export interface ProviderSearchParams {
   query: string;
   country?: string;
   city?: string;
+  credentials?: Record<string, string>;
 }
 
 export interface ProviderAdapter {
   id: string;
-  isConfigured(): boolean;
+  isConfigured(credentials?: Record<string, string>): boolean;
   search(params: ProviderSearchParams): Promise<LeadCandidate[]>;
 }

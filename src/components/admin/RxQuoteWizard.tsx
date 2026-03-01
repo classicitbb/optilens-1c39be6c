@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuoteLines, useRxDetails, computeLineProfit, OVERRIDE_REASONS, Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
 import { useLenses, Lens } from "@/hooks/useLenses";
@@ -17,6 +17,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
 import QuotePdfExport, { QuotePreviewPanel, QuotePdfExportHandle } from "@/components/admin/QuotePdfExport";
+import { resolvePrintSettings } from "@/features/admin/print/printStyles";
+import { PrintSettings } from "@/features/admin/print/types";
+import { getPersistedPrintSettings, savePersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, XCircle, AlertTriangle, MinusCircle, ChevronRight,
@@ -93,6 +96,7 @@ interface Props {
     belowThresholdCount: number; editedCount: number; noCostCount: number;
   };
   canEdit: boolean;
+  printSettingsProfileId: string;
 }
 
 // ─── Editable lens line row ────────────────────────────────────────────────
@@ -415,7 +419,7 @@ const RxSummaryLine = ({ label, value }: { label: string; value: string | null |
 };
 
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
-const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHeader, emailError, setEmailError, totals, canEdit }: Props) => {
+const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHeader, emailError, setEmailError, totals, canEdit, printSettingsProfileId }: Props) => {
   const navigate = useNavigate();
   const [step, setStep] = useState<StepId>("identification");
   const { data: lenses = [] } = useLenses();
@@ -621,6 +625,18 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   // PDF ref for "Print & Save"
   const pdfRef = useRef<QuotePdfExportHandle | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [printSettings, setPrintSettings] = useState<PrintSettings>(
+    getPersistedPrintSettings(printSettingsProfileId, { paperSize: "A4", orientation: "portrait" }),
+  );
+
+  useEffect(() => {
+    setPrintSettings(getPersistedPrintSettings(printSettingsProfileId, { paperSize: "A4", orientation: "portrait" }));
+  }, [printSettingsProfileId]);
+
+  const handlePrintSettingsChange = useCallback((next: PrintSettings) => {
+    const resolved = resolvePrintSettings(next);
+    setPrintSettings(savePersistedPrintSettings(printSettingsProfileId, resolved));
+  }, [printSettingsProfileId]);
 
   // Derived frame data object for PDF/preview
   const frameDataForPdf = (frameRef || frameModel || frameA || frameB) ? {
@@ -983,6 +999,8 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                   totals={effectiveTotals}
                   rxMap={rxMap}
                   frameData={frameDataForPdf}
+                  printSettings={printSettings}
+                  onPrintSettingsChange={handlePrintSettingsChange}
                 />
               </div>
             )}
@@ -1008,6 +1026,9 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                     totals={effectiveTotals}
                     rxMap={rxMap}
                     frameData={frameDataForPdf}
+                    printSettings={printSettings}
+                    printSettingsProfileId={printSettingsProfileId}
+                    showTriggerButton={false}
                   />
                 </div>
                 <Button

@@ -19,6 +19,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
 import QuotePdfExport from "@/components/admin/QuotePdfExport";
+import { resolvePrintSettings } from "@/features/admin/print/printStyles";
+import { getPersistedPrintSettings, savePersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
+import { PrintSettings } from "@/features/admin/print/types";
 import RxQuoteWizard from "@/components/admin/RxQuoteWizard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -62,6 +65,10 @@ const QuoteEditorPage = () => {
   const [headerForm, setHeaderForm] = useState<Partial<Quote>>({});
   const [emailError, setEmailError] = useState("");
   const [showInternalExport, setShowInternalExport] = useState(false);
+  const printSettingsProfileId = `quote:${id ?? "draft"}:print-layout`;
+  const [printSettings, setPrintSettings] = useState<PrintSettings>(
+    getPersistedPrintSettings(printSettingsProfileId, { paperSize: "A4", orientation: "portrait" }),
+  );
 
   // STOCK-only state
   const [overrideDialogLine, setOverrideDialogLine] = useState<QuoteLine | null>(null);
@@ -73,6 +80,17 @@ const QuoteEditorPage = () => {
   // Rx map (for summary / PDF export on RX quotes)
   const lensLineIds = useMemo(() => lines.filter(l => l.line_type === "Lens").map(l => l.id), [lines]);
   const [rxMap, setRxMap] = useState<Record<string, RxDetail>>({});
+
+  useEffect(() => {
+    setPrintSettings(getPersistedPrintSettings(printSettingsProfileId, { paperSize: "A4", orientation: "portrait" }));
+  }, [printSettingsProfileId]);
+
+  const updatePrintSettings = useCallback((next: Partial<PrintSettings>) => {
+    setPrintSettings((prev) => {
+      const resolved = resolvePrintSettings({ ...prev, ...next });
+      return savePersistedPrintSettings(printSettingsProfileId, resolved);
+    });
+  }, [printSettingsProfileId]);
 
   useEffect(() => {
     if (lensLineIds.length === 0) { setRxMap({}); return; }
@@ -237,7 +255,35 @@ const QuoteEditorPage = () => {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* PDF export always visible */}
-          <QuotePdfExport quote={quote} lines={lines} totals={totals} showInternal={showInternalExport} rxMap={rxMap} />
+          <QuotePdfExport quote={quote} lines={lines} totals={totals} showInternal={showInternalExport} rxMap={rxMap} printSettings={printSettings} printSettingsProfileId={printSettingsProfileId} />
+          <Select value={printSettings.paperSize} onValueChange={(value: "A4" | "Letter") => updatePrintSettings({ paperSize: value })}>
+            <SelectTrigger className="h-6 w-[84px] text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
+          </Select>
+          <Select value={printSettings.orientation} onValueChange={(value: "portrait" | "landscape") => updatePrintSettings({ orientation: value })}>
+            <SelectTrigger className="h-6 w-[110px] text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
+          </Select>
+          <Select value={printSettings.marginPreset ?? "normal"} onValueChange={(value: "narrow" | "normal" | "wide") => updatePrintSettings({ marginPreset: value })}>
+            <SelectTrigger className="h-6 w-[92px] text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="narrow">Narrow</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="wide">Wide</SelectItem></SelectContent>
+          </Select>
+          <Input type="number" min={0} max={60} step={1} value={printSettings.marginXMm ?? ""} onChange={(e) => {
+            const parsed = Number(e.target.value);
+            updatePrintSettings({ marginXMm: Number.isFinite(parsed) ? parsed : undefined });
+          }} className="h-6 w-[68px] text-[10px]" placeholder="H mm" />
+          <Input type="number" min={0} max={60} step={1} value={printSettings.marginYMm ?? ""} onChange={(e) => {
+            const parsed = Number(e.target.value);
+            updatePrintSettings({ marginYMm: Number.isFinite(parsed) ? parsed : undefined });
+          }} className="h-6 w-[68px] text-[10px]" placeholder="V mm" />
+          <Input type="number" min={8} max={40} step={1} value={printSettings.sectionSpacing ?? ""} onChange={(e) => {
+            const parsed = Number(e.target.value);
+            updatePrintSettings({ sectionSpacing: Number.isFinite(parsed) ? parsed : undefined });
+          }} className="h-6 w-[78px] text-[10px]" placeholder="Section" />
+          <Input type="number" min={0.85} max={1.2} step={0.01} value={printSettings.tableScale ?? ""} onChange={(e) => {
+            const parsed = Number(e.target.value);
+            updatePrintSettings({ tableScale: Number.isFinite(parsed) ? parsed : undefined });
+          }} className="h-6 w-[70px] text-[10px]" placeholder="Table" />
           <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={showInternalExport} onChange={e => setShowInternalExport(e.target.checked)} className="h-3 w-3 rounded" />
             Internal
@@ -266,6 +312,7 @@ const QuoteEditorPage = () => {
             setEmailError={setEmailError}
             totals={totals}
             canEdit={canEdit}
+            printSettingsProfileId={printSettingsProfileId}
           />
         )}
 

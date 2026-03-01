@@ -89,6 +89,7 @@ export interface LeadFinderDiagnostics {
 export interface LeadFinderResult {
   leads: LeadRecord[];
   diagnostics: LeadFinderDiagnostics | null;
+  warning?: string | null;
 }
 
 interface ComplianceErrorPayload {
@@ -103,14 +104,37 @@ export const useLeadFinder = () => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
         body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true, mode, constraints },
       });
+
       if (error) {
-        const payload = (data ?? {}) as ComplianceErrorPayload;
-        const alternatives = Array.isArray(payload.compliant_alternatives)
-          ? ` Alternatives: ${payload.compliant_alternatives.join(" ")}`
-          : "";
-        throw new Error(payload.error ? `${payload.error}${alternatives}` : error.message);
+        const message = `${error.message ?? ""}`;
+        const unavailable = message.includes("Failed to send a request to the Edge Function") || message.includes("FunctionsFetchError") || message.includes("404");
+        if (!unavailable) throw error;
+        return {
+          leads: [],
+          diagnostics: {
+            mode: globalSearch ? "autopilot" : "manual",
+            scopeMode: globalSearch ? "global" : "country_city",
+            searchRunId: null,
+            planner: { mode: "manual", rankedIntents: [], selectedIntent: null },
+            providerStatus: {
+              googlePlacesConfigured: false,
+              facebookGraphConfigured: false,
+              instagramGraphConfigured: false,
+              whatsappBusinessSignalsConfigured: false,
+              yellowPagesConfigured: false,
+              bingConfigured: false,
+              yahooConfigured: false,
+            },
+            providersUsed: [],
+            providerTelemetry: {},
+            emptyReason: "no_providers_configured",
+            queryEcho: { query, country, city: cities?.[0] },
+            fetchedAt: new Date().toISOString(),
+          },
+          warning: "Live provider search is temporarily unavailable. Confirm Edge Function deployment and provider credentials in /admin/leads/settings.",
+        };
       }
-      const diagnostics = (data?.diagnostics ?? null) as LeadFinderDiagnostics | null;
+
       const leads = ((data?.leads ?? []) as any[]).map((lead) => ({
         id: lead.id ?? crypto.randomUUID(),
         name: lead.name,
@@ -125,11 +149,12 @@ export const useLeadFinder = () => {
         status: "lead",
         score: Number(lead.score ?? 0),
         notes: null,
-        search_run_id: lead.search_run_id ?? diagnostics?.searchRunId ?? null,
+        search_run_id: lead.search_run_id ?? data?.diagnostics?.searchRunId ?? null,
       })) as LeadRecord[];
       return {
         leads,
-        diagnostics,
+        diagnostics: (data?.diagnostics ?? null) as LeadFinderDiagnostics | null,
+        warning: null,
       };
     },
   });

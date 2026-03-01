@@ -2,6 +2,23 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-02-28 — Admin E2E Runtime Hardening (Lead Finder graceful fallback)
+
+### Plan
+- Run end-to-end admin checks across key pages and watch for runtime failures.
+- Prevent Lead Finder from hard-failing when Edge Function connectivity is unavailable.
+- Surface operator-friendly fallback messaging instead of destructive runtime behavior.
+
+### Release Notes
+- Lead Finder now degrades gracefully when the `lead-intelligence` Edge Function cannot be reached.
+- Users receive a clear in-page warning and non-crashing diagnostics state instead of repeated fatal runtime failure behavior.
+- Search action now catches unexpected failures and reports a controlled toast error.
+
+### Technical Changelog
+- Updated `src/features/admin/leads/hooks/useLeadFinder.ts` to return a safe fallback payload when function-invoke transport failures occur.
+- Updated `src/pages/admin/leads/LeadFinderPage.tsx` to use `mutateAsync` with explicit try/catch and warning-surface handling.
+- Retained existing diagnostics panel contract by providing fallback diagnostics values when providers are unreachable.
+
 ## 2026-02-28 — Contacts/CRM Location UX Upgrade (Country→State/City constrained dropdowns)
 
 ### Plan

@@ -50,6 +50,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/pricing/costings": "costings",
   "/admin/pricing/costings/reports": "costings",
   "/admin/pricing/publisher": "catalog-publisher",
+  "/admin/sales/proposals": "catalog-publisher",
   "/admin/sales/quotations": "quotations",
   "/admin/crm": "crm",
   "/admin/crm/dashboard": "crm",

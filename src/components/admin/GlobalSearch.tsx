@@ -66,9 +66,11 @@ const GlobalSearch = () => {
           }))
         );
 
-      const { data, error } = await supabase.rpc("get_visible_help_articles", {
-        requested_page_slug: null,
-      });
+      const { data, error } = await supabase
+        .from("help_articles")
+        .select("*, help_article_contexts(context_slug)")
+        .eq("is_active", true)
+        .order("sort_order");
 
       if (error) throw error;
 
