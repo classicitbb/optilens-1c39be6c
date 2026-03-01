@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { getPersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
 import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
+import { preparePrintListChunks, type PrintListSection } from "@/features/admin/print/printLayout";
 import type { Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
 
 interface QuotePdfExportProps {
@@ -165,6 +166,24 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
     );
     const lensLines = lines.filter((l) => l.line_type === "Lens");
     const cleanInternalNotes = stripFrameTag(quote.notes_internal);
+
+    const lineItemRows = [
+      ...productLines.map((line, index) => ({ line, displayIndex: index + 1, isFee: false })),
+      ...feeLines.map((line) => ({ line, displayIndex: null as number | null, isFee: true })),
+    ];
+
+    const lineItemSections: PrintListSection<(typeof lineItemRows)[number]>[] = [
+      {
+        key: "quote-line-items",
+        label: "Line Items",
+        rows: lineItemRows,
+      },
+    ];
+
+    const lineItemChunks = preparePrintListChunks(lineItemSections, {
+      rowsPerPage: 14,
+      minSplitThreshold: 5,
+    });
 
     const renderRxTable = (rx: RxDetail) => {
       const hasAnyPrism = [
@@ -352,7 +371,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         </div>
 
         {/* Customer */}
-        <div className="section">
+        <div className="section print-strict-avoid-break">
           <div className="section-title">Customer Details</div>
           <div className="customer-grid">
             <div>
@@ -376,7 +395,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Frame */}
         {frameData && (frameData.ref || frameData.model || frameData.a) && (
-          <div className="section">
+          <div className="section print-strict-avoid-break">
             <div className="section-title">Frame Details</div>
             <div className="frame-grid">
               {frameData.ref && (
@@ -434,87 +453,79 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         )}
 
         {/* Line items */}
-        <div className="section print-keep-with-next">
+        <div className="section">
           <div className="section-title print-keep-with-next">Line Items</div>
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: "40px" }}>#</th>
-                <th className="desc">Description</th>
-                <th className="right" style={{ width: "50px" }}>
-                  Qty
-                </th>
-                {showInternal && (
-                  <th className="right" style={{ width: "80px" }}>
-                    Cost (L)
-                  </th>
-                )}
-                <th className="right" style={{ width: "90px" }}>
-                  Unit Price
-                </th>
-                <th className="right" style={{ width: "100px" }}>
-                  Line Total
-                </th>
-                {showInternal && (
-                  <th className="right" style={{ width: "60px" }}>
-                    GP%
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {productLines.map((line, i) => (
-                <tr key={line.id}>
-                  <td>{i + 1}</td>
-                  <td className="desc">
-                    {line.item_name}
-                    {line.description_override && (
-                      <div style={{ fontSize: "10px", color: "#718096" }}>
-                        {line.description_override}
-                      </div>
+          {lineItemChunks.map((chunk) => (
+            <div
+              key={chunk.key}
+              className={`print-list-breakable ${chunk.pageBreakBefore ? "print-page-break-before" : ""}`.trim()}
+            >
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: "40px" }}>#</th>
+                    <th className="desc">Description</th>
+                    <th className="right" style={{ width: "50px" }}>
+                      Qty
+                    </th>
+                    {showInternal && (
+                      <th className="right" style={{ width: "80px" }}>
+                        Cost (L)
+                      </th>
                     )}
-                  </td>
-                  <td className="right">{line.qty}</td>
-                  {showInternal && (
-                    <td className="right">
-                      {line.unit_cost_landed_bbd.toFixed(2)}
-                    </td>
-                  )}
-                  <td className="right">
-                    {line.unit_sell_price_bbd.toFixed(2)}
-                  </td>
-                  <td className="right">
-                    {(line.qty * line.unit_sell_price_bbd).toFixed(2)}
-                  </td>
-                  {showInternal && (
-                    <td
-                      className="right"
-                      style={{
-                        color: line.gp_percent >= 0 ? "#276749" : "#c53030",
-                      }}
-                    >
-                      {line.gp_percent.toFixed(1)}%
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {feeLines.map((line) => (
-                <tr key={line.id} style={{ fontStyle: "italic" }}>
-                  <td></td>
-                  <td className="desc">{line.item_name}</td>
-                  <td className="right">{line.qty}</td>
-                  {showInternal && <td className="right">—</td>}
-                  <td className="right">
-                    {line.unit_sell_price_bbd.toFixed(2)}
-                  </td>
-                  <td className="right">
-                    {(line.qty * line.unit_sell_price_bbd).toFixed(2)}
-                  </td>
-                  {showInternal && <td className="right">—</td>}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <th className="right" style={{ width: "90px" }}>
+                      Unit Price
+                    </th>
+                    <th className="right" style={{ width: "100px" }}>
+                      Line Total
+                    </th>
+                    {showInternal && (
+                      <th className="right" style={{ width: "60px" }}>
+                        GP%
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {chunk.rows.map(({ line, displayIndex, isFee }) => (
+                    <tr key={line.id} style={isFee ? { fontStyle: "italic" } : undefined}>
+                      <td>{displayIndex ?? ""}</td>
+                      <td className="desc">
+                        {line.item_name}
+                        {!isFee && line.description_override && (
+                          <div style={{ fontSize: "10px", color: "#718096" }}>
+                            {line.description_override}
+                          </div>
+                        )}
+                      </td>
+                      <td className="right">{line.qty}</td>
+                      {showInternal && (
+                        <td className="right">
+                          {isFee ? "—" : line.unit_cost_landed_bbd.toFixed(2)}
+                        </td>
+                      )}
+                      <td className="right">
+                        {line.unit_sell_price_bbd.toFixed(2)}
+                      </td>
+                      <td className="right">
+                        {(line.qty * line.unit_sell_price_bbd).toFixed(2)}
+                      </td>
+                      {showInternal && (
+                        <td
+                          className="right"
+                          style={isFee ? undefined : {
+                            color: line.gp_percent >= 0 ? "#276749" : "#c53030",
+                          }}
+                        >
+                          {isFee ? "—" : `${line.gp_percent.toFixed(1)}%`}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
 
         {/* Rx Details */}
@@ -537,7 +548,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         )}
 
         {/* Totals */}
-        <div className="totals">
+        <div className="totals print-strict-avoid-break">
           <div className="totals-box">
             <div className="total-row">
               <span className="label">
@@ -574,14 +585,14 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Notes */}
         {quote.notes_customer && (
-          <div className="notes-section">
+          <div className="notes-section print-strict-avoid-break">
             <div className="section-title">Notes</div>
             <div className="notes-text">{quote.notes_customer}</div>
           </div>
         )}
         {showInternal && cleanInternalNotes && (
           <div
-            className="notes-section"
+            className="notes-section print-strict-avoid-break"
             style={{ marginTop: "12px", borderColor: "#fed7d7" }}
           >
             <div className="section-title">
@@ -591,7 +602,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
           </div>
         )}
 
-        <div className="footer">
+        <div className="footer print-strict-avoid-break">
           <div>OptiLens Pro — Precision Optics & Lens Solutions</div>
           <div style={{ marginTop: "4px" }}>
             This quote is valid for {quote.lead_time_days || 30} days from the

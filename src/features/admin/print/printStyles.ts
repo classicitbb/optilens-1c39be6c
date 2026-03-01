@@ -121,16 +121,25 @@ export const buildPrintStyles = (settings?: Partial<PrintSettings>) => {
     }
 
     .print-avoid-break,
+    .print-strict-avoid-break,
     h1,
     h2,
     h3,
-    h4,
-    table,
-    thead,
-    tbody,
-    tr {
+    h4 {
       break-inside: avoid;
       page-break-inside: avoid;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    .print-list-breakable,
+    .print-list-breakable table,
+    .print-list-breakable tbody,
+    .print-list-breakable tr {
+      break-inside: auto;
+      page-break-inside: auto;
     }
 
     h1,
