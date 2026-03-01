@@ -168,7 +168,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       if (!printWindow) return;
       printWindow.document
         .write(`<!DOCTYPE html><html><head><title>${quote.quote_number} - Quote</title>
-        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles(resolvedPrintSettings)}</style></head><body><div class="print-root">${content.innerHTML}</div></body></html>`);
+        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles(resolvedPrintSettings)}</style></head><body><div class="pre-print-hint">Disable browser headers/footers in print settings.</div><div class="print-root">${content.innerHTML}</div></body></html>`);
       printWindow.document.close();
       setTimeout(() => {
         printWindow.print();
@@ -660,15 +660,20 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         </div>
 
         {showTriggerButton && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs gap-1.5"
-            onClick={doPrint}
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export PDF
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={doPrint}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export PDF
+            </Button>
+            <span className="text-[10px] text-amber-700 dark:text-amber-400">
+              Disable browser headers/footers in print settings.
+            </span>
+          </div>
         )}
       </>
     );
@@ -748,7 +753,7 @@ export const QuotePreviewPanel = ({
   const styleMetrics = getQuoteStyleMetrics(localPrintSettings);
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm">
+    <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col h-full">
       {/* Preview chrome bar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
         <div className="flex gap-1">
@@ -786,23 +791,23 @@ export const QuotePreviewPanel = ({
         </Select>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>H</span>
-          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>V</span>
-          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>Section</span>
-          <Input type="number" min={8} max={40} step={1} value={localPrintSettings.sectionGapPx ?? ""} onChange={(e) => handleSettingsUpdate({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="px" />
+          <Input type="number" min={8} max={40} step={1} value={localPrintSettings.sectionGapPx ?? ""} onChange={(e) => handleSettingsUpdate({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>Heading</span>
-          <Input type="number" min={4} max={24} step={1} value={localPrintSettings.headingGapPx ?? ""} onChange={(e) => handleSettingsUpdate({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="px" />
+          <Input type="number" min={4} max={24} step={1} value={localPrintSettings.headingGapPx ?? ""} onChange={(e) => handleSettingsUpdate({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>Table</span>
-          <Input type="number" min={0.85} max={1.2} step={0.01} value={localPrintSettings.tableFontScale ?? ""} onChange={(e) => handleSettingsUpdate({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="1.0" />
+          <Input type="number" min={0.85} max={1.2} step={0.01} value={localPrintSettings.tableFontScale ?? ""} onChange={(e) => handleSettingsUpdate({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="1.0" />
         </div>
       </div>
 
@@ -812,8 +817,8 @@ export const QuotePreviewPanel = ({
 
       <div
         ref={paneRef}
-        className="bg-muted/10 overflow-auto p-3"
-        style={{ maxHeight: "600px", minHeight: "360px" }}
+        className="bg-muted/10 overflow-auto p-3 flex-1"
+        style={{ minHeight: "360px" }}
       >
         {(() => {
           const page = getPageDimensionsPx(localPrintSettings);

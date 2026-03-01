@@ -263,8 +263,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   const ListPreview = () => {
     const hasContent = lensSections.size > 0 || addonsBySection.size > 0;
 
-    const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
-      <div className="print-avoid-break print-grid-keep">
+    const SectionTable = ({ label, rows, pageBreakBefore, isContinuation }: { label: string; rows: typeof catalogRows; pageBreakBefore?: boolean; isContinuation?: boolean }) => (
+      <div className={`print-avoid-break print-grid-keep${pageBreakBefore ? " print-page-break-before" : ""}`}>
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr>

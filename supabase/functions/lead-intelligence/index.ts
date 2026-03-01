@@ -271,8 +271,14 @@ serve(async (req) => {
     }
 
     const selectedCity = Array.isArray(cities) && cities.length > 0 ? cities[0] : undefined;
-    const effectiveCountry = globalSearch ? undefined : country;
-    const effectiveCity = globalSearch ? undefined : selectedCity;
+    const normalizedCountry = typeof country === "string" && country.trim().length > 0 ? country.trim() : undefined;
+    const normalizedCity = typeof selectedCity === "string" && selectedCity.trim().length > 0
+      ? selectedCity.trim()
+      : undefined;
+    // Keep user-selected geography as a location hint even when global search is enabled.
+    // Global mode broadens strategy/planning scope rather than discarding useful geo context.
+    const effectiveCountry = normalizedCountry;
+    const effectiveCity = normalizedCity;
     const resolvedQuery = plannedQuery;
 
     const providerCredentials = await loadProviderCredentials(supabaseClient);

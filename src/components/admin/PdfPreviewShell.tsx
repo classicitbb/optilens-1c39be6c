@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Printer } from "lucide-react";
@@ -29,12 +29,17 @@ const getPageDimensionsPx = (settings: PrintSettings) => {
   };
 };
 
-const getContentBoxDimensionsPx = (settings: PrintSettings) => {
+const getContentAreaPx = (settings: PrintSettings) => {
   const area = getPrintableContentAreaMm(settings);
   return {
-    margin: Math.min(area.marginX, area.marginY) * MM_TO_PX,
+    marginX: area.marginX * MM_TO_PX,
+    marginY: area.marginY * MM_TO_PX,
+    contentWidth: area.contentWidth * MM_TO_PX,
+    contentHeight: area.contentHeight * MM_TO_PX,
   };
 };
+
+const PAGE_GAP = 16;
 
 const PdfPreviewShell = ({
   title,
@@ -53,8 +58,10 @@ const PdfPreviewShell = ({
     resolvePrintSettings(defaultPrintSettings),
   );
   const [previewScale, setPreviewScale] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
   const paneRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
 
   const printSettings = controlledPrintSettings ?? internalSettings;
   const resolvedSettings = useMemo(() => resolvePrintSettings(printSettings), [printSettings]);
@@ -66,6 +73,25 @@ const PdfPreviewShell = ({
     }
   }, [controlledPrintSettings]);
 
+  // Measure content to determine page count
+  const updatePageCount = useCallback(() => {
+    const el = measureRef.current;
+    if (!el) return;
+    const area = getContentAreaPx(resolvedSettings);
+    const contentH = el.scrollHeight;
+    const pages = Math.max(1, Math.ceil(contentH / area.contentHeight));
+    setPageCount(pages);
+  }, [resolvedSettings]);
+
+  useEffect(() => {
+    updatePageCount();
+    const el = measureRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(updatePageCount);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [updatePageCount, visible, children]);
+
   useEffect(() => {
     const pane = paneRef.current;
     if (!pane) return;
@@ -73,8 +99,7 @@ const PdfPreviewShell = ({
     const updateScale = () => {
       const page = getPageDimensionsPx(resolvedSettings);
       const availableWidth = Math.max(1, pane.clientWidth - 24);
-      const availableHeight = Math.max(1, pane.clientHeight - 24);
-      setPreviewScale(Math.min(availableWidth / page.width, availableHeight / page.height));
+      setPreviewScale(Math.min(1, availableWidth / page.width));
     };
 
     updateScale();
@@ -99,8 +124,11 @@ const PdfPreviewShell = ({
 
     printWindow.document
       .write(`<!DOCTYPE html><html><head><title>${title}</title>
-      <style>${buildPrintStyles(resolvedSettings)}</style>
-    </head><body><div class="print-root">${content.innerHTML}</div></body></html>`);
+      <style>${buildPrintStyles(printSettings)}</style>
+    </head><body>
+      <div class="pre-print-hint">Disable browser headers/footers in print settings.</div>
+      <div class="print-root">${content.innerHTML}</div>
+    </body></html>`);
     printWindow.document.close();
     setTimeout(() => {
       printWindow.print();
@@ -112,8 +140,12 @@ const PdfPreviewShell = ({
     updatePrintSettings({ [field]: Number.isFinite(parsed) ? parsed : undefined });
   };
 
+  const page = getPageDimensionsPx(resolvedSettings);
+  const area = getContentAreaPx(resolvedSettings);
+  const totalStackHeight = (page.height * pageCount + PAGE_GAP * (pageCount - 1)) * previewScale;
+
   return (
-    <div className="border border-border rounded-lg overflow-hidden" id="live-preview">
+    <div className="border border-border overflow-hidden" id="live-preview">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
         <div className="flex gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
@@ -124,62 +156,140 @@ const PdfPreviewShell = ({
         {formatLabel && <span className="text-[10px] font-medium text-primary">{formatLabel}</span>}
       </div>
 
-      <div className="flex items-center justify-between px-4 py-2 bg-muted/20 border-b border-border no-print">
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => setVisible((v) => !v)}>
+      <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-b border-border no-print">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 shrink-0" onClick={() => setVisible((v) => !v)}>
             {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {visible ? "Hide Preview" : "Show Preview"}
+            <span className="hidden sm:inline">{visible ? "Hide" : "Show"}</span>
           </Button>
 
-          <div className="flex items-center gap-2">
-            <Select value={resolvedSettings.paperSize} onValueChange={(value: PrintPaperSize) => updatePrintSettings({ paperSize: value })}>
-              <SelectTrigger className="h-7 w-[88px] text-xs"><SelectValue placeholder="Paper" /></SelectTrigger>
-              <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
-            </Select>
+          <div className="flex items-center gap-4 flex-1 min-w-0 flex-wrap">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Paper</span>
+              <Select value={resolvedSettings.paperSize} onValueChange={(value: PrintPaperSize) => updatePrintSettings({ paperSize: value })}>
+                <SelectTrigger className="h-7 w-[72px] text-xs"><SelectValue placeholder="Paper" /></SelectTrigger>
+                <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
+              </Select>
+            </div>
 
-            <Select value={resolvedSettings.orientation} onValueChange={(value: PrintOrientation) => updatePrintSettings({ orientation: value })}>
-              <SelectTrigger className="h-7 w-[118px] text-xs"><SelectValue placeholder="Orientation" /></SelectTrigger>
-              <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
-            </Select>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Orientation</span>
+              <Select value={resolvedSettings.orientation} onValueChange={(value: PrintOrientation) => updatePrintSettings({ orientation: value })}>
+                <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue placeholder="Orient." /></SelectTrigger>
+                <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
+              </Select>
+            </div>
 
-            <Select value={resolvedSettings.marginPreset ?? "normal"} onValueChange={(value: "narrow" | "normal" | "wide") => updatePrintSettings({ marginPreset: value })}>
-              <SelectTrigger className="h-7 w-[96px] text-xs"><SelectValue placeholder="Margin" /></SelectTrigger>
-              <SelectContent><SelectItem value="narrow">Narrow</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="wide">Wide</SelectItem></SelectContent>
-            </Select>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Margins</span>
+              <Select value={resolvedSettings.marginPreset ?? "normal"} onValueChange={(value: "narrow" | "normal" | "wide") => updatePrintSettings({ marginPreset: value })}>
+                <SelectTrigger className="h-7 w-[82px] text-xs"><SelectValue placeholder="Margin" /></SelectTrigger>
+                <SelectContent><SelectItem value="narrow">Narrow</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="wide">Wide</SelectItem></SelectContent>
+              </Select>
+            </div>
 
-            <div className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground">H</span><Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" /></div>
-            <div className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground">V</span><Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" /></div>
-            <div className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground">Section</span><Input type="number" min={8} max={40} step={1} value={resolvedSettings.sectionGapPx ?? ""} onChange={(e) => updatePrintSettings({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="px" /></div>
-            <div className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground">Heading</span><Input type="number" min={4} max={24} step={1} value={resolvedSettings.headingGapPx ?? ""} onChange={(e) => updatePrintSettings({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="px" /></div>
-            <div className="flex items-center gap-1"><span className="text-[10px] text-muted-foreground">Table</span><Input type="number" min={0.85} max={1.2} step={0.01} value={resolvedSettings.tableFontScale ?? ""} onChange={(e) => updatePrintSettings({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="1.0" /></div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">H mm</span>
+              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">V mm</span>
+              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Section</span>
+              <Input type="number" min={8} max={40} step={1} value={resolvedSettings.sectionGapPx ?? ""} onChange={(e) => updatePrintSettings({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Heading</span>
+              <Input type="number" min={4} max={24} step={1} value={resolvedSettings.headingGapPx ?? ""} onChange={(e) => updatePrintSettings({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Table</span>
+              <Input type="number" min={0.85} max={1.2} step={0.01} value={resolvedSettings.tableFontScale ?? ""} onChange={(e) => updatePrintSettings({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="1.0" />
+            </div>
           </div>
 
-          {showPrint && visible && <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handlePrint}><Printer className="h-3.5 w-3.5" />Print &amp; Save</Button>}
+          {showPrint && visible && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                onClick={handlePrint}
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Print &amp; Save
+              </Button>
+              <span className="text-[10px] text-amber-700 dark:text-amber-400">
+                Disable browser headers/footers in print settings.
+              </span>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground">Content {Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm</span>
+
+        <div className="flex items-center gap-2 shrink-0 pl-3">
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm
+          </span>
           {headerRight}
         </div>
       </div>
 
       {visible && (
         <div ref={paneRef} className="bg-muted/10 overflow-auto" style={{ maxHeight, minHeight: "260px", padding: "12px" }}>
-          {(() => {
-            const page = getPageDimensionsPx(resolvedSettings);
-            const content = getContentBoxDimensionsPx(resolvedSettings);
+          {/* Scaled page stack */}
+          <div className="mx-auto" style={{ width: page.width * previewScale, height: totalStackHeight }}>
+            <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: page.width }}>
+              {Array.from({ length: pageCount }).map((_, i) => (
+                <div
+                  key={i}
+                  className="relative bg-background shadow-md"
+                  style={{
+                    width: page.width,
+                    height: page.height,
+                    marginBottom: i < pageCount - 1 ? PAGE_GAP / previewScale : 0,
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Page number badge */}
+                  <span
+                    className="absolute text-muted-foreground font-mono select-none pointer-events-none"
+                    style={{ bottom: area.marginY * 0.3, right: area.marginX, fontSize: "9px", opacity: 0.5 }}
+                  >
+                    Page {i + 1} of {pageCount}
+                  </span>
 
-            return (
-              <div className="mx-auto" style={{ width: page.width * previewScale, height: page.height * previewScale }}>
-                <div className="relative bg-background shadow-md" style={{ width: page.width, height: page.height, transform: `scale(${previewScale})`, transformOrigin: "top left" }}>
-                  <div style={{ position: "absolute", top: content.margin, right: content.margin, bottom: content.margin, left: content.margin, overflow: "hidden" }}>
-                    <div ref={printRef} className="print-root h-full w-full" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}>
-                      {children}
+                  {/* Content window – shift content upward for each page */}
+                  <div style={{
+                    position: "absolute",
+                    top: area.marginY,
+                    left: area.marginX,
+                    width: area.contentWidth,
+                    height: area.contentHeight,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{ transform: `translateY(-${i * area.contentHeight}px)` }}>
+                      <div
+                        ref={i === 0 ? measureRef : undefined}
+                        className="print-root w-full"
+                        style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}
+                      >
+                        {children}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+              ))}
+            </div>
+          </div>
+
+          {/* Hidden print source (single continuous flow) */}
+          <div style={{ position: "absolute", left: "-9999px", top: 0, width: area.contentWidth }}>
+            <div ref={printRef} className="print-root w-full" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}>
+              {children}
+            </div>
+          </div>
         </div>
       )}
     </div>
