@@ -69,6 +69,8 @@ const getQuoteStyleMetrics = (settings: PrintSettings) => {
   const sectionGapPx = settings.sectionGapPx ?? settings.sectionSpacing ?? 24;
   const headingGapPx = settings.headingGapPx ?? 8;
   const tableFontScale = settings.tableFontScale ?? settings.tableScale ?? 1;
+  const tableHeaderFontSize = 10 * tableFontScale;
+  const tableBodyFontSize = 11 * tableFontScale;
 
   return {
     sectionGapPx,
@@ -76,10 +78,11 @@ const getQuoteStyleMetrics = (settings: PrintSettings) => {
     tableFontScale,
     tableHeaderPaddingY: 8 * tableFontScale,
     tableHeaderPaddingX: 10 * tableFontScale,
-    tableHeaderFontSize: 10 * tableFontScale,
+    tableHeaderFontSize,
     tableBodyPaddingY: 7 * tableFontScale,
     tableBodyPaddingX: 10 * tableFontScale,
-    tableBodyFontSize: 11 * tableFontScale,
+    tableBodyFontSize,
+    tableFootnoteFontSize: Math.max(8, tableBodyFontSize - 2),
     rxSectionGapPx: Math.round(sectionGapPx / 2),
   };
 };
@@ -101,15 +104,24 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => {
   .frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: ${metrics.headingGapPx}px; }
   .field-label { font-size: 10px; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.3px; }
   .field-value { font-size: 12px; color: #1a202c; margin-top: 1px; }
+  .print-root {
+    --table-border-color: #2b6cb0;
+    --table-header-bg: #ebf4ff;
+    --table-row-even-bg: #f7fbff;
+    --table-header-font-size: ${metrics.tableHeaderFontSize}px;
+    --table-body-font-size: ${metrics.tableBodyFontSize}px;
+    --table-footnote-font-size: ${metrics.tableFootnoteFontSize}px;
+  }
   table { width: 100%; border-collapse: collapse; }
-  th { background: #f7fafc; text-align: left; padding: ${metrics.tableHeaderPaddingY}px ${metrics.tableHeaderPaddingX}px; font-size: ${metrics.tableHeaderFontSize}px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
-  th.right { text-align: right; }
-  th.center { text-align: center; }
-  td { padding: ${metrics.tableBodyPaddingY}px ${metrics.tableBodyPaddingX}px; font-size: ${metrics.tableBodyFontSize}px; border-bottom: 1px solid #edf2f7; color: #2d3748; }
-  td.right { text-align: right; font-family: 'SF Mono', 'Menlo', monospace; }
-  td.center { text-align: center; }
-  td.desc { max-width: 280px; }
-  tr:last-child td { border-bottom: 2px solid #e2e8f0; }
+  .table-shared { border: 1px solid var(--table-border-color); }
+  .table-shared th { background: var(--table-header-bg); text-align: left; padding: ${metrics.tableHeaderPaddingY}px ${metrics.tableHeaderPaddingX}px; font-size: var(--table-header-font-size); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #2d3748; border: 1px solid var(--table-border-color); }
+  .table-shared td { padding: ${metrics.tableBodyPaddingY}px ${metrics.tableBodyPaddingX}px; font-size: var(--table-body-font-size); color: #2d3748; border: 1px solid var(--table-border-color); }
+  .table-shared tbody tr:nth-child(even) { background: var(--table-row-even-bg); }
+  .table-shared th.right, .table-shared td.right, .table-shared .table-col-number { text-align: right; font-family: 'SF Mono', 'Menlo', monospace; }
+  .table-shared th.center, .table-shared td.center { text-align: center; }
+  .table-shared th.desc, .table-shared td.desc, .table-shared .table-col-description { text-align: left; }
+  .table-shared td.desc { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .table-footnote { font-size: var(--table-footnote-font-size); color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: scale(clamp(0.92, ${metrics.tableFontScale}, 1)); transform-origin: left center; }
   .totals { margin-top: 16px; display: flex; justify-content: flex-end; }
   .totals-box { width: 260px; }
   .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
@@ -117,16 +129,15 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => {
   .total-row .value { font-family: 'SF Mono', 'Menlo', monospace; }
   .total-row.grand { border-top: 2px solid #2b6cb0; padding-top: 8px; margin-top: 6px; font-size: 14px; font-weight: 700; }
   .total-row.internal { color: #a0aec0; font-style: italic; }
-  .notes-section { margin-top: ${metrics.sectionGapPx}px; padding: 16px; background: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
+  .notes-section { margin-top: ${metrics.sectionGapPx}px; padding: 16px; background: #f7fafc; border-radius: 0; border: 1px solid #2b6cb0; }
   .notes-text { font-size: 11px; color: #4a5568; white-space: pre-wrap; line-height: 1.5; }
   .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 10px; color: #a0aec0; }
-  .internal-badge { background: #fed7d7; color: #c53030; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; }
+  .internal-badge { background: #fed7d7; color: #c53030; padding: 1px 6px; border-radius: 0; font-size: 9px; font-weight: 600; }
   .rx-section { margin-top: ${metrics.rxSectionGapPx}px; page-break-inside: avoid; }
   .rx-title { font-size: 11px; font-weight: 600; margin-bottom: ${Math.max(4, metrics.headingGapPx - 2)}px; color: #2b6cb0; }
   .rx-table { width: 100%; border-collapse: collapse; margin-bottom: ${metrics.headingGapPx}px; }
-  .rx-table th, .rx-table td { border: 1px solid #e2e8f0; padding: 3px 6px; font-size: 10px; text-align: center; }
-  .rx-table th { background: #f7fafc; font-weight: 600; font-size: 9px; text-transform: uppercase; color: #4a5568; }
-  .rx-table td.label-cell { text-align: left; font-weight: 600; background: #f7fafc; width: 40px; }
+  .rx-table td.label-cell { text-align: left; font-weight: 600; background: var(--table-header-bg); width: 40px; white-space: nowrap; }
+  .quote-type { border-radius: 0; }
 `;
 };
 
@@ -218,7 +229,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
       return (
         <div>
-          <table className="rx-table">
+          <table className="rx-table table-shared">
             <thead>
               <tr>
                 <th>Rx</th>
@@ -261,7 +272,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
             </tbody>
           </table>
           {hasAnyPrism && (
-            <table className="rx-table">
+            <table className="rx-table table-shared">
               <thead>
                 <tr>
                   <th></th>
@@ -303,7 +314,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
             </table>
           )}
           {hasAnyDigital && (
-            <table className="rx-table">
+            <table className="rx-table table-shared">
               <thead>
                 <tr>
                   <th>Digital</th>
@@ -477,7 +488,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
               key={chunk.key}
               className={`print-list-breakable ${chunk.pageBreakBefore ? "print-page-break-before" : ""}`.trim()}
             >
-              <table>
+              <table className="table-shared">
                 <thead>
                   <tr>
                     <th style={{ width: "40px" }}>#</th>
@@ -510,7 +521,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
                       <td className="desc">
                         {line.item_name}
                         {!isFee && line.description_override && (
-                          <div style={{ fontSize: "10px", color: "#718096" }}>
+                          <div className="table-footnote">
                             {line.description_override}
                           </div>
                         )}
@@ -885,7 +896,7 @@ export const QuotePreviewPanel = ({
                             background: "#ebf4ff",
                             color: "#2b6cb0",
                             padding: "2px 8px",
-                            borderRadius: "3px",
+                            borderRadius: "0",
                             fontSize: "10px",
                             fontWeight: 600,
                             marginTop: "4px",
@@ -1146,19 +1157,19 @@ export const QuotePreviewPanel = ({
                         Line Items
                       </div>
                       <table
-                        style={{ width: "100%", borderCollapse: "collapse" }}
+                        style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #2b6cb0" }}
                       >
                         <thead>
-                          <tr style={{ background: "#f7fafc" }}>
+                          <tr style={{ background: "#ebf4ff" }}>
                             <th
                               style={{
                                 textAlign: "left",
                                 padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
-                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               #
@@ -1167,11 +1178,11 @@ export const QuotePreviewPanel = ({
                               style={{
                                 textAlign: "left",
                                 padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
-                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               Description
@@ -1180,11 +1191,11 @@ export const QuotePreviewPanel = ({
                               style={{
                                 textAlign: "right",
                                 padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
-                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               Qty
@@ -1193,11 +1204,11 @@ export const QuotePreviewPanel = ({
                               style={{
                                 textAlign: "right",
                                 padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
-                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               Unit Price
@@ -1206,11 +1217,11 @@ export const QuotePreviewPanel = ({
                               style={{
                                 textAlign: "right",
                                 padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
-                                fontSize: `${styleMetrics.tableHeaderFontSize - 1}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               Total
@@ -1221,22 +1232,25 @@ export const QuotePreviewPanel = ({
                           {productLines.map((line, i) => (
                             <tr
                               key={line.id}
-                              style={{ borderBottom: "1px solid #edf2f7" }}
+                              style={{ background: i % 2 === 1 ? "#f7fbff" : "#ffffff" }}
                             >
                               <td
-                                style={{ padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`, fontSize: `${styleMetrics.tableBodyFontSize - 1}px` }}
+                                style={{ padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`, fontSize: `${styleMetrics.tableBodyFontSize}px`, border: "1px solid #2b6cb0" }}
                               >
                                 {i + 1}
                               </td>
                               <td
-                                style={{ padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`, fontSize: `${styleMetrics.tableBodyFontSize - 1}px` }}
+                                style={{ padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`, fontSize: `${styleMetrics.tableBodyFontSize}px`, border: "1px solid #2b6cb0", textAlign: "left", maxWidth: "250px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                               >
                                 {line.item_name}
                                 {line.description_override && (
                                   <div
                                     style={{
-                                      fontSize: "9px",
+                                      fontSize: `${styleMetrics.tableFootnoteFontSize}px`,
                                       color: "#718096",
+                                      whiteSpace: "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
                                     }}
                                   >
                                     {line.description_override}
@@ -1247,8 +1261,9 @@ export const QuotePreviewPanel = ({
                                 style={{
                                   textAlign: "right",
                                   padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
-                                  fontSize: `${styleMetrics.tableBodyFontSize - 1}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize}px`,
                                   fontFamily: "monospace",
+                                  border: "1px solid #2b6cb0",
                                 }}
                               >
                                 {line.qty}
@@ -1257,8 +1272,9 @@ export const QuotePreviewPanel = ({
                                 style={{
                                   textAlign: "right",
                                   padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
-                                  fontSize: `${styleMetrics.tableBodyFontSize - 1}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize}px`,
                                   fontFamily: "monospace",
+                                  border: "1px solid #2b6cb0",
                                 }}
                               >
                                 {line.unit_sell_price_bbd.toFixed(2)}
@@ -1267,8 +1283,9 @@ export const QuotePreviewPanel = ({
                                 style={{
                                   textAlign: "right",
                                   padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
-                                  fontSize: `${styleMetrics.tableBodyFontSize - 1}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize}px`,
                                   fontFamily: "monospace",
+                                  border: "1px solid #2b6cb0",
                                 }}
                               >
                                 {(line.qty * line.unit_sell_price_bbd).toFixed(
@@ -1529,8 +1546,8 @@ export const QuotePreviewPanel = ({
                           marginTop: "20px",
                           padding: "12px",
                           background: "#f7fafc",
-                          borderRadius: "6px",
-                          border: "1px solid #e2e8f0",
+                          borderRadius: "0",
+                          border: "1px solid #2b6cb0",
                         }}
                       >
                         <div
