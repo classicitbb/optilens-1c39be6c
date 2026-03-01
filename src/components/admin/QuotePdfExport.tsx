@@ -47,6 +47,23 @@ const stripFrameTag = (notes: string | null | undefined) => {
   return notes.replace(/\[\[FRAME:.*?\]\]\n?/s, "").trim();
 };
 
+const MM_TO_PX = 3.7795275591;
+
+const getPageDimensionsPx = (settings: PrintSettings) => {
+  const area = getPrintableContentAreaMm(settings);
+  return {
+    width: area.pageWidth * MM_TO_PX,
+    height: area.pageHeight * MM_TO_PX,
+  };
+};
+
+const getContentBoxDimensionsPx = (settings: PrintSettings) => {
+  const area = getPrintableContentAreaMm(settings);
+  return {
+    margin: Math.min(area.marginX, area.marginY) * MM_TO_PX,
+  };
+};
+
 const getQuoteStyleMetrics = (settings: PrintSettings) => {
   const sectionGapPx = settings.sectionGapPx ?? settings.sectionSpacing ?? 24;
   const headingGapPx = settings.headingGapPx ?? 8;
