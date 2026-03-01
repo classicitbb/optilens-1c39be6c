@@ -53,7 +53,7 @@ const CatalogPublisherV2Page = () => {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="Catalog Publisher" icon={FileDown}>
+      <AdminPageHeader title="Proposals" icon={FileDown}>
         <div className="flex gap-2">
           <Button
             variant="outline"

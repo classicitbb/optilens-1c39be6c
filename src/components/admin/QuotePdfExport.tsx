@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
+import { getPersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
 import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
+import { preparePrintListChunks, type PrintListSection } from "@/features/admin/print/printLayout";
 import type { Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
 
 interface QuotePdfExportProps {
@@ -32,6 +34,7 @@ interface QuotePdfExportProps {
   } | null;
   showTriggerButton?: boolean;
   printSettings?: Partial<PrintSettings>;
+  printSettingsProfileId?: string;
 }
 
 export interface QuotePdfExportHandle {
@@ -45,7 +48,49 @@ const stripFrameTag = (notes: string | null | undefined) => {
   return notes.replace(/\[\[FRAME:.*?\]\]\n?/s, "").trim();
 };
 
-const getQuoteDocumentStyles = () => `
+const MM_TO_PX = 3.7795275591;
+
+const getPageDimensionsPx = (settings: PrintSettings) => {
+  const area = getPrintableContentAreaMm(settings);
+  return {
+    width: area.pageWidth * MM_TO_PX,
+    height: area.pageHeight * MM_TO_PX,
+  };
+};
+
+const getContentBoxDimensionsPx = (settings: PrintSettings) => {
+  const area = getPrintableContentAreaMm(settings);
+  return {
+    margin: Math.min(area.marginX, area.marginY) * MM_TO_PX,
+  };
+};
+
+const getQuoteStyleMetrics = (settings: PrintSettings) => {
+  const sectionGapPx = settings.sectionGapPx ?? settings.sectionSpacing ?? 24;
+  const headingGapPx = settings.headingGapPx ?? 8;
+  const tableFontScale = settings.tableFontScale ?? settings.tableScale ?? 1;
+  const tableHeaderFontSize = 10 * tableFontScale;
+  const tableBodyFontSize = 11 * tableFontScale;
+
+  return {
+    sectionGapPx,
+    headingGapPx,
+    tableFontScale,
+    tableHeaderPaddingY: 8 * tableFontScale,
+    tableHeaderPaddingX: 10 * tableFontScale,
+    tableHeaderFontSize,
+    tableBodyPaddingY: 7 * tableFontScale,
+    tableBodyPaddingX: 10 * tableFontScale,
+    tableBodyFontSize,
+    tableFootnoteFontSize: Math.max(8, tableBodyFontSize - 2),
+    rxSectionGapPx: Math.round(sectionGapPx / 2),
+  };
+};
+
+const getQuoteDocumentStyles = (settings: PrintSettings) => {
+  const metrics = getQuoteStyleMetrics(settings);
+
+  return `
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; border-bottom: 3px solid #2b6cb0; padding-bottom: 20px; }
   .company-name { font-size: 22px; font-weight: 700; color: #2b6cb0; }
   .company-tagline { font-size: 10px; color: #718096; margin-top: 2px; }
@@ -53,21 +98,30 @@ const getQuoteDocumentStyles = () => `
   .quote-number { font-size: 18px; font-weight: 700; }
   .quote-type { display: inline-block; background: #ebf4ff; color: #2b6cb0; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; margin-top: 4px; }
   .meta-row { font-size: 11px; color: #4a5568; margin-top: 3px; }
-  .section { margin-bottom: 24px; }
-  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; margin-bottom: 8px; }
+  .section { margin-bottom: ${metrics.sectionGapPx}px; }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; margin-bottom: ${metrics.headingGapPx}px; }
   .customer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
+  .frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: ${metrics.headingGapPx}px; }
   .field-label { font-size: 10px; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.3px; }
   .field-value { font-size: 12px; color: #1a202c; margin-top: 1px; }
+  .print-root {
+    --table-border-color: #2b6cb0;
+    --table-header-bg: #ebf4ff;
+    --table-row-even-bg: #f7fbff;
+    --table-header-font-size: ${metrics.tableHeaderFontSize}px;
+    --table-body-font-size: ${metrics.tableBodyFontSize}px;
+    --table-footnote-font-size: ${metrics.tableFootnoteFontSize}px;
+  }
   table { width: 100%; border-collapse: collapse; }
-  th { background: #f7fafc; text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
-  th.right { text-align: right; }
-  th.center { text-align: center; }
-  td { padding: 7px 10px; font-size: 11px; border-bottom: 1px solid #edf2f7; color: #2d3748; }
-  td.right { text-align: right; font-family: 'SF Mono', 'Menlo', monospace; }
-  td.center { text-align: center; }
-  td.desc { max-width: 280px; }
-  tr:last-child td { border-bottom: 2px solid #e2e8f0; }
+  .table-shared { border: 1px solid var(--table-border-color); }
+  .table-shared th { background: var(--table-header-bg); text-align: left; padding: ${metrics.tableHeaderPaddingY}px ${metrics.tableHeaderPaddingX}px; font-size: var(--table-header-font-size); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #2d3748; border: 1px solid var(--table-border-color); }
+  .table-shared td { padding: ${metrics.tableBodyPaddingY}px ${metrics.tableBodyPaddingX}px; font-size: var(--table-body-font-size); color: #2d3748; border: 1px solid var(--table-border-color); }
+  .table-shared tbody tr:nth-child(even) { background: var(--table-row-even-bg); }
+  .table-shared th.right, .table-shared td.right, .table-shared .table-col-number { text-align: right; font-family: 'SF Mono', 'Menlo', monospace; }
+  .table-shared th.center, .table-shared td.center { text-align: center; }
+  .table-shared th.desc, .table-shared td.desc, .table-shared .table-col-description { text-align: left; }
+  .table-shared td.desc { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .table-footnote { font-size: var(--table-footnote-font-size); color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: scale(clamp(0.92, ${metrics.tableFontScale}, 1)); transform-origin: left center; }
   .totals { margin-top: 16px; display: flex; justify-content: flex-end; }
   .totals-box { width: 260px; }
   .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
@@ -75,17 +129,17 @@ const getQuoteDocumentStyles = () => `
   .total-row .value { font-family: 'SF Mono', 'Menlo', monospace; }
   .total-row.grand { border-top: 2px solid #2b6cb0; padding-top: 8px; margin-top: 6px; font-size: 14px; font-weight: 700; }
   .total-row.internal { color: #a0aec0; font-style: italic; }
-  .notes-section { margin-top: 24px; padding: 16px; background: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
+  .notes-section { margin-top: ${metrics.sectionGapPx}px; padding: 16px; background: #f7fafc; border-radius: 0; border: 1px solid #2b6cb0; }
   .notes-text { font-size: 11px; color: #4a5568; white-space: pre-wrap; line-height: 1.5; }
   .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 10px; color: #a0aec0; }
-  .internal-badge { background: #fed7d7; color: #c53030; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; }
-  .rx-section { margin-top: 12px; page-break-inside: avoid; }
-  .rx-title { font-size: 11px; font-weight: 600; margin-bottom: 6px; color: #2b6cb0; }
-  .rx-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-  .rx-table th, .rx-table td { border: 1px solid #e2e8f0; padding: 3px 6px; font-size: 10px; text-align: center; }
-  .rx-table th { background: #f7fafc; font-weight: 600; font-size: 9px; text-transform: uppercase; color: #4a5568; }
-  .rx-table td.label-cell { text-align: left; font-weight: 600; background: #f7fafc; width: 40px; }
+  .internal-badge { background: #fed7d7; color: #c53030; padding: 1px 6px; border-radius: 0; font-size: 9px; font-weight: 600; }
+  .rx-section { margin-top: ${metrics.rxSectionGapPx}px; page-break-inside: avoid; }
+  .rx-title { font-size: 11px; font-weight: 600; margin-bottom: ${Math.max(4, metrics.headingGapPx - 2)}px; color: #2b6cb0; }
+  .rx-table { width: 100%; border-collapse: collapse; margin-bottom: ${metrics.headingGapPx}px; }
+  .rx-table td.label-cell { text-align: left; font-weight: 600; background: var(--table-header-bg); width: 40px; white-space: nowrap; }
+  .quote-type { border-radius: 0; }
 `;
+};
 
 const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
   (
@@ -98,11 +152,14 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       frameData,
       showTriggerButton = true,
       printSettings,
+      printSettingsProfileId,
     },
     ref,
   ) => {
     const printRef = useRef<HTMLDivElement>(null);
-    const resolvedPrintSettings = resolvePrintSettings(printSettings);
+    const resolvedPrintSettings = printSettingsProfileId
+      ? getPersistedPrintSettings(printSettingsProfileId, printSettings)
+      : resolvePrintSettings(printSettings);
 
     const doPrint = () => {
       const content = printRef.current;
@@ -138,6 +195,24 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
     const lensLines = lines.filter((l) => l.line_type === "Lens");
     const cleanInternalNotes = stripFrameTag(quote.notes_internal);
 
+    const lineItemRows = [
+      ...productLines.map((line, index) => ({ line, displayIndex: index + 1, isFee: false })),
+      ...feeLines.map((line) => ({ line, displayIndex: null as number | null, isFee: true })),
+    ];
+
+    const lineItemSections: PrintListSection<(typeof lineItemRows)[number]>[] = [
+      {
+        key: "quote-line-items",
+        label: "Line Items",
+        rows: lineItemRows,
+      },
+    ];
+
+    const lineItemChunks = preparePrintListChunks(lineItemSections, {
+      rowsPerPage: 14,
+      minSplitThreshold: 5,
+    });
+
     const renderRxTable = (rx: RxDetail) => {
       const hasAnyPrism = [
         rx.od_prism_value,
@@ -154,7 +229,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
       return (
         <div>
-          <table className="rx-table">
+          <table className="rx-table table-shared">
             <thead>
               <tr>
                 <th>Rx</th>
@@ -197,7 +272,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
             </tbody>
           </table>
           {hasAnyPrism && (
-            <table className="rx-table">
+            <table className="rx-table table-shared">
               <thead>
                 <tr>
                   <th></th>
@@ -239,7 +314,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
             </table>
           )}
           {hasAnyDigital && (
-            <table className="rx-table">
+            <table className="rx-table table-shared">
               <thead>
                 <tr>
                   <th>Digital</th>
@@ -324,9 +399,9 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         </div>
 
         {/* Customer */}
-        <div className="section">
+        <div className="section print-grid-keep">
           <div className="section-title">Customer Details</div>
-          <div className="customer-grid">
+          <div className="customer-grid print-grid-keep">
             <div>
               <div className="field-label">Customer</div>
               <div className="field-value">{quote.customer_name || "—"}</div>
@@ -348,9 +423,9 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Frame */}
         {frameData && (frameData.ref || frameData.model || frameData.a) && (
-          <div className="section">
+          <div className="section print-grid-keep">
             <div className="section-title">Frame Details</div>
-            <div className="frame-grid">
+            <div className="frame-grid print-grid-keep">
               {frameData.ref && (
                 <div>
                   <div className="field-label">Brand / Ref</div>
@@ -408,90 +483,82 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         {/* Line items */}
         <div className="section print-keep-with-next">
           <div className="section-title print-keep-with-next">Line Items</div>
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: "40px" }}>#</th>
-                <th className="desc">Description</th>
-                <th className="right" style={{ width: "50px" }}>
-                  Qty
-                </th>
-                {showInternal && (
-                  <th className="right" style={{ width: "80px" }}>
-                    Cost (L)
-                  </th>
-                )}
-                <th className="right" style={{ width: "90px" }}>
-                  Unit Price
-                </th>
-                <th className="right" style={{ width: "100px" }}>
-                  Line Total
-                </th>
-                {showInternal && (
-                  <th className="right" style={{ width: "60px" }}>
-                    GP%
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {productLines.map((line, i) => (
-                <tr key={line.id}>
-                  <td>{i + 1}</td>
-                  <td className="desc">
-                    {line.item_name}
-                    {line.description_override && (
-                      <div style={{ fontSize: "10px", color: "#718096" }}>
-                        {line.description_override}
-                      </div>
+          {lineItemChunks.map((chunk) => (
+            <div
+              key={chunk.key}
+              className={`print-list-breakable ${chunk.pageBreakBefore ? "print-page-break-before" : ""}`.trim()}
+            >
+              <table className="table-shared">
+                <thead>
+                  <tr>
+                    <th style={{ width: "40px" }}>#</th>
+                    <th className="desc">Description</th>
+                    <th className="right" style={{ width: "50px" }}>
+                      Qty
+                    </th>
+                    {showInternal && (
+                      <th className="right" style={{ width: "80px" }}>
+                        Cost (L)
+                      </th>
                     )}
-                  </td>
-                  <td className="right">{line.qty}</td>
-                  {showInternal && (
-                    <td className="right">
-                      {line.unit_cost_landed_bbd.toFixed(2)}
-                    </td>
-                  )}
-                  <td className="right">
-                    {line.unit_sell_price_bbd.toFixed(2)}
-                  </td>
-                  <td className="right">
-                    {(line.qty * line.unit_sell_price_bbd).toFixed(2)}
-                  </td>
-                  {showInternal && (
-                    <td
-                      className="right"
-                      style={{
-                        color: line.gp_percent >= 0 ? "#276749" : "#c53030",
-                      }}
-                    >
-                      {line.gp_percent.toFixed(1)}%
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {feeLines.map((line) => (
-                <tr key={line.id} style={{ fontStyle: "italic" }}>
-                  <td></td>
-                  <td className="desc">{line.item_name}</td>
-                  <td className="right">{line.qty}</td>
-                  {showInternal && <td className="right">—</td>}
-                  <td className="right">
-                    {line.unit_sell_price_bbd.toFixed(2)}
-                  </td>
-                  <td className="right">
-                    {(line.qty * line.unit_sell_price_bbd).toFixed(2)}
-                  </td>
-                  {showInternal && <td className="right">—</td>}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <th className="right" style={{ width: "90px" }}>
+                      Unit Price
+                    </th>
+                    <th className="right" style={{ width: "100px" }}>
+                      Line Total
+                    </th>
+                    {showInternal && (
+                      <th className="right" style={{ width: "60px" }}>
+                        GP%
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {chunk.rows.map(({ line, displayIndex, isFee }) => (
+                    <tr key={line.id} style={isFee ? { fontStyle: "italic" } : undefined}>
+                      <td>{displayIndex ?? ""}</td>
+                      <td className="desc">
+                        {line.item_name}
+                        {!isFee && line.description_override && (
+                          <div className="table-footnote">
+                            {line.description_override}
+                          </div>
+                        )}
+                      </td>
+                      <td className="right">{line.qty}</td>
+                      {showInternal && (
+                        <td className="right">
+                          {isFee ? "—" : line.unit_cost_landed_bbd.toFixed(2)}
+                        </td>
+                      )}
+                      <td className="right">
+                        {line.unit_sell_price_bbd.toFixed(2)}
+                      </td>
+                      <td className="right">
+                        {(line.qty * line.unit_sell_price_bbd).toFixed(2)}
+                      </td>
+                      {showInternal && (
+                        <td
+                          className="right"
+                          style={isFee ? undefined : {
+                            color: line.gp_percent >= 0 ? "#276749" : "#c53030",
+                          }}
+                        >
+                          {isFee ? "—" : `${line.gp_percent.toFixed(1)}%`}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
 
         {/* Rx Details */}
         {quote.quote_type === "RX" && lensLines.length > 0 && (
-          <div className="section print-page-break-before">
+          <div className="section print-grid-keep">
             <div className="section-title print-keep-with-next">
               Prescription Details
             </div>
@@ -510,7 +577,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Totals */}
         <div className="totals">
-          <div className="totals-box">
+          <div className="totals-box print-grid-keep">
             <div className="total-row">
               <span className="label">
                 Subtotal ({quote.currency || "BBD"})
@@ -546,14 +613,14 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Notes */}
         {quote.notes_customer && (
-          <div className="notes-section">
+          <div className="notes-section print-grid-keep">
             <div className="section-title">Notes</div>
             <div className="notes-text">{quote.notes_customer}</div>
           </div>
         )}
         {showInternal && cleanInternalNotes && (
           <div
-            className="notes-section"
+            className="notes-section print-grid-keep"
             style={{ marginTop: "12px", borderColor: "#fed7d7" }}
           >
             <div className="section-title">
@@ -563,7 +630,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
           </div>
         )}
 
-        <div className="footer">
+        <div className="footer print-strict-avoid-break">
           <div>OptiLens Pro — Precision Optics & Lens Solutions</div>
           <div style={{ marginTop: "4px" }}>
             This quote is valid for {quote.lead_time_days || 30} days from the
@@ -683,6 +750,7 @@ export const QuotePreviewPanel = ({
 
   const fmt = (v: number | null | undefined) => (v != null ? v.toString() : "");
   const previewArea = getPrintableContentAreaMm(localPrintSettings);
+  const styleMetrics = getQuoteStyleMetrics(localPrintSettings);
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm">
@@ -723,11 +791,23 @@ export const QuotePreviewPanel = ({
         </Select>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>H</span>
-          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>V</span>
-          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>Section</span>
+          <Input type="number" min={8} max={40} step={1} value={localPrintSettings.sectionGapPx ?? ""} onChange={(e) => handleSettingsUpdate({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>Heading</span>
+          <Input type="number" min={4} max={24} step={1} value={localPrintSettings.headingGapPx ?? ""} onChange={(e) => handleSettingsUpdate({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>Table</span>
+          <Input type="number" min={0.85} max={1.2} step={0.01} value={localPrintSettings.tableFontScale ?? ""} onChange={(e) => handleSettingsUpdate({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="1.0" />
         </div>
       </div>
 
@@ -821,7 +901,7 @@ export const QuotePreviewPanel = ({
                             background: "#ebf4ff",
                             color: "#2b6cb0",
                             padding: "2px 8px",
-                            borderRadius: "3px",
+                            borderRadius: "0",
                             fontSize: "10px",
                             fontWeight: 600,
                             marginTop: "4px",
@@ -847,7 +927,7 @@ export const QuotePreviewPanel = ({
                     </div>
 
                     {/* Customer */}
-                    <div style={{ marginBottom: "20px" }}>
+                    <div style={{ marginBottom: `${styleMetrics.sectionGapPx}px` }}>
                       <div
                         style={{
                           fontSize: "10px",
@@ -855,7 +935,7 @@ export const QuotePreviewPanel = ({
                           textTransform: "uppercase",
                           letterSpacing: "0.5px",
                           color: "#718096",
-                          marginBottom: "8px",
+                          marginBottom: `${styleMetrics.headingGapPx}px`,
                         }}
                       >
                         Customer Details
@@ -864,7 +944,7 @@ export const QuotePreviewPanel = ({
                         style={{
                           display: "grid",
                           gridTemplateColumns: "1fr 1fr",
-                          gap: "12px",
+                          gap: `${Math.max(12, styleMetrics.headingGapPx + 4)}px`,
                         }}
                       >
                         <div>
@@ -933,7 +1013,7 @@ export const QuotePreviewPanel = ({
                     {/* Frame */}
                     {frameData &&
                       (frameData.ref || frameData.model || frameData.a) && (
-                        <div style={{ marginBottom: "20px" }}>
+                        <div style={{ marginBottom: `${styleMetrics.sectionGapPx}px` }}>
                           <div
                             style={{
                               fontSize: "10px",
@@ -941,7 +1021,7 @@ export const QuotePreviewPanel = ({
                               textTransform: "uppercase",
                               letterSpacing: "0.5px",
                               color: "#718096",
-                              marginBottom: "8px",
+                              marginBottom: `${styleMetrics.headingGapPx}px`,
                             }}
                           >
                             Frame Details
@@ -950,7 +1030,7 @@ export const QuotePreviewPanel = ({
                             style={{
                               display: "grid",
                               gridTemplateColumns: "repeat(4,1fr)",
-                              gap: "10px",
+                              gap: `${Math.max(8, styleMetrics.headingGapPx + 2)}px`,
                             }}
                           >
                             {frameData.ref && (
@@ -1068,7 +1148,7 @@ export const QuotePreviewPanel = ({
                       )}
 
                     {/* Lines */}
-                    <div style={{ marginBottom: "20px" }}>
+                    <div style={{ marginBottom: `${styleMetrics.sectionGapPx}px` }}>
                       <div
                         style={{
                           fontSize: "10px",
@@ -1076,25 +1156,25 @@ export const QuotePreviewPanel = ({
                           textTransform: "uppercase",
                           letterSpacing: "0.5px",
                           color: "#718096",
-                          marginBottom: "8px",
+                          marginBottom: `${styleMetrics.headingGapPx}px`,
                         }}
                       >
                         Line Items
                       </div>
                       <table
-                        style={{ width: "100%", borderCollapse: "collapse" }}
+                        style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #2b6cb0" }}
                       >
                         <thead>
-                          <tr style={{ background: "#f7fafc" }}>
+                          <tr style={{ background: "#ebf4ff" }}>
                             <th
                               style={{
                                 textAlign: "left",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               #
@@ -1102,12 +1182,12 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "left",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               Description
@@ -1115,12 +1195,12 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "right",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               Qty
@@ -1128,12 +1208,12 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "right",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               Unit Price
@@ -1141,12 +1221,12 @@ export const QuotePreviewPanel = ({
                             <th
                               style={{
                                 textAlign: "right",
-                                padding: "6px 8px",
-                                fontSize: "9px",
+                                padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`,
+                                fontSize: `${styleMetrics.tableHeaderFontSize}px`,
                                 fontWeight: 600,
                                 textTransform: "uppercase",
-                                color: "#4a5568",
-                                borderBottom: "2px solid #e2e8f0",
+                                color: "#2d3748",
+                                border: "1px solid #2b6cb0",
                               }}
                             >
                               Total
@@ -1157,22 +1237,25 @@ export const QuotePreviewPanel = ({
                           {productLines.map((line, i) => (
                             <tr
                               key={line.id}
-                              style={{ borderBottom: "1px solid #edf2f7" }}
+                              style={{ background: i % 2 === 1 ? "#f7fbff" : "#ffffff" }}
                             >
                               <td
-                                style={{ padding: "5px 8px", fontSize: "10px" }}
+                                style={{ padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`, fontSize: `${styleMetrics.tableBodyFontSize}px`, border: "1px solid #2b6cb0" }}
                               >
                                 {i + 1}
                               </td>
                               <td
-                                style={{ padding: "5px 8px", fontSize: "10px" }}
+                                style={{ padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`, fontSize: `${styleMetrics.tableBodyFontSize}px`, border: "1px solid #2b6cb0", textAlign: "left", maxWidth: "250px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                               >
                                 {line.item_name}
                                 {line.description_override && (
                                   <div
                                     style={{
-                                      fontSize: "9px",
+                                      fontSize: `${styleMetrics.tableFootnoteFontSize}px`,
                                       color: "#718096",
+                                      whiteSpace: "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
                                     }}
                                   >
                                     {line.description_override}
@@ -1182,9 +1265,10 @@ export const QuotePreviewPanel = ({
                               <td
                                 style={{
                                   textAlign: "right",
-                                  padding: "5px 8px",
-                                  fontSize: "10px",
+                                  padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize}px`,
                                   fontFamily: "monospace",
+                                  border: "1px solid #2b6cb0",
                                 }}
                               >
                                 {line.qty}
@@ -1192,9 +1276,10 @@ export const QuotePreviewPanel = ({
                               <td
                                 style={{
                                   textAlign: "right",
-                                  padding: "5px 8px",
-                                  fontSize: "10px",
+                                  padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize}px`,
                                   fontFamily: "monospace",
+                                  border: "1px solid #2b6cb0",
                                 }}
                               >
                                 {line.unit_sell_price_bbd.toFixed(2)}
@@ -1202,9 +1287,10 @@ export const QuotePreviewPanel = ({
                               <td
                                 style={{
                                   textAlign: "right",
-                                  padding: "5px 8px",
-                                  fontSize: "10px",
+                                  padding: `${styleMetrics.tableBodyPaddingY}px ${styleMetrics.tableBodyPaddingX}px`,
+                                  fontSize: `${styleMetrics.tableBodyFontSize}px`,
                                   fontFamily: "monospace",
+                                  border: "1px solid #2b6cb0",
                                 }}
                               >
                                 {(line.qty * line.unit_sell_price_bbd).toFixed(
@@ -1220,7 +1306,7 @@ export const QuotePreviewPanel = ({
                     {/* Rx */}
                     {lensLines.length > 0 &&
                       lensLines.some((l) => rxMap[l.id]) && (
-                        <div style={{ marginBottom: "20px" }}>
+                        <div style={{ marginBottom: `${styleMetrics.sectionGapPx}px` }}>
                           <div
                             style={{
                               fontSize: "10px",
@@ -1228,7 +1314,7 @@ export const QuotePreviewPanel = ({
                               textTransform: "uppercase",
                               letterSpacing: "0.5px",
                               color: "#718096",
-                              marginBottom: "8px",
+                              marginBottom: `${styleMetrics.headingGapPx}px`,
                             }}
                           >
                             Prescription Details
@@ -1465,8 +1551,8 @@ export const QuotePreviewPanel = ({
                           marginTop: "20px",
                           padding: "12px",
                           background: "#f7fafc",
-                          borderRadius: "6px",
-                          border: "1px solid #e2e8f0",
+                          borderRadius: "0",
+                          border: "1px solid #2b6cb0",
                         }}
                       >
                         <div
