@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -59,6 +59,9 @@ import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
 import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
+import HelpdeskTicketsPage from "./pages/admin/helpdesk/HelpdeskTicketsPage";
+import HelpdeskTeamsPage from "./pages/admin/helpdesk/HelpdeskTeamsPage";
+import HelpdeskSlaPage from "./pages/admin/helpdesk/HelpdeskSlaPage";
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
@@ -85,6 +88,12 @@ const RedirectToProposals = () => {
   return <Navigate to={target} replace state={location.state} />;
 };
 
+const CustomerShell = () => (
+  <CartProvider>
+    <Outlet />
+  </CartProvider>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="optilens-theme">
@@ -94,8 +103,8 @@ const App = () => (
       <GlobalErrorLogger />
       <BrowserRouter>
         <AuthProvider>
-          <CartProvider>
-            <Routes>
+          <Routes>
+            <Route element={<CustomerShell />}>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
@@ -106,6 +115,19 @@ const App = () => (
               <Route path="/privacy-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
               <Route path="/terms" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
               <Route path="/return-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
+
+
+              {/* ZenVue brand microsite */}
+              <Route path="/zenvue" element={<ProtectedRoute><ZenvueLayout /></ProtectedRoute>}>
+                <Route index element={<ZenvueHome />} />
+                <Route path="brilliance" element={<ZenvueBrilliance />} />
+                <Route path="single-vision" element={<ZenvueSingleVision />} />
+                <Route path="sundun" element={<ZenvueSunDun />} />
+                <Route path="darkun" element={<ZenvueDarkun />} />
+                <Route path="compare" element={<ZenvueCompare />} />
+                <Route path="wholesale" element={<ZenvueWholesale />} />
+              </Route>
+            </Route>
 
               {/* Admin — all apps share AdminLayout */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
@@ -164,9 +186,9 @@ const App = () => (
 
                 {/* ═══ Helpdesk App ═══ */}
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
-                <Route path="helpdesk/tickets" element={<PlaceholderPage />} />
-                <Route path="helpdesk/teams" element={<PlaceholderPage />} />
-                <Route path="helpdesk/sla" element={<PlaceholderPage />} />
+                <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
+                <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
+                <Route path="helpdesk/sla" element={<HelpdeskSlaPage />} />
 
                 {/* ═══ Website App ═══ */}
                 <Route path="website" element={<Navigate to="/admin/website/content" replace />} />
@@ -221,20 +243,8 @@ const App = () => (
                 <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
               </Route>
 
-              {/* ZenVue brand microsite */}
-              <Route path="/zenvue" element={<ProtectedRoute><ZenvueLayout /></ProtectedRoute>}>
-                <Route index element={<ZenvueHome />} />
-                <Route path="brilliance" element={<ZenvueBrilliance />} />
-                <Route path="single-vision" element={<ZenvueSingleVision />} />
-                <Route path="sundun" element={<ZenvueSunDun />} />
-                <Route path="darkun" element={<ZenvueDarkun />} />
-                <Route path="compare" element={<ZenvueCompare />} />
-                <Route path="wholesale" element={<ZenvueWholesale />} />
-              </Route>
-
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </CartProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </AuthProvider>
       </BrowserRouter>
       </TooltipProvider>
