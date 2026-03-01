@@ -142,7 +142,7 @@ const PdfPreviewShell = ({
   const totalStackHeight = (page.height * pageCount + PAGE_GAP * (pageCount - 1)) * previewScale;
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden" id="live-preview">
+    <div className="border border-border overflow-hidden" id="live-preview">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
         <div className="flex gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
