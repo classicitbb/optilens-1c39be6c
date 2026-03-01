@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
+import { getPersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
 import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
 import type { Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
 
@@ -32,6 +33,7 @@ interface QuotePdfExportProps {
   } | null;
   showTriggerButton?: boolean;
   printSettings?: Partial<PrintSettings>;
+  printSettingsProfileId?: string;
 }
 
 export interface QuotePdfExportHandle {
@@ -45,7 +47,7 @@ const stripFrameTag = (notes: string | null | undefined) => {
   return notes.replace(/\[\[FRAME:.*?\]\]\n?/s, "").trim();
 };
 
-const getQuoteDocumentStyles = () => `
+const getQuoteDocumentStyles = (settings: PrintSettings) => `
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; border-bottom: 3px solid #2b6cb0; padding-bottom: 20px; }
   .company-name { font-size: 22px; font-weight: 700; color: #2b6cb0; }
   .company-tagline { font-size: 10px; color: #718096; margin-top: 2px; }
@@ -53,17 +55,17 @@ const getQuoteDocumentStyles = () => `
   .quote-number { font-size: 18px; font-weight: 700; }
   .quote-type { display: inline-block; background: #ebf4ff; color: #2b6cb0; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; margin-top: 4px; }
   .meta-row { font-size: 11px; color: #4a5568; margin-top: 3px; }
-  .section { margin-bottom: 24px; }
+  .section { margin-bottom: ${settings.sectionSpacing ?? 24}px; }
   .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; margin-bottom: 8px; }
   .customer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
   .field-label { font-size: 10px; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.3px; }
   .field-value { font-size: 12px; color: #1a202c; margin-top: 1px; }
   table { width: 100%; border-collapse: collapse; }
-  th { background: #f7fafc; text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
+  th { background: #f7fafc; text-align: left; padding: calc(8px * ${settings.tableScale ?? 1}) calc(10px * ${settings.tableScale ?? 1}); font-size: calc(10px * ${settings.tableScale ?? 1}); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
   th.right { text-align: right; }
   th.center { text-align: center; }
-  td { padding: 7px 10px; font-size: 11px; border-bottom: 1px solid #edf2f7; color: #2d3748; }
+  td { padding: calc(7px * ${settings.tableScale ?? 1}) calc(10px * ${settings.tableScale ?? 1}); font-size: calc(11px * ${settings.tableScale ?? 1}); border-bottom: 1px solid #edf2f7; color: #2d3748; }
   td.right { text-align: right; font-family: 'SF Mono', 'Menlo', monospace; }
   td.center { text-align: center; }
   td.desc { max-width: 280px; }
@@ -75,11 +77,11 @@ const getQuoteDocumentStyles = () => `
   .total-row .value { font-family: 'SF Mono', 'Menlo', monospace; }
   .total-row.grand { border-top: 2px solid #2b6cb0; padding-top: 8px; margin-top: 6px; font-size: 14px; font-weight: 700; }
   .total-row.internal { color: #a0aec0; font-style: italic; }
-  .notes-section { margin-top: 24px; padding: 16px; background: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
+  .notes-section { margin-top: ${settings.sectionSpacing ?? 24}px; padding: 16px; background: #f7fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
   .notes-text { font-size: 11px; color: #4a5568; white-space: pre-wrap; line-height: 1.5; }
   .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 10px; color: #a0aec0; }
   .internal-badge { background: #fed7d7; color: #c53030; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; }
-  .rx-section { margin-top: 12px; page-break-inside: avoid; }
+  .rx-section { margin-top: ${Math.round((settings.sectionSpacing ?? 24) / 2)}px; page-break-inside: avoid; }
   .rx-title { font-size: 11px; font-weight: 600; margin-bottom: 6px; color: #2b6cb0; }
   .rx-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
   .rx-table th, .rx-table td { border: 1px solid #e2e8f0; padding: 3px 6px; font-size: 10px; text-align: center; }
@@ -98,11 +100,14 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       frameData,
       showTriggerButton = true,
       printSettings,
+      printSettingsProfileId,
     },
     ref,
   ) => {
     const printRef = useRef<HTMLDivElement>(null);
-    const resolvedPrintSettings = resolvePrintSettings(printSettings);
+    const resolvedPrintSettings = printSettingsProfileId
+      ? getPersistedPrintSettings(printSettingsProfileId, printSettings)
+      : resolvePrintSettings(printSettings);
 
     const doPrint = () => {
       const content = printRef.current;
@@ -111,7 +116,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       if (!printWindow) return;
       printWindow.document
         .write(`<!DOCTYPE html><html><head><title>${quote.quote_number} - Quote</title>
-        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles()}</style></head><body><div class="print-root">${content.innerHTML}</div></body></html>`);
+        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles(resolvedPrintSettings)}</style></head><body><div class="print-root">${content.innerHTML}</div></body></html>`);
       printWindow.document.close();
       setTimeout(() => {
         printWindow.print();
@@ -723,6 +728,14 @@ export const QuotePreviewPanel = ({
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>V</span>
           <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>Section</span>
+          <Input type="number" min={8} max={40} step={1} value={localPrintSettings.sectionSpacing ?? ""} onChange={(e) => handleSettingsUpdate({ sectionSpacing: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="px" />
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span>Table</span>
+          <Input type="number" min={0.85} max={1.2} step={0.01} value={localPrintSettings.tableScale ?? ""} onChange={(e) => handleSettingsUpdate({ tableScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-16 text-xs" placeholder="1.0" />
         </div>
       </div>
 
