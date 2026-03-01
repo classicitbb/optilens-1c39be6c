@@ -28,10 +28,13 @@ export interface ProposalSection {
   body: string;
 }
 
+export type PublisherSource = "leads_ai" | "crm_opportunity" | "manual";
+
 export interface PublisherPrefillContext {
   opportunityId?: string | null;
   leadId?: string | null;
   country?: string | null;
   volumeTier?: string | null;
+  source?: PublisherSource | null;
   selectedProductIds?: string[];
 }

@@ -192,7 +192,7 @@ const CrmPipelinePage = () => {
                         size="sm"
                         className="h-7 text-[11px]"
                         onClick={() =>
-                          navigate("/admin/pricing/publisher", {
+                          navigate("/admin/sales/proposals", {
                             state: { opportunityId: o.id, country: o.country, volumeTier: o.volume_tier },
                           })
                         }
