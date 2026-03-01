@@ -114,6 +114,54 @@ export const wikiCategories: WikiCategory[] = [
           "Use Sales/Quotations to convert opportunity context into customer-ready pricing documents.\n\nBest practice: keep CRM stage and quote status synchronized so pipeline health remains accurate.",
       },
       {
+        id: "quote-print-preview-guide",
+        title: "Quote Print / Preview Guide",
+        content: `Use the dedicated Print / Preview page from the RX Add-ons step to confirm final layout before sharing with customers.
+
+Route: /admin/sales/quotations/:id/print-preview
+
+**What this page is for**
+1. Validate print pagination and spacing
+2. Print or Save as PDF
+3. Save recalculated totals
+4. Return to editor or close back to list
+
+**How to use it**
+1. In an RX quote, complete Identification → Frame → Lens → Prescription → Add-ons.
+2. Click **Print / Preview** at the end of Add-ons.
+3. Review the full page preview, including customer, frame, line items, prescription, totals, and notes.
+4. Adjust print settings in the preview chrome (paper/orientation/margins/spacing/table scale).
+5. Click **Print / Save as PDF** when ready.
+
+**Important behavior**
+- Prescription details are no longer forced onto a new page; they flow naturally based on available space.
+- For framed edged jobs, the standard edging fee remains included in displayed grand total logic.`,
+      },
+      {
+        id: "quote-print-preview-troubleshooting",
+        title: "Quote Preview & Print Troubleshooting",
+        content: `If preview and print differ, check these first:
+
+1) Browser print dialog
+- Disable browser headers/footers
+- Use 100% scale
+- Keep margins set to default unless using app-controlled margins
+
+2) App print settings
+- Verify paper size (A4 vs Letter)
+- Verify orientation (Portrait vs Landscape)
+- Increase/decrease section spacing and table scale for dense quotes
+
+3) Content checks
+- Ensure prescription values are saved before printing
+- Confirm quote notes and line item descriptions are final
+- Reopen Print / Preview after major edits to refresh layout
+
+4) Page break expectations
+- Long line-item tables still break across pages naturally
+- RX prescription blocks are kept together when possible, but no longer hard-forced to a new page`,
+      },
+      {
         id: "sales-placeholder-roadmap",
         title: "Web Orders & RX Orders (Roadmap)",
         content:

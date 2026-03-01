@@ -23,7 +23,7 @@ import { getPersistedPrintSettings, savePersistedPrintSettings } from "@/feature
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, XCircle, AlertTriangle, MinusCircle, ChevronRight,
-  User, Square, Glasses, ClipboardList, Plus, Trash2, ChevronDown, Printer,
+  User, Square, Glasses, ClipboardList, Plus, Trash2, ChevronDown, Printer, FileSearch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -648,7 +648,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
     onUpdateQuote({ status: "Accepted" });
     pdfRef.current?.triggerPrint();
     setTimeout(() => {
-      navigate("/admin/quotations");
+      navigate("/admin/sales/quotations");
     }, 1200);
   };
 
@@ -1037,6 +1037,19 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                   onClick={() => setShowPreview(v => !v)}
                 >
                   {showPreview ? "Hide Preview" : "▷ Preview"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => {
+                    saveHeader();
+                    saveFrameData();
+                    navigate(`/admin/sales/quotations/${quote.id}/print-preview`);
+                  }}
+                >
+                  <FileSearch className="h-3.5 w-3.5" />
+                  Print / Preview
                 </Button>
                 <Button
                   size="sm"

@@ -37,6 +37,7 @@ import ShipmentDetailPage from "./pages/admin/costings/ShipmentDetailPage";
 import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
 import QuotationsListPage from "./pages/admin/QuotationsListPage";
 import QuoteEditorPage from "./pages/admin/QuoteEditorPage";
+import QuotePrintPreviewPage from "./pages/admin/QuotePrintPreviewPage";
 import CatalogPublisherPage from "./pages/admin/CatalogPublisherPage";
 import CatalogPublisherV2Page from "./pages/admin/CatalogPublisherV2Page";
 import CatalogEditorPage from "./pages/admin/CatalogEditorPage";
@@ -132,6 +133,7 @@ const App = () => (
                 <Route path="sales/proposals" element={<CatalogPublisherV2Page />} />
                 <Route path="sales/quotations" element={<QuotationsListPage />} />
                 <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
+                <Route path="sales/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
                 <Route path="sales/web-orders" element={<PlaceholderPage />} />
                 <Route path="sales/rx-orders" element={<PlaceholderPage />} />
 
