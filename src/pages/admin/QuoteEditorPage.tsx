@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
 import QuotePdfExport from "@/components/admin/QuotePdfExport";
+import { PrintSettings } from "@/features/admin/print/types";
 import RxQuoteWizard from "@/components/admin/RxQuoteWizard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ const QuoteEditorPage = () => {
   const [headerForm, setHeaderForm] = useState<Partial<Quote>>({});
   const [emailError, setEmailError] = useState("");
   const [showInternalExport, setShowInternalExport] = useState(false);
+  const [printSettings, setPrintSettings] = useState<PrintSettings>({ paperSize: "A4", orientation: "portrait" });
 
   // STOCK-only state
   const [overrideDialogLine, setOverrideDialogLine] = useState<QuoteLine | null>(null);
@@ -237,7 +239,15 @@ const QuoteEditorPage = () => {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* PDF export always visible */}
-          <QuotePdfExport quote={quote} lines={lines} totals={totals} showInternal={showInternalExport} rxMap={rxMap} />
+          <QuotePdfExport quote={quote} lines={lines} totals={totals} showInternal={showInternalExport} rxMap={rxMap} printSettings={printSettings} />
+          <Select value={printSettings.paperSize} onValueChange={(value: "A4" | "Letter") => setPrintSettings((prev) => ({ ...prev, paperSize: value }))}>
+            <SelectTrigger className="h-6 w-[84px] text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
+          </Select>
+          <Select value={printSettings.orientation} onValueChange={(value: "portrait" | "landscape") => setPrintSettings((prev) => ({ ...prev, orientation: value }))}>
+            <SelectTrigger className="h-6 w-[110px] text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
+          </Select>
           <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={showInternalExport} onChange={e => setShowInternalExport(e.target.checked)} className="h-3 w-3 rounded" />
             Internal

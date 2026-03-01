@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
 import QuotePdfExport, { QuotePreviewPanel, QuotePdfExportHandle } from "@/components/admin/QuotePdfExport";
+import { PrintSettings } from "@/features/admin/print/types";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CheckCircle2, XCircle, AlertTriangle, MinusCircle, ChevronRight,
@@ -621,6 +622,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   // PDF ref for "Print & Save"
   const pdfRef = useRef<QuotePdfExportHandle | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [printSettings, setPrintSettings] = useState<PrintSettings>({ paperSize: "A4", orientation: "portrait" });
 
   // Derived frame data object for PDF/preview
   const frameDataForPdf = (frameRef || frameModel || frameA || frameB) ? {
@@ -983,6 +985,8 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                   totals={effectiveTotals}
                   rxMap={rxMap}
                   frameData={frameDataForPdf}
+                  printSettings={printSettings}
+                  onPrintSettingsChange={setPrintSettings}
                 />
               </div>
             )}
@@ -1008,6 +1012,8 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                     totals={effectiveTotals}
                     rxMap={rxMap}
                     frameData={frameDataForPdf}
+                    printSettings={printSettings}
+                    showTriggerButton={false}
                   />
                 </div>
                 <Button
