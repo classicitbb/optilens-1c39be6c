@@ -20,12 +20,21 @@ const search = async ({ query, country, city, credentials }: ProviderSearchParam
   }
 
   const payload = await res.json();
+  const status = typeof payload?.status === "string" ? payload.status : "UNKNOWN";
+  const errorMessage = typeof payload?.error_message === "string" ? payload.error_message.trim() : "";
+
+  if (status !== "OK" && status !== "ZERO_RESULTS") {
+    throw new Error(errorMessage ? `${status}:${errorMessage}` : status);
+  }
+
   const results = (payload.results ?? []) as Record<string, unknown>[];
 
   return results.slice(0, 50).map((row) => ({
     name: String(row.name ?? "Unknown"),
-    city: city ?? null,
-    country: country ?? null,
+    city: city ?? (typeof row.vicinity === "string" ? row.vicinity : null),
+    country: country ?? (typeof row.formatted_address === "string"
+      ? row.formatted_address.split(",").map((part) => part.trim()).at(-1) ?? null
+      : null),
     website: null,
     google_rating: typeof row.rating === "number" ? row.rating : null,
     google_reviews_count: typeof row.user_ratings_total === "number" ? row.user_ratings_total : null,
