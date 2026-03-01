@@ -1,6 +1,9 @@
-import { useRef, forwardRef, useImperativeHandle } from "react";
+import { useRef, forwardRef, useImperativeHandle, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { buildPrintStyles, resolvePrintSettings } from "@/features/admin/print/printStyles";
+import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
 import type { Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
 
 interface QuotePdfExportProps {
@@ -20,6 +23,7 @@ interface QuotePdfExportProps {
     a: string; b: string; dbl: string; uncut: boolean; uncutPrice: string;
   } | null;
   showTriggerButton?: boolean;
+  printSettings?: Partial<PrintSettings>;
 }
 
 export interface QuotePdfExportHandle {
@@ -33,9 +37,7 @@ const stripFrameTag = (notes: string | null | undefined) => {
   return notes.replace(/\[\[FRAME:.*?\]\]\n?/s, "").trim();
 };
 
-const getPdfStyles = () => `
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a202c; padding: 40px; font-size: 12px; }
+const getQuoteDocumentStyles = () => `
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; border-bottom: 3px solid #2b6cb0; padding-bottom: 20px; }
   .company-name { font-size: 22px; font-weight: 700; color: #2b6cb0; }
   .company-tagline { font-size: 10px; color: #718096; margin-top: 2px; }
@@ -75,12 +77,12 @@ const getPdfStyles = () => `
   .rx-table th, .rx-table td { border: 1px solid #e2e8f0; padding: 3px 6px; font-size: 10px; text-align: center; }
   .rx-table th { background: #f7fafc; font-weight: 600; font-size: 9px; text-transform: uppercase; color: #4a5568; }
   .rx-table td.label-cell { text-align: left; font-weight: 600; background: #f7fafc; width: 40px; }
-  @media print { body { padding: 20px; } }
 `;
 
 const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
-  ({ quote, lines, totals, showInternal = false, rxMap = {}, frameData }, ref) => {
+  ({ quote, lines, totals, showInternal = false, rxMap = {}, frameData, showTriggerButton = true, printSettings }, ref) => {
     const printRef = useRef<HTMLDivElement>(null);
+    const resolvedPrintSettings = resolvePrintSettings(printSettings);
 
     const doPrint = () => {
       const content = printRef.current;
@@ -88,7 +90,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       const printWindow = window.open("", "_blank");
       if (!printWindow) return;
       printWindow.document.write(`<!DOCTYPE html><html><head><title>${quote.quote_number} - Quote</title>
-        <style>${getPdfStyles()}</style></head><body>${content.innerHTML}</body></html>`);
+        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles()}</style></head><body><div class="print-root">${content.innerHTML}</div></body></html>`);
       printWindow.document.close();
       setTimeout(() => { printWindow.print(); }, 300);
     };
@@ -232,8 +234,8 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         )}
 
         {/* Line items */}
-        <div className="section">
-          <div className="section-title">Line Items</div>
+        <div className="section print-keep-with-next">
+          <div className="section-title print-keep-with-next">Line Items</div>
           <table>
             <thead>
               <tr>
@@ -282,13 +284,13 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Rx Details */}
         {quote.quote_type === "RX" && lensLines.length > 0 && (
-          <div className="section">
-            <div className="section-title">Prescription Details</div>
+          <div className="section print-page-break-before">
+            <div className="section-title print-keep-with-next">Prescription Details</div>
             {lensLines.map((line) => {
               const rx = rxMap[line.id];
               if (!rx) return null;
               return (
-                <div key={line.id} className="rx-section">
+                <div key={line.id} className="rx-section print-avoid-break">
                   <div className="rx-title">{line.item_name}</div>
                   {renderRxTable(rx)}
                 </div>
@@ -352,10 +354,17 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       <>
         {/* Off-screen capture for print */}
         <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
-          <div ref={printRef} style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", padding: "40px", fontSize: "12px" }}>
+          <div ref={printRef} className="print-root" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", padding: "40px", fontSize: "12px" }}>
             <DocumentContent />
           </div>
         </div>
+
+        {showTriggerButton && (
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={doPrint}>
+            <Download className="h-3.5 w-3.5" />
+            Export PDF
+          </Button>
+        )}
       </>
     );
   }
@@ -365,7 +374,14 @@ QuotePdfExport.displayName = "QuotePdfExport";
 
 // ── Inline Preview Panel ───────────────────────────────────────────────────────
 // Renders the same document content visually inside the page
-export const QuotePreviewPanel = ({ quote, lines, totals, rxMap = {}, frameData }: Omit<QuotePdfExportProps, "showInternal">) => {
+export const QuotePreviewPanel = ({ quote, lines, totals, rxMap = {}, frameData, printSettings, onPrintSettingsChange }: Omit<QuotePdfExportProps, "showInternal" | "showTriggerButton"> & { onPrintSettingsChange?: (next: PrintSettings) => void }) => {
+  const [localPrintSettings, setLocalPrintSettings] = useState(resolvePrintSettings(printSettings));
+
+  const handleSettingsUpdate = (next: Partial<PrintSettings>) => {
+    const resolved = resolvePrintSettings({ ...localPrintSettings, ...next });
+    setLocalPrintSettings(resolved);
+    onPrintSettingsChange?.(resolved);
+  };
   const cleanInternalNotes = stripFrameTag(quote.notes_internal);
   const formatDate = (d?: string | null) => {
     if (!d) return "—";
@@ -388,7 +404,18 @@ export const QuotePreviewPanel = ({ quote, lines, totals, rxMap = {}, frameData 
         <span className="text-[10px] text-muted-foreground font-mono flex-1 text-center">{quote.quote_number} — Preview</span>
       </div>
 
-      <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", padding: "32px", fontSize: "11px", maxHeight: "600px", overflowY: "auto" }}>
+      <div className="flex items-center justify-end gap-2 px-3 py-2 border-b border-border bg-muted/20 no-print">
+        <Select value={localPrintSettings.paperSize} onValueChange={(value: PrintPaperSize) => handleSettingsUpdate({ paperSize: value })}>
+          <SelectTrigger className="h-7 w-[88px] text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
+        </Select>
+        <Select value={localPrintSettings.orientation} onValueChange={(value: PrintOrientation) => handleSettingsUpdate({ orientation: value })}>
+          <SelectTrigger className="h-7 w-[118px] text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
+        </Select>
+      </div>
+
+      <div className="print-root" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", padding: "32px", fontSize: "11px", maxHeight: "600px", overflowY: "auto" }}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", borderBottom: "3px solid #2b6cb0", paddingBottom: "16px" }}>
           <div>
