@@ -645,11 +645,8 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   } : null;
 
   const handleFinish = () => {
-    onUpdateQuote({ status: "Accepted" });
-    pdfRef.current?.triggerPrint();
-    setTimeout(() => {
-      navigate("/admin/quotations");
-    }, 1200);
+    saveHeader();
+    navigate(`/admin/sales/quotations/${quote.id}/print-preview`);
   };
 
   // Totals that include edging fee (not shown on PDF line items, but included in grand total)
