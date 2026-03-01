@@ -658,14 +658,14 @@ const CatalogEditorPage = () => {
     <div className="flex flex-col h-full">
       {/* Top bar — like QuoteEditorPage */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
-        <button onClick={() => navigate("/admin/catalog-publisher")} className="p-1 rounded hover:bg-muted">
+        <button onClick={() => navigate("/admin/pricing/publisher")} className="p-1 rounded hover:bg-muted">
           <ArrowLeft className="h-4 w-4 text-muted-foreground" />
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-semibold text-foreground truncate">{name || "Untitled Catalog"}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { handleSave().then(() => navigate("/admin/catalog-publisher")); }}>
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { handleSave().then(() => navigate("/admin/pricing/publisher")); }}>
             Save &amp; Exit
           </Button>
           <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>
