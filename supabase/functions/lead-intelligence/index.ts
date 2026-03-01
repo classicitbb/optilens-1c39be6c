@@ -271,8 +271,14 @@ serve(async (req) => {
     }
 
     const selectedCity = Array.isArray(cities) && cities.length > 0 ? cities[0] : undefined;
-    const effectiveCountry = globalSearch ? undefined : country;
-    const effectiveCity = globalSearch ? undefined : selectedCity;
+    const normalizedCountry = typeof country === "string" && country.trim().length > 0 ? country.trim() : undefined;
+    const normalizedCity = typeof selectedCity === "string" && selectedCity.trim().length > 0
+      ? selectedCity.trim()
+      : undefined;
+    // In global mode, do not pass remembered geo defaults into provider queries/scoring.
+    // This keeps global runs unscoped and avoids misleading local-biased diagnostics/results.
+    const effectiveCountry = globalSearch ? undefined : normalizedCountry;
+    const effectiveCity = globalSearch ? undefined : normalizedCity;
     const resolvedQuery = plannedQuery;
 
     const providerCredentials = await loadProviderCredentials(supabaseClient);
