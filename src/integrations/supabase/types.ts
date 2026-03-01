@@ -3848,115 +3848,6 @@ export type Database = {
         Relationships: []
       }
     }
-
-      helpdesk_sla_policies: {
-        Row: {
-          active: boolean
-          created_at: string
-          id: string
-          name: string
-          priority_filter: number | null
-          tag_ids: string[] | null
-          target_hours: number
-          target_stage_id: string
-          team_id: string
-          tenant_key: string
-          ticket_type_ids: string[] | null
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          id?: string
-          name: string
-          priority_filter?: number | null
-          tag_ids?: string[] | null
-          target_hours: number
-          target_stage_id: string
-          team_id: string
-          tenant_key?: string
-          ticket_type_ids?: string[] | null
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          id?: string
-          name?: string
-          priority_filter?: number | null
-          tag_ids?: string[] | null
-          target_hours?: number
-          target_stage_id?: string
-          team_id?: string
-          tenant_key?: string
-          ticket_type_ids?: string[] | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "helpdesk_sla_policies_target_stage_id_fkey"
-            columns: ["target_stage_id"]
-            isOneToOne: false
-            referencedRelation: "helpdesk_ticket_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "helpdesk_sla_policies_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "helpdesk_teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      helpdesk_ticket_sla_status: {
-        Row: {
-          created_at: string
-          deadline_at: string
-          id: string
-          policy_id: string
-          reached_at: string | null
-          status: Database["public"]["Enums"]["helpdesk_sla_status"]
-          ticket_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          deadline_at: string
-          id?: string
-          policy_id: string
-          reached_at?: string | null
-          status?: Database["public"]["Enums"]["helpdesk_sla_status"]
-          ticket_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          deadline_at?: string
-          id?: string
-          policy_id?: string
-          reached_at?: string | null
-          status?: Database["public"]["Enums"]["helpdesk_sla_status"]
-          ticket_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "helpdesk_ticket_sla_status_policy_id_fkey"
-            columns: ["policy_id"]
-            isOneToOne: false
-            referencedRelation: "helpdesk_sla_policies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "helpdesk_ticket_sla_status_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "helpdesk_tickets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     Views: {
       integration_health_metrics_dashboard: {
         Row: {
@@ -4137,31 +4028,6 @@ export type Database = {
         Returns: boolean
       }
       integration_secret_encryption_key: { Args: never; Returns: string }
-      helpdesk_compute_applicable_sla_policies: {
-        Args: { p_ticket_id: string }
-        Returns: { policy_id: string; target_hours: number; target_stage_id: string }[]
-      }
-      helpdesk_recompute_ticket_sla_deadlines: {
-        Args: { p_reference_at?: string; p_ticket_id: string }
-        Returns: {
-          deadline_at: string
-          policy_id: string
-          status: Database["public"]["Enums"]["helpdesk_sla_status"]
-        }[]
-      }
-      helpdesk_run_overdue_sla_job: {
-        Args: { p_limit?: number }
-        Returns: { failed_slas: number; processed_tickets: number; reached_slas: number }[]
-      }
-      helpdesk_update_ticket_sla_progress: {
-        Args: { p_now?: string; p_ticket_id: string }
-        Returns: {
-          deadline_at: string
-          policy_id: string
-          reached_at: string | null
-          status: Database["public"]["Enums"]["helpdesk_sla_status"]
-        }[]
-      }
       list_lead_provider_credentials_status: {
         Args: { p_tenant_key?: string }
         Returns: {
@@ -4273,7 +4139,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "operator" | "viewer" | "customer"
-      helpdesk_sla_status: "in_progress" | "reached" | "failed"
       shipment_status: "draft" | "reviewed" | "locked"
     }
     CompositeTypes: {
@@ -4403,7 +4268,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator", "viewer", "customer"],
-      helpdesk_sla_status: ["in_progress", "reached", "failed"],
       shipment_status: ["draft", "reviewed", "locked"],
     },
   },
