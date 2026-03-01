@@ -319,7 +319,7 @@ const CatalogPublisherPage = () => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <AdminPageHeader icon={BookOpen} title="Catalog Publisher" />
+        <AdminPageHeader icon={BookOpen} title="Lens and Supply Catalogs" />
         {canEdit && (
           <Button
             size="sm"

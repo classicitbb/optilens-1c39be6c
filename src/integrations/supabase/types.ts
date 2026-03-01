@@ -578,58 +578,72 @@ export type Database = {
         }
         Relationships: []
       }
-      contact_external_links: {
+      contact_sync_dead_letters: {
         Row: {
+          attempt_count: number
           created_at: string
-          etag: string | null
-          external_company_id: string
-          external_id: string
-          external_model: string
-          external_payload: Json
+          error_payload: Json
+          external_id: string | null
           id: string
-          last_pulled_at: string | null
-          last_pushed_at: string | null
-          last_remote_write_date: string | null
-          local_contact_id: string
-          payload_hash: string | null
+          integration_connection_id: string
+          last_error: string | null
+          local_contact_id: string | null
+          next_retry_at: string | null
           provider: string
+          source_payload: Json
+          status: string
+          sync_direction: string
           updated_at: string
         }
         Insert: {
+          attempt_count?: number
           created_at?: string
-          etag?: string | null
-          external_company_id: string
-          external_id: string
-          external_model?: string
-          external_payload?: Json
+          error_payload?: Json
+          external_id?: string | null
           id?: string
-          last_pulled_at?: string | null
-          last_pushed_at?: string | null
-          last_remote_write_date?: string | null
-          local_contact_id: string
-          payload_hash?: string | null
+          integration_connection_id: string
+          last_error?: string | null
+          local_contact_id?: string | null
+          next_retry_at?: string | null
           provider?: string
+          source_payload?: Json
+          status?: string
+          sync_direction: string
           updated_at?: string
         }
         Update: {
+          attempt_count?: number
           created_at?: string
-          etag?: string | null
-          external_company_id?: string
-          external_id?: string
-          external_model?: string
-          external_payload?: Json
+          error_payload?: Json
+          external_id?: string | null
           id?: string
-          last_pulled_at?: string | null
-          last_pushed_at?: string | null
-          last_remote_write_date?: string | null
-          local_contact_id?: string
-          payload_hash?: string | null
+          integration_connection_id?: string
+          last_error?: string | null
+          local_contact_id?: string | null
+          next_retry_at?: string | null
           provider?: string
+          source_payload?: Json
+          status?: string
+          sync_direction?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "contact_external_links_local_contact_id_fkey"
+            foreignKeyName: "contact_sync_dead_letters_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_sync_dead_letters_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+          {
+            foreignKeyName: "contact_sync_dead_letters_local_contact_id_fkey"
             columns: ["local_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
@@ -637,47 +651,138 @@ export type Database = {
           },
         ]
       }
-      contact_field_mappings: {
+      contact_sync_manual_review_queue: {
         Row: {
           created_at: string
-          external_field: string
-          external_model: string
+          external_id: string | null
           id: string
-          is_required: boolean
-          local_field: string | null
-          notes: string | null
+          integration_connection_id: string
+          local_contact_id: string | null
+          local_payload: Json
           provider: string
-          sync_direction: string
-          transform_rule: string | null
-          updated_at: string
+          reason: string
+          remote_payload: Json
+          resolution_note: string | null
+          resolved_at: string | null
         }
         Insert: {
           created_at?: string
-          external_field: string
-          external_model?: string
+          external_id?: string | null
           id?: string
-          is_required?: boolean
-          local_field?: string | null
-          notes?: string | null
+          integration_connection_id: string
+          local_contact_id?: string | null
+          local_payload?: Json
           provider?: string
-          sync_direction?: string
-          transform_rule?: string | null
-          updated_at?: string
+          reason: string
+          remote_payload?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
         }
         Update: {
           created_at?: string
-          external_field?: string
-          external_model?: string
+          external_id?: string | null
           id?: string
-          is_required?: boolean
-          local_field?: string | null
-          notes?: string | null
+          integration_connection_id?: string
+          local_contact_id?: string | null
+          local_payload?: Json
           provider?: string
-          sync_direction?: string
-          transform_rule?: string | null
-          updated_at?: string
+          reason?: string
+          remote_payload?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_sync_manual_review_queue_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_sync_manual_review_queue_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+          {
+            foreignKeyName: "contact_sync_manual_review_queue_local_contact_id_fkey"
+            columns: ["local_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_sync_runs: {
+        Row: {
+          created_at: string
+          cursor_advanced: boolean
+          duration_ms: number | null
+          error_summary: string | null
+          failure_count: number
+          finished_at: string | null
+          id: string
+          integration_connection_id: string
+          metadata: Json
+          provider: string
+          pull_records_processed: number
+          push_records_processed: number
+          run_type: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          cursor_advanced?: boolean
+          duration_ms?: number | null
+          error_summary?: string | null
+          failure_count?: number
+          finished_at?: string | null
+          id?: string
+          integration_connection_id: string
+          metadata?: Json
+          provider?: string
+          pull_records_processed?: number
+          push_records_processed?: number
+          run_type: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          cursor_advanced?: boolean
+          duration_ms?: number | null
+          error_summary?: string | null
+          failure_count?: number
+          finished_at?: string | null
+          id?: string
+          integration_connection_id?: string
+          metadata?: Json
+          provider?: string
+          pull_records_processed?: number
+          push_records_processed?: number
+          run_type?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_sync_runs_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_sync_runs_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+        ]
       }
       contact_tag_links: {
         Row: {
@@ -762,7 +867,6 @@ export type Database = {
           is_customer: boolean
           lead_score: number
           lead_source: string
-          mobile: string | null
           name: string
           notes: string | null
           parent_id: string | null
@@ -801,7 +905,6 @@ export type Database = {
           is_customer?: boolean
           lead_score?: number
           lead_source?: string
-          mobile?: string | null
           name: string
           notes?: string | null
           parent_id?: string | null
@@ -840,7 +943,6 @@ export type Database = {
           is_customer?: boolean
           lead_score?: number
           lead_source?: string
-          mobile?: string | null
           name?: string
           notes?: string | null
           parent_id?: string | null
@@ -868,62 +970,6 @@ export type Database = {
           {
             foreignKeyName: "contacts_parent_id_fkey"
             columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_sync_states: {
-        Row: {
-          created_at: string
-          diff_checksum: string | null
-          external_company_id: string
-          external_model: string
-          id: string
-          last_compared_at: string | null
-          local_contact_id: string
-          local_field_checksums: Json
-          local_version: number
-          provider: string
-          remote_field_checksums: Json
-          remote_version: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          diff_checksum?: string | null
-          external_company_id: string
-          external_model?: string
-          id?: string
-          last_compared_at?: string | null
-          local_contact_id: string
-          local_field_checksums?: Json
-          local_version?: number
-          provider?: string
-          remote_field_checksums?: Json
-          remote_version?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          diff_checksum?: string | null
-          external_company_id?: string
-          external_model?: string
-          id?: string
-          last_compared_at?: string | null
-          local_contact_id?: string
-          local_field_checksums?: Json
-          local_version?: number
-          provider?: string
-          remote_field_checksums?: Json
-          remote_version?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_sync_states_local_contact_id_fkey"
-            columns: ["local_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
@@ -1251,6 +1297,537 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_audit_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_payload: Json
+          event_type: string
+          id: string
+          integration_connection_id: string
+          provider: string
+          tenant_key: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_payload?: Json
+          event_type: string
+          id?: string
+          integration_connection_id: string
+          provider: string
+          tenant_key: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_payload?: Json
+          event_type?: string
+          id?: string
+          integration_connection_id?: string
+          provider?: string
+          tenant_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_audit_events_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_audit_events_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+        ]
+      }
+      integration_conflict_queue: {
+        Row: {
+          conflict_payload: Json
+          created_at: string
+          id: string
+          integration_connection_id: string
+          local_identifier: string | null
+          overridden_at: string | null
+          overridden_by: string | null
+          provider: string
+          resolution_status: string
+          resolution_winner: string | null
+          source_identifier: string
+          source_model: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          conflict_payload?: Json
+          created_at?: string
+          id?: string
+          integration_connection_id: string
+          local_identifier?: string | null
+          overridden_at?: string | null
+          overridden_by?: string | null
+          provider: string
+          resolution_status?: string
+          resolution_winner?: string | null
+          source_identifier: string
+          source_model: string
+          tenant_key: string
+          updated_at?: string
+        }
+        Update: {
+          conflict_payload?: Json
+          created_at?: string
+          id?: string
+          integration_connection_id?: string
+          local_identifier?: string | null
+          overridden_at?: string | null
+          overridden_by?: string | null
+          provider?: string
+          resolution_status?: string
+          resolution_winner?: string | null
+          source_identifier?: string
+          source_model?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_conflict_queue_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_conflict_queue_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+        ]
+      }
+      integration_connection_secrets: {
+        Row: {
+          created_at: string
+          encrypted_secret: string
+          id: string
+          integration_connection_id: string
+          key_version: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          encrypted_secret: string
+          id?: string
+          integration_connection_id: string
+          key_version?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          encrypted_secret?: string
+          id?: string
+          integration_connection_id?: string
+          key_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_connection_secrets_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: true
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_connection_secrets_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: true
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+        ]
+      }
+      integration_connections: {
+        Row: {
+          auth_mode: string
+          base_url: string
+          conflict_policy: string
+          created_at: string
+          database_name: string
+          dry_run_enabled: boolean
+          environment: string
+          id: string
+          incremental_enabled: boolean
+          last_health_check_at: string | null
+          last_sync_cursor_at: string | null
+          last_sync_export_count: number
+          last_sync_failure_count: number
+          last_sync_finished_at: string | null
+          last_sync_import_count: number
+          last_sync_started_at: string | null
+          provider: string
+          pull_cursor: string | null
+          push_cursor: string | null
+          retry_state: string | null
+          status: string
+          sync_batch_size: number
+          sync_direction: string
+          sync_interval_minutes: number
+          tenant_key: string
+          updated_at: string
+          user_identifier: string | null
+        }
+        Insert: {
+          auth_mode?: string
+          base_url?: string
+          conflict_policy?: string
+          created_at?: string
+          database_name?: string
+          dry_run_enabled?: boolean
+          environment?: string
+          id?: string
+          incremental_enabled?: boolean
+          last_health_check_at?: string | null
+          last_sync_cursor_at?: string | null
+          last_sync_export_count?: number
+          last_sync_failure_count?: number
+          last_sync_finished_at?: string | null
+          last_sync_import_count?: number
+          last_sync_started_at?: string | null
+          provider: string
+          pull_cursor?: string | null
+          push_cursor?: string | null
+          retry_state?: string | null
+          status?: string
+          sync_batch_size?: number
+          sync_direction?: string
+          sync_interval_minutes?: number
+          tenant_key?: string
+          updated_at?: string
+          user_identifier?: string | null
+        }
+        Update: {
+          auth_mode?: string
+          base_url?: string
+          conflict_policy?: string
+          created_at?: string
+          database_name?: string
+          dry_run_enabled?: boolean
+          environment?: string
+          id?: string
+          incremental_enabled?: boolean
+          last_health_check_at?: string | null
+          last_sync_cursor_at?: string | null
+          last_sync_export_count?: number
+          last_sync_failure_count?: number
+          last_sync_finished_at?: string | null
+          last_sync_import_count?: number
+          last_sync_started_at?: string | null
+          provider?: string
+          pull_cursor?: string | null
+          push_cursor?: string | null
+          retry_state?: string | null
+          status?: string
+          sync_batch_size?: number
+          sync_direction?: string
+          sync_interval_minutes?: number
+          tenant_key?: string
+          updated_at?: string
+          user_identifier?: string | null
+        }
+        Relationships: []
+      }
+      integration_structured_logs: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          integration_connection_id: string | null
+          log_level: string
+          payload: Json
+          provider: string
+          redacted_payload: Json
+          tenant_key: string
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          integration_connection_id?: string | null
+          log_level: string
+          payload?: Json
+          provider: string
+          redacted_payload?: Json
+          tenant_key: string
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          integration_connection_id?: string | null
+          log_level?: string
+          payload?: Json
+          provider?: string
+          redacted_payload?: Json
+          tenant_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_structured_logs_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_structured_logs_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+        ]
+      }
+      integration_sync_errors: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          error_message: string
+          error_payload: Json
+          first_seen_at: string
+          id: string
+          integration_connection_id: string
+          last_seen_at: string
+          local_identifier: string | null
+          provider: string
+          redacted_payload: Json
+          resolved_at: string | null
+          resolved_by: string | null
+          retry_count: number
+          source_identifier: string
+          source_model: string
+          status: string
+          sync_job_id: string | null
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          error_message: string
+          error_payload?: Json
+          first_seen_at?: string
+          id?: string
+          integration_connection_id: string
+          last_seen_at?: string
+          local_identifier?: string | null
+          provider: string
+          redacted_payload?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          retry_count?: number
+          source_identifier: string
+          source_model?: string
+          status?: string
+          sync_job_id?: string | null
+          tenant_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          error_message?: string
+          error_payload?: Json
+          first_seen_at?: string
+          id?: string
+          integration_connection_id?: string
+          last_seen_at?: string
+          local_identifier?: string | null
+          provider?: string
+          redacted_payload?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          retry_count?: number
+          source_identifier?: string
+          source_model?: string
+          status?: string
+          sync_job_id?: string | null
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_errors_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_errors_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+          {
+            foreignKeyName: "integration_sync_errors_local_identifier_fkey"
+            columns: ["local_identifier"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_errors_sync_job_id_fkey"
+            columns: ["sync_job_id"]
+            isOneToOne: false
+            referencedRelation: "integration_sync_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          integration_connection_id: string
+          provider: string
+          requested_at: string
+          requested_by: string
+          started_at: string | null
+          status: string
+          sync_kind: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          integration_connection_id: string
+          provider: string
+          requested_at?: string
+          requested_by: string
+          started_at?: string | null
+          status?: string
+          sync_kind: string
+          tenant_key: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          integration_connection_id?: string
+          provider?: string
+          requested_at?: string
+          requested_by?: string
+          started_at?: string | null
+          status?: string
+          sync_kind?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_jobs_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_jobs_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+        ]
+      }
+      integration_sync_run_metrics: {
+        Row: {
+          created_at: string
+          error_rate: number | null
+          id: string
+          integration_connection_id: string
+          provider: string
+          records_failed: number
+          records_processed: number
+          run_completed_at: string | null
+          run_started_at: string
+          source_cursor_at: string | null
+          source_lag_seconds: number | null
+          success: boolean
+          sync_job_id: string | null
+          tenant_key: string
+        }
+        Insert: {
+          created_at?: string
+          error_rate?: number | null
+          id?: string
+          integration_connection_id: string
+          provider: string
+          records_failed?: number
+          records_processed?: number
+          run_completed_at?: string | null
+          run_started_at: string
+          source_cursor_at?: string | null
+          source_lag_seconds?: number | null
+          success?: boolean
+          sync_job_id?: string | null
+          tenant_key: string
+        }
+        Update: {
+          created_at?: string
+          error_rate?: number | null
+          id?: string
+          integration_connection_id?: string
+          provider?: string
+          records_failed?: number
+          records_processed?: number
+          run_completed_at?: string | null
+          run_started_at?: string
+          source_cursor_at?: string | null
+          source_lag_seconds?: number | null
+          success?: boolean
+          sync_job_id?: string | null
+          tenant_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_run_metrics_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_run_metrics_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_health_metrics_dashboard"
+            referencedColumns: ["integration_connection_id"]
+          },
+          {
+            foreignKeyName: "integration_sync_run_metrics_sync_job_id_fkey"
+            columns: ["sync_job_id"]
+            isOneToOne: false
+            referencedRelation: "integration_sync_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_audits: {
         Row: {
           contact_id: string
@@ -1285,6 +1862,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_provider_credentials: {
+        Row: {
+          created_at: string
+          credential: string
+          id: string
+          provider: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credential?: string
+          id?: string
+          provider: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credential?: string
+          id?: string
+          provider?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       legacy_rates: {
         Row: {
@@ -3245,6 +3849,18 @@ export type Database = {
       }
     }
     Views: {
+      integration_health_metrics_dashboard: {
+        Row: {
+          error_rate: number | null
+          integration_connection_id: string | null
+          lag_behind_source_seconds: number | null
+          last_successful_run_at: string | null
+          provider: string | null
+          records_processed_per_run: number | null
+          tenant_key: string | null
+        }
+        Relationships: []
+      }
       supplies_public: {
         Row: {
           category: string | null
@@ -3280,6 +3896,7 @@ export type Database = {
       }
     }
     Functions: {
+      enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
       get_addons_safe: {
         Args: never
         Returns: {
@@ -3299,6 +3916,14 @@ export type Database = {
           supplier_id: string
           updated_at: string
         }[]
+      }
+      get_integration_connection_secret: {
+        Args: { p_connection_id: string }
+        Returns: string
+      }
+      get_lead_provider_credentials: {
+        Args: { p_tenant_key?: string }
+        Returns: Json
       }
       get_lenses_safe: {
         Args: never
@@ -3401,6 +4026,115 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      integration_secret_encryption_key: { Args: never; Returns: string }
+      list_lead_provider_credentials_status: {
+        Args: { p_tenant_key?: string }
+        Returns: {
+          configured: boolean
+          provider: string
+          updated_at: string
+        }[]
+      }
+      log_integration_event: {
+        Args: {
+          p_event_name: string
+          p_integration_connection_id: string
+          p_log_level: string
+          p_payload?: Json
+          p_provider: string
+          p_tenant_key: string
+        }
+        Returns: string
+      }
+      manage_integration_sync_error: {
+        Args: { p_action: string; p_error_id: string }
+        Returns: undefined
+      }
+      redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
+      trigger_integration_sync_job: {
+        Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
+        Returns: string
+      }
+      upsert_integration_connection:
+        | {
+            Args: {
+              p_auth_mode: string
+              p_base_url: string
+              p_conflict_policy: string
+              p_credential_value: string
+              p_database_name: string
+              p_dry_run_enabled: boolean
+              p_environment: string
+              p_incremental_enabled: boolean
+              p_provider: string
+              p_sync_direction: string
+              p_tenant_key: string
+              p_user_identifier: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_auth_mode: string
+              p_base_url: string
+              p_conflict_policy: string
+              p_credential_value: string
+              p_database_name: string
+              p_dry_run_enabled: boolean
+              p_environment: string
+              p_incremental_enabled: boolean
+              p_provider: string
+              p_sync_direction: string
+              p_tenant_key: string
+              p_test_connection?: boolean
+              p_user_identifier: string
+            }
+            Returns: string
+          }
+      upsert_integration_connection_with_secret:
+        | {
+            Args: {
+              p_auth_mode: string
+              p_base_url: string
+              p_conflict_policy: string
+              p_credential_value: string
+              p_database_name: string
+              p_dry_run_enabled: boolean
+              p_environment: string
+              p_incremental_enabled: boolean
+              p_provider: string
+              p_sync_direction: string
+              p_tenant_key: string
+              p_user_identifier: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_auth_mode: string
+              p_base_url: string
+              p_conflict_policy: string
+              p_credential_value: string
+              p_database_name: string
+              p_dry_run_enabled: boolean
+              p_environment: string
+              p_incremental_enabled: boolean
+              p_provider: string
+              p_sync_direction: string
+              p_tenant_key: string
+              p_test_connection?: boolean
+              p_user_identifier: string
+            }
+            Returns: string
+          }
+      upsert_lead_provider_credential: {
+        Args: {
+          p_credential: string
+          p_provider: string
+          p_tenant_key?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

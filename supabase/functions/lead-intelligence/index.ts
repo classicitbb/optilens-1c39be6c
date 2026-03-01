@@ -136,13 +136,13 @@ async function logBlockedLeadEvent(
 
 async function executeProviders(
   providers: ProviderAdapter[],
-  params: { query: string; country?: string; city?: string },
+  params: { query: string; country?: string; city?: string; credentials?: Record<string, string> },
 ): Promise<{ leads: LeadCandidate[]; telemetry: Record<string, ProviderTelemetry> }> {
   const telemetry: Record<string, ProviderTelemetry> = {};
   const leads: LeadCandidate[] = [];
 
   for (const provider of providers) {
-    const configured = provider.isConfigured();
+    const configured = provider.isConfigured(params.credentials);
     if (!configured) {
       telemetry[provider.id] = {
         attempted: false,
@@ -177,6 +177,28 @@ async function executeProviders(
   }
 
   return { leads, telemetry };
+}
+
+
+async function loadProviderCredentials(
+  supabaseClient: ReturnType<typeof createClient>,
+): Promise<Record<string, string>> {
+  try {
+    const { data, error } = await supabaseClient.rpc("get_lead_provider_credentials" as any, {
+      p_tenant_key: "default",
+    } as any);
+    if (error || !data || typeof data !== "object") {
+      return {};
+    }
+
+    const entries = Object.entries(data as Record<string, unknown>)
+      .filter(([, value]) => typeof value === "string" && value.trim().length > 0)
+      .map(([key, value]) => [key, String(value).trim()]);
+
+    return Object.fromEntries(entries);
+  } catch {
+    return {};
+  }
 }
 
 async function enrichFacebookInstagram(candidates: LeadCandidate[]) {
@@ -253,6 +275,8 @@ serve(async (req) => {
     const effectiveCity = globalSearch ? undefined : selectedCity;
     const resolvedQuery = plannedQuery;
 
+    const providerCredentials = await loadProviderCredentials(supabaseClient);
+
     const providers: ProviderAdapter[] = [
       googlePlacesProvider,
       facebookGraphProvider,
@@ -267,19 +291,20 @@ serve(async (req) => {
       Deno.env.get("LEAD_INTELLIGENCE_ENABLE_MOCK_RESULTS") === "true";
 
     const providerStatus = {
-      googlePlacesConfigured: googlePlacesProvider.isConfigured(),
-      facebookGraphConfigured: facebookGraphProvider.isConfigured(),
-      instagramGraphConfigured: instagramGraphProvider.isConfigured(),
-      whatsappBusinessSignalsConfigured: whatsappBusinessSignalsProvider.isConfigured(),
-      yellowPagesConfigured: yellowPagesProvider.isConfigured(),
-      bingConfigured: bingProvider.isConfigured(),
-      yahooConfigured: yahooProvider.isConfigured(),
+      googlePlacesConfigured: googlePlacesProvider.isConfigured(providerCredentials),
+      facebookGraphConfigured: facebookGraphProvider.isConfigured(providerCredentials),
+      instagramGraphConfigured: instagramGraphProvider.isConfigured(providerCredentials),
+      whatsappBusinessSignalsConfigured: whatsappBusinessSignalsProvider.isConfigured(providerCredentials),
+      yellowPagesConfigured: yellowPagesProvider.isConfigured(providerCredentials),
+      bingConfigured: bingProvider.isConfigured(providerCredentials),
+      yahooConfigured: yahooProvider.isConfigured(providerCredentials),
     };
 
     const { leads: providerLeads, telemetry } = await executeProviders(providers, {
       query: resolvedQuery,
       country: effectiveCountry,
       city: effectiveCity,
+      credentials: providerCredentials,
     });
 
     const scoringWeights = await loadScoringWeights(supabaseClient);

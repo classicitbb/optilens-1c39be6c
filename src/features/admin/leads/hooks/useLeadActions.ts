@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { LeadRecord } from "../types";
 import { DEFAULT_SEQUENCE } from "./useLeadSequenceBuilder";
 import { formatComplianceError, validateTargetingInput } from "../utils/targetingCompliance";
+import { inferLeadSegment } from "../utils/campaignActivation";
 
 const logLeadEvent = async (payload: {
   event_type: "saved_to_crm" | "sequence_started" | "blocked_request";
@@ -26,6 +27,8 @@ export const useSaveLeadToCrm = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (lead: LeadRecord) => {
+      const segment = inferLeadSegment(lead);
+
       const contactPayload = {
         name: lead.name,
         country: lead.country,
@@ -39,6 +42,8 @@ export const useSaveLeadToCrm = () => {
         status: "lead",
         notes: lead.notes,
         lead_score: lead.score,
+        lead_source: lead.lead_source ?? "lead_finder",
+        lead_segment: lead.lead_segment ?? segment,
       };
 
       const { data: contact, error: contactErr } = await supabase

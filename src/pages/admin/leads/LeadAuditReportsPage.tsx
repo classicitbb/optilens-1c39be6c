@@ -47,7 +47,7 @@ const LeadAuditReportsPage = () => {
           <CardTitle className="text-sm">6-Section Audit PDF (attachment workflow)</CardTitle>
         </CardHeader>
         <CardContent className="text-xs space-y-3">
-          <p>Generate audit data, attach it to an opportunity, then launch Catalog Publisher with context.</p>
+          <p>Generate audit data, attach it to an opportunity, then launch Proposals with context.</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <Select value={opportunityId} onValueChange={setOpportunityId}>

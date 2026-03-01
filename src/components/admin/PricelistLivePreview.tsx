@@ -231,7 +231,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
         {addonsBySection.size > 0 && (
           <div className="space-y-4">
             {[...addonsBySection.entries()].map(([sec, rows]) => (
-              <div key={sec}>
+              <div key={sec} className="print-avoid-break">
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr>
@@ -263,7 +263,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     const hasContent = lensSections.size > 0 || addonsBySection.size > 0;
 
     const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
-      <div>
+      <div className="print-avoid-break">
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr>
@@ -331,7 +331,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
       {/* Header — matching reference screenshot */}
       <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
         <div className="flex-1 text-center">
-          <h1 className="font-bold tracking-wide uppercase" style={{ fontSize: "22px", letterSpacing: "2px", color: "#1a202c" }}>
+          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "#1a202c" }}>
             {CATALOG_TITLES[catalogType] ?? "PRICE LIST"}
           </h1>
         </div>

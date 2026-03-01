@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import type { PublisherPrefillContext } from "../types";
+import type { PublisherPrefillContext, PublisherSource } from "../types";
 
 interface Props {
-  source: "leads_ai" | "crm_opportunity" | "manual";
+  source: PublisherSource;
   context?: PublisherPrefillContext;
   className?: string;
 }
@@ -15,7 +15,7 @@ const BuildCustomPackageButton = ({ source, context, className }: Props) => {
     <Button
       className={className}
       onClick={() => {
-        navigate("/admin/pricing/publisher", {
+        navigate("/admin/sales/proposals", {
           state: {
             ...context,
             source,

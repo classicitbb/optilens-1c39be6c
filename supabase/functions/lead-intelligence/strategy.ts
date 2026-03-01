@@ -75,7 +75,15 @@ export async function generateSearchPlan(
     .order("industry", { ascending: true });
 
   if (error) {
-    throw new Error(`Unable to load lead search strategies: ${error.message}`);
+    console.warn("lead_search_strategies unavailable, using query fallback", {
+      code: (error as { code?: string }).code,
+      message: error.message,
+    });
+    return {
+      strategyIds: [],
+      rankedIntents: [],
+      selectedIntent: null,
+    };
   }
 
   const { data: performanceData } = await supabaseClient

@@ -1,9 +1,10 @@
 import type { LeadCandidate, ProviderAdapter, ProviderSearchParams } from "./types.ts";
 
-const getApiKey = () => Deno.env.get("YAHOO_SEARCH_API_KEY")?.trim() ?? "";
+const getApiKey = (credentials?: Record<string, string>) =>
+  credentials?.["yahoo"]?.trim() ?? Deno.env.get("YAHOO_SEARCH_API_KEY")?.trim() ?? "";
 
-const search = async (_params: ProviderSearchParams): Promise<LeadCandidate[]> => {
-  const apiKey = getApiKey();
+const search = async ({ credentials }: ProviderSearchParams): Promise<LeadCandidate[]> => {
+  const apiKey = getApiKey(credentials);
   if (!apiKey) {
     throw new Error("NOT_CONFIGURED");
   }
@@ -13,6 +14,6 @@ const search = async (_params: ProviderSearchParams): Promise<LeadCandidate[]> =
 
 export const yahooProvider: ProviderAdapter = {
   id: "yahoo",
-  isConfigured: () => Boolean(getApiKey()),
+  isConfigured: (credentials) => Boolean(getApiKey(credentials)),
   search,
 };
