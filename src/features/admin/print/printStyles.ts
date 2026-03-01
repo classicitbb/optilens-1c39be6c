@@ -28,13 +28,18 @@ const clampScale = (value: number | undefined) => {
   return Math.min(1.25, Math.max(0.6, value));
 };
 
-const clampSectionSpacing = (value: number | undefined) => {
-  if (value == null || Number.isNaN(value)) return DEFAULT_PRINT_SETTINGS.sectionSpacing ?? 24;
+const clampSectionGap = (value: number | undefined) => {
+  if (value == null || Number.isNaN(value)) return DEFAULT_PRINT_SETTINGS.sectionGapPx ?? 24;
   return Math.min(40, Math.max(8, value));
 };
 
-const clampTableScale = (value: number | undefined) => {
-  if (value == null || Number.isNaN(value)) return DEFAULT_PRINT_SETTINGS.tableScale ?? 1;
+const clampHeadingGap = (value: number | undefined) => {
+  if (value == null || Number.isNaN(value)) return DEFAULT_PRINT_SETTINGS.headingGapPx ?? 8;
+  return Math.min(24, Math.max(4, value));
+};
+
+const clampTableFontScale = (value: number | undefined) => {
+  if (value == null || Number.isNaN(value)) return DEFAULT_PRINT_SETTINGS.tableFontScale ?? 1;
   return Math.min(1.2, Math.max(0.85, value));
 };
 
@@ -47,8 +52,11 @@ export const resolvePrintSettings = (settings?: Partial<PrintSettings>): PrintSe
   ...DEFAULT_PRINT_SETTINGS,
   ...settings,
   scale: clampScale(settings?.scale ?? DEFAULT_PRINT_SETTINGS.scale),
-  sectionSpacing: clampSectionSpacing(settings?.sectionSpacing ?? DEFAULT_PRINT_SETTINGS.sectionSpacing),
-  tableScale: clampTableScale(settings?.tableScale ?? DEFAULT_PRINT_SETTINGS.tableScale),
+  sectionGapPx: clampSectionGap(settings?.sectionGapPx ?? settings?.sectionSpacing ?? DEFAULT_PRINT_SETTINGS.sectionGapPx),
+  headingGapPx: clampHeadingGap(settings?.headingGapPx ?? DEFAULT_PRINT_SETTINGS.headingGapPx),
+  tableFontScale: clampTableFontScale(settings?.tableFontScale ?? settings?.tableScale ?? DEFAULT_PRINT_SETTINGS.tableFontScale),
+  sectionSpacing: clampSectionGap(settings?.sectionGapPx ?? settings?.sectionSpacing ?? DEFAULT_PRINT_SETTINGS.sectionGapPx),
+  tableScale: clampTableFontScale(settings?.tableFontScale ?? settings?.tableScale ?? DEFAULT_PRINT_SETTINGS.tableFontScale),
 });
 
 export const getResolvedMarginsMm = (settings?: Partial<PrintSettings>) => {

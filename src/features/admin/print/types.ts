@@ -14,8 +14,14 @@ export interface PrintSettings {
   marginYMm?: number;
   scale?: number;
   /** Vertical spacing between sections in the quote document (px). */
+  sectionGapPx?: number;
+  /** Vertical spacing below section headings in the quote document (px). */
+  headingGapPx?: number;
+  /** Relative scale multiplier for quote table typography. */
+  tableFontScale?: number;
+  /** @deprecated Use `sectionGapPx` instead. */
   sectionSpacing?: number;
-  /** Relative scale multiplier for table typography and paddings. */
+  /** @deprecated Use `tableFontScale` instead. */
   tableScale?: number;
 }
 
@@ -24,6 +30,9 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   orientation: "portrait",
   marginPreset: "normal",
   scale: 1,
+  sectionGapPx: 24,
+  headingGapPx: 8,
+  tableFontScale: 1,
   sectionSpacing: 24,
   tableScale: 1,
 };
