@@ -244,7 +244,7 @@ const PdfPreviewShell = ({
               {Array.from({ length: pageCount }).map((_, i) => (
                 <div
                   key={i}
-                  className="relative bg-background shadow-md"
+                  className="relative bg-white shadow-md"
                   style={{
                     width: page.width,
                     height: page.height,
@@ -273,7 +273,7 @@ const PdfPreviewShell = ({
                       <div
                         ref={i === 0 ? measureRef : undefined}
                         className="print-root w-full"
-                        style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}
+                        style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", backgroundColor: "#ffffff" }}
                       >
                         {children}
                       </div>
@@ -286,7 +286,7 @@ const PdfPreviewShell = ({
 
           {/* Hidden print source (single continuous flow) */}
           <div style={{ position: "absolute", left: "-9999px", top: 0, width: area.contentWidth }}>
-            <div ref={printRef} className="print-root w-full" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}>
+            <div ref={printRef} className="print-root w-full" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", backgroundColor: "#ffffff" }}>
               {children}
             </div>
           </div>

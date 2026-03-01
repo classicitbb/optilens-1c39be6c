@@ -70,7 +70,7 @@ const AdminSidebar = () => {
       {/* Header */}
       <div className="h-11 flex items-center justify-between px-3 border-b rounded-none border-[hsl(var(--admin-border))]">
         {!collapsed && activeApp && (
-          <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-content-fg))]">
+          <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">
             {activeApp.title}
           </span>
         )}
