@@ -107,8 +107,8 @@ const App = () => (
                 <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
                 <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
                 <Route path="pricing/supplies" element={<BuySellPricesPage />} />
-                <Route path="pricing/publisher" element={<CatalogPublisherV2Page />} />
-                <Route path="pricing/publisher-old" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
+                <Route path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
+                <Route path="pricing/publisher-old" element={<Navigate to="/admin/pricing/publisher" replace />} />
                 <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
                 <Route path="pricing/costings" element={<ImportCostingsPage />} />
                 <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
@@ -122,6 +122,7 @@ const App = () => (
 
                 {/* ═══ Sales App ═══ */}
                 <Route path="sales" element={<Navigate to="/admin/sales/quotations" replace />} />
+                <Route path="sales/proposals" element={<CatalogPublisherV2Page />} />
                 <Route path="sales/quotations" element={<QuotationsListPage />} />
                 <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
                 <Route path="sales/web-orders" element={<PlaceholderPage />} />
@@ -183,7 +184,7 @@ const App = () => (
                 <Route path="stock-lens-prices" element={<Navigate to="/admin/pricing/stock-lenses" replace />} />
                 <Route path="supplies-prices" element={<Navigate to="/admin/pricing/supplies" replace />} />
                 <Route path="imports" element={<Navigate to="/admin/pricing/imports" replace />} />
-                <Route path="catalog-publisher" element={<Navigate to="/admin/pricing/publisher" replace />} />
+                <Route path="catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
                 <Route path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher-old" replace />} />
                 <Route path="catalog-publisher/:id" element={<Navigate to="/admin/pricing/publisher" replace />} />
                 <Route path="quotations" element={<Navigate to="/admin/sales/quotations" replace />} />
