@@ -61,6 +61,7 @@ const QuotePrintPreviewPage = () => {
   const [printSettings, setPrintSettings] = useState<PrintSettings>(
     getPersistedPrintSettings(printSettingsProfileId, { paperSize: "A4", orientation: "portrait" }),
   );
+  const [isSaving, setIsSaving] = useState(false);
   const pdfRef = useRef<QuotePdfExportHandle | null>(null);
 
   const frameData = useMemo(() => parseFrameData(quote?.notes_internal), [quote?.notes_internal]);
@@ -89,18 +90,29 @@ const QuotePrintPreviewPage = () => {
     );
   }
 
-  const persistQuote = () => {
-    updateMutation.mutate({
-      id: quote.id,
-      updates: {
-        subtotal_sell: totals.subtotalSell,
-        total_landed_cost: totals.totalLandedCost,
-        gp_amount: totals.gpAmount,
-        gp_percent: totals.gpPercent,
-        grand_total: totals.grandTotal,
-      },
-    });
-    toast({ title: "Quote saved" });
+  const persistQuote = async () => {
+    try {
+      setIsSaving(true);
+      await updateMutation.mutateAsync({
+        id: quote.id,
+        updates: {
+          subtotal_sell: totals.subtotalSell,
+          total_landed_cost: totals.totalLandedCost,
+          gp_amount: totals.gpAmount,
+          gp_percent: totals.gpPercent,
+          grand_total: totals.grandTotal,
+        },
+      });
+      toast({ title: "Quote saved" });
+    } catch (error: any) {
+      toast({
+        title: "Failed to save quote",
+        description: error?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handlePrintSettingsChange = (next: PrintSettings) => {
@@ -120,9 +132,9 @@ const QuotePrintPreviewPage = () => {
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Editor
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={persistQuote}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={persistQuote} disabled={isSaving}>
             <Save className="h-3.5 w-3.5" />
-            Save
+            {isSaving ? "Saving..." : "Save"}
           </Button>
           <Button size="sm" className="h-8 text-xs" onClick={() => pdfRef.current?.triggerPrint()}>
             Print / Save as PDF

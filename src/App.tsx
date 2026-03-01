@@ -134,7 +134,6 @@ const App = () => (
                 <Route path="sales/quotations" element={<QuotationsListPage />} />
                 <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
                 <Route path="sales/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
-                <Route path="sales/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
                 <Route path="sales/web-orders" element={<PlaceholderPage />} />
                 <Route path="sales/rx-orders" element={<PlaceholderPage />} />
 
