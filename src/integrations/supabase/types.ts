@@ -1126,6 +1126,33 @@ export type Database = {
           },
         ]
       }
+      lead_provider_credentials: {
+        Row: {
+          created_at: string
+          credential: string
+          id: string
+          provider: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credential?: string
+          id?: string
+          provider: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credential?: string
+          id?: string
+          provider?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       legacy_rates: {
         Row: {
           created_at: string
@@ -3140,6 +3167,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_lead_provider_credentials: {
+        Args: { p_tenant_key?: string }
+        Returns: Json
+      }
       get_lenses_safe: {
         Args: never
         Returns: {
@@ -3241,6 +3272,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_lead_provider_credentials_status: {
+        Args: { p_tenant_key?: string }
+        Returns: {
+          configured: boolean
+          provider: string
+          updated_at: string
+        }[]
+      }
+      upsert_lead_provider_credential: {
+        Args: {
+          p_credential: string
+          p_provider: string
+          p_tenant_key?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
