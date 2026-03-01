@@ -162,5 +162,39 @@ export const buildPrintStyles = (settings?: Partial<PrintSettings>) => {
         display: none !important;
       }
     }
+
+    /* Tailwind utility classes used in preview content */
+    .w-full { width: 100%; }
+    .text-xs { font-size: 0.75rem; line-height: 1rem; }
+    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+    .text-right { text-align: right; }
+    .text-left { text-align: left; }
+    .text-center { text-align: center; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+    .font-medium { font-weight: 500; }
+    .italic { font-style: italic; }
+    .uppercase { text-transform: uppercase; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .tracking-wide { letter-spacing: 0.025em; }
+    .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .py-2\\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+    .pt-3 { padding-top: 0.75rem; }
+    .pb-4 { padding-bottom: 1rem; }
+    .mt-1 { margin-top: 0.25rem; }
+    .w-32 { width: 8rem; }
+    .flex-1 { flex: 1 1 0%; }
+    .flex-shrink-0 { flex-shrink: 0; }
+    .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem; }
+    .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem; }
+    .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem; }
+    .flex { display: flex; }
+    .items-start { align-items: flex-start; }
+    .justify-between { justify-content: space-between; }
+    .border-collapse { border-collapse: collapse; }
   `;
 };
