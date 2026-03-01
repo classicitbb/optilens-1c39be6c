@@ -73,6 +73,8 @@ export const buildPrintStyles = (settings?: Partial<PrintSettings>) => {
   const resolved = resolvePrintSettings(settings);
   const { marginX, marginY, contentWidth } = getPrintableContentAreaMm(resolved);
 
+  // Browser-managed print dialog options (like header/footer toggles) cannot be
+  // reliably controlled by web apps via CSS/JS across browsers and OSes.
   return `
     @page {
       size: ${resolved.paperSize} ${resolved.orientation};
@@ -139,6 +141,23 @@ export const buildPrintStyles = (settings?: Partial<PrintSettings>) => {
 
     @media screen {
       .print-only {
+        display: none !important;
+      }
+
+      .pre-print-hint {
+        margin: 12px auto;
+        max-width: ${contentWidth.toFixed(2)}mm;
+        padding: 8px 10px;
+        border: 1px solid #f59e0b;
+        background: #fffbeb;
+        color: #92400e;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+    }
+
+    @media print {
+      .pre-print-hint {
         display: none !important;
       }
     }

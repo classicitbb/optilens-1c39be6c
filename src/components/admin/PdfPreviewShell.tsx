@@ -43,7 +43,10 @@ const PdfPreviewShell = ({
     printWindow.document
       .write(`<!DOCTYPE html><html><head><title>${title}</title>
       <style>${buildPrintStyles(printSettings)}</style>
-    </head><body><div class="print-root">${content.innerHTML}</div></body></html>`);
+    </head><body>
+      <div class="pre-print-hint">Disable browser headers/footers in print settings.</div>
+      <div class="print-root">${content.innerHTML}</div>
+    </body></html>`);
     printWindow.document.close();
     setTimeout(() => {
       printWindow.print();
@@ -146,15 +149,20 @@ const PdfPreviewShell = ({
           </div>
 
           {showPrint && visible && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs gap-1.5"
-              onClick={handlePrint}
-            >
-              <Printer className="h-3.5 w-3.5" />
-              Print &amp; Save
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                onClick={handlePrint}
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Print &amp; Save
+              </Button>
+              <span className="text-[10px] text-amber-700 dark:text-amber-400">
+                Disable browser headers/footers in print settings.
+              </span>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-2">
