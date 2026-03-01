@@ -11,13 +11,48 @@ export interface CartItem {
   quantity: number;
 }
 
-export const useCart = () => {
+interface UseCartOptions {
+  enabled?: boolean;
+}
+
+const getDefaultCartEnabled = () => {
+  if (typeof window === "undefined") return true;
+  return !window.location.pathname.startsWith("/admin");
+};
+
+const getErrorField = (error: unknown, field: "message" | "details") => {
+  if (typeof error !== "object" || error === null || !(field in error)) {
+    return "";
+  }
+
+  return String((error as Record<string, unknown>)[field] ?? "");
+};
+
+const isExpectedCartError = (error: unknown) => {
+  const candidateMessages = [
+    error instanceof Error ? error.message : "",
+    typeof error === "string" ? error : "",
+    getErrorField(error, "message"),
+    getErrorField(error, "details"),
+  ].filter(Boolean);
+
+  const combinedMessage = candidateMessages.join(" | ");
+  return /Failed to fetch|permission denied|row-level security|not authorized/i.test(combinedMessage);
+};
+
+export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = {}) => {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const { user } = useAuth();
   const { toast } = useToast();
 
   const fetchCart = useCallback(async () => {
+    if (!enabled) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     if (!user) {
       setItems([]);
       setLoading(false);
@@ -33,28 +68,24 @@ export const useCart = () => {
       if (error) throw error;
       setItems(data || []);
     } catch (error) {
-      const candidateMessages = [
-        error instanceof Error ? error.message : "",
-        typeof error === "string" ? error : "",
-        typeof error === "object" && error && "message" in error ? String((error as any).message) : "",
-        typeof error === "object" && error && "details" in error ? String((error as any).details) : "",
-      ].filter(Boolean);
-
-      const combinedMessage = candidateMessages.join(" | ");
-      const isNetworkFetchFailure = /Failed to fetch/i.test(combinedMessage);
-
-      if (!isNetworkFetchFailure) {
+      if (!isExpectedCartError(error)) {
         console.error("Error fetching cart:", error);
       }
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [enabled, user]);
 
   useEffect(() => {
+    if (!enabled) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     fetchCart();
-  }, [fetchCart]);
+  }, [enabled, fetchCart]);
 
   const addToCart = async (product: {
     id: number;
