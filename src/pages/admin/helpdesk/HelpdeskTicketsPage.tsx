@@ -8,148 +8,229 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useHelpdeskTickets } from "@/features/admin/helpdesk/hooks/useHelpdeskTickets";
+import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
+import { useAssignHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useAssignHelpdeskTicket";
+import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
+import { normalizeHelpdeskPriorityLabel, normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normalization";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useAuth } from "@/contexts/AuthContext";
 
-type TicketPriority = "low" | "medium" | "high";
-type TicketStatus = "open" | "in_progress" | "resolved";
-
-interface HelpdeskTicket {
+interface TeamOption {
   id: string;
-  subject: string;
-  requester: string;
-  team: string;
-  priority: TicketPriority;
-  status: TicketStatus;
-  updatedAt: string;
+  name: string;
 }
 
-const TICKETS: HelpdeskTicket[] = [
-  {
-    id: "TCK-9012",
-    subject: "RX order unable to sync with ERP",
-    requester: "Vision Plus",
-    team: "Escalations",
-    priority: "high",
-    status: "in_progress",
-    updatedAt: "2026-02-28T10:15:00.000Z",
-  },
-  {
-    id: "TCK-9008",
-    subject: "Store login reset request",
-    requester: "OptiCare Midtown",
-    team: "Tier 1 Support",
-    priority: "medium",
-    status: "open",
-    updatedAt: "2026-02-27T14:05:00.000Z",
-  },
-  {
-    id: "TCK-8999",
-    subject: "Lens coating defect complaint",
-    requester: "City Optics",
-    team: "Quality Assurance",
-    priority: "high",
-    status: "resolved",
-    updatedAt: "2026-02-26T08:22:00.000Z",
-  },
-];
+interface StageOption {
+  id: string;
+  name: string;
+  is_closed: boolean;
+}
 
 const HelpdeskTicketsPage = () => {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | TicketStatus>("all");
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { canView, canEditFeature } = useRolePermissions();
+  const canViewTickets = canView("helpdesk");
+  const canEditTickets = canEditFeature("helpdesk");
 
-  const { data = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["helpdesk", "tickets"],
+  const [search, setSearch] = useState("");
+  const [teamId, setTeamId] = useState<string>("all");
+  const [onlyOpen, setOnlyOpen] = useState(true);
+  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1" });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ["helpdesk", "teams", "options"],
+    enabled: canViewTickets,
     queryFn: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      return TICKETS;
+      const { data, error } = await supabase.from("helpdesk_teams" as never).select("id,name").eq("is_active", true).order("name");
+      if (error) throw error;
+      return (data ?? []) as TeamOption[];
     },
   });
 
-  const filteredTickets = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+  const { data: stages = [] } = useQuery({
+    queryKey: ["helpdesk", "stages", "options", teamId],
+    enabled: canViewTickets,
+    queryFn: async () => {
+      let query = supabase.from("helpdesk_ticket_stages" as never).select("id,name,is_closed,team_id").order("sequence");
+      if (teamId !== "all") {
+        query = query.or(`team_id.eq.${teamId},team_id.is.null`);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []) as StageOption[];
+    },
+  });
 
-    return data.filter((ticket) => {
-      const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
-      const matchesSearch =
-        normalizedSearch.length === 0 ||
-        ticket.id.toLowerCase().includes(normalizedSearch) ||
-        ticket.subject.toLowerCase().includes(normalizedSearch) ||
-        ticket.requester.toLowerCase().includes(normalizedSearch) ||
-        ticket.team.toLowerCase().includes(normalizedSearch);
+  const ticketQuery = useHelpdeskTickets({ search, onlyOpen, teamId: teamId === "all" ? undefined : teamId });
+  const createTicket = useCreateHelpdeskTicket();
+  const assignTicket = useAssignHelpdeskTicket();
+  const updateStage = useUpdateHelpdeskTicketStage();
 
-      return matchesStatus && matchesSearch;
-    });
-  }, [data, search, statusFilter]);
+  const stageMap = useMemo(() => new Map(stages.map((stage) => [stage.id, stage.name])), [stages]);
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) {
+      toast({ title: "Ticket title is required", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await createTicket.mutateAsync({
+        title: form.title,
+        description: form.description,
+        teamId: form.teamId || null,
+        stageId: form.stageId || null,
+        priority: Number(form.priority),
+        ownerUserId: user?.id ?? null,
+        sourceChannel: "manual",
+      });
+      setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1" });
+      toast({ title: "Ticket created" });
+    } catch (error) {
+      toast({ title: "Unable to create ticket", description: (error as Error).message, variant: "destructive" });
+    }
+  };
+
+  if (!canViewTickets) {
+    return <p className="text-sm text-muted-foreground">You do not have access to Helpdesk tickets.</p>;
+  }
 
   return (
     <div className="space-y-4">
       <AdminPageHeader title="Helpdesk Tickets" icon={Ticket}>
         <div className="flex gap-2 flex-wrap items-center">
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by ticket, subject, requester, team"
-            className="h-8 w-72 text-xs"
-          />
-          <Select value={statusFilter} onValueChange={(value: "all" | TicketStatus) => setStatusFilter(value)}>
-            <SelectTrigger className="h-8 w-40 text-xs">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
+          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ticket number or title" className="h-8 w-72 text-xs" />
+          <Select value={teamId} onValueChange={setTeamId}>
+            <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="text-xs">All statuses</SelectItem>
-              <SelectItem value="open" className="text-xs">Open</SelectItem>
-              <SelectItem value="in_progress" className="text-xs">In Progress</SelectItem>
-              <SelectItem value="resolved" className="text-xs">Resolved</SelectItem>
+              <SelectItem value="all" className="text-xs">All teams</SelectItem>
+              {teams.map((team) => (
+                <SelectItem key={team.id} value={team.id} className="text-xs">{team.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setOnlyOpen((prev) => !prev)}>
+            {onlyOpen ? "Showing Open" : "Showing All"}
+          </Button>
         </div>
       </AdminPageHeader>
+
+      {canEditTickets ? (
+        <Card>
+          <CardHeader className="py-3"><CardTitle className="text-sm">Create Ticket</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+            <Input value={form.title} onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))} placeholder="Title" className="h-8 text-xs md:col-span-2" />
+            <Input value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} placeholder="Description" className="h-8 text-xs md:col-span-2" />
+            <Select value={form.teamId || "__none"} onValueChange={(value) => setForm((prev) => ({ ...prev, teamId: value === "__none" ? "" : value }))}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">No team</SelectItem>
+                {teams.map((team) => <SelectItem key={team.id} value={team.id} className="text-xs">{team.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={form.priority} onValueChange={(value) => setForm((prev) => ({ ...prev, priority: value }))}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Priority" /></SelectTrigger>
+              <SelectContent>
+                {[0, 1, 2, 3, 4, 5].map((level) => <SelectItem key={level} value={String(level)} className="text-xs">{normalizeHelpdeskPriorityLabel(level)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={form.stageId || "__none"} onValueChange={(value) => setForm((prev) => ({ ...prev, stageId: value === "__none" ? "" : value }))}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Initial stage" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">No stage</SelectItem>
+                {stages.map((stage) => <SelectItem key={stage.id} value={stage.id} className="text-xs">{stage.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button size="sm" className="h-8 text-xs" onClick={handleCreate} disabled={createTicket.isPending}>Create</Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="text-sm flex items-center justify-between">
             Ticket Queue
-            <Badge variant="outline">{filteredTickets.length}</Badge>
+            <Badge variant="outline">{ticketQuery.data?.length ?? 0}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? <p className="text-xs text-muted-foreground">Loading tickets…</p> : null}
-
-          {isError ? (
+          {ticketQuery.isLoading ? <p className="text-xs text-muted-foreground">Loading tickets…</p> : null}
+          {ticketQuery.isError ? (
             <div className="space-y-2">
-              <p className="text-xs text-destructive">Unable to load tickets. {(error as Error)?.message ?? "Please retry."}</p>
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => refetch()}>Retry</Button>
+              <p className="text-xs text-destructive">Unable to load tickets. {(ticketQuery.error as Error)?.message}</p>
+              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => ticketQuery.refetch()}>Retry</Button>
             </div>
           ) : null}
 
-          {!isLoading && !isError && filteredTickets.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No tickets match your current filters.</p>
+          {!ticketQuery.isLoading && !ticketQuery.isError && (ticketQuery.data?.length ?? 0) === 0 ? (
+            <p className="text-xs text-muted-foreground">No tickets found. Create one to get started.</p>
           ) : null}
 
-          {!isLoading && !isError && filteredTickets.length > 0 ? (
+          {!ticketQuery.isLoading && !ticketQuery.isError && (ticketQuery.data?.length ?? 0) > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Ticket</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Requester</TableHead>
+                  <TableHead>Title</TableHead>
                   <TableHead>Team</TableHead>
                   <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>SLA</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead>Owner</TableHead>
                   <TableHead>Updated</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTickets.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-mono text-xs">{ticket.id}</TableCell>
-                    <TableCell>{ticket.subject}</TableCell>
-                    <TableCell>{ticket.requester}</TableCell>
-                    <TableCell>{ticket.team}</TableCell>
-                    <TableCell className="capitalize">{ticket.priority.replace("_", " ")}</TableCell>
-                    <TableCell className="capitalize">{ticket.status.replace("_", " ")}</TableCell>
-                    <TableCell>{new Date(ticket.updatedAt).toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
+                {ticketQuery.data?.map((ticket) => {
+                  const slaStatus = normalizeSlaBadgeStatus({ deadline: ticket.deadline, closedAt: ticket.closed_at });
+                  return (
+                    <TableRow key={ticket.id}>
+                      <TableCell className="font-mono text-xs">{ticket.ticket_number}</TableCell>
+                      <TableCell>{ticket.title}</TableCell>
+                      <TableCell>{ticket.team?.name ?? "—"}</TableCell>
+                      <TableCell>{normalizeHelpdeskPriorityLabel(ticket.priority)}</TableCell>
+                      <TableCell className="capitalize">{slaStatus.replace("_", " ")}</TableCell>
+                      <TableCell>
+                        {canEditTickets ? (
+                          <Select
+                            value={ticket.stage_id ?? "__none"}
+                            onValueChange={(value) => {
+                              if (value === "__none" || value === ticket.stage_id) return;
+                              updateStage.mutate({ ticketId: ticket.id, stageId: value, actorUserId: user?.id });
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none" className="text-xs">Unstaged</SelectItem>
+                              {stages.map((stage) => (
+                                <SelectItem key={stage.id} value={stage.id} className="text-xs">{stage.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          stageMap.get(ticket.stage_id ?? "") ?? "Unstaged"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {canEditTickets && user ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => assignTicket.mutate({ ticketId: ticket.id, ownerUserId: ticket.owner_user_id ? null : user.id, actorUserId: user.id })}
+                          >
+                            {ticket.owner_user_id ? "Unassign" : "Assign to me"}
+                          </Button>
+                        ) : (ticket.owner_user_id ? "Assigned" : "Unassigned")}
+                      </TableCell>
+                      <TableCell>{new Date(ticket.updated_at).toLocaleString()}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : null}
