@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil } from "lucide-react";
 import SectionContentDialog from "@/components/admin/SectionContentDialog";
+import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { compareCategoryOrder } from "@/lib/sortOrder";
@@ -149,6 +150,12 @@ const SECTION_TO_CATALOG_TYPE: Record<string, string> = {
 
 const fmtPrice = (n: number | null) => n != null ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—";
 
+const KNOWLEDGE_TEXT_MODES = [
+  { value: "summary", label: "Summary" },
+  { value: "excerpt", label: "Extended Excerpt" },
+  { value: "full", label: "Full Article" },
+] as const;
+
 /* ═══════════════════ Section Row ═══════════════════ */
 const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRemove, onMoveUp, onMoveDown }: {
   section: CatalogSection;
@@ -265,6 +272,27 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
             </Select>
           </div>
           <div>
+            <Label className="text-[10px] text-muted-foreground">Article Text Mode</Label>
+            <Select
+              value={section.format_choice || "summary"}
+              onValueChange={(v) => section.id && onUpdate(section.id, { format_choice: v })}
+            >
+              <SelectTrigger className="h-7 text-[11px] w-40">
+                <SelectValue placeholder="Select mode…" />
+              </SelectTrigger>
+              <SelectContent>
+                {KNOWLEDGE_TEXT_MODES.map((mode) => (
+                  <SelectItem key={mode.value} value={mode.value} className="text-xs">
+                    {mode.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Keep the section linked to the source article while controlling how much text appears.
+            </p>
+          </div>
+          <div>
             <Label className="text-[10px] text-muted-foreground">Custom Title Override (optional)</Label>
             <Input
               className="h-7 text-xs w-72 mt-0.5"
@@ -354,13 +382,31 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
 
   const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
 
+  const getKnowledgePreviewCopy = (article: { content?: string | null; description?: string | null } | null | undefined, mode: string | null) => {
+    const description = article?.description ?? "";
+    const content = article?.content ?? "";
+
+    if (mode === "full") return { description, content };
+    if (mode === "excerpt") {
+      return {
+        description,
+        content: content.slice(0, 1800) + ((content.length ?? 0) > 1800 ? "…" : ""),
+      };
+    }
+
+    return {
+      description,
+      content: content.slice(0, 700) + ((content.length ?? 0) > 700 ? "…" : ""),
+    };
+  };
+
   /** Sort section keys by canonical category order */
   const sortSectionKeys = (keys: string[]) =>
     [...keys].sort((a, b) => compareCategoryOrder(a, b));
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40" style={{ borderColor: "hsl(var(--border))" }}>
+      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 no-print" style={{ borderColor: "hsl(var(--border))" }}>
         <div className="flex gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
           <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
@@ -496,24 +542,27 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                     </div>
                   ) : null}
 
-                  {art && (
-                    <div>
-                      {art.description && (
-                        <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{art.description}</p>
-                      )}
-                      {art.content && isHtml(art.content) ? (
-                        <div
-                          className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
-                          style={{ color: "#2d3748", lineHeight: 1.6 }}
-                          dangerouslySetInnerHTML={{ __html: art.content.slice(0, 800) + ((art.content.length ?? 0) > 800 ? "…" : "") }}
-                        />
-                      ) : (
-                        <div style={{ fontSize: "9px", color: "#2d3748", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                          {art.content?.slice(0, 600)}{(art.content?.length ?? 0) > 600 ? "…" : ""}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {art && (() => {
+                    const previewCopy = getKnowledgePreviewCopy(art, s.format_choice);
+                    return (
+                      <div>
+                        {previewCopy.description && (
+                          <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{previewCopy.description}</p>
+                        )}
+                        {previewCopy.content && isHtml(previewCopy.content) ? (
+                          <div
+                            className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
+                            style={{ color: "#2d3748", lineHeight: 1.6 }}
+                            dangerouslySetInnerHTML={{ __html: previewCopy.content }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: "9px", color: "#2d3748", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                            {previewCopy.content}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {!isPricing && !art && (
                     <div style={{ padding: "12px", background: "#f7fafc", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
@@ -604,7 +653,7 @@ const CatalogEditorPage = () => {
         sort_order: maxSort + 1,
         is_included: true,
         pricelist_version_id: null,
-        format_choice: sectionType === "rx_prices" ? "list" : null,
+        format_choice: sectionType === "knowledge_article" ? "summary" : sectionType === "rx_prices" ? "list" : null,
         article_id: null,
         custom_title: null,
       });
@@ -658,14 +707,14 @@ const CatalogEditorPage = () => {
     <div className="flex flex-col h-full">
       {/* Top bar — like QuoteEditorPage */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
-        <button onClick={() => navigate("/admin/catalog-publisher")} className="p-1 rounded hover:bg-muted">
+        <button onClick={() => navigate("/admin/pricing/publisher")} className="p-1 rounded hover:bg-muted">
           <ArrowLeft className="h-4 w-4 text-muted-foreground" />
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-semibold text-foreground truncate">{name || "Untitled Catalog"}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { handleSave().then(() => navigate("/admin/catalog-publisher")); }}>
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { handleSave().then(() => navigate("/admin/pricing/publisher")); }}>
             Save &amp; Exit
           </Button>
           <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>
@@ -801,13 +850,21 @@ const CatalogEditorPage = () => {
           <ResizableHandle withHandle />
 
           <ResizablePanel defaultSize={45} minSize={25} maxSize={55}>
-            <EditorLivePreview
-              template={liveTemplate}
-              sections={sections}
-              versions={versions}
-              articles={articles}
-              settings={settings}
-            />
+            <div className="h-full p-2">
+              <PdfPreviewShell
+                title={`${template.name} — Lens Catalog Builder Preview`}
+                formatLabel={`${sections.filter((section) => section.is_included !== false).length} sections`}
+                maxHeight="calc(100vh - 220px)"
+              >
+                <EditorLivePreview
+                  template={liveTemplate}
+                  sections={sections}
+                  versions={versions}
+                  articles={articles}
+                  settings={settings}
+                />
+              </PdfPreviewShell>
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

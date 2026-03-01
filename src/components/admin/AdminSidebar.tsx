@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
-import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,11 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { PanelLeftClose, PanelLeft, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
+type IntegrationConnectionRow = {
+  status: "connected" | "error" | "not_configured" | null;
+};
+
 const AdminSidebar = () => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { canView } = useRolePermissions();
-
   // Determine which app context we're in based on URL
   const activeAppKey = useMemo<AppKey | null>(() => {
     for (const [key, app] of Object.entries(ADMIN_APPS)) {
@@ -33,7 +34,7 @@ const AdminSidebar = () => {
         .eq("tenant_key", "default")
         .maybeSingle();
       if (error) throw error;
-      return ((data as any)?.status as "connected" | "error" | "not_configured" | null) ?? "not_configured";
+      return (data as IntegrationConnectionRow | null)?.status ?? "not_configured";
     },
     enabled: activeAppKey === "settings",
   });
@@ -64,30 +65,23 @@ const AdminSidebar = () => {
 
   return (
     <aside
-      className={`admin-sidebar ${w} shrink-0 flex flex-col transition-all duration-200 border-r`}
-      style={{ borderColor: "hsl(215 25% 18%)" }}
+      className={`admin-sidebar ${w} shrink-0 flex flex-col transition-all duration-200 border-r border-[hsl(var(--admin-border))]`}
     >
       {/* Header */}
-      <div
-        className="h-11 flex items-center justify-between px-3 border-b rounded-none"
-        style={{ borderColor: "hsl(215 25% 18%)" }}
-      >
+      <div className="h-11 flex items-center justify-between px-3 border-b rounded-none border-[hsl(var(--admin-border))]">
         {!collapsed && activeApp && (
-          <span
-            className="text-sm font-semibold tracking-tight"
-            style={{ color: "hsl(0 0% 100%)" }}
-          >
+          <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">
             {activeApp.title}
           </span>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1 rounded hover:bg-white/10"
+          className="p-1 rounded hover:bg-[hsl(var(--admin-sidebar-hover))]"
         >
           {collapsed ? (
-            <PanelLeft className="h-4 w-4" style={{ color: "hsl(210 20% 85%)" }} />
+            <PanelLeft className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
           ) : (
-            <PanelLeftClose className="h-4 w-4" style={{ color: "hsl(210 20% 85%)" }} />
+            <PanelLeftClose className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
           )}
         </button>
       </div>
@@ -101,23 +95,28 @@ const AdminSidebar = () => {
             <RouterNavLink
               key={item.route}
               to={item.route}
-              className={`${linkBase} ${active ? "font-medium" : ""}`}
+              className={`${linkBase} ${
+                active
+                  ? "font-medium bg-[hsl(var(--admin-sidebar-active))]/20 text-[hsl(var(--admin-sidebar-active-fg))]"
+                  : "text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]"
+              }`}
               title={collapsed ? item.label : undefined}
-              style={{
-                color: active
-                  ? "hsl(215 65% 65%)"
-                  : "hsl(210 20% 85%)",
-                background: active
-                  ? "hsl(215 65% 50% / 0.12)"
-                  : "transparent",
-              }}
             >
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && (
                 <>
                   <span>{item.label}</span>
                   {item.route === "/admin/settings/integrations" && (
-                    <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4">
+                    <Badge
+                      variant="outline"
+                      className={`ml-auto text-[10px] py-0 h-4 ${
+                        integrationStatus === "connected"
+                          ? "text-green-400 border-green-400/50"
+                          : integrationStatus === "error"
+                            ? "text-red-400 border-red-400/50"
+                            : ""
+                      }`}
+                    >
                       {integrationStatusLabel}
                     </Badge>
                   )}
@@ -129,14 +128,10 @@ const AdminSidebar = () => {
       </nav>
 
       {/* Footer links */}
-      <div
-        className="border-t px-3 py-2 space-y-0.5 rounded-none"
-        style={{ borderColor: "hsl(215 25% 18%)" }}
-      >
+      <div className="border-t px-3 py-2 space-y-0.5 rounded-none border-[hsl(var(--admin-border))]">
         <Link
           to="/"
-          className={`${linkBase} w-full`}
-          style={{ color: "hsl(210 15% 65%)" }}
+          className={`${linkBase} w-full text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]`}
           title={collapsed ? "Back to Site" : undefined}
         >
           <ArrowLeft className="h-4 w-4 shrink-0" />

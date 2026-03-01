@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle2, Loader2, PlugZap } from "lucide-react";
 import type { PostgrestError } from "@supabase/supabase-js";
@@ -48,6 +49,28 @@ interface IntegrationHealthMetric {
   lag_behind_source_seconds: number;
   error_rate: number;
   records_processed_per_run: number;
+}
+
+interface IntegrationSyncJob {
+  id: string;
+  sync_kind: "initial" | "incremental";
+  status: "queued" | "running" | "success" | "failed";
+  requested_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error_message: string | null;
+}
+
+interface IntegrationSyncJobRow extends IntegrationSyncJob {
+  integration_connection_id: string;
+}
+
+interface IntegrationStructuredLog {
+  id: string;
+  event_name: string;
+  log_level: "debug" | "info" | "warn" | "error";
+  redacted_payload: Record<string, unknown> | null;
+  created_at: string;
 }
 
 type SyncErrorStatus = "open" | "retry_queued" | "resolved" | "ignored";
@@ -108,6 +131,56 @@ export default function IntegrationsPage() {
       return (data ?? []) as IntegrationHealthMetric[];
     },
     enabled: isAdmin,
+  });
+
+  const { data: latestSyncJob, isLoading: latestSyncJobLoading } = useQuery({
+    queryKey: ["integration-latest-sync-job", data?.id],
+    queryFn: async () => {
+      if (!data?.id) return null as IntegrationSyncJob | null;
+      const { data: rows, error } = await supabase
+        .from("integration_sync_jobs" as never)
+        .select("id,sync_kind,status,requested_at,started_at,completed_at,error_message")
+        .eq("integration_connection_id", data.id)
+        .order("requested_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return ((rows ?? [])[0] ?? null) as IntegrationSyncJob | null;
+    },
+    enabled: isAdmin && !!data?.id,
+  });
+
+  const { data: recentSyncJobs = [], isLoading: recentSyncJobsLoading } = useQuery({
+    queryKey: ["integration-recent-sync-jobs", data?.id],
+    queryFn: async () => {
+      if (!data?.id) return [] as IntegrationSyncJobRow[];
+      const { data: rows, error } = await supabase
+        .from("integration_sync_jobs" as never)
+        .select("id,integration_connection_id,sync_kind,status,requested_at,started_at,completed_at,error_message")
+        .eq("integration_connection_id", data.id)
+        .order("requested_at", { ascending: false })
+        .limit(8);
+      if (error) throw error;
+      return (rows ?? []) as IntegrationSyncJobRow[];
+    },
+    enabled: isAdmin && !!data?.id,
+  });
+
+  const { data: odooErrorLogs = [], isLoading: odooErrorLogsLoading } = useQuery({
+    queryKey: ["integration-odoo-error-logs", data?.id],
+    queryFn: async () => {
+      if (!data?.id) return [] as IntegrationStructuredLog[];
+      const { data: rows, error } = await supabase
+        .from("integration_structured_logs" as never)
+        .select("id,event_name,log_level,redacted_payload,created_at")
+        .eq("integration_connection_id", data.id)
+        .eq("provider", "odoo")
+        .eq("log_level", "error")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return (rows ?? []) as IntegrationStructuredLog[];
+    },
+    enabled: isAdmin && !!data?.id,
   });
 
   const [syncErrorStatusFilter, setSyncErrorStatusFilter] = useState<"all" | SyncErrorStatus>("open");
@@ -184,11 +257,37 @@ export default function IntegrationsPage() {
         p_credential_value: credential || null,
         p_test_connection: testConnection,
       };
-      const { error } = await supabase.rpc("upsert_integration_connection" as never, payload as never);
-      if (error) throw error;
+
+      const rpcAttempts: Array<{ fn: string; args: Record<string, unknown> }> = [
+        { fn: "upsert_integration_connection", args: payload },
+        { fn: "upsert_integration_connection_with_secret", args: payload },
+        {
+          fn: "upsert_integration_connection_with_secret",
+          args: {
+            ...payload,
+            p_test_connection: undefined,
+          },
+        },
+      ];
+
+      let lastError: PostgrestError | null = null;
+      for (const attempt of rpcAttempts) {
+        const { error } = await supabase.rpc(attempt.fn as never, attempt.args as never);
+        if (!error) return;
+        lastError = error;
+
+        const isMissingFunctionError = /Could not find the function/i.test(error.message);
+        if (!isMissingFunctionError) {
+          throw error;
+        }
+      }
+
+      if (lastError) throw lastError;
+      throw new Error("Integration upsert failed without an explicit error.");
     },
     onSuccess: (_, testConnection) => {
       qc.invalidateQueries({ queryKey: ["integration-connection", "odoo"] });
+      qc.invalidateQueries({ queryKey: ["integration-odoo-error-logs"] });
       qc.invalidateQueries({ queryKey: ["integration-health-metrics", "odoo"] });
       setCredential("");
       toast({
@@ -225,6 +324,24 @@ export default function IntegrationsPage() {
     },
   });
 
+  const cancelSyncJobMutation = useMutation({
+    mutationFn: async (syncJobId: string) => {
+      const { error } = await supabase.rpc("cancel_integration_sync_job" as never, {
+        p_sync_job_id: syncJobId,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["integration-recent-sync-jobs"] });
+      qc.invalidateQueries({ queryKey: ["integration-latest-sync-job"] });
+      qc.invalidateQueries({ queryKey: ["integration-connection", "odoo"] });
+      toast({ title: "Sync job canceled", description: "Queued sync job was canceled before execution." });
+    },
+    onError: (error: PostgrestError) => {
+      toast({ title: "Unable to cancel sync job", description: error.message, variant: "destructive" });
+    },
+  });
+
   const manageSyncErrorMutation = useMutation({
     mutationFn: async ({ errorId, action }: { errorId: string; action: "retry" | "resolve" | "ignore" }) => {
       const { error } = await supabase.rpc("manage_integration_sync_error" as never, {
@@ -247,6 +364,24 @@ export default function IntegrationsPage() {
   });
 
   const currentStatus = useMemo<IntegrationStatus>(() => data?.status ?? "not_configured", [data]);
+  const syncProgress = useMemo(() => {
+    if (!latestSyncJob) return { percent: 0, label: "No sync job has run yet." };
+
+    if (latestSyncJob.status === "queued") {
+      return { percent: 15, label: `Queued ${latestSyncJob.sync_kind} sync.` };
+    }
+
+    if (latestSyncJob.status === "running") {
+      return { percent: 65, label: `Running ${latestSyncJob.sync_kind} sync…` };
+    }
+
+    if (latestSyncJob.status === "failed") {
+      return { percent: 100, label: `Last sync failed${latestSyncJob.error_message ? `: ${latestSyncJob.error_message}` : "."}` };
+    }
+
+    return { percent: 100, label: `Last ${latestSyncJob.sync_kind} sync completed successfully.` };
+  }, [latestSyncJob]);
+
 
   if (roleLoading || isLoading) {
     return (
@@ -384,6 +519,14 @@ export default function IntegrationsPage() {
             <Button variant="secondary" onClick={() => triggerSyncMutation.mutate("initial")} disabled={triggerSyncMutation.isPending}>Initial import</Button>
             <Button variant="outline" onClick={() => triggerSyncMutation.mutate("incremental")} disabled={triggerSyncMutation.isPending}>Incremental sync</Button>
           </div>
+          <div className="md:col-span-2 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Sync progress</span>
+              <span>{syncProgress.percent}%</span>
+            </div>
+            <Progress value={syncProgress.percent} aria-label="Integration sync progress" />
+            <p className="text-xs text-muted-foreground">{latestSyncJobLoading ? "Loading latest sync status…" : syncProgress.label}</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -444,6 +587,86 @@ export default function IntegrationsPage() {
             {currentStatus === "connected" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-amber-600" />}
             {currentStatus === "connected" ? "Connection healthy." : "Connection requires attention."}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Queued and recent sync tasks</CardTitle>
+          <CardDescription>Track queued/running/success/failed jobs and cancel tasks that are still queued.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Requested</th>
+                  <th className="px-3 py-2 font-medium">Type</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">Error</th>
+                  <th className="px-3 py-2 font-medium text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentSyncJobsLoading && (
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={5}>Loading sync tasks…</td>
+                  </tr>
+                )}
+                {!recentSyncJobsLoading && recentSyncJobs.length === 0 && (
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={5}>No sync tasks found.</td>
+                  </tr>
+                )}
+                {recentSyncJobs.map((job) => (
+                  <tr key={job.id} className="border-t">
+                    <td className="px-3 py-2">{fmt(job.requested_at)}</td>
+                    <td className="px-3 py-2 capitalize">{job.sync_kind}</td>
+                    <td className="px-3 py-2 capitalize">{job.status}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">{job.error_message ?? "—"}</td>
+                    <td className="px-3 py-2 text-right">
+                      {job.status === "queued" ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => cancelSyncJobMutation.mutate(job.id)}
+                          disabled={cancelSyncJobMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Odoo error log</CardTitle>
+          <CardDescription>Troubleshoot Odoo-side exceptions captured in structured logs (redacted payload).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {odooErrorLogsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading Odoo error logs…</p>
+          ) : odooErrorLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No Odoo error logs recorded yet.</p>
+          ) : (
+            odooErrorLogs.map((entry) => (
+              <div key={entry.id} className="rounded-md border p-2 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{entry.event_name}</span>
+                  <span className="text-xs text-muted-foreground">{fmt(entry.created_at)}</span>
+                </div>
+                <pre className="mt-1 overflow-x-auto text-[11px] text-muted-foreground">{JSON.stringify(entry.redacted_payload ?? {}, null, 2)}</pre>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 
