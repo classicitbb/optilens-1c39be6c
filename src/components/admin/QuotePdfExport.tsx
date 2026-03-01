@@ -481,7 +481,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         )}
 
         {/* Line items */}
-        <div className="section print-keep-with-next print-grid-keep">
+        <div className="section print-keep-with-next">
           <div className="section-title print-keep-with-next">Line Items</div>
           {lineItemChunks.map((chunk) => (
             <div
@@ -558,7 +558,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Rx Details */}
         {quote.quote_type === "RX" && lensLines.length > 0 && (
-          <div className="section print-page-break-before print-grid-keep">
+          <div className="section print-grid-keep">
             <div className="section-title print-keep-with-next">
               Prescription Details
             </div>
