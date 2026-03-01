@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Printer } from "lucide-react";
@@ -29,12 +29,17 @@ const getPageDimensionsPx = (settings: PrintSettings) => {
   };
 };
 
-const getContentBoxDimensionsPx = (settings: PrintSettings) => {
+const getContentAreaPx = (settings: PrintSettings) => {
   const area = getPrintableContentAreaMm(settings);
   return {
-    margin: Math.min(area.marginX, area.marginY) * MM_TO_PX,
+    marginX: area.marginX * MM_TO_PX,
+    marginY: area.marginY * MM_TO_PX,
+    contentWidth: area.contentWidth * MM_TO_PX,
+    contentHeight: area.contentHeight * MM_TO_PX,
   };
 };
+
+const PAGE_GAP = 16;
 
 const PdfPreviewShell = ({
   title,
@@ -53,8 +58,10 @@ const PdfPreviewShell = ({
     resolvePrintSettings(defaultPrintSettings),
   );
   const [previewScale, setPreviewScale] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
   const paneRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
 
   const printSettings = controlledPrintSettings ?? internalSettings;
   const resolvedSettings = useMemo(() => resolvePrintSettings(printSettings), [printSettings]);
@@ -66,6 +73,25 @@ const PdfPreviewShell = ({
     }
   }, [controlledPrintSettings]);
 
+  // Measure content to determine page count
+  const updatePageCount = useCallback(() => {
+    const el = measureRef.current;
+    if (!el) return;
+    const area = getContentAreaPx(resolvedSettings);
+    const contentH = el.scrollHeight;
+    const pages = Math.max(1, Math.ceil(contentH / area.contentHeight));
+    setPageCount(pages);
+  }, [resolvedSettings]);
+
+  useEffect(() => {
+    updatePageCount();
+    const el = measureRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(updatePageCount);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [updatePageCount, visible, children]);
+
   useEffect(() => {
     const pane = paneRef.current;
     if (!pane) return;
@@ -73,8 +99,7 @@ const PdfPreviewShell = ({
     const updateScale = () => {
       const page = getPageDimensionsPx(resolvedSettings);
       const availableWidth = Math.max(1, pane.clientWidth - 24);
-      const availableHeight = Math.max(1, pane.clientHeight - 24);
-      setPreviewScale(Math.min(availableWidth / page.width, availableHeight / page.height));
+      setPreviewScale(Math.min(1, availableWidth / page.width));
     };
 
     updateScale();
@@ -111,6 +136,10 @@ const PdfPreviewShell = ({
     const parsed = Number(value);
     updatePrintSettings({ [field]: Number.isFinite(parsed) ? parsed : undefined });
   };
+
+  const page = getPageDimensionsPx(resolvedSettings);
+  const area = getContentAreaPx(resolvedSettings);
+  const totalStackHeight = (page.height * pageCount + PAGE_GAP * (pageCount - 1)) * previewScale;
 
   return (
     <div className="border border-border rounded-lg overflow-hidden" id="live-preview">
@@ -158,29 +187,67 @@ const PdfPreviewShell = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 pl-3">
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm</span>
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm
+          </span>
           {headerRight}
         </div>
       </div>
 
       {visible && (
         <div ref={paneRef} className="bg-muted/10 overflow-auto" style={{ maxHeight, minHeight: "260px", padding: "12px" }}>
-          {(() => {
-            const page = getPageDimensionsPx(resolvedSettings);
-            const content = getContentBoxDimensionsPx(resolvedSettings);
+          {/* Scaled page stack */}
+          <div className="mx-auto" style={{ width: page.width * previewScale, height: totalStackHeight }}>
+            <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: page.width }}>
+              {Array.from({ length: pageCount }).map((_, i) => (
+                <div
+                  key={i}
+                  className="relative bg-background shadow-md"
+                  style={{
+                    width: page.width,
+                    height: page.height,
+                    marginBottom: i < pageCount - 1 ? PAGE_GAP / previewScale : 0,
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Page number badge */}
+                  <span
+                    className="absolute text-muted-foreground font-mono select-none pointer-events-none"
+                    style={{ bottom: area.marginY * 0.3, right: area.marginX, fontSize: "9px", opacity: 0.5 }}
+                  >
+                    Page {i + 1} of {pageCount}
+                  </span>
 
-            return (
-              <div className="mx-auto" style={{ width: page.width * previewScale, height: page.height * previewScale }}>
-                <div className="relative bg-background shadow-md" style={{ width: page.width, height: page.height, transform: `scale(${previewScale})`, transformOrigin: "top left" }}>
-                  <div style={{ position: "absolute", top: content.margin, right: content.margin, bottom: content.margin, left: content.margin, overflow: "hidden" }}>
-                    <div ref={printRef} className="print-root h-full w-full" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}>
-                      {children}
+                  {/* Content window – shift content upward for each page */}
+                  <div style={{
+                    position: "absolute",
+                    top: area.marginY,
+                    left: area.marginX,
+                    width: area.contentWidth,
+                    height: area.contentHeight,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{ transform: `translateY(-${i * area.contentHeight}px)` }}>
+                      <div
+                        ref={i === 0 ? measureRef : undefined}
+                        className="print-root w-full"
+                        style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}
+                      >
+                        {children}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+              ))}
+            </div>
+          </div>
+
+          {/* Hidden print source (single continuous flow) */}
+          <div style={{ position: "absolute", left: "-9999px", top: 0, width: area.contentWidth }}>
+            <div ref={printRef} className="print-root w-full" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}>
+              {children}
+            </div>
+          </div>
         </div>
       )}
     </div>
