@@ -28,6 +28,16 @@ const clampScale = (value: number | undefined) => {
   return Math.min(1.25, Math.max(0.6, value));
 };
 
+const clampSectionSpacing = (value: number | undefined) => {
+  if (value == null || Number.isNaN(value)) return DEFAULT_PRINT_SETTINGS.sectionSpacing ?? 24;
+  return Math.min(40, Math.max(8, value));
+};
+
+const clampTableScale = (value: number | undefined) => {
+  if (value == null || Number.isNaN(value)) return DEFAULT_PRINT_SETTINGS.tableScale ?? 1;
+  return Math.min(1.2, Math.max(0.85, value));
+};
+
 const clampMargin = (value: number | undefined, fallback: number) => {
   if (value == null || Number.isNaN(value)) return fallback;
   return Math.min(60, Math.max(0, value));
@@ -37,6 +47,8 @@ export const resolvePrintSettings = (settings?: Partial<PrintSettings>): PrintSe
   ...DEFAULT_PRINT_SETTINGS,
   ...settings,
   scale: clampScale(settings?.scale ?? DEFAULT_PRINT_SETTINGS.scale),
+  sectionSpacing: clampSectionSpacing(settings?.sectionSpacing ?? DEFAULT_PRINT_SETTINGS.sectionSpacing),
+  tableScale: clampTableScale(settings?.tableScale ?? DEFAULT_PRINT_SETTINGS.tableScale),
 });
 
 export const getResolvedMarginsMm = (settings?: Partial<PrintSettings>) => {
