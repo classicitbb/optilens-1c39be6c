@@ -58,6 +58,9 @@ import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
 import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
+import HelpdeskTicketsPage from "./pages/admin/helpdesk/HelpdeskTicketsPage";
+import HelpdeskTeamsPage from "./pages/admin/helpdesk/HelpdeskTeamsPage";
+import HelpdeskSlaPage from "./pages/admin/helpdesk/HelpdeskSlaPage";
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
@@ -162,9 +165,9 @@ const App = () => (
 
                 {/* ═══ Helpdesk App ═══ */}
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
-                <Route path="helpdesk/tickets" element={<PlaceholderPage />} />
-                <Route path="helpdesk/teams" element={<PlaceholderPage />} />
-                <Route path="helpdesk/sla" element={<PlaceholderPage />} />
+                <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
+                <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
+                <Route path="helpdesk/sla" element={<HelpdeskSlaPage />} />
 
                 {/* ═══ Website App ═══ */}
                 <Route path="website" element={<Navigate to="/admin/website/content" replace />} />
