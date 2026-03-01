@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, useMemo } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, type Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign } from "lucide-react";
+import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -22,6 +22,31 @@ import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptions
 type FilterMode = "all" | "companies" | "persons" | "customers";
 type GroupByMode = "none" | "country";
 type CsvExportMode = "raw" | "grouped";
+
+type SpeechRecognitionErrorCode = "aborted" | "audio-capture" | "bad-grammar" | "language-not-supported" | "network" | "no-speech" | "not-allowed" | "phrases-not-supported" | "service-not-allowed";
+
+type BrowserSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null;
+  onerror: ((event: { error: SpeechRecognitionErrorCode }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type BrowserSpeechRecognitionCtor = new () => BrowserSpeechRecognition;
+
+const DICTATION_LANGUAGE_OPTIONS = [
+  { value: "en-US", label: "English (US)" },
+  { value: "en-GB", label: "English (UK)" },
+  { value: "es-ES", label: "Español" },
+  { value: "fr-FR", label: "Français" },
+  { value: "de-DE", label: "Deutsch" },
+  { value: "it-IT", label: "Italiano" },
+  { value: "pt-BR", label: "Português (Brasil)" },
+];
 
 const LEAD_SOURCES = [
   { value: "not_specified", label: "Not specified" },
@@ -56,6 +81,9 @@ const emptyContact = (isCompany: boolean): Partial<Contact> => ({
   parent_id: null,
   is_archived: false,
   avatar_url: "",
+  business_card_image_url: null,
+  business_card_uploaded_at: null,
+  business_card_file_name: null,
   is_customer: false,
   lead_source: "",
   pipeline_stage: "New",
@@ -82,9 +110,35 @@ const ContactsPage = () => {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [collapsedCountryGroups, setCollapsedCountryGroups] = useState<Record<string, boolean>>({});
+  const [isDictating, setIsDictating] = useState(false);
+  const [dictationSupported, setDictationSupported] = useState(false);
+  const [dictationLanguage, setDictationLanguage] = useState<string>(typeof navigator !== "undefined" ? navigator.language : "en-US");
+
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const transcriptSnapshotRef = useRef("");
+  const interimTimerRef = useRef<number | null>(null);
+  const pendingTranscriptRef = useRef("");
+  const businessCardInputRef = useRef<HTMLInputElement>(null);
+  const [businessCardFile, setBusinessCardFile] = useState<File | null>(null);
+  const [isUploadingBusinessCard, setIsUploadingBusinessCard] = useState(false);
 
   // Load tags when editing
   const { data: editTagIds = [] } = useContactTagLinks(editContact?.id);
+
+  const { data: linkedContacts = [], isLoading: isLoadingLinkedContacts } = useQuery({
+    queryKey: ["contacts-by-parent", editContact?.id],
+    queryFn: async () => {
+      if (!editContact?.id) return [];
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("parent_id", editContact.id as any)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as unknown as Contact[];
+    },
+    enabled: !!editContact?.id && !!editContact?.is_company,
+  });
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["contact-opportunity-links"],
@@ -94,21 +148,7 @@ const ContactsPage = () => {
         .select("id,contact_id,title")
         .limit(3000);
       if (error) throw error;
-      return (data ?? []) as { id: string; contact_id: string; title: string | null }[];
-    },
-  });
-
-  const { data: linkedContacts = [], isLoading: isLoadingLinkedContacts } = useQuery({
-    queryKey: ["contacts-by-parent", editContact?.id],
-    enabled: !!editContact?.id && !!editContact?.is_company,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contacts")
-        .select("*")
-        .eq("parent_id", editContact!.id as any)
-        .order("name");
-      if (error) throw error;
-      return (data ?? []) as Contact[];
+      return (data ?? []) as unknown as { id: string; contact_id: string; title: string | null }[];
     },
   });
 
@@ -159,6 +199,14 @@ const ContactsPage = () => {
     () => ensureOption(getCityOptionsByCountry(editContact?.country_code), editContact?.city),
     [editContact?.country_code, editContact?.city],
   );
+  const dictationLanguageOptions = useMemo(() => {
+    if (!dictationLanguage) return DICTATION_LANGUAGE_OPTIONS;
+    if (DICTATION_LANGUAGE_OPTIONS.some((option) => option.value === dictationLanguage)) {
+      return DICTATION_LANGUAGE_OPTIONS;
+    }
+    return [{ value: dictationLanguage, label: `${dictationLanguage} (Browser default)` }, ...DICTATION_LANGUAGE_OPTIONS];
+  }, [dictationLanguage]);
+
 
   const filtered = useMemo(() => {
     let list = contacts;
@@ -209,6 +257,171 @@ const ContactsPage = () => {
       return next;
     });
   }, [groupBy, groupedByCountry]);
+
+
+  const clearInterimTimer = useCallback(() => {
+    if (interimTimerRef.current !== null) {
+      window.clearTimeout(interimTimerRef.current);
+      interimTimerRef.current = null;
+    }
+  }, []);
+
+  const mergeTranscriptIntoNotes = useCallback((nextTranscript: string) => {
+    const trimmed = nextTranscript.trim();
+    if (!trimmed) return;
+
+    const previous = transcriptSnapshotRef.current;
+    let commonPrefixLength = 0;
+    const maxPrefix = Math.min(previous.length, trimmed.length);
+    while (commonPrefixLength < maxPrefix && previous[commonPrefixLength] === trimmed[commonPrefixLength]) {
+      commonPrefixLength += 1;
+    }
+
+    const delta = trimmed.slice(commonPrefixLength).trim();
+    transcriptSnapshotRef.current = trimmed;
+    if (!delta) return;
+
+    setEditContact((prev) => {
+      if (!prev) return prev;
+      const notes = prev.notes ?? "";
+      const needsSpacer = notes.length > 0 && !/\s$/.test(notes);
+      return { ...prev, notes: `${notes}${needsSpacer ? " " : ""}${delta}` };
+    });
+  }, []);
+
+  const flushPendingTranscript = useCallback(() => {
+    if (!pendingTranscriptRef.current) return;
+    mergeTranscriptIntoNotes(pendingTranscriptRef.current);
+    pendingTranscriptRef.current = "";
+  }, [mergeTranscriptIntoNotes]);
+
+  const queueTranscriptMerge = useCallback((transcript: string, immediate = false) => {
+    if (!transcript.trim()) return;
+    pendingTranscriptRef.current = transcript;
+    clearInterimTimer();
+
+    if (immediate) {
+      flushPendingTranscript();
+      return;
+    }
+
+    interimTimerRef.current = window.setTimeout(() => {
+      flushPendingTranscript();
+      interimTimerRef.current = null;
+    }, 250);
+  }, [clearInterimTimer, flushPendingTranscript]);
+
+  const stopDictation = useCallback((showToast = false) => {
+    clearInterimTimer();
+    flushPendingTranscript();
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognition.stop();
+      recognitionRef.current = null;
+    }
+    transcriptSnapshotRef.current = "";
+    setIsDictating(false);
+
+    if (showToast) {
+      toast({ title: "Dictation stopped" });
+    }
+  }, [clearInterimTimer, flushPendingTranscript, toast]);
+
+  useEffect(() => {
+    const speechApi = (window as Window & { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).SpeechRecognition
+      ?? (window as Window & { webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).webkitSpeechRecognition;
+    setDictationSupported(!!speechApi);
+    if (typeof navigator !== "undefined" && navigator.language) {
+      setDictationLanguage(navigator.language);
+    }
+  }, []);
+
+  useEffect(() => () => stopDictation(), [stopDictation]);
+
+  useEffect(() => {
+    if (!editContact) {
+      stopDictation();
+    }
+  }, [editContact, stopDictation]);
+
+  const startDictation = useCallback(() => {
+    const speechApi = (window as Window & { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).SpeechRecognition
+      ?? (window as Window & { webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).webkitSpeechRecognition;
+
+    if (!speechApi) {
+      toast({
+        title: "Dictation unavailable",
+        description: "Your browser does not support speech-to-text dictation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      transcriptSnapshotRef.current = "";
+      const recognition = new speechApi();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = dictationLanguage || (typeof navigator !== "undefined" ? navigator.language : "en-US");
+
+      recognition.onresult = (event) => {
+        let fullFinal = "";
+        let interim = "";
+
+        for (let i = 0; i < event.results.length; i += 1) {
+          const result = event.results[i];
+          const transcriptPart = result[0]?.transcript ?? "";
+          if (result.isFinal) fullFinal += transcriptPart;
+          else interim += transcriptPart;
+        }
+
+        const combined = `${fullFinal} ${interim}`.trim();
+        queueTranscriptMerge(combined, !interim);
+      };
+
+      recognition.onerror = (event) => {
+        const errorMessages: Partial<Record<SpeechRecognitionErrorCode, string>> = {
+          "not-allowed": "Microphone permission was denied. Please allow microphone access to use dictation.",
+          "service-not-allowed": "Microphone access is blocked for this browser profile.",
+          "audio-capture": "No microphone was detected. Please connect a microphone and try again.",
+          network: "A network error interrupted dictation.",
+          "language-not-supported": "The selected language is not supported for dictation in this browser.",
+        };
+
+        toast({
+          title: "Dictation error",
+          description: errorMessages[event.error] ?? "Dictation stopped due to an unexpected speech recognition error.",
+          variant: "destructive",
+        });
+        stopDictation();
+      };
+
+      recognition.onend = () => {
+        flushPendingTranscript();
+        setIsDictating(false);
+        recognitionRef.current = null;
+      };
+
+      recognition.start();
+      recognitionRef.current = recognition;
+      setIsDictating(true);
+    } catch (error: any) {
+      toast({
+        title: "Unable to start dictation",
+        description: error?.message ?? "Speech recognition could not be started in this browser.",
+        variant: "destructive",
+      });
+      stopDictation();
+    }
+  }, [dictationLanguage, flushPendingTranscript, queueTranscriptMerge, stopDictation, toast]);
+
+  const closeEditDialog = useCallback(() => {
+    stopDictation();
+    setEditContact(null);
+  }, [stopDictation]);
 
   const companies = contacts.filter((c) => c.is_company);
   const linkedCompany = useMemo(
@@ -276,6 +489,76 @@ const ContactsPage = () => {
     }
     navigate("/admin/pricing/catalog", { state: { pricingSheetId, contactName: contact.name } });
   };
+
+  const getStoragePathFromPublicUrl = (url?: string | null) => {
+    if (!url) return null;
+    const marker = "/storage/v1/object/public/data-files/";
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.slice(idx + marker.length);
+  };
+
+  const handleBusinessCardUpload = async () => {
+    if (!businessCardFile) {
+      toast({ title: "Select an image first", variant: "destructive" });
+      return;
+    }
+
+    const oldPath = getStoragePathFromPublicUrl(editContact?.business_card_image_url ?? null);
+    const contactIdPart = editContact?.id ?? "new";
+    const safeName = businessCardFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `contact-business-cards/${contactIdPart}/${Date.now()}-${safeName}`;
+
+    setIsUploadingBusinessCard(true);
+    try {
+      const { error: uploadError } = await supabase.storage.from("data-files").upload(path, businessCardFile, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from("data-files").getPublicUrl(path);
+      setEditContact((prev) => prev ? {
+        ...prev,
+        business_card_image_url: publicUrlData.publicUrl,
+        business_card_uploaded_at: new Date().toISOString(),
+        business_card_file_name: businessCardFile.name,
+      } : prev);
+
+      if (oldPath && oldPath !== path) {
+        await supabase.storage.from("data-files").remove([oldPath]);
+      }
+
+      setBusinessCardFile(null);
+      if (businessCardInputRef.current) {
+        businessCardInputRef.current.value = "";
+      }
+      toast({ title: "Business card uploaded" });
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message ?? "Could not upload business card", variant: "destructive" });
+    } finally {
+      setIsUploadingBusinessCard(false);
+    }
+  };
+
+  const handleBusinessCardRemove = async () => {
+    try {
+      const oldPath = getStoragePathFromPublicUrl(editContact?.business_card_image_url ?? null);
+      if (oldPath) {
+        await supabase.storage.from("data-files").remove([oldPath]);
+      }
+      setEditContact((prev) => prev ? {
+        ...prev,
+        business_card_image_url: null,
+        business_card_uploaded_at: null,
+        business_card_file_name: null,
+      } : prev);
+      setBusinessCardFile(null);
+      if (businessCardInputRef.current) {
+        businessCardInputRef.current.value = "";
+      }
+    } catch (error: any) {
+      toast({ title: "Failed to remove image", description: error.message ?? "Please try again.", variant: "destructive" });
+    }
+  };
+
 
 
   const exportCsv = () => {
@@ -451,6 +734,9 @@ const ContactsPage = () => {
             parent_id: editContact.parent_id ?? null,
             is_archived: editContact.is_archived ?? false,
             avatar_url: editContact.avatar_url ?? "",
+            business_card_image_url: editContact.business_card_image_url ?? null,
+            business_card_uploaded_at: editContact.business_card_uploaded_at ?? null,
+            business_card_file_name: editContact.business_card_file_name ?? null,
             is_customer: editContact.is_customer ?? false,
             lead_source: editContact.lead_source ?? "",
             pipeline_stage: editContact.pipeline_stage ?? "New",
@@ -496,8 +782,12 @@ const ContactsPage = () => {
       qc.invalidateQueries({ queryKey: ["contact-by-id", nextParentId] });
       qc.invalidateQueries({ queryKey: ["customers-list"] });
       toast({ title: editContact.id ? "Contact updated" : "Contact created" });
-      setEditContact(null);
+      closeEditDialog();
       setInitialParentId(null);
+      setBusinessCardFile(null);
+      if (businessCardInputRef.current) {
+        businessCardInputRef.current.value = "";
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -507,22 +797,32 @@ const ContactsPage = () => {
     try {
       await deleteContact.mutateAsync(id);
       toast({ title: "Contact deleted" });
-      setEditContact(null);
+      closeEditDialog();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
 
   const openEdit = (contact: Contact) => {
+    stopDictation();
     setEditContact(contact);
     setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
+    setBusinessCardFile(null);
+    if (businessCardInputRef.current) {
+      businessCardInputRef.current.value = "";
+    }
   };
 
   const openNew = (isCompany: boolean) => {
+    stopDictation();
     setEditContact(emptyContact(isCompany));
     setInitialParentId(null);
     setSelectedTagIds([]);
+    setBusinessCardFile(null);
+    if (businessCardInputRef.current) {
+      businessCardInputRef.current.value = "";
+    }
   };
 
   // Sync tag ids when editTagIds loads
@@ -697,20 +997,74 @@ const ContactsPage = () => {
                 );
               })
             ) : (
-              filtered.map((c) => renderContactRow(c))
+              filtered.map((c) => (
+                <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
+                  <TableCell className="font-medium text-xs">{c.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Badge
+                        className="text-[10px] px-1.5 py-0 h-5 border-0"
+                        style={{
+                          background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
+                          color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
+                        }}
+                      >
+                        {c.is_company ? "Company" : "Person"}
+                      </Badge>
+                      {c.is_customer && (
+                        <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
+                          Customer
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs">{c.email}</TableCell>
+                  <TableCell className="text-xs">{c.phone}</TableCell>
+                  <TableCell className="text-xs">{c.salesperson}</TableCell>
+                  <TableCell className="text-xs">{c.city}</TableCell>
+                  <TableCell className="text-xs">{c.country_code}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      {getOpportunityCount(c.id) > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={(e) => openCrmForContact(c, e)}
+                        >
+                          <Kanban className="h-3 w-3 mr-1" /> CRM ({getOpportunityCount(c.id)})
+                        </Button>
+                      )}
+                      {getAssignedPriceProfileId(c) && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-[10px]"
+                          onClick={(e) => openPricingForContact(c, e)}
+                        >
+                          <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editContact} onOpenChange={(v) => !v && setEditContact(null)}>
+      <Dialog open={!!editContact} onOpenChange={(v) => !v && closeEditDialog()}>
         <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden" style={{ maxHeight: "calc(100vh - 48px)" }}>
           {editContact && (() => {
             const currentIndex = filtered.findIndex((c) => c.id === editContact.id);
             const canGoPrev = editContact.id && currentIndex > 0;
             const canGoNext = editContact.id && currentIndex >= 0 && currentIndex < filtered.length - 1;
             const goTo = (contact: Contact) => {
+              stopDictation();
               setEditContact(contact);
               setInitialParentId(contact.parent_id ?? null);
               setSelectedTagIds([]);
@@ -1021,12 +1375,112 @@ const ContactsPage = () => {
                   </TabsContent>
 
                   <TabsContent value="notes" className="flex-1 px-4 py-3 m-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={isDictating ? "destructive" : "outline"}
+                        className="h-7 text-xs"
+                        onClick={() => (isDictating ? stopDictation(true) : startDictation())}
+                      >
+                        {isDictating ? <MicOff className="h-3.5 w-3.5 mr-1" /> : <Mic className="h-3.5 w-3.5 mr-1" />}
+                        {isDictating ? "Stop dictation" : "Start dictation"}
+                      </Button>
+                      <Select value={dictationLanguage} onValueChange={setDictationLanguage}>
+                        <SelectTrigger className="h-7 text-xs w-[180px]" disabled={!dictationSupported || isDictating}>
+                          <SelectValue placeholder="Language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dictationLanguageOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {isDictating && (
+                        <span className="text-[11px] font-medium flex items-center gap-1" style={{ color: "hsl(0 72% 45%)" }}>
+                          <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                          Recording…
+                        </span>
+                      )}
+                      {!dictationSupported && (
+                        <span className="text-[11px]" style={{ color: "hsl(215 15% 55%)" }}>
+                          Speech dictation isn’t supported in this browser.
+                        </span>
+                      )}
+                    </div>
                     <Textarea
-                      className="text-xs min-h-[120px] h-full resize-none"
+                      className="text-xs min-h-[120px] resize-none"
                       placeholder="Add notes about this contact…"
                       value={editContact.notes ?? ""}
                       onChange={(e) => setEditContact({ ...editContact, notes: e.target.value })}
                     />
+                    <div className="border rounded-md p-3 space-y-2" style={{ borderColor: "hsl(var(--border))" }}>
+                      <div className="flex items-center gap-2 text-xs font-medium">
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        Business card image
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          ref={businessCardInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="text-xs h-8 max-w-sm"
+                          onChange={(e) => setBusinessCardFile(e.target.files?.[0] ?? null)}
+                          disabled={isUploadingBusinessCard}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={handleBusinessCardUpload}
+                          disabled={!businessCardFile || isUploadingBusinessCard}
+                        >
+                          {isUploadingBusinessCard ? "Uploading..." : "Upload"}
+                        </Button>
+                        {editContact.business_card_image_url && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 text-xs"
+                            onClick={handleBusinessCardRemove}
+                            disabled={isUploadingBusinessCard}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      {editContact.business_card_image_url ? (
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={editContact.business_card_image_url}
+                            alt="Business card"
+                            className="w-24 h-16 rounded border object-cover"
+                            style={{ borderColor: "hsl(215 25% 88%)" }}
+                          />
+                          <div className="space-y-1">
+                            <a
+                              href={editContact.business_card_image_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs underline inline-flex items-center gap-1"
+                            >
+                              View full image <ExternalLink className="h-3 w-3" />
+                            </a>
+                            {editContact.business_card_file_name && (
+                              <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
+                                {editContact.business_card_file_name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
+                          No business card uploaded yet.
+                        </p>
+                      )}
+                    </div>
                   </TabsContent>
                 </Tabs>
 
@@ -1040,7 +1494,7 @@ const ContactsPage = () => {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditContact(null)}>Cancel</Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={closeEditDialog}>Cancel</Button>
                     <Button size="sm" className="h-7 text-xs" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={handleSave} disabled={saveContact.isPending}>
                       {saveContact.isPending ? "Saving..." : "Save"}
                     </Button>
@@ -1056,3 +1510,4 @@ const ContactsPage = () => {
 };
 
 export default ContactsPage;
+

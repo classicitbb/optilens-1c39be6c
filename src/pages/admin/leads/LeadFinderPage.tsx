@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Search, MapPinned, Sparkles, Save, Globe2, ActivitySquare, WandSparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, MapPinned, Sparkles, Save, Globe2, ActivitySquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ const scoreBand = (score: number) => {
 };
 
 const EMPTY_REASON_GUIDANCE: Record<"no_providers_configured" | "provider_failures" | "no_matches", string> = {
-  no_providers_configured: "No lead data providers are configured yet. Add provider API keys in your environment settings, then run search again.",
+  no_providers_configured: "No lead data providers are configured yet. Add provider API keys in /admin/leads/settings, then run search again.",
   provider_failures: "Configured providers failed to return data. Check provider credentials/quotas and retry.",
   no_matches: "No businesses matched this search. Broaden your region or intent, or relax filters like rating/reviews.",
 };
@@ -78,79 +78,43 @@ const LeadFinderPage = () => {
   const smartBatch = useMemo(() => [...filteredLeads].sort((a, b) => b.score - a.score).slice(0, 20), [filteredLeads]);
   const displayLeads = smartBatch.length > 0 ? smartBatch : filteredLeads;
 
-  const emptyStateMessage = useMemo(() => {
-    if (finder.isPending || displayLeads.length > 0) return null;
-    if (leads.length === 0) {
-      if (diagnostics?.emptyReason) return EMPTY_REASON_GUIDANCE[diagnostics.emptyReason];
-      return "No leads were returned. Try broadening region/intent and confirm providers are configured.";
-    }
-    return "No leads match current filters. Try lowering minimum rating/reviews or disabling website-only.";
-  }, [finder.isPending, displayLeads.length, leads.length, diagnostics?.emptyReason]);
-
-  const toList = (raw: string) => raw.split(",").map((item) => item.trim()).filter(Boolean);
   const scoreForSave = (lead: LeadRecord) => {
-    const override = Number(overrideScores[lead.id]);
-    if (Number.isFinite(override) && override >= 0 && override <= 100) return override;
+    const override = overrideScores[lead.id];
+    if (override !== undefined && override !== "") return Number(override);
     return lead.score;
   };
 
+  const emptyStateMessage = useMemo(() => {
+    if (finder.isPending) return null;
+    if (!finder.data) return null;
+    if (displayLeads.length > 0) return null;
+    const reason = diagnostics?.emptyReason;
+    if (reason && EMPTY_REASON_GUIDANCE[reason]) return EMPTY_REASON_GUIDANCE[reason];
+    return "No leads found. Try adjusting your search criteria.";
+  }, [finder.isPending, finder.data, displayLeads.length, diagnostics?.emptyReason]);
+
   const runSearch = async () => {
-    const constraints = {
-      productCategories: toList(productCategories),
-      marginTiers: toList(marginTiers),
-      fulfillmentGeography: globalSearch ? "Global" : `${country}${city ? ` / ${city}` : ""}`,
-      existingCustomerProfile: existingCustomerProfile.trim() || undefined,
-      exclusions: toList(manualExclusions),
-    };
-
-    const providerDiagnosticsSummary = {
-      mode: autopilotMode,
-      scope_mode: globalSearch ? "global" : "country_city",
-      query,
-      country: globalSearch ? null : country,
-      city: globalSearch ? null : city,
-      constraints,
-    };
-
     try {
-      await supabase.from("lead_events" as any).insert({
-        event_type: "search_executed",
-        provider_diagnostics_summary: providerDiagnosticsSummary,
-      } as any);
-    } catch {
-      // silently ignore
-    }
-
-    try {
-      const result = await finder.mutateAsync({ query, country, cities: [city], globalSearch, mode: autopilotMode, constraints });
-      setOverrideScores({});
-      try {
-        await supabase.from("lead_events" as any).insert({
-          event_type: "result_rendered",
-          provider_diagnostics_summary: {
-            ...providerDiagnosticsSummary,
-            providers_used: result.diagnostics?.providersUsed ?? [],
-            provider_status: result.diagnostics?.providerStatus ?? null,
-            planner: result.diagnostics?.planner ?? null,
-            resolved_query: result.diagnostics?.queryEcho?.query ?? query,
-            results_count: result.leads.length,
-            fetched_at: result.diagnostics?.fetchedAt ?? null,
-          },
-        } as any);
-      } catch {
-        // silently ignore
-      }
-    } catch (error: unknown) {
-      toast({ title: "Search failed", description: error instanceof Error ? error.message : "Unable to fetch leads.", variant: "destructive" });
+      await finder.mutateAsync({ query, country, cities: [city], globalSearch, mode: autopilotMode });
+    } catch (e: any) {
+      toast({
+        title: "Search failed",
+        description: e?.message || "Unable to run lead search right now.",
+        variant: "destructive",
+      });
     }
   };
+
+  useEffect(() => {
+    if (!finder.data?.warning) return;
+    toast({ title: "Search provider unavailable", description: finder.data.warning });
+  }, [finder.data?.warning, toast]);
 
   return (
     <div className="space-y-4">
       <AdminPageHeader
         title="Lead Finder"
-        subtitle="Search prospects, inspect explainable score factors, then save to CRM with confidence."
-        icon={<Sparkles className="h-4 w-4" />}
+        icon={Sparkles}
       />
 
       <Card>
@@ -179,7 +143,7 @@ const LeadFinderPage = () => {
             <Input value={minReviews} onChange={(e) => setMinReviews(e.target.value)} className="h-8 text-xs" placeholder="Min reviews" />
             <div className="flex items-center gap-2 h-8"><Switch checked={hasWebsiteOnly} onCheckedChange={setHasWebsiteOnly} id="has-website" /><Label htmlFor="has-website" className="text-[11px]">Has Website only</Label></div>
             <div className="flex items-center gap-2 h-8"><Switch checked={showMap} onCheckedChange={setShowMap} id="map-toggle" /><Label htmlFor="map-toggle" className="text-[11px]">Map Toggle</Label></div>
-            <div className="flex items-center gap-2 h-8"><Switch checked={autopilotMode === "autopilot"} onCheckedChange={(checked) => setAutopilotMode(checked ? "autopilot" : "manual")} id="autopilot-toggle" /><Label htmlFor="autopilot-toggle" className="text-[11px] inline-flex items-center gap-1"><WandSparkles className="h-3 w-3" /> Autopilot</Label></div>
+            <div className="flex items-center gap-2 h-8"><Switch checked={autopilotMode === "autopilot"} onCheckedChange={(checked) => setAutopilotMode(checked ? "autopilot" : "manual")} id="autopilot-toggle" /><Label htmlFor="autopilot-toggle" className="text-[11px] inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> Autopilot</Label></div>
             <div className="flex items-center gap-2 h-8"><Switch checked={globalSearch} onCheckedChange={setGlobalSearch} id="global-toggle" /><Label htmlFor="global-toggle" className="text-[11px] inline-flex items-center gap-1"><Globe2 className="h-3 w-3" /> Global search</Label></div>
           </div>
 
@@ -238,6 +202,12 @@ const LeadFinderPage = () => {
               )}
             </CardContent>
           </Card>
+
+          {finder.data?.warning ? (
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {finder.data.warning}
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
             {displayLeads.map((lead) => {

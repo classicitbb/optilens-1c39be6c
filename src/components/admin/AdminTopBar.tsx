@@ -21,7 +21,7 @@ import AppLauncher from "./AppLauncher";
 
 const ROUTE_LABELS: [string, string][] = [
   ["/admin/pricing/publisher-old", "Pricing · Catalog Publisher (Legacy)"],
-  ["/admin/pricing/publisher", "Pricing · Catalog Publisher"],
+  ["/admin/pricing/publisher", "Pricing · Lens Catalog Builder"],
   ["/admin/pricing/catalog", "Pricing · Product Catalog"],
   ["/admin/pricing/rx-lenses", "Pricing · RX Lens Prices"],
   ["/admin/pricing/stock-lenses", "Pricing · Stock Lens Prices"],
@@ -29,6 +29,7 @@ const ROUTE_LABELS: [string, string][] = [
   ["/admin/pricing/imports", "Pricing · Imports"],
   ["/admin/pricing/reference", "Pricing · Reference Data"],
   ["/admin/pricing/costings", "Costings"],
+  ["/admin/sales/proposals", "Sales · Proposals"],
   ["/admin/sales/quotations", "Sales · Quotations"],
   ["/admin/settings/users", "Settings · Users"],
   ["/admin/settings/company", "Settings · Company"],
@@ -41,7 +42,7 @@ const ROUTE_LABELS: [string, string][] = [
   ["/admin/settings/integrations", "Settings · Integrations"],
   ["/admin/settings/runtime-errors", "Settings · Runtime Errors"],
   // legacy fallbacks
-  ["/admin/catalog-publisher", "Pricing · Catalog Publisher"],
+  ["/admin/catalog-publisher", "Pricing · Lens Catalog Builder"],
   ["/admin/catalog", "Pricing · Product Catalog"],
   ["/admin/rx-lens-prices", "Pricing · RX Lens Prices"],
   ["/admin/stock-lens-prices", "Pricing · Stock Lens Prices"],
