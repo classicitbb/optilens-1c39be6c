@@ -786,7 +786,7 @@ export const QuotePreviewPanel = ({
         </Select>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>H</span>
-          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-16 text-xs" placeholder="mm" />
+          <Input type="number" min={0} max={60} step={1} value={localPrintSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <span>V</span>
