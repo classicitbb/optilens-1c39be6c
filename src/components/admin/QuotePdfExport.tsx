@@ -168,7 +168,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       if (!printWindow) return;
       printWindow.document
         .write(`<!DOCTYPE html><html><head><title>${quote.quote_number} - Quote</title>
-        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles()}</style></head><body><div class="pre-print-hint">Disable browser headers/footers in print settings.</div><div class="print-root">${content.innerHTML}</div></body></html>`);
+        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles(resolvedPrintSettings)}</style></head><body><div class="pre-print-hint">Disable browser headers/footers in print settings.</div><div class="print-root">${content.innerHTML}</div></body></html>`);
       printWindow.document.close();
       setTimeout(() => {
         printWindow.print();
