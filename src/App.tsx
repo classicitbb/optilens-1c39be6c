@@ -61,7 +61,7 @@ import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
 import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
 import HelpdeskTicketsPage from "./pages/admin/helpdesk/HelpdeskTicketsPage";
 import HelpdeskTeamsPage from "./pages/admin/helpdesk/HelpdeskTeamsPage";
-import HelpdeskSlaPage from "./pages/admin/helpdesk/HelpdeskSlaPage";
+import HelpdeskSlaPoliciesPage from "./pages/admin/helpdesk/HelpdeskSlaPoliciesPage";
 // ZenVue microsite
 import ZenvueLayout from "./components/zenvue/ZenvueLayout";
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
@@ -188,7 +188,7 @@ const App = () => (
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
                 <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
                 <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
-                <Route path="helpdesk/sla" element={<HelpdeskSlaPage />} />
+                <Route path="helpdesk/sla" element={<HelpdeskSlaPoliciesPage />} />
 
                 {/* ═══ Website App ═══ */}
                 <Route path="website" element={<Navigate to="/admin/website/content" replace />} />
