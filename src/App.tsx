@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Index from "./pages/Index";
@@ -76,6 +76,13 @@ const queryClient = new QueryClient({
   },
 });
 
+const RedirectToProposals = () => {
+  const location = useLocation();
+  const target = `/admin/sales/proposals${location.search}${location.hash}`;
+
+  return <Navigate to={target} replace state={location.state} />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -140,12 +147,16 @@ const App = () => (
                 <Route path="leads/reports" element={<LeadAuditReportsPage />} />
                 <Route path="leads/ai" element={<LeadsAiAssistantPage />} />
                 <Route path="leads/settings" element={<LeadSettingsPage />} />
+                <Route path="leads/proposals" element={<RedirectToProposals />} />
+                <Route path="leads/catalog-publisher" element={<RedirectToProposals />} />
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
                 <Route path="crm/dashboard" element={<CrmDashboardPage />} />
                 <Route path="crm/pipeline" element={<CrmPipelinePage />} />
                 <Route path="crm/activities" element={<CrmActivitiesPage />} />
+                <Route path="crm/proposals" element={<RedirectToProposals />} />
+                <Route path="crm/catalog-publisher" element={<RedirectToProposals />} />
 
                 {/* ═══ Helpdesk App ═══ */}
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
