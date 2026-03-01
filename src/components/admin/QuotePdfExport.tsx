@@ -388,9 +388,9 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         </div>
 
         {/* Customer */}
-        <div className="section print-strict-avoid-break">
+        <div className="section print-grid-keep">
           <div className="section-title">Customer Details</div>
-          <div className="customer-grid">
+          <div className="customer-grid print-grid-keep">
             <div>
               <div className="field-label">Customer</div>
               <div className="field-value">{quote.customer_name || "—"}</div>
@@ -412,9 +412,9 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Frame */}
         {frameData && (frameData.ref || frameData.model || frameData.a) && (
-          <div className="section print-strict-avoid-break">
+          <div className="section print-grid-keep">
             <div className="section-title">Frame Details</div>
-            <div className="frame-grid">
+            <div className="frame-grid print-grid-keep">
               {frameData.ref && (
                 <div>
                   <div className="field-label">Brand / Ref</div>
@@ -470,7 +470,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         )}
 
         {/* Line items */}
-        <div className="section">
+        <div className="section print-keep-with-next print-grid-keep">
           <div className="section-title print-keep-with-next">Line Items</div>
           {lineItemChunks.map((chunk) => (
             <div
@@ -547,7 +547,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Rx Details */}
         {quote.quote_type === "RX" && lensLines.length > 0 && (
-          <div className="section print-page-break-before">
+          <div className="section print-page-break-before print-grid-keep">
             <div className="section-title print-keep-with-next">
               Prescription Details
             </div>
@@ -565,8 +565,8 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         )}
 
         {/* Totals */}
-        <div className="totals print-strict-avoid-break">
-          <div className="totals-box">
+        <div className="totals">
+          <div className="totals-box print-grid-keep">
             <div className="total-row">
               <span className="label">
                 Subtotal ({quote.currency || "BBD"})
@@ -602,14 +602,14 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
 
         {/* Notes */}
         {quote.notes_customer && (
-          <div className="notes-section print-strict-avoid-break">
+          <div className="notes-section print-grid-keep">
             <div className="section-title">Notes</div>
             <div className="notes-text">{quote.notes_customer}</div>
           </div>
         )}
         {showInternal && cleanInternalNotes && (
           <div
-            className="notes-section print-strict-avoid-break"
+            className="notes-section print-grid-keep"
             style={{ marginTop: "12px", borderColor: "#fed7d7" }}
           >
             <div className="section-title">

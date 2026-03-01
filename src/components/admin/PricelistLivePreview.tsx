@@ -152,7 +152,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
           };
 
           return (
-            <div key={tt}>
+            <div key={tt} className="print-grid-keep">
               <table className="w-full text-xs border-collapse" style={{ tableLayout: "auto" }}>
                 <thead>
                   <tr>
@@ -230,9 +230,9 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
         {/* Treatments & Add-ons grouped by category */}
         {addonsBySection.size > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4 print-grid-keep">
             {[...addonsBySection.entries()].map(([sec, rows]) => (
-              <div key={sec} className="print-avoid-break">
+              <div key={sec} className="print-avoid-break print-grid-keep">
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr>
@@ -263,18 +263,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   const ListPreview = () => {
     const hasContent = lensSections.size > 0 || addonsBySection.size > 0;
 
-    const SectionTable = ({
-      label,
-      rows,
-      pageBreakBefore,
-      isContinuation,
-    }: {
-      label: string;
-      rows: typeof catalogRows;
-      pageBreakBefore?: boolean;
-      isContinuation?: boolean;
-    }) => (
-      <div className={cn("print-list-breakable", pageBreakBefore && "print-page-break-before")}>
+    const SectionTable = ({ label, rows }: { label: string; rows: typeof catalogRows }) => (
+      <div className="print-avoid-break print-grid-keep">
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr>

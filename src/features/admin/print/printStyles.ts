@@ -128,7 +128,7 @@ export const buildPrintStyles = (settings?: Partial<PrintSettings>) => {
     }
 
     .print-avoid-break,
-    .print-strict-avoid-break,
+    .print-grid-keep,
     h1,
     h2,
     h3,
