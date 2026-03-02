@@ -30,29 +30,11 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Lenses",
     sections: [
       {
-        title: "Everyday Vision",
+        title: "Explore Lenses",
         links: [
-          { label: "Progressive (All-Day Use)", description: "Premium multifocal options", to: "/zenvue/brilliance" },
-          { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
-          { label: "Anti-Fatigue", description: "Digital comfort and near-support profiles", to: "/lenses/anti-fatigue" },
+          { label: "All Prescription Lenses", description: "Browse complete catalog", to: "/store?tab=lenses" },
           { label: "Single Vision", description: "Everyday distance and near correction", to: "/zenvue/single-vision" },
-        ],
-      },
-      {
-        title: "Lifestyle Lenses",
-        links: [
-          { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/zenvue/darkun" },
-          { label: "Blue Filter", description: "Lens options for extended digital viewing", to: "/lenses/blue-filter" },
-          { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
-          { label: "Tints & Fashion Colors", description: "Tint palettes and style-forward finishes", to: "/lenses/tints-fashion-colors" },
-        ],
-      },
-      {
-        title: "Technical Specs",
-        links: [
-          { label: "Materials (1.50, 1.56, 1.60, 1.67, 1.74)", description: "Compare index and material performance", to: "/lenses/materials" },
-          { label: "Edge & Center Thickness Chart", description: "Thickness guidance across prescriptions", to: "/lenses/thickness-chart" },
-          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lenses/lens-types" },
+          { label: "Progressive Designs", description: "Premium multifocal options", to: "/store?tab=lenses&category=progressive" },
         ],
       },
     ],
@@ -61,26 +43,11 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Coatings",
     sections: [
       {
-        title: "Premium Performance",
+        title: "Lens Treatments",
         links: [
-          { label: "UltraClear AR (Super AR)", description: "Highest clarity AR stack with premium durability", to: "/coatings/ultraclear-ar" },
-          { label: "BlueBlock AR (BlueGuard AR+)", description: "AR performance with selective blue-violet filtering", to: "/coatings/blueblock-ar" },
-          { label: "Mirror Finish", description: "Reflective finish options for sun and sport lenses", to: "/coatings/mirror" },
-        ],
-      },
-      {
-        title: "Everyday Protection",
-        links: [
-          { label: "Scratch-Resistant", description: "Hard-coat protection for everyday handling", to: "/coatings/scratch-resistant" },
-          { label: "UV Shield - UVA, UVB, BV", description: "Broad-spectrum environmental light protection", to: "/coatings/uv-shield" },
-          { label: "Hydrophobic & Oleophobic", description: "Water and oil repellence for easier cleaning", to: "/coatings/hydrophobic-oleophobic" },
-        ],
-      },
-      {
-        title: "Resources",
-        links: [
-          { label: "How AR Coating Works", description: "Understand AR layering and light transmission", to: "/coatings/how-ar-coating-works" },
-          { label: "Caring for Your Coated Lenses", description: "Best practices for cleaning and long-term care", to: "/coatings/caring-for-coated-lenses" },
+          { label: "Mirror & Finish Guide", description: "Compare coating and finish options", to: "/mirror-finish-guide" },
+          { label: "Sun & Specialty", description: "Photochromic and tinted offerings", to: "/zenvue/sundun" },
+          { label: "Knowledge Articles", description: "Technical coating resources", to: "/knowledge#lens-coatings" },
         ],
       },
     ],
@@ -92,7 +59,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
         title: "For Optical Teams",
         links: [
           { label: "Professionals Overview", description: "Programs built for practices", to: "/for-professionals" },
-          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lenses/lens-types" },
+          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lens-design-guide" },
           { label: "Wholesale Program", description: "Partner with our lab network", to: "/zenvue/wholesale" },
         ],
       },
@@ -128,26 +95,50 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
 
 const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
   const [open, setOpen] = useState(false);
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setIsPinnedOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const handleTriggerClick = () => {
+    if (isPinnedOpen) {
+      setOpen(false);
+      setIsPinnedOpen(false);
+      return;
+    }
+
+    setOpen(true);
+    setIsPinnedOpen(true);
+  };
+
+  const handleLinkClick = () => {
+    setOpen(false);
+    setIsPinnedOpen(false);
+  };
+
   return (
     <div
       className="relative"
       ref={ref}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={() => {
+        if (!isPinnedOpen) setOpen(true);
+      }}
+      onMouseLeave={() => {
+        if (!isPinnedOpen) setOpen(false);
+      }}
     >
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={handleTriggerClick}
         className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         aria-expanded={open}
       >
@@ -156,27 +147,25 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
       </button>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-3 w-[62rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
-          <div className={`grid gap-4 ${item.sections.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-            {item.sections.map((section) => (
-              <div key={section.title}>
-                <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
-                <div className="grid gap-1">
-                  {section.links.map((link) => (
-                    <Link
-                      key={link.label}
-                      to={link.to}
-                      onClick={() => setOpen(false)}
-                      className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
-                    >
-                      <p className="text-sm font-medium text-foreground">{link.label}</p>
-                      <p className="text-xs text-muted-foreground">{link.description}</p>
-                    </Link>
-                  ))}
-                </div>
+        <div className="absolute left-1/2 top-full z-50 mt-3 w-[28rem] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+          {item.sections.map((section) => (
+            <div key={section.title}>
+              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
+              <div className="grid gap-1">
+                {section.links.map((link) => (
+                  <Link
+                    key={link.label}
+                    to={link.to}
+                    onClick={handleLinkClick}
+                    className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
+                  >
+                    <p className="text-sm font-medium text-foreground">{link.label}</p>
+                    <p className="text-xs text-muted-foreground">{link.description}</p>
+                  </Link>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
