@@ -6,15 +6,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  LayoutGrid, Bell, HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, ChevronDown, Eye, X, Sun, Moon, Monitor
-} from "lucide-react";
+  LayoutGrid, HelpCircle, ExternalLink, LogOut,
+  BookOpen, User, Download, ChevronDown, Eye, X, Sun, Moon, Monitor } from
+"lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import GlobalSearch from "./GlobalSearch";
 import HelpPanel from "./HelpPanel";
@@ -31,46 +31,46 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const ROUTE_LABELS: [string, string][] = [
-  ["/admin/pricing/publisher-old", "Pricing · Lens Catalog Builder"],
-  ["/admin/pricing/publisher", "Pricing · Lens Catalog Builder"],
-  ["/admin/pricing/catalog", "Pricing · Product Catalog"],
-  ["/admin/pricing/rx-lenses", "Pricing · RX Lens Prices"],
-  ["/admin/pricing/stock-lenses", "Pricing · Stock Lens Prices"],
-  ["/admin/pricing/supplies", "Pricing · Supplies Prices"],
-  ["/admin/pricing/imports", "Pricing · Imports"],
-  ["/admin/pricing/reference", "Pricing · Reference Data"],
-  ["/admin/pricing/costings", "Costings"],
-  ["/admin/sales/proposals", "Sales · Proposals"],
-  ["/admin/sales/quotations", "Sales · Quotations"],
-  ["/admin/settings/users", "Settings · Users"],
-  ["/admin/settings/company", "Settings · Company"],
-  ["/admin/knowledge/wiki", "Knowledge · Wiki"],
-  ["/admin/website/content", "Website · Content"],
-  ["/admin/contacts", "Contacts"],
-  ["/admin/crm", "CRM"],
-  ["/admin/helpdesk", "Helpdesk"],
-  ["/admin/settings/audit", "Settings · Audit Log"],
-  ["/admin/settings/integrations", "Settings · Integrations"],
-  ["/admin/settings/runtime-errors", "Settings · Runtime Errors"],
-  // legacy fallbacks
-  ["/admin/catalog-publisher", "Pricing · Lens Catalog Builder"],
-  ["/admin/catalog", "Pricing · Product Catalog"],
-  ["/admin/rx-lens-prices", "Pricing · RX Lens Prices"],
-  ["/admin/stock-lens-prices", "Pricing · Stock Lens Prices"],
-  ["/admin/supplies-prices", "Pricing · Supplies Prices"],
-  ["/admin/imports", "Pricing · Imports"],
-  ["/admin/reference", "Pricing · Reference Data"],
-  ["/admin/costings", "Costings"],
-  ["/admin/quotations", "Sales · Quotations"],
-  ["/admin/users", "Settings · Users"],
-  ["/admin/parameters", "Settings · Company"],
-  ["/admin/wiki", "Knowledge · Wiki"],
-  ["/admin/content", "Website · Content"],
-  ["/admin/erp/contacts", "Contacts"],
-  ["/admin/erp/crm", "CRM"],
-  ["/admin/erp/helpdesk", "Helpdesk"],
-  ["/admin/audit-log", "Settings · Audit Log"],
-];
+["/admin/pricing/publisher-old", "Pricing · Lens Catalog Builder"],
+["/admin/pricing/publisher", "Pricing · Lens Catalog Builder"],
+["/admin/pricing/catalog", "Pricing · Product Catalog"],
+["/admin/pricing/rx-lenses", "Pricing · RX Lens Prices"],
+["/admin/pricing/stock-lenses", "Pricing · Stock Lens Prices"],
+["/admin/pricing/supplies", "Pricing · Supplies Prices"],
+["/admin/pricing/imports", "Pricing · Imports"],
+["/admin/pricing/reference", "Pricing · Reference Data"],
+["/admin/pricing/costings", "Costings"],
+["/admin/sales/proposals", "Sales · Proposals"],
+["/admin/sales/quotations", "Sales · Quotations"],
+["/admin/settings/users", "Settings · Users"],
+["/admin/settings/company", "Settings · Company"],
+["/admin/knowledge/wiki", "Knowledge · Wiki"],
+["/admin/website/content", "Website · Content"],
+["/admin/contacts", "Contacts"],
+["/admin/crm", "CRM"],
+["/admin/helpdesk", "Helpdesk"],
+["/admin/settings/audit", "Settings · Audit Log"],
+["/admin/settings/integrations", "Settings · Integrations"],
+["/admin/settings/runtime-errors", "Settings · Runtime Errors"],
+// legacy fallbacks
+["/admin/catalog-publisher", "Pricing · Lens Catalog Builder"],
+["/admin/catalog", "Pricing · Product Catalog"],
+["/admin/rx-lens-prices", "Pricing · RX Lens Prices"],
+["/admin/stock-lens-prices", "Pricing · Stock Lens Prices"],
+["/admin/supplies-prices", "Pricing · Supplies Prices"],
+["/admin/imports", "Pricing · Imports"],
+["/admin/reference", "Pricing · Reference Data"],
+["/admin/costings", "Costings"],
+["/admin/quotations", "Sales · Quotations"],
+["/admin/users", "Settings · Users"],
+["/admin/parameters", "Settings · Company"],
+["/admin/wiki", "Knowledge · Wiki"],
+["/admin/content", "Website · Content"],
+["/admin/erp/contacts", "Contacts"],
+["/admin/erp/crm", "CRM"],
+["/admin/erp/helpdesk", "Helpdesk"],
+["/admin/audit-log", "Settings · Audit Log"]];
+
 
 
 
@@ -128,26 +128,26 @@ const AdminTopBar = () => {
     queryKey: ["profile-name", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data } = await supabase.
+      from("profiles").
+      select("display_name").
+      eq("user_id", user.id).
+      maybeSingle();
       return data;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000
   });
 
   const displayName = profile?.display_name || user?.email || "";
-  const initials = (profile?.display_name || user?.email || "?")
-    .split(/[\s@]/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s: string) => s[0].toUpperCase())
-    .join("");
+  const initials = (profile?.display_name || user?.email || "?").
+  split(/[\s@]/).
+  filter(Boolean).
+  slice(0, 2).
+  map((s: string) => s[0].toUpperCase()).
+  join("");
 
-  const handleSignOut = async () => { await signOut(); navigate("/"); };
+  const handleSignOut = async () => {await signOut();navigate("/");};
 
   const handleInstall = async () => {
     if (installPrompt) {
@@ -170,8 +170,8 @@ const AdminTopBar = () => {
   return (
     <>
       <header
-        className="admin-surface flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full z-30 border-[hsl(var(--admin-border))]"
-      >
+        className="admin-surface flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full z-30 border-[hsl(var(--admin-border))]">
+
         {/* ── LEFT GROUP ── */}
         <div className="flex items-center gap-2 shrink-0">
           <Button
@@ -179,8 +179,8 @@ const AdminTopBar = () => {
             className="h-7 w-7 shrink-0"
             onClick={() => setLauncherOpen(!launcherOpen)}
             title="Applications"
-            data-apps-toggle
-          >
+            data-apps-toggle>
+
             <LayoutGrid className="h-[18px] w-[18px] text-[hsl(var(--admin-muted-fg))]" />
           </Button>
 
@@ -202,19 +202,19 @@ const AdminTopBar = () => {
         <div className="flex items-center gap-1 shrink-0">
           <TooltipProvider delayDuration={300}>
             {/* Revert impersonation */}
-            {role !== realRole && isImpersonating && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1.5 border-[hsl(var(--admin-warning))]/60 bg-[hsl(var(--admin-warning))]/15 text-[hsl(var(--admin-warning))]"
-                onClick={stopImpersonation}
-              >
+            {role !== realRole && isImpersonating &&
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1.5 border-[hsl(var(--admin-warning))]/60 bg-[hsl(var(--admin-warning))]/15 text-[hsl(var(--admin-warning))]"
+              onClick={stopImpersonation}>
+
                 <Eye className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Viewing as {impersonatedUserName || role}</span>
                 <span className="sm:hidden">Revert</span>
                 <X className="h-3 w-3 ml-1" />
               </Button>
-            )}
+            }
 
             {/* Notifications Bell */}
             <NotificationBell />
@@ -222,7 +222,7 @@ const AdminTopBar = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7" disabled>
-                  <Bell className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
+                  
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom"><span className="text-xs">Toggle theme</span></TooltipContent>
@@ -247,21 +247,21 @@ const AdminTopBar = () => {
             </Tooltip>
 
             {/* Lovable link — admin only */}
-            {realRole === "admin" && (
-              <Tooltip>
+            {realRole === "admin" &&
+            <Tooltip>
                 <TooltipTrigger asChild>
                   <a
-                    href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors"
-                  >
+                  href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors">
+
                     <ExternalLink className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
                   </a>
                 </TooltipTrigger>
                 <TooltipContent side="bottom"><span className="text-xs">Edit with Lovable</span></TooltipContent>
               </Tooltip>
-            )}
+            }
           </TooltipProvider>
 
           {/* User name */}
@@ -289,17 +289,17 @@ const AdminTopBar = () => {
               <DropdownMenuItem onClick={handleInstall}>
                 <Download className="mr-2 h-4 w-4" /> Install App
               </DropdownMenuItem>
-              {realRole === "admin" && (
-                <DropdownMenuItem asChild>
+              {realRole === "admin" &&
+              <DropdownMenuItem asChild>
                   <a
-                    href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
+                  target="_blank"
+                  rel="noopener noreferrer">
+
                     <ExternalLink className="mr-2 h-4 w-4" /> Edit with Lovable
                   </a>
                 </DropdownMenuItem>
-              )}
+              }
               <DropdownMenuSeparator />
               <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
                 <DropdownMenuRadioItem value="light">
@@ -323,8 +323,8 @@ const AdminTopBar = () => {
 
       <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
       <AppLauncher open={launcherOpen} onClose={() => setLauncherOpen(false)} />
-    </>
-  );
+    </>);
+
 };
 
 export default AdminTopBar;
