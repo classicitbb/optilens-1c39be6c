@@ -19,7 +19,7 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 const CURRENCIES = ["BBD", "USD", "EUR", "GBP", "CAD"];
 const CALENDARS = ["Business HRS", "24/7", "Mon–Fri", "Mon–Sat"];
 
-const COUNTRY_DATA: Record<string, { states: string[]; cities: string[] }> = {
+const COUNTRY_DATA: Record<string, {states: string[];cities: string[];}> = {
   "Barbados": { states: ["Christ Church", "St. Andrew", "St. George", "St. James", "St. John", "St. Joseph", "St. Lucy", "St. Michael", "St. Peter", "St. Philip", "St. Thomas"], cities: ["Bridgetown", "Speightstown", "Holetown", "Oistins", "Bathsheba", "Crane"] },
   "Trinidad & Tobago": { states: ["Arima", "Chaguanas", "Couva-Tabaquite-Talparo", "Diego Martin", "Mayaro-Rio Claro", "Penal-Debe", "Point Fortin", "Port of Spain", "Princes Town", "San Fernando", "San Juan-Laventille", "Sangre Grande", "Siparia", "Tobago", "Tunapuna-Piarco"], cities: ["Port of Spain", "San Fernando", "Chaguanas", "Arima", "Point Fortin", "Scarborough"] },
   "Jamaica": { states: ["Clarendon", "Hanover", "Kingston", "Manchester", "Portland", "St. Andrew", "St. Ann", "St. Catherine", "St. Elizabeth", "St. James", "St. Mary", "St. Thomas", "Trelawny", "Westmoreland"], cities: ["Kingston", "Montego Bay", "Spanish Town", "Portmore", "Mandeville", "May Pen", "Old Harbour"] },
@@ -34,7 +34,7 @@ const COUNTRY_DATA: Record<string, { states: string[]; cities: string[] }> = {
   "Turks and Caicos": { states: ["Grand Turk", "Salt Cay", "South Caicos", "Middle Caicos", "North Caicos", "Providenciales"], cities: ["Cockburn Town", "Providenciales", "Balfour Town", "Kew", "Bottle Creek", "Conch Bar"] },
   "United States": { states: ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"], cities: ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "Miami"] },
   "United Kingdom": { states: ["England", "Scotland", "Wales", "Northern Ireland"], cities: ["London", "Birmingham", "Manchester", "Glasgow", "Liverpool", "Edinburgh", "Leeds", "Bristol", "Cardiff", "Belfast"] },
-  "Canada": { states: ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"], cities: ["Toronto", "Montreal", "Vancouver", "Calgary", "Edmonton", "Ottawa", "Winnipeg", "Quebec City", "Hamilton", "Halifax"] },
+  "Canada": { states: ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"], cities: ["Toronto", "Montreal", "Vancouver", "Calgary", "Edmonton", "Ottawa", "Winnipeg", "Quebec City", "Hamilton", "Halifax"] }
 };
 const COUNTRIES = Object.keys(COUNTRY_DATA);
 
@@ -47,7 +47,7 @@ const Field = ({ label, children }: {label: string;children: React.ReactNode;}) 
 
 
 const Section = ({ title, children }: {title: string;children: React.ReactNode;}) =>
-<div className="space-y-3 rounded-lg border border-border p-4 bg-secondary-foreground">
+<div className="space-y-3 rounded-lg border border-border p-4 bg-destructive-foreground">
     <h3 className="text-sm font-semibold text-foreground">{title}</h3>
     {children}
   </div>;
@@ -88,7 +88,7 @@ const AddressCard = ({
         return (
           <div className="grid grid-cols-2 gap-2">
             <Field label="Country">
-              <Select value={country} onValueChange={(v) => { set("country", v); set("state", ""); set("city", ""); }} disabled={locked}>
+              <Select value={country} onValueChange={(v) => {set("country", v);set("state", "");set("city", "");}} disabled={locked}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
               </Select>
@@ -109,8 +109,8 @@ const AddressCard = ({
             <Field label="Line 1"><Input className="h-8 text-xs" value={get("line1")} onChange={(e) => set("line1", e.target.value)} disabled={locked} /></Field>
             <Field label="Line 2"><Input className="h-8 text-xs" value={get("line2")} onChange={(e) => set("line2", e.target.value)} disabled={locked} /></Field>
             <Field label="Postcode"><Input className="h-8 text-xs" value={get("postcode")} onChange={(e) => set("postcode", e.target.value)} disabled={locked} /></Field>
-          </div>
-        );
+          </div>);
+
       })()}
     </Section>);
 
@@ -121,7 +121,7 @@ const CompanySettingsPage = () => {
   const { data: settings, isLoading, updateMutation } = useCompanySettings();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
@@ -240,14 +240,14 @@ const CompanySettingsPage = () => {
               {/* Physical Address */}
               <Section title="Physical Address">
                 {(() => {
-                  const country = form.physical_country ?? "Barbados";
-                  const countryInfo = COUNTRY_DATA[country];
-                  const states = countryInfo?.states ?? [];
-                  const cities = countryInfo?.cities ?? [];
-                  return (
-                    <div className="grid grid-cols-2 gap-2">
+              const country = form.physical_country ?? "Barbados";
+              const countryInfo = COUNTRY_DATA[country];
+              const states = countryInfo?.states ?? [];
+              const cities = countryInfo?.cities ?? [];
+              return (
+                <div className="grid grid-cols-2 gap-2">
                       <Field label="Country">
-                        <Select value={country} onValueChange={(v) => { set("physical_country", v); set("physical_state", ""); set("physical_city", ""); }} disabled={!canEdit}>
+                        <Select value={country} onValueChange={(v) => {set("physical_country", v);set("physical_state", "");set("physical_city", "");}} disabled={!canEdit}>
                           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}</SelectContent>
                         </Select>
@@ -268,9 +268,9 @@ const CompanySettingsPage = () => {
                       <Field label="Line 1"><Input className="h-8 text-xs" value={form.physical_line1 ?? ""} onChange={(e) => set("physical_line1", e.target.value)} disabled={!canEdit} /></Field>
                       <Field label="Line 2"><Input className="h-8 text-xs" value={form.physical_line2 ?? ""} onChange={(e) => set("physical_line2", e.target.value)} disabled={!canEdit} /></Field>
                       <Field label="Postcode"><Input className="h-8 text-xs" value={form.physical_postcode ?? ""} onChange={(e) => set("physical_postcode", e.target.value)} disabled={!canEdit} /></Field>
-                    </div>
-                  );
-                })()}
+                    </div>);
+
+            })()}
               </Section>
 
               {/* Bill-To */}
@@ -283,21 +283,21 @@ const CompanySettingsPage = () => {
               <Section title="PDF Export Header & Footer">
                 <Field label="Header (appears on all PDF exports)">
                   <Textarea
-                    className="text-xs min-h-[60px] font-mono"
-                    placeholder="<b>Company Name</b> — Your tagline here"
-                    value={form.pdf_header_html ?? ""}
-                    onChange={(e) => set("pdf_header_html", e.target.value)}
-                    disabled={!canEdit} />
+                className="text-xs min-h-[60px] font-mono"
+                placeholder="<b>Company Name</b> — Your tagline here"
+                value={form.pdf_header_html ?? ""}
+                onChange={(e) => set("pdf_header_html", e.target.value)}
+                disabled={!canEdit} />
 
                 </Field>
                 <p className="text-[9px] text-muted-foreground">Supports basic HTML: &lt;b&gt;, &lt;i&gt;, &lt;u&gt;, &lt;br&gt;, &lt;span style="..."&gt;</p>
                 <Field label="Footer (appears on all PDF exports)">
                   <Textarea
-                    className="text-xs min-h-[60px] font-mono"
-                    placeholder="All prices subject to change · <i>Thank you for your business</i>"
-                    value={form.pdf_footer_html ?? ""}
-                    onChange={(e) => set("pdf_footer_html", e.target.value)}
-                    disabled={!canEdit} />
+                className="text-xs min-h-[60px] font-mono"
+                placeholder="All prices subject to change · <i>Thank you for your business</i>"
+                value={form.pdf_footer_html ?? ""}
+                onChange={(e) => set("pdf_footer_html", e.target.value)}
+                disabled={!canEdit} />
 
                 </Field>
               </Section>
@@ -306,35 +306,35 @@ const CompanySettingsPage = () => {
               <Section title="Logo">
                 <div className="flex items-center gap-3">
                   {form.logo_url ?
-                  <img src={form.logo_url} alt="Company logo" className="h-16 w-auto object-contain border border-border p-1 bg-background" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none';}} /> :
+              <img src={form.logo_url} alt="Company logo" className="h-16 w-auto object-contain border border-border p-1 bg-background" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none';}} /> :
 
-                  <div className="h-16 w-16 flex items-center justify-center border border-dashed border-border bg-muted/30">
+              <div className="h-16 w-16 flex items-center justify-center border border-dashed border-border bg-muted/30">
                       <ImageIcon className="h-6 w-6 text-muted-foreground" />
                     </div>
-                  }
+              }
                   <div className="flex-1 space-y-1">
                     {form.logo_file_name && <p className="text-xs font-medium">{form.logo_file_name}</p>}
                     {canEdit &&
-                    <>
+                <>
                         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                         <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                           <Upload className="h-3 w-3" />
                           {uploading ? "Uploading…" : "Upload Logo"}
                         </Button>
                       </>
-                    }
+                }
                   </div>
                 </div>
               </Section>
             </div>
 
             {canEdit &&
-            <div className="pt-2">
+        <div className="pt-2">
                 <Button size="sm" className="h-8 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>
                   {updateMutation.isPending ? "Saving…" : "Save Company Variables"}
                 </Button>
               </div>
-            }
+        }
           </div>
     </div>);
 
