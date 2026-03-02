@@ -18,6 +18,13 @@ import NotFound from "./pages/NotFound";
 import LegalPage from "./pages/LegalPage";
 import LensDesignGuidePage from "./pages/LensDesignGuidePage";
 import MirrorFinishPage from "./pages/MirrorFinishPage";
+import UltraClearARPage from "./pages/coatings/UltraClearARPage";
+import BlueBlockARPage from "./pages/coatings/BlueBlockARPage";
+import ScratchResistantPage from "./pages/coatings/ScratchResistantPage";
+import UVShieldPage from "./pages/coatings/UVShieldPage";
+import HydrophobicOleophobicPage from "./pages/coatings/HydrophobicOleophobicPage";
+import HowARCoatingWorksPage from "./pages/coatings/HowARCoatingWorksPage";
+import CaringForCoatedLensesPage from "./pages/coatings/CaringForCoatedLensesPage";
 import ProfessionalsPage from "./pages/ProfessionalsPage";
 import OfficeOccupationalPage from "./pages/lenses/OfficeOccupationalPage";
 import AntiFatiguePage from "./pages/lenses/AntiFatiguePage";
@@ -133,8 +140,17 @@ const App = () => (
               <Route path="/lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
               <Route path="/lenses/materials" element={<MaterialsPage />} />
               <Route path="/lenses/thickness-chart" element={<ThicknessChartPage />} />
+              <Route path="/coatings" element={<Navigate to="/coatings/how-ar-coating-works" replace />} />
               <Route path="/coatings/mirror" element={<MirrorFinishPage />} />
               <Route path="/coatings/mirrors" element={<Navigate to="/coatings/mirror" replace />} />
+              <Route path="/mirror-finish-guide" element={<Navigate to="/coatings/mirror" replace />} />
+              <Route path="/coatings/ultraclear-ar" element={<UltraClearARPage />} />
+              <Route path="/coatings/blueblock-ar" element={<BlueBlockARPage />} />
+              <Route path="/coatings/scratch-resistant" element={<ScratchResistantPage />} />
+              <Route path="/coatings/uv-shield" element={<UVShieldPage />} />
+              <Route path="/coatings/hydrophobic-oleophobic" element={<HydrophobicOleophobicPage />} />
+              <Route path="/coatings/how-ar-coating-works" element={<HowARCoatingWorksPage />} />
+              <Route path="/coatings/caring-for-coated-lenses" element={<CaringForCoatedLensesPage />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
               <Route path="/return-policy" element={<LegalPage />} />
 
