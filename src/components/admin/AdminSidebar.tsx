@@ -65,24 +65,24 @@ const AdminSidebar = () => {
 
   return (
     <aside
-      className={`admin-sidebar ${w} shrink-0 flex flex-col transition-all duration-200 border-r border-[hsl(var(--admin-border))]`}>
-
+      className={`admin-sidebar ${w} shrink-0 flex flex-col transition-all duration-200 border-r border-[hsl(var(--admin-border))]`}
+    >
       {/* Header */}
       <div className="h-11 flex items-center justify-between px-3 border-b rounded-none border-[hsl(var(--admin-border))]">
-        {!collapsed && activeApp &&
-        <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">
+        {!collapsed && activeApp && (
+          <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">
             {activeApp.title}
           </span>
         }
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1 rounded hover:bg-[hsl(var(--admin-sidebar-hover))]">
-
-          {collapsed ?
-          <PanelLeft className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" /> :
-
-          <PanelLeftClose className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
-          }
+          className="p-1 rounded hover:bg-[hsl(var(--admin-sidebar-hover))]"
+        >
+          {collapsed ? (
+            <PanelLeft className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
+          )}
         </button>
       </div>
 
@@ -96,12 +96,12 @@ const AdminSidebar = () => {
               key={item.route}
               to={item.route}
               className={`${linkBase} ${
-              active ?
-              "font-medium bg-[hsl(var(--admin-sidebar-active))]/20 text-[hsl(var(--admin-sidebar-active-fg))]" :
-              "text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]"}`
-              }
-              title={collapsed ? item.label : undefined}>
-
+                active
+                  ? "font-medium bg-[hsl(var(--admin-sidebar-active))]/20 text-[hsl(var(--admin-sidebar-active-fg))]"
+                  : "text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]"
+              }`}
+              title={collapsed ? item.label : undefined}
+            >
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed &&
               <>
@@ -132,8 +132,8 @@ const AdminSidebar = () => {
         <Link
           to="/"
           className={`${linkBase} w-full text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]`}
-          title={collapsed ? "Back to Site" : undefined}>
-
+          title={collapsed ? "Back to Site" : undefined}
+        >
           <ArrowLeft className="h-4 w-4 shrink-0" />
           {!collapsed && <span>Back to Site</span>}
         </Link>
