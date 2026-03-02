@@ -271,6 +271,32 @@
   border-radius: var(--admin-radius);
 }
 
+/* Force light-mode inputs/selects inside admin tool regardless of theme */
+.admin-tool input,
+.admin-tool textarea,
+.admin-tool select,
+.admin-tool [data-radix-select-trigger],
+.admin-tool button[role="combobox"] {
+  background-color: white !important;
+  color: hsl(215 30% 15%) !important;
+  border-color: hsl(215 15% 75%) !important;
+}
+
+.admin-tool input::placeholder,
+.admin-tool textarea::placeholder {
+  color: hsl(215 15% 55%) !important;
+}
+
+.admin-tool input:disabled,
+.admin-tool textarea:disabled,
+.admin-tool select:disabled,
+.admin-tool [data-radix-select-trigger][data-disabled],
+.admin-tool button[role="combobox"]:disabled {
+  background-color: hsl(215 15% 95%) !important;
+  color: hsl(215 15% 45%) !important;
+  opacity: 0.7;
+}
+
 .admin-tool .admin-sidebar {
   background: hsl(var(--admin-sidebar-bg));
   color: hsl(var(--admin-sidebar-fg));
