@@ -73,7 +73,7 @@ const AdminSidebar = () => {
           <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">
             {activeApp.title}
           </span>
-        }
+        )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1 rounded hover:bg-[hsl(var(--admin-sidebar-hover))]"

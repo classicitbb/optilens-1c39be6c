@@ -313,18 +313,6 @@ const AdminTopBar = () => {
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
-                <DropdownMenuRadioItem value="light">
-                  <Sun className="mr-2 h-4 w-4" /> Theme · Light
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="dark">
-                  <Moon className="mr-2 h-4 w-4" /> Theme · Dark
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="system">
-                  <Monitor className="mr-2 h-4 w-4" /> Theme · System
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" /> Logout
               </DropdownMenuItem>
