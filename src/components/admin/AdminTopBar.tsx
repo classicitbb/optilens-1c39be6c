@@ -19,6 +19,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import GlobalSearch from "./GlobalSearch";
 import HelpPanel from "./HelpPanel";
 import AppLauncher from "./AppLauncher";
+import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
+import NotificationBell from "./NotificationBell";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -65,6 +71,17 @@ const ROUTE_LABELS: [string, string][] = [
   ["/admin/erp/helpdesk", "Helpdesk"],
   ["/admin/audit-log", "Settings · Audit Log"],
 ];
+
+
+
+const timeAgo = (value: string) => {
+  const diffMs = Date.now() - new Date(value).getTime();
+  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
+};
 
 function getRouteLabel(pathname: string): string {
   for (const [prefix, label] of ROUTE_LABELS) {
@@ -199,24 +216,25 @@ const AdminTopBar = () => {
               </Button>
             )}
 
-            {/* Bell */}
+            {/* Notifications Bell */}
+            <NotificationBell />
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7" disabled>
                   <Bell className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Notifications — coming soon</span></TooltipContent>
+              <TooltipContent side="bottom"><span className="text-xs">Toggle theme</span></TooltipContent>
             </Tooltip>
 
-            {/* Help */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setHelpOpen(!helpOpen)}>
                   <HelpCircle className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Help</span></TooltipContent>
+              <TooltipContent side="bottom"><span className="text-xs">Toggle theme</span></TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -271,6 +289,29 @@ const AdminTopBar = () => {
               <DropdownMenuItem onClick={handleInstall}>
                 <Download className="mr-2 h-4 w-4" /> Install App
               </DropdownMenuItem>
+              {realRole === "admin" && (
+                <DropdownMenuItem asChild>
+                  <a
+                    href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" /> Edit with Lovable
+                  </a>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
+                <DropdownMenuRadioItem value="light">
+                  <Sun className="mr-2 h-4 w-4" /> Theme · Light
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">
+                  <Moon className="mr-2 h-4 w-4" /> Theme · Dark
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="system">
+                  <Monitor className="mr-2 h-4 w-4" /> Theme · System
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
               <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
                 <DropdownMenuRadioItem value="light">

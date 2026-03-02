@@ -1,0 +1,38 @@
+Menu Group,Label,Current URL,Status (200/404/#),Target URL,Action (Keep/Create/Redirect),Owner
+Header - Home,Home,/,200,/,Keep,Web/Odoo
+Header - Lenses,Single Vision,/lenses/single-vision,200,/lenses/single-vision,Keep,Product
+Header - Lenses,Progressive,/lenses/progressive,200,/lenses/progressive,Keep,Product
+Header - Lenses,Bifocal,/lenses/bifocal,200,/lenses/bifocal,Keep,Product
+Header - Lenses,Lens Types,/lenses#Lens-Types,404,/lenses/lens-types,Redirect,Product
+Header - Coatings,AR Coatings,/coatings/ar,200,/coatings/ar,Keep,Product
+Header - Coatings,Blue Light,/coatings/blue-light,200,/coatings/blue-light,Keep,Product
+Header - Coatings,Photochromic,/coatings/photochromic,200,/coatings/photochromic,Keep,Product
+Header - Coatings,Mirror Coatings,/coatings/mirrors,404,/coatings/mirror,Redirect,Product
+Header - Professionals,Professionals,/professionals,404,/for-professionals,Create,Sales
+Header - Professionals,LabLink,https://lablink.classicvisions.net,200,https://lablink.classicvisions.net,Keep,Lab Ops
+Header - Professionals,Order Tracking,https://tracking.classicvisions.net,200,https://tracking.classicvisions.net,Keep,Lab Ops
+Header - Patients,Patients,/patients,200,/patients,Keep,Marketing
+Header - Patients,Find a Provider,/patients/find-a-provider,200,/patients/find-a-provider,Keep,Marketing
+Header - Patients,Lens Care,/patients/lens-care,200,/patients/lens-care,Keep,Marketing
+Header - About,About Us,/about,200,/about,Keep,Marketing
+Header - About,Our Story,/about/our-story,200,/about/our-story,Keep,Marketing
+Header - About,Contact,/contact,200,/contact,Keep,Marketing
+Header - About,Locations (Map),https://maps.google.com/?q=Classic+Vision,200,https://maps.google.com/?q=Classic+Vision,Keep,Marketing
+Footer - Company,About,/about,200,/about,Keep,Marketing
+Footer - Company,Professionals,/professionals,404,/for-professionals,Redirect,Sales
+Footer - Company,Patients,/patients,200,/patients,Keep,Marketing
+Footer - Support,Contact,/contact,200,/contact,Keep,Marketing
+Footer - Support,Tracking,https://tracking.classicvisions.net,200,https://tracking.classicvisions.net,Keep,Lab Ops
+Footer - Support,LabLink,https://lablink.classicvisions.net,200,https://lablink.classicvisions.net,Keep,Lab Ops
+Footer - Legal,Privacy Policy,/privacy-policy,200,/privacy-policy,Keep,Legal
+Footer - Legal,Terms of Use,/terms-of-use,404,/terms,Redirect,Legal
+Footer - Legal,Returns,/returns,200,/returns,Keep,Legal
+Footer - Social,Facebook,#,#,https://facebook.com/classicvisions,Create,Marketing
+Footer - Social,Instagram,#,#,https://instagram.com/classicvisions,Create,Marketing
+Footer - Utility,Sitemap,/sitemap.xml,200,/sitemap.xml,Keep,Web/Odoo
+Candidate Source (classicvisions.net),Home,https://www.classicvisions.net/,200,/,Keep,Web/Odoo
+Candidate Source (classicvisions.net),Lenses,https://www.classicvisions.net/lenses,200,/lenses,Keep,Product
+Candidate Source (classicvisions.net),Coatings,https://www.classicvisions.net/coatings,200,/coatings,Keep,Product
+Candidate Source (classicvisions.net),Professionals,https://www.classicvisions.net/professionals,200,/for-professionals,Create,Sales
+Candidate Source (classicvisions.net),Patients,https://www.classicvisions.net/patients,200,/patients,Keep,Marketing
+Candidate Source (classicvisions.net),About,https://www.classicvisions.net/about,200,/about,Keep,Marketing

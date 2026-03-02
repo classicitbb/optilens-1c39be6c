@@ -27,22 +27,22 @@ const AdminSidebar = () => {
   const { data: integrationStatus } = useQuery({
     queryKey: ["integration-connection-status", "odoo"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("integration_connections" as never)
-        .select("status")
-        .eq("provider", "odoo")
-        .eq("tenant_key", "default")
-        .maybeSingle();
+      const { data, error } = await supabase.
+      from("integration_connections" as never).
+      select("status").
+      eq("provider", "odoo").
+      eq("tenant_key", "default").
+      maybeSingle();
       if (error) throw error;
       return (data as IntegrationConnectionRow | null)?.status ?? "not_configured";
     },
-    enabled: activeAppKey === "settings",
+    enabled: activeAppKey === "settings"
   });
 
   // Auto-collapse on editor/builder routes
   const isEditorRoute =
-    /\/publisher\/\d+/.test(currentPath) ||
-    /\/quotations\/[^/]+$/.test(currentPath);
+  /\/publisher\/\d+/.test(currentPath) ||
+  /\/quotations\/[^/]+$/.test(currentPath);
   const [collapsed, setCollapsed] = useState(isEditorRoute);
 
   useEffect(() => {
@@ -50,18 +50,18 @@ const AdminSidebar = () => {
   }, [isEditorRoute]);
 
   const isActive = (path: string) =>
-    currentPath === path || currentPath.startsWith(path + "/");
+  currentPath === path || currentPath.startsWith(path + "/");
 
   const w = collapsed ? "w-14" : "w-60";
   const linkBase =
-    "flex items-center gap-2 px-3 py-1.5 text-[13px] rounded transition-colors";
+  "flex items-center gap-2 px-3 py-1.5 text-[13px] rounded transition-colors";
 
   const integrationStatusLabel =
-    integrationStatus === "connected"
-      ? "Connected"
-      : integrationStatus === "error"
-        ? "Error"
-        : "Not configured";
+  integrationStatus === "connected" ?
+  "Connected" :
+  integrationStatus === "error" ?
+  "Error" :
+  "Not configured";
 
   return (
     <aside
@@ -73,7 +73,7 @@ const AdminSidebar = () => {
           <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">
             {activeApp.title}
           </span>
-        )}
+        }
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1 rounded hover:bg-[hsl(var(--admin-sidebar-hover))]"
@@ -103,27 +103,27 @@ const AdminSidebar = () => {
               title={collapsed ? item.label : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && (
-                <>
-                  <span>{item.label}</span>
-                  {item.route === "/admin/settings/integrations" && (
-                    <Badge
-                      variant="outline"
-                      className={`ml-auto text-[10px] py-0 h-4 ${
-                        integrationStatus === "connected"
-                          ? "text-green-400 border-green-400/50"
-                          : integrationStatus === "error"
-                            ? "text-red-400 border-red-400/50"
-                            : ""
-                      }`}
-                    >
+              {!collapsed &&
+              <>
+                  <span className="text-sidebar-ring">{item.label}</span>
+                  {item.route === "/admin/settings/integrations" &&
+                <Badge
+                  variant="outline"
+                  className={`ml-auto text-[10px] py-0 h-4 ${
+                  integrationStatus === "connected" ?
+                  "text-green-400 border-green-400/50" :
+                  integrationStatus === "error" ?
+                  "text-red-400 border-red-400/50" :
+                  ""}`
+                  }>
+
                       {integrationStatusLabel}
                     </Badge>
-                  )}
+                }
                 </>
-              )}
-            </RouterNavLink>
-          );
+              }
+            </RouterNavLink>);
+
         })}
       </nav>
 
@@ -138,8 +138,8 @@ const AdminSidebar = () => {
           {!collapsed && <span>Back to Site</span>}
         </Link>
       </div>
-    </aside>
-  );
+    </aside>);
+
 };
 
 export default AdminSidebar;

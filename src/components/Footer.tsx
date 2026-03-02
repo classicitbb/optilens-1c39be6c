@@ -37,9 +37,9 @@ const Footer = () => {
               <a href="#products" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
                 Our Products
               </a>
-              <a href="#about" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
-                About Us
-              </a>
+              <Link to="/for-professionals" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+                For Professionals
+              </Link>
             </nav>
           </div>
 
@@ -50,8 +50,8 @@ const Footer = () => {
               <Link to="/privacy-policy" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
                 Privacy Policy
               </Link>
-              <Link to="/terms" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
-                Terms & Conditions
+              <Link to="/terms-of-use" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+                Terms of Use
               </Link>
               <Link to="/return-policy" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
                 Return Policy

@@ -275,10 +275,10 @@ serve(async (req) => {
     const normalizedCity = typeof selectedCity === "string" && selectedCity.trim().length > 0
       ? selectedCity.trim()
       : undefined;
-    // Keep user-selected geography as a location hint even when global search is enabled.
-    // Global mode broadens strategy/planning scope rather than discarding useful geo context.
-    const effectiveCountry = normalizedCountry;
-    const effectiveCity = normalizedCity;
+    // In global mode, do not pass remembered geo defaults into provider queries/scoring.
+    // This keeps global runs unscoped and avoids misleading local-biased diagnostics/results.
+    const effectiveCountry = globalSearch ? undefined : normalizedCountry;
+    const effectiveCity = globalSearch ? undefined : normalizedCity;
     const resolvedQuery = plannedQuery;
 
     const providerCredentials = await loadProviderCredentials(supabaseClient);

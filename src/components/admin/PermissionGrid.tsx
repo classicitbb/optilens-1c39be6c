@@ -20,12 +20,16 @@ const FEATURE_LABELS: Record<string, string> = {
   "catalog-publisher": "Lens Catalog Builder",
   quotations: "Quotations",
   crm: "CRM",
+  helpdesk: "Helpdesk",
+  "helpdesk-teams": "Helpdesk Teams",
+  "helpdesk-sla": "Helpdesk SLA",
   contacts: "Contacts",
   content: "Content Manager",
   wiki: "Help / Wiki",
   users: "Users",
   roles: "Roles & Permissions",
   audit: "Audit Log",
+  integrations: "Integrations",
   parameters: "Company Settings",
   history: "Runs / History",
 };
@@ -46,9 +50,7 @@ const PermissionGrid = () => {
       can_view: field === "can_view" ? value : perm.can_view,
       can_edit: field === "can_edit" ? value : perm.can_edit,
     };
-    // If disabling view, also disable edit
     if (field === "can_view" && !value) updates.can_edit = false;
-    // If enabling edit, also enable view
     if (field === "can_edit" && value) updates.can_view = true;
 
     updatePermission.mutate(updates, {
@@ -57,31 +59,60 @@ const PermissionGrid = () => {
   };
 
   return (
-    <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)" }}>
+    <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 22% 19%)" }}>
       <table className="w-full text-xs">
         <thead>
-          <tr style={{ background: "hsl(210 20% 97%)" }}>
-            <th className="text-left px-3 py-2 font-medium" style={{ color: "hsl(215 15% 50%)" }}>Feature</th>
+          <tr style={{ background: "hsl(215 45% 28%)" }}>
+            <th
+              className="text-left px-3 py-2.5 font-semibold uppercase tracking-wider text-[11px]"
+              style={{ color: "hsl(0 0% 100%)" }}
+            >
+              Feature
+            </th>
             {ROLE_ORDER.map((role) => (
-              <th key={role} colSpan={2} className="text-center px-2 py-2 font-medium capitalize" style={{ color: "hsl(215 15% 50%)" }}>
+              <th
+                key={role}
+                colSpan={2}
+                className="text-center px-2 py-2.5 font-semibold uppercase tracking-wider text-[11px] capitalize"
+                style={{ color: "hsl(0 0% 100%)" }}
+              >
                 {role}
               </th>
             ))}
           </tr>
-          <tr style={{ background: "hsl(210 20% 97%)" }}>
+          <tr style={{ background: "hsl(215 35% 22%)" }}>
             <td />
             {ROLE_ORDER.map((role) => (
               <Fragment key={role}>
-                <td className="text-center px-1 py-1 font-normal text-[10px]" style={{ color: "hsl(215 15% 60%)" }}>View</td>
-                <td className="text-center px-1 py-1 font-normal text-[10px]" style={{ color: "hsl(215 15% 60%)" }}>Edit</td>
+                <td
+                  className="text-center px-1 py-1.5 font-medium text-[10px]"
+                  style={{ color: "hsl(215 70% 75%)" }}
+                >
+                  View
+                </td>
+                <td
+                  className="text-center px-1 py-1.5 font-medium text-[10px]"
+                  style={{ color: "hsl(215 70% 75%)" }}
+                >
+                  Edit
+                </td>
               </Fragment>
             ))}
           </tr>
         </thead>
         <tbody>
-          {FEATURES.map((feature) => (
-            <tr key={feature} className="border-t" style={{ borderColor: "hsl(215 15% 92%)" }}>
-              <td className="px-3 py-1.5 font-medium" style={{ color: "hsl(215 30% 15%)" }}>
+          {FEATURES.map((feature, idx) => (
+            <tr
+              key={feature}
+              style={{
+                background: idx % 2 === 0 ? "hsl(215 30% 11%)" : "hsl(215 28% 14%)",
+                borderBottom: "1px solid hsl(215 22% 19%)",
+              }}
+            >
+              <td
+                className="px-3 py-2 font-medium"
+                style={{ color: "hsl(215 70% 75%)" }}
+              >
                 {FEATURE_LABELS[feature] ?? feature}
               </td>
               {ROLE_ORDER.map((role) => {
@@ -89,20 +120,18 @@ const PermissionGrid = () => {
                 if (!perm) return <td key={role} colSpan={2} />;
                 return (
                   <Fragment key={role}>
-                    <td className="text-center px-1 py-1.5">
+                    <td className="text-center px-1 py-2">
                       <Checkbox
                         checked={perm.can_view}
                         onCheckedChange={(v) => handleToggle(perm, "can_view", !!v)}
-                        disabled={role === "admin"}
-                        className="mx-auto"
+                        className="mx-auto border-[hsl(215_50%_40%)] data-[state=checked]:bg-[hsl(215_65%_50%)] data-[state=checked]:border-[hsl(215_65%_50%)]"
                       />
                     </td>
-                    <td className="text-center px-1 py-1.5">
+                    <td className="text-center px-1 py-2">
                       <Checkbox
                         checked={perm.can_edit}
                         onCheckedChange={(v) => handleToggle(perm, "can_edit", !!v)}
-                        disabled={role === "admin"}
-                        className="mx-auto"
+                        className="mx-auto border-[hsl(215_50%_40%)] data-[state=checked]:bg-[hsl(215_65%_50%)] data-[state=checked]:border-[hsl(215_65%_50%)]"
                       />
                     </td>
                   </Fragment>
