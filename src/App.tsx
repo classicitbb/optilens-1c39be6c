@@ -25,6 +25,7 @@ import HydrophobicOleophobicPage from "./pages/coatings/HydrophobicOleophobicPag
 import HowARCoatingWorksPage from "./pages/coatings/HowARCoatingWorksPage";
 import CaringForCoatedLensesPage from "./pages/coatings/CaringForCoatedLensesPage";
 import ProfessionalsPage from "./pages/ProfessionalsPage";
+import ProfessionalsPortalPage from "./pages/ProfessionalsPortalPage";
 import OfficeOccupationalPage from "./pages/lenses/OfficeOccupationalPage";
 import AntiFatiguePage from "./pages/lenses/AntiFatiguePage";
 import BlueFilterPage from "./pages/lenses/BlueFilterPage";
@@ -151,6 +152,7 @@ const App = () => (
               <Route path="/coatings/how-ar-coating-works" element={<HowARCoatingWorksPage />} />
               <Route path="/coatings/caring-for-coated-lenses" element={<CaringForCoatedLensesPage />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
+              <Route path="/professionals/:slug" element={<ProfessionalsPortalPage />} />
               <Route path="/return-policy" element={<LegalPage />} />
 
 
