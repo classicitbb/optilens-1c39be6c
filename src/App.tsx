@@ -33,7 +33,6 @@ import BlueFilterPage from "./pages/lenses/BlueFilterPage";
 import TintsFashionColorsPage from "./pages/lenses/TintsFashionColorsPage";
 import MaterialsPage from "./pages/lenses/MaterialsPage";
 import ThicknessChartPage from "./pages/lenses/ThicknessChartPage";
-import PatientsPage from "./pages/PatientsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
