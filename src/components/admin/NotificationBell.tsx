@@ -61,7 +61,7 @@ const NotificationBell = () => {
 
       {open &&
       <div className="absolute right-0 top-full mt-1 z-50 w-80 rounded-md border border-[hsl(var(--admin-border))] shadow-lg bg-slate-500">
-          <div className="flex items-center justify-between px-3 py-2 border-b">
+          <div className="flex items-center justify-between px-3 py-2 border-b bg-muted-foreground rounded-none">
             <span className="text-xs font-semibold">Notifications</span>
             <div className="flex gap-1">
               {unreadCount > 0 &&
