@@ -120,7 +120,7 @@ export const ADMIN_APPS = {
     featurePrefix: 'website',
     sidebarItems: [
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
-      { label: 'Brand Microsites', route: '/admin/website/microsites', icon: Palette },
+      { label: 'Feature Pages', route: '/admin/website/features', icon: Palette },
       { label: 'Patient Portals', route: '/admin/website/portals', icon: UserCircle },
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
     ] satisfies SidebarItem[],

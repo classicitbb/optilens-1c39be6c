@@ -2,6 +2,7 @@ import { Sun, Car, Waves, TreePine, Check, Shield } from "lucide-react";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
+import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
 
 const USE_CASES = [
   { icon: Car, title: "Driving", desc: "Eliminates road glare and reflections from dashboards and windshields for safer driving." },
@@ -20,7 +21,7 @@ const SPECS = [
 
 const ZenvueSunDun = () => {
   return (
-    <>
+    <ZenvueFeatureShell>
       <ZenvueHero
         badge="Polarized Sunwear"
         title="SunDun™ Polarized"
@@ -99,7 +100,7 @@ const ZenvueSunDun = () => {
       </section>
 
       <ZenvueCTA />
-    </>
+    </ZenvueFeatureShell>
   );
 };
 

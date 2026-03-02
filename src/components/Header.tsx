@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Search, Phone } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Search, Phone, Sun, Moon, Monitor } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAccountRequestDismissed } from "@/components/AccountRequestBanner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useTheme } from "next-themes";
 
 type MegaMenuLink = {
   label: string;
@@ -36,17 +36,21 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
         title: "Everyday Vision",
         links: [
           { label: "Progressive (All-Day Use)", description: "Premium multifocal options", to: "/zenvue/brilliance" },
+          { label: "ZenVue Brilliance™", description: "Featured progressive product page", to: "/zenvue/brilliance" },
           { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
           { label: "Anti-Fatigue", description: "Digital comfort with near support", to: "/lenses/anti-fatigue" },
           { label: "Single Vision", description: "Everyday distance and near correction", to: "/zenvue/single-vision" },
+          { label: "ZenVue Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
         ],
       },
       {
         title: "Lifestyle Lenses",
         links: [
           { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/zenvue/darkun" },
+          { label: "ZenVue Darkun™", description: "Featured photochromic lens page", to: "/zenvue/darkun" },
           { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
           { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
+          { label: "ZenVue SunDun™", description: "Featured polarized lens page", to: "/zenvue/sundun" },
           { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
         ],
       },
@@ -69,6 +73,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Mirror & Finish Guide", description: "Compare coating and finish options", to: "/mirror-finish-guide" },
           { label: "Sun & Specialty", description: "Photochromic and tinted offerings", to: "/zenvue/sundun" },
           { label: "Knowledge Articles", description: "Technical coating resources", to: "/knowledge#lens-coatings" },
+          { label: "ZenVue Compare", description: "Compare all ZenVue feature lenses", to: "/zenvue/compare" },
         ],
       },
     ],
@@ -92,6 +97,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
           { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
           { label: "Chemistrie Lens System", description: "Magnetic clip system overview", to: "/professionals/chemistrie-lens-system" },
+          { label: "ZenVue Wholesale", description: "Feature-page application for optical partners", to: "/zenvue/wholesale" },
         ],
       },
       {
@@ -262,6 +268,16 @@ const Header = () => {
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
   const bannerDismissed = useAccountRequestDismissed();
   const showRequestInMenu = !!user && !roleLoading && !role && bannerDismissed;
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const activeTheme = theme ?? "system";
+
+  const cycleThemeIcon = () => {
+    if (activeTheme === "system") {
+      return resolvedTheme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
+    }
+
+    return activeTheme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -398,6 +414,28 @@ const Header = () => {
                     Request Account
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center gap-2">
+                    {cycleThemeIcon()}
+                    Theme
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
+                      <DropdownMenuRadioItem value="light" className="flex items-center gap-2">
+                        <Sun className="h-4 w-4" />
+                        Light
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="dark" className="flex items-center gap-2">
+                        <Moon className="h-4 w-4" />
+                        Dark
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem value="system" className="flex items-center gap-2">
+                        <Monitor className="h-4 w-4" />
+                        System
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
                   <LogOut className="h-4 w-4" />

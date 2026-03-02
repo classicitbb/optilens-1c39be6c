@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
+import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
 
 const inquirySchema = z.object({
   business_name: z.string().trim().min(1, "Business name is required").max(200),
@@ -82,7 +83,7 @@ const ZenvueWholesale = () => {
 
   if (submitted) {
     return (
-      <>
+      <ZenvueFeatureShell>
         <ZenvueHero badge="Partner Application" title="Thank You!" subtitle="Your application has been received. Our team will contact you within 2 business days." />
         <section className="border-b border-border">
           <div className="container mx-auto px-4 py-16 lg:px-8 text-center">
@@ -95,12 +96,12 @@ const ZenvueWholesale = () => {
             </p>
           </div>
         </section>
-      </>
+      </ZenvueFeatureShell>
     );
   }
 
   return (
-    <>
+    <ZenvueFeatureShell>
       <ZenvueHero
         badge="Partner With Us"
         title="Become a ZenVue Partner"
@@ -233,7 +234,7 @@ const ZenvueWholesale = () => {
           </div>
         </div>
       </section>
-    </>
+    </ZenvueFeatureShell>
   );
 };
 

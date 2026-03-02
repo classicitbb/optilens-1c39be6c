@@ -7,9 +7,11 @@ const footerColumns = [
     title: "Lenses",
     links: [
       { label: "Progressive (All-Day Use)", to: "/zenvue/brilliance" },
+      { label: "ZenVue Brilliance™", to: "/zenvue/brilliance" },
       { label: "Office / Occupational", to: "/lenses/office-occupational" },
       { label: "Anti-Fatigue", to: "/lenses/anti-fatigue" },
       { label: "Single Vision", to: "/zenvue/single-vision" },
+      { label: "ZenVue Single Vision", to: "/zenvue/single-vision" },
       { label: "Blue Filter", to: "/lenses/blue-filter" },
       { label: "Lens Design Guide", to: "/lenses/lens-types" },
     ],
@@ -19,6 +21,8 @@ const footerColumns = [
     links: [
       { label: "Mirror & Finish Guide", to: "/mirror-finish-guide" },
       { label: "Sun & Specialty", to: "/zenvue/sundun" },
+      { label: "ZenVue Darkun™", to: "/zenvue/darkun" },
+      { label: "ZenVue Compare", to: "/zenvue/compare" },
       { label: "Knowledge Articles", to: "/knowledge#lens-coatings" },
     ],
   },
@@ -28,6 +32,7 @@ const footerColumns = [
       { label: "Professionals Overview", to: "/for-professionals" },
       { label: "Lens Design Guide", to: "/lenses/lens-types" },
       { label: "Wholesale Program", to: "/zenvue/wholesale" },
+      { label: "ZenVue Feature Hub", to: "/zenvue" },
     ],
   },
   {

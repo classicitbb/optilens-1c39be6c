@@ -2,6 +2,7 @@ import { Sparkles, Check, Shield, Layers, Eye, Monitor } from "lucide-react";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
+import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
 import { Link } from "react-router-dom";
 
 const MATERIALS = [
@@ -26,7 +27,7 @@ const IDEAL_FOR = [
 
 const ZenvueBrilliance = () => {
   return (
-    <>
+    <ZenvueFeatureShell>
       <ZenvueHero
         badge="Progressive Lenses"
         title="Brilliance™ Progressive"
@@ -136,7 +137,7 @@ const ZenvueBrilliance = () => {
       </section>
 
       <ZenvueCTA />
-    </>
+    </ZenvueFeatureShell>
   );
 };
 
