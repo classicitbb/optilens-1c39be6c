@@ -113,27 +113,46 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
 
 const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
   const [open, setOpen] = useState(false);
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setIsPinnedOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const handleTriggerClick = () => {
+    if (isPinnedOpen) {
+      setOpen(false);
+      setIsPinnedOpen(false);
+      return;
+    }
+
+    setOpen(true);
+    setIsPinnedOpen(true);
+  };
+
+  const handleLinkClick = () => {
+    setOpen(false);
+    setIsPinnedOpen(false);
+  };
+
   return (
     <div
       className="relative"
       ref={ref}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
     >
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={handleTriggerClick}
         className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        aria-haspopup="menu"
         aria-expanded={open}
       >
         {item.label}

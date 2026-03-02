@@ -7,6 +7,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --background: 210 20% 98%;
     --foreground: 215 35% 15%;
 
@@ -68,6 +69,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 215 40% 8%;
     --foreground: 210 40% 98%;
 
@@ -103,6 +105,18 @@
     --input: 215 30% 20%;
     --ring: 215 60% 55%;
 
+    --gradient-primary: linear-gradient(135deg, hsl(215 60% 42%) 0%, hsl(215 70% 58%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(45 92% 58%) 0%, hsl(52 96% 65%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(85 40% 42%) 0%, hsl(95 48% 52%) 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(20, 33, 49, 0.55) 0%, rgba(20, 33, 49, 0.28) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(215 40% 8%) 0%, hsl(215 35% 11%) 100%);
+
+    --shadow-soft: 0 4px 20px -4px hsl(215 80% 3% / 0.5);
+    --shadow-medium: 0 8px 30px -6px hsl(215 80% 2% / 0.62);
+    --shadow-elegant: 0 10px 40px -10px hsl(215 70% 40% / 0.42);
+    --shadow-glow: 0 0 40px hsl(45 95% 62% / 0.2);
+    --shadow-glow-green: 0 0 40px hsl(85 50% 55% / 0.2);
+
     --sidebar-background: 215 35% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 215 60% 55%;
@@ -121,11 +135,13 @@
 
   html {
     scroll-behavior: smooth;
+    background-color: hsl(var(--background));
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    min-height: 100vh;
   }
 }
 
@@ -202,6 +218,10 @@
   --admin-muted: 215 10% 92%;
   --admin-muted-fg: 215 15% 38%;
   --admin-card: 0 0% 100%;
+  --admin-table-surface: 0 0% 100%;
+  --admin-table-fg: 215 30% 15%;
+  --admin-table-muted-fg: 215 15% 45%;
+  --admin-table-border: 215 15% 85%;
   --admin-destructive: 0 72% 51%;
   --admin-success: 142 71% 35%;
   --admin-warning: 35 90% 40%;
@@ -227,6 +247,10 @@
   --admin-muted: 215 22% 16%;
   --admin-muted-fg: 215 15% 70%;
   --admin-card: 215 28% 12%;
+  --admin-table-surface: 0 0% 100%;
+  --admin-table-fg: 215 30% 15%;
+  --admin-table-muted-fg: 215 15% 45%;
+  --admin-table-border: 215 15% 85%;
   --admin-success: 145 70% 62%;
   --admin-warning: 43 92% 62%;
 }
@@ -245,20 +269,27 @@
   color: hsl(var(--admin-content-fg));
 }
 
+.admin-tool table {
+  background: hsl(var(--admin-table-surface));
+  color: hsl(var(--admin-table-fg));
+}
+
 .admin-tool table th {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: hsl(var(--admin-muted-fg));
+  color: hsl(var(--admin-table-muted-fg));
+  background: hsl(var(--admin-table-surface));
   padding: 6px 12px;
-  border-bottom: 1px solid hsl(var(--admin-border));
+  border-bottom: 1px solid hsl(var(--admin-table-border));
 }
 
 .admin-tool table td {
   padding: 6px 12px;
   font-size: 13px;
-  border-bottom: 1px solid hsl(var(--admin-border));
+  color: hsl(var(--admin-table-fg));
+  border-bottom: 1px solid hsl(var(--admin-table-border));
 }
 
 .admin-tool table tr:hover td {
