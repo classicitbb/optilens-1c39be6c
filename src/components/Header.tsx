@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAccountRequestDismissed } from "@/components/AccountRequestBanner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 type MegaMenuLink = {
   label: string;
@@ -289,7 +290,7 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="lg:hidden">
+              <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -300,31 +301,44 @@ const Header = () => {
                 </div>
                 <span className="text-lg font-bold text-foreground">OptiVisionNow</span>
               </SheetTitle>
-              <nav className="flex flex-col gap-3">
-                {PRIMARY_MENU.map((item) => (
-                  <div key={item.label} className="rounded-lg border border-border/60 p-3">
-                    <p className="mb-2 text-sm font-semibold text-foreground">{item.label}</p>
-                    <div className="space-y-2">
-                      {item.sections.flatMap((section) => section.links).map((link) => (
-                        link.href ? (
-                          <a
-                            key={link.label}
-                            href={link.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                          >
-                            {link.label} {link.externalLabel ? `(${link.externalLabel})` : ""}
-                          </a>
-                        ) : (
-                          <Link key={link.label} to={link.to || "/"} className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
-                            {link.label}
-                          </Link>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                ))}
+              <nav>
+                <Accordion type="multiple" className="space-y-3">
+                  {PRIMARY_MENU.map((item) => (
+                    <AccordionItem key={item.label} value={item.label} className="rounded-lg border border-border/60 px-3">
+                      <AccordionTrigger className="py-3 text-sm font-semibold text-foreground hover:no-underline">
+                        {item.label}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-3 pb-2">
+                          {item.sections.map((section) => (
+                            <div key={`${item.label}-${section.title}`}>
+                              <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{section.title}</p>
+                              <div className="space-y-1">
+                                {section.links.map((link) => (
+                                  link.href ? (
+                                    <a
+                                      key={link.label}
+                                      href={link.href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    >
+                                      {link.label} {link.externalLabel ? `(${link.externalLabel})` : ""}
+                                    </a>
+                                  ) : (
+                                    <Link key={link.label} to={link.to || "/"} className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+                                      {link.label}
+                                    </Link>
+                                  )
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               </nav>
             </SheetContent>
           </Sheet>
