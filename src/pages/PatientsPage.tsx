@@ -97,7 +97,7 @@ const PatientsPage = () => {
           </section>
 
           <section className="mt-8 grid gap-6 md:grid-cols-3">
-            <article id="understanding-lenses" className="rounded-xl border border-border bg-card p-5">
+            <article id="understanding-lenses" className="scroll-mt-24 rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 text-primary">
                 <BookOpenText className="h-5 w-5" />
                 <h2 className="text-lg font-semibold text-foreground">Understanding Your Lenses</h2>
@@ -112,7 +112,7 @@ const PatientsPage = () => {
               </div>
             </article>
 
-            <article id="find-care" className="rounded-xl border border-border bg-card p-5">
+            <article id="find-care" className="scroll-mt-24 rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 text-primary">
                 <HeartHandshake className="h-5 w-5" />
                 <h2 className="text-lg font-semibold text-foreground">Find Care</h2>
@@ -133,7 +133,7 @@ const PatientsPage = () => {
               </div>
             </article>
 
-            <article id="vision-tips" className="rounded-xl border border-border bg-card p-5">
+            <article id="vision-tips" className="scroll-mt-24 rounded-xl border border-border bg-card p-5">
               <div className="flex items-center gap-2 text-primary">
                 <Glasses className="h-5 w-5" />
                 <h2 className="text-lg font-semibold text-foreground">Vision Tips</h2>

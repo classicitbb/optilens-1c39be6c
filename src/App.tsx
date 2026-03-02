@@ -153,7 +153,7 @@ const App = () => (
               <Route path="/coatings/caring-for-coated-lenses" element={<CaringForCoatedLensesPage />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
               <Route path="/patients" element={<PatientsPage />} />
-              <Route path="/return-policy" element={<Navigate to="/legal/return-policy" replace />} />
+              <Route path="/return-policy" element={<LegalPage />} />
 
 
               {/* ZenVue brand microsite */}
