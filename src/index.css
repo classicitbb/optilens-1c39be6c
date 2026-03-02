@@ -188,26 +188,55 @@
 
 /* Admin Tool Design Tokens */
 .admin-tool {
+  --admin-topbar-bg: 0 0% 100%;
   --admin-sidebar-bg: 215 28% 12%;
   --admin-sidebar-fg: 210 20% 85%;
-  --admin-sidebar-active: 215 65% 50%;
+  --admin-sidebar-active: 215 65% 45%;
+  --admin-sidebar-active-fg: 210 40% 96%;
   --admin-sidebar-hover: 215 25% 18%;
   --admin-content-bg: 210 20% 97%;
   --admin-content-fg: 215 30% 15%;
   --admin-border: 215 15% 85%;
-  --admin-accent: 215 65% 50%;
+  --admin-accent: 215 65% 45%;
   --admin-accent-fg: 0 0% 100%;
   --admin-muted: 215 10% 92%;
-  --admin-muted-fg: 215 15% 50%;
+  --admin-muted-fg: 215 15% 38%;
   --admin-card: 0 0% 100%;
+  --admin-table-surface: 0 0% 100%;
+  --admin-table-fg: 215 30% 15%;
+  --admin-table-muted-fg: 215 15% 45%;
+  --admin-table-border: 215 15% 85%;
   --admin-destructive: 0 72% 51%;
-  --admin-success: 142 71% 45%;
-  --admin-warning: 38 92% 50%;
+  --admin-success: 142 71% 35%;
+  --admin-warning: 35 90% 40%;
   --admin-radius: 4px;
 
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.4;
+}
+
+.dark .admin-tool {
+  --admin-topbar-bg: 215 28% 9%;
+  --admin-sidebar-bg: 215 30% 11%;
+  --admin-sidebar-fg: 210 25% 88%;
+  --admin-sidebar-active: 215 70% 60%;
+  --admin-sidebar-active-fg: 215 40% 10%;
+  --admin-sidebar-hover: 215 25% 18%;
+  --admin-content-bg: 215 30% 8%;
+  --admin-content-fg: 210 35% 96%;
+  --admin-border: 215 22% 19%;
+  --admin-accent: 215 70% 60%;
+  --admin-accent-fg: 215 40% 10%;
+  --admin-muted: 215 22% 16%;
+  --admin-muted-fg: 215 15% 70%;
+  --admin-card: 215 28% 12%;
+  --admin-table-surface: 0 0% 100%;
+  --admin-table-fg: 215 30% 15%;
+  --admin-table-muted-fg: 215 15% 45%;
+  --admin-table-border: 215 15% 85%;
+  --admin-success: 145 70% 62%;
+  --admin-warning: 43 92% 62%;
 }
 
 .admin-tool * {
@@ -224,20 +253,27 @@
   color: hsl(var(--admin-content-fg));
 }
 
+.admin-tool table {
+  background: hsl(var(--admin-table-surface));
+  color: hsl(var(--admin-table-fg));
+}
+
 .admin-tool table th {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: hsl(var(--admin-muted-fg));
+  color: hsl(var(--admin-table-muted-fg));
+  background: hsl(var(--admin-table-surface));
   padding: 6px 12px;
-  border-bottom: 1px solid hsl(var(--admin-border));
+  border-bottom: 1px solid hsl(var(--admin-table-border));
 }
 
 .admin-tool table td {
   padding: 6px 12px;
   font-size: 13px;
-  border-bottom: 1px solid hsl(var(--admin-border));
+  color: hsl(var(--admin-table-fg));
+  border-bottom: 1px solid hsl(var(--admin-table-border));
 }
 
 .admin-tool table tr:hover td {
@@ -344,4 +380,8 @@
   --border: 220 15% 20%;
   --input: 220 15% 20%;
   --ring: 200 55% 55%;
+}
+.admin-tool .admin-surface {
+  background: hsl(var(--admin-topbar-bg));
+  color: hsl(var(--admin-content-fg));
 }
