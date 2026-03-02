@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "rea
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/components/theme-provider";
-
 import Index from "./pages/Index";
 import Store from "./pages/Store";
 import Knowledge from "./pages/Knowledge";
@@ -18,7 +17,20 @@ import NotFound from "./pages/NotFound";
 import LegalPage from "./pages/LegalPage";
 import LensDesignGuidePage from "./pages/LensDesignGuidePage";
 import MirrorFinishPage from "./pages/MirrorFinishPage";
+import UltraClearARPage from "./pages/coatings/UltraClearARPage";
+import BlueBlockARPage from "./pages/coatings/BlueBlockARPage";
+import ScratchResistantPage from "./pages/coatings/ScratchResistantPage";
+import UVShieldPage from "./pages/coatings/UVShieldPage";
+import HydrophobicOleophobicPage from "./pages/coatings/HydrophobicOleophobicPage";
+import HowARCoatingWorksPage from "./pages/coatings/HowARCoatingWorksPage";
+import CaringForCoatedLensesPage from "./pages/coatings/CaringForCoatedLensesPage";
 import ProfessionalsPage from "./pages/ProfessionalsPage";
+import OfficeOccupationalPage from "./pages/lenses/OfficeOccupationalPage";
+import AntiFatiguePage from "./pages/lenses/AntiFatiguePage";
+import BlueFilterPage from "./pages/lenses/BlueFilterPage";
+import TintsFashionColorsPage from "./pages/lenses/TintsFashionColorsPage";
+import MaterialsPage from "./pages/lenses/MaterialsPage";
+import ThicknessChartPage from "./pages/lenses/ThicknessChartPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
@@ -100,7 +112,7 @@ const CustomerShell = () => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="optilens-theme">
       <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -121,8 +133,23 @@ const App = () => (
               <Route path="/terms-of-use" element={<Navigate to="/terms" replace />} />
               <Route path="/lenses" element={<Navigate to="/lenses/lens-types" replace />} />
               <Route path="/lenses/lens-types" element={<LensDesignGuidePage />} />
+              <Route path="/lenses/office-occupational" element={<OfficeOccupationalPage />} />
+              <Route path="/lenses/anti-fatigue" element={<AntiFatiguePage />} />
+              <Route path="/lenses/blue-filter" element={<BlueFilterPage />} />
+              <Route path="/lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
+              <Route path="/lenses/materials" element={<MaterialsPage />} />
+              <Route path="/lenses/thickness-chart" element={<ThicknessChartPage />} />
+              <Route path="/coatings" element={<Navigate to="/coatings/how-ar-coating-works" replace />} />
               <Route path="/coatings/mirror" element={<MirrorFinishPage />} />
               <Route path="/coatings/mirrors" element={<Navigate to="/coatings/mirror" replace />} />
+              <Route path="/mirror-finish-guide" element={<Navigate to="/coatings/mirror" replace />} />
+              <Route path="/coatings/ultraclear-ar" element={<UltraClearARPage />} />
+              <Route path="/coatings/blueblock-ar" element={<BlueBlockARPage />} />
+              <Route path="/coatings/scratch-resistant" element={<ScratchResistantPage />} />
+              <Route path="/coatings/uv-shield" element={<UVShieldPage />} />
+              <Route path="/coatings/hydrophobic-oleophobic" element={<HydrophobicOleophobicPage />} />
+              <Route path="/coatings/how-ar-coating-works" element={<HowARCoatingWorksPage />} />
+              <Route path="/coatings/caring-for-coated-lenses" element={<CaringForCoatedLensesPage />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
               <Route path="/return-policy" element={<LegalPage />} />
 
