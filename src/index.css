@@ -305,6 +305,20 @@
 .admin-tool .admin-content {
   background: hsl(var(--admin-content-bg));
   color: hsl(var(--admin-content-fg));
+
+  /* Override global tokens so all components render in light mode inside admin content */
+  --background: var(--admin-content-bg);
+  --foreground: var(--admin-content-fg);
+  --card: var(--admin-card);
+  --card-foreground: var(--admin-content-fg);
+  --popover: 0 0% 100%;
+  --popover-foreground: var(--admin-content-fg);
+  --muted: var(--admin-muted);
+  --muted-foreground: var(--admin-muted-fg);
+  --border: var(--admin-border);
+  --input: var(--admin-border);
+  --accent: var(--admin-accent);
+  --accent-foreground: var(--admin-accent-fg);
 }
 
 .admin-tool table {
