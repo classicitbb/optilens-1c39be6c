@@ -87,11 +87,27 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Patients",
     sections: [
       {
-        title: "Patient Education",
+        title: "Understanding Your Lenses",
         links: [
-          { label: "ZenVue Overview", description: "Learn about lens families", to: "/zenvue" },
-          { label: "Compare Lens Options", description: "See lifestyle recommendations", to: "/zenvue/compare" },
-          { label: "Knowledge Base", description: "Patient-friendly lens education", to: "/knowledge" },
+          { label: "What’s the Difference Between Lenses?", description: "Single vision, progressives, and specialty options", to: "/patients#understanding-lenses" },
+          { label: "Why Choose Progressive?", description: "All-distance vision in one pair", to: "/patients#understanding-lenses" },
+          { label: "Eye Strain & Anti-Fatigue Lenses", description: "Support for screen-heavy days", to: "/patients#understanding-lenses" },
+          { label: "Caring for Your Glasses", description: "Simple habits that protect lens coatings", to: "/patients#understanding-lenses" },
+        ],
+      },
+      {
+        title: "Find Care",
+        links: [
+          { label: "Find a Vision Expert Near You", description: "Connect with a licensed eye care professional", to: "/patients#find-care" },
+          { label: "Ask Your Optician About Classic Visions", description: "Discuss lens options for your routine", to: "/patients#find-care" },
+        ],
+      },
+      {
+        title: "Vision Tips",
+        links: [
+          { label: "Computer & Mobile Use", description: "Reduce digital eye strain with practical habits", to: "/patients#vision-tips" },
+          { label: "Sunlight & Protection", description: "UV and glare guidance for outdoor comfort", to: "/patients#vision-tips" },
+          { label: "Regular Eye Exams", description: "Protect long-term vision health", to: "/patients#vision-tips" },
         ],
       },
     ],
