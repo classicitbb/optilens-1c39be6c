@@ -49,8 +49,8 @@ const footerColumns = [
       { label: "Our Story", to: "/#about" },
       { label: "News & Articles", to: "/knowledge" },
       { label: "Contact Us", to: "/#contact" },
-      { label: "Terms of Use", to: "/legal/terms" },
-      { label: "Privacy Policy", to: "/legal/privacy-policy" },
+      { label: "Terms of Use", to: "/terms" },
+      { label: "Privacy Policy", to: "/privacy-policy" },
     ],
   },
 ] as const;
