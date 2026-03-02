@@ -116,15 +116,16 @@ const App = () => (
               <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-              <Route path="/privacy-policy" element={<LegalPage />} />
-              <Route path="/terms" element={<LegalPage />} />
+              <Route path="/legal/:slug" element={<LegalPage />} />
+              <Route path="/privacy-policy" element={<Navigate to="/legal/privacy-policy" replace />} />
+              <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
               <Route path="/terms-of-use" element={<Navigate to="/terms" replace />} />
               <Route path="/lenses" element={<Navigate to="/lenses/lens-types" replace />} />
               <Route path="/lenses/lens-types" element={<LensDesignGuidePage />} />
               <Route path="/coatings/mirror" element={<MirrorFinishPage />} />
               <Route path="/coatings/mirrors" element={<Navigate to="/coatings/mirror" replace />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
-              <Route path="/return-policy" element={<LegalPage />} />
+              <Route path="/return-policy" element={<Navigate to="/legal/return-policy" replace />} />
 
 
               {/* ZenVue brand microsite */}
