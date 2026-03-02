@@ -3,10 +3,11 @@ import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueProductCard from "@/components/zenvue/ZenvueProductCard";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
+import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
 
 const ZenvueHome = () => {
   return (
-    <>
+    <ZenvueFeatureShell>
       <ZenvueHero
         title="Clarity, Comfort, Confidence"
         subtitle="Premium prescription lenses crafted for Caribbean optical professionals."
@@ -101,7 +102,7 @@ const ZenvueHome = () => {
       </section>
 
       <ZenvueCTA />
-    </>
+    </ZenvueFeatureShell>
   );
 };
 

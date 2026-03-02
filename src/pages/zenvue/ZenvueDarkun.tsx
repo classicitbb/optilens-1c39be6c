@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
+import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
 
 const HOW_IT_WORKS = [
   { icon: Zap, title: "UV Activation", desc: "Darkun™ molecules respond to ultraviolet light, darkening the lens within seconds of sun exposure." },
@@ -18,7 +19,7 @@ const BENEFITS = [
 
 const ZenvueDarkun = () => {
   return (
-    <>
+    <ZenvueFeatureShell>
       <ZenvueHero
         badge="Photochromic Technology"
         title="Darkun™ Photochromic"
@@ -95,7 +96,7 @@ const ZenvueDarkun = () => {
       </section>
 
       <ZenvueCTA />
-    </>
+    </ZenvueFeatureShell>
   );
 };
 

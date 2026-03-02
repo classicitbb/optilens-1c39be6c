@@ -32,6 +32,7 @@ import BlueFilterPage from "./pages/lenses/BlueFilterPage";
 import TintsFashionColorsPage from "./pages/lenses/TintsFashionColorsPage";
 import MaterialsPage from "./pages/lenses/MaterialsPage";
 import ThicknessChartPage from "./pages/lenses/ThicknessChartPage";
+import PatientsPage from "./pages/PatientsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
@@ -79,8 +80,7 @@ import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
 import HelpdeskTicketsPage from "./pages/admin/helpdesk/HelpdeskTicketsPage";
 import HelpdeskTeamsPage from "./pages/admin/helpdesk/HelpdeskTeamsPage";
 import HelpdeskSlaPoliciesPage from "./pages/admin/helpdesk/HelpdeskSlaPoliciesPage";
-// ZenVue microsite
-import ZenvueLayout from "./components/zenvue/ZenvueLayout";
+// ZenVue feature pages
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
 import ZenvueBrilliance from "./pages/zenvue/ZenvueBrilliance";
 import ZenvueSingleVision from "./pages/zenvue/ZenvueSingleVision";
@@ -153,19 +153,17 @@ const App = () => (
               <Route path="/coatings/caring-for-coated-lenses" element={<CaringForCoatedLensesPage />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
               <Route path="/professionals/:slug" element={<ProfessionalsPortalPage />} />
+              <Route path="/patients" element={<ProtectedRoute><PatientsPage /></ProtectedRoute>} />
               <Route path="/return-policy" element={<LegalPage />} />
 
-
-              {/* ZenVue brand microsite */}
-              <Route path="/zenvue" element={<ProtectedRoute><ZenvueLayout /></ProtectedRoute>}>
-                <Route index element={<ZenvueHome />} />
-                <Route path="brilliance" element={<ZenvueBrilliance />} />
-                <Route path="single-vision" element={<ZenvueSingleVision />} />
-                <Route path="sundun" element={<ZenvueSunDun />} />
-                <Route path="darkun" element={<ZenvueDarkun />} />
-                <Route path="compare" element={<ZenvueCompare />} />
-                <Route path="wholesale" element={<ZenvueWholesale />} />
-              </Route>
+              {/* ZenVue integrated feature pages */}
+              <Route path="/zenvue" element={<ProtectedRoute><ZenvueHome /></ProtectedRoute>} />
+              <Route path="/zenvue/brilliance" element={<ProtectedRoute><ZenvueBrilliance /></ProtectedRoute>} />
+              <Route path="/zenvue/single-vision" element={<ProtectedRoute><ZenvueSingleVision /></ProtectedRoute>} />
+              <Route path="/zenvue/sundun" element={<ProtectedRoute><ZenvueSunDun /></ProtectedRoute>} />
+              <Route path="/zenvue/darkun" element={<ProtectedRoute><ZenvueDarkun /></ProtectedRoute>} />
+              <Route path="/zenvue/compare" element={<ProtectedRoute><ZenvueCompare /></ProtectedRoute>} />
+              <Route path="/zenvue/wholesale" element={<ProtectedRoute><ZenvueWholesale /></ProtectedRoute>} />
             </Route>
 
               {/* Admin — all apps share AdminLayout */}
@@ -232,7 +230,8 @@ const App = () => (
                 {/* ═══ Website App ═══ */}
                 <Route path="website" element={<Navigate to="/admin/website/content" replace />} />
                 <Route path="website/content" element={<ContentManagerPage />} />
-                <Route path="website/microsites" element={<PlaceholderPage />} />
+                <Route path="website/microsites" element={<Navigate to="/admin/website/features" replace />} />
+                <Route path="website/features" element={<PlaceholderPage />} />
                 <Route path="website/portals" element={<PlaceholderPage />} />
                 <Route path="website/store" element={<PlaceholderPage />} />
 

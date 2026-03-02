@@ -1,6 +1,7 @@
 import { Check, X, Minus } from "lucide-react";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
+import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
 import { Link } from "react-router-dom";
 
 type CellValue = true | false | string;
@@ -42,7 +43,7 @@ const RECS = [
 
 const ZenvueCompare = () => {
   return (
-    <>
+    <ZenvueFeatureShell>
       <ZenvueHero
         badge="Product Comparison"
         title="Compare Products"
@@ -98,7 +99,7 @@ const ZenvueCompare = () => {
       </section>
 
       <ZenvueCTA />
-    </>
+    </ZenvueFeatureShell>
   );
 };
 
