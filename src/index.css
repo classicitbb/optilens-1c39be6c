@@ -221,6 +221,12 @@
   --admin-destructive: 0 72% 51%;
   --admin-success: 142 71% 35%;
   --admin-warning: 35 90% 40%;
+  --admin-table-bg: 0 0% 100%;
+  --admin-table-header-bg: 215 30% 96%;
+  --admin-table-row-alt: 215 20% 97%;
+  --admin-table-row-risk: 0 70% 96%;
+  --admin-table-row-loss: 0 70% 95%;
+  --admin-table-row-warning: 45 80% 94%;
   --admin-radius: 4px;
 
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -245,6 +251,12 @@
   --admin-card: 215 28% 12%;
   --admin-success: 145 70% 62%;
   --admin-warning: 43 92% 62%;
+  --admin-table-bg: 215 28% 12%;
+  --admin-table-header-bg: 215 24% 16%;
+  --admin-table-row-alt: 215 24% 14%;
+  --admin-table-row-risk: 0 40% 22%;
+  --admin-table-row-loss: 0 45% 20%;
+  --admin-table-row-warning: 40 45% 22%;
 }
 
 .admin-tool * {

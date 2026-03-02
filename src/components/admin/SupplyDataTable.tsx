@@ -189,69 +189,69 @@ const SupplyDataTable = ({
             onClick={() => handleFilterChange(t.value)}
             className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
             style={{
-              background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
-              color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
+              background: filter === t.value ? "hsl(var(--admin-accent) / 0.12)" : "transparent",
+              color: filter === t.value ? "hsl(var(--admin-accent))" : "hsl(var(--admin-muted-fg))",
             }}
           >
             {`${t.label} (${t.count})`}
           </button>
         ))}
-        <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+        <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(var(--admin-muted-fg))" }}>
           {canEdit && (
             <button onClick={() => setUnlocked((u) => !u)} className="p-0.5 rounded transition-colors hover:bg-black/5" title={unlocked ? "Lock actions" : "Unlock actions"}>
-              {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(35 80% 50%)" }} /> : <Lock className="h-3.5 w-3.5" />}
+              {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-warning))" }} /> : <Lock className="h-3.5 w-3.5" />}
             </button>
           )}
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
-      <div className="rounded border overflow-hidden flex-1 min-h-0" style={{ borderColor: "hsl(215 20% 88%)" }}>
+      <div className="rounded border overflow-hidden flex-1 min-h-0" style={{ borderColor: "hsl(var(--admin-border))", background: "hsl(var(--admin-table-bg))" }}>
         <Table>
-          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(215 30% 96%)" }}>
-            <TableRow style={{ background: "hsl(215 30% 96%)" }}>
-              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Name" k="name" /></TableHead>
-              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>
+          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(var(--admin-table-header-bg))" }}>
+            <TableRow style={{ background: "hsl(var(--admin-table-header-bg))" }}>
+              <TableHead className={thCls} style={{ color: "hsl(var(--admin-muted-fg))" }}><SortHeader label="Name" k="name" /></TableHead>
+              <TableHead className={thCls} style={{ color: "hsl(var(--admin-muted-fg))" }}>
                 <MultiSelectFilter label="Category" options={categoryOptions} selected={colFilters.category} onChange={(v) => setColFilter("category", v)} />
               </TableHead>
-              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>
+              <TableHead className={thCls} style={{ color: "hsl(var(--admin-muted-fg))" }}>
                 <MultiSelectFilter label="Supplier" options={supplierOptions} selected={colFilters.supplier} onChange={(v) => setColFilter("supplier", v)} />
               </TableHead>
-              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="SKU" k="sku" /></TableHead>
-              {showCost && <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
-              <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
-              <TableHead className={`${thCls} text-right`} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
-              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}><SortHeader label="Unit" k="unit" /></TableHead>
-              <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Web</TableHead>
-              {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Active</TableHead>}
-              {showActions && <TableHead className={thCls} style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
+              <TableHead className={thCls} style={{ color: "hsl(var(--admin-muted-fg))" }}><SortHeader label="SKU" k="sku" /></TableHead>
+              {showCost && <TableHead className={`${thCls} text-right`} style={{ color: "hsl(var(--admin-muted-fg))" }}><SortHeader label="Cost (USD)" k="base_price" /></TableHead>}
+              <TableHead className={`${thCls} text-right`} style={{ color: "hsl(var(--admin-muted-fg))" }}><SortHeader label="Sell (BBD)" k="sell_price" /></TableHead>
+              <TableHead className={`${thCls} text-right`} style={{ color: "hsl(var(--admin-muted-fg))" }}><SortHeader label="Sell (USD)" k="sell_usd" /></TableHead>
+              <TableHead className={thCls} style={{ color: "hsl(var(--admin-muted-fg))" }}><SortHeader label="Unit" k="unit" /></TableHead>
+              <TableHead className={thCls} style={{ color: "hsl(var(--admin-muted-fg))" }}>Web</TableHead>
+              {showActions && <TableHead className={thCls} style={{ color: "hsl(var(--admin-muted-fg))" }}>Active</TableHead>}
+              {showActions && <TableHead className={thCls} style={{ color: "hsl(var(--admin-muted-fg))" }}>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {visible.map((s, idx) => {
-              let rowBg = idx % 2 === 1 ? "hsl(215 20% 97%)" : undefined;
-              if (s.base_price === 0) rowBg = "hsl(0 70% 96%)";
-              else if (s.sell_price > 0 && s.sell_price <= s.base_price * fxRate) rowBg = "hsl(0 70% 95%)";
+              let rowBg = idx % 2 === 1 ? "hsl(var(--admin-table-row-alt))" : undefined;
+              if (s.base_price === 0) rowBg = "hsl(var(--admin-table-row-risk))";
+              else if (s.sell_price > 0 && s.sell_price <= s.base_price * fxRate) rowBg = "hsl(var(--admin-table-row-loss))";
               else if (s.sell_price > 0) {
                 const fullCostApprox = s.base_price * fxRate * 1.15;
                 const margin = (s.sell_price - fullCostApprox) / s.sell_price;
-                if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
+                if (margin < 0.15) rowBg = "hsl(var(--admin-table-row-warning))";
               }
               return (
-                <TableRow key={s.id} className={canEdit ? "cursor-pointer hover:bg-blue-50/60" : "hover:bg-blue-50/60"} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEdit && onRowClick(s)}>
-                  <TableCell className={`${tdCls} font-medium max-w-[200px]`} style={{ color: "hsl(215 30% 15%)" }}>
+                <TableRow key={s.id} className={canEdit ? "cursor-pointer hover:bg-[hsl(var(--admin-muted))]" : "hover:bg-[hsl(var(--admin-muted))]"} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEdit && onRowClick(s)}>
+                  <TableCell className={`${tdCls} font-medium max-w-[200px]`} style={{ color: "hsl(var(--admin-content-fg))" }}>
                     <span className="flex items-center gap-1.5 truncate">
                       <span className="truncate">{s.name}</span>
                       {usedItems.has(s.id) && (
-                        <span title="Used in a pricelist" className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full shrink-0" style={{ background: "hsl(215 65% 50%)", color: "white", fontSize: "8px", fontWeight: 700 }}>P</span>
+                        <span title="Used in a pricelist" className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full shrink-0" style={{ background: "hsl(var(--admin-accent))", color: "hsl(var(--admin-accent-fg))", fontSize: "8px", fontWeight: 700 }}>P</span>
                       )}
                     </span>
                   </TableCell>
                   <TableCell className={tdCls}>{catLabels[s.category] || s.category}</TableCell>
-                  <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.supplier_name ?? "—"}</TableCell>
-                  <TableCell className={tdCls} style={{ color: "hsl(215 15% 50%)" }}>{s.sku}</TableCell>
+                  <TableCell className={tdCls} style={{ color: "hsl(var(--admin-muted-fg))" }}>{s.supplier_name ?? "—"}</TableCell>
+                  <TableCell className={tdCls} style={{ color: "hsl(var(--admin-muted-fg))" }}>{s.sku}</TableCell>
                   {showCost && <TableCell className={`${tdCls} text-right`}>{s.base_price.toFixed(2)}</TableCell>}
                   <TableCell className={`${tdCls} text-right font-medium`}>{s.sell_price.toFixed(2)}</TableCell>
-                  <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? (s.sell_price / fxRate).toFixed(2) : "—"}</TableCell>
+                  <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(var(--admin-muted-fg))" }}>{fxRate > 0 ? (s.sell_price / fxRate).toFixed(2) : "—"}</TableCell>
                   <TableCell className={tdCls}>{s.quantity_per_unit > 1 ? `${s.quantity_per_unit}/${s.unit}` : s.unit}</TableCell>
                   <TableCell className={tdCls}>{s.show_on_website ? "✓" : ""}</TableCell>
                   {showActions && (
@@ -262,8 +262,8 @@ const SupplyDataTable = ({
                   {showActions && (
                     <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(s)}><Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} /></Button>
-                        {canDelete && <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(s)}><Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} /></Button>}
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(s)}><Copy className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-muted-fg))" }} /></Button>
+                        {canDelete && <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(s)}><Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-destructive))" }} /></Button>}
                       </div>
                     </TableCell>
                   )}
@@ -272,14 +272,14 @@ const SupplyDataTable = ({
             })}
             {visible.length === 0 && (
               <TableRow>
-                <TableCell colSpan={canEdit ? (showActions ? 11 : 10) : 9} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 50%)" }}>No supplies found.</TableCell>
+                <TableCell colSpan={canEdit ? (showActions ? 11 : 10) : 9} className="text-center text-xs py-8" style={{ color: "hsl(var(--admin-muted-fg))" }}>No supplies found.</TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
         {hasMore && (
-          <div className="flex justify-center py-2 border-t" style={{ borderColor: "hsl(215 20% 88%)" }}>
-            <button onClick={() => setVisibleCount((c) => c + PAGE_SIZE)} className="text-xs font-medium px-3 py-1 rounded hover:bg-blue-50" style={{ color: "hsl(215 65% 50%)" }}>
+          <div className="flex justify-center py-2 border-t" style={{ borderColor: "hsl(var(--admin-border))" }}>
+            <button onClick={() => setVisibleCount((c) => c + PAGE_SIZE)} className="text-xs font-medium px-3 py-1 rounded hover:bg-[hsl(var(--admin-muted))]" style={{ color: "hsl(var(--admin-accent))" }}>
               Load more ({filtered.length - visibleCount} remaining)
             </button>
           </div>

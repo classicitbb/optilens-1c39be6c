@@ -260,30 +260,30 @@ const LensDataTable = ({
             onClick={() => setFilter(t.value)}
             className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
             style={{
-              background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
-              color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
+              background: filter === t.value ? "hsl(var(--admin-accent) / 0.12)" : "transparent",
+              color: filter === t.value ? "hsl(var(--admin-accent))" : "hsl(var(--admin-muted-fg))",
             }}
           >
             {`${t.label} (${t.count})`}
           </button>
         ))}
-        <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+        <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(var(--admin-muted-fg))" }}>
           {canEditCatalog && (
             <button
               onClick={() => setUnlocked((u) => !u)}
               className="p-0.5 rounded transition-colors hover:bg-black/5"
               title={unlocked ? "Lock actions" : "Unlock actions"}
             >
-              {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(35 80% 50%)" }} /> : <Lock className="h-3.5 w-3.5" />}
+              {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-warning))" }} /> : <Lock className="h-3.5 w-3.5" />}
             </button>
           )}
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
-      <div className="border rounded overflow-hidden flex-1 min-h-0" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)" }}>
+      <div className="border rounded overflow-hidden flex-1 min-h-0" style={{ borderColor: "hsl(var(--admin-border))", background: "hsl(var(--admin-table-bg))" }}>
         <Table>
-          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
+          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(var(--admin-table-header-bg))", boxShadow: "inset 0 -1px 0 hsl(var(--admin-border))" }}>
             <TableRow>
               <TableHead><SortHeader label="Name" k="name" /></TableHead>
               <TableHead><FilterHeader label="Supplier" k="supplier" sortK="supplier" /></TableHead>
@@ -301,13 +301,13 @@ const LensDataTable = ({
               <TableHead className="text-center text-[10px]">WSPL</TableHead>
               <TableHead className="text-center text-[10px]">Web</TableHead>
               {showActions && <TableHead />}
-              {showActions && <TableHead className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(215 15% 45%)" }}>Actions</TableHead>}
+              {showActions && <TableHead className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(var(--admin-muted-fg))" }}>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {visibleItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={colCount} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={colCount} className="text-center py-8 text-xs" style={{ color: "hsl(var(--admin-muted-fg))" }}>
                   No lenses found.
                 </TableCell>
               </TableRow>
@@ -315,21 +315,21 @@ const LensDataTable = ({
               visibleItems.map((lens, idx) => {
                 const cost = lens.base_price;
                 const sell = lens.sell_price;
-                let rowBg = idx % 2 === 1 ? "hsl(215 20% 97%)" : undefined;
-                if (cost === 0) rowBg = "hsl(0 70% 96%)";
-                else if (sell > 0 && sell <= cost * fxRate) rowBg = "hsl(0 70% 95%)";
+                let rowBg = idx % 2 === 1 ? "hsl(var(--admin-table-row-alt))" : undefined;
+                if (cost === 0) rowBg = "hsl(var(--admin-table-row-risk))";
+                else if (sell > 0 && sell <= cost * fxRate) rowBg = "hsl(var(--admin-table-row-loss))";
                 else if (sell > 0) {
                   const fullCostApprox = cost * fxRate * 1.15;
                   const margin = (sell - fullCostApprox) / sell;
-                  if (margin < 0.15) rowBg = "hsl(45 80% 94%)";
+                  if (margin < 0.15) rowBg = "hsl(var(--admin-table-row-warning))";
                 }
                 return (
-                  <TableRow key={lens.id} className={canEditCatalog ? "cursor-pointer" : ""} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEditCatalog && onRowClick(lens)}>
+                  <TableRow key={lens.id} className={canEditCatalog ? "cursor-pointer hover:bg-[hsl(var(--admin-muted))]" : "hover:bg-[hsl(var(--admin-muted))]"} style={rowBg ? { background: rowBg } : undefined} onClick={() => canEditCatalog && onRowClick(lens)}>
                     <TableCell className="font-medium text-xs">
                       <span className="flex items-center gap-1.5">
                         {lens.name}
                         {usedItems.has(lens.id) && (
-                          <span title="Used in a pricelist" className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full shrink-0" style={{ background: "hsl(215 65% 50%)", color: "white" }}>
+                          <span title="Used in a pricelist" className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full shrink-0" style={{ background: "hsl(var(--admin-accent))", color: "hsl(var(--admin-accent-fg))" }}>
                             <ListChecks className="h-2 w-2" />
                           </span>
                         )}
@@ -344,12 +344,12 @@ const LensDataTable = ({
                     <TableCell className="text-xs">{fkName(lens.finishtype)}</TableCell>
                     {showCost && <TableCell className="text-xs">{currency(lens.base_price)}</TableCell>}
                     <TableCell className="text-xs font-semibold">{currency(lens.sell_price)}</TableCell>
-                    <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
+                    <TableCell className="text-xs" style={{ color: "hsl(var(--admin-muted-fg))" }}>{fxRate > 0 ? currency(lens.sell_price / fxRate) : "—"}</TableCell>
                     <TableCell className="text-center text-xs">{(lens.show_in_pricelist || usedItems.has(lens.id)) ? "✓" : ""}</TableCell>
                     <TableCell className="text-center text-xs">{lens.full_lab ? "✓" : ""}</TableCell>
                     <TableCell className="text-center text-xs">{lens.show_in_ws_pricelist ? "✓" : ""}</TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                      {lens.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(215 65% 50%)" }} />}
+                      {lens.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(var(--admin-accent))" }} />}
                     </TableCell>
                     {showActions && (
                       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -360,11 +360,11 @@ const LensDataTable = ({
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
                           <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => onDuplicate?.(lens)}>
-                            <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+                            <Copy className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-muted-fg))" }} />
                           </Button>
                           {canDelete && (
                             <Button variant="ghost" size="icon" className="h-6 w-6" title="Delete" onClick={() => onDelete?.(lens)}>
-                              <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
+                              <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-destructive))" }} />
                             </Button>
                           )}
                         </div>
@@ -381,7 +381,7 @@ const LensDataTable = ({
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
-                    style={{ color: "hsl(215 65% 50%)" }}
+                    style={{ color: "hsl(var(--admin-accent))" }}
                     onClick={(e) => { e.stopPropagation(); setVisibleCount((v) => v + 50); }}
                   >
                     Load more ({filtered.length - visibleCount} remaining)

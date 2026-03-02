@@ -89,14 +89,14 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 hover:text-foreground text-[11px] font-semibold uppercase tracking-wider"
-        style={{ color: activeCount > 0 ? "hsl(215 65% 50%)" : undefined }}
+        className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--admin-muted-fg))] hover:text-[hsl(var(--admin-content-fg))]"
+        style={{ color: activeCount > 0 ? "hsl(var(--admin-accent))" : undefined }}
       >
         {label}
         {activeCount > 0 && (
           <span
             className="inline-flex items-center justify-center h-3.5 min-w-[14px] px-1 rounded-full text-[9px] font-bold"
-            style={{ background: "hsl(215 65% 50%)", color: "white" }}
+            style={{ background: "hsl(var(--admin-accent))", color: "hsl(var(--admin-accent-fg))" }}
           >
             {activeCount}
           </span>
@@ -109,40 +109,41 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
           ref={menuRef}
           className="fixed rounded border shadow-lg z-[140] max-h-[320px] flex flex-col"
           style={{
-            background: "hsl(0 0% 100%)",
-            borderColor: "hsl(215 15% 85%)",
+            background: "hsl(var(--admin-card))",
+            borderColor: "hsl(var(--admin-border))",
+            color: "hsl(var(--admin-content-fg))",
             top: menuStyle.top,
             left: menuStyle.left,
             minWidth: menuStyle.width,
           }}
         >
           {options.length > 8 && (
-            <div className="p-1.5 border-b" style={{ borderColor: "hsl(215 15% 90%)" }}>
+            <div className="p-1.5 border-b" style={{ borderColor: "hsl(var(--admin-border))" }}>
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search…"
-                className="w-full text-xs px-2 py-1 rounded border outline-none"
-                style={{ borderColor: "hsl(215 15% 85%)" }}
+                className="w-full text-xs px-2 py-1 rounded border outline-none bg-[hsl(var(--admin-content-bg))] text-[hsl(var(--admin-content-fg))]"
+                style={{ borderColor: "hsl(var(--admin-border))" }}
                 autoFocus
               />
             </div>
           )}
           <div className="overflow-auto flex-1">
             <label
-              className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-50/60 border-b"
-              style={{ borderColor: "hsl(215 15% 92%)" }}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-[hsl(var(--admin-muted))] border-b"
+              style={{ borderColor: "hsl(var(--admin-border))" }}
               onClick={selectAll}
             >
               <span
                 className="flex items-center justify-center h-3.5 w-3.5 rounded border"
                 style={{
-                  borderColor: allSelected ? "hsl(215 65% 50%)" : "hsl(215 15% 75%)",
-                  background: allSelected ? "hsl(215 65% 50%)" : "transparent",
+                  borderColor: allSelected ? "hsl(var(--admin-accent))" : "hsl(var(--admin-border))",
+                  background: allSelected ? "hsl(var(--admin-accent))" : "transparent",
                 }}
               >
-                {allSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                {allSelected && <Check className="h-2.5 w-2.5 text-[hsl(var(--admin-accent-fg))]" />}
               </span>
               <span className="font-medium">Select All</span>
             </label>
@@ -151,34 +152,33 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
               return (
                 <label
                   key={opt.value}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-blue-50/60"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-[hsl(var(--admin-muted))]"
                   onClick={() => toggle(opt.value)}
                 >
                   <span
                     className="flex items-center justify-center h-3.5 w-3.5 rounded border"
                     style={{
-                      borderColor: checked ? "hsl(215 65% 50%)" : "hsl(215 15% 75%)",
-                      background: checked ? "hsl(215 65% 50%)" : "transparent",
+                      borderColor: checked ? "hsl(var(--admin-accent))" : "hsl(var(--admin-border))",
+                      background: checked ? "hsl(var(--admin-accent))" : "transparent",
                     }}
                   >
-                    {checked && <Check className="h-2.5 w-2.5 text-white" />}
+                    {checked && <Check className="h-2.5 w-2.5 text-[hsl(var(--admin-accent-fg))]" />}
                   </span>
                   {opt.label}
                 </label>
               );
             })}
           </div>
-          <div className="flex justify-end gap-1 p-1.5 border-t" style={{ borderColor: "hsl(215 15% 90%)" }}>
+          <div className="flex justify-end gap-1 p-1.5 border-t" style={{ borderColor: "hsl(var(--admin-border))" }}>
             <button
-              className="px-2.5 py-1 text-xs rounded hover:bg-blue-50"
-              style={{ color: "hsl(215 65% 50%)" }}
+              className="px-2.5 py-1 text-xs rounded hover:bg-[hsl(var(--admin-muted))] text-[hsl(var(--admin-accent))]"
               onClick={selectAll}
             >
               Clear
             </button>
             <button
               className="px-2.5 py-1 text-xs rounded"
-              style={{ background: "hsl(215 65% 50%)", color: "white" }}
+              style={{ background: "hsl(var(--admin-accent))", color: "hsl(var(--admin-accent-fg))" }}
               onClick={applyAndClose}
             >
               OK
