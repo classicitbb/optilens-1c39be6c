@@ -77,7 +77,7 @@ const NotificationBell = () => {
             </div>
           </div>
 
-          <div className="max-h-72 overflow-y-auto bg-slate-200">
+          <div className="max-h-72 overflow-y-auto bg-slate-200 rounded-none">
             {notifications.length === 0 ?
           <p className="text-xs text-muted-foreground p-4 text-center">All clear — no notifications.</p> :
 
