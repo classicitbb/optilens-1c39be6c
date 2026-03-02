@@ -1,121 +1,170 @@
 import { useState, useRef, useEffect } from "react";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Layers, Lightbulb, Droplets, Sun, Sparkles, CloudSun, Moon, Menu, FlaskConical, Glasses, Watch } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Search, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { CartSheet } from "@/components/CartSheet";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAccountRequestDismissed } from "@/components/AccountRequestBanner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
-const KB_CATEGORIES = [
-  { icon: Layers, label: "Lens Materials", hash: "lens-materials" },
-  { icon: Lightbulb, label: "Lens Designs", hash: "lens-designs" },
-  { icon: Droplets, label: "Lens Coatings", hash: "lens-coatings" },
-  { icon: Sun, label: "Specialty Lenses", hash: "specialty-lenses" },
-];
-
-const ZENVUE_BRANDS = [
-  { icon: Sparkles, label: "Brilliance™", to: "/zenvue/brilliance" },
-  { icon: CloudSun, label: "SunDun™", to: "/zenvue/sundun" },
-  { icon: Moon, label: "Darkun™", to: "/zenvue/darkun" },
-];
-
-const SUPPLIES_CATEGORIES = [
-  { icon: FlaskConical, label: "Lab Supplies", storeUrl: "/store?tab=supplies&category=lab" },
-  { icon: Glasses, label: "Optical Supplies", storeUrl: "/store?tab=supplies&category=optical" },
-  { icon: Watch, label: "Eyewear Accessories", storeUrl: "/store?tab=supplies&category=accessories" },
-];
-
-const KnowledgeDropdown = () => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        Knowledge Base
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-52 rounded-lg border border-border bg-background shadow-lg py-1">
-          {KB_CATEGORIES.map((cat) => (
-            <Link
-              key={cat.hash}
-              to={`/knowledge#${cat.hash}`}
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <cat.icon className="h-4 w-4" />
-              {cat.label}
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+type MegaMenuLink = {
+  label: string;
+  description: string;
+  to: string;
 };
 
-const ProductsDropdown = () => {
+type MegaMenuSection = {
+  title: string;
+  links: MegaMenuLink[];
+};
+
+type PrimaryMenuItem = {
+  label: string;
+  sections: MegaMenuSection[];
+};
+
+const PRIMARY_MENU: PrimaryMenuItem[] = [
+  {
+    label: "Lenses",
+    sections: [
+      {
+        title: "Explore Lenses",
+        links: [
+          { label: "All Prescription Lenses", description: "Browse complete catalog", to: "/store?tab=lenses" },
+          { label: "Single Vision", description: "Everyday distance and near correction", to: "/zenvue/single-vision" },
+          { label: "Progressive Designs", description: "Premium multifocal options", to: "/store?tab=lenses&category=progressive" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Coatings",
+    sections: [
+      {
+        title: "Lens Treatments",
+        links: [
+          { label: "Mirror & Finish Guide", description: "Compare coating and finish options", to: "/mirror-finish-guide" },
+          { label: "Sun & Specialty", description: "Photochromic and tinted offerings", to: "/zenvue/sundun" },
+          { label: "Knowledge Articles", description: "Technical coating resources", to: "/knowledge#lens-coatings" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Professionals",
+    sections: [
+      {
+        title: "For Optical Teams",
+        links: [
+          { label: "Professionals Overview", description: "Programs built for practices", to: "/for-professionals" },
+          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lens-design-guide" },
+          { label: "Wholesale Program", description: "Partner with our lab network", to: "/zenvue/wholesale" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Patients",
+    sections: [
+      {
+        title: "Patient Education",
+        links: [
+          { label: "ZenVue Overview", description: "Learn about lens families", to: "/zenvue" },
+          { label: "Compare Lens Options", description: "See lifestyle recommendations", to: "/zenvue/compare" },
+          { label: "Knowledge Base", description: "Patient-friendly lens education", to: "/knowledge" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "About",
+    sections: [
+      {
+        title: "Company",
+        links: [
+          { label: "About OptiVisionNow", description: "Our mission and values", to: "/#about" },
+          { label: "Contact Us", description: "Reach our team", to: "/#contact" },
+          { label: "Legal", description: "Policies and terms", to: "/legal" },
+        ],
+      },
+    ],
+  },
+];
+
+const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
   const [open, setOpen] = useState(false);
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setIsPinnedOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const handleTriggerClick = () => {
+    if (isPinnedOpen) {
+      setOpen(false);
+      setIsPinnedOpen(false);
+      return;
+    }
+
+    setOpen(true);
+    setIsPinnedOpen(true);
+  };
+
+  const handleLinkClick = () => {
+    setOpen(false);
+    setIsPinnedOpen(false);
+  };
+
   return (
-    <div className="relative" ref={ref}>
+    <div
+      className="relative"
+      ref={ref}
+      onMouseEnter={() => {
+        if (!isPinnedOpen) setOpen(true);
+      }}
+      onMouseLeave={() => {
+        if (!isPinnedOpen) setOpen(false);
+      }}
+    >
       <button
-        onClick={() => setOpen(!open)}
+        type="button"
+        onClick={handleTriggerClick}
         className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        aria-expanded={open}
       >
-        Products
+        {item.label}
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
+
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-48 rounded-lg border border-border bg-background shadow-lg py-1">
-          <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ZenVue Brands</div>
-          {ZENVUE_BRANDS.map((brand) => (
-            <Link
-              key={brand.label}
-              to={brand.to}
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <brand.icon className="h-4 w-4" />
-              {brand.label}
-            </Link>
-          ))}
-          <div className="my-1 h-px bg-border" />
-          <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supplies</div>
-          {SUPPLIES_CATEGORIES.map((item) => (
-            <Link
-              key={item.label}
-              to={item.storeUrl}
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </Link>
+        <div className="absolute left-1/2 top-full z-50 mt-3 w-[28rem] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+          {item.sections.map((section) => (
+            <div key={section.title}>
+              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
+              <div className="grid gap-1">
+                {section.links.map((link) => (
+                  <Link
+                    key={link.label}
+                    to={link.to}
+                    onClick={handleLinkClick}
+                    className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
+                  >
+                    <p className="text-sm font-medium text-foreground">{link.label}</p>
+                    <p className="text-xs text-muted-foreground">{link.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -134,12 +183,12 @@ const Header = () => {
     await signOut();
     toast({
       title: "Signed out",
-      description: "You have been successfully signed out."
+      description: "You have been successfully signed out.",
     });
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-accent">
@@ -147,164 +196,122 @@ const Header = () => {
           </div>
           <span className="text-xl font-bold text-foreground">OptiVisionNow</span>
         </Link>
-        
-        <nav className="hidden items-center gap-8 lg:flex">
-          <Link to="/store" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            Store
-          </Link>
-          <KnowledgeDropdown />
-          <ProductsDropdown />
-          <Link to="/zenvue" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            ZenVue
-          </Link>
-          <a href="#about" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            About
-          </a>
+
+        <nav className="hidden items-center gap-7 lg:flex">
+          {PRIMARY_MENU.map((item) => (
+            <MegaMenu key={item.label} item={item} />
+          ))}
         </nav>
 
-        <div className="flex items-center gap-3">
-          {/* Mobile menu */}
+        <div className="flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="lg:hidden">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72">
-              <SheetTitle className="flex items-center gap-2 mb-6">
+            <SheetContent side="left" className="w-80">
+              <SheetTitle className="mb-6 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-accent">
                   <Eye className="h-4 w-4 text-accent-foreground" />
                 </div>
                 <span className="text-lg font-bold text-foreground">OptiVisionNow</span>
               </SheetTitle>
-              <nav className="flex flex-col gap-1">
-                <Link to="/store" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                  Store
-                </Link>
-                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Knowledge Base</div>
-                {KB_CATEGORIES.map((cat) => (
-                  <Link
-                    key={cat.hash}
-                    to={`/knowledge#${cat.hash}`}
-                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors pl-5"
-                  >
-                    <cat.icon className="h-4 w-4" />
-                    {cat.label}
-                  </Link>
+              <nav className="flex flex-col gap-3">
+                {PRIMARY_MENU.map((item) => (
+                  <div key={item.label} className="rounded-lg border border-border/60 p-3">
+                    <p className="mb-2 text-sm font-semibold text-foreground">{item.label}</p>
+                    <div className="space-y-2">
+                      {item.sections.flatMap((section) => section.links).map((link) => (
+                        <Link key={link.label} to={link.to} className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+                          {link.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 ))}
-                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ZenVue Brands</div>
-                {ZENVUE_BRANDS.map((brand) => (
-                  <Link
-                    key={brand.label}
-                    to={brand.to}
-                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors pl-5"
-                  >
-                    <brand.icon className="h-4 w-4" />
-                    {brand.label}
-                  </Link>
-                ))}
-                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Supplies</div>
-                {SUPPLIES_CATEGORIES.map((item) => (
-                  <Link
-                    key={item.label}
-                    to={item.storeUrl}
-                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors pl-5"
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                ))}
-                <a href="#about" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                  About
-                </a>
-                {user && (
-                  <>
-                    <div className="my-2 h-px bg-border" />
-                    <Link to="/profile" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                      <User className="h-4 w-4" /> Profile
-                    </Link>
-                    <Link to="/orders" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                      <Package className="h-4 w-4" /> Orders
-                    </Link>
-                    {hasAccess && (
-                      <Link to="/admin" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                        <Shield className="h-4 w-4" /> Admin
-                      </Link>
-                    )}
-                  </>
-                )}
               </nav>
             </SheetContent>
           </Sheet>
 
+          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+            <Link to="/store">
+              <Search className="mr-2 h-4 w-4" />
+              Search
+            </Link>
+          </Button>
+
+          <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
+            <a href="tel:+12464334928">
+              <Phone className="mr-2 h-4 w-4" />
+              +1 246 433-4928
+            </a>
+          </Button>
+
           {user ? (
-            <>
-              <CartSheet />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <User className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Profile</span>
-                    <ChevronDown className="ml-1 h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile" className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/orders" className="flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      Orders
-                    </Link>
-                  </DropdownMenuItem>
-                  {hasAccess && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin" className="flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Admin
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  {showRequestInMenu && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" });
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <User className="h-4 w-4" />
-                      Request Account
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/auth">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
                   <User className="mr-2 h-4 w-4" />
-                  Sign In
-                </Link>
-              </Button>
-              <Button variant="hero" size="sm" asChild className="hidden sm:inline-flex">
-                <Link to="/store">Shop Now</Link>
-              </Button>
-            </>
+                  <span className="hidden sm:inline">Account</span>
+                  <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/orders" className="flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Orders
+                  </Link>
+                </DropdownMenuItem>
+                {hasAccess && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Admin
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {showRequestInMenu && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" });
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <User className="h-4 w-4" />
+                    Request Account
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/auth">
+                <User className="mr-2 h-4 w-4" />
+                Sign in
+              </Link>
+            </Button>
           )}
+
+          <Button variant="hero" size="sm" asChild>
+            <Link to="/store">Order Lenses</Link>
+          </Button>
         </div>
       </div>
-    </header>);
-
+    </header>
+  );
 };
 
 export default Header;
