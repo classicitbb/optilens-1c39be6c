@@ -2,28 +2,33 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { BriefcaseBusiness, Microscope, GraduationCap, CircleHelp } from "lucide-react";
 
-const pillars = [
+const sections = [
   {
-    icon: BriefcaseBusiness,
-    title: "Optical Business Support",
-    description: "Work with a wholesale partner focused on practical pricing, reliable turnarounds, and responsive service.",
+    title: "For Optical Stores & Clinics",
+    links: [
+      { label: "Apply for a Trade Account", to: "/professionals/trade-account" },
+      { label: "Online Ordering Portal (LabLink)", href: "https://lablink.com", external: true },
+      { label: "Order Tracking (LabLink)", href: "https://lablink.com/tracking", external: true },
+      { label: "Price List Request", to: "/professionals/price-list-request" },
+    ],
   },
   {
-    icon: Microscope,
-    title: "Lab-Ready Product Guidance",
-    description: "Reference lens design and coatings education to align recommendations with patient needs and frame choices.",
+    title: "Technical Resources",
+    links: [
+      { label: "Lab Process Overview", to: "/professionals/lab-process-overview" },
+      { label: "Tracing & Cutting Guide", to: "/professionals/tracing-cutting-guide" },
+      { label: "Lens Ordering Tips", to: "/professionals/lens-ordering-tips" },
+      { label: "Chemistrie Lens System", to: "/professionals/chemistrie-lens-system" },
+    ],
   },
   {
-    icon: GraduationCap,
-    title: "Dispensing Education",
-    description: "Use training-ready explainers for lens materials, treatment options, and communication tips at handoff.",
-  },
-  {
-    icon: CircleHelp,
-    title: "FAQ & Support Channels",
-    description: "Give teams one location for common ordering questions, process clarifications, and support contact details.",
+    title: "Support",
+    links: [
+      { label: "Customer Service", to: "/professionals/customer-service" },
+      { label: "Freight & Delivery Policy", to: "/professionals/freight-delivery-policy" },
+      { label: "Returns / Replacements", to: "/professionals/returns-replacements" },
+    ],
   },
 ];
 
@@ -32,29 +37,49 @@ const ProfessionalsPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-24 pb-16">
-        <div className="container mx-auto max-w-5xl px-4 lg:px-8">
+        <div className="container mx-auto max-w-6xl px-4 lg:px-8">
           <div className="rounded-2xl border border-border bg-card p-8">
-            <h1 className="text-4xl font-bold text-foreground">For Optical Professionals</h1>
+            <h1 className="text-4xl font-bold text-foreground">Professionals Hub</h1>
             <p className="mt-4 max-w-3xl text-lg text-muted-foreground">
-              A dedicated hub for independent practices, optical chains, and dispensers who need dependable products,
-              ordering clarity, and easy-to-share patient education resources.
+              Odoo-backed portal pages and forms for trade onboarding, technical references, and service support.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild>
-                <Link to="/store">Browse Products</Link>
+                <Link to="/professionals/trade-account">Apply for Trade Account</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link to="/knowledge">Open Knowledge Base</Link>
+                <a href="https://lablink.com" target="_blank" rel="noopener noreferrer">Open LabLink (External)</a>
               </Button>
             </div>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {pillars.map((pillar) => (
-              <div key={pillar.title} className="rounded-xl border border-border bg-card p-5">
-                <pillar.icon className="h-5 w-5 text-primary" />
-                <h2 className="mt-3 text-lg font-semibold text-foreground">{pillar.title}</h2>
-                <p className="mt-2 text-sm text-muted-foreground">{pillar.description}</p>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {sections.map((section) => (
+              <div key={section.title} className="rounded-xl border border-border bg-card p-5">
+                <h2 className="text-lg font-semibold text-foreground">{section.title}</h2>
+                <div className="mt-4 space-y-2">
+                  {section.links.map((link) => (
+                    link.external ? (
+                      <a
+                        key={link.label}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        key={link.label}
+                        to={link.to || "/for-professionals"}
+                        className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    )
+                  ))}
+                </div>
               </div>
             ))}
           </div>

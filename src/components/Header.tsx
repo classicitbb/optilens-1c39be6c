@@ -12,7 +12,9 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 type MegaMenuLink = {
   label: string;
   description: string;
-  to: string;
+  to?: string;
+  href?: string;
+  externalLabel?: string;
 };
 
 type MegaMenuSection = {
@@ -74,11 +76,29 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Professionals",
     sections: [
       {
-        title: "For Optical Teams",
+        title: "For Optical Stores & Clinics",
         links: [
-          { label: "Professionals Overview", description: "Programs built for practices", to: "/for-professionals" },
-          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lenses/lens-types" },
-          { label: "Wholesale Program", description: "Partner with our lab network", to: "/zenvue/wholesale" },
+          { label: "Apply for a Trade Account", description: "Lead form (Odoo)", to: "/professionals/trade-account" },
+          { label: "Online Ordering Portal", description: "Login to LabLink", href: "https://lablink.com", externalLabel: "External" },
+          { label: "Order Tracking", description: "Track shipments and job status", href: "https://lablink.com/tracking", externalLabel: "External" },
+          { label: "Price List Request", description: "Form (Odoo)", to: "/professionals/price-list-request" },
+        ],
+      },
+      {
+        title: "Technical Resources",
+        links: [
+          { label: "Lab Process Overview", description: "Production flow and checkpoints", to: "/professionals/lab-process-overview" },
+          { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
+          { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
+          { label: "Chemistrie Lens System", description: "Magnetic clip system overview", to: "/professionals/chemistrie-lens-system" },
+        ],
+      },
+      {
+        title: "Support",
+        links: [
+          { label: "Customer Service", description: "Contact channels and service hours", to: "/professionals/customer-service" },
+          { label: "Freight & Delivery Policy", description: "Shipping methods and SLAs", to: "/professionals/freight-delivery-policy" },
+          { label: "Returns / Replacements", description: "RMA and remake policy", to: "/professionals/returns-replacements" },
         ],
       },
     ],
@@ -193,26 +213,41 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
       </button>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-3 w-[62rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
-          <div className={`grid gap-4 ${item.sections.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-            {item.sections.map((section) => (
-              <div key={section.title}>
-                <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
-                <div className="grid gap-1">
-                  {section.links.map((link) => (
+        <div className="absolute left-1/2 top-full z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+          <div className="grid gap-4 md:grid-cols-3">
+          {item.sections.map((section) => (
+            <div key={section.title}>
+              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
+              <div className="grid gap-1">
+                {section.links.map((link) => (
+                  link.href ? (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={handleLinkClick}
+                      className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
+                    >
+                      <p className="text-sm font-medium text-foreground">{link.label}</p>
+                      <p className="text-xs text-muted-foreground">{link.description}</p>
+                      {link.externalLabel && <p className="text-[11px] font-semibold text-primary">{link.externalLabel}</p>}
+                    </a>
+                  ) : (
                     <Link
                       key={link.label}
-                      to={link.to}
-                      onClick={() => setOpen(false)}
+                      to={link.to || "/"}
+                      onClick={handleLinkClick}
                       className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
                     >
                       <p className="text-sm font-medium text-foreground">{link.label}</p>
                       <p className="text-xs text-muted-foreground">{link.description}</p>
                     </Link>
-                  ))}
-                </div>
+                  )
+                ))}
               </div>
-            ))}
+            </div>
+          ))}
           </div>
         </div>
       )}
@@ -271,9 +306,21 @@ const Header = () => {
                     <p className="mb-2 text-sm font-semibold text-foreground">{item.label}</p>
                     <div className="space-y-2">
                       {item.sections.flatMap((section) => section.links).map((link) => (
-                        <Link key={link.label} to={link.to} className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
-                          {link.label}
-                        </Link>
+                        link.href ? (
+                          <a
+                            key={link.label}
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            {link.label} {link.externalLabel ? `(${link.externalLabel})` : ""}
+                          </a>
+                        ) : (
+                          <Link key={link.label} to={link.to || "/"} className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+                            {link.label}
+                          </Link>
+                        )
                       ))}
                     </div>
                   </div>
