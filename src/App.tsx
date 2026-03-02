@@ -140,8 +140,10 @@ const App = () => (
               <Route path="/lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
               <Route path="/lenses/materials" element={<MaterialsPage />} />
               <Route path="/lenses/thickness-chart" element={<ThicknessChartPage />} />
+              <Route path="/coatings" element={<Navigate to="/coatings/how-ar-coating-works" replace />} />
               <Route path="/coatings/mirror" element={<MirrorFinishPage />} />
               <Route path="/coatings/mirrors" element={<Navigate to="/coatings/mirror" replace />} />
+              <Route path="/mirror-finish-guide" element={<Navigate to="/coatings/mirror" replace />} />
               <Route path="/coatings/ultraclear-ar" element={<UltraClearARPage />} />
               <Route path="/coatings/blueblock-ar" element={<BlueBlockARPage />} />
               <Route path="/coatings/scratch-resistant" element={<ScratchResistantPage />} />
