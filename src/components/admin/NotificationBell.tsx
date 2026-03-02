@@ -89,7 +89,7 @@ const NotificationBell = () => {
 
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs font-medium truncate ${severityColor[n.severity] ?? ""}`}>{n.title}</p>
-                    <p className="text-[11px] text-muted-foreground line-clamp-2">{n.message}</p>
+                    <p className="text-[11px] line-clamp-2 text-slate-500">{n.message}</p>
                   </div>
                   <button
               className="shrink-0 text-muted-foreground hover:text-foreground text-xs mt-0.5"
