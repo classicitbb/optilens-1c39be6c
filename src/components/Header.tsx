@@ -61,11 +61,26 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Coatings",
     sections: [
       {
-        title: "Lens Treatments",
+        title: "Premium Performance",
         links: [
-          { label: "Mirror & Finish Guide", description: "Compare coating and finish options", to: "/mirror-finish-guide" },
-          { label: "Sun & Specialty", description: "Photochromic and tinted offerings", to: "/zenvue/sundun" },
-          { label: "Knowledge Articles", description: "Technical coating resources", to: "/knowledge#lens-coatings" },
+          { label: "UltraClear AR (Super AR)", description: "Highest clarity AR stack with premium durability", to: "/coatings/ultraclear-ar" },
+          { label: "BlueBlock AR (BlueGuard AR+)", description: "AR performance with selective blue-violet filtering", to: "/coatings/blueblock-ar" },
+          { label: "Mirror Finish", description: "Reflective finish options for sun and sport lenses", to: "/coatings/mirror" },
+        ],
+      },
+      {
+        title: "Everyday Protection",
+        links: [
+          { label: "Scratch-Resistant", description: "Hard-coat protection for everyday handling", to: "/coatings/scratch-resistant" },
+          { label: "UV Shield - UVA, UVB, BV", description: "Broad-spectrum environmental light protection", to: "/coatings/uv-shield" },
+          { label: "Hydrophobic & Oleophobic", description: "Water and oil repellence for easier cleaning", to: "/coatings/hydrophobic-oleophobic" },
+        ],
+      },
+      {
+        title: "Resources",
+        links: [
+          { label: "How AR Coating Works", description: "Understand AR layering and light transmission", to: "/coatings/how-ar-coating-works" },
+          { label: "Caring for Your Coated Lenses", description: "Best practices for cleaning and long-term care", to: "/coatings/caring-for-coated-lenses" },
         ],
       },
     ],
