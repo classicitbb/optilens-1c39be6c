@@ -4,7 +4,7 @@ const OfficeOccupationalPage = () => (
   <LensResourcePage
     eyebrow="Everyday Vision"
     title="Office / Occupational Lenses"
-    description="Occupational lens designs prioritize intermediate and near zones for desk work, digital screens, and workstation tasks where all-day distance focus is less critical."
+    description="Occupational designs optimize intermediate and near fields for desk, monitor, and workspace tasks where all-day distance viewing is not the primary need."
   />
 );
 

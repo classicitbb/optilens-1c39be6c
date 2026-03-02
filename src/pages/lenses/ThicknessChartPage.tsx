@@ -4,7 +4,7 @@ const ThicknessChartPage = () => (
   <LensResourcePage
     eyebrow="Technical Specs"
     title="Edge & Center Thickness Chart"
-    description="Use edge and center thickness guidance to estimate cosmetic profile, lens weight, and frame compatibility based on prescription type, decentration, and index choice."
+    description="Use thickness guidance to estimate edge and center geometry across plus and minus prescriptions, helping with frame fit, cosmetics, and comfort decisions."
   />
 );
 

@@ -32,11 +32,29 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Lenses",
     sections: [
       {
-        title: "Explore Lenses",
+        title: "Everyday Vision",
         links: [
-          { label: "All Prescription Lenses", description: "Browse complete catalog", to: "/store?tab=lenses" },
+          { label: "Progressive (All-Day Use)", description: "Premium multifocal options", to: "/zenvue/brilliance" },
+          { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
+          { label: "Anti-Fatigue", description: "Digital comfort with near support", to: "/lenses/anti-fatigue" },
           { label: "Single Vision", description: "Everyday distance and near correction", to: "/zenvue/single-vision" },
-          { label: "Progressive Designs", description: "Premium multifocal options", to: "/store?tab=lenses&category=progressive" },
+        ],
+      },
+      {
+        title: "Lifestyle Lenses",
+        links: [
+          { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/zenvue/darkun" },
+          { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
+          { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
+          { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
+        ],
+      },
+      {
+        title: "Technical Specs",
+        links: [
+          { label: "Materials (1.50, 1.56, 1.60, 1.67, 1.74)", description: "Compare index and material performance", to: "/lenses/materials" },
+          { label: "Edge & Center Thickness Chart", description: "Thickness guidance across prescriptions", to: "/lenses/thickness-chart" },
+          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lenses/lens-types" },
         ],
       },
     ],
@@ -45,26 +63,11 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Coatings",
     sections: [
       {
-        title: "Premium Performance",
+        title: "Lens Treatments",
         links: [
-          { label: "UltraClear AR (Super AR)", description: "Highest clarity AR stack with premium durability", to: "/coatings/ultraclear-ar" },
-          { label: "BlueBlock AR (BlueGuard AR+)", description: "AR performance with selective blue-violet filtering", to: "/coatings/blueblock-ar" },
-          { label: "Mirror Finish", description: "Reflective finish options for sun and sport lenses", to: "/coatings/mirror" },
-        ],
-      },
-      {
-        title: "Everyday Protection",
-        links: [
-          { label: "Scratch-Resistant", description: "Hard-coat protection for everyday handling", to: "/coatings/scratch-resistant" },
-          { label: "UV Shield - UVA, UVB, BV", description: "Broad-spectrum environmental light protection", to: "/coatings/uv-shield" },
-          { label: "Hydrophobic & Oleophobic", description: "Water and oil repellence for easier cleaning", to: "/coatings/hydrophobic-oleophobic" },
-        ],
-      },
-      {
-        title: "Resources",
-        links: [
-          { label: "How AR Coating Works", description: "Understand AR layering and light transmission", to: "/coatings/how-ar-coating-works" },
-          { label: "Caring for Your Coated Lenses", description: "Best practices for cleaning and long-term care", to: "/coatings/caring-for-coated-lenses" },
+          { label: "Mirror & Finish Guide", description: "Compare coating and finish options", to: "/mirror-finish-guide" },
+          { label: "Sun & Specialty", description: "Photochromic and tinted offerings", to: "/zenvue/sundun" },
+          { label: "Knowledge Articles", description: "Technical coating resources", to: "/knowledge#lens-coatings" },
         ],
       },
     ],
@@ -104,11 +107,27 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Patients",
     sections: [
       {
-        title: "Patient Education",
+        title: "Understanding Your Lenses",
         links: [
-          { label: "ZenVue Overview", description: "Learn about lens families", to: "/zenvue" },
-          { label: "Compare Lens Options", description: "See lifestyle recommendations", to: "/zenvue/compare" },
-          { label: "Knowledge Base", description: "Patient-friendly lens education", to: "/knowledge" },
+          { label: "What’s the Difference Between Lenses?", description: "Single vision, progressives, and specialty options", to: "/patients#understanding-lenses" },
+          { label: "Why Choose Progressive?", description: "All-distance vision in one pair", to: "/patients#understanding-lenses" },
+          { label: "Eye Strain & Anti-Fatigue Lenses", description: "Support for screen-heavy days", to: "/patients#understanding-lenses" },
+          { label: "Caring for Your Glasses", description: "Simple habits that protect lens coatings", to: "/patients#understanding-lenses" },
+        ],
+      },
+      {
+        title: "Find Care",
+        links: [
+          { label: "Find a Vision Expert Near You", description: "Connect with a licensed eye care professional", to: "/patients#find-care" },
+          { label: "Ask Your Optician About Classic Visions", description: "Discuss lens options for your routine", to: "/patients#find-care" },
+        ],
+      },
+      {
+        title: "Vision Tips",
+        links: [
+          { label: "Computer & Mobile Use", description: "Reduce digital eye strain with practical habits", to: "/patients#vision-tips" },
+          { label: "Sunlight & Protection", description: "UV and glare guidance for outdoor comfort", to: "/patients#vision-tips" },
+          { label: "Regular Eye Exams", description: "Protect long-term vision health", to: "/patients#vision-tips" },
         ],
       },
     ],
@@ -117,11 +136,28 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "About",
     sections: [
       {
-        title: "Company",
+        title: "About Us",
         links: [
-          { label: "About OptiVisionNow", description: "Our mission and values", to: "/#about" },
+          { label: "Our Story", description: "Learn how our company started", to: "/#about" },
+          { label: "What Drives Us", description: "Our mission and values", to: "/#about" },
+          { label: "Our Vision", description: "Where we are heading", to: "/#about" },
+          { label: "News & Articles", description: "Latest updates and insights", to: "/knowledge" },
+        ],
+      },
+      {
+        title: "For Careers & Partnerships",
+        links: [
+          { label: "Join Our Team", description: "Career opportunities and culture", to: "/#contact" },
+          { label: "Become a Partner", description: "Work with our wholesale network", to: "/for-professionals" },
+          { label: "Media & Resources", description: "Press and informational materials", to: "/knowledge" },
+        ],
+      },
+      {
+        title: "Contact & Legal",
+        links: [
           { label: "Contact Us", description: "Reach our team", to: "/#contact" },
-          { label: "Legal", description: "Policies and terms", to: "/legal" },
+          { label: "Terms of Use", description: "Read the terms for using our services", to: "/legal/terms" },
+          { label: "Privacy Policy", description: "Understand how we collect and use data", to: "/legal/privacy-policy" },
         ],
       },
     ],
@@ -164,17 +200,12 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
     <div
       className="relative"
       ref={ref}
-      onMouseEnter={() => {
-        if (!isPinnedOpen) setOpen(true);
-      }}
-      onMouseLeave={() => {
-        if (!isPinnedOpen) setOpen(false);
-      }}
     >
       <button
         type="button"
         onClick={handleTriggerClick}
         className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        aria-haspopup="menu"
         aria-expanded={open}
       >
         {item.label}

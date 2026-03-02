@@ -47,10 +47,10 @@ const Footer = () => {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold uppercase tracking-wider">Legal</h4>
             <nav className="flex flex-col gap-2">
-              <Link to="/privacy-policy" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+              <Link to="/legal/privacy-policy" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
                 Privacy Policy
               </Link>
-              <Link to="/terms-of-use" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+              <Link to="/legal/terms" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
                 Terms of Use
               </Link>
               <Link to="/return-policy" className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">

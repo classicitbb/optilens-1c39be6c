@@ -41,6 +41,8 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
     }
   }, [open, selected]);
 
+  const portalContainer = (ref.current?.closest(".admin-tool") as HTMLElement | null) ?? document.body;
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -185,7 +187,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
             </button>
           </div>
         </div>,
-        document.body,
+        portalContainer,
       )}
     </div>
   );
