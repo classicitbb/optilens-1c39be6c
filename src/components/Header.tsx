@@ -116,11 +116,28 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "About",
     sections: [
       {
-        title: "Company",
+        title: "About Us",
         links: [
-          { label: "About OptiVisionNow", description: "Our mission and values", to: "/#about" },
+          { label: "Our Story", description: "Learn how our company started", to: "/#about" },
+          { label: "What Drives Us", description: "Our mission and values", to: "/#about" },
+          { label: "Our Vision", description: "Where we are heading", to: "/#about" },
+          { label: "News & Articles", description: "Latest updates and insights", to: "/knowledge" },
+        ],
+      },
+      {
+        title: "For Careers & Partnerships",
+        links: [
+          { label: "Join Our Team", description: "Career opportunities and culture", to: "/#contact" },
+          { label: "Become a Partner", description: "Work with our wholesale network", to: "/for-professionals" },
+          { label: "Media & Resources", description: "Press and informational materials", to: "/knowledge" },
+        ],
+      },
+      {
+        title: "Contact & Legal",
+        links: [
           { label: "Contact Us", description: "Reach our team", to: "/#contact" },
-          { label: "Legal", description: "Policies and terms", to: "/legal" },
+          { label: "Terms of Use", description: "Read the terms for using our services", to: "/legal/terms" },
+          { label: "Privacy Policy", description: "Understand how we collect and use data", to: "/legal/privacy-policy" },
         ],
       },
     ],
