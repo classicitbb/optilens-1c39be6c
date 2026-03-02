@@ -30,11 +30,29 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Lenses",
     sections: [
       {
-        title: "Explore Lenses",
+        title: "Everyday Vision",
         links: [
-          { label: "All Prescription Lenses", description: "Browse complete catalog", to: "/store?tab=lenses" },
+          { label: "Progressive (All-Day Use)", description: "Premium multifocal options", to: "/zenvue/brilliance" },
+          { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
+          { label: "Anti-Fatigue", description: "Digital comfort with near support", to: "/lenses/anti-fatigue" },
           { label: "Single Vision", description: "Everyday distance and near correction", to: "/zenvue/single-vision" },
-          { label: "Progressive Designs", description: "Premium multifocal options", to: "/store?tab=lenses&category=progressive" },
+        ],
+      },
+      {
+        title: "Lifestyle Lenses",
+        links: [
+          { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/zenvue/darkun" },
+          { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
+          { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
+          { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
+        ],
+      },
+      {
+        title: "Technical Specs",
+        links: [
+          { label: "Materials (1.50, 1.56, 1.60, 1.67, 1.74)", description: "Compare index and material performance", to: "/lenses/materials" },
+          { label: "Edge & Center Thickness Chart", description: "Thickness guidance across prescriptions", to: "/lenses/thickness-chart" },
+          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lenses/lens-types" },
         ],
       },
     ],
@@ -59,7 +77,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
         title: "For Optical Teams",
         links: [
           { label: "Professionals Overview", description: "Programs built for practices", to: "/for-professionals" },
-          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lens-design-guide" },
+          { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lenses/lens-types" },
           { label: "Wholesale Program", description: "Partner with our lab network", to: "/zenvue/wholesale" },
         ],
       },
@@ -123,25 +141,27 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
       </button>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-3 w-[28rem] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
-          {item.sections.map((section) => (
-            <div key={section.title}>
-              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
-              <div className="grid gap-1">
-                {section.links.map((link) => (
-                  <Link
-                    key={link.label}
-                    to={link.to}
-                    onClick={() => setOpen(false)}
-                    className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
-                  >
-                    <p className="text-sm font-medium text-foreground">{link.label}</p>
-                    <p className="text-xs text-muted-foreground">{link.description}</p>
-                  </Link>
-                ))}
+        <div className="absolute left-1/2 top-full z-50 mt-3 w-[62rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+          <div className={`grid gap-4 ${item.sections.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+            {item.sections.map((section) => (
+              <div key={section.title}>
+                <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
+                <div className="grid gap-1">
+                  {section.links.map((link) => (
+                    <Link
+                      key={link.label}
+                      to={link.to}
+                      onClick={() => setOpen(false)}
+                      className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
+                    >
+                      <p className="text-sm font-medium text-foreground">{link.label}</p>
+                      <p className="text-xs text-muted-foreground">{link.description}</p>
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
