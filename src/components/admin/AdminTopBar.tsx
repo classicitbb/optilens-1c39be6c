@@ -221,20 +221,11 @@ const AdminTopBar = () => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" disabled>
-                  
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Toggle theme</span></TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setHelpOpen(!helpOpen)}>
                   <HelpCircle className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Toggle theme</span></TooltipContent>
+              <TooltipContent side="bottom"><span className="text-xs">Help</span></TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -246,22 +237,6 @@ const AdminTopBar = () => {
               <TooltipContent side="bottom"><span className="text-xs">Toggle theme</span></TooltipContent>
             </Tooltip>
 
-            {/* Lovable link — admin only */}
-            {realRole === "admin" &&
-            <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                  href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors">
-
-                    <ExternalLink className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent side="bottom"><span className="text-xs">Edit with Lovable</span></TooltipContent>
-              </Tooltip>
-            }
           </TooltipProvider>
 
           {/* User name */}
