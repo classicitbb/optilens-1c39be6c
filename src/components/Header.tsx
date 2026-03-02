@@ -157,8 +157,8 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
         title: "Contact & Legal",
         links: [
           { label: "Contact Us", description: "Reach our team", to: "/#contact" },
-          { label: "Terms of Use", description: "Read the terms for using our services", to: "/legal/terms" },
-          { label: "Privacy Policy", description: "Understand how we collect and use data", to: "/legal/privacy-policy" },
+          { label: "Terms of Use", description: "Read the terms for using our services", to: "/terms" },
+          { label: "Privacy Policy", description: "Understand how we collect and use data", to: "/privacy-policy" },
         ],
       },
     ],

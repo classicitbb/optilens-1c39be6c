@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BookOpenText, Glasses, HeartHandshake, Laptop, MapPin, ShieldSun, Stethoscope } from "lucide-react";
+import { BookOpenText, Glasses, HeartHandshake, Laptop, MapPin, Shield, Stethoscope } from "lucide-react";
 
 const understandingItems = [
   {
@@ -193,7 +193,7 @@ const PatientsPage = () => {
                 </Button>
                 <Button asChild>
                   <Link to="/lenses/blue-filter">
-                    <ShieldSun className="mr-2 h-4 w-4" />
+                    <Shield className="mr-2 h-4 w-4" />
                     Explore Blue Filter Lenses
                   </Link>
                 </Button>
