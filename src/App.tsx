@@ -19,6 +19,12 @@ import LegalPage from "./pages/LegalPage";
 import LensDesignGuidePage from "./pages/LensDesignGuidePage";
 import MirrorFinishPage from "./pages/MirrorFinishPage";
 import ProfessionalsPage from "./pages/ProfessionalsPage";
+import OfficeOccupationalPage from "./pages/lenses/OfficeOccupationalPage";
+import AntiFatiguePage from "./pages/lenses/AntiFatiguePage";
+import BlueFilterPage from "./pages/lenses/BlueFilterPage";
+import TintsFashionColorsPage from "./pages/lenses/TintsFashionColorsPage";
+import MaterialsPage from "./pages/lenses/MaterialsPage";
+import ThicknessChartPage from "./pages/lenses/ThicknessChartPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
@@ -121,6 +127,12 @@ const App = () => (
               <Route path="/terms-of-use" element={<Navigate to="/terms" replace />} />
               <Route path="/lenses" element={<Navigate to="/lenses/lens-types" replace />} />
               <Route path="/lenses/lens-types" element={<LensDesignGuidePage />} />
+              <Route path="/lenses/office-occupational" element={<OfficeOccupationalPage />} />
+              <Route path="/lenses/anti-fatigue" element={<AntiFatiguePage />} />
+              <Route path="/lenses/blue-filter" element={<BlueFilterPage />} />
+              <Route path="/lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
+              <Route path="/lenses/materials" element={<MaterialsPage />} />
+              <Route path="/lenses/thickness-chart" element={<ThicknessChartPage />} />
               <Route path="/coatings/mirror" element={<MirrorFinishPage />} />
               <Route path="/coatings/mirrors" element={<Navigate to="/coatings/mirror" replace />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
