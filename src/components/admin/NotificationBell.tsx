@@ -84,7 +84,7 @@ const NotificationBell = () => {
           notifications.map((n) =>
           <button
             key={n.id}
-            className="w-full text-left px-3 py-2 border-b last:border-0 hover:bg-accent/50 transition-colors flex gap-2 items-start"
+            className="w-full text-left px-3 py-2 border-b last:border-0 hover:bg-accent/50 transition-colors flex gap-2 items-start rounded-none"
             onClick={() => handleClick(n.id, n.href)}>
 
                   <div className="flex-1 min-w-0">
