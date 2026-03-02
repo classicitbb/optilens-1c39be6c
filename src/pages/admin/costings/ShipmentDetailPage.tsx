@@ -390,7 +390,7 @@ const ShipmentDetailPage = () => {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-lg font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+        <h1 className="text-lg font-semibold text-foreground">
           {isNew ? "New Shipment" : `Shipment: ${shipment.invoice_number || "Untitled"}`}
         </h1>
         {!isNew && <Badge variant="outline" className="capitalize">{shipment.status}</Badge>}
@@ -474,7 +474,7 @@ const ShipmentDetailPage = () => {
       </div>
 
       {/* Computed summary */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 rounded border" style={{ background: "hsl(215 20% 97%)", borderColor: "hsl(215 15% 88%)" }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 rounded border border-border bg-muted">
         <ComputedField label="FOB (BBD)" value={fmt(totals.fobBbd)} />
         <ComputedField label="Invoice (BBD)" value={fmt(totals.invoiceBbd)} />
         <ComputedField label="Total Charges (BBD)" value={fmt(totals.totalChargesBbd)} />
@@ -717,7 +717,7 @@ const ShipmentDetailPage = () => {
       )}
 
       {isNew && (
-        <div className="text-center py-8 text-xs text-muted-foreground border rounded" style={{ background: "hsl(215 20% 97%)" }}>
+        <div className="text-center py-8 text-xs text-muted-foreground border border-border rounded bg-muted">
           Save the shipment first to add Charges and Line Items.
         </div>
       )}
@@ -735,7 +735,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const ComputedField = ({ label, value }: { label: string; value: string }) => (
   <div className="text-center">
     <div className="text-[10px] text-muted-foreground">{label}</div>
-    <div className="text-sm font-mono font-semibold" style={{ color: "hsl(215 30% 25%)" }}>{value}</div>
+    <div className="text-sm font-mono font-semibold text-foreground">{value}</div>
   </div>
 );
 

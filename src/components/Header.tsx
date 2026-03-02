@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Search, Phone, Sun, Moon, Monitor } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
