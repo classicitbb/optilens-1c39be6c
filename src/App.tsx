@@ -16,6 +16,9 @@ import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
 import LegalPage from "./pages/LegalPage";
+import LensDesignGuidePage from "./pages/LensDesignGuidePage";
+import MirrorFinishPage from "./pages/MirrorFinishPage";
+import ProfessionalsPage from "./pages/ProfessionalsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminLayout from "./components/admin/AdminLayout";
@@ -113,9 +116,15 @@ const App = () => (
               <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-              <Route path="/privacy-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
-              <Route path="/terms" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
-              <Route path="/return-policy" element={<ProtectedRoute><LegalPage /></ProtectedRoute>} />
+              <Route path="/privacy-policy" element={<LegalPage />} />
+              <Route path="/terms" element={<LegalPage />} />
+              <Route path="/terms-of-use" element={<Navigate to="/terms" replace />} />
+              <Route path="/lenses" element={<Navigate to="/lenses/lens-types" replace />} />
+              <Route path="/lenses/lens-types" element={<LensDesignGuidePage />} />
+              <Route path="/coatings/mirror" element={<MirrorFinishPage />} />
+              <Route path="/coatings/mirrors" element={<Navigate to="/coatings/mirror" replace />} />
+              <Route path="/for-professionals" element={<ProfessionalsPage />} />
+              <Route path="/return-policy" element={<LegalPage />} />
 
 
               {/* ZenVue brand microsite */}
