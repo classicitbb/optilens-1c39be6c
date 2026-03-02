@@ -15,57 +15,13 @@ interface Props {
   onChange: (selected: Set<string>) => void;
 }
 
-type AdminMenuVars = {
-  "--admin-card": string;
-  "--admin-border": string;
-  "--admin-content-bg": string;
-  "--admin-content-fg": string;
-  "--admin-muted": string;
-  "--admin-accent": string;
-  "--admin-accent-fg": string;
-};
-
-const DEFAULT_MENU_VARS: AdminMenuVars = {
-  "--admin-card": "0 0% 100%",
-  "--admin-border": "215 15% 85%",
-  "--admin-content-bg": "210 20% 97%",
-  "--admin-content-fg": "215 30% 15%",
-  "--admin-muted": "215 10% 92%",
-  "--admin-accent": "215 65% 45%",
-  "--admin-accent-fg": "0 0% 100%",
-};
-
 const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Set<string>>(new Set(selected));
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 200 });
-  const [menuVars, setMenuVars] = useState<AdminMenuVars>(DEFAULT_MENU_VARS);
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const syncMenuVars = () => {
-    const adminRoot = ref.current?.closest(".admin-tool") as HTMLElement | null;
-    if (!adminRoot) {
-      setMenuVars(DEFAULT_MENU_VARS);
-      return;
-    }
-    const styles = window.getComputedStyle(adminRoot);
-    const read = (name: keyof AdminMenuVars, fallback: string) => {
-      const val = styles.getPropertyValue(name).trim();
-      return val || fallback;
-    };
-
-    setMenuVars({
-      "--admin-card": read("--admin-card", DEFAULT_MENU_VARS["--admin-card"]),
-      "--admin-border": read("--admin-border", DEFAULT_MENU_VARS["--admin-border"]),
-      "--admin-content-bg": read("--admin-content-bg", DEFAULT_MENU_VARS["--admin-content-bg"]),
-      "--admin-content-fg": read("--admin-content-fg", DEFAULT_MENU_VARS["--admin-content-fg"]),
-      "--admin-muted": read("--admin-muted", DEFAULT_MENU_VARS["--admin-muted"]),
-      "--admin-accent": read("--admin-accent", DEFAULT_MENU_VARS["--admin-accent"]),
-      "--admin-accent-fg": read("--admin-accent-fg", DEFAULT_MENU_VARS["--admin-accent-fg"]),
-    });
-  };
 
   const updateMenuPosition = () => {
     const rect = ref.current?.getBoundingClientRect();
@@ -82,9 +38,10 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
     if (open) {
       setDraft(new Set(selected));
       updateMenuPosition();
-      syncMenuVars();
     }
   }, [open, selected]);
+
+  const portalContainer = (ref.current?.closest(".admin-tool") as HTMLElement | null) ?? document.body;
 
   useEffect(() => {
     if (!open) return;
@@ -154,7 +111,6 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
           ref={menuRef}
           className="fixed rounded border shadow-lg z-[140] max-h-[320px] flex flex-col"
           style={{
-            ...menuVars,
             background: "hsl(var(--admin-card))",
             borderColor: "hsl(var(--admin-border))",
             color: "hsl(var(--admin-content-fg))",
@@ -231,7 +187,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange }: Props) => {
             </button>
           </div>
         </div>,
-        document.body,
+        portalContainer,
       )}
     </div>
   );
