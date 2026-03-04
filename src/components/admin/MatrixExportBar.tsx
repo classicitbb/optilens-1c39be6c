@@ -4,7 +4,7 @@ import { FileText, Table2, FileSpreadsheet, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { usePriceMatrix, INDEX_COLUMNS } from "@/hooks/usePriceMatrix";
-import * as XLSX from "xlsx";
+import { writeAoaWorkbook } from "@/lib/excelExport";
 import { format } from "date-fns";
 
 const BLUE_BG = "#1e4db7";
@@ -45,10 +45,7 @@ const MatrixExportBar = ({ showUSD, fxRate }: MatrixExportBarProps) => {
     rows.forEach((r) => data.push([r.category, ...INDEX_COLUMNS.map((c) => getDisplayVal((r as any)[c.key]))]));
     data.push([]);
     data.push([STANDARD_FOOTER]);
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Matrix");
-    XLSX.writeFile(wb, "PriceMatrix.xlsx");
+    writeAoaWorkbook(data, "Matrix", "PriceMatrix.xlsx");
     toast({ title: "Excel exported" });
   };
 

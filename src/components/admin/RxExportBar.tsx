@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { FileText, Table2, FileSpreadsheet, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import * as XLSX from "xlsx";
+import { writeAoaWorkbook } from "@/lib/excelExport";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { compareCategoryOrder, compareMaterialOrder, sortCategories } from "@/lib/sortOrder";
@@ -218,10 +218,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
 
     aoa.push([STANDARD_FOOTER]);
 
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Matrix");
-    XLSX.writeFile(wb, `${version.name}_Matrix.xlsx`);
+    writeAoaWorkbook(aoa, "Matrix", `${version.name}_Matrix.xlsx`);
     toast({ title: "Matrix Excel exported" });
     logExport("Excel", "Matrix");
   };
@@ -510,10 +507,7 @@ ${addonsHtml}
 
     aoa.push([STANDARD_FOOTER]);
 
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "List");
-    XLSX.writeFile(wb, `${version.name}_List.xlsx`);
+    writeAoaWorkbook(aoa, "List", `${version.name}_List.xlsx`);
     toast({ title: "List Excel exported" });
     logExport("Excel", "List");
   };

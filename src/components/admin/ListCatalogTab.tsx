@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Pencil, Link2Off } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import * as XLSX from "xlsx";
+import { writeAoaWorkbook } from "@/lib/excelExport";
 import { LensPickerPopover, PickedItem } from "@/components/admin/LensPickerPopover";
 import { SupplyPickerPopover, PickedSupply } from "@/components/admin/SupplyPickerPopover";
 import MarginBadge from "@/components/admin/MarginBadge";
@@ -372,11 +372,8 @@ const ListCatalogTab = ({
   const handleExcelExport = () => {
     const exportRows = buildExportRows();
     const headers = showUSD ? ["Description", "USD $ COST", "Margin %"] : ["Description", "BBD $ COST", "USD $ COST", "Margin %"];
-    const wb = XLSX.utils.book_new();
     const data: any[][] = [[pageTitle], headers, ...exportRows.map((r: any) => r.isHeader ? [r.title, ...(showUSD ? ["", ""] : ["", "", ""])] : showUSD ? [r.description, r.usd !== null ? parseFloat(r.usd.toFixed(2)) : "", r.margin ?? ""] : [r.description, r.bbd ?? "", r.usd !== null ? parseFloat(r.usd.toFixed(2)) : "", r.margin ?? ""])];
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, "Catalog");
-    XLSX.writeFile(wb, `${pageTitle.replace(/\s+/g, "_")}.xlsx`);
+    writeAoaWorkbook(data, "Catalog", `${pageTitle.replace(/\s+/g, "_")}.xlsx`);
     toast({ title: "Excel exported" });
   };
 
