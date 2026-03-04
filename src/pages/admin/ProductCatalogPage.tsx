@@ -16,7 +16,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import * as XLSX from "xlsx";
+import { writeMultiSheetWorkbook } from "@/lib/excelExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from
@@ -83,8 +83,6 @@ const ProductCatalogPage = () => {
   const { data: allSupplies } = useSupplies();
 
   const handleExportCatalog = () => {
-    const wb = XLSX.utils.book_new();
-
     // Lenses sheet
     const lensRows = (allLenses ?? []).map((l) => ({
       Name: l.name,
@@ -107,7 +105,6 @@ const ProductCatalogPage = () => {
       "Full Lab": l.full_lab ? "Yes" : "No",
       Notes: l.notes ?? ""
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lensRows), "Lenses");
 
     // Addons sheet
     const addonRows = (allAddons ?? []).map((a) => ({
@@ -123,7 +120,6 @@ const ProductCatalogPage = () => {
       Website: a.show_on_website ? "Yes" : "No",
       "Sort Order": a.sort_order
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(addonRows), "Add-Ons");
 
     // Supplies sheet
     const supplyRows = (allSupplies ?? []).map((s) => ({
@@ -146,9 +142,15 @@ const ProductCatalogPage = () => {
       Currency: s.currency,
       Notes: s.notes ?? ""
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(supplyRows), "Supplies");
 
-    XLSX.writeFile(wb, `Product_Catalog_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    writeMultiSheetWorkbook(
+      [
+        { name: "Lenses", json: lensRows },
+        { name: "Add-Ons", json: addonRows },
+        { name: "Supplies", json: supplyRows },
+      ],
+      `Product_Catalog_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
   };
 
   return (
