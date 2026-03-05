@@ -3,7 +3,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, seedTodos, seedUsers } from "./seed";
-import { BusinessPlan, Issue, Meeting, Metric, MoonshotUser, Rock, Todo } from "./types";
+import { BusinessPlan, Issue, Meeting, Metric, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+
+type TileScope = "dashboard" | "workspace";
 
 type MoonshotState = {
   currentUser: MoonshotUser | null;
@@ -14,9 +16,20 @@ type MoonshotState = {
   todos: Todo[];
   issues: Issue[];
   businessPlan: BusinessPlan;
+  coreValues: string[];
+  privateNotes: string;
+  headlines: string[];
+  quickLinks: { label: string; href: string }[];
+  dashboardTiles: WorkspaceTile[];
+  workspaceTiles: WorkspaceTile[];
   login: () => void;
   logout: () => void;
   resetDemoData: () => void;
+  addTile: (scope: TileScope, type: WorkspaceTileType) => void;
+  removeTile: (scope: TileScope, id: string) => void;
+  moveTile: (scope: TileScope, from: number, to: number) => void;
+  resizeTile: (scope: TileScope, id: string, colSpan: WorkspaceTile["colSpan"]) => void;
+  updatePrivateNotes: (notes: string) => void;
   addMeeting: (meeting: Omit<Meeting, "id">) => void;
   updateMeeting: (id: string, updates: Partial<Meeting>) => void;
   deleteMeeting: (id: string) => void;
@@ -40,6 +53,27 @@ type MoonshotState = {
 
 const makeId = (prefix: string) => `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
 
+const tileLabelMap: Record<WorkspaceTileType, string> = {
+  metrics: "My Metrics",
+  rocks: "My Quarterly Rocks",
+  todos: "My To-Dos",
+  issues: "Open Issues",
+  headlines: "Headlines",
+  "core-values": "Core Values",
+  notes: "Private Notes",
+  "quick-links": "Quick Links",
+};
+
+const makeTile = (type: WorkspaceTileType, colSpan: WorkspaceTile["colSpan"] = 1): WorkspaceTile => ({
+  id: makeId("tile"),
+  type,
+  title: tileLabelMap[type],
+  colSpan,
+});
+
+const defaultDashboardTiles = [makeTile("metrics", 2), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
+const defaultWorkspaceTiles = [makeTile("headlines", 2), makeTile("quick-links", 2), makeTile("metrics"), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
+
 const baseState = {
   currentUser: null,
   users: seedUsers,
@@ -49,7 +83,20 @@ const baseState = {
   todos: seedTodos,
   issues: seedIssues,
   businessPlan: seedBusinessPlan,
+  coreValues: ["Do the right thing", "Own the outcome", "Be curious", "Keep commitments"],
+  privateNotes: "Capture your private notes from meetings and weekly priorities here.",
+  headlines: ["Q2 onboarding launch on track", "Retention improved +3% this month"],
+  quickLinks: [
+    { label: "All Meetings", href: "/admin/moonshot/meetings" },
+    { label: "Scorecards", href: "/admin/moonshot/scorecards" },
+    { label: "Quarterly Rocks", href: "/admin/moonshot/rocks" },
+  ],
+  dashboardTiles: defaultDashboardTiles,
+  workspaceTiles: defaultWorkspaceTiles,
 };
+
+const updateTiles = (s: MoonshotState, scope: TileScope, next: WorkspaceTile[]) =>
+  scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next };
 
 export const useMoonshotStore = create<MoonshotState>()(
   persist(
@@ -57,10 +104,33 @@ export const useMoonshotStore = create<MoonshotState>()(
       ...baseState,
       login: () => set({ currentUser: seedUsers[0] }),
       logout: () => set({ currentUser: null }),
-      resetDemoData: () => {
-        localStorage.removeItem("moonshot-store");
-        set({ ...baseState, currentUser: seedUsers[0] });
-      },
+      resetDemoData: () => set({ ...baseState, currentUser: seedUsers[0], dashboardTiles: defaultDashboardTiles, workspaceTiles: defaultWorkspaceTiles }),
+      addTile: (scope, type) =>
+        set((s) => {
+          const tiles = scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles;
+          return updateTiles(s, scope, [...tiles, makeTile(type)]);
+        }),
+      removeTile: (scope, id) =>
+        set((s) => {
+          const tiles = scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles;
+          return updateTiles(s, scope, tiles.filter((tile) => tile.id !== id));
+        }),
+      moveTile: (scope, from, to) =>
+        set((s) => {
+          const tiles = [...(scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles)];
+          if (from < 0 || to < 0 || from >= tiles.length || to >= tiles.length) return {};
+          const [item] = tiles.splice(from, 1);
+          tiles.splice(to, 0, item);
+          return updateTiles(s, scope, tiles);
+        }),
+      resizeTile: (scope, id, colSpan) =>
+        set((s) => {
+          const tiles = (scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles).map((tile) =>
+            tile.id === id ? { ...tile, colSpan } : tile,
+          );
+          return updateTiles(s, scope, tiles);
+        }),
+      updatePrivateNotes: (privateNotes) => set({ privateNotes }),
       addMeeting: (meeting) => set((s) => ({ meetings: [...s.meetings, { id: makeId("m"), ...meeting }] })),
       updateMeeting: (id, updates) => set((s) => ({ meetings: s.meetings.map((m) => (m.id === id ? { ...m, ...updates } : m)) })),
       deleteMeeting: (id) => set((s) => ({ meetings: s.meetings.filter((m) => m.id !== id) })),

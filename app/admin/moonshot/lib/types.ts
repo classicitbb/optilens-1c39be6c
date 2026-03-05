@@ -31,7 +31,7 @@ export type Rock = {
   title: string;
   owner: string;
   dueDate: string;
-  status: "On Track" | "At Risk" | "Off Track";
+  status: "On Track" | "At Risk" | "Off Track" | "Completed";
 };
 
 export type Todo = {
@@ -54,4 +54,13 @@ export type BusinessPlan = {
   vision: string;
   strategy: string;
   quarterlyFocus: string;
+};
+
+export type WorkspaceTileType = "metrics" | "rocks" | "todos" | "issues" | "headlines" | "core-values" | "notes" | "quick-links";
+
+export type WorkspaceTile = {
+  id: string;
+  type: WorkspaceTileType;
+  title: string;
+  colSpan: 1 | 2 | 3 | 4;
 };
