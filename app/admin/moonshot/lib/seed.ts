@@ -1,5 +1,5 @@
 import { addDays, format, subWeeks } from "date-fns";
-import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotUser, Rock, Todo } from "./types";
+import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, Rock, Todo } from "./types";
 
 const today = new Date();
 
@@ -81,4 +81,30 @@ export const seedBusinessPlan: BusinessPlan = {
     rocksSummary: "Ship self-serve onboarding, publish partner API docs, improve SLA reliability.",
     notes: "Review this plan every weekly leadership meeting and update monthly.",
   },
+};
+
+
+export const seedSettings: MoonshotSettings = {
+  organizationName: "Classic Visions",
+  enableZapier: false,
+  editOrgChartPermission: "admin",
+  addUpgradeUsersPermission: "admin",
+  editDeleteUsersPermission: "admin",
+  managersAreAdmins: false,
+  managerSeeOwnRocksAndKpisOnly: true,
+  supervisorsEditAccountabilities: true,
+  employeesEditAccountabilities: true,
+  supervisorsRemoveUsers: false,
+  supervisorsEditPositions: true,
+  allowRapidFireAcrossMeetings: true,
+  allowGoodNewsAcrossMeetings: true,
+  allowAddingClientsAsUsers: false,
+  sendEmailInvitationsByDefault: false,
+  currentQuarter: "Q2 2024",
+  timeZone: "(UTC-03:00) Paraguay Time",
+  weekStart: "Sunday",
+  dateFormat: "dd-mm-yyyy",
+  numberFormat: "1,234,567.90",
+  defaultActionEmailTime: "2 PM (GMT)",
+  scorecardPeriod: "Weekly",
 };

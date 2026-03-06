@@ -2,8 +2,8 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, seedTodos, seedUsers } from "./seed";
-import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, seedSettings, seedTodos, seedUsers } from "./seed";
+import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
 type TileScope = "dashboard" | "workspace";
 type MoonshotTheme = "light" | "dark";
@@ -11,6 +11,7 @@ type MoonshotTheme = "light" | "dark";
 type MoonshotState = {
   currentUser: MoonshotUser | null;
   theme: MoonshotTheme;
+  settings: MoonshotSettings;
   users: MoonshotUser[];
   meetings: Meeting[];
   metrics: Metric[];
@@ -29,6 +30,7 @@ type MoonshotState = {
   setTheme: (theme: MoonshotTheme) => void;
   importDemoData: (payload: Partial<MoonshotState>) => void;
   resetDemoData: () => void;
+  updateSettings: (updates: Partial<MoonshotSettings>) => void;
   addTile: (scope: TileScope, type: WorkspaceTileType) => void;
   removeTile: (scope: TileScope, id: string) => void;
   moveTile: (scope: TileScope, from: number, to: number) => void;
@@ -95,6 +97,7 @@ const baseState = {
   currentUser: null,
   theme: "light" as MoonshotTheme,
   users: seedUsers,
+  settings: seedSettings,
   meetings: seedMeetings,
   metrics: seedMetrics,
   rocks: seedRocks,
@@ -124,6 +127,7 @@ export const useMoonshotStore = create<MoonshotState>()(
       setTheme: (theme) => set({ theme }),
       importDemoData: (payload) => set((s) => ({ ...s, ...payload })),
       resetDemoData: () => set({ ...baseState, currentUser: seedUsers[0], dashboardTiles: defaultDashboardTiles, workspaceTiles: defaultWorkspaceTiles }),
+      updateSettings: (updates) => set((s) => ({ settings: { ...s.settings, ...updates } })),
       addTile: (scope, type) =>
         set((s) => {
           const tiles = scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles;

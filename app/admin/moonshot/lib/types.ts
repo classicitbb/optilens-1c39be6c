@@ -120,3 +120,30 @@ export type WorkspaceTile = {
   title: string;
   colSpan: 1 | 2 | 3 | 4;
 };
+
+export type PermissionLevel = "none" | "view" | "edit" | "admin";
+
+export type MoonshotSettings = {
+  organizationName: string;
+  enableZapier: boolean;
+  editOrgChartPermission: PermissionLevel;
+  addUpgradeUsersPermission: PermissionLevel;
+  editDeleteUsersPermission: PermissionLevel;
+  managersAreAdmins: boolean;
+  managerSeeOwnRocksAndKpisOnly: boolean;
+  supervisorsEditAccountabilities: boolean;
+  employeesEditAccountabilities: boolean;
+  supervisorsRemoveUsers: boolean;
+  supervisorsEditPositions: boolean;
+  allowRapidFireAcrossMeetings: boolean;
+  allowGoodNewsAcrossMeetings: boolean;
+  allowAddingClientsAsUsers: boolean;
+  sendEmailInvitationsByDefault: boolean;
+  currentQuarter: string;
+  timeZone: string;
+  weekStart: "Sunday" | "Monday";
+  dateFormat: "dd-mm-yyyy" | "mm-dd-yyyy" | "yyyy-mm-dd";
+  numberFormat: "1,234,567.90" | "1.234.567,90";
+  defaultActionEmailTime: string;
+  scorecardPeriod: "Daily" | "Weekly" | "Monthly" | "Quarterly";
+};
