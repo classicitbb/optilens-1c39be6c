@@ -53,7 +53,32 @@ export const seedIssues: Issue[] = [
 ];
 
 export const seedBusinessPlan: BusinessPlan = {
-  vision: "Become the easiest growth OS for scaling service businesses.",
-  strategy: "Win with fast onboarding, clear scorecards, and weekly accountability.",
-  quarterlyFocus: "Improve activation by 20% while reducing churn below 3%.",
+  futureFocus: {
+    coreValues: ["Do the right thing", "Own outcomes", "Grow through learning", "Make it simple"],
+    bhag: "Help 10,000 growth-stage businesses run better weekly meetings by 2032.",
+    threeYearVision: {
+      revenue: "$12M ARR",
+      mrr: "$1M",
+      nrr: "118%",
+      grossMargin: "72%",
+      customers: "2,500 active teams",
+    },
+    marketingStrategy: {
+      targetMarket: "Service businesses between 10 and 250 employees.",
+      differentiators: "Meeting-native execution with scorecards, IDS, and accountability in one workflow.",
+      guarantee: "Show measurable weekly execution improvement in 90 days.",
+      process: "Acquire through founder-led content + partner channels, activate with weekly playbooks.",
+    },
+    coreFocus: "Build the fastest path from weekly meetings to weekly outcomes.",
+    coachesAndAdvisors: "EOS coach network, customer success advisors, RevOps mentor circle.",
+    richNotes: "<p><strong>Future Focus Notes:</strong> keep product simple and outcome-driven.</p>",
+  },
+  shortTermFocus: {
+    oneYearPlan: "Reach $250k MRR with a churn rate below 3%.",
+    quarterlyGoals: "Improve activation by 20%, increase weekly active teams by 15%.",
+    keyInitiatives: "Onboarding revamp, scorecard templates, coach certification pilot.",
+    obstacles: "Inconsistent onboarding quality and slow implementation cycles.",
+    rocksSummary: "Ship self-serve onboarding, publish partner API docs, improve SLA reliability.",
+    notes: "Review this plan every weekly leadership meeting and update monthly.",
+  },
 };

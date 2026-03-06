@@ -82,9 +82,34 @@ export type Issue = {
 };
 
 export type BusinessPlan = {
-  vision: string;
-  strategy: string;
-  quarterlyFocus: string;
+  futureFocus: {
+    coreValues: string[];
+    bhag: string;
+    threeYearVision: {
+      revenue: string;
+      mrr: string;
+      nrr: string;
+      grossMargin: string;
+      customers: string;
+    };
+    marketingStrategy: {
+      targetMarket: string;
+      differentiators: string;
+      guarantee: string;
+      process: string;
+    };
+    coreFocus: string;
+    coachesAndAdvisors: string;
+    richNotes: string;
+  };
+  shortTermFocus: {
+    oneYearPlan: string;
+    quarterlyGoals: string;
+    keyInitiatives: string;
+    obstacles: string;
+    rocksSummary: string;
+    notes: string;
+  };
 };
 
 export type WorkspaceTileType = "metrics" | "rocks" | "todos" | "issues" | "headlines" | "core-values" | "notes" | "quick-links";
