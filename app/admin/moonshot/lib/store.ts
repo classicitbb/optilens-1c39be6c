@@ -35,8 +35,9 @@ type MoonshotState = {
   deleteMeeting: (id: string) => void;
   addAgendaSection: (meetingId: string, section: Omit<AgendaSection, "id">) => void;
   endMeeting: (meetingId: string) => void;
-  addMetric: (metric: Omit<Metric, "id">) => void;
+  addMetric: (metric: Omit<Metric, "id" | "points" | "actual"> & Partial<Pick<Metric, "points" | "actual">>) => void;
   updateMetric: (id: string, updates: Partial<Metric>) => void;
+  updateMetricPoint: (id: string, date: string, value: number) => void;
   deleteMetric: (id: string) => void;
   addRock: (rock: Omit<Rock, "id">) => void;
   updateRock: (id: string, updates: Partial<Rock>) => void;
@@ -176,8 +177,30 @@ export const useMoonshotStore = create<MoonshotState>()(
               : m,
           ),
         })),
-      addMetric: (metric) => set((s) => ({ metrics: [...s.metrics, { id: makeId("k"), ...metric }] })),
+      addMetric: (metric) =>
+        set((s) => ({
+          metrics: [
+            ...s.metrics,
+            {
+              id: makeId("k"),
+              frequency: metric.frequency ?? "weekly",
+              unit: metric.unit ?? "number",
+              points: metric.points ?? [{ date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), value: metric.actual ?? 0 }],
+              actual: metric.actual ?? metric.target,
+              ...metric,
+            },
+          ],
+        })),
       updateMetric: (id, updates) => set((s) => ({ metrics: s.metrics.map((m) => (m.id === id ? { ...m, ...updates } : m)) })),
+      updateMetricPoint: (id, date, value) =>
+        set((s) => ({
+          metrics: s.metrics.map((m) => {
+            if (m.id !== id) return m;
+            const exists = m.points.some((p) => p.date === date);
+            const points = exists ? m.points.map((p) => (p.date === date ? { ...p, value } : p)) : [...m.points, { date, value }];
+            return { ...m, points, actual: points[points.length - 1]?.value ?? m.actual };
+          }),
+        })),
       deleteMetric: (id) => set((s) => ({ metrics: s.metrics.filter((m) => m.id !== id) })),
       addRock: (rock) => set((s) => ({ rocks: [...s.rocks, { id: makeId("r"), ...rock }] })),
       updateRock: (id, updates) => set((s) => ({ rocks: s.rocks.map((r) => (r.id === id ? { ...r, ...updates } : r)) })),

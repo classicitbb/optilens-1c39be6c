@@ -13,6 +13,13 @@ export type AgendaSection = {
   minutes: number;
 };
 
+export type MetricFrequency = "daily" | "weekly" | "monthly" | "quarterly";
+
+export type MetricPoint = {
+  date: string;
+  value: number;
+};
+
 export type Meeting = {
   id: string;
   title: string;
@@ -37,6 +44,9 @@ export type Metric = {
   actual: number;
   trend: "up" | "down" | "flat";
   week: string;
+  frequency: MetricFrequency;
+  unit: "number" | "percent" | "currency";
+  points: MetricPoint[];
 };
 
 export type Rock = {

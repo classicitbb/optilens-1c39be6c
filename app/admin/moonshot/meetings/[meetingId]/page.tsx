@@ -11,19 +11,18 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useMoonshotStore } from "../../lib/store";
+import { MetricsTable } from "../../components/metrics-table";
 
 export default function MeetingDetailPage() {
   const params = useParams<{ meetingId: string }>();
   const {
     meetings,
     users,
-    metrics,
     rocks,
     todos,
     issues,
     addTodo,
     updateTodo,
-    updateMetric,
     updateRock,
     addIssue,
     updateIssue,
@@ -107,10 +106,7 @@ export default function MeetingDetailPage() {
           <Card>
             <CardHeader><CardTitle>Metrics</CardTitle></CardHeader>
             <CardContent className="overflow-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-left"><th>Name</th><th>Target</th><th>Actual</th></tr></thead>
-                <tbody>{metrics.map((m) => <tr key={m.id} className="border-t"><td>{m.name}</td><td><Input value={m.target} onChange={(e) => updateMetric(m.id, { target: Number(e.target.value || 0) })} /></td><td><Input value={m.actual} onChange={(e) => updateMetric(m.id, { actual: Number(e.target.value || 0) })} /></td></tr>)}</tbody>
-              </table>
+              <MetricsTable frequency="weekly" compact />
             </CardContent>
           </Card>
         )}
