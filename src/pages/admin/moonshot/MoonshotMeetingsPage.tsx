@@ -16,7 +16,7 @@ export default function MoonshotMeetingsPage() {
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Input placeholder="Filter by title" value={filter} onChange={(e) => setFilter(e.target.value)} />
-          <Button onClick={() => addMeeting({ title: "New Sync", owner: "Classic", date: format(new Date(), "yyyy-MM-dd"), status: "Draft", notes: "" })}>Add</Button>
+          <Button onClick={() => addMeeting({ title: "New Sync", owner: "Classic", date: format(new Date(), "yyyy-MM-dd"), status: "Draft", notes: "", frequency: "weekly", duration: 60, attendeeIds: [] })}>Add</Button>
         </div>
         {meetings.filter((m) => m.title.toLowerCase().includes(filter.toLowerCase())).map((m) => (
           <div key={m.id} className="border rounded p-3 flex items-center justify-between gap-2">

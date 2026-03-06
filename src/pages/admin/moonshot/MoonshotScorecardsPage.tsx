@@ -24,7 +24,7 @@ export default function MoonshotScorecardsPage() {
           </table>
           <div className="flex gap-2 mt-4">
             <Input placeholder="Metric name" value={name} onChange={(e) => setName(e.target.value)} />
-            <Button onClick={() => { if (!name) return; addMetric({ name, owner: "Classic", target: 10, actual: 8, trend: "up", week: "W1" }); setName(""); }}>Add Metric</Button>
+            <Button onClick={() => { if (!name) return; addMetric({ name, owner: "Classic", target: 10, trend: "up", week: "W1", frequency: "weekly", unit: "number" }); setName(""); }}>Add Metric</Button>
           </div>
         </CardContent>
       </Card>
