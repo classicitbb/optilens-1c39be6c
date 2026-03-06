@@ -55,6 +55,9 @@ export type Rock = {
   owner: string;
   dueDate: string;
   status: "On Track" | "At Risk" | "Off Track" | "Completed";
+  percentComplete?: number;
+  notes?: string;
+  meetingId?: string;
 };
 
 export type Todo = {
@@ -63,6 +66,7 @@ export type Todo = {
   owner: string;
   dueDate: string;
   completed: boolean;
+  meetingId?: string;
 };
 
 export type Issue = {
@@ -71,6 +75,10 @@ export type Issue = {
   owner: string;
   priority: "High" | "Medium" | "Low";
   status: "Open" | "In Progress" | "Resolved";
+  identified?: string;
+  discussed?: string;
+  solved?: string;
+  meetingId?: string;
 };
 
 export type BusinessPlan = {

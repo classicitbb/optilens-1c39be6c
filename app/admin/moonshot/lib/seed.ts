@@ -35,18 +35,21 @@ export const seedMetrics: Metric[] = [
 ];
 
 export const seedRocks: Rock[] = [
-  { id: "r1", title: "Launch self-serve onboarding", owner: "Classic", dueDate: format(addDays(today, 35), "yyyy-MM-dd"), status: "On Track" },
-  { id: "r2", title: "Publish partner API docs", owner: "Maya Brooks", dueDate: format(addDays(today, 22), "yyyy-MM-dd"), status: "At Risk" },
+  { id: "r1", title: "Launch self-serve onboarding", owner: "Classic", dueDate: format(addDays(today, 35), "yyyy-MM-dd"), status: "On Track", percentComplete: 72, notes: "UX finalized, engineering in progress", meetingId: "m1" },
+  { id: "r2", title: "Publish partner API docs", owner: "Maya Brooks", dueDate: format(addDays(today, 22), "yyyy-MM-dd"), status: "Off Track", percentComplete: 35, notes: "Awaiting legal review", meetingId: "m2" },
+  { id: "r3", title: "Reduce churn below 3%", owner: "Russell Hunte", dueDate: format(addDays(today, 48), "yyyy-MM-dd"), status: "Completed", percentComplete: 100, notes: "Completed early", meetingId: "m1" },
 ];
 
 export const seedTodos: Todo[] = [
-  { id: "t1", title: "Draft onboarding script", owner: "Classic", dueDate: format(addDays(today, 2), "yyyy-MM-dd"), completed: false },
-  { id: "t2", title: "Review legal terms", owner: "Maya Brooks", dueDate: format(addDays(today, 4), "yyyy-MM-dd"), completed: true },
+  { id: "t1", title: "Draft onboarding script", owner: "Classic", dueDate: format(addDays(today, 2), "yyyy-MM-dd"), completed: false, meetingId: "m1" },
+  { id: "t2", title: "Review legal terms", owner: "Maya Brooks", dueDate: format(addDays(today, -1), "yyyy-MM-dd"), completed: false, meetingId: "m2" },
+  { id: "t3", title: "Share churn analysis", owner: "Russell Hunte", dueDate: format(addDays(today, 5), "yyyy-MM-dd"), completed: true, meetingId: "m1" },
 ];
 
 export const seedIssues: Issue[] = [
-  { id: "i1", title: "Trial conversion drop in SMB segment", owner: "Classic", priority: "High", status: "Open" },
-  { id: "i2", title: "Support SLA misses on weekends", owner: "Maya Brooks", priority: "Medium", status: "In Progress" },
+  { id: "i1", title: "Trial conversion drop in SMB segment", owner: "Classic", priority: "High", status: "Open", identified: "SMB trial-to-paid down 9%", discussed: "Need faster activation flow", solved: "", meetingId: "m1" },
+  { id: "i2", title: "Support SLA misses on weekends", owner: "Maya Brooks", priority: "Medium", status: "In Progress", identified: "Weekend backlog spikes", discussed: "Pilot rotation schedule", solved: "", meetingId: "m2" },
+  { id: "i3", title: "Onboarding docs outdated", owner: "Roy Hunte", priority: "Low", status: "Resolved", identified: "Mismatch with new UI", discussed: "Assign docs owner", solved: "Docs refreshed and published", meetingId: "m1" },
 ];
 
 export const seedBusinessPlan: BusinessPlan = {
