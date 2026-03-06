@@ -35,7 +35,10 @@ export default function MoonshotBusinessPlanPage() {
   }, [updateBusinessPlan, values]);
 
   const printHtml = useMemo(() => {
-    const coreValues = values.futureFocus.coreValues.map((cv, idx) => `<li>${idx + 1}. ${cv}</li>`).join("");
+    const ff = values?.futureFocus;
+    const st = values?.shortTermFocus;
+    if (!ff || !st) return "";
+    const coreValues = (ff.coreValues ?? []).map((cv, idx) => `<li>${idx + 1}. ${cv}</li>`).join("");
     return `
       <html>
       <head><title>Moonshot Business Plan</title><style>body{font-family:Arial;padding:24px}h1,h2{margin:0 0 12px}section{margin-bottom:20px}ul{padding-left:16px}</style></head>
@@ -43,19 +46,19 @@ export default function MoonshotBusinessPlanPage() {
         <h1>Moonshot Business Plan</h1>
         <section><h2>Future Focus</h2>
           <h3>Core Values</h3><ul>${coreValues}</ul>
-          <h3>BHAG</h3><p>${values.futureFocus.bhag}</p>
-          <h3>3-Year Vision</h3><p>Revenue: ${values.futureFocus.threeYearVision.revenue} · MRR: ${values.futureFocus.threeYearVision.mrr} · NRR: ${values.futureFocus.threeYearVision.nrr} · Gross Margin: ${values.futureFocus.threeYearVision.grossMargin} · Customers: ${values.futureFocus.threeYearVision.customers}</p>
-          <h3>Marketing Strategy</h3><p><strong>Target Market:</strong> ${values.futureFocus.marketingStrategy.targetMarket}</p><p><strong>Differentiators:</strong> ${values.futureFocus.marketingStrategy.differentiators}</p>
-          <p><strong>Core Focus:</strong> ${values.futureFocus.coreFocus}</p>
-          <p><strong>Coaches:</strong> ${values.futureFocus.coachesAndAdvisors}</p>
+          <h3>BHAG</h3><p>${ff.bhag}</p>
+          <h3>3-Year Vision</h3><p>Revenue: ${ff.threeYearVision?.revenue} · MRR: ${ff.threeYearVision?.mrr} · NRR: ${ff.threeYearVision?.nrr} · Gross Margin: ${ff.threeYearVision?.grossMargin} · Customers: ${ff.threeYearVision?.customers}</p>
+          <h3>Marketing Strategy</h3><p><strong>Target Market:</strong> ${ff.marketingStrategy?.targetMarket}</p><p><strong>Differentiators:</strong> ${ff.marketingStrategy?.differentiators}</p>
+          <p><strong>Core Focus:</strong> ${ff.coreFocus}</p>
+          <p><strong>Coaches:</strong> ${ff.coachesAndAdvisors}</p>
         </section>
         <section><h2>Short-term Focus</h2>
-          <p><strong>1-Year Plan:</strong> ${values.shortTermFocus.oneYearPlan}</p>
-          <p><strong>Quarterly Goals:</strong> ${values.shortTermFocus.quarterlyGoals}</p>
-          <p><strong>Key Initiatives:</strong> ${values.shortTermFocus.keyInitiatives}</p>
-          <p><strong>Obstacles:</strong> ${values.shortTermFocus.obstacles}</p>
-          <p><strong>Rocks Summary:</strong> ${values.shortTermFocus.rocksSummary}</p>
-          <p><strong>Notes:</strong> ${values.shortTermFocus.notes}</p>
+          <p><strong>1-Year Plan:</strong> ${st.oneYearPlan}</p>
+          <p><strong>Quarterly Goals:</strong> ${st.quarterlyGoals}</p>
+          <p><strong>Key Initiatives:</strong> ${st.keyInitiatives}</p>
+          <p><strong>Obstacles:</strong> ${st.obstacles}</p>
+          <p><strong>Rocks Summary:</strong> ${st.rocksSummary}</p>
+          <p><strong>Notes:</strong> ${st.notes}</p>
         </section>
       </body>
       </html>`;
@@ -69,6 +72,10 @@ export default function MoonshotBusinessPlanPage() {
     win.focus();
     win.print();
   };
+
+  if (!values?.futureFocus || !values?.shortTermFocus) {
+    return <Card className="rounded-xl border bg-card"><CardContent className="py-8 text-center text-muted-foreground">Loading business plan…</CardContent></Card>;
+  }
 
   return (
     <Card className="rounded-xl border bg-card">
