@@ -6,9 +6,11 @@ import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, see
 import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
 type TileScope = "dashboard" | "workspace";
+type MoonshotTheme = "light" | "dark";
 
 type MoonshotState = {
   currentUser: MoonshotUser | null;
+  theme: MoonshotTheme;
   users: MoonshotUser[];
   meetings: Meeting[];
   metrics: Metric[];
@@ -24,6 +26,8 @@ type MoonshotState = {
   workspaceTiles: WorkspaceTile[];
   login: () => void;
   logout: () => void;
+  setTheme: (theme: MoonshotTheme) => void;
+  importDemoData: (payload: Partial<MoonshotState>) => void;
   resetDemoData: () => void;
   addTile: (scope: TileScope, type: WorkspaceTileType) => void;
   removeTile: (scope: TileScope, id: string) => void;
@@ -89,6 +93,7 @@ const defaultWorkspaceTiles = [makeTile("headlines", 2), makeTile("quick-links",
 
 const baseState = {
   currentUser: null,
+  theme: "light" as MoonshotTheme,
   users: seedUsers,
   meetings: seedMeetings,
   metrics: seedMetrics,
@@ -116,6 +121,8 @@ export const useMoonshotStore = create<MoonshotState>()(
       ...baseState,
       login: () => set({ currentUser: seedUsers[0] }),
       logout: () => set({ currentUser: null }),
+      setTheme: (theme) => set({ theme }),
+      importDemoData: (payload) => set((s) => ({ ...s, ...payload })),
       resetDemoData: () => set({ ...baseState, currentUser: seedUsers[0], dashboardTiles: defaultDashboardTiles, workspaceTiles: defaultWorkspaceTiles }),
       addTile: (scope, type) =>
         set((s) => {
@@ -137,70 +144,18 @@ export const useMoonshotStore = create<MoonshotState>()(
         }),
       resizeTile: (scope, id, colSpan) =>
         set((s) => {
-          const tiles = (scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles).map((tile) =>
-            tile.id === id ? { ...tile, colSpan } : tile,
-          );
+          const tiles = (scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles).map((tile) => (tile.id === id ? { ...tile, colSpan } : tile));
           return updateTiles(scope, tiles);
         }),
       updatePrivateNotes: (privateNotes) => set({ privateNotes }),
-      addMeeting: (meeting) =>
-        set((s) => ({
-          meetings: [
-            ...s.meetings,
-            {
-              id: makeId("m"),
-              agenda: meeting.agenda ?? defaultAgenda,
-              checkInPrompt: meeting.checkInPrompt ?? "Share good news...",
-              checkInResponse: meeting.checkInResponse ?? "",
-              summary: meeting.summary ?? "",
-              ...meeting,
-            },
-          ],
-        })),
+      addMeeting: (meeting) => set((s) => ({ meetings: [...s.meetings, { id: makeId("m"), agenda: meeting.agenda ?? defaultAgenda, checkInPrompt: meeting.checkInPrompt ?? "Share good news...", checkInResponse: meeting.checkInResponse ?? "", summary: meeting.summary ?? "", ...meeting }] })),
       updateMeeting: (id, updates) => set((s) => ({ meetings: s.meetings.map((m) => (m.id === id ? { ...m, ...updates } : m)) })),
       deleteMeeting: (id) => set((s) => ({ meetings: s.meetings.filter((m) => m.id !== id) })),
-      addAgendaSection: (meetingId, section) =>
-        set((s) => ({
-          meetings: s.meetings.map((m) =>
-            m.id === meetingId ? { ...m, agenda: [...m.agenda, { ...section, id: makeId("ag") }] } : m,
-          ),
-        })),
-      endMeeting: (meetingId) =>
-        set((s) => ({
-          meetings: s.meetings.map((m) =>
-            m.id === meetingId
-              ? {
-                  ...m,
-                  status: "Completed",
-                  summary: `Meeting complete. ${s.todos.filter((t) => t.completed).length}/${s.todos.length} to-dos complete, ${s.issues.filter((i) => i.status === "Resolved").length} issues resolved.`,
-                }
-              : m,
-          ),
-        })),
-      addMetric: (metric) =>
-        set((s) => ({
-          metrics: [
-            ...s.metrics,
-            {
-              id: makeId("k"),
-              frequency: metric.frequency ?? "weekly",
-              unit: metric.unit ?? "number",
-              points: metric.points ?? [{ date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), value: metric.actual ?? 0 }],
-              actual: metric.actual ?? metric.target,
-              ...metric,
-            },
-          ],
-        })),
+      addAgendaSection: (meetingId, section) => set((s) => ({ meetings: s.meetings.map((m) => (m.id === meetingId ? { ...m, agenda: [...m.agenda, { ...section, id: makeId("ag") }] } : m)) })),
+      endMeeting: (meetingId) => set((s) => ({ meetings: s.meetings.map((m) => (m.id === meetingId ? { ...m, status: "Completed", summary: `Meeting complete. ${s.todos.filter((t) => t.completed).length}/${s.todos.length} to-dos complete, ${s.issues.filter((i) => i.status === "Resolved").length} issues resolved.` } : m)) })),
+      addMetric: (metric) => set((s) => ({ metrics: [...s.metrics, { id: makeId("k"), frequency: metric.frequency ?? "weekly", unit: metric.unit ?? "number", points: metric.points ?? [{ date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), value: metric.actual ?? 0 }], actual: metric.actual ?? metric.target, ...metric }] })),
       updateMetric: (id, updates) => set((s) => ({ metrics: s.metrics.map((m) => (m.id === id ? { ...m, ...updates } : m)) })),
-      updateMetricPoint: (id, date, value) =>
-        set((s) => ({
-          metrics: s.metrics.map((m) => {
-            if (m.id !== id) return m;
-            const exists = m.points.some((p) => p.date === date);
-            const points = exists ? m.points.map((p) => (p.date === date ? { ...p, value } : p)) : [...m.points, { date, value }];
-            return { ...m, points, actual: points[points.length - 1]?.value ?? m.actual };
-          }),
-        })),
+      updateMetricPoint: (id, date, value) => set((s) => ({ metrics: s.metrics.map((m) => { if (m.id !== id) return m; const exists = m.points.some((p) => p.date === date); const points = exists ? m.points.map((p) => (p.date === date ? { ...p, value } : p)) : [...m.points, { date, value }]; return { ...m, points, actual: points[points.length - 1]?.value ?? m.actual }; }) })),
       deleteMetric: (id) => set((s) => ({ metrics: s.metrics.filter((m) => m.id !== id) })),
       addRock: (rock) => set((s) => ({ rocks: [...s.rocks, { id: makeId("r"), ...rock }] })),
       updateRock: (id, updates) => set((s) => ({ rocks: s.rocks.map((r) => (r.id === id ? { ...r, ...updates } : r)) })),
