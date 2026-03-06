@@ -2,12 +2,12 @@
 
 - [ ] I appended a date-stamped section in `CHANGELOG.md` with **Plan**, **Release Notes**, and **Technical Changelog**.
 - [ ] I regenerated release artifacts via `npm run release-ledger:sync` (updates `docs/release-notes.md` and `major-update-ledger` payload in `src/data/wikiContent.ts`).
-- [ ] I ran smoke/build checks before merge (`npm run qa:release-ledger`, `npm run qa:smoke`, and `npm run build`) and attached results.
+- [ ] I ran merge checks (`npm run qa:pr-checks`, `npm run qa:smoke`, and `npm run build`) and attached results.
 
 
 ## If this check fails
 
-Run `npm run release-ledger:sync` to regenerate release artifacts, then commit the updates to:
+Run `npm run release-ledger:sync` before merge to regenerate release artifacts, then commit the updates to:
 - `docs/release-notes.md`
 - `src/data/wikiContent.ts`
 

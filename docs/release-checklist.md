@@ -8,11 +8,11 @@ Use this checklist before merging any major feature release PR.
    - **Plan**
    - **Release Notes**
    - **Technical Changelog**
-2. Run `npm run release-ledger:sync` to regenerate:
+2. Before merge, run `npm run release-ledger:sync` to regenerate:
    - `docs/release-notes.md`
    - `src/data/wikiContent.ts` under the `major-update-ledger` article payload.
-3. Run smoke/build checks before merge:
-   - `npm run qa:release-ledger`
+3. Run PR and smoke/build checks before merge:
+   - `npm run qa:pr-checks`
    - `npm run qa:smoke`
    - `npm run build`
 
