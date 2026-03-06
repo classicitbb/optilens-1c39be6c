@@ -95,6 +95,7 @@ import MoonshotBusinessPlanPage from "./pages/admin/moonshot/MoonshotBusinessPla
 import MoonshotToolsPage from "./pages/admin/moonshot/MoonshotToolsPage";
 import MoonshotUsersPage from "./pages/admin/moonshot/MoonshotUsersPage";
 import MoonshotPlaceholderPage from "./pages/admin/moonshot/MoonshotPlaceholderPage";
+import MoonshotSettingsPage from "./pages/admin/moonshot/MoonshotSettingsPage";
 // ZenVue feature pages
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
 import ZenvueBrilliance from "./pages/zenvue/ZenvueBrilliance";
@@ -316,7 +317,7 @@ const App = () => (
                 <Route path="tools/right-person-right-seat" element={<MoonshotPlaceholderPage title="Right Person Right Seat tool coming soon" />} />
                 <Route path="users" element={<MoonshotUsersPage />} />
                 <Route path="resources" element={<MoonshotPlaceholderPage title="Resources library coming soon" />} />
-                <Route path="settings" element={<MoonshotPlaceholderPage title="Moonshot settings coming soon" />} />
+                <Route path="settings" element={<MoonshotSettingsPage />} />
                 <Route path="feedback" element={<MoonshotPlaceholderPage title="Thanks! Feedback form coming soon" />} />
               </Route>
 
