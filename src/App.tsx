@@ -80,6 +80,21 @@ import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
 import HelpdeskTicketsPage from "./pages/admin/helpdesk/HelpdeskTicketsPage";
 import HelpdeskTeamsPage from "./pages/admin/helpdesk/HelpdeskTeamsPage";
 import HelpdeskSlaPoliciesPage from "./pages/admin/helpdesk/HelpdeskSlaPoliciesPage";
+// Moonshot
+import MoonshotLayout from "./features/admin/moonshot/MoonshotLayout";
+import MoonshotDashboardPage from "./pages/admin/moonshot/MoonshotDashboardPage";
+import MoonshotWorkspacePage from "./pages/admin/moonshot/MoonshotWorkspacePage";
+import MoonshotMeetingsPage from "./pages/admin/moonshot/MoonshotMeetingsPage";
+import MoonshotNewMeetingPage from "./pages/admin/moonshot/MoonshotNewMeetingPage";
+import MoonshotMeetingDetailPage from "./pages/admin/moonshot/MoonshotMeetingDetailPage";
+import MoonshotScorecardsPage from "./pages/admin/moonshot/MoonshotScorecardsPage";
+import MoonshotRocksPage from "./pages/admin/moonshot/MoonshotRocksPage";
+import MoonshotTodosPage from "./pages/admin/moonshot/MoonshotTodosPage";
+import MoonshotIssuesPage from "./pages/admin/moonshot/MoonshotIssuesPage";
+import MoonshotBusinessPlanPage from "./pages/admin/moonshot/MoonshotBusinessPlanPage";
+import MoonshotToolsPage from "./pages/admin/moonshot/MoonshotToolsPage";
+import MoonshotUsersPage from "./pages/admin/moonshot/MoonshotUsersPage";
+import MoonshotPlaceholderPage from "./pages/admin/moonshot/MoonshotPlaceholderPage";
 // ZenVue feature pages
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
 import ZenvueBrilliance from "./pages/zenvue/ZenvueBrilliance";
@@ -280,6 +295,29 @@ const App = () => (
                 <Route path="erp/rx-orders" element={<Navigate to="/admin/sales/rx-orders" replace />} />
                 <Route path="erp/website" element={<Navigate to="/admin/website/content" replace />} />
                 <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
+              </Route>
+
+              {/* ═══ Moonshot App (standalone layout) ═══ */}
+              <Route path="/admin/moonshot" element={<AdminProtectedRoute><MoonshotLayout /></AdminProtectedRoute>}>
+                <Route index element={<Navigate to="/admin/moonshot/dashboard" replace />} />
+                <Route path="dashboard" element={<MoonshotDashboardPage />} />
+                <Route path="workspace" element={<MoonshotWorkspacePage />} />
+                <Route path="meetings" element={<MoonshotMeetingsPage />} />
+                <Route path="meetings/new" element={<MoonshotNewMeetingPage />} />
+                <Route path="meetings/:meetingId" element={<MoonshotMeetingDetailPage />} />
+                <Route path="scorecards" element={<MoonshotScorecardsPage />} />
+                <Route path="rocks" element={<MoonshotRocksPage />} />
+                <Route path="todos" element={<MoonshotTodosPage />} />
+                <Route path="issues" element={<MoonshotIssuesPage />} />
+                <Route path="business-plan" element={<MoonshotBusinessPlanPage />} />
+                <Route path="tools" element={<MoonshotToolsPage />} />
+                <Route path="tools/org-chart" element={<MoonshotPlaceholderPage title="Org Chart tool coming soon" />} />
+                <Route path="tools/one-on-ones" element={<MoonshotPlaceholderPage title="1:1s tool coming soon" />} />
+                <Route path="tools/right-person-right-seat" element={<MoonshotPlaceholderPage title="Right Person Right Seat tool coming soon" />} />
+                <Route path="users" element={<MoonshotUsersPage />} />
+                <Route path="resources" element={<MoonshotPlaceholderPage title="Resources library coming soon" />} />
+                <Route path="settings" element={<MoonshotPlaceholderPage title="Moonshot settings coming soon" />} />
+                <Route path="feedback" element={<MoonshotPlaceholderPage title="Thanks! Feedback form coming soon" />} />
               </Route>
 
             <Route path="*" element={<NotFound />} />
