@@ -1,30 +1,36 @@
-# Lockfile Refresh Instructions (after removing `@tiptap/extension-mention`)
+# Lockfile Refresh Instructions
 
-This repo had install/build failures because `@tiptap/extension-mention` pulled `@tiptap/suggestion`, which is blocked in some environments.
+This repository uses a single automation lockfile strategy:
 
-## What changed
-- Removed `@tiptap/extension-mention` from `package.json` because it is not currently imported in `src/`.
+- **Canonical lockfile:** `package-lock.json`
+- **Canonical installer:** `npm ci`
+- **Canonical build check:** `npm run build`
+- **Canonical CI runtime:** Node 20 (`actions/setup-node`)
 
-## How to refresh lockfile
-Run these commands from repo root:
+## When to refresh lock state
+
+Refresh `package-lock.json` whenever dependencies in `package.json` change.
+
+## Refresh workflow
+
+Run from repository root:
 
 ```bash
 rm -rf node_modules
 npm install
-```
-
-Then verify:
-
-```bash
+npm ci
 npm run build
 ```
 
-## If your environment still blocks npm registry access
-Use one of these:
-1. Configure your npm proxy/allowlist for required scoped packages.
-2. Use your organization's approved internal registry mirror.
-3. If your team standard is Bun, regenerate lock state via Bun and align CI accordingly.
+- `npm install` updates `package-lock.json` to match dependency manifest changes.
+- `npm ci` validates that the lockfile is consistent and reproducible.
+- `npm run build` verifies the canonical build path.
+
+## Bun note (local-only)
+
+Bun can be used for local experimentation, but Bun lock state is **not** used for CI/Lovable automation. Do not rely on Bun lockfiles for reproducible CI installs.
 
 ## Expected outcome
-- `node_modules/.bin/vite` is restored.
-- `npm run build` and `npm run dev` can execute in environments with registry access.
+
+- `package-lock.json` fully represents dependency resolution for automation.
+- `npm ci` and `npm run build` pass consistently under Node 20.
