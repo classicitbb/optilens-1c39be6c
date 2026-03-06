@@ -46,7 +46,7 @@ export function WorkspaceGrid({ scope }: { scope: Scope }) {
             <thead><tr className="text-left text-muted-foreground"><th>Who</th><th>Metric</th><th>Goal</th><th>Latest</th></tr></thead>
             <tbody>
               {metrics.slice(0, full ? metrics.length : 4).map((metric) => {
-                const latest = metric.points[metric.points.length - 1]?.value ?? metric.actual;
+                const latest = metric.points?.[metric.points.length - 1]?.value ?? metric.actual;
                 return <tr key={metric.id} className="border-t"><td>{metric.owner}</td><td>{metric.name}</td><td>{metric.target}</td><td className={latest >= metric.target ? "text-emerald-600" : "text-red-600"}>{latest}</td></tr>;
               })}
             </tbody>
