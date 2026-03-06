@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run release-ledger:sync && vite build",
+    "build": "vite build",
+    "build:prepare": "npm run release-ledger:sync",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "qa:smoke": "node scripts/admin_smoke_and_error_checks.mjs",
     "release-ledger:sync": "node scripts/sync_release_ledger.mjs",
     "qa:release-ledger": "node scripts/sync_release_ledger.mjs --check",
+    "qa:pr-checks": "node scripts/pr_checks.mjs",
     "supabase:types:generate": "npx supabase gen types typescript --local > src/integrations/supabase/types.ts",
     "prepare": "husky || true"
   },
