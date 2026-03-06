@@ -180,7 +180,14 @@ const releaseChanged = fs.existsSync(RELEASE_NOTES_PATH)
 const wikiChanged = writeIfNeeded(WIKI_CONTENT_PATH, generatedWiki);
 
 if (mode === "check" && (releaseChanged || wikiChanged)) {
-  console.error("Release artifacts are out of sync. Run: npm run release-ledger:sync");
+  const outOfSyncTargets = [
+    releaseChanged ? "docs/release-notes.md" : null,
+    wikiChanged ? "src/data/wikiContent.ts" : null,
+  ].filter(Boolean);
+
+  console.error(
+    `Release artifacts are out of sync (${outOfSyncTargets.join(", ")}). Run: npm run release-ledger:sync`,
+  );
   process.exit(1);
 }
 

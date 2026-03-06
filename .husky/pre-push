@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+npm run qa:release-ledger
+status=$?
+
+if [ "$status" -ne 0 ]; then
+  echo ""
+  echo "Release ledger verification failed. To regenerate artifacts, run: npm run release-ledger:sync"
+fi
+
+exit "$status"
