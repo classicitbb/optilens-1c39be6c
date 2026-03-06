@@ -3,6 +3,14 @@ import { persist } from "zustand/middleware";
 import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, seedSettings, seedTodos, seedUsers } from "./seed";
 import type { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
+/** Migrate old flat businessPlan shape to the new nested one */
+function migrateBusinessPlan(raw: unknown): BusinessPlan {
+  if (raw && typeof raw === "object" && "futureFocus" in (raw as Record<string, unknown>)) {
+    return raw as BusinessPlan;
+  }
+  return seedBusinessPlan;
+}
+
 type TileScope = "dashboard" | "workspace";
 type MoonshotTheme = "light" | "dark";
 
@@ -173,6 +181,18 @@ export const useMoonshotStore = create<MoonshotState>()(
       updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)) })),
       deleteUser: (id) => set((s) => ({ users: s.users.filter((u) => u.id !== id) })),
     }),
-    { name: "moonshot-store" },
+    {
+      name: "moonshot-store",
+      merge: (persisted, current) => {
+        const p = persisted as Record<string, unknown> | undefined;
+        if (!p) return current;
+        return {
+          ...current,
+          ...p,
+          businessPlan: migrateBusinessPlan(p.businessPlan),
+          settings: p.settings && typeof p.settings === "object" && "organizationName" in (p.settings as Record<string, unknown>) ? p.settings as MoonshotSettings : seedSettings,
+        };
+      },
+    },
   ),
 );
