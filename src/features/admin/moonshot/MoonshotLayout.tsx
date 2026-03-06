@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertCircle, BarChart3, Bell, Book, Calendar, CheckSquare,
-  ChevronRight, FileText, Grid, Home, Menu, Moon, Settings, Target, Wrench,
+  ChevronRight, FileText, Grid, Home, Menu, Moon, Rocket, Settings, Target, Wrench,
 } from "lucide-react";
+import AppLauncher from "@/components/admin/AppLauncher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -55,6 +56,7 @@ export default function MoonshotLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [launcherOpen, setLauncherOpen] = useState(false);
   const { currentUser, login, logout } = useMoonshotStore();
 
   const crumbs = useMemo(() => {
@@ -82,9 +84,17 @@ export default function MoonshotLayout() {
       )}
       <aside className={`fixed inset-y-0 left-0 z-40 w-[280px] bg-[#0f766e] text-white flex flex-col transition-transform ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <div className="h-16 px-4 border-b border-white/20 flex items-center gap-2 font-bold text-lg">
-          <Moon className="h-5 w-5" />
+          <button
+            onClick={() => setLauncherOpen(true)}
+            data-apps-toggle
+            className="p-1 rounded-md hover:bg-white/20 transition-colors"
+            title="Open App Launcher"
+          >
+            <Rocket className="h-5 w-5" />
+          </button>
           <span>Moonshot</span>
         </div>
+        <AppLauncher open={launcherOpen} onClose={() => setLauncherOpen(false)} />
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
