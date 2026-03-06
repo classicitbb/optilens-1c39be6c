@@ -7,13 +7,26 @@ export type MoonshotUser = {
   invitedEmail?: string;
 };
 
+export type AgendaSection = {
+  id: string;
+  title: string;
+  minutes: number;
+};
+
 export type Meeting = {
   id: string;
   title: string;
   owner: string;
   date: string;
-  status: "Scheduled" | "Completed" | "Draft";
+  status: "Scheduled" | "Completed" | "Draft" | "In Progress";
   notes: string;
+  frequency: "weekly" | "biweekly" | "monthly";
+  duration: number;
+  attendeeIds: string[];
+  agenda: AgendaSection[];
+  checkInPrompt: string;
+  checkInResponse: string;
+  summary: string;
 };
 
 export type Metric = {

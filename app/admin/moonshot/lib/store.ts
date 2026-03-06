@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, seedTodos, seedUsers } from "./seed";
-import { BusinessPlan, Issue, Meeting, Metric, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
 type TileScope = "dashboard" | "workspace";
 
@@ -30,9 +30,11 @@ type MoonshotState = {
   moveTile: (scope: TileScope, from: number, to: number) => void;
   resizeTile: (scope: TileScope, id: string, colSpan: WorkspaceTile["colSpan"]) => void;
   updatePrivateNotes: (notes: string) => void;
-  addMeeting: (meeting: Omit<Meeting, "id">) => void;
+  addMeeting: (meeting: Omit<Meeting, "id" | "agenda" | "checkInPrompt" | "checkInResponse" | "summary"> & Partial<Pick<Meeting, "agenda" | "checkInPrompt" | "checkInResponse" | "summary">>) => void;
   updateMeeting: (id: string, updates: Partial<Meeting>) => void;
   deleteMeeting: (id: string) => void;
+  addAgendaSection: (meetingId: string, section: Omit<AgendaSection, "id">) => void;
+  endMeeting: (meetingId: string) => void;
   addMetric: (metric: Omit<Metric, "id">) => void;
   updateMetric: (id: string, updates: Partial<Metric>) => void;
   deleteMetric: (id: string) => void;
@@ -71,6 +73,16 @@ const makeTile = (type: WorkspaceTileType, colSpan: WorkspaceTile["colSpan"] = 1
   colSpan,
 });
 
+const defaultAgenda: AgendaSection[] = [
+  { id: "a1", title: "Check-in", minutes: 5 },
+  { id: "a2", title: "Metrics", minutes: 5 },
+  { id: "a3", title: "Goals", minutes: 5 },
+  { id: "a4", title: "Headlines", minutes: 5 },
+  { id: "a5", title: "To-Dos", minutes: 5 },
+  { id: "a6", title: "Issues", minutes: 60 },
+  { id: "a7", title: "Wrap-up", minutes: 5 },
+];
+
 const defaultDashboardTiles = [makeTile("metrics", 2), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
 const defaultWorkspaceTiles = [makeTile("headlines", 2), makeTile("quick-links", 2), makeTile("metrics"), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
 
@@ -95,8 +107,7 @@ const baseState = {
   workspaceTiles: defaultWorkspaceTiles,
 };
 
-const updateTiles = (s: MoonshotState, scope: TileScope, next: WorkspaceTile[]) =>
-  scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next };
+const updateTiles = (scope: TileScope, next: WorkspaceTile[]) => (scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next });
 
 export const useMoonshotStore = create<MoonshotState>()(
   persist(
@@ -108,12 +119,12 @@ export const useMoonshotStore = create<MoonshotState>()(
       addTile: (scope, type) =>
         set((s) => {
           const tiles = scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles;
-          return updateTiles(s, scope, [...tiles, makeTile(type)]);
+          return updateTiles(scope, [...tiles, makeTile(type)]);
         }),
       removeTile: (scope, id) =>
         set((s) => {
           const tiles = scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles;
-          return updateTiles(s, scope, tiles.filter((tile) => tile.id !== id));
+          return updateTiles(scope, tiles.filter((tile) => tile.id !== id));
         }),
       moveTile: (scope, from, to) =>
         set((s) => {
@@ -121,19 +132,50 @@ export const useMoonshotStore = create<MoonshotState>()(
           if (from < 0 || to < 0 || from >= tiles.length || to >= tiles.length) return {};
           const [item] = tiles.splice(from, 1);
           tiles.splice(to, 0, item);
-          return updateTiles(s, scope, tiles);
+          return updateTiles(scope, tiles);
         }),
       resizeTile: (scope, id, colSpan) =>
         set((s) => {
           const tiles = (scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles).map((tile) =>
             tile.id === id ? { ...tile, colSpan } : tile,
           );
-          return updateTiles(s, scope, tiles);
+          return updateTiles(scope, tiles);
         }),
       updatePrivateNotes: (privateNotes) => set({ privateNotes }),
-      addMeeting: (meeting) => set((s) => ({ meetings: [...s.meetings, { id: makeId("m"), ...meeting }] })),
+      addMeeting: (meeting) =>
+        set((s) => ({
+          meetings: [
+            ...s.meetings,
+            {
+              id: makeId("m"),
+              agenda: meeting.agenda ?? defaultAgenda,
+              checkInPrompt: meeting.checkInPrompt ?? "Share good news...",
+              checkInResponse: meeting.checkInResponse ?? "",
+              summary: meeting.summary ?? "",
+              ...meeting,
+            },
+          ],
+        })),
       updateMeeting: (id, updates) => set((s) => ({ meetings: s.meetings.map((m) => (m.id === id ? { ...m, ...updates } : m)) })),
       deleteMeeting: (id) => set((s) => ({ meetings: s.meetings.filter((m) => m.id !== id) })),
+      addAgendaSection: (meetingId, section) =>
+        set((s) => ({
+          meetings: s.meetings.map((m) =>
+            m.id === meetingId ? { ...m, agenda: [...m.agenda, { ...section, id: makeId("ag") }] } : m,
+          ),
+        })),
+      endMeeting: (meetingId) =>
+        set((s) => ({
+          meetings: s.meetings.map((m) =>
+            m.id === meetingId
+              ? {
+                  ...m,
+                  status: "Completed",
+                  summary: `Meeting complete. ${s.todos.filter((t) => t.completed).length}/${s.todos.length} to-dos complete, ${s.issues.filter((i) => i.status === "Resolved").length} issues resolved.`,
+                }
+              : m,
+          ),
+        })),
       addMetric: (metric) => set((s) => ({ metrics: [...s.metrics, { id: makeId("k"), ...metric }] })),
       updateMetric: (id, updates) => set((s) => ({ metrics: s.metrics.map((m) => (m.id === id ? { ...m, ...updates } : m)) })),
       deleteMetric: (id) => set((s) => ({ metrics: s.metrics.filter((m) => m.id !== id) })),
