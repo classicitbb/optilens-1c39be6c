@@ -15,7 +15,8 @@ const APP_COLORS: Record<string, string> = {
   helpdesk: "hsl(38 92% 50%)",
   website: "hsl(200 60% 50%)",
   knowledge: "hsl(140 50% 45%)",
-  settings: "hsl(215 15% 50%)"
+  settings: "hsl(215 15% 50%)",
+  moonshot: "hsl(168 76% 42%)",
 };
 
 interface AppLauncherProps {

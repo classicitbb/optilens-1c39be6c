@@ -10,6 +10,7 @@ import {
   Layout, Palette, UserCircle, Store,
   BookMarked, HelpCircle,
   Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle,
+  Rocket, LayoutDashboard as MsBoard, ListChecks, MessageSquare, TrendingUp, Mountain, CheckSquare, AlertCircle, FileText as MsPlan, Wrench as MsTools, Users as MsUsers,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -151,6 +152,26 @@ export const ADMIN_APPS = {
       { label: 'Audit Log', route: '/admin/settings/audit', icon: ScrollText },
       { label: 'Integrations', route: '/admin/settings/integrations', icon: Plug },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
+    ] satisfies SidebarItem[],
+  },
+  moonshot: {
+    key: 'moonshot' as const,
+    title: 'Moonshot',
+    icon: Rocket,
+    baseRoute: '/admin/moonshot',
+    defaultRoute: '/admin/moonshot/dashboard',
+    featurePrefix: 'moonshot',
+    sidebarItems: [
+      { label: 'Dashboard', route: '/admin/moonshot/dashboard', icon: MsBoard },
+      { label: 'Workspace', route: '/admin/moonshot/workspace', icon: ListChecks },
+      { label: 'Meetings', route: '/admin/moonshot/meetings', icon: MessageSquare },
+      { label: 'Scorecards', route: '/admin/moonshot/scorecards', icon: TrendingUp },
+      { label: 'Rocks', route: '/admin/moonshot/rocks', icon: Mountain },
+      { label: 'Todos', route: '/admin/moonshot/todos', icon: CheckSquare },
+      { label: 'Issues', route: '/admin/moonshot/issues', icon: AlertCircle },
+      { label: 'Business Plan', route: '/admin/moonshot/business-plan', icon: MsPlan },
+      { label: 'Tools', route: '/admin/moonshot/tools', icon: MsTools },
+      { label: 'Users', route: '/admin/moonshot/users', icon: MsUsers },
     ] satisfies SidebarItem[],
   },
 } as const;
