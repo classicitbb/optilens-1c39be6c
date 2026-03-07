@@ -173,7 +173,10 @@ export function WorkspaceGrid({ scope }: { scope: Scope }) {
 
       <Dialog open={Boolean(expanded)} onOpenChange={(open) => !open && setExpandedTileId(null)}>
         <DialogContent className="max-w-3xl">
-          <DialogHeader><DialogTitle>{expanded?.title}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{expanded?.title}</DialogTitle>
+            <DialogDescription>Expanded view of {expanded?.title ?? "tile"}</DialogDescription>
+          </DialogHeader>
           {expanded ? tileContent(expanded.type, true) : null}
         </DialogContent>
       </Dialog>
