@@ -146,7 +146,7 @@ export function WorkspaceGrid({ scope }: { scope: Scope }) {
           >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-sm text-teal-700 flex items-center gap-2"><GripVertical className="h-4 w-4" />{tile.title}</CardTitle>
+                <CardTitle className="text-sm text-primary flex items-center gap-2"><GripVertical className="h-4 w-4" />{tile.title}</CardTitle>
                 <div className="flex items-center gap-1">
                   <AddTileDialog onAdd={(type) => addTile(scope, type)} compact />
                   <Select value={String(tile.colSpan)} onValueChange={(v) => resizeTile(scope, tile.id, Number(v) as 1 | 2 | 3 | 4)}>
