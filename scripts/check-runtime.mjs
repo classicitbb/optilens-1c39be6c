@@ -49,7 +49,7 @@ try {
   const nodeMajor = parseMajor(nodeVersion, "Node");
   const npmMajor = parseMajor(npmVersion, "npm");
 
-  if (nodeMajor !== REQUIRED_NODE_MAJOR || npmMajor !== REQUIRED_NPM_MAJOR) {
+  if (!ALLOWED_NODE_MAJORS.includes(nodeMajor) || npmMajor !== REQUIRED_NPM_MAJOR) {
     fail(`Detected Node ${nodeVersion} and npm ${npmVersion}.`);
   }
 
