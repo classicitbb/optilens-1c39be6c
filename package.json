@@ -16,6 +16,7 @@
     "qa:release-ledger": "node scripts/sync_release_ledger.mjs --check",
     "qa:pr-checks": "node scripts/pr_checks.mjs",
     "supabase:types:generate": "npx supabase gen types typescript --local > src/integrations/supabase/types.ts",
+    "preinstall": "node scripts/check-runtime.mjs",
     "prepare": "husky || true"
   },
   "dependencies": {

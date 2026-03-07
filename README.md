@@ -4,15 +4,17 @@
 
 To reduce non-deterministic dependency and build behavior, this repository standardizes on **Node 20 + npm** with the **npm lockfile**.
 
-- Node: `20.x`
+- Node: `20.x` (pinned in `.nvmrc`)
 - npm: `10.x`
 - Canonical lockfile for automation: `package-lock.json`
 - Canonical install command: `npm ci`
 - Canonical build command: `npm run build`
+- Runtime guard: `preinstall` runs `scripts/check-runtime.mjs` and exits with a clear error when Node/npm are out of range
 
 Use this required flow locally and in automation:
 
 ```bash
+nvm use
 npm ci
 npm run build
 ```
@@ -20,6 +22,7 @@ npm run build
 ## Local development
 
 ```bash
+nvm use
 npm ci
 npm run dev
 ```
