@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useMoonshotStore } from "@/features/admin/moonshot/lib/store";
@@ -146,7 +146,7 @@ export function WorkspaceGrid({ scope }: { scope: Scope }) {
           >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-sm text-teal-700 flex items-center gap-2"><GripVertical className="h-4 w-4" />{tile.title}</CardTitle>
+                <CardTitle className="text-sm text-primary flex items-center gap-2"><GripVertical className="h-4 w-4" />{tile.title}</CardTitle>
                 <div className="flex items-center gap-1">
                   <AddTileDialog onAdd={(type) => addTile(scope, type)} compact />
                   <Select value={String(tile.colSpan)} onValueChange={(v) => resizeTile(scope, tile.id, Number(v) as 1 | 2 | 3 | 4)}>
@@ -173,7 +173,10 @@ export function WorkspaceGrid({ scope }: { scope: Scope }) {
 
       <Dialog open={Boolean(expanded)} onOpenChange={(open) => !open && setExpandedTileId(null)}>
         <DialogContent className="max-w-3xl">
-          <DialogHeader><DialogTitle>{expanded?.title}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{expanded?.title}</DialogTitle>
+            <DialogDescription>Expanded view of {expanded?.title ?? "tile"}</DialogDescription>
+          </DialogHeader>
           {expanded ? tileContent(expanded.type, true) : null}
         </DialogContent>
       </Dialog>
@@ -191,7 +194,10 @@ function AddTileDialog({ onAdd, compact = false }: { onAdd: (type: WorkspaceTile
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Add tile</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Add tile</DialogTitle>
+          <DialogDescription>Choose a tile type to add to your workspace.</DialogDescription>
+        </DialogHeader>
         <div className="grid grid-cols-2 gap-2">
           {addableTiles.map((tile) => (
             <Button key={tile.value} variant="outline" onClick={() => onAdd(tile.value)}>{tile.label}</Button>
