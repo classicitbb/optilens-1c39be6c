@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { useParams } from "react-router-dom";
 import { useLegalPage } from "@/hooks/useContentArticles";
 import { Skeleton } from "@/components/ui/skeleton";
+import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
 
 const LEGAL_FALLBACKS: Record<string, { title: string; content: string }> = {
   "privacy-policy": {
@@ -87,9 +88,7 @@ const LegalPage = () => {
           ) : title ? (
             <>
               <h1 className="text-3xl font-bold text-foreground mb-6">{title}</h1>
-              <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap">
-                {content}
-              </div>
+              <BlogPostRenderer content={content} className="text-sm" />
             </>
           ) : (
             <div className="text-center py-20">
