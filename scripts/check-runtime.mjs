@@ -2,7 +2,7 @@
 
 import { execSync } from "node:child_process";
 
-const REQUIRED_NODE_MAJOR = 20;
+const ALLOWED_NODE_MAJORS = [20, 22];
 const REQUIRED_NPM_MAJOR = 10;
 
 function parseMajor(version, label) {
