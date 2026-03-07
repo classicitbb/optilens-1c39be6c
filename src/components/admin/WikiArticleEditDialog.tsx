@@ -12,6 +12,7 @@ import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import RichTextEditor from "./RichTextEditor";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { canViewContextSlug } from "@/lib/wikiPermissions";
+import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
 
 interface WikiArticleEditDialogProps {
   open: boolean;
@@ -175,8 +176,8 @@ const WikiArticleEditDialog = ({
 
             <div>
               <Label className="text-xs font-medium mb-1 block">Preview</Label>
-              <div className="border border-border rounded-lg p-3 min-h-[320px] max-h-[420px] overflow-y-auto prose prose-sm max-w-none [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_p]:text-sm [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-4 [&_ol]:pl-4">
-                <div dangerouslySetInnerHTML={{ __html: form.content || "<p class='text-muted-foreground'>Nothing to preview yet.</p>" }} />
+              <div className="border border-border rounded-lg p-3 min-h-[320px] max-h-[420px] overflow-y-auto">
+                <BlogPostRenderer content={form.content} className="text-sm" emptyMessage="Nothing to preview yet." />
               </div>
             </div>
           </div>

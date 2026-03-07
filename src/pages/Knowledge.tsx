@@ -8,6 +8,7 @@ import { useState, useMemo } from "react";
 import { usePublicKnowledge, ContentArticle } from "@/hooks/useContentArticles";
 import { Skeleton } from "@/components/ui/skeleton";
 import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
+import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
 
 /** Convert a string to Sentence case – first letter upper, rest lower */
 const toSentenceCase = (text: string) =>
@@ -26,31 +27,6 @@ const formatHeading = (text: string) => {
   }
   // No " - " delimiter: just sentence-case the whole string
   return toSentenceCase(text);
-};
-
-const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
-
-const RichContent = ({ content }: { content: string }) => {
-  if (isHtml(content)) {
-    return (
-      <div
-        className="prose prose-sm max-w-none text-muted-foreground
-          [&_strong]:text-foreground
-          [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-2
-          [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-3 [&_h2]:mb-1.5
-          [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1.5
-          [&_p]:my-1.5 [&_p]:leading-relaxed
-          [&_ul]:pl-5 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1
-          [&_ol]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1
-          [&_li]:leading-relaxed [&_li]:marker:text-primary
-          [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2
-          [&_br]:leading-3
-          [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
-    );
-  }
-  return <p className="leading-relaxed text-muted-foreground whitespace-pre-line">{content}</p>;
 };
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -178,7 +154,7 @@ const Knowledge = () => {
                               </AccordionTrigger>
                               <AccordionContent className="pb-5 pt-1">
                                 <div className="rounded-lg bg-muted/30 p-4">
-                                  <RichContent content={article.content} />
+                                  <BlogPostRenderer content={article.content} className="text-sm" />
                                 </div>
                                 <div className="mt-3">
                                   <HelpFeedbackButtons articleId={article.id} pageSlug="knowledge" />
@@ -224,7 +200,7 @@ const Knowledge = () => {
                             </AccordionTrigger>
                             <AccordionContent className="pb-5 pt-1">
                               <div className="rounded-lg bg-muted/30 p-4">
-                                <RichContent content={faq.content} />
+                                <BlogPostRenderer content={faq.content} className="text-sm" />
                               </div>
                               <div className="mt-3">
                                 <HelpFeedbackButtons articleId={faq.id} pageSlug="knowledge" />
