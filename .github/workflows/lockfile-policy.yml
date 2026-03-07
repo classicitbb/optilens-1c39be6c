@@ -16,4 +16,4 @@ jobs:
           node-version: 20
           cache: npm
       - name: Verify lockfile policy
-        run: npm run qa:lockfiles
+        run: ./scripts/npm-clean.sh run qa:lockfiles
