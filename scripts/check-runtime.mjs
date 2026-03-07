@@ -32,7 +32,7 @@ function resolveNpmVersion() {
 function fail(message) {
   console.error(`\n❌ Runtime version check failed.\n${message}\n`);
   console.error("Expected runtime:");
-  console.error(`- Node: ${REQUIRED_NODE_MAJOR}.x`);
+  console.error(`- Node: ${ALLOWED_NODE_MAJORS.map(v => v + ".x").join(" or ")}`);
   console.error(`- npm: ${REQUIRED_NPM_MAJOR}.x\n`);
   console.error("Please run 'nvm use' (or install the pinned versions) and try again.\n");
   process.exit(1);
