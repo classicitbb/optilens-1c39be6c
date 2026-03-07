@@ -10,7 +10,7 @@ To reduce non-deterministic dependency and build behavior, this repository stand
 - Canonical install command: `npm ci`
 - Canonical build command: `npm run build`
 
-Use this flow locally and in automation:
+Use this required flow locally and in automation:
 
 ```bash
 npm ci
@@ -24,9 +24,13 @@ npm ci
 npm run dev
 ```
 
-## Bun usage
+## Lockfile policy
 
-Bun is supported as an **optional local-only workflow** for individual developers. CI and Lovable do not use Bun for install/build validation, and Bun lock state is not part of the canonical automation path.
+This repository uses **npm as the single source of truth** for dependency resolution.
+
+- Keep `package-lock.json` committed.
+- Do not add `bun.lockb`.
+- Run `npm ci` for all local/CI installs.
 
 ## How can I edit this code?
 

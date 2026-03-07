@@ -10,6 +10,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "qa:lockfiles": "node scripts/check_lockfiles.mjs",
     "qa:smoke": "node scripts/admin_smoke_and_error_checks.mjs",
     "release-ledger:sync": "node scripts/sync_release_ledger.mjs",
     "qa:release-ledger": "node scripts/sync_release_ledger.mjs --check",

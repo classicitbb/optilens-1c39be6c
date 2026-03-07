@@ -3,6 +3,11 @@ import { spawnSync } from "node:child_process";
 
 const checks = [
   {
+    name: "Lockfile policy check",
+    command: "npm",
+    args: ["run", "qa:lockfiles"],
+  },
+  {
     name: "Release ledger drift check",
     command: "npm",
     args: ["run", "qa:release-ledger"],

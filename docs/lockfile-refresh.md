@@ -1,9 +1,10 @@
 # Lockfile Refresh Instructions
 
-This repository uses a single automation lockfile strategy:
+This repository uses a strict single-lockfile policy with **npm as the source of truth**:
 
-- **Canonical lockfile:** `package-lock.json`
-- **Canonical installer:** `npm ci`
+- **Required lockfile:** `package-lock.json`
+- **Forbidden lockfile:** `bun.lockb`
+- **Required installer:** `npm ci`
 - **Canonical build check:** `npm run build`
 - **Canonical CI runtime:** Node 20 (`actions/setup-node`)
 
@@ -16,21 +17,23 @@ Refresh `package-lock.json` whenever dependencies in `package.json` change.
 Run from repository root:
 
 ```bash
-rm -rf node_modules
+rm -rf node_modules bun.lockb
 npm install
 npm ci
 npm run build
 ```
 
 - `npm install` updates `package-lock.json` to match dependency manifest changes.
-- `npm ci` validates that the lockfile is consistent and reproducible.
+- `npm ci` is the required install command for deterministic local + CI installs.
 - `npm run build` verifies the canonical build path.
+- If `bun.lockb` is present, remove it before committing.
 
-## Bun note (local-only)
+## Guardrail (CI + PR checks)
 
-Bun can be used for local experimentation, but Bun lock state is **not** used for CI/Lovable automation. Do not rely on Bun lockfiles for reproducible CI installs.
+`npm run qa:lockfiles` fails when lockfile policy is violated (missing `package-lock.json` or present `bun.lockb`).
 
 ## Expected outcome
 
 - `package-lock.json` fully represents dependency resolution for automation.
+- `bun.lockb` is absent from the repository.
 - `npm ci` and `npm run build` pass consistently under Node 20.
