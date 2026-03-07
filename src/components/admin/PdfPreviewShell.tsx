@@ -156,84 +156,86 @@ const PdfPreviewShell = ({
         {formatLabel && <span className="text-[10px] font-medium text-primary">{formatLabel}</span>}
       </div>
 
-      <div className="flex items-center justify-between px-3 py-2 bg-muted/20 border-b border-border no-print">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="px-3 py-2 bg-muted/20 border-b border-border no-print space-y-2">
+        {/* Row 1: Toggle + Page settings grid + Print action + Info */}
+        <div className="grid grid-cols-[auto_1fr_auto] items-start gap-2">
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 shrink-0" onClick={() => setVisible((v) => !v)}>
             {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">{visible ? "Hide" : "Show"}</span>
           </Button>
 
-          <div className="flex items-center gap-4 flex-1 min-w-0 flex-wrap">
-            <div className="flex flex-col gap-0.5">
+          {/* Settings grid – auto-fills columns by available width */}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-x-3 gap-y-1.5">
+            <div className="flex flex-col gap-0.5 min-w-[72px]">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Paper</span>
               <Select value={resolvedSettings.paperSize} onValueChange={(value: PrintPaperSize) => updatePrintSettings({ paperSize: value })}>
-                <SelectTrigger className="h-7 w-[72px] text-xs"><SelectValue placeholder="Paper" /></SelectTrigger>
+                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Paper" /></SelectTrigger>
                 <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
               </Select>
             </div>
 
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-[72px]">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Orientation</span>
               <Select value={resolvedSettings.orientation} onValueChange={(value: PrintOrientation) => updatePrintSettings({ orientation: value })}>
-                <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue placeholder="Orient." /></SelectTrigger>
+                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Orient." /></SelectTrigger>
                 <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
               </Select>
             </div>
 
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-[72px]">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Margins</span>
               <Select value={resolvedSettings.marginPreset ?? "normal"} onValueChange={(value: "narrow" | "normal" | "wide") => updatePrintSettings({ marginPreset: value })}>
-                <SelectTrigger className="h-7 w-[82px] text-xs"><SelectValue placeholder="Margin" /></SelectTrigger>
+                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Margin" /></SelectTrigger>
                 <SelectContent><SelectItem value="narrow">Narrow</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="wide">Wide</SelectItem></SelectContent>
               </Select>
             </div>
 
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 min-w-[72px]">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">H mm</span>
-              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
+              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginXMm ?? ""} onChange={(e) => updateMargin("marginXMm", e.target.value)} className="h-7 text-xs" placeholder="mm" />
             </div>
-            <div className="flex flex-col gap-0.5">
+
+            <div className="flex flex-col gap-0.5 min-w-[72px]">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">V mm</span>
-              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 w-20 text-xs" placeholder="mm" />
+              <Input type="number" min={0} max={60} step={1} value={resolvedSettings.marginYMm ?? ""} onChange={(e) => updateMargin("marginYMm", e.target.value)} className="h-7 text-xs" placeholder="mm" />
             </div>
-            <div className="flex flex-col gap-0.5">
+
+            <div className="flex flex-col gap-0.5 min-w-[72px]">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Section</span>
-              <Input type="number" min={8} max={40} step={1} value={resolvedSettings.sectionGapPx ?? ""} onChange={(e) => updatePrintSettings({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
+              <Input type="number" min={8} max={40} step={1} value={resolvedSettings.sectionGapPx ?? ""} onChange={(e) => updatePrintSettings({ sectionGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 text-xs" placeholder="px" />
             </div>
-            <div className="flex flex-col gap-0.5">
+
+            <div className="flex flex-col gap-0.5 min-w-[72px]">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Heading</span>
-              <Input type="number" min={4} max={24} step={1} value={resolvedSettings.headingGapPx ?? ""} onChange={(e) => updatePrintSettings({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="px" />
+              <Input type="number" min={4} max={24} step={1} value={resolvedSettings.headingGapPx ?? ""} onChange={(e) => updatePrintSettings({ headingGapPx: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 text-xs" placeholder="px" />
             </div>
-            <div className="flex flex-col gap-0.5">
+
+            <div className="flex flex-col gap-0.5 min-w-[72px]">
               <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Table</span>
-              <Input type="number" min={0.85} max={1.2} step={0.01} value={resolvedSettings.tableFontScale ?? ""} onChange={(e) => updatePrintSettings({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 w-20 text-xs" placeholder="1.0" />
+              <Input type="number" min={0.85} max={1.2} step={0.01} value={resolvedSettings.tableFontScale ?? ""} onChange={(e) => updatePrintSettings({ tableFontScale: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : undefined })} className="h-7 text-xs" placeholder="1.0" />
             </div>
           </div>
 
-          {showPrint && visible && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1.5"
-                onClick={handlePrint}
-              >
+          {/* Right: info + actions */}
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm
+            </span>
+            {showPrint && visible && (
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handlePrint}>
                 <Printer className="h-3.5 w-3.5" />
                 Print &amp; Save
               </Button>
-              <span className="text-[10px] text-amber-700 dark:text-amber-400">
-                Disable browser headers/footers in print settings.
-              </span>
-            </div>
-          )}
+            )}
+            {headerRight}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 pl-3">
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-            {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm
-          </span>
-          {headerRight}
-        </div>
+        {showPrint && visible && (
+          <p className="text-[10px] text-amber-700 dark:text-amber-400 text-right">
+            Disable browser headers/footers in print settings.
+          </p>
+        )}
       </div>
 
       {visible && (
