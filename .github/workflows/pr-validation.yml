@@ -21,16 +21,16 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: ./scripts/npm-clean.sh ci
 
       - name: Run lint
-        run: npm run lint
+        run: ./scripts/npm-clean.sh run lint
 
       - name: Run typecheck
         run: npx tsc --noEmit
 
       - name: Run build
-        run: npm run build
+        run: ./scripts/npm-clean.sh run build
 
   pr-release-ledger-check:
     name: Release ledger sync check
@@ -46,7 +46,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: ./scripts/npm-clean.sh ci
 
       - name: Run PR release ledger checks
-        run: npm run qa:pr-checks
+        run: ./scripts/npm-clean.sh run qa:pr-checks

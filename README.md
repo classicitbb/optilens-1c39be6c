@@ -17,6 +17,24 @@ npm ci
 npm run build
 ```
 
+
+## Proxy-safe npm wrapper
+
+Some container/CI environments inject a deprecated `npm_config_http_proxy` variable that causes this warning on every npm command:
+
+```
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+```
+
+Use `./scripts/npm-clean.sh` to run npm without that deprecated env var while preserving proxy support:
+
+```bash
+./scripts/npm-clean.sh ci
+./scripts/npm-clean.sh run build
+```
+
+CI workflows in this repo use the wrapper by default.
+
 ## Local development
 
 ```bash
