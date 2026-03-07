@@ -194,7 +194,10 @@ function AddTileDialog({ onAdd, compact = false }: { onAdd: (type: WorkspaceTile
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>Add tile</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Add tile</DialogTitle>
+          <DialogDescription>Choose a tile type to add to your workspace.</DialogDescription>
+        </DialogHeader>
         <div className="grid grid-cols-2 gap-2">
           {addableTiles.map((tile) => (
             <Button key={tile.value} variant="outline" onClick={() => onAdd(tile.value)}>{tile.label}</Button>

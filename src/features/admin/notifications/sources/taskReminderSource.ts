@@ -42,13 +42,17 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
     });
   }
 
-  const { data: campaignProfiles } = await (supabase as any)
-    .from("lead_campaign_activation_profiles")
-    .select("id,created_at")
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  const latestCampaignProfile = ((campaignProfiles ?? [])[0] ?? null) as CampaignActivationProfileRow | null;
+  let latestCampaignProfile: CampaignActivationProfileRow | null = null;
+  try {
+    const { data: campaignProfiles } = await (supabase as any)
+      .from("lead_campaign_activation_profiles")
+      .select("id,created_at")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    latestCampaignProfile = ((campaignProfiles ?? [])[0] ?? null) as CampaignActivationProfileRow | null;
+  } catch {
+    // Table may not exist yet — skip silently
+  }
   if (latestCampaignProfile) {
     reminders.push({
       id: `task_reminder:campaign_packet:${latestCampaignProfile.id}`,
