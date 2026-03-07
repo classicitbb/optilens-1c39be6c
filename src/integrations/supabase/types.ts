@@ -210,43 +210,40 @@ export type Database = {
       }
       blog_posts: {
         Row: {
-          author_name: string | null
-          content_json: Json | null
+          author_id: string | null
+          content: string
           cover_image_url: string | null
+          created_at: string
           excerpt: string | null
           id: string
           published_at: string | null
-          seo_description: string | null
-          seo_title: string | null
-          slug: string
+          slug: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
-          author_name?: string | null
-          content_json?: Json | null
+          author_id?: string | null
+          content?: string
           cover_image_url?: string | null
+          created_at?: string
           excerpt?: string | null
           id?: string
           published_at?: string | null
-          seo_description?: string | null
-          seo_title?: string | null
-          slug: string
+          slug?: string | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
-          author_name?: string | null
-          content_json?: Json | null
+          author_id?: string | null
+          content?: string
           cover_image_url?: string | null
+          created_at?: string
           excerpt?: string | null
           id?: string
           published_at?: string | null
-          seo_description?: string | null
-          seo_title?: string | null
-          slug?: string
+          slug?: string | null
           status?: string
           title?: string
           updated_at?: string

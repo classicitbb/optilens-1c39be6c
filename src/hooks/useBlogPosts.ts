@@ -1,17 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 
-export type BlogPost = Database["public"]["Tables"]["blog_posts"]["Row"];
-export type BlogPostInsert = Database["public"]["Tables"]["blog_posts"]["Insert"];
-export type BlogPostUpdate = Database["public"]["Tables"]["blog_posts"]["Update"];
+export type BlogPost = {
+  id: string;
+  title: string;
+  slug: string | null;
+  content: string;
+  excerpt: string | null;
+  status: string;
+  author_id: string | null;
+  cover_image_url: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BlogPostInsert = Partial<BlogPost> & { title: string };
+export type BlogPostUpdate = Partial<BlogPost> & { id: string };
+
+const blogTable = () => (supabase as any).from("blog_posts");
 
 export const usePublicBlogPosts = () => {
   return useQuery({
     queryKey: ["blog_posts", "public"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("blog_posts")
+      const { data, error } = await blogTable()
         .select("*")
         .eq("status", "published")
         .order("published_at", { ascending: false, nullsFirst: false });
@@ -28,8 +41,7 @@ export const usePublicBlogPostBySlug = (slug?: string) => {
     queryFn: async () => {
       if (!slug) return null;
 
-      const { data, error } = await supabase
-        .from("blog_posts")
+      const { data, error } = await blogTable()
         .select("*")
         .eq("slug", slug)
         .eq("status", "published")
@@ -48,8 +60,7 @@ export const useAdminBlogPosts = (status?: BlogPost["status"]) => {
   const query = useQuery({
     queryKey: ["blog_posts", "admin", status],
     queryFn: async () => {
-      let dbQuery = supabase
-        .from("blog_posts")
+      let dbQuery = blogTable()
         .select("*")
         .order("updated_at", { ascending: false });
 
@@ -65,15 +76,15 @@ export const useAdminBlogPosts = (status?: BlogPost["status"]) => {
   });
 
   const upsertBlogPost = useMutation({
-    mutationFn: async (post: BlogPostInsert | (BlogPostUpdate & { id: string })) => {
-      if ((post as { id?: string }).id) {
-        const { id, ...changes } = post as BlogPostUpdate & { id: string };
-        const { error } = await supabase.from("blog_posts").update(changes).eq("id", id);
+    mutationFn: async (post: BlogPostInsert | BlogPostUpdate) => {
+      if ((post as BlogPostUpdate).id) {
+        const { id, ...changes } = post as BlogPostUpdate;
+        const { error } = await blogTable().update(changes).eq("id", id);
         if (error) throw error;
         return;
       }
 
-      const { error } = await supabase.from("blog_posts").insert(post as BlogPostInsert);
+      const { error } = await blogTable().insert(post as BlogPostInsert);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -83,7 +94,7 @@ export const useAdminBlogPosts = (status?: BlogPost["status"]) => {
 
   const deleteBlogPost = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+      const { error } = await blogTable().delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
