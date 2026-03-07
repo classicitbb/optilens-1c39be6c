@@ -591,6 +591,33 @@ const ContactsPage = () => {
     toast({ title: `Exported ${filtered.length} contacts (${useGroupedExport ? "grouped" : "raw"} mode)` });
   };
 
+  const downloadImportTemplate = () => {
+    const headers = ["name", "is_company", "email", "phone", "street", "street2", "city", "state", "zip", "country_code", "tax_id", "website", "salesperson", "notes"];
+    const exampleRows = [
+      ["Acme Optical", "true", "info@acmeoptical.com", "+1 246 555 0100", "42 Broad St", "Suite 3", "Bridgetown", "Saint Michael", "BB11000", "BB", "123456", "https://acmeoptical.com", "rjh", "Example company row"],
+      ["Jane Doe", "false", "jane.doe@acmeoptical.com", "+1 246 555 0101", "42 Broad St", "", "Bridgetown", "Saint Michael", "BB11000", "BB", "", "", "rjh", "Example person row"],
+    ];
+    const toCsvValue = (value: unknown) => {
+      const str = String(value ?? "");
+      return str.includes(",") || str.includes('"') || str.includes("\n")
+        ? `"${str.replace(/"/g, '""')}"`
+        : str;
+    };
+
+    const csv = [
+      headers.join(","),
+      ...exampleRows.map((row) => row.map((value) => toCsvValue(value)).join(",")),
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "contacts-import-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Downloaded contacts import template" });
+  };
+
   const toggleCountryGroup = (countryCode: string) => {
     setCollapsedCountryGroups((prev) => ({
       ...prev,
@@ -856,11 +883,21 @@ const ContactsPage = () => {
             <Button variant="ghost" size="icon" className="h-8 w-8" title="Export CSV" onClick={exportCsv}>
               <Download className="h-4 w-4" />
             </Button>
-          <Link to="/admin/erp/config/contact-tags">
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="Configuration">
-              <Settings className="h-4 w-4" />
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" title="Configuration">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link to="/admin/erp/config/contact-tags">Tags & industries config</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadImportTemplate}>
+                <Download className="h-4 w-4 mr-2" /> Download import template
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" className="h-8 text-xs gap-1" style={{ background: "hsl(168 76% 42%)", color: "white" }}>
@@ -1510,4 +1547,3 @@ const ContactsPage = () => {
 };
 
 export default ContactsPage;
-
