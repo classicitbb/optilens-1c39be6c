@@ -35,6 +35,7 @@ interface OverviewTicket {
   deadline: string | null;
   stage: { id: string; name: string; sequence: number; is_closed: boolean; is_folded: boolean } | null;
   team: { id: string; name: string } | null;
+  contact: { id: string; name: string; is_company: boolean } | null;
 }
 
 interface StageColumn {
