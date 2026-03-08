@@ -29,6 +29,7 @@ interface OverviewTicket {
   partner_contact_id: string | null;
   stage_id: string | null;
   team_id: string | null;
+  ticket_type_id: string | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;
@@ -36,6 +37,7 @@ interface OverviewTicket {
   stage: { id: string; name: string; sequence: number; is_closed: boolean; is_folded: boolean } | null;
   team: { id: string; name: string } | null;
   contact: { id: string; name: string; is_company: boolean } | null;
+  ticket_type: { id: string; name: string } | null;
 }
 
 interface StageColumn {
@@ -90,18 +92,20 @@ const TicketEditDialog = ({
   onClose,
   stages,
   teams,
+  ticketTypes,
 }: {
   ticket: OverviewTicket | null;
   open: boolean;
   onClose: () => void;
   stages: { id: string; name: string }[];
   teams: { id: string; name: string }[];
+  ticketTypes: { id: string; name: string }[];
 }) => {
   const updateTicket = useUpdateHelpdeskTicket();
   const updateStage = useUpdateHelpdeskTicketStage();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const [form, setForm] = useState({ title: "", description: "", priority: "1", team_id: "", stage_id: "", partner_contact_id: "" });
+  const [form, setForm] = useState({ title: "", description: "", priority: "1", team_id: "", stage_id: "", partner_contact_id: "", ticket_type_id: "" });
 
   // Sync form when ticket changes
   const lastId = useRef<string | null>(null);
@@ -114,6 +118,7 @@ const TicketEditDialog = ({
       team_id: ticket.team_id || "",
       stage_id: ticket.stage_id || "",
       partner_contact_id: ticket.partner_contact_id || "",
+      ticket_type_id: ticket.ticket_type_id || "",
     });
   }
   if (!ticket && lastId.current) lastId.current = null;
@@ -127,6 +132,7 @@ const TicketEditDialog = ({
       priority: Number(form.priority),
       team_id: form.team_id || null,
       partner_contact_id: form.partner_contact_id || null,
+      ticket_type_id: form.ticket_type_id || null,
     });
     if (form.stage_id !== (ticket.stage_id || "") && form.stage_id) {
       await updateStage.mutateAsync({
@@ -161,7 +167,7 @@ const TicketEditDialog = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Select value={form.stage_id || "__none"} onValueChange={v => setForm(p => ({ ...p, stage_id: v === "__none" ? "" : v }))}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
               <SelectContent>
@@ -174,6 +180,13 @@ const TicketEditDialog = ({
               onValueChange={v => setForm(p => ({ ...p, partner_contact_id: v }))}
               placeholder="Assign contact"
             />
+            <Select value={form.ticket_type_id || "__none"} onValueChange={v => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setForm(p => ({ ...p, ticket_type_id: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                {ticketTypes.map(t => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>
@@ -208,7 +221,7 @@ const HelpdeskOverviewPage = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("helpdesk_tickets")
-        .select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,is_company)")
+        .select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,ticket_type_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,is_company),ticket_type:helpdesk_ticket_types(id,name)")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -246,6 +259,16 @@ const HelpdeskOverviewPage = () => {
       const { data, error } = await (supabase as any).from("helpdesk_teams").select("id,name").eq("is_active", true).order("name");
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const { data: ticketTypes = [] } = useQuery({
+    queryKey: ["helpdesk-overview-ticket-types"],
+    enabled: canViewHelpdesk,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("helpdesk_ticket_types").select("id,name").order("name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string }[];
     },
   });
 
@@ -342,7 +365,7 @@ const HelpdeskOverviewPage = () => {
       )}
 
       {/* Edit dialog */}
-      <TicketEditDialog ticket={editTicket} open={!!editTicket} onClose={() => setEditTicket(null)} stages={stages} teams={teams} />
+      <TicketEditDialog ticket={editTicket} open={!!editTicket} onClose={() => setEditTicket(null)} stages={stages} teams={teams} ticketTypes={ticketTypes} />
     </div>
   );
 };
@@ -456,6 +479,11 @@ const KanbanView = ({
                         </div>
                       )}
 
+                      {/* Ticket type */}
+                      {ticket.ticket_type && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 w-fit">{ticket.ticket_type.name}</Badge>
+                      )}
+
                       {/* Bottom row */}
                       <div className="flex items-center justify-between">
                         <PriorityStars priority={ticket.priority} />
@@ -513,6 +541,7 @@ const ListView = ({
                   <th className="text-left py-1.5 px-2 font-medium w-20">ID</th>
                   <th className="text-left py-1.5 px-2 font-medium">Priority</th>
                    <th className="text-left py-1.5 px-2 font-medium">Name</th>
+                   <th className="text-left py-1.5 px-2 font-medium">Type</th>
                    <th className="text-left py-1.5 px-2 font-medium">Customer</th>
                    <th className="text-left py-1.5 px-2 font-medium">Assigned to</th>
                   <th className="text-left py-1.5 px-2 font-medium">SLA Deadline</th>
@@ -528,6 +557,7 @@ const ListView = ({
                       <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{ticket.ticket_number}</td>
                       <td className="py-2 px-2"><PriorityStars priority={ticket.priority} /></td>
                       <td className="py-2 px-2 font-medium text-foreground">{ticket.title}</td>
+                      <td className="py-2 px-2 text-xs text-muted-foreground">{ticket.ticket_type?.name ?? "—"}</td>
                       <td className="py-2 px-2 text-xs text-foreground">
                         {ticket.contact ? (
                           <span className="flex items-center gap-1">

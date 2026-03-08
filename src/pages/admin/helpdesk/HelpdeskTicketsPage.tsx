@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface TeamOption { id: string; name: string; }
 interface StageOption { id: string; name: string; is_closed: boolean; }
+interface TicketTypeOption { id: string; name: string; }
 
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
@@ -38,11 +39,11 @@ const HelpdeskTicketsPage = () => {
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState<string>("all");
   const [onlyOpen, setOnlyOpen] = useState(true);
-  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "" });
+  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "" });
 
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "", contactId: "" });
+  const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "", contactId: "", ticket_type_id: "" });
 
   const { data: teams = [] } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
@@ -64,6 +65,16 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
+  const { data: ticketTypes = [] } = useQuery({
+    queryKey: ["helpdesk", "ticket-types", "options"],
+    enabled: canViewTickets,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("helpdesk_ticket_types").select("id,name").order("name");
+      if (error) throw error;
+      return (data ?? []) as TicketTypeOption[];
+    },
+  });
+
   const ticketQuery = useHelpdeskTickets({ search, onlyOpen, teamId: teamId === "all" ? undefined : teamId });
   const createTicket = useCreateHelpdeskTicket();
   const assignTicket = useAssignHelpdeskTicket();
@@ -76,8 +87,8 @@ const HelpdeskTicketsPage = () => {
   const handleCreate = async () => {
     if (!form.title.trim()) { toast({ title: "Ticket title is required", variant: "destructive" }); return; }
     try {
-      await createTicket.mutateAsync({ title: form.title, description: form.description, teamId: form.teamId || null, stageId: form.stageId || null, priority: Number(form.priority), ownerUserId: user?.id ?? null, partnerContactId: form.contactId || null, sourceChannel: "manual" });
-      setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "" });
+      await createTicket.mutateAsync({ title: form.title, description: form.description, teamId: form.teamId || null, stageId: form.stageId || null, priority: Number(form.priority), ownerUserId: user?.id ?? null, partnerContactId: form.contactId || null, ticketTypeId: form.ticketTypeId || null, sourceChannel: "manual" });
+      setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "" });
       toast({ title: "Ticket created" });
     } catch (error) {
       toast({ title: "Unable to create ticket", description: (error as Error).message, variant: "destructive" });
@@ -86,12 +97,12 @@ const HelpdeskTicketsPage = () => {
 
   const openEdit = (ticket: any) => {
     setEditTicket(ticket);
-    setEditForm({ title: ticket.title, description: ticket.description || "", priority: String(ticket.priority), team_id: ticket.team_id || "", contactId: ticket.partner_contact_id || "" });
+    setEditForm({ title: ticket.title, description: ticket.description || "", priority: String(ticket.priority), team_id: ticket.team_id || "", contactId: ticket.partner_contact_id || "", ticket_type_id: ticket.ticket_type_id || "" });
   };
 
   const saveEdit = () => {
     if (!editTicket) return;
-    updateTicket.mutate({ id: editTicket.id, title: editForm.title.trim(), description: editForm.description.trim(), priority: Number(editForm.priority), team_id: editForm.team_id || null, partner_contact_id: editForm.contactId || null });
+    updateTicket.mutate({ id: editTicket.id, title: editForm.title.trim(), description: editForm.description.trim(), priority: Number(editForm.priority), team_id: editForm.team_id || null, partner_contact_id: editForm.contactId || null, ticket_type_id: editForm.ticket_type_id || null });
     setEditTicket(null);
   };
 
@@ -120,9 +131,16 @@ const HelpdeskTicketsPage = () => {
       {canEditTickets && (
         <Card>
           <CardHeader className="py-3"><CardTitle className="text-sm">Create Ticket</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-7 gap-2 items-end">
+          <CardContent className="grid grid-cols-1 md:grid-cols-8 gap-2 items-end">
             <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs md:col-span-2" />
             <Input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" className="h-8 text-xs md:col-span-2" />
+            <Select value={form.ticketTypeId || "__none"} onValueChange={(v) => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setForm((p) => ({ ...p, ticketTypeId: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <ContactPickerSelect value={form.contactId} onValueChange={(v) => setForm((p) => ({ ...p, contactId: v }))} placeholder="Contact" />
             <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
@@ -248,7 +266,7 @@ const HelpdeskTicketsPage = () => {
           <div className="space-y-3">
             <Input value={editForm.title} onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs" />
             <Textarea value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" className="text-xs min-h-[80px]" />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Select value={editForm.priority} onValueChange={(v) => setEditForm((p) => ({ ...p, priority: v }))}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -260,6 +278,13 @@ const HelpdeskTicketsPage = () => {
                 <SelectContent>
                   <SelectItem value="__none" className="text-xs">No team</SelectItem>
                   {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={editForm.ticket_type_id || "__none"} onValueChange={(v) => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setEditForm((p) => ({ ...p, ticket_type_id: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                  {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
