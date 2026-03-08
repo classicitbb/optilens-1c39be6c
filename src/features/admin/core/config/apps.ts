@@ -137,7 +137,6 @@ export const ADMIN_APPS = {
     featurePrefix: 'knowledge',
     sidebarItems: [
       { label: 'Wiki', route: '/admin/knowledge/wiki', icon: BookMarked },
-      { label: 'Help Articles', route: '/admin/knowledge/help', icon: HelpCircle },
     ] satisfies SidebarItem[],
   },
   settings: {

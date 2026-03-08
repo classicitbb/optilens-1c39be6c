@@ -262,7 +262,7 @@ const App = () => (
                 {/* ═══ Knowledge App ═══ */}
                 <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
                 <Route path="knowledge/wiki" element={<AdminWikiPage />} />
-                <Route path="knowledge/help" element={<PlaceholderPage />} />
+                
 
                 {/* ═══ Settings App ═══ */}
                 <Route path="settings" element={<Navigate to="/admin/settings/company" replace />} />
