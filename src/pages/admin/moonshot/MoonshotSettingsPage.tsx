@@ -1,5 +1,6 @@
-import { Download, Edit3, Paintbrush, RotateCcw, Upload } from "lucide-react";
+import { Download, Edit3, Paintbrush, RotateCcw, Upload, Users } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,7 @@ function SettingPermission({ label, value, onValueChange }: { label: string; val
 
 export default function MoonshotSettingsPage() {
   const { settings, updateSettings, theme, setTheme, importDemoData, resetDemoData } = useMoonshotStore();
+  const navigate = useNavigate();
   const [rawJson, setRawJson] = useState("");
 
   const patch = <K extends keyof MoonshotSettings>(key: K, value: MoonshotSettings[K]) => updateSettings({ [key]: value } as Partial<MoonshotSettings>);
@@ -79,6 +81,12 @@ export default function MoonshotSettingsPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div />
+        <Button variant="outline" onClick={() => navigate("/admin/moonshot/tools/org-chart")} className="gap-2">
+          <Users className="h-4 w-4" /> Manage Users
+        </Button>
+      </div>
       <Card className="rounded-xl border bg-card shadow-sm">
         <CardHeader className="border-b pb-4">
           <CardTitle className="text-2xl">Settings</CardTitle>
