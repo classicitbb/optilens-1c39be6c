@@ -365,7 +365,7 @@ const HelpdeskOverviewPage = () => {
       )}
 
       {/* Edit dialog */}
-      <TicketEditDialog ticket={editTicket} open={!!editTicket} onClose={() => setEditTicket(null)} stages={stages} teams={teams} />
+      <TicketEditDialog ticket={editTicket} open={!!editTicket} onClose={() => setEditTicket(null)} stages={stages} teams={teams} ticketTypes={ticketTypes} />
     </div>
   );
 };
