@@ -132,6 +132,7 @@ const TicketEditDialog = ({
       priority: Number(form.priority),
       team_id: form.team_id || null,
       partner_contact_id: form.partner_contact_id || null,
+      ticket_type_id: form.ticket_type_id || null,
     });
     if (form.stage_id !== (ticket.stage_id || "") && form.stage_id) {
       await updateStage.mutateAsync({
