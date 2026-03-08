@@ -479,6 +479,11 @@ const KanbanView = ({
                         </div>
                       )}
 
+                      {/* Ticket type */}
+                      {ticket.ticket_type && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 w-fit">{ticket.ticket_type.name}</Badge>
+                      )}
+
                       {/* Bottom row */}
                       <div className="flex items-center justify-between">
                         <PriorityStars priority={ticket.priority} />
