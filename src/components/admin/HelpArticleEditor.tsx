@@ -167,7 +167,7 @@ const HelpArticleEditor = () => {
         </div>
 
         {allArticles.length === 0 && (
-          <p className="text-xs text-slate-500">No help articles yet.</p>
+          <p className="text-xs text-muted-foreground">No help articles yet.</p>
         )}
 
         {allArticles.map((a) => (
