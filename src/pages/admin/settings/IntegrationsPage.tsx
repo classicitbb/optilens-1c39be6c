@@ -335,7 +335,7 @@ export default function IntegrationsPage() {
       qc.invalidateQueries({ queryKey: ["integration-recent-sync-jobs"] });
       qc.invalidateQueries({ queryKey: ["integration-latest-sync-job"] });
       qc.invalidateQueries({ queryKey: ["integration-connection", "odoo"] });
-      toast({ title: "Sync job canceled", description: "Queued sync job was canceled before execution." });
+      toast({ title: "Sync job canceled", description: "The sync job has been canceled." });
     },
     onError: (error: PostgrestError) => {
       toast({ title: "Unable to cancel sync job", description: error.message, variant: "destructive" });
