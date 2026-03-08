@@ -454,7 +454,7 @@ const ListCatalogTab = ({
           </td>
         }
         {/* Supplier — before description */}
-        <td className="px-2 py-1.5 border border-border text-center whitespace-nowrap" style={{ color: "hsl(215 50% 40%)", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
+        <td className="px-2 py-1.5 border border-border text-center whitespace-nowrap" style={{ color: "hsl(var(--admin-table-supplier-fg))", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
           {row.supplier || "—"}
         </td>
         <td className="px-3 py-1.5 border border-border group relative" style={{ color: "hsl(215 30% 15%)" }}>
