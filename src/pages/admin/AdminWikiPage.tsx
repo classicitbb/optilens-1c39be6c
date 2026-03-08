@@ -115,9 +115,19 @@ const AdminWikiPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <Tabs defaultValue="wiki" className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
-        <AdminPageHeader icon={BookOpen} title="Help / Wiki" />
+        <div className="flex items-center gap-4">
+          <AdminPageHeader icon={BookOpen} title="Help / Wiki" />
+          <TabsList className="h-7">
+            <TabsTrigger value="wiki" className="text-xs h-6 px-2.5 gap-1">
+              <BookOpen className="h-3 w-3" /> Articles
+            </TabsTrigger>
+            <TabsTrigger value="assignments" className="text-xs h-6 px-2.5 gap-1">
+              <List className="h-3 w-3" /> Assignments
+            </TabsTrigger>
+          </TabsList>
+        </div>
         {canEdit && (
           <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleNewArticle}>
             <Plus className="h-3 w-3" /> New Article
@@ -125,7 +135,7 @@ const AdminWikiPage = () => {
         )}
       </div>
 
-      <div className="flex flex-1 min-h-0">
+      <TabsContent value="wiki" className="flex flex-1 min-h-0 mt-0">
         <WikiSidebar
           categories={filtered}
           activeArticleId={activeArticleId}
@@ -144,7 +154,11 @@ const AdminWikiPage = () => {
           onEditArticle={handleEditArticle}
           isCategoryVisible={(categoryId) => canViewWikiCategory(categoryId, canView)}
         />
-      </div>
+      </TabsContent>
+
+      <TabsContent value="assignments" className="flex flex-1 min-h-0 mt-0">
+        <WikiAssignmentsPanel articles={dbArticles} isLoading={articlesLoading} />
+      </TabsContent>
 
       <WikiArticleEditDialog
         open={editDialogOpen}
@@ -152,7 +166,7 @@ const AdminWikiPage = () => {
         article={editingArticle}
         wikiHeadings={allHeadings}
       />
-    </div>
+    </Tabs>
   );
 };
 
