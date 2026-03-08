@@ -263,6 +263,11 @@ const HelpdeskTicketsPage = () => {
                 </SelectContent>
               </Select>
             </div>
+            <ContactPickerSelect
+              value={editForm.contactId}
+              onValueChange={(v) => setEditForm((p) => ({ ...p, contactId: v }))}
+              placeholder="Assign contact"
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setEditTicket(null)}>Cancel</Button>
