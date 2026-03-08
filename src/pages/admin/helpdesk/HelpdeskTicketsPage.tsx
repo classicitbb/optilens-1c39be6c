@@ -65,6 +65,16 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
+  const { data: ticketTypes = [] } = useQuery({
+    queryKey: ["helpdesk", "ticket-types", "options"],
+    enabled: canViewTickets,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("helpdesk_ticket_types").select("id,name").order("name");
+      if (error) throw error;
+      return (data ?? []) as TicketTypeOption[];
+    },
+  });
+
   const ticketQuery = useHelpdeskTickets({ search, onlyOpen, teamId: teamId === "all" ? undefined : teamId });
   const createTicket = useCreateHelpdeskTicket();
   const assignTicket = useAssignHelpdeskTicket();
