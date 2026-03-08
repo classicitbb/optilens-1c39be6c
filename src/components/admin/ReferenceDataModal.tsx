@@ -62,7 +62,7 @@ const ReferenceDataModal = ({ open, onOpenChange, mode, initialName = "", initia
                 value={abbrev}
                 onChange={(e) => setAbbrev(e.target.value)}
                 className="h-8 text-sm mt-1"
-                style={{ borderRadius: "4px" }}
+                
                 placeholder="Optional"
               />
             </div>
