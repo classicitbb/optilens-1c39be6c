@@ -10,8 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import RichTextEditor from "./RichTextEditor";
-import { useRolePermissions } from "@/hooks/useRolePermissions";
-import { canViewContextSlug } from "@/lib/wikiPermissions";
+import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
 import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
 
 interface WikiArticleEditDialogProps {
