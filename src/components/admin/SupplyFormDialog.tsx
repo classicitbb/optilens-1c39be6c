@@ -398,7 +398,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                 {calc?.governance_flags && (calc.governance_flags.at_loss || calc.governance_flags.below_floor) && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {calc.governance_flags.at_loss && <Badge variant="destructive" className="text-[10px]">At Loss</Badge>}
-                    {calc.governance_flags.below_floor && <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-700">Below Floor</Badge>}
+                    {calc.governance_flags.below_floor && <Badge variant="outline" className="text-[10px] border-orange-500 text-orange-700 dark:text-orange-400">Below Floor</Badge>}
                     {calc.governance_flags.below_target && <Badge variant="outline" className="text-[10px]">Below Target</Badge>}
                   </div>
                 )}
