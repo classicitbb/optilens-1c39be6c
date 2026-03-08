@@ -80,6 +80,8 @@ import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
 import HelpdeskTicketsPage from "./pages/admin/helpdesk/HelpdeskTicketsPage";
 import HelpdeskTeamsPage from "./pages/admin/helpdesk/HelpdeskTeamsPage";
 import HelpdeskSlaPoliciesPage from "./pages/admin/helpdesk/HelpdeskSlaPoliciesPage";
+import HelpdeskStagesPage from "./pages/admin/helpdesk/HelpdeskStagesPage";
+import HelpdeskConfigPage from "./pages/admin/helpdesk/HelpdeskConfigPage";
 // Moonshot
 import MoonshotLayout from "./features/admin/moonshot/MoonshotLayout";
 import MoonshotDashboardPage from "./pages/admin/moonshot/MoonshotDashboardPage";
