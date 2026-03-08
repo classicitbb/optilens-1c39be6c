@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedOneOnOnes, seedOrgChart, seedRocks, seedSeatFitReviews, seedSeats, seedSettings, seedTodos, seedUsers } from "./seed";
-import type { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneActionItem, OneOnOneTemplate, OrgChart, OrgChartSeat, Rock, Seat, SeatFitReview, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import type { AgendaSection, BusinessPlan, Invitation, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneActionItem, OneOnOneTemplate, OrgChart, OrgChartSeat, Rock, Seat, SeatFitReview, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
 /** Migrate old flat businessPlan shape to the new nested one */
 function migrateBusinessPlan(raw: unknown): BusinessPlan {
