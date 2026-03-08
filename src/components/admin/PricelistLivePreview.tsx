@@ -183,7 +183,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                           (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
                         );
                         return (
-                          <td key={col.key} className="px-3 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
+                          <td key={col.key} className="px-3 py-2 text-right font-semibold" style={{ color: "hsl(var(--admin-content-fg))" }}>
                             {alloc?.allocated_price_bbd != null
                               ? hierarchyMatrixPrice(alloc.allocated_price_bbd, alloc.id ? String(alloc.id) : undefined)
                               : "—"}
