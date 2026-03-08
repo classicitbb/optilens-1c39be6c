@@ -418,7 +418,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || !ruleValid || governance.blocked}>
+            <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-primary-foreground" disabled={isPending || !form.name || !ruleValid || governance.blocked}>
               {isPending ? "Saving…" : addon ? "Save" : "Create"}
             </Button>
             {onSubmitAndClose &&
