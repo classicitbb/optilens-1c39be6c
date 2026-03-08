@@ -222,7 +222,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
             {/* LEFT COLUMN */}
             <div className="space-y-4">
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Item Info</p>
+                <p className={sectionCls + " text-muted-foreground"}>Item Info</p>
                 <div className="grid grid-cols-4 gap-3">
                   <div className="col-span-2">
                     <Label className={labelCls}>Name *</Label>
