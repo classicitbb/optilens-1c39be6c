@@ -314,7 +314,7 @@ const VersionSelectorPanel = ({
       </div>
 
       {/* Version Selector */}
-      <div className="border border-border rounded-md overflow-hidden">
+      <div className="border border-border overflow-hidden">
         <button
           className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors"
           style={{ background: "hsl(215 15% 96%)" }}
