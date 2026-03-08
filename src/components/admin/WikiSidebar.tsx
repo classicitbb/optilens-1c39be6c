@@ -13,6 +13,7 @@ interface WikiSidebarProps {
   onSearchChange: (value: string) => void;
   canEdit?: boolean;
   onAddHeading?: (title: string) => void | Promise<void>;
+  onRefresh?: () => void;
   isCategoryVisible?: (categoryId: string) => boolean;
 }
 
