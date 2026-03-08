@@ -204,8 +204,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                     })}
                   </tr>
                   {tt !== "clear" && (
-                    <tr style={{ background: "hsl(var(--admin-table-row-warning))", borderTop: "1px solid hsl(var(--admin-table-border))" }}>
-                      <td className="px-4 py-2 italic text-xs" style={{ color: "hsl(var(--admin-warning))" }}>Δ vs Clear</td>
+                    <tr style={{ background: "#fffbeb", borderTop: "1px solid #e2e8f0" }}>
+                      <td className="px-4 py-2 italic text-xs" style={{ color: "#b7791f" }}>Δ vs Clear</td>
                       {visibleCols.map((col) => {
                         const treatAvg = getColAvg(col.key, tt);
                         const clearAvg = getColAvg(col.key, "clear");
