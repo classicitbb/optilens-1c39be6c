@@ -413,7 +413,7 @@ const VersionSelectorPanel = ({
                           <>
                             <button
                               onClick={() => openEdit(v)}
-                              className="p-1 rounded hover:bg-black/5"
+                               className="p-1 hover:bg-muted/50"
                               title="Edit"
                             >
                               <Pencil className="h-3 w-3" style={{ color: LABEL_COLOR }} />
