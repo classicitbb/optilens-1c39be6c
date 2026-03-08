@@ -2,8 +2,8 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, seedSettings, seedTodos, seedUsers } from "./seed";
-import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedOneOnOnes, seedRocks, seedSeatFitReviews, seedSeats, seedSettings, seedTodos, seedUsers } from "./seed";
+import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneActionItem, OneOnOneTemplate, Rock, Seat, SeatFitReview, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
 type TileScope = "dashboard" | "workspace";
 type MoonshotTheme = "light" | "dark";
@@ -13,6 +13,9 @@ type MoonshotState = {
   theme: MoonshotTheme;
   settings: MoonshotSettings;
   users: MoonshotUser[];
+  seats: Seat[];
+  oneOnOnes: OneOnOneTemplate[];
+  seatFitReviews: SeatFitReview[];
   meetings: Meeting[];
   metrics: Metric[];
   rocks: Rock[];
@@ -58,6 +61,15 @@ type MoonshotState = {
   addUser: (user: Omit<MoonshotUser, "id">) => void;
   updateUser: (id: string, updates: Partial<MoonshotUser>) => void;
   deleteUser: (id: string) => void;
+  addOneOnOne: (template: Omit<OneOnOneTemplate, "id" | "actionItems" | "createdAt" | "updatedAt"> & { actionItems?: Omit<OneOnOneActionItem, "id">[] }) => void;
+  updateOneOnOne: (id: string, updates: Partial<Omit<OneOnOneTemplate, "id" | "actionItems">>) => void;
+  deleteOneOnOne: (id: string) => void;
+  addOneOnOneActionItem: (templateId: string, item: Omit<OneOnOneActionItem, "id" | "completed"> & { completed?: boolean }) => void;
+  updateOneOnOneActionItem: (templateId: string, itemId: string, updates: Partial<OneOnOneActionItem>) => void;
+  deleteOneOnOneActionItem: (templateId: string, itemId: string) => void;
+  addSeatFitReview: (review: Omit<SeatFitReview, "id" | "updatedAt">) => void;
+  updateSeatFitReview: (id: string, updates: Partial<Omit<SeatFitReview, "id">>) => void;
+  deleteSeatFitReview: (id: string) => void;
 };
 
 const makeId = (prefix: string) => `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
@@ -97,6 +109,9 @@ const baseState = {
   currentUser: null,
   theme: "light" as MoonshotTheme,
   users: seedUsers,
+  seats: seedSeats,
+  oneOnOnes: seedOneOnOnes,
+  seatFitReviews: seedSeatFitReviews,
   settings: seedSettings,
   meetings: seedMeetings,
   metrics: seedMetrics,
@@ -174,6 +189,69 @@ export const useMoonshotStore = create<MoonshotState>()(
       addUser: (user) => set((s) => ({ users: [...s.users, { id: makeId("u"), ...user }] })),
       updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)) })),
       deleteUser: (id) => set((s) => ({ users: s.users.filter((u) => u.id !== id) })),
+      addOneOnOne: (template) =>
+        set((s) => ({
+          oneOnOnes: [
+            ...s.oneOnOnes,
+            {
+              id: makeId("o11"),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              actionItems: (template.actionItems ?? []).map((item) => ({ ...item, id: makeId("o11a"), completed: item.completed ?? false })),
+              ...template,
+            },
+          ],
+        })),
+      updateOneOnOne: (id, updates) =>
+        set((s) => ({
+          oneOnOnes: s.oneOnOnes.map((template) => (template.id === id ? { ...template, ...updates, updatedAt: new Date().toISOString() } : template)),
+        })),
+      deleteOneOnOne: (id) => set((s) => ({ oneOnOnes: s.oneOnOnes.filter((template) => template.id !== id) })),
+      addOneOnOneActionItem: (templateId, item) =>
+        set((s) => ({
+          oneOnOnes: s.oneOnOnes.map((template) =>
+            template.id === templateId
+              ? {
+                  ...template,
+                  updatedAt: new Date().toISOString(),
+                  actionItems: [...template.actionItems, { ...item, id: makeId("o11a"), completed: item.completed ?? false }],
+                }
+              : template,
+          ),
+        })),
+      updateOneOnOneActionItem: (templateId, itemId, updates) =>
+        set((s) => ({
+          oneOnOnes: s.oneOnOnes.map((template) =>
+            template.id === templateId
+              ? {
+                  ...template,
+                  updatedAt: new Date().toISOString(),
+                  actionItems: template.actionItems.map((item) => (item.id === itemId ? { ...item, ...updates } : item)),
+                }
+              : template,
+          ),
+        })),
+      deleteOneOnOneActionItem: (templateId, itemId) =>
+        set((s) => ({
+          oneOnOnes: s.oneOnOnes.map((template) =>
+            template.id === templateId
+              ? {
+                  ...template,
+                  updatedAt: new Date().toISOString(),
+                  actionItems: template.actionItems.filter((item) => item.id !== itemId),
+                }
+              : template,
+          ),
+        })),
+      addSeatFitReview: (review) =>
+        set((s) => ({
+          seatFitReviews: [...s.seatFitReviews, { ...review, id: makeId("sfr"), updatedAt: new Date().toISOString() }],
+        })),
+      updateSeatFitReview: (id, updates) =>
+        set((s) => ({
+          seatFitReviews: s.seatFitReviews.map((review) => (review.id === id ? { ...review, ...updates, updatedAt: new Date().toISOString() } : review)),
+        })),
+      deleteSeatFitReview: (id) => set((s) => ({ seatFitReviews: s.seatFitReviews.filter((review) => review.id !== id) })),
     }),
     { name: "moonshot-store" },
   ),

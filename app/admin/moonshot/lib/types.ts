@@ -7,6 +7,48 @@ export type MoonshotUser = {
   invitedEmail?: string;
 };
 
+export type Seat = {
+  id: string;
+  name: string;
+  department: string;
+  reportsToSeatId?: string;
+};
+
+export type OneOnOneActionItem = {
+  id: string;
+  text: string;
+  ownerId: string;
+  dueDate: string;
+  completed: boolean;
+};
+
+export type OneOnOneTemplate = {
+  id: string;
+  title: string;
+  cadence: "weekly" | "biweekly" | "monthly" | "quarterly";
+  participantIds: string[];
+  agendaNotes: string;
+  actionItems: OneOnOneActionItem[];
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SeatFitStatus = "Great fit" | "Good fit" | "Stretch" | "Misaligned";
+
+export type SeatFitReview = {
+  id: string;
+  userId: string;
+  seatId: string;
+  valuesMatch: number;
+  roleCompetency: number;
+  performanceConfidence: number;
+  fitStatus: SeatFitStatus;
+  notes: string;
+  reviewDate: string;
+  updatedAt: string;
+};
+
 export type AgendaSection = {
   id: string;
   title: string;
