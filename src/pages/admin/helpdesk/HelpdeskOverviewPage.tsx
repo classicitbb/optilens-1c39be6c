@@ -541,6 +541,7 @@ const ListView = ({
                   <th className="text-left py-1.5 px-2 font-medium w-20">ID</th>
                   <th className="text-left py-1.5 px-2 font-medium">Priority</th>
                    <th className="text-left py-1.5 px-2 font-medium">Name</th>
+                   <th className="text-left py-1.5 px-2 font-medium">Type</th>
                    <th className="text-left py-1.5 px-2 font-medium">Customer</th>
                    <th className="text-left py-1.5 px-2 font-medium">Assigned to</th>
                   <th className="text-left py-1.5 px-2 font-medium">SLA Deadline</th>
