@@ -18,6 +18,7 @@ import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/us
 import { useDeleteHelpdeskTicket, useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import { normalizeHelpdeskPriorityLabel, normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normalization";
 import { supabase } from "@/integrations/supabase/client";
+import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
