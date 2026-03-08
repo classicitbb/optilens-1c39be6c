@@ -170,7 +170,7 @@ const AdminTopBar = () => {
   return (
     <>
       <header
-        className="admin-surface flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full z-30 border-[hsl(var(--admin-border))]">
+        className="admin-surface flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full z-30 border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-topbar-bg))]">
 
         {/* ── LEFT GROUP ── */}
         <div className="flex items-center gap-2 shrink-0">
