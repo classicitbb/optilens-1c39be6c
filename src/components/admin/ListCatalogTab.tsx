@@ -457,7 +457,7 @@ const ListCatalogTab = ({
         <td className="px-2 py-1.5 border border-border text-center whitespace-nowrap" style={{ color: "hsl(var(--admin-table-supplier-fg))", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
           {row.supplier || "—"}
         </td>
-        <td className="px-3 py-1.5 border border-border group relative" style={{ color: "hsl(215 30% 15%)" }}>
+        <td className="px-3 py-1.5 border border-border group relative" style={{ color: "hsl(var(--admin-table-fg))" }}>
           <div className="flex items-center gap-1">
             {isPending && <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" title="Pending — save to confirm" />}
             {isEditingThisDesc ?
