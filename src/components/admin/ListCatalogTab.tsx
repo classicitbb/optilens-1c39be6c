@@ -522,7 +522,7 @@ const ListCatalogTab = ({
           }
         </td>
         <td className="border border-slate-200 p-0 no-print">
-          <button className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
+          <button className="w-full h-full flex items-center justify-center p-1 hover:bg-destructive/10 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
             <X className="h-3 w-3 text-destructive/60 hover:text-destructive" />
           </button>
         </td>

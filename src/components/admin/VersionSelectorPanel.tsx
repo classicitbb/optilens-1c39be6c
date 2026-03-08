@@ -454,7 +454,7 @@ const VersionSelectorPanel = ({
       {/* Editing context banner */}
       {activeVersion && (
         <div
-          className="rounded-md border space-y-0"
+          className="border space-y-0"
           style={{
             background: "hsl(215 65% 50% / 0.05)",
             borderColor: "hsl(215 65% 50% / 0.2)",
