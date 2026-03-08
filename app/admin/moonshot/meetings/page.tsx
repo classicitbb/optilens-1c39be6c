@@ -22,6 +22,7 @@ export default function MeetingsPage() {
   const [frequency, setFrequency] = useState<"weekly" | "biweekly" | "monthly">("weekly");
   const [duration, setDuration] = useState(90);
   const [attendees, setAttendees] = useState<string[]>(["u1", "u2"]);
+  const [ownerId, setOwnerId] = useState("u1");
 
   return (
     <div className="space-y-4">
@@ -37,6 +38,7 @@ export default function MeetingsPage() {
               <div className="space-y-1"><Label>Name</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
               <div className="space-y-1"><Label>Frequency</Label><Select value={frequency} onValueChange={(v: "weekly" | "biweekly" | "monthly") => setFrequency(v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="weekly">Weekly</SelectItem><SelectItem value="biweekly">Biweekly</SelectItem><SelectItem value="monthly">Monthly</SelectItem></SelectContent></Select></div>
               <div className="space-y-1"><Label>Duration (minutes)</Label><Input type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value || 60))} /></div>
+              <div className="space-y-1"><Label>Owner</Label><Select value={ownerId} onValueChange={setOwnerId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{users.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-2">
                 <Label>Attendees</Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -51,7 +53,7 @@ export default function MeetingsPage() {
               <Button className="w-full" onClick={() => {
                 addMeeting({
                   title,
-                  owner: "Classic",
+                  ownerId,
                   date: format(new Date(), "yyyy-MM-dd"),
                   status: "Scheduled",
                   notes: "",

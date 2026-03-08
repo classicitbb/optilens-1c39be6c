@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMoonshotStore } from "../lib/store";
 
 export default function IssuesPage() {
-  const { issues, meetings, addIssue, updateIssue, deleteIssue } = useMoonshotStore();
+  const { issues, meetings, users, addIssue, updateIssue, deleteIssue } = useMoonshotStore();
   const [title, setTitle] = useState("");
   const [meetingId, setMeetingId] = useState(meetings[0]?.id ?? "");
+  const [ownerId, setOwnerId] = useState(users[0]?.id ?? "u1");
+  const usersById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
 
   return (
     <Card className="rounded-xl border bg-white">
@@ -20,8 +22,9 @@ export default function IssuesPage() {
       <CardContent className="space-y-3">
         <div className="flex gap-2">
           <Input placeholder="Identify issue" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Select value={ownerId} onValueChange={setOwnerId}><SelectTrigger className="w-56"><SelectValue placeholder="Owner" /></SelectTrigger><SelectContent>{users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select>
           <Select value={meetingId} onValueChange={setMeetingId}><SelectTrigger className="w-56"><SelectValue placeholder="Linked meeting" /></SelectTrigger><SelectContent>{meetings.map((m) => <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>)}</SelectContent></Select>
-          <Button onClick={() => { if (!title) return; addIssue({ title, owner: "Classic", priority: "Medium", status: "Open", identified: title, discussed: "", solved: "", meetingId }); setTitle(""); }}>Add</Button>
+          <Button onClick={() => { if (!title) return; addIssue({ title, ownerId, priority: "Medium", status: "Open", identified: title, discussed: "", solved: "", meetingId }); setTitle(""); }}>Add</Button>
         </div>
 
         {issues.map((issue) => {
@@ -29,7 +32,10 @@ export default function IssuesPage() {
           return (
             <div key={issue.id} className="rounded-lg border p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-medium">{issue.title}</p>
+                <div>
+                  <p className="font-medium">{issue.title}</p>
+                  <p className="text-xs text-muted-foreground">Owner: {usersById.get(issue.ownerId)?.name ?? "Unknown"}</p>
+                </div>
                 <div className="flex items-center gap-2">
                   <Badge className={issue.priority === "High" ? "bg-red-100 text-red-700" : issue.priority === "Medium" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700"}>{issue.priority}</Badge>
                   <Select value={issue.status} onValueChange={(v: "Open" | "In Progress" | "Resolved") => updateIssue(issue.id, { status: v })}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Resolved">Solved</SelectItem></SelectContent></Select>

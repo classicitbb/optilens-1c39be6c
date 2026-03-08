@@ -64,7 +64,7 @@ export function WorkspaceGrid({ scope }: { scope: Scope }) {
             <tbody>
               {metrics.slice(0, full ? metrics.length : 4).map((metric) => {
                 const latest = metric.points[metric.points.length - 1]?.value ?? metric.actual;
-                return <tr key={metric.id} className="border-t"><td>{metric.owner}</td><td>{metric.name}</td><td>{metric.target}</td><td className={latest >= metric.target ? "text-emerald-600" : "text-red-600"}>{latest}</td></tr>;
+                return <tr key={metric.id} className="border-t"><td>{users.find((u) => u.id === metric.ownerId)?.name ?? "Unknown"}</td><td>{metric.name}</td><td>{metric.target}</td><td className={latest >= metric.target ? "text-emerald-600" : "text-red-600"}>{latest}</td></tr>;
               })}
             </tbody>
           </table>
@@ -89,7 +89,7 @@ export function WorkspaceGrid({ scope }: { scope: Scope }) {
                   <Checkbox checked={todo.completed} onCheckedChange={(checked) => updateTodo(todo.id, { completed: Boolean(checked) })} />
                   <span>{todo.title}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">{format(new Date(todo.dueDate), "MMM d")} · {todo.owner}</span>
+                <span className="text-xs text-muted-foreground">{format(new Date(todo.dueDate), "MMM d")} · {users.find((u) => u.id === todo.ownerId)?.name ?? "Unknown"}</span>
               </div>
             ))}
           </div>
