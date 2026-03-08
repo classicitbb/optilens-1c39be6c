@@ -39,7 +39,7 @@ export default function MoonshotUsersPage() {
   const seatUsage = useMemo(
     () =>
       seats.map((seat) => {
-        const used = users.filter((u) => u.seatIds.includes(seat.id)).length;
+        const used = users.filter((u) => (u.seatIds ?? []).includes(seat.id)).length;
         return { ...seat, used, available: Math.max(0, seat.capacity - used) };
       }),
     [seats, users],
@@ -48,15 +48,15 @@ export default function MoonshotUsersPage() {
   const filteredUsers = useMemo(() => {
     const next = users.filter((u) => {
       const textMatch = [u.name, u.email, u.role].join(" ").toLowerCase().includes(query.trim().toLowerCase());
-      const seatMatch = seatFilter === "all" || u.seatIds.includes(seatFilter);
+      const seatMatch = seatFilter === "all" || (u.seatIds ?? []).includes(seatFilter);
       const supervisorMatch = supervisorFilter === "all" || u.supervisorId === supervisorFilter;
       const inviteMatch = inviteFilter === "all" || u.invitation.status === inviteFilter;
       return textMatch && seatMatch && supervisorMatch && inviteMatch;
     });
 
     next.sort((a, b) => {
-      const seatA = a.seatIds.map((id) => seatsById.get(id)?.name ?? "").join(", ");
-      const seatB = b.seatIds.map((id) => seatsById.get(id)?.name ?? "").join(", ");
+      const seatA = (a.seatIds ?? []).map((id) => seatsById.get(id)?.name ?? "").join(", ");
+      const seatB = (b.seatIds ?? []).map((id) => seatsById.get(id)?.name ?? "").join(", ");
       const supA = usersById.get(a.supervisorId ?? "")?.name ?? "";
       const supB = usersById.get(b.supervisorId ?? "")?.name ?? "";
       const value =
@@ -181,8 +181,8 @@ export default function MoonshotUsersPage() {
                     <td className="px-3 py-2">{u.role}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-1">
-                        {u.seatIds.length > 0
-                          ? u.seatIds.map((id) => <Badge key={id} variant="outline">{seatsById.get(id)?.name ?? id}</Badge>)
+                        {(u.seatIds ?? []).length > 0
+                          ? (u.seatIds ?? []).map((id) => <Badge key={id} variant="outline">{seatsById.get(id)?.name ?? id}</Badge>)
                           : <Badge variant="secondary">Unassigned</Badge>}
                       </div>
                     </td>
@@ -264,14 +264,14 @@ export default function MoonshotUsersPage() {
                 <Label>Seat assignment</Label>
                 <div className="grid grid-cols-2 gap-2 rounded-md border p-2">
                   {seats.map((seat) => {
-                    const checked = editingUser.seatIds.includes(seat.id);
+                    const checked = (editingUser.seatIds ?? []).includes(seat.id);
                     return (
                       <label key={seat.id} className="flex items-center gap-2 text-sm">
                         <Checkbox
                           checked={checked}
                           onCheckedChange={(c) =>
                             updateUser(editingUser.id, {
-                              seatIds: c ? [...editingUser.seatIds, seat.id] : editingUser.seatIds.filter((id) => id !== seat.id),
+                              seatIds: c ? [...(editingUser.seatIds ?? []), seat.id] : (editingUser.seatIds ?? []).filter((id) => id !== seat.id),
                             })
                           }
                         />
