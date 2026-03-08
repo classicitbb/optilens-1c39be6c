@@ -355,7 +355,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
       {previewFormat === "matrix" ? <MatrixPreview /> : <ListPreview />}
 
-      <p className="text-center pt-3" style={{ fontSize: "9px", color: "#a0aec0", borderTop: "1px solid #e2e8f0" }}>
+      <p className="text-center pt-3" style={{ fontSize: "9px", color: "hsl(var(--admin-muted-fg))", borderTop: "1px solid hsl(var(--admin-border))" }}>
         All prices in {currency}. Prices subject to change without notice. · {company?.company_name}
       </p>
     </div>
