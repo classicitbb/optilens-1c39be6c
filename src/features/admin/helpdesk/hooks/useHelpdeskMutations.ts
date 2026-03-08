@@ -32,6 +32,7 @@ export const useUpdateHelpdeskTicket = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["helpdesk-tickets"] });
+      qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
       toast({ title: "Ticket updated" });
     },
     onError: (err: Error) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
