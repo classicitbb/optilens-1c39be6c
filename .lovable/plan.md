@@ -201,3 +201,31 @@ from `src/components/admin/AdminPageHeader.tsx`.
 - Always pass a relevant Lucide icon and a properly capitalized title.
 - Optional `children` slot renders right-aligned actions.
 - Do not use ad hoc inline `<h1>` patterns on admin pages.
+
+---
+
+## 6) Preview Template Rules (binding)
+
+All document preview templates — pricelists, quotations, proposals, and any
+future PdfPreviewShell consumer — must follow these rules.
+
+### 6.1 Narrow margins by default
+- `DEFAULT_PRINT_SETTINGS.marginPreset` is `"narrow"` (8 mm).
+- Users may override per-document, but the starting state is always narrow.
+
+### 6.2 Dark-mode immune
+- Preview content always renders with a fixed white background and dark text.
+- The preview iframe / container must never inherit dark-mode CSS variables.
+- Branded header colors (e.g. `#1e4db7`) are hardcoded, not token-based.
+
+### 6.3 Consistent template structure
+- Every preview uses `PdfPreviewShell` with the shared toolbar (paper size,
+  orientation, scale, print button).
+- Branded header, date, format label, and page numbering layout must not vary
+  between preview types.
+
+### 6.4 Responsive table contents and page breaks
+- `thead` uses `display: table-header-group` so headers repeat on every page.
+- Long table bodies allow row-level breaks (`break-inside: auto`).
+- Section headings use `break-after: avoid` to stay with following content.
+- Standalone grid/card sections use `break-inside: avoid`.
