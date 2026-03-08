@@ -534,7 +534,7 @@ const ListCatalogTab = ({
     const displayRows = sortedRows(title, rows);
     return (
       <AccordionItem key={title} value={title} className="mt-3 px-2 border-none">
-        <div className="flex items-center justify-between rounded-sm px-4 py-2 mb-0.5" style={{ background: BLUE_BG, color: "white" }}>
+        <div className="flex items-center justify-between px-4 py-2 mb-0.5" style={{ background: BLUE_BG, color: "white" }}>
           <AccordionTrigger className="p-0 hover:no-underline gap-2 font-bold text-sm uppercase tracking-wide [&>svg]:text-white flex-1 justify-start">
             <span>{title}</span>
             <span className="text-[10px] font-normal normal-case tracking-normal opacity-70 ml-2">({displayRows.length})</span>
