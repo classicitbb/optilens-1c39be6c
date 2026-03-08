@@ -293,7 +293,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
           <TableBody>
             {visibleItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={colCount} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={colCount} className="text-center py-8 text-xs text-muted-foreground">
                   No records found.
                 </TableCell>
               </TableRow>
