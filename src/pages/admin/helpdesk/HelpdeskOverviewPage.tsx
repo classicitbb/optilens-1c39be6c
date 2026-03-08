@@ -29,6 +29,7 @@ interface OverviewTicket {
   partner_contact_id: string | null;
   stage_id: string | null;
   team_id: string | null;
+  ticket_type_id: string | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;
@@ -36,6 +37,7 @@ interface OverviewTicket {
   stage: { id: string; name: string; sequence: number; is_closed: boolean; is_folded: boolean } | null;
   team: { id: string; name: string } | null;
   contact: { id: string; name: string; is_company: boolean } | null;
+  ticket_type: { id: string; name: string } | null;
 }
 
 interface StageColumn {
