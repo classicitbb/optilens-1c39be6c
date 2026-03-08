@@ -337,25 +337,25 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   };
 
   return (
-    <div className="space-y-4" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "hsl(var(--admin-content-fg))" }}>
+    <div className="space-y-4 rounded-md p-6" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", background: "#ffffff" }}>
       {/* Header — matching reference screenshot */}
-      <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid hsl(var(--admin-border))" }}>
+      <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
         <div className="flex-1 text-center">
-          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "hsl(var(--admin-content-fg))" }}>
+          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "#1a202c" }}>
             {CATALOG_TITLES[catalogType] ?? "PRICE LIST"}
           </h1>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-xs" style={{ color: "hsl(var(--admin-muted-fg))" }}>
+          <p className="text-xs" style={{ color: "#4a5568" }}>
             {previewFormat === "matrix" ? "Matrix Format" : "List Format"} · {today}
           </p>
-          <p className="text-xs font-semibold" style={{ color: "hsl(var(--admin-content-fg))" }}>{currency}</p>
+          <p className="text-xs font-semibold" style={{ color: "#2d3748" }}>{currency}</p>
         </div>
       </div>
 
       {previewFormat === "matrix" ? <MatrixPreview /> : <ListPreview />}
 
-      <p className="text-center pt-3" style={{ fontSize: "9px", color: "hsl(var(--admin-muted-fg))", borderTop: "1px solid hsl(var(--admin-border))" }}>
+      <p className="text-center pt-3" style={{ fontSize: "9px", color: "#a0aec0", borderTop: "1px solid #e2e8f0" }}>
         All prices in {currency}. Prices subject to change without notice. · {company?.company_name}
       </p>
     </div>
