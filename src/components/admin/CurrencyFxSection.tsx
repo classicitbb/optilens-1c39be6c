@@ -69,7 +69,7 @@ const CurrencyFxSection = ({
   }, [fxRates, fxRiskBuffer, foreignCurrencies]);
 
   return (
-    <div className="space-y-4 rounded-lg border border-border p-4">
+    <div className="space-y-4 border border-border p-4">
       <div className="flex items-center gap-2">
         <RefreshCw className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Currency & FX</h3>
