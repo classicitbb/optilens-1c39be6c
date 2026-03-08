@@ -365,7 +365,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               <Separator />
               {/* Pricing & Cost */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Pricing & Cost</p>
+                <p className={sectionCls + " text-muted-foreground"}>Pricing & Cost</p>
                 <div className="grid grid-cols-4 gap-3">
                   <div>
                     <Label className={labelCls}>Cost (USD)</Label>
