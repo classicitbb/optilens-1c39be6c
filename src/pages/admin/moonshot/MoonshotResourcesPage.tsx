@@ -10,7 +10,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { renderWikiContent } from "@/components/admin/wikiFormatting";
+import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
 
 const MOONSHOT_SLUGS = [
