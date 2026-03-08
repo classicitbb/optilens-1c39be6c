@@ -55,8 +55,8 @@ export default function MoonshotUsersPage() {
     });
 
     next.sort((a, b) => {
-      const seatA = a.seatIds.map((id) => seatsById.get(id)?.name ?? "").join(", ");
-      const seatB = b.seatIds.map((id) => seatsById.get(id)?.name ?? "").join(", ");
+      const seatA = (a.seatIds ?? []).map((id) => seatsById.get(id)?.name ?? "").join(", ");
+      const seatB = (b.seatIds ?? []).map((id) => seatsById.get(id)?.name ?? "").join(", ");
       const supA = usersById.get(a.supervisorId ?? "")?.name ?? "";
       const supB = usersById.get(b.supervisorId ?? "")?.name ?? "";
       const value =
