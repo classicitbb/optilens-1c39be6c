@@ -609,7 +609,7 @@ const ListCatalogTab = ({
       return (
         <div key={accKey} className="mt-4 border border-border overflow-hidden mx-[5px]">
           {/* Category header */}
-          <div className="px-3 py-1.5 font-semibold text-xs uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)" }}>
+          <div className="px-3 py-1.5 font-semibold text-xs uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(var(--admin-table-category-bg))", color: "hsl(var(--admin-table-category-fg))" }}>
             {category}
             <span className="ml-auto text-xs font-normal opacity-60">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
           </div>
