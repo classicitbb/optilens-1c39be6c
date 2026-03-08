@@ -288,7 +288,7 @@ const UsersPage = () => {
                           {user.role ? <Edit2 className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
                         </Button>
                         {user.role === "customer" && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Manage pricelists" onClick={() => setSelectedCustomer(selectedCustomer === user.user_id ? null : user.user_id)} className={`h-7 w-7 ${selectedCustomer === user.user_id ? "text-[hsl(var(--admin-accent))]" : ""}`}>
+                          <Button variant="ghost" size="icon" title="Manage pricelists" onClick={() => setSelectedCustomer(selectedCustomer === user.user_id ? null : user.user_id)} className={`h-7 w-7 ${selectedCustomer === user.user_id ? "text-[hsl(var(--admin-accent))]" : ""}`}>
                             <Shield className="h-3.5 w-3.5" />
                           </Button>
                         )}
