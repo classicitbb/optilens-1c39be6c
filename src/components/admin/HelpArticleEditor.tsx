@@ -125,12 +125,12 @@ const HelpArticleEditor = () => {
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-slate-400 mb-1 block">Sort Order</label>
+            <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Sort Order</label>
             <Input
               type="number"
               value={editing.sort_order ?? 0}
               onChange={(e) => setEditing({ ...editing, sort_order: parseInt(e.target.value) || 0 })}
-              className="h-8 text-xs bg-slate-800 border-slate-700 text-slate-200 w-20"
+              className="h-8 text-xs w-20"
             />
           </div>
 
