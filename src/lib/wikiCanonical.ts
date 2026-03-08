@@ -112,6 +112,38 @@ export const canonicalToHtml = (doc: BlogCanonicalContent): string => {
     .join("\n");
 };
 
+/** Parse inline markdown: **bold**, *italic*, [link](url) */
+const parseInlineMarkdown = (text: string): BlogInlineNode[] => {
+  const nodes: BlogInlineNode[] = [];
+  // Regex matches **bold**, *italic*, and [text](url)
+  const re = /(\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(asText(text.slice(lastIndex, match.index)));
+    }
+    if (match[2] != null) {
+      // **bold**
+      nodes.push({ type: "strong", children: [asText(match[2])] });
+    } else if (match[3] != null) {
+      // *italic*
+      nodes.push({ type: "emphasis", children: [asText(match[3])] });
+    } else if (match[4] != null && match[5] != null) {
+      // [text](url)
+      nodes.push({ type: "link", href: match[5], children: [asText(match[4])] });
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(asText(text.slice(lastIndex)));
+  }
+
+  return nodes.length > 0 ? nodes : [asText(text)];
+};
+
 export const toCanonicalDocument = (value?: unknown): BlogCanonicalContent => {
   if (!value) return { blocks: [] };
 
@@ -137,14 +169,67 @@ export const toCanonicalDocument = (value?: unknown): BlogCanonicalContent => {
     return { blocks: parseHtmlToBlocks(raw) };
   }
 
-  const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  return {
-    blocks: lines.map((line) => {
-      const heading = line.match(/^(#{1,3})\s+(.+)$/);
-      if (heading) return { type: "heading", level: heading[1].length as 1 | 2 | 3, children: [asText(heading[2])] };
-      return { type: "paragraph", children: [asText(line)] };
-    }),
+  // Full markdown-style parser: headings, lists, blockquotes, paragraphs with inline formatting
+  const lines = raw.split(/\r?\n/);
+  const blocks: BlogBlockNode[] = [];
+  let listBuffer: { ordered: boolean; items: BlogInlineNode[][] } | null = null;
+
+  const flushList = () => {
+    if (!listBuffer) return;
+    blocks.push({ type: "list", ordered: listBuffer.ordered, items: listBuffer.items });
+    listBuffer = null;
   };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    const trimmed = line.trim();
+
+    // Blank line — flush list
+    if (!trimmed) {
+      flushList();
+      continue;
+    }
+
+    // Heading
+    const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      flushList();
+      blocks.push({ type: "heading", level: headingMatch[1].length as 1 | 2 | 3 | 4, children: parseInlineMarkdown(headingMatch[2]) });
+      continue;
+    }
+
+    // Blockquote
+    if (trimmed.startsWith("> ")) {
+      flushList();
+      blocks.push({ type: "blockquote", children: parseInlineMarkdown(trimmed.slice(2)) });
+      continue;
+    }
+
+    // Unordered list item
+    const ulMatch = trimmed.match(/^[-*]\s+(.+)$/);
+    if (ulMatch) {
+      if (listBuffer && listBuffer.ordered) flushList();
+      if (!listBuffer) listBuffer = { ordered: false, items: [] };
+      listBuffer.items.push(parseInlineMarkdown(ulMatch[1]));
+      continue;
+    }
+
+    // Ordered list item
+    const olMatch = trimmed.match(/^\d+[.)]\s+(.+)$/);
+    if (olMatch) {
+      if (listBuffer && !listBuffer.ordered) flushList();
+      if (!listBuffer) listBuffer = { ordered: true, items: [] };
+      listBuffer.items.push(parseInlineMarkdown(olMatch[1]));
+      continue;
+    }
+
+    // Regular paragraph
+    flushList();
+    blocks.push({ type: "paragraph", children: parseInlineMarkdown(trimmed) });
+  }
+
+  flushList();
+  return { blocks };
 };
 
 export const validateCanonicalDocument = (doc: BlogCanonicalContent): { valid: boolean; message?: string } => {
