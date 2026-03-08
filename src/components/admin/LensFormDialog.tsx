@@ -367,7 +367,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
               {/* Specifications */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Specifications</p>
+                <p className={sectionCls + " text-muted-foreground"}>Specifications</p>
                 <div className="grid grid-cols-2 gap-2">
                   <NumInput label="Index" value={form.index_value} step="0.01" onChange={(v) => setNum("index_value", v)} />
                   <div />
