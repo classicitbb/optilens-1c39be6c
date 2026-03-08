@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,110 +7,116 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "rea
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/components/theme-provider";
-import Index from "./pages/Index";
-import Store from "./pages/Store";
-import Knowledge from "./pages/Knowledge";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Profile from "./pages/Profile";
-import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
-import LegalPage from "./pages/LegalPage";
-import LensDesignGuidePage from "./pages/LensDesignGuidePage";
-import MirrorFinishPage from "./pages/MirrorFinishPage";
-import UltraClearARPage from "./pages/coatings/UltraClearARPage";
-import BlueBlockARPage from "./pages/coatings/BlueBlockARPage";
-import ScratchResistantPage from "./pages/coatings/ScratchResistantPage";
-import UVShieldPage from "./pages/coatings/UVShieldPage";
-import HydrophobicOleophobicPage from "./pages/coatings/HydrophobicOleophobicPage";
-import HowARCoatingWorksPage from "./pages/coatings/HowARCoatingWorksPage";
-import CaringForCoatedLensesPage from "./pages/coatings/CaringForCoatedLensesPage";
-import ProfessionalsPage from "./pages/ProfessionalsPage";
-import PatientsPage from "./pages/PatientsPage";
-import ProfessionalsPortalPage from "./pages/ProfessionalsPortalPage";
-import OfficeOccupationalPage from "./pages/lenses/OfficeOccupationalPage";
-import AntiFatiguePage from "./pages/lenses/AntiFatiguePage";
-import BlueFilterPage from "./pages/lenses/BlueFilterPage";
-import TintsFashionColorsPage from "./pages/lenses/TintsFashionColorsPage";
-import MaterialsPage from "./pages/lenses/MaterialsPage";
-import ThicknessChartPage from "./pages/lenses/ThicknessChartPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
-import AdminLayout from "./components/admin/AdminLayout";
-import AdminHomeRedirect from "./components/admin/AdminHomeRedirect";
-import ReferenceDataPage from "./pages/admin/ReferenceDataPage";
-import PlaceholderPage from "./pages/admin/PlaceholderPage";
-import AuditLogPage from "./pages/admin/AuditLogPage";
-import ProductCatalogPage from "./pages/admin/ProductCatalogPage";
-import LensPricesPage from "./pages/admin/LensPricesPage";
-import RxLensPricesPage from "./pages/admin/RxLensPricesPage";
-import StockLensPricesPage from "./pages/admin/StockLensPricesPage";
-import BuySellPricesPage from "./pages/admin/BuySellPricesPage";
-import ImportsPage from "./pages/admin/ImportsPage";
-import UsersPage from "./pages/admin/UsersPage";
-import CompanySettingsPage from "./pages/admin/CompanySettingsPage";
-import RolesPermissionsPage from "./pages/admin/RolesPermissionsPage";
-import AdminWikiPage from "./pages/admin/AdminWikiPage";
-import ContentManagerPage from "./pages/admin/ContentManagerPage";
-import ImportCostingsPage from "./pages/admin/costings/ImportCostingsPage";
-import ShipmentDetailPage from "./pages/admin/costings/ShipmentDetailPage";
-import CostingsReportsPage from "./pages/admin/costings/CostingsReportsPage";
-import QuotationsListPage from "./pages/admin/QuotationsListPage";
-import QuoteEditorPage from "./pages/admin/QuoteEditorPage";
-import QuotePrintPreviewPage from "./pages/admin/QuotePrintPreviewPage";
-import CatalogPublisherPage from "./pages/admin/CatalogPublisherPage";
-import CatalogPublisherV2Page from "./pages/admin/CatalogPublisherV2Page";
-import CatalogEditorPage from "./pages/admin/CatalogEditorPage";
-import ContactsPage from "./pages/admin/erp/ContactsPage";
-import ContactTagsConfigPage from "./pages/admin/erp/ContactTagsConfigPage";
-import IndustriesConfigPage from "./pages/admin/erp/IndustriesConfigPage";
-import PricingSettingsPage from "./pages/admin/PricingSettingsPage";
-import LeadFinderPage from "./pages/admin/leads/LeadFinderPage";
-import MyLeadsPage from "./pages/admin/leads/MyLeadsPage";
-import LeadCampaignsPage from "./pages/admin/leads/LeadCampaignsPage";
-import LeadAuditReportsPage from "./pages/admin/leads/LeadAuditReportsPage";
-import LeadsAiAssistantPage from "./pages/admin/leads/LeadsAiAssistantPage";
-import LeadSettingsPage from "./pages/admin/leads/LeadSettingsPage";
-import CrmPipelinePage from "./pages/admin/crm/CrmPipelinePage";
-import CrmActivitiesPage from "./pages/admin/crm/CrmActivitiesPage";
-import CrmDashboardPage from "./pages/admin/crm/CrmDashboardPage";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
-import RuntimeErrorsPage from "./pages/admin/RuntimeErrorsPage";
-import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
-import HelpdeskTicketsPage from "./pages/admin/helpdesk/HelpdeskTicketsPage";
-import HelpdeskTeamsPage from "./pages/admin/helpdesk/HelpdeskTeamsPage";
-import HelpdeskSlaPoliciesPage from "./pages/admin/helpdesk/HelpdeskSlaPoliciesPage";
-import HelpdeskStagesPage from "./pages/admin/helpdesk/HelpdeskStagesPage";
-import HelpdeskConfigPage from "./pages/admin/helpdesk/HelpdeskConfigPage";
+
+// Lazy-loaded pages for code-splitting
+const Index = lazy(() => import("./pages/Index"));
+const Store = lazy(() => import("./pages/Store"));
+const Knowledge = lazy(() => import("./pages/Knowledge"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Orders = lazy(() => import("./pages/Orders"));
+const LegalPage = lazy(() => import("./pages/LegalPage"));
+const LensDesignGuidePage = lazy(() => import("./pages/LensDesignGuidePage"));
+const MirrorFinishPage = lazy(() => import("./pages/MirrorFinishPage"));
+const UltraClearARPage = lazy(() => import("./pages/coatings/UltraClearARPage"));
+const BlueBlockARPage = lazy(() => import("./pages/coatings/BlueBlockARPage"));
+const ScratchResistantPage = lazy(() => import("./pages/coatings/ScratchResistantPage"));
+const UVShieldPage = lazy(() => import("./pages/coatings/UVShieldPage"));
+const HydrophobicOleophobicPage = lazy(() => import("./pages/coatings/HydrophobicOleophobicPage"));
+const HowARCoatingWorksPage = lazy(() => import("./pages/coatings/HowARCoatingWorksPage"));
+const CaringForCoatedLensesPage = lazy(() => import("./pages/coatings/CaringForCoatedLensesPage"));
+const ProfessionalsPage = lazy(() => import("./pages/ProfessionalsPage"));
+const PatientsPage = lazy(() => import("./pages/PatientsPage"));
+const ProfessionalsPortalPage = lazy(() => import("./pages/ProfessionalsPortalPage"));
+const OfficeOccupationalPage = lazy(() => import("./pages/lenses/OfficeOccupationalPage"));
+const AntiFatiguePage = lazy(() => import("./pages/lenses/AntiFatiguePage"));
+const BlueFilterPage = lazy(() => import("./pages/lenses/BlueFilterPage"));
+const TintsFashionColorsPage = lazy(() => import("./pages/lenses/TintsFashionColorsPage"));
+const MaterialsPage = lazy(() => import("./pages/lenses/MaterialsPage"));
+const ThicknessChartPage = lazy(() => import("./pages/lenses/ThicknessChartPage"));
+
+// Admin pages
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminHomeRedirect = lazy(() => import("./components/admin/AdminHomeRedirect"));
+const ReferenceDataPage = lazy(() => import("./pages/admin/ReferenceDataPage"));
+const PlaceholderPage = lazy(() => import("./pages/admin/PlaceholderPage"));
+const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
+const ProductCatalogPage = lazy(() => import("./pages/admin/ProductCatalogPage"));
+const LensPricesPage = lazy(() => import("./pages/admin/LensPricesPage"));
+const RxLensPricesPage = lazy(() => import("./pages/admin/RxLensPricesPage"));
+const StockLensPricesPage = lazy(() => import("./pages/admin/StockLensPricesPage"));
+const BuySellPricesPage = lazy(() => import("./pages/admin/BuySellPricesPage"));
+const ImportsPage = lazy(() => import("./pages/admin/ImportsPage"));
+const UsersPage = lazy(() => import("./pages/admin/UsersPage"));
+const CompanySettingsPage = lazy(() => import("./pages/admin/CompanySettingsPage"));
+const RolesPermissionsPage = lazy(() => import("./pages/admin/RolesPermissionsPage"));
+const AdminWikiPage = lazy(() => import("./pages/admin/AdminWikiPage"));
+const ContentManagerPage = lazy(() => import("./pages/admin/ContentManagerPage"));
+const ImportCostingsPage = lazy(() => import("./pages/admin/costings/ImportCostingsPage"));
+const ShipmentDetailPage = lazy(() => import("./pages/admin/costings/ShipmentDetailPage"));
+const CostingsReportsPage = lazy(() => import("./pages/admin/costings/CostingsReportsPage"));
+const QuotationsListPage = lazy(() => import("./pages/admin/QuotationsListPage"));
+const QuoteEditorPage = lazy(() => import("./pages/admin/QuoteEditorPage"));
+const QuotePrintPreviewPage = lazy(() => import("./pages/admin/QuotePrintPreviewPage"));
+const CatalogPublisherPage = lazy(() => import("./pages/admin/CatalogPublisherPage"));
+const CatalogPublisherV2Page = lazy(() => import("./pages/admin/CatalogPublisherV2Page"));
+const CatalogEditorPage = lazy(() => import("./pages/admin/CatalogEditorPage"));
+const ContactsPage = lazy(() => import("./pages/admin/erp/ContactsPage"));
+const ContactTagsConfigPage = lazy(() => import("./pages/admin/erp/ContactTagsConfigPage"));
+const IndustriesConfigPage = lazy(() => import("./pages/admin/erp/IndustriesConfigPage"));
+const PricingSettingsPage = lazy(() => import("./pages/admin/PricingSettingsPage"));
+const LeadFinderPage = lazy(() => import("./pages/admin/leads/LeadFinderPage"));
+const MyLeadsPage = lazy(() => import("./pages/admin/leads/MyLeadsPage"));
+const LeadCampaignsPage = lazy(() => import("./pages/admin/leads/LeadCampaignsPage"));
+const LeadAuditReportsPage = lazy(() => import("./pages/admin/leads/LeadAuditReportsPage"));
+const LeadsAiAssistantPage = lazy(() => import("./pages/admin/leads/LeadsAiAssistantPage"));
+const LeadSettingsPage = lazy(() => import("./pages/admin/leads/LeadSettingsPage"));
+const CrmPipelinePage = lazy(() => import("./pages/admin/crm/CrmPipelinePage"));
+const CrmActivitiesPage = lazy(() => import("./pages/admin/crm/CrmActivitiesPage"));
+const CrmDashboardPage = lazy(() => import("./pages/admin/crm/CrmDashboardPage"));
+const RuntimeErrorsPage = lazy(() => import("./pages/admin/RuntimeErrorsPage"));
+const IntegrationsPage = lazy(() => import("./pages/admin/settings/IntegrationsPage"));
+const HelpdeskTicketsPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskTicketsPage"));
+const HelpdeskTeamsPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskTeamsPage"));
+const HelpdeskSlaPoliciesPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskSlaPoliciesPage"));
+const HelpdeskStagesPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskStagesPage"));
+const HelpdeskConfigPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskConfigPage"));
+
 // Moonshot
-import MoonshotLayout from "./features/admin/moonshot/MoonshotLayout";
-import MoonshotDashboardPage from "./pages/admin/moonshot/MoonshotDashboardPage";
-import MoonshotWorkspacePage from "./pages/admin/moonshot/MoonshotWorkspacePage";
-import MoonshotMeetingsPage from "./pages/admin/moonshot/MoonshotMeetingsPage";
-import MoonshotNewMeetingPage from "./pages/admin/moonshot/MoonshotNewMeetingPage";
-import MoonshotMeetingDetailPage from "./pages/admin/moonshot/MoonshotMeetingDetailPage";
-import MoonshotScorecardsPage from "./pages/admin/moonshot/MoonshotScorecardsPage";
-import MoonshotRocksPage from "./pages/admin/moonshot/MoonshotRocksPage";
-import MoonshotTodosPage from "./pages/admin/moonshot/MoonshotTodosPage";
-import MoonshotIssuesPage from "./pages/admin/moonshot/MoonshotIssuesPage";
-import MoonshotBusinessPlanPage from "./pages/admin/moonshot/MoonshotBusinessPlanPage";
-import MoonshotToolsPage from "./pages/admin/moonshot/MoonshotToolsPage";
-import MoonshotUsersPage from "./pages/admin/moonshot/MoonshotUsersPage";
-import MoonshotPlaceholderPage from "./pages/admin/moonshot/MoonshotPlaceholderPage";
-import MoonshotResourcesPage from "./pages/admin/moonshot/MoonshotResourcesPage";
-import MoonshotSettingsPage from "./pages/admin/moonshot/MoonshotSettingsPage";
-import MoonshotOrgChartPage from "./pages/admin/moonshot/MoonshotOrgChartPage";
-import MoonshotOneOnOnesPage from "./pages/admin/moonshot/MoonshotOneOnOnesPage";
-import MoonshotRightPersonRightSeatPage from "./pages/admin/moonshot/MoonshotRightPersonRightSeatPage";
-// ZenVue feature pages
-import ZenvueHome from "./pages/zenvue/ZenvueHome";
-import ZenvueBrilliance from "./pages/zenvue/ZenvueBrilliance";
-import ZenvueSingleVision from "./pages/zenvue/ZenvueSingleVision";
-import ZenvueSunDun from "./pages/zenvue/ZenvueSunDun";
-import ZenvueDarkun from "./pages/zenvue/ZenvueDarkun";
-import ZenvueCompare from "./pages/zenvue/ZenvueCompare";
-import ZenvueWholesale from "./pages/zenvue/ZenvueWholesale";
+const MoonshotLayout = lazy(() => import("./features/admin/moonshot/MoonshotLayout"));
+const MoonshotDashboardPage = lazy(() => import("./pages/admin/moonshot/MoonshotDashboardPage"));
+const MoonshotWorkspacePage = lazy(() => import("./pages/admin/moonshot/MoonshotWorkspacePage"));
+const MoonshotMeetingsPage = lazy(() => import("./pages/admin/moonshot/MoonshotMeetingsPage"));
+const MoonshotNewMeetingPage = lazy(() => import("./pages/admin/moonshot/MoonshotNewMeetingPage"));
+const MoonshotMeetingDetailPage = lazy(() => import("./pages/admin/moonshot/MoonshotMeetingDetailPage"));
+const MoonshotScorecardsPage = lazy(() => import("./pages/admin/moonshot/MoonshotScorecardsPage"));
+const MoonshotRocksPage = lazy(() => import("./pages/admin/moonshot/MoonshotRocksPage"));
+const MoonshotTodosPage = lazy(() => import("./pages/admin/moonshot/MoonshotTodosPage"));
+const MoonshotIssuesPage = lazy(() => import("./pages/admin/moonshot/MoonshotIssuesPage"));
+const MoonshotBusinessPlanPage = lazy(() => import("./pages/admin/moonshot/MoonshotBusinessPlanPage"));
+const MoonshotToolsPage = lazy(() => import("./pages/admin/moonshot/MoonshotToolsPage"));
+const MoonshotUsersPage = lazy(() => import("./pages/admin/moonshot/MoonshotUsersPage"));
+const MoonshotPlaceholderPage = lazy(() => import("./pages/admin/moonshot/MoonshotPlaceholderPage"));
+const MoonshotResourcesPage = lazy(() => import("./pages/admin/moonshot/MoonshotResourcesPage"));
+const MoonshotSettingsPage = lazy(() => import("./pages/admin/moonshot/MoonshotSettingsPage"));
+const MoonshotOrgChartPage = lazy(() => import("./pages/admin/moonshot/MoonshotOrgChartPage"));
+const MoonshotOneOnOnesPage = lazy(() => import("./pages/admin/moonshot/MoonshotOneOnOnesPage"));
+const MoonshotRightPersonRightSeatPage = lazy(() => import("./pages/admin/moonshot/MoonshotRightPersonRightSeatPage"));
+
+// ZenVue
+const ZenvueHome = lazy(() => import("./pages/zenvue/ZenvueHome"));
+const ZenvueBrilliance = lazy(() => import("./pages/zenvue/ZenvueBrilliance"));
+const ZenvueSingleVision = lazy(() => import("./pages/zenvue/ZenvueSingleVision"));
+const ZenvueSunDun = lazy(() => import("./pages/zenvue/ZenvueSunDun"));
+const ZenvueDarkun = lazy(() => import("./pages/zenvue/ZenvueDarkun"));
+const ZenvueCompare = lazy(() => import("./pages/zenvue/ZenvueCompare"));
+const ZenvueWholesale = lazy(() => import("./pages/zenvue/ZenvueWholesale"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -142,6 +149,7 @@ const App = () => (
       <GlobalErrorLogger />
       <BrowserRouter>
         <AuthProvider>
+          <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
           <Routes>
             <Route element={<CustomerShell />}>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
@@ -331,6 +339,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
       </TooltipProvider>
