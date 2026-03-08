@@ -132,6 +132,7 @@ const AdminWikiPage = () => {
           onSearchChange={setSearchTerm}
           canEdit={canEdit}
           onAddHeading={handleAddHeading}
+          onRefresh={refetchHeadings}
           isCategoryVisible={(categoryId) => canViewWikiCategory(categoryId, canView)}
         />
         <WikiContentPanel

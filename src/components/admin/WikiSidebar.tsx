@@ -68,14 +68,27 @@ const WikiSidebar = ({
   return (
     <div className="w-64 shrink-0 border-r border-border flex flex-col bg-muted/20">
       <div className="p-3 border-b border-border">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search articles…"
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 h-8 text-xs"
-          />
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search articles…"
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-8 h-8 text-xs"
+            />
+          </div>
+          {onRefresh && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => onRefresh()}
+              title="Refresh"
+            >
+              <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
+          )}
         </div>
       </div>
 
