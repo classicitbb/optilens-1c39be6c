@@ -752,7 +752,7 @@ const ListCatalogTab = ({
 
         {showTreatmentsAddons && catalogType === "rx" && effectiveAddonRows.size > 0 &&
         <div className="mt-8 border-t-2 border-dashed border-border pt-4">
-            <div className="px-4 py-2 mb-2 rounded-sm text-xs font-bold tracking-wide" style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}>
+            <div className="px-4 py-2 mb-2 text-xs font-bold tracking-wide" style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}>
               ADD ONS
             </div>
             <Accordion type="multiple" defaultValue={[...effectiveAddonRows.keys()]} className="space-y-0">
