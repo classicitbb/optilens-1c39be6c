@@ -190,8 +190,8 @@ export default function MoonshotUsersPage() {
                     </td>
                     <td className="px-3 py-2">{usersById.get(u.supervisorId ?? "")?.name ?? "—"}</td>
                     <td className="px-3 py-2">
-                      <Badge variant={invitationTone[u.invitation.status]}>{u.invitation.status}</Badge>
-                      <p className="mt-1 text-xs text-muted-foreground">{formatDistanceToNowStrict(new Date(u.invitation.pendingAt), { addSuffix: true })}</p>
+                      <Badge variant={invitationTone[(u.invitation ?? defaultInvitation).status]}>{(u.invitation ?? defaultInvitation).status}</Badge>
+                      <p className="mt-1 text-xs text-muted-foreground">{formatDistanceToNowStrict(new Date((u.invitation ?? defaultInvitation).pendingAt), { addSuffix: true })}</p>
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
