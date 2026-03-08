@@ -331,7 +331,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
             {/* LEFT COLUMN - Item Info */}
             <div className="space-y-4">
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Item Info</p>
+                <p className={sectionCls + " text-muted-foreground"}>Item Info</p>
                 <div className="space-y-2">
                   <div>
                     <Label className="text-[11px]">Name</Label>
