@@ -167,7 +167,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                       <th
                         key={col.key}
                         className="px-3 py-2.5 text-center font-bold uppercase tracking-wider"
-                        style={{ background: "#1e4db7", color: "white", minWidth: "90px", borderBottom: "none" }}
+                        style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))", minWidth: "90px", borderBottom: "none" }}
                       >
                         {col.key}
                       </th>
