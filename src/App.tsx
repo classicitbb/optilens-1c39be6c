@@ -97,6 +97,7 @@ import MoonshotBusinessPlanPage from "./pages/admin/moonshot/MoonshotBusinessPla
 import MoonshotToolsPage from "./pages/admin/moonshot/MoonshotToolsPage";
 import MoonshotUsersPage from "./pages/admin/moonshot/MoonshotUsersPage";
 import MoonshotPlaceholderPage from "./pages/admin/moonshot/MoonshotPlaceholderPage";
+import MoonshotResourcesPage from "./pages/admin/moonshot/MoonshotResourcesPage";
 import MoonshotSettingsPage from "./pages/admin/moonshot/MoonshotSettingsPage";
 import MoonshotOrgChartPage from "./pages/admin/moonshot/MoonshotOrgChartPage";
 import MoonshotOneOnOnesPage from "./pages/admin/moonshot/MoonshotOneOnOnesPage";
@@ -323,7 +324,7 @@ const App = () => (
                 <Route path="tools/one-on-ones" element={<MoonshotOneOnOnesPage />} />
                 <Route path="tools/right-person-right-seat" element={<MoonshotRightPersonRightSeatPage />} />
                 <Route path="users" element={<MoonshotUsersPage />} />
-                <Route path="resources" element={<MoonshotPlaceholderPage title="Resources library coming soon" />} />
+                <Route path="resources" element={<MoonshotResourcesPage />} />
                 <Route path="settings" element={<MoonshotSettingsPage />} />
                 <Route path="feedback" element={<MoonshotPlaceholderPage title="Thanks! Feedback form coming soon" />} />
               </Route>
