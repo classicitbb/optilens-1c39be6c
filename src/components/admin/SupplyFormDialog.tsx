@@ -456,14 +456,12 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
 const ReadOnly = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
   <div>
-    <span className="text-[10px]" style={{ color: "hsl(215 15% 50%)" }}>{label}</span>
+    <span className="text-[10px] text-muted-foreground">{label}</span>
     <div
-      className="h-7 flex items-center px-2 rounded text-xs tabular-nums"
-      style={{
-        background: highlight ? "hsl(215 60% 95%)" : "hsl(215 20% 97%)",
-        color: "hsl(215 30% 15%)",
-        fontWeight: highlight ? 600 : 400,
-      }}
+      className={cn(
+        "h-7 flex items-center px-2 rounded text-xs tabular-nums text-foreground",
+        highlight ? "bg-primary/10 font-semibold" : "bg-muted"
+      )}
     >
       {value}
     </div>
