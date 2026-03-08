@@ -499,6 +499,17 @@ const KanbanView = ({
                               </div>
                             </div>
 
+                            {/* Contact info */}
+                            {ticket.partner_contact && (
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground truncate">
+                                <div className={cn("h-4 w-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0", getAvatarColor(ticket.partner_contact.name))}>
+                                  {getInitial(ticket.partner_contact.name)}
+                                </div>
+                                <span className="truncate">{ticket.partner_contact.name}</span>
+                                {ticket.partner_contact.email && <span className="truncate hidden sm:inline">· {ticket.partner_contact.email}</span>}
+                              </div>
+                            )}
+
                             {/* Bottom row */}
                             <div className="flex items-center justify-between">
                               <PriorityStars priority={ticket.priority} />
