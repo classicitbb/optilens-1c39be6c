@@ -105,7 +105,7 @@ const TicketEditDialog = ({
   const updateStage = useUpdateHelpdeskTicketStage();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const [form, setForm] = useState({ title: "", description: "", priority: "1", team_id: "", stage_id: "", partner_contact_id: "" });
+  const [form, setForm] = useState({ title: "", description: "", priority: "1", team_id: "", stage_id: "", partner_contact_id: "", ticket_type_id: "" });
 
   // Sync form when ticket changes
   const lastId = useRef<string | null>(null);
@@ -118,6 +118,7 @@ const TicketEditDialog = ({
       team_id: ticket.team_id || "",
       stage_id: ticket.stage_id || "",
       partner_contact_id: ticket.partner_contact_id || "",
+      ticket_type_id: ticket.ticket_type_id || "",
     });
   }
   if (!ticket && lastId.current) lastId.current = null;
