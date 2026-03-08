@@ -18,10 +18,10 @@ interface MarginBadgeProps {
 }
 
 const getMarginColor = (m: number | null) => {
-  if (m == null) return { bg: "hsl(215 15% 92%)", text: "hsl(215 15% 55%)" };
-  if (m >= 30) return { bg: "hsl(142 40% 90%)", text: "hsl(142 60% 30%)" };
-  if (m >= 20) return { bg: "hsl(38 80% 90%)", text: "hsl(38 80% 35%)" };
-  return { bg: "hsl(0 60% 92%)", text: "hsl(0 60% 40%)" };
+  if (m == null) return { bg: "bg-muted", text: "text-muted-foreground" };
+  if (m >= 30) return { bg: "bg-emerald-500/15", text: "text-emerald-700 dark:text-emerald-400" };
+  if (m >= 20) return { bg: "bg-amber-500/15", text: "text-amber-700 dark:text-amber-400" };
+  return { bg: "bg-red-500/15", text: "text-red-700 dark:text-red-400" };
 };
 
 const MarginBadge = ({
@@ -39,15 +39,12 @@ const MarginBadge = ({
   const badge = (
     <span
       className={cn(
-        "rounded-full px-1.5 py-0 cursor-pointer select-none whitespace-nowrap",
+        "px-1.5 py-0 cursor-pointer select-none whitespace-nowrap font-semibold",
+        colors.bg,
+        colors.text,
         inline ? "text-[9px]" : "text-[10px]",
         className
       )}
-      style={{
-        background: colors.bg,
-        color: colors.text,
-        fontWeight: 600,
-      }}
     >
       {label}
     </span>
@@ -76,23 +73,13 @@ const MarginBadge = ({
           </span>
 
           <span className="text-muted-foreground">Margin %</span>
-          <span
-            className="text-right font-semibold"
-            style={{ color: colors.text }}
-          >
+          <span className={cn("text-right font-semibold", colors.text)}>
             {label}
           </span>
         </div>
 
         {marginPercent != null && marginPercent < marginFloor && (
-          <div
-            className="flex items-center gap-1.5 rounded px-2 py-1.5 mt-1"
-            style={{
-              background: "hsl(0 60% 95%)",
-              color: "hsl(0 60% 40%)",
-              border: "1px solid hsl(0 60% 85%)",
-            }}
-          >
+          <div className="flex items-center gap-1.5 px-2 py-1.5 mt-1 bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20">
             <span className="text-[10px] font-medium">
               ⚠ Margin is below {marginFloor}% floor — review before saving
             </span>

@@ -278,20 +278,38 @@
   border-radius: 0 !important;
 }
 
-/* Force light-mode inputs/selects inside admin tool regardless of theme */
+/* Admin input/select token-based overrides (light) */
+.admin-tool {
+  --admin-input-bg: 0 0% 100%;
+  --admin-input-fg: 215 30% 15%;
+  --admin-input-border: 215 15% 75%;
+  --admin-input-placeholder: 215 15% 55%;
+  --admin-input-disabled-bg: 215 15% 95%;
+  --admin-input-disabled-fg: 215 15% 45%;
+}
+
+.dark .admin-tool {
+  --admin-input-bg: 215 28% 14%;
+  --admin-input-fg: 210 35% 96%;
+  --admin-input-border: 215 22% 22%;
+  --admin-input-placeholder: 215 15% 55%;
+  --admin-input-disabled-bg: 215 22% 16%;
+  --admin-input-disabled-fg: 215 15% 55%;
+}
+
 .admin-tool input,
 .admin-tool textarea,
 .admin-tool select,
 .admin-tool [data-radix-select-trigger],
 .admin-tool button[role="combobox"] {
-  background-color: white !important;
-  color: hsl(215 30% 15%) !important;
-  border-color: hsl(215 15% 75%) !important;
+  background-color: hsl(var(--admin-input-bg)) !important;
+  color: hsl(var(--admin-input-fg)) !important;
+  border-color: hsl(var(--admin-input-border)) !important;
 }
 
 .admin-tool input::placeholder,
 .admin-tool textarea::placeholder {
-  color: hsl(215 15% 55%) !important;
+  color: hsl(var(--admin-input-placeholder)) !important;
 }
 
 .admin-tool input:disabled,
@@ -299,34 +317,8 @@
 .admin-tool select:disabled,
 .admin-tool [data-radix-select-trigger][data-disabled],
 .admin-tool button[role="combobox"]:disabled {
-  background-color: hsl(215 15% 95%) !important;
-  color: hsl(215 15% 45%) !important;
-  opacity: 0.7;
-}
-
-/* Dark-mode overrides for admin inputs */
-.dark .admin-tool input,
-.dark .admin-tool textarea,
-.dark .admin-tool select,
-.dark .admin-tool [data-radix-select-trigger],
-.dark .admin-tool button[role="combobox"] {
-  background-color: hsl(215 28% 14%) !important;
-  color: hsl(210 35% 96%) !important;
-  border-color: hsl(215 22% 22%) !important;
-}
-
-.dark .admin-tool input::placeholder,
-.dark .admin-tool textarea::placeholder {
-  color: hsl(215 15% 55%) !important;
-}
-
-.dark .admin-tool input:disabled,
-.dark .admin-tool textarea:disabled,
-.dark .admin-tool select:disabled,
-.dark .admin-tool [data-radix-select-trigger][data-disabled],
-.dark .admin-tool button[role="combobox"]:disabled {
-  background-color: hsl(215 22% 16%) !important;
-  color: hsl(215 15% 55%) !important;
+  background-color: hsl(var(--admin-input-disabled-bg)) !important;
+  color: hsl(var(--admin-input-disabled-fg)) !important;
   opacity: 0.7;
 }
 
@@ -339,19 +331,31 @@
   background: hsl(var(--admin-content-bg));
   color: hsl(var(--admin-content-fg));
 
-  /* Override global tokens so all components render in light mode inside admin content */
+  /* Override global tokens so shadcn components inherit admin theme */
   --background: var(--admin-content-bg);
   --foreground: var(--admin-content-fg);
   --card: var(--admin-card);
   --card-foreground: var(--admin-content-fg);
   --popover: var(--admin-card);
   --popover-foreground: var(--admin-content-fg);
+  --primary: var(--admin-accent);
+  --primary-foreground: var(--admin-accent-fg);
+  --destructive: var(--admin-destructive);
   --muted: var(--admin-muted);
   --muted-foreground: var(--admin-muted-fg);
   --border: var(--admin-border);
   --input: var(--admin-border);
   --accent: var(--admin-accent);
   --accent-foreground: var(--admin-accent-fg);
+  --ring: var(--admin-accent);
+}
+
+/* Ensure popovers/dropdowns on the admin surface (topbar) inherit admin tokens */
+.admin-tool .admin-surface {
+  --popover: var(--admin-topbar-bg);
+  --popover-foreground: var(--admin-content-fg);
+  --accent: var(--admin-muted);
+  --accent-foreground: var(--admin-content-fg);
 }
 
 .admin-tool table {
@@ -481,8 +485,4 @@
   --border: 220 15% 20%;
   --input: 220 15% 20%;
   --ring: 200 55% 55%;
-}
-.admin-tool .admin-surface {
-  background: hsl(var(--admin-topbar-bg));
-  color: hsl(var(--admin-content-fg));
 }
