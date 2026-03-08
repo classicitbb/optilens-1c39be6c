@@ -1,15 +1,21 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star } from "lucide-react";
+import { useMemo, useState, useCallback, useRef, DragEvent } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useAuth } from "@/contexts/AuthContext";
 import { normalizeHelpdeskPriorityLabel } from "@/features/admin/helpdesk/utils/normalization";
+import { useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
+import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface OverviewTicket {
@@ -28,8 +34,6 @@ interface OverviewTicket {
   deadline: string | null;
   stage: { id: string; name: string; sequence: number; is_closed: boolean; is_folded: boolean } | null;
   team: { id: string; name: string } | null;
-  owner_profile: { display_name: string | null; user_id: string } | null;
-  partner_contact: { name: string } | null;
 }
 
 interface StageColumn {
@@ -77,14 +81,117 @@ const PriorityStars = ({ priority }: { priority: number }) => {
   );
 };
 
+/* ═══════════════════ Edit Dialog ═══════════════════ */
+const TicketEditDialog = ({
+  ticket,
+  open,
+  onClose,
+  stages,
+  teams,
+}: {
+  ticket: OverviewTicket | null;
+  open: boolean;
+  onClose: () => void;
+  stages: { id: string; name: string }[];
+  teams: { id: string; name: string }[];
+}) => {
+  const updateTicket = useUpdateHelpdeskTicket();
+  const updateStage = useUpdateHelpdeskTicketStage();
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [form, setForm] = useState({ title: "", description: "", priority: "1", team_id: "", stage_id: "" });
+
+  // Sync form when ticket changes
+  const lastId = useRef<string | null>(null);
+  if (ticket && ticket.id !== lastId.current) {
+    lastId.current = ticket.id;
+    setForm({
+      title: ticket.title,
+      description: ticket.description || "",
+      priority: String(ticket.priority),
+      team_id: ticket.team_id || "",
+      stage_id: ticket.stage_id || "",
+    });
+  }
+  if (!ticket && lastId.current) lastId.current = null;
+
+  const save = async () => {
+    if (!ticket) return;
+    // Update core fields
+    await updateTicket.mutateAsync({
+      id: ticket.id,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      priority: Number(form.priority),
+      team_id: form.team_id || null,
+    });
+    // If stage changed, update via dedicated hook
+    if (form.stage_id !== (ticket.stage_id || "") && form.stage_id) {
+      await updateStage.mutateAsync({
+        ticketId: ticket.id,
+        stageId: form.stage_id,
+        actorUserId: user?.id,
+      });
+    }
+    qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Edit Ticket {ticket?.ticket_number}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs" />
+          <Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Description" className="text-xs min-h-[80px]" />
+          <div className="grid grid-cols-3 gap-2">
+            <Select value={form.priority} onValueChange={v => setForm(p => ({ ...p, priority: v }))}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[0, 1, 2, 3, 4, 5].map(l => <SelectItem key={l} value={String(l)} className="text-xs">{normalizeHelpdeskPriorityLabel(l)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={form.team_id || "__none"} onValueChange={v => setForm(p => ({ ...p, team_id: v === "__none" ? "" : v }))}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">No team</SelectItem>
+                {teams.map(t => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={form.stage_id || "__none"} onValueChange={v => setForm(p => ({ ...p, stage_id: v === "__none" ? "" : v }))}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">Unstaged</SelectItem>
+                {stages.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={save} disabled={updateTicket.isPending || updateStage.isPending}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/* ═══════════════════ Main Page ═══════════════════ */
 const HelpdeskOverviewPage = () => {
-  const { canView } = useRolePermissions();
+  const { canView, canEditFeature } = useRolePermissions();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const canViewHelpdesk = canView("helpdesk");
+  const canEdit = canEditFeature("helpdesk");
 
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [search, setSearch] = useState("");
   const [teamFilter, setTeamFilter] = useState("all");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [editTicket, setEditTicket] = useState<OverviewTicket | null>(null);
+
+  const updateStage = useUpdateHelpdeskTicketStage();
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["helpdesk-overview-tickets"],
@@ -92,7 +199,7 @@ const HelpdeskOverviewPage = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("helpdesk_tickets")
-        .select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(name)")
+        .select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name)")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -101,16 +208,12 @@ const HelpdeskOverviewPage = () => {
     refetchInterval: 30000,
   });
 
-  // Fetch profiles separately for owner display names
   const ownerIds = useMemo(() => [...new Set(tickets.map(t => t.owner_user_id).filter(Boolean) as string[])], [tickets]);
   const { data: profiles = [] } = useQuery({
     queryKey: ["helpdesk-overview-profiles", ownerIds],
     enabled: ownerIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("profiles")
-        .select("user_id,display_name")
-        .in("user_id", ownerIds);
+      const { data, error } = await (supabase as any).from("profiles").select("user_id,display_name").in("user_id", ownerIds);
       if (error) throw error;
       return (data ?? []) as { user_id: string; display_name: string | null }[];
     },
@@ -121,10 +224,7 @@ const HelpdeskOverviewPage = () => {
     queryKey: ["helpdesk-overview-stages"],
     enabled: canViewHelpdesk,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("helpdesk_ticket_stages")
-        .select("id,name,sequence,is_closed,is_folded")
-        .order("sequence");
+      const { data, error } = await (supabase as any).from("helpdesk_ticket_stages").select("id,name,sequence,is_closed,is_folded").order("sequence");
       if (error) throw error;
       return data ?? [];
     },
@@ -134,11 +234,7 @@ const HelpdeskOverviewPage = () => {
     queryKey: ["helpdesk-overview-teams"],
     enabled: canViewHelpdesk,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("helpdesk_teams")
-        .select("id,name")
-        .eq("is_active", true)
-        .order("name");
+      const { data, error } = await (supabase as any).from("helpdesk_teams").select("id,name").eq("is_active", true).order("name");
       if (error) throw error;
       return data ?? [];
     },
@@ -154,11 +250,7 @@ const HelpdeskOverviewPage = () => {
   }, [tickets, search, teamFilter]);
 
   const stageColumns: StageColumn[] = useMemo(() => {
-    const cols: StageColumn[] = stages.map((s: any) => ({
-      ...s,
-      tickets: filtered.filter(t => t.stage_id === s.id),
-    }));
-    // Add unstaged column if needed
+    const cols: StageColumn[] = stages.map((s: any) => ({ ...s, tickets: filtered.filter(t => t.stage_id === s.id) }));
     const unstaged = filtered.filter(t => !t.stage_id);
     if (unstaged.length > 0) {
       cols.unshift({ id: "__unstaged", name: "Unstaged", sequence: -1, is_closed: false, is_folded: false, tickets: unstaged });
@@ -166,23 +258,37 @@ const HelpdeskOverviewPage = () => {
     return cols;
   }, [stages, filtered]);
 
-  const getOwnerName = (ticket: OverviewTicket) => {
+  const getOwnerName = useCallback((ticket: OverviewTicket) => {
     if (!ticket.owner_user_id) return null;
     const p = profileMap.get(ticket.owner_user_id);
     return p?.display_name || ticket.owner_user_id.slice(0, 6);
-  };
+  }, [profileMap]);
 
-  const getCustomerName = (ticket: OverviewTicket) => {
-    return (ticket.partner_contact as any)?.name || null;
-  };
+  const handleDrop = useCallback(async (ticketId: string, targetStageId: string) => {
+    if (targetStageId === "__unstaged") return;
+    try {
+      await updateStage.mutateAsync({ ticketId, stageId: targetStageId, actorUserId: user?.id });
+      qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
+    } catch (err) {
+      toast({ title: "Stage change failed", description: (err as Error).message, variant: "destructive" });
+    }
+  }, [updateStage, user, qc, toast]);
+
+  const handleListStageChange = useCallback(async (ticketId: string, newStageId: string) => {
+    if (newStageId === "__none") return;
+    try {
+      await updateStage.mutateAsync({ ticketId, stageId: newStageId, actorUserId: user?.id });
+      qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
+    } catch (err) {
+      toast({ title: "Stage change failed", description: (err as Error).message, variant: "destructive" });
+    }
+  }, [updateStage, user, qc, toast]);
 
   if (!canViewHelpdesk) {
     return <p className="text-sm text-muted-foreground p-4">You do not have access to the Helpdesk.</p>;
   }
 
-  const containerClass = isFullscreen
-    ? "fixed inset-0 z-50 bg-background flex flex-col"
-    : "flex flex-col h-full";
+  const containerClass = isFullscreen ? "fixed inset-0 z-50 bg-background flex flex-col" : "flex flex-col h-full";
 
   return (
     <div className={containerClass}>
@@ -193,12 +299,7 @@ const HelpdeskOverviewPage = () => {
           <Badge variant="outline" className="text-xs">{filtered.length} tickets</Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search tickets…"
-            className="h-8 w-56 text-xs"
-          />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tickets…" className="h-8 w-56 text-xs" />
           <Select value={teamFilter} onValueChange={setTeamFilter}>
             <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
             <SelectContent>
@@ -207,30 +308,14 @@ const HelpdeskOverviewPage = () => {
             </SelectContent>
           </Select>
           <div className="flex border border-border rounded-md overflow-hidden">
-            <Button
-              size="sm"
-              variant={viewMode === "kanban" ? "default" : "ghost"}
-              className="h-8 rounded-none gap-1.5 text-xs px-3"
-              onClick={() => setViewMode("kanban")}
-            >
+            <Button size="sm" variant={viewMode === "kanban" ? "default" : "ghost"} className="h-8 rounded-none gap-1.5 text-xs px-3" onClick={() => setViewMode("kanban")}>
               <Kanban className="h-3.5 w-3.5" /> Board
             </Button>
-            <Button
-              size="sm"
-              variant={viewMode === "list" ? "default" : "ghost"}
-              className="h-8 rounded-none gap-1.5 text-xs px-3"
-              onClick={() => setViewMode("list")}
-            >
+            <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} className="h-8 rounded-none gap-1.5 text-xs px-3" onClick={() => setViewMode("list")}>
               <List className="h-3.5 w-3.5" /> List
             </Button>
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            onClick={() => setIsFullscreen(f => !f)}
-            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-          >
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsFullscreen(f => !f)} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
         </div>
@@ -242,10 +327,13 @@ const HelpdeskOverviewPage = () => {
           <p className="text-sm text-muted-foreground">Loading tickets…</p>
         </div>
       ) : viewMode === "kanban" ? (
-        <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCustomerName={getCustomerName} />
+        <KanbanView columns={stageColumns} getOwnerName={getOwnerName} onDrop={canEdit ? handleDrop : undefined} onEdit={canEdit ? setEditTicket : undefined} />
       ) : (
-        <ListView columns={stageColumns} getOwnerName={getOwnerName} getCustomerName={getCustomerName} />
+        <ListView columns={stageColumns} getOwnerName={getOwnerName} stages={stages} canEdit={canEdit} onStageChange={handleListStageChange} onEdit={canEdit ? setEditTicket : undefined} />
       )}
+
+      {/* Edit dialog */}
+      <TicketEditDialog ticket={editTicket} open={!!editTicket} onClose={() => setEditTicket(null)} stages={stages} teams={teams} />
     </div>
   );
 };
@@ -254,103 +342,141 @@ const HelpdeskOverviewPage = () => {
 const KanbanView = ({
   columns,
   getOwnerName,
-  getCustomerName,
+  onDrop,
+  onEdit,
 }: {
   columns: StageColumn[];
   getOwnerName: (t: OverviewTicket) => string | null;
-  getCustomerName: (t: OverviewTicket) => string | null;
-}) => (
-  <div className="flex-1 overflow-x-auto">
-    <div className="flex gap-3 p-4 min-h-0 h-full">
-      {columns.map(col => (
-        <div
-          key={col.id}
-          className="flex flex-col min-w-[280px] max-w-[320px] shrink-0"
-        >
-          {/* Column header */}
-          <div className="flex items-center justify-between px-3 py-2 mb-2">
-            <h3 className="text-sm font-semibold text-foreground">{col.name}</h3>
-            <Badge variant="secondary" className="text-[10px] font-mono">{col.tickets.length}</Badge>
-          </div>
+  onDrop?: (ticketId: string, stageId: string) => void;
+  onEdit?: (t: OverviewTicket) => void;
+}) => {
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
-          {/* Progress bar */}
-          <div className="h-1 rounded-full bg-muted mx-3 mb-3 overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                col.is_closed ? "bg-emerald-500" : col.is_folded ? "bg-muted-foreground" : "bg-primary"
-              )}
-              style={{ width: col.tickets.length > 0 ? "100%" : "0%" }}
-            />
-          </div>
+  const handleDragStart = (e: DragEvent, ticketId: string) => {
+    e.dataTransfer.setData("text/plain", ticketId);
+    e.dataTransfer.effectAllowed = "move";
+  };
 
-          {/* Cards */}
-          <ScrollArea className="flex-1">
-            <div className="space-y-2 px-3 pb-4">
-              {col.tickets.map(ticket => {
-                const owner = getOwnerName(ticket);
-                const customer = getCustomerName(ticket);
-                return (
-                  <div
-                    key={ticket.id}
-                    className="rounded-lg border border-border bg-card p-3 space-y-2 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    {/* Title row */}
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
-                        {ticket.title}
-                        <span className="text-muted-foreground font-normal"> (#{ticket.ticket_number})</span>
-                      </p>
-                      {owner && (
-                        <div
-                          className={cn("h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0", getAvatarColor(owner))}
-                          title={owner}
-                        >
-                          {getInitial(owner)}
-                        </div>
+  const handleDragOver = (e: DragEvent, colId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverCol(colId);
+  };
+
+  const handleDragLeave = () => setDragOverCol(null);
+
+  const handleDropOnCol = (e: DragEvent, colId: string) => {
+    e.preventDefault();
+    setDragOverCol(null);
+    const ticketId = e.dataTransfer.getData("text/plain");
+    if (ticketId && onDrop) onDrop(ticketId, colId);
+  };
+
+  return (
+    <div className="flex-1 overflow-x-auto">
+      <div className="flex gap-3 p-4 min-h-0 h-full">
+        {columns.map(col => (
+          <div
+            key={col.id}
+            className={cn(
+              "flex flex-col min-w-[280px] max-w-[320px] shrink-0 rounded-lg transition-colors",
+              dragOverCol === col.id && "bg-primary/5 ring-2 ring-primary/30"
+            )}
+            onDragOver={onDrop ? (e) => handleDragOver(e, col.id) : undefined}
+            onDragLeave={onDrop ? handleDragLeave : undefined}
+            onDrop={onDrop ? (e) => handleDropOnCol(e, col.id) : undefined}
+          >
+            {/* Column header */}
+            <div className="flex items-center justify-between px-3 py-2 mb-2">
+              <h3 className="text-sm font-semibold text-foreground">{col.name}</h3>
+              <Badge variant="secondary" className="text-[10px] font-mono">{col.tickets.length}</Badge>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-1 rounded-full bg-muted mx-3 mb-3 overflow-hidden">
+              <div
+                className={cn("h-full rounded-full transition-all", col.is_closed ? "bg-emerald-500" : col.is_folded ? "bg-muted-foreground" : "bg-primary")}
+                style={{ width: col.tickets.length > 0 ? "100%" : "0%" }}
+              />
+            </div>
+
+            {/* Cards */}
+            <ScrollArea className="flex-1">
+              <div className="space-y-2 px-3 pb-4">
+                {col.tickets.map(ticket => {
+                  const owner = getOwnerName(ticket);
+                  return (
+                    <div
+                      key={ticket.id}
+                      draggable={!!onDrop}
+                      onDragStart={onDrop ? (e) => handleDragStart(e, ticket.id) : undefined}
+                      className={cn(
+                        "rounded-lg border border-border bg-card p-3 space-y-2 shadow-sm hover:shadow-md transition-shadow group",
+                        onDrop && "cursor-grab active:cursor-grabbing"
                       )}
-                    </div>
+                    >
+                      {/* Title row */}
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+                          {ticket.title}
+                          <span className="text-muted-foreground font-normal"> (#{ticket.ticket_number})</span>
+                        </p>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {onEdit && (
+                            <button
+                              onClick={() => onEdit(ticket)}
+                              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Edit ticket"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          )}
+                          {owner && (
+                            <div className={cn("h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white", getAvatarColor(owner))} title={owner}>
+                              {getInitial(owner)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
-                    {/* Customer */}
-                    {customer && (
-                      <p className="text-xs text-muted-foreground truncate">{customer}</p>
-                    )}
-
-                    {/* Bottom row */}
-                    <div className="flex items-center justify-between">
-                      <PriorityStars priority={ticket.priority} />
-                      <div className="flex items-center gap-1.5">
-                        {ticket.deadline && (
-                          <span className="text-[10px] text-muted-foreground">⏱</span>
-                        )}
-                        {ticket.team && (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0">{ticket.team.name.slice(0, 1)}</Badge>
-                        )}
+                      {/* Bottom row */}
+                      <div className="flex items-center justify-between">
+                        <PriorityStars priority={ticket.priority} />
+                        <div className="flex items-center gap-1.5">
+                          {ticket.deadline && <span className="text-[10px] text-muted-foreground">⏱</span>}
+                          {ticket.team && <Badge variant="outline" className="text-[9px] px-1 py-0">{ticket.team.name.slice(0, 1)}</Badge>}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-              {col.tickets.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-6">No tickets</p>
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      ))}
+                  );
+                })}
+                {col.tickets.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-6">No tickets</p>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ═══════════════════ List View ═══════════════════ */
 const ListView = ({
   columns,
   getOwnerName,
-  getCustomerName,
+  stages,
+  canEdit,
+  onStageChange,
+  onEdit,
 }: {
   columns: StageColumn[];
   getOwnerName: (t: OverviewTicket) => string | null;
-  getCustomerName: (t: OverviewTicket) => string | null;
+  stages: { id: string; name: string; is_closed?: boolean; is_folded?: boolean }[];
+  canEdit: boolean;
+  onStageChange: (ticketId: string, stageId: string) => void;
+  onEdit?: (t: OverviewTicket) => void;
 }) => (
   <ScrollArea className="flex-1">
     <div className="p-4 space-y-4">
@@ -358,10 +484,7 @@ const ListView = ({
         <div key={col.id}>
           {/* Stage group header */}
           <div className="flex items-center gap-2 py-2 border-b border-border mb-1">
-            <span className={cn(
-              "h-2 w-2 rounded-full",
-              col.is_closed ? "bg-emerald-500" : col.is_folded ? "bg-muted-foreground" : "bg-primary"
-            )} />
+            <span className={cn("h-2 w-2 rounded-full", col.is_closed ? "bg-emerald-500" : col.is_folded ? "bg-muted-foreground" : "bg-primary")} />
             <h3 className="text-sm font-semibold text-foreground">{col.name}</h3>
             <Badge variant="secondary" className="text-[10px]">{col.tickets.length}</Badge>
           </div>
@@ -374,21 +497,18 @@ const ListView = ({
                   <th className="text-left py-1.5 px-2 font-medium">Priority</th>
                   <th className="text-left py-1.5 px-2 font-medium">Name</th>
                   <th className="text-left py-1.5 px-2 font-medium">Assigned to</th>
-                  <th className="text-left py-1.5 px-2 font-medium">Customer</th>
                   <th className="text-left py-1.5 px-2 font-medium">SLA Deadline</th>
                   <th className="text-left py-1.5 px-2 font-medium">Stage</th>
+                  {canEdit && <th className="text-left py-1.5 px-2 font-medium w-12"></th>}
                 </tr>
               </thead>
               <tbody>
                 {col.tickets.map(ticket => {
                   const owner = getOwnerName(ticket);
-                  const customer = getCustomerName(ticket);
                   return (
                     <tr key={ticket.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                       <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{ticket.ticket_number}</td>
-                      <td className="py-2 px-2">
-                        <PriorityStars priority={ticket.priority} />
-                      </td>
+                      <td className="py-2 px-2"><PriorityStars priority={ticket.priority} /></td>
                       <td className="py-2 px-2 font-medium text-foreground">{ticket.title}</td>
                       <td className="py-2 px-2">
                         {owner ? (
@@ -402,26 +522,38 @@ const ListView = ({
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="py-2 px-2 text-xs text-muted-foreground">{customer || "—"}</td>
                       <td className="py-2 px-2 text-xs text-muted-foreground">
-                        {ticket.deadline ? (
-                          <span className="flex items-center gap-1">
-                            ⏱ {new Date(ticket.deadline).toLocaleDateString()}
-                          </span>
-                        ) : "—"}
+                        {ticket.deadline ? <span className="flex items-center gap-1">⏱ {new Date(ticket.deadline).toLocaleDateString()}</span> : "—"}
                       </td>
                       <td className="py-2 px-2">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px]",
-                            col.is_closed && "border-emerald-500/50 text-emerald-600",
-                            col.is_folded && "border-muted-foreground/50 text-muted-foreground"
-                          )}
-                        >
-                          {col.name}
-                        </Badge>
+                        {canEdit ? (
+                          <Select
+                            value={ticket.stage_id ?? "__none"}
+                            onValueChange={(v) => { if (v !== "__none" && v !== ticket.stage_id) onStageChange(ticket.id, v); }}
+                          >
+                            <SelectTrigger className="h-7 w-36 text-[10px]"><SelectValue placeholder="Stage" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none" className="text-xs">Unstaged</SelectItem>
+                              {stages.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="outline" className={cn("text-[10px]", col.is_closed && "border-emerald-500/50 text-emerald-600")}>
+                            {col.name}
+                          </Badge>
+                        )}
                       </td>
+                      {canEdit && (
+                        <td className="py-2 px-2">
+                          <button
+                            onClick={() => onEdit?.(ticket)}
+                            className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            title="Edit ticket"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
