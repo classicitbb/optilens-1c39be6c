@@ -116,7 +116,7 @@ const AdminWikiPage = () => {
   };
 
   return (
-    <Tabs defaultValue="wiki" className="flex flex-col h-full">
+    <Tabs defaultValue="wiki" className="flex flex-col h-full [&>[data-state=inactive]]:hidden">
       <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <AdminPageHeader icon={BookOpen} title="Help / Wiki" />
@@ -157,7 +157,7 @@ const AdminWikiPage = () => {
         />
       </TabsContent>
 
-      <TabsContent value="assignments" className="flex flex-1 min-h-0 mt-0">
+      <TabsContent value="assignments" className="flex flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
         <WikiAssignmentsPanel articles={allDbArticles} isLoading={allArticlesLoading} />
       </TabsContent>
 
