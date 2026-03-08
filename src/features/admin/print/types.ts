@@ -28,7 +28,7 @@ export interface PrintSettings {
 export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   paperSize: "A4",
   orientation: "portrait",
-  marginPreset: "normal",
+  marginPreset: "narrow",
   scale: 1,
   sectionGapPx: 24,
   headingGapPx: 8,
