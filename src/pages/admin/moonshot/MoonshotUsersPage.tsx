@@ -181,8 +181,8 @@ export default function MoonshotUsersPage() {
                     <td className="px-3 py-2">{u.role}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-1">
-                        {u.seatIds.length > 0
-                          ? u.seatIds.map((id) => <Badge key={id} variant="outline">{seatsById.get(id)?.name ?? id}</Badge>)
+                        {(u.seatIds ?? []).length > 0
+                          ? (u.seatIds ?? []).map((id) => <Badge key={id} variant="outline">{seatsById.get(id)?.name ?? id}</Badge>)
                           : <Badge variant="secondary">Unassigned</Badge>}
                       </div>
                     </td>
