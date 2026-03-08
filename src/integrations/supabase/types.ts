@@ -4320,6 +4320,10 @@ export type Database = {
       }
     }
     Functions: {
+      cancel_integration_sync_job: {
+        Args: { p_sync_job_id: string }
+        Returns: undefined
+      }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
       get_addons_safe: {
         Args: never
@@ -4476,6 +4480,7 @@ export type Database = {
         Returns: undefined
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
+      timeout_stale_integration_sync_jobs: { Args: never; Returns: number }
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
         Returns: string
