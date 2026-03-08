@@ -198,7 +198,7 @@ const SupplyDataTable = ({
         ))}
         <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(var(--admin-muted-fg))" }}>
           {canEdit && (
-            <button onClick={() => setUnlocked((u) => !u)} className="p-0.5 rounded transition-colors hover:bg-black/5" title={unlocked ? "Lock actions" : "Unlock actions"}>
+            <button onClick={() => setUnlocked((u) => !u)} className="p-0.5 transition-colors hover:bg-muted/50" title={unlocked ? "Lock actions" : "Unlock actions"}>
               {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-warning))" }} /> : <Lock className="h-3.5 w-3.5" />}
             </button>
           )}

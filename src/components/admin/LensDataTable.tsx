@@ -271,7 +271,7 @@ const LensDataTable = ({
           {canEditCatalog && (
             <button
               onClick={() => setUnlocked((u) => !u)}
-              className="p-0.5 rounded transition-colors hover:bg-black/5"
+              className="p-0.5 transition-colors hover:bg-muted/50"
               title={unlocked ? "Lock actions" : "Unlock actions"}
             >
               {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-warning))" }} /> : <Lock className="h-3.5 w-3.5" />}
