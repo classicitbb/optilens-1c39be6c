@@ -13,6 +13,7 @@ import type { Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { checkGovernance } from "@/hooks/useGovernanceCheck";
+import { cn } from "@/lib/utils";
 import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
 import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
