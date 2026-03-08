@@ -349,7 +349,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                       </Button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 bg-slate-100 rounded-md shadow-sm">
+                  <div className="grid grid-cols-2 gap-2 bg-muted/50 shadow-sm">
                     <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeSuppliers} />
                     <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeBrands} />
                     <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} />

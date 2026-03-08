@@ -183,7 +183,7 @@ const HelpArticleEditor = () => {
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(a)}>
-                <Pencil className="h-3 w-3 text-slate-400" />
+                <Pencil className="h-3 w-3 text-muted-foreground" />
               </Button>
               {isAdmin && (
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(a.id)}>
