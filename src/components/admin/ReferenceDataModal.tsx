@@ -51,7 +51,7 @@ const ReferenceDataModal = ({ open, onOpenChange, mode, initialName = "", initia
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-8 text-sm mt-1"
-              style={{ borderRadius: "4px" }}
+              
               autoFocus
             />
           </div>
