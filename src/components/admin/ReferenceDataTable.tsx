@@ -220,7 +220,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
           ))}
         </div>
         <div className="relative max-w-[200px]">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }} placeholder="Search…" className="h-7 text-xs pl-7" />
         </div>
         <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
