@@ -14,6 +14,8 @@ import type { MoonshotUser } from "@/features/admin/moonshot/lib/types";
 
 type SortKey = "name" | "seat" | "supervisor" | "invite";
 
+const defaultInvitation: MoonshotUser["invitation"] = { status: "pending", pendingAt: new Date().toISOString() };
+
 const invitationTone: Record<MoonshotUser["invitation"]["status"], "secondary" | "outline" | "default"> = {
   pending: "secondary",
   sent: "outline",
@@ -50,7 +52,7 @@ export default function MoonshotUsersPage() {
       const textMatch = [u.name, u.email, u.role].join(" ").toLowerCase().includes(query.trim().toLowerCase());
       const seatMatch = seatFilter === "all" || (u.seatIds ?? []).includes(seatFilter);
       const supervisorMatch = supervisorFilter === "all" || u.supervisorId === supervisorFilter;
-      const inviteMatch = inviteFilter === "all" || u.invitation.status === inviteFilter;
+      const inviteMatch = inviteFilter === "all" || (u.invitation ?? defaultInvitation).status === inviteFilter;
       return textMatch && seatMatch && supervisorMatch && inviteMatch;
     });
 
@@ -66,7 +68,7 @@ export default function MoonshotUsersPage() {
             ? seatA.localeCompare(seatB)
             : sortKey === "supervisor"
               ? supA.localeCompare(supB)
-              : a.invitation.status.localeCompare(b.invitation.status);
+              : (a.invitation ?? defaultInvitation).status.localeCompare((b.invitation ?? defaultInvitation).status);
       return sortDirection === "asc" ? value : value * -1;
     });
 
@@ -188,8 +190,8 @@ export default function MoonshotUsersPage() {
                     </td>
                     <td className="px-3 py-2">{usersById.get(u.supervisorId ?? "")?.name ?? "—"}</td>
                     <td className="px-3 py-2">
-                      <Badge variant={invitationTone[u.invitation.status]}>{u.invitation.status}</Badge>
-                      <p className="mt-1 text-xs text-muted-foreground">{formatDistanceToNowStrict(new Date(u.invitation.pendingAt), { addSuffix: true })}</p>
+                      <Badge variant={invitationTone[(u.invitation ?? defaultInvitation).status]}>{(u.invitation ?? defaultInvitation).status}</Badge>
+                      <p className="mt-1 text-xs text-muted-foreground">{formatDistanceToNowStrict(new Date((u.invitation ?? defaultInvitation).pendingAt), { addSuffix: true })}</p>
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex gap-2">
