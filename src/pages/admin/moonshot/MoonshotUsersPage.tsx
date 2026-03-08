@@ -48,7 +48,7 @@ export default function MoonshotUsersPage() {
   const filteredUsers = useMemo(() => {
     const next = users.filter((u) => {
       const textMatch = [u.name, u.email, u.role].join(" ").toLowerCase().includes(query.trim().toLowerCase());
-      const seatMatch = seatFilter === "all" || u.seatIds.includes(seatFilter);
+      const seatMatch = seatFilter === "all" || (u.seatIds ?? []).includes(seatFilter);
       const supervisorMatch = supervisorFilter === "all" || u.supervisorId === supervisorFilter;
       const inviteMatch = inviteFilter === "all" || u.invitation.status === inviteFilter;
       return textMatch && seatMatch && supervisorMatch && inviteMatch;
