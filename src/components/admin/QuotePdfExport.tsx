@@ -753,7 +753,7 @@ export const QuotePreviewPanel = ({
   const styleMetrics = getQuoteStyleMetrics(localPrintSettings);
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col h-full">
+    <div className="border border-border overflow-hidden bg-white shadow-sm flex flex-col h-full">
       {/* Preview chrome bar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
         <div className="flex gap-1">

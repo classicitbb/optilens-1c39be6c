@@ -69,7 +69,7 @@ const CurrencyFxSection = ({
   }, [fxRates, fxRiskBuffer, foreignCurrencies]);
 
   return (
-    <div className="space-y-4 rounded-lg border border-border p-4">
+    <div className="space-y-4 border border-border p-4">
       <div className="flex items-center gap-2">
         <RefreshCw className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">Currency & FX</h3>
@@ -101,7 +101,7 @@ const CurrencyFxSection = ({
           return (
             <div
               key={fc}
-              className="flex items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2.5"
+              className="flex items-center gap-3 border border-border bg-muted/30 px-3 py-2.5"
             >
               <span className="text-xs font-semibold text-foreground whitespace-nowrap">
                 1 {baseCurrency}
@@ -152,7 +152,7 @@ const CurrencyFxSection = ({
 
       {/* Conversion Preview */}
       {preview && (
-        <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2.5 space-y-1">
+        <div className="border border-dashed border-primary/30 bg-primary/5 px-3 py-2.5 space-y-1">
           <p className="text-[10px] font-semibold text-primary uppercase tracking-wide">Conversion Preview</p>
           <p className="text-xs text-foreground">
             <span className="font-mono font-medium">{preview.exampleBase} {baseCurrency}</span>

@@ -145,7 +145,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
               return (
                 <div
                   key={article.id}
-                  className="border border-border rounded-lg overflow-hidden min-w-0"
+                  className="border border-border overflow-hidden min-w-0"
                 >
                   <button
                     onClick={() => toggleArticle(article.id)}

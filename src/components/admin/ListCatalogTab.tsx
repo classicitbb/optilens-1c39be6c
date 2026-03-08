@@ -445,7 +445,7 @@ const ListCatalogTab = ({
       <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
         {/* Reorder arrows for addon/supply rows */}
         {showReorder &&
-        <td className="border border-slate-200 p-0 no-print w-8">
+        <td className="border border-border p-0 no-print w-8">
             <div className="flex flex-col items-center opacity-0 group-hover/row:opacity-100 transition-opacity">
               <button className="p-0.5 hover:bg-muted/50 disabled:opacity-20" disabled={i === 0} onClick={() => moveRow(section, row.key, "up", rowType)}>
                 <ArrowUp className="h-2.5 w-2.5 text-muted-foreground" />
@@ -457,10 +457,10 @@ const ListCatalogTab = ({
           </td>
         }
         {/* Supplier — before description */}
-        <td className="px-2 py-1.5 border border-slate-200 text-center whitespace-nowrap" style={{ color: "hsl(215 50% 40%)", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
+        <td className="px-2 py-1.5 border border-border text-center whitespace-nowrap" style={{ color: "hsl(215 50% 40%)", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
           {row.supplier || "—"}
         </td>
-        <td className="px-3 py-1.5 border border-slate-200 group relative" style={{ color: "hsl(215 30% 15%)" }}>
+        <td className="px-3 py-1.5 border border-border group relative" style={{ color: "hsl(215 30% 15%)" }}>
           <div className="flex items-center gap-1">
             {isPending && <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" title="Pending — save to confirm" />}
             {isEditingThisDesc ?
@@ -481,13 +481,13 @@ const ListCatalogTab = ({
           {row.supplyId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(130 55% 40%)" }}>↳ linked supply</div>}
         </td>
         {/* Matrix Cell — screen-only, hidden on print/export — BEFORE BBD */}
-        <td className="px-2 py-1.5 border border-slate-200 no-print max-w-[160px]" style={{ color: "hsl(215 30% 55%)", fontSize: "10px" }}>
+        <td className="px-2 py-1.5 border border-border no-print max-w-[160px]" style={{ color: "hsl(215 30% 55%)", fontSize: "10px" }}>
           {row.matrixCell ?
           <span className="truncate block" title={row.matrixCell}>{row.matrixCell}</span> :
           "—"}
         </td>
         {/* BBD always visible in editor */}
-        <td className={`px-3 py-1.5 text-right border border-slate-200 font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: isOverridden ? "hsl(35 90% 95%)" : "hsl(215 60% 97%)", color: isOverridden ? "hsl(35 80% 30%)" : "hsl(215 60% 30%)" }}>
+        <td className={`px-3 py-1.5 text-right border border-border font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: isOverridden ? "hsl(35 90% 95%)" : "hsl(215 60% 97%)", color: isOverridden ? "hsl(35 80% 30%)" : "hsl(215 60% 30%)" }}>
           <div className="flex items-center justify-end gap-1">
             {isOverridden && (
               <span title={`Override: $${displayBbd?.toFixed(2)} (was $${row.bbd?.toFixed(2)})`}>
@@ -497,10 +497,10 @@ const ListCatalogTab = ({
             {displayBbd !== null ? `$${displayBbd.toFixed(2)}` : "—"}
           </div>
         </td>
-        <td className="px-3 py-1.5 text-right border border-slate-200 font-medium" style={{ background: "#f0fff4", color: GREEN_TEXT }}>
+        <td className="px-3 py-1.5 text-right border border-border font-medium" style={{ background: "#f0fff4", color: GREEN_TEXT }}>
           {displayUsd !== null ? `$${displayUsd.toFixed(2)}` : "—"}
         </td>
-        <td className="px-3 py-1.5 text-center border border-slate-200 no-print">
+        <td className="px-3 py-1.5 text-center border border-border no-print">
           <MarginBadge
             marginPercent={displayMargin}
             cost={rowCost}
@@ -510,7 +510,7 @@ const ListCatalogTab = ({
 
         </td>
         {/* Pencil override icon */}
-        <td className="border border-slate-200 p-0 no-print w-7">
+        <td className="border border-border p-0 no-print w-7">
           {(row.lensId || row.addonId || row.supplyId) && versionId &&
           <button
             className="w-full h-full flex items-center justify-center p-1 hover:bg-primary/10 transition-colors"
@@ -521,8 +521,8 @@ const ListCatalogTab = ({
             </button>
           }
         </td>
-        <td className="border border-slate-200 p-0 no-print">
-          <button className="w-full h-full flex items-center justify-center p-1 hover:bg-red-50 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
+        <td className="border border-border p-0 no-print">
+          <button className="w-full h-full flex items-center justify-center p-1 hover:bg-destructive/10 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
             <X className="h-3 w-3 text-destructive/60 hover:text-destructive" />
           </button>
         </td>
@@ -534,7 +534,7 @@ const ListCatalogTab = ({
     const displayRows = sortedRows(title, rows);
     return (
       <AccordionItem key={title} value={title} className="mt-3 px-2 border-none">
-        <div className="flex items-center justify-between rounded-sm px-4 py-2 mb-0.5" style={{ background: BLUE_BG, color: "white" }}>
+        <div className="flex items-center justify-between px-4 py-2 mb-0.5" style={{ background: BLUE_BG, color: "white" }}>
           <AccordionTrigger className="p-0 hover:no-underline gap-2 font-bold text-sm uppercase tracking-wide [&>svg]:text-white flex-1 justify-start">
             <span>{title}</span>
             <span className="text-[10px] font-normal normal-case tracking-normal opacity-70 ml-2">({displayRows.length})</span>
@@ -551,18 +551,18 @@ const ListCatalogTab = ({
           <table className="w-full text-xs border-collapse">
               <thead>
                 <tr>
-                  <th className="w-8 no-print border border-slate-300" style={{ background: "hsl(215 15% 93%)" }} />
-                  <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
-                  <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
+                  <th className="w-8 no-print border border-border" style={{ background: "hsl(215 15% 93%)" }} />
+                  <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
+                  <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
                   {/* Matrix Cell header — screen only, before BBD */}
-                  <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>
+                  <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>
                     Matrix Cell
                   </th>
-                  <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
-                  <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
-                  <th className="px-3 py-2 text-center font-semibold border border-slate-300 w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
-                  <th className="w-7 no-print border border-slate-300" title="Override" />
-                  <th className="w-6 no-print border border-slate-300" />
+                  <th className={`px-3 py-2 text-right font-semibold border border-border w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
+                  <th className="px-3 py-2 text-right font-semibold border border-border w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
+                  <th className="px-3 py-2 text-center font-semibold border border-border w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
+                  <th className="w-7 no-print border border-border" title="Override" />
+                  <th className="w-6 no-print border border-border" />
                 </tr>
               </thead>
               <tbody>{displayRows.map((row, i) => renderRow(row, i, rowType, title, displayRows.length))}</tbody>
@@ -610,7 +610,7 @@ const ListCatalogTab = ({
       const primarySectionKey = sectionKeys[0];
 
       return (
-        <div key={accKey} className="mt-4 border border-border rounded-lg overflow-hidden mx-[5px]">
+        <div key={accKey} className="mt-4 border border-border overflow-hidden mx-[5px]">
           {/* Category header */}
           <div className="px-3 py-1.5 font-semibold text-xs uppercase tracking-wide flex items-center gap-2" style={{ background: "hsl(210 60% 93%)", color: "hsl(215 65% 28%)" }}>
             {category}
@@ -654,14 +654,14 @@ const ListCatalogTab = ({
               <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr>
-                        <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
-                        <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={primarySectionKey} col="description" /></th>
-                        <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Matrix Cell</th>
-                        <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={primarySectionKey} col="bbd" /></th>
-                        <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={primarySectionKey} col="usd" /></th>
-                        <th className="px-3 py-2 text-center font-semibold border border-slate-300 w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={primarySectionKey} col="margin" /></th>
-                        <th className="w-7 no-print border border-slate-300" title="Override" />
-                        <th className="w-6 no-print border border-slate-300" />
+                       <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
+                        <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={primarySectionKey} col="description" /></th>
+                        <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Matrix Cell</th>
+                        <th className={`px-3 py-2 text-right font-semibold border border-border w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={primarySectionKey} col="bbd" /></th>
+                        <th className="px-3 py-2 text-right font-semibold border border-border w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={primarySectionKey} col="usd" /></th>
+                        <th className="px-3 py-2 text-center font-semibold border border-border w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={primarySectionKey} col="margin" /></th>
+                        <th className="w-7 no-print border border-border" title="Override" />
+                        <th className="w-6 no-print border border-border" />
                       </tr>
                     </thead>
                     <tbody>{allRows.map((row, i) => renderRow(row, i, "lens", row.section))}</tbody>
@@ -720,7 +720,7 @@ const ListCatalogTab = ({
 
       <div ref={printRef} className="catalog-print-area space-y-0 border">
         {/* Banner */}
-        <div className="px-4 py-2.5 mb-4 rounded-md border-primary/30 bg-primary/5 border-0">
+        <div className="px-4 py-2.5 mb-4 border-primary/30 bg-primary/5 border-0">
           <h2 className="text-sm font-semibold text-primary tracking-wide">{pageName || pageTitle} List Editor</h2>
         </div>
 
@@ -752,7 +752,7 @@ const ListCatalogTab = ({
 
         {showTreatmentsAddons && catalogType === "rx" && effectiveAddonRows.size > 0 &&
         <div className="mt-8 border-t-2 border-dashed border-border pt-4">
-            <div className="px-4 py-2 mb-2 rounded-sm text-xs font-bold tracking-wide" style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}>
+            <div className="px-4 py-2 mb-2 text-xs font-bold tracking-wide" style={{ background: "hsl(215 15% 94%)", color: "hsl(215 30% 20%)" }}>
               ADD ONS
             </div>
             <Accordion type="multiple" defaultValue={[...effectiveAddonRows.keys()]} className="space-y-0">

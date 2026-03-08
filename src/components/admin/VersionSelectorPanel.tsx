@@ -314,7 +314,7 @@ const VersionSelectorPanel = ({
       </div>
 
       {/* Version Selector */}
-      <div className="border border-border rounded-md overflow-hidden">
+      <div className="border border-border overflow-hidden">
         <button
           className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors"
           style={{ background: "hsl(215 15% 96%)" }}
@@ -352,7 +352,7 @@ const VersionSelectorPanel = ({
                   return (
                     <div
                       key={v.id}
-                      className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors"
                       style={{
                         background: isActive ? "hsl(215 65% 50% / 0.08)" : "transparent",
                         border: isActive
@@ -413,14 +413,14 @@ const VersionSelectorPanel = ({
                           <>
                             <button
                               onClick={() => openEdit(v)}
-                              className="p-1 rounded hover:bg-black/5"
+                               className="p-1 hover:bg-muted/50"
                               title="Edit"
                             >
                               <Pencil className="h-3 w-3" style={{ color: LABEL_COLOR }} />
                             </button>
                             <button
                               onClick={() => handleDuplicate(v)}
-                              className="p-1 rounded hover:bg-black/5"
+                              className="p-1 hover:bg-muted/50"
                               title="Duplicate"
                               disabled={createMutation.isPending}
                             >
@@ -429,7 +429,7 @@ const VersionSelectorPanel = ({
                             {isAdmin && (
                               <button
                                 onClick={() => handleDelete(v)}
-                                className="p-1 rounded hover:bg-red-50"
+                                className="p-1 hover:bg-destructive/10"
                                 title="Delete"
                                 disabled={deleteMutation.isPending}
                               >
@@ -454,7 +454,7 @@ const VersionSelectorPanel = ({
       {/* Editing context banner */}
       {activeVersion && (
         <div
-          className="rounded-md border space-y-0"
+          className="border space-y-0"
           style={{
             background: "hsl(215 65% 50% / 0.05)",
             borderColor: "hsl(215 65% 50% / 0.2)",

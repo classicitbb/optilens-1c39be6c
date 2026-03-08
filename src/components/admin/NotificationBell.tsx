@@ -60,8 +60,8 @@ const NotificationBell = () => {
       </Tooltip>
 
       {open &&
-      <div className="absolute right-0 top-full mt-1 z-50 w-80 rounded-md border border-[hsl(var(--admin-border))] shadow-lg bg-slate-500">
-          <div className="flex items-center justify-between px-3 py-2 border-b bg-muted-foreground rounded-none">
+      <div className="absolute right-0 top-full mt-1 z-50 w-80 border border-[hsl(var(--admin-border))] shadow-lg bg-popover text-popover-foreground">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted">
             <span className="text-xs font-semibold">Notifications</span>
             <div className="flex gap-1">
               {unreadCount > 0 &&
@@ -77,19 +77,19 @@ const NotificationBell = () => {
             </div>
           </div>
 
-          <div className="max-h-72 overflow-y-auto bg-slate-200 rounded-none">
+          <div className="max-h-72 overflow-y-auto bg-popover">
             {notifications.length === 0 ?
           <p className="text-xs text-muted-foreground p-4 text-center">All clear — no notifications.</p> :
 
           notifications.map((n) =>
           <button
             key={n.id}
-            className="w-full text-left px-3 py-2 border-b hover:bg-accent/50 transition-colors flex gap-2 items-start rounded-none border"
+            className="w-full text-left px-3 py-2 border-b border-border hover:bg-accent/50 transition-colors flex gap-2 items-start"
             onClick={() => handleClick(n.id, n.href)}>
 
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs font-medium truncate ${severityColor[n.severity] ?? ""}`}>{n.title}</p>
-                    <p className="text-[11px] line-clamp-2 text-slate-500">{n.message}</p>
+                    <p className="text-[11px] line-clamp-2 text-muted-foreground">{n.message}</p>
                   </div>
                   <button
               className="shrink-0 text-muted-foreground hover:text-foreground text-xs mt-0.5"
