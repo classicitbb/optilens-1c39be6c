@@ -192,7 +192,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
       <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+            <DialogTitle className="text-sm font-semibold text-foreground">
               {supply ? "Edit Supply Item" : "New Supply"}
             </DialogTitle>
             <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
