@@ -160,7 +160,7 @@ const HelpArticleEditor = () => {
     <ScrollArea className="flex-1">
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-100">Help Articles</h3>
+          <h3 className="text-sm font-semibold text-foreground">Help Articles</h3>
           <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleNew}>
             <Plus className="h-3 w-3" /> New Article
           </Button>
