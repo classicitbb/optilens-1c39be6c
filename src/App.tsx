@@ -80,6 +80,8 @@ import IntegrationsPage from "./pages/admin/settings/IntegrationsPage";
 import HelpdeskTicketsPage from "./pages/admin/helpdesk/HelpdeskTicketsPage";
 import HelpdeskTeamsPage from "./pages/admin/helpdesk/HelpdeskTeamsPage";
 import HelpdeskSlaPoliciesPage from "./pages/admin/helpdesk/HelpdeskSlaPoliciesPage";
+import HelpdeskStagesPage from "./pages/admin/helpdesk/HelpdeskStagesPage";
+import HelpdeskConfigPage from "./pages/admin/helpdesk/HelpdeskConfigPage";
 // Moonshot
 import MoonshotLayout from "./features/admin/moonshot/MoonshotLayout";
 import MoonshotDashboardPage from "./pages/admin/moonshot/MoonshotDashboardPage";
@@ -246,6 +248,8 @@ const App = () => (
                 <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
                 <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
                 <Route path="helpdesk/sla" element={<HelpdeskSlaPoliciesPage />} />
+                <Route path="helpdesk/stages" element={<HelpdeskStagesPage />} />
+                <Route path="helpdesk/config" element={<HelpdeskConfigPage />} />
 
                 {/* ═══ Website App ═══ */}
                 <Route path="website" element={<Navigate to="/admin/website/content" replace />} />

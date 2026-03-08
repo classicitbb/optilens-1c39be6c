@@ -109,7 +109,9 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Tickets', route: '/admin/helpdesk/tickets', icon: Ticket },
       { label: 'Teams', route: '/admin/helpdesk/teams', icon: UsersRound },
+      { label: 'Stages', route: '/admin/helpdesk/stages', icon: Layers },
       { label: 'SLA Policies', route: '/admin/helpdesk/sla', icon: ShieldCheck },
+      { label: 'Config', route: '/admin/helpdesk/config', icon: Settings },
     ] satisfies SidebarItem[],
   },
   website: {

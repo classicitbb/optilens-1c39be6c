@@ -1252,8 +1252,63 @@ export type Database = {
           },
         ]
       }
+      helpdesk_sla_policies: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          priority_filter: number | null
+          target_hours: number
+          target_stage_id: string | null
+          team_id: string | null
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          priority_filter?: number | null
+          target_hours?: number
+          target_stage_id?: string | null
+          team_id?: string | null
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          priority_filter?: number | null
+          target_hours?: number
+          target_stage_id?: string | null
+          team_id?: string | null
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_sla_policies_target_stage_id_fkey"
+            columns: ["target_stage_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_ticket_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_sla_policies_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_teams: {
         Row: {
+          assignment_mode: string
           created_at: string
           description: string | null
           id: string
@@ -1261,8 +1316,10 @@ export type Database = {
           name: string
           tenant_key: string
           updated_at: string
+          visibility: string
         }
         Insert: {
+          assignment_mode?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -1270,8 +1327,10 @@ export type Database = {
           name: string
           tenant_key?: string
           updated_at?: string
+          visibility?: string
         }
         Update: {
+          assignment_mode?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -1279,6 +1338,7 @@ export type Database = {
           name?: string
           tenant_key?: string
           updated_at?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -1310,6 +1370,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "helpdesk_ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helpdesk_ticket_sla_status: {
+        Row: {
+          created_at: string
+          deadline_at: string | null
+          id: string
+          reached_at: string | null
+          sla_policy_id: string
+          status: string
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deadline_at?: string | null
+          id?: string
+          reached_at?: string | null
+          sla_policy_id: string
+          status?: string
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deadline_at?: string | null
+          id?: string
+          reached_at?: string | null
+          sla_policy_id?: string
+          status?: string
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ticket_sla_status_sla_policy_id_fkey"
+            columns: ["sla_policy_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_sla_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_ticket_sla_status_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "helpdesk_tickets"
