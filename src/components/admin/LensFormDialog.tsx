@@ -416,7 +416,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
               {/* Pricing & Cost */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Pricing & Cost</p>
+                <p className={sectionCls + " text-muted-foreground"}>Pricing & Cost</p>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className={labelCls}>Cost (USD)</Label>
