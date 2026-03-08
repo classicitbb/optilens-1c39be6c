@@ -118,6 +118,7 @@ export const usePublicKnowledge = () => {
         .select("*")
         .in("content_type", ["knowledge", "faq"])
         .eq("is_active", true)
+        .eq("status", "published")
         .in("visibility", ["public", "customer"])
         .order("category")
         .order("sort_order");
@@ -138,6 +139,7 @@ export const useLegalPage = (slug: string) => {
         .eq("content_type", "legal")
         .eq("page_slug", slug)
         .eq("is_active", true)
+        .eq("status", "published")
         .in("visibility", ["public", "customer"])
         .single();
       if (error && error.code !== "PGRST116") throw error;

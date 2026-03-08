@@ -3,7 +3,6 @@ import { wikiCategories } from "@/data/wikiContent";
 import type { WikiCategory } from "@/data/wikiContent";
 import WikiSidebar from "@/components/admin/WikiSidebar";
 import WikiContentPanel from "@/components/admin/WikiContentPanel";
-import WikiArticleEditDialog from "@/components/admin/WikiArticleEditDialog";
 import WikiAssignmentsPanel from "@/components/admin/WikiAssignmentsPanel";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { Button } from "@/components/ui/button";
@@ -16,20 +15,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const isUuid = (value?: string) => !!value && UUID_RE.test(value);
-
 const AdminWikiPage = () => {
   const { canEdit } = useAdminRole();
   const { canView } = useRolePermissions();
   const { toast } = useToast();
-  const { articles: dbArticles, isLoading: articlesLoading } = useHelpArticles("knowledge/wiki");
+  const { articles: dbArticles } = useHelpArticles("knowledge/wiki");
   const { articles: allDbArticles, isLoading: allArticlesLoading } = useHelpArticles();
   const { headings: dbHeadings, createHeading, refetch: refetchHeadings } = useWikiHeadings();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeArticleId, setActiveArticleId] = useState<string | null>(wikiCategories[0]?.articles[0]?.id ?? null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingArticle, setEditingArticle] = useState<any>(null);
+  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
 
   const editableCategories = useMemo<WikiCategory[]>(() => {
     return dbHeadings.map((heading) => ({
@@ -45,8 +40,11 @@ const AdminWikiPage = () => {
           id: article.id,
           title: article.title,
           content: article.content,
+          body_json: article.body_json,
+          status: article.status,
+          version_number: article.version_number,
           context_slugs: article.context_slugs,
-        })),
+        } as any)),
     }));
   }, [dbArticles, dbHeadings, canView]);
 
@@ -89,21 +87,13 @@ const AdminWikiPage = () => {
     setActiveArticleId(articleId);
   };
 
-  const handleEditArticle = (article: { id: string; title: string; content: string }, categoryId?: string) => {
-    const dbArticle = dbArticles.find((entry) => entry.id === article.id);
-    setEditingArticle({
-      id: isUuid(article.id) ? article.id : undefined,
-      title: article.title,
-      content: article.content,
-      category: categoryId ?? "",
-      context_slugs: dbArticle?.context_slugs?.length ? dbArticle.context_slugs : ["knowledge/wiki"],
-    });
-    setEditDialogOpen(true);
+  const handleEditArticle = (article: { id: string; title: string; content: string }) => {
+    setEditingArticleId(article.id);
   };
 
   const handleNewArticle = () => {
-    setEditingArticle(null);
-    setEditDialogOpen(true);
+    setEditingArticleId("new");
+    setActiveArticleId("new");
   };
 
   const handleAddHeading = async (title: string) => {
@@ -151,22 +141,18 @@ const AdminWikiPage = () => {
         <WikiContentPanel
           categories={filtered}
           activeArticleId={activeArticleId}
+          editingArticleId={editingArticleId}
           canEdit={canEdit}
           onEditArticle={handleEditArticle}
+          onEditingChange={setEditingArticleId}
           isCategoryVisible={(categoryId) => canViewWikiCategory(categoryId, canView)}
+          wikiHeadings={allHeadings}
         />
       </TabsContent>
 
       <TabsContent value="assignments" className="flex flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
         <WikiAssignmentsPanel articles={allDbArticles} isLoading={allArticlesLoading} />
       </TabsContent>
-
-      <WikiArticleEditDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        article={editingArticle}
-        wikiHeadings={allHeadings}
-      />
     </Tabs>
   );
 };

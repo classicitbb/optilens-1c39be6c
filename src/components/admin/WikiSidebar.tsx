@@ -119,7 +119,7 @@ const WikiSidebar = ({
                 </button>
                 {isOpen && (
                   <div className="ml-4 space-y-0.5 mt-0.5">
-                    {cat.articles.map((article) => {
+                    {cat.articles.map((article: any) => {
                       const isActive = article.id === activeArticleId;
                       return (
                         <button
@@ -131,7 +131,12 @@ const WikiSidebar = ({
                               : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                           }`}
                         >
-                          {article.title}
+                          <span className="truncate">{article.title}</span>
+                          {canEdit && article.status && (
+                            <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded ${article.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                              {article.status === "published" ? "Published" : "Draft"}
+                            </span>
+                          )}
                         </button>
                       );
                     })}
