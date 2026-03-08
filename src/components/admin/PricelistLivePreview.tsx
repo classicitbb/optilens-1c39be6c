@@ -337,19 +337,19 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   };
 
   return (
-    <div className="space-y-4" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c" }}>
+    <div className="space-y-4" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "hsl(var(--admin-content-fg))" }}>
       {/* Header — matching reference screenshot */}
-      <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
+      <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid hsl(var(--admin-border))" }}>
         <div className="flex-1 text-center">
-          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "#1a202c" }}>
+          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "hsl(var(--admin-content-fg))" }}>
             {CATALOG_TITLES[catalogType] ?? "PRICE LIST"}
           </h1>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-xs" style={{ color: "#4a5568" }}>
+          <p className="text-xs" style={{ color: "hsl(var(--admin-muted-fg))" }}>
             {previewFormat === "matrix" ? "Matrix Format" : "List Format"} · {today}
           </p>
-          <p className="text-xs font-semibold" style={{ color: "#2d3748" }}>{currency}</p>
+          <p className="text-xs font-semibold" style={{ color: "hsl(var(--admin-content-fg))" }}>{currency}</p>
         </div>
       </div>
 
