@@ -278,6 +278,42 @@
   border-radius: 0 !important;
 }
 
+/* §6.2 — Preview templates are dark-mode immune (always light/paper look) */
+.dark .print-preview-container,
+.dark .print-preview-container * {
+  color-scheme: light !important;
+}
+.dark .print-preview-container {
+  background: #ffffff !important;
+  color: #1a202c !important;
+}
+.dark .print-preview-container td,
+.dark .print-preview-container th,
+.dark .print-preview-container p,
+.dark .print-preview-container h1,
+.dark .print-preview-container h2,
+.dark .print-preview-container h3,
+.dark .print-preview-container span,
+.dark .print-preview-container div {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+.dark .print-preview-container th[style*="background: #1e4db7"],
+.dark .print-preview-container th[style*='background: rgb(30, 77, 183)'] {
+  background: #1e4db7 !important;
+  color: #ffffff !important;
+}
+.dark .print-preview-container tr[style*="background: #f7fafc"] {
+  background: #f7fafc !important;
+}
+.dark .print-preview-container tr[style*="background: #fffbeb"] {
+  background: #fffbeb !important;
+}
+.dark .print-preview-container tr[style*="border"] td,
+.dark .print-preview-container tr[style*="border"] th {
+  border-color: #e2e8f0 !important;
+}
+
 /* Admin input/select token-based overrides (light) */
 .admin-tool {
   --admin-input-bg: 0 0% 100%;
