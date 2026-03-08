@@ -486,7 +486,3 @@
   --input: 220 15% 20%;
   --ring: 200 55% 55%;
 }
-.admin-tool .admin-surface {
-  background: hsl(var(--admin-topbar-bg));
-  color: hsl(var(--admin-content-fg));
-}
