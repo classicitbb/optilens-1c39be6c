@@ -488,7 +488,7 @@ const ListCatalogTab = ({
           <div className="flex items-center justify-end gap-1">
             {isOverridden && (
               <span title={`Override: $${displayBbd?.toFixed(2)} (was $${row.bbd?.toFixed(2)})`}>
-                <Link2Off className="h-3 w-3 inline-block" style={{ color: "hsl(35 80% 45%)" }} />
+                <Link2Off className="h-3 w-3 inline-block" style={{ color: "hsl(var(--admin-table-col-override-fg))" }} />
               </span>
             )}
             {displayBbd !== null ? `$${displayBbd.toFixed(2)}` : "—"}
