@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface TeamOption { id: string; name: string; }
 interface StageOption { id: string; name: string; is_closed: boolean; }
+interface TicketTypeOption { id: string; name: string; }
 
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
