@@ -173,11 +173,11 @@ const HelpArticleEditor = () => {
         {allArticles.map((a) => (
           <div
             key={a.id}
-            className="border border-slate-700/60 rounded-lg p-3 flex items-start justify-between gap-2"
+            className="border border-border p-3 flex items-start justify-between gap-2"
           >
             <div className="min-w-0">
-              <p className="text-[13px] font-medium text-slate-200 truncate">{a.title}</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[13px] font-medium text-foreground truncate">{a.title}</p>
+              <p className="text-[11px] text-muted-foreground">
                 Page: {PAGE_SLUGS.find((s) => s.value === a.page_slug)?.label || a.page_slug} · Order: {a.sort_order}
               </p>
             </div>
