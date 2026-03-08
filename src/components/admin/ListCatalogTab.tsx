@@ -484,7 +484,7 @@ const ListCatalogTab = ({
           "—"}
         </td>
         {/* BBD always visible in editor */}
-        <td className={`px-3 py-1.5 text-right border border-border font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: isOverridden ? "hsl(35 90% 95%)" : "hsl(215 60% 97%)", color: isOverridden ? "hsl(35 80% 30%)" : "hsl(215 60% 30%)" }}>
+        <td className={`px-3 py-1.5 text-right border border-border font-medium ${showUSD ? "opacity-50" : ""}`} style={{ background: isOverridden ? "hsl(var(--admin-table-col-override))" : "hsl(var(--admin-table-col-bbd))", color: isOverridden ? "hsl(var(--admin-table-col-override-fg))" : "hsl(var(--admin-table-col-bbd-fg))" }}>
           <div className="flex items-center justify-end gap-1">
             {isOverridden && (
               <span title={`Override: $${displayBbd?.toFixed(2)} (was $${row.bbd?.toFixed(2)})`}>
