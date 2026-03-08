@@ -159,9 +159,9 @@ const PricingSettingsTab = () => {
         <Label className="text-xs font-medium">{label}</Label>
         <div className="flex flex-wrap gap-2">
           {Object.entries(data).map(([k, v]) =>
-          <div key={k} className="flex items-center gap-1 rounded border border-border bg-muted/50 px-2 py-1">
-              <span className="text-[10px] font-medium capitalize">{k}</span>
-              <Input className="h-6 w-16 text-[10px]" type="number" step="0.01" value={v} onChange={(e) => setJsonField(fieldKey, k, +e.target.value)} disabled={disabled} />
+          <div key={k} className="flex items-center gap-1 border border-border bg-muted/50 px-2 py-1">
+              <span className="text-[10px] font-medium capitalize whitespace-nowrap">{k}</span>
+              <Input className="h-6 min-w-[3rem] w-auto text-[10px]" type="number" step="0.01" value={v} onChange={(e) => setJsonField(fieldKey, k, +e.target.value)} disabled={disabled} />
               {!disabled &&
             <button onClick={() => removeJsonKey(fieldKey, k)} className="text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
             }
@@ -169,7 +169,7 @@ const PricingSettingsTab = () => {
           )}
           {!disabled &&
           <div className="flex items-center gap-1">
-              <Input className="h-6 w-20 text-[10px]" placeholder="key" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
+              <Input className="h-6 min-w-[4rem] w-auto text-[10px]" placeholder="key" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
               <button onClick={() => {addJsonKey(fieldKey, newKey);setNewKey("");}} className="text-primary hover:text-primary/80"><Plus className="h-3 w-3" /></button>
             </div>
           }
