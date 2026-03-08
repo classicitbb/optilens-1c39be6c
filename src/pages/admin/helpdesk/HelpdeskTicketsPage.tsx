@@ -42,7 +42,7 @@ const HelpdeskTicketsPage = () => {
 
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "" });
+  const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "", contactId: "" });
 
   const { data: teams = [] } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
