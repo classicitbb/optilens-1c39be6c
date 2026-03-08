@@ -264,7 +264,7 @@ export default function MoonshotUsersPage() {
                 <Label>Seat assignment</Label>
                 <div className="grid grid-cols-2 gap-2 rounded-md border p-2">
                   {seats.map((seat) => {
-                    const checked = editingUser.seatIds.includes(seat.id);
+                    const checked = (editingUser.seatIds ?? []).includes(seat.id);
                     return (
                       <label key={seat.id} className="flex items-center gap-2 text-sm">
                         <Checkbox
