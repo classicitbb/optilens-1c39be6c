@@ -87,6 +87,7 @@ const HelpdeskTeamsPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskTeam
 const HelpdeskSlaPoliciesPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskSlaPoliciesPage"));
 const HelpdeskStagesPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskStagesPage"));
 const HelpdeskConfigPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskConfigPage"));
+const HelpdeskOverviewPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskOverviewPage"));
 
 // Moonshot
 const MoonshotLayout = lazy(() => import("./features/admin/moonshot/MoonshotLayout"));
@@ -253,7 +254,8 @@ const App = () => (
                 <Route path="crm/catalog-publisher" element={<RedirectToProposals />} />
 
                 {/* ═══ Helpdesk App ═══ */}
-                <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
+                <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/overview" replace />} />
+                <Route path="helpdesk/overview" element={<HelpdeskOverviewPage />} />
                 <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
                 <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
                 <Route path="helpdesk/sla" element={<HelpdeskSlaPoliciesPage />} />
