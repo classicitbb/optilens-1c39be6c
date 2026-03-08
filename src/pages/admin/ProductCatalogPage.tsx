@@ -145,10 +145,10 @@ const ProductCatalogPage = () => {
 
     writeMultiSheetWorkbook(
       [
-        { name: "Lenses", json: lensRows },
-        { name: "Add-Ons", json: addonRows },
-        { name: "Supplies", json: supplyRows },
-      ],
+      { name: "Lenses", json: lensRows },
+      { name: "Add-Ons", json: addonRows },
+      { name: "Supplies", json: supplyRows }],
+
       `Product_Catalog_${new Date().toISOString().slice(0, 10)}.xlsx`
     );
   };
@@ -190,7 +190,7 @@ const ProductCatalogPage = () => {
         <button
           key={t.key}
           onClick={() => handleTabChange(t.key)}
-          className="px-4 py-2 text-sm font-medium transition-colors relative"
+          className="px-4 py-2 text-sm font-medium transition-colors relative text-sidebar-foreground"
           style={{ color: activeTab === t.key ? "hsl(215 30% 15%)" : "hsl(215 15% 50%)" }}>
 
             {t.label}
