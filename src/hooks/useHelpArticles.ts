@@ -65,7 +65,7 @@ export const useHelpArticles = (pageSlug?: string) => {
   const query = useQuery({
     queryKey: ["help_articles", pageSlug, canPublish],
     queryFn: async () => {
-      let query = supabase
+      let query: any = supabase
         .from("help_articles")
         .select("*, help_article_contexts(context_slug)")
         .eq("is_active", true)
