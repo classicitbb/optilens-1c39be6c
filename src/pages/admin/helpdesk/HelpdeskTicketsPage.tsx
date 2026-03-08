@@ -120,9 +120,10 @@ const HelpdeskTicketsPage = () => {
       {canEditTickets && (
         <Card>
           <CardHeader className="py-3"><CardTitle className="text-sm">Create Ticket</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+          <CardContent className="grid grid-cols-1 md:grid-cols-7 gap-2 items-end">
             <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs md:col-span-2" />
             <Input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" className="h-8 text-xs md:col-span-2" />
+            <ContactPickerSelect value={form.contactId} onValueChange={(v) => setForm((p) => ({ ...p, contactId: v }))} placeholder="Contact" />
             <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
               <SelectContent>
