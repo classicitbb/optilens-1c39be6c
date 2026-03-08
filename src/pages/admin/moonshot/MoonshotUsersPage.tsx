@@ -39,7 +39,7 @@ export default function MoonshotUsersPage() {
   const seatUsage = useMemo(
     () =>
       seats.map((seat) => {
-        const used = users.filter((u) => u.seatIds.includes(seat.id)).length;
+        const used = users.filter((u) => (u.seatIds ?? []).includes(seat.id)).length;
         return { ...seat, used, available: Math.max(0, seat.capacity - used) };
       }),
     [seats, users],
