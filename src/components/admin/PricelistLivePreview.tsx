@@ -158,7 +158,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                   <tr>
                     <th
                       className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm"
-                      style={{ background: "#1e4db7", color: "white", borderBottom: "none" }}
+                      style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))", borderBottom: "none" }}
                       colSpan={1}
                     >
                       {TREATMENT_LABELS[tt]}
