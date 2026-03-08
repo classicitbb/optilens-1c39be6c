@@ -1306,6 +1306,38 @@ export type Database = {
           },
         ]
       }
+      helpdesk_team_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_teams: {
         Row: {
           assignment_mode: string
