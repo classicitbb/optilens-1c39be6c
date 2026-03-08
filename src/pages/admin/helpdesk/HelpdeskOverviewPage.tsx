@@ -35,6 +35,7 @@ interface OverviewTicket {
   deadline: string | null;
   stage: {id: string;name: string;sequence: number;is_closed: boolean;is_folded: boolean;} | null;
   team: {id: string;name: string;} | null;
+  partner_contact: {id: string;name: string;email: string | null;phone: string | null;} | null;
 }
 
 interface StageColumn {
@@ -207,7 +208,7 @@ const HelpdeskOverviewPage = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any).
       from("helpdesk_tickets").
-      select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name)").
+      select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,email,phone)").
       order("created_at", { ascending: false }).
       limit(500);
       if (error) throw error;
@@ -497,6 +498,17 @@ const KanbanView = ({
                                 }
                               </div>
                             </div>
+
+                            {/* Contact info */}
+                            {ticket.partner_contact && (
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground truncate">
+                                <div className={cn("h-4 w-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0", getAvatarColor(ticket.partner_contact.name))}>
+                                  {getInitial(ticket.partner_contact.name)}
+                                </div>
+                                <span className="truncate">{ticket.partner_contact.name}</span>
+                                {ticket.partner_contact.email && <span className="truncate hidden sm:inline">· {ticket.partner_contact.email}</span>}
+                              </div>
+                            )}
 
                             {/* Bottom row */}
                             <div className="flex items-center justify-between">
