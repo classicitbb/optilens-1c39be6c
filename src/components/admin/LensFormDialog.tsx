@@ -258,7 +258,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
     const [open, setOpen] = useState(false);
     const selected = items.find((i) => i.id === value);
     return (
-      <div className="space-y-0.5 rounded-md bg-slate-100">
+      <div className="space-y-0.5 bg-muted/50">
         <Label className="text-[11px]">{label}</Label>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
