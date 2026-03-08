@@ -311,7 +311,7 @@ const HelpdeskOverviewPage = () => {
   // Initialize collapsed state from stages
   useEffect(() => {
     if (stages.length > 0) {
-      const foldable = new Set(stages.filter((s: any) => s.is_closed || s.is_folded).map((s: any) => s.id));
+      const foldable = new Set<string>(stages.filter((s: any) => s.is_closed || s.is_folded).map((s: any) => s.id as string));
       setCollapsedCols(foldable);
     }
   }, [stages]);
