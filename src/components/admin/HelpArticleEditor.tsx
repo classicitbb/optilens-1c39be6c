@@ -84,7 +84,7 @@ const HelpArticleEditor = () => {
   if (!loaded) {
     return (
       <div className="p-6 flex flex-col items-center gap-3">
-        <p className="text-sm text-slate-400">Manage contextual help articles that appear in the Help panel across admin pages.</p>
+        <p className="text-sm text-muted-foreground">Manage contextual help articles that appear in the Help panel across admin pages.</p>
         <Button size="sm" onClick={handleLoad}>Load Help Articles</Button>
       </div>
     );
