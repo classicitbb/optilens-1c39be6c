@@ -38,7 +38,7 @@ const HelpdeskTicketsPage = () => {
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState<string>("all");
   const [onlyOpen, setOnlyOpen] = useState(true);
-  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1" });
+  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "" });
 
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
