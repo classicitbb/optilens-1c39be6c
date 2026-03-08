@@ -96,6 +96,9 @@ import MoonshotToolsPage from "./pages/admin/moonshot/MoonshotToolsPage";
 import MoonshotUsersPage from "./pages/admin/moonshot/MoonshotUsersPage";
 import MoonshotPlaceholderPage from "./pages/admin/moonshot/MoonshotPlaceholderPage";
 import MoonshotSettingsPage from "./pages/admin/moonshot/MoonshotSettingsPage";
+import MoonshotOrgChartPage from "./pages/admin/moonshot/MoonshotOrgChartPage";
+import MoonshotOneOnOnesPage from "./pages/admin/moonshot/MoonshotOneOnOnesPage";
+import MoonshotRightPersonRightSeatPage from "./pages/admin/moonshot/MoonshotRightPersonRightSeatPage";
 // ZenVue feature pages
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
 import ZenvueBrilliance from "./pages/zenvue/ZenvueBrilliance";
