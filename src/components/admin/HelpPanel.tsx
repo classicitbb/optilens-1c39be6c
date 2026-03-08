@@ -97,7 +97,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
       );
     }
 
-    return <div className="space-y-1">{renderWikiContent(text.replace(/\\n/g, "\n"))}</div>;
+    return <div className="space-y-1 break-words overflow-wrap-anywhere">{renderWikiContent(text.replace(/\\n/g, "\n"))}</div>;
   };
 
   const toggleArticle = (id: string) => {
