@@ -167,8 +167,8 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
         </ScrollArea>
       </div>
 
-      {canEdit && (
-        <Suspense fallback={null}>
+      <Suspense fallback={null}>
+        {canEdit && editDialogOpen && (
           <WikiArticleEditDialog
             open={editDialogOpen}
             onOpenChange={setEditDialogOpen}
@@ -186,8 +186,8 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
             }
             wikiHeadings={headings.map((heading) => ({ id: heading.slug, title: heading.title }))}
           />
-        </Suspense>
-      )}
+        )}
+      </Suspense>
     </div>
   );
 };
