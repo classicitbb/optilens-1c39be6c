@@ -98,8 +98,8 @@ export default function MoonshotResourcesPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="prose prose-sm max-w-none text-sm text-muted-foreground leading-relaxed pb-2">
-                      {renderWikiContent(article.content)}
+                    <div className="pb-2">
+                      <WikiArticleRenderer bodyJson={article.body_json} legacyContent={article.content} className="text-sm" />
                     </div>
                     <div className="border-t border-border pt-3 mt-3">
                       <HelpFeedbackButtons articleId={article.id} />
