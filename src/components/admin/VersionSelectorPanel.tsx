@@ -420,7 +420,7 @@ const VersionSelectorPanel = ({
                             </button>
                             <button
                               onClick={() => handleDuplicate(v)}
-                              className="p-1 rounded hover:bg-black/5"
+                              className="p-1 hover:bg-muted/50"
                               title="Duplicate"
                               disabled={createMutation.isPending}
                             >
