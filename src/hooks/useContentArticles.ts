@@ -113,11 +113,11 @@ export const usePublicKnowledge = () => {
   return useQuery({
     queryKey: ["public_knowledge"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("help_articles")
         .select("*")
         .in("content_type", ["knowledge", "faq"])
-        .eq("is_active", true)
+        .eq("is_active", true) as any)
         .eq("status", "published")
         .in("visibility", ["public", "customer"])
         .order("category")
