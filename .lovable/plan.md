@@ -1,48 +1,231 @@
+## Admin Experience Plan (Updated to Current Codebase)
 
+### Plan intent
 
-## Plan: Fix Dark Mode in List Catalog Editor (Stock & Supplies)
+This plan is now aligned with the **current modular admin architecture** (`/admin/<app>/...`) and the work that already exists in the repository.
 
-### Problem
-The `ListCatalogTab` component uses hardcoded light-mode colors in inline `style` attributes throughout its table rows, headers, and cells. These inline styles override the theme-aware CSS custom properties defined in `index.css`, causing the editor to look broken in dark mode (light text on light backgrounds, wrong contrast).
+---
 
-### Root Cause
-All color values in `renderRow()` and `renderSection()` are hardcoded HSL/hex for light mode:
-- Row backgrounds: `"white"` / `"hsl(215 20% 98%)"` / `"hsl(0 80% 97%)"`
-- Header backgrounds: `"hsl(215 15% 93%)"` / `"hsl(215 20% 90%)"`
-- Text colors: `"hsl(215 30% 15%)"` / `"hsl(215 30% 35%)"`
-- Price columns: `"hsl(215 60% 97%)"` / `"#f0fff4"` / `GREEN_TEXT` / `GREEN_BG`
-- Link/label colors: hardcoded HSL values
+## Here is proof we are connected.
 
-The existing dark-mode CSS tokens (`--admin-table-*`) are correctly defined but never used because inline styles win.
+## 1) Current state snapshot (what is already done)
 
-### Solution
-Replace all hardcoded inline color values in `ListCatalogTab.tsx` with CSS custom properties that already exist or add new ones where needed.
+### 1.1 Admin shell and navigation foundation
 
-| Change | Detail |
-|---|---|
-| **`src/index.css`** | Add new admin tokens for price-column variants (BBD blue tint, USD green tint, pending row, override amber) in both light and dark `.admin-tool` blocks |
-| **`src/components/admin/ListCatalogTab.tsx`** | Replace all hardcoded inline `style={{ background: ..., color: ... }}` with `var(--admin-*)` token references or semantic CSS classes. Key areas: `renderRow()` (lines ~444-529), `renderSection()` table headers (lines ~551-566), supplier/description/matrix cell text colors |
+- ✅ `ADMIN_APPS` registry is implemented and drives app metadata, default routes, and sidebar items.
+- ✅ App Launcher and Sidebar are dynamic and role-filtered.
+- ✅ Admin route groups are modularized by app domain:
+  - Pricing (`/admin/pricing/*`)
+  - Sales (`/admin/sales/*`)
+  - Contacts (`/admin/contacts/*`)
+  - Leads (`/admin/leads/*`)
+  - CRM (`/admin/crm/*`)
+  - Helpdesk (`/admin/helpdesk/*`)
+  - Website (`/admin/website/*`)
+  - Knowledge (`/admin/knowledge/*`)
+  - Settings (`/admin/settings/*`)
+- ✅ Legacy routes are redirected to the new structure.
 
-### New CSS tokens to add
+### 1.2 Admin Top Bar redesign status
 
-**Light mode (`.admin-tool`):**
-- `--admin-table-row-even: 0 0% 100%` (white)
-- `--admin-table-row-odd: 215 20% 98%`
-- `--admin-table-row-pending: 0 80% 97%`
-- `--admin-table-col-bbd: 215 60% 97%`
-- `--admin-table-col-bbd-fg: 215 60% 30%`
-- `--admin-table-col-usd: 140 60% 97%`
-- `--admin-table-col-usd-fg: 140 50% 22%`
-- `--admin-table-col-override: 35 90% 95%`
-- `--admin-table-col-override-fg: 35 80% 30%`
-- `--admin-table-subheader: 215 15% 93%`
-- `--admin-table-subheader-fg: 215 30% 35%`
+- ✅ Top bar exists with the intended structure:
+  - Apps toggle
+  - `OpticAdmin` brand label
+  - Page label
+  - Global search
+  - Bell placeholder
+  - Help toggle
+  - Lovable external link (admin-only)
+  - User display name + avatar dropdown
+- ✅ User display name resolves from `profiles.display_name` with email fallback.
+- ✅ Avatar dropdown includes:
+  - Helpdesk / Wiki
+  - My Profile
+  - Install App
+  - Logout
 
-**Dark mode (`.dark .admin-tool`):**
-- Same keys with dark-appropriate values (darker backgrounds, lighter text)
+### 1.3 Branding updates
 
-### Scope
-- Only `ListCatalogTab.tsx` and `index.css` are affected
-- The blue section header (`BLUE_BG = "#1e4db7"`) stays hardcoded — it's a brand color that looks correct in both themes
-- No functional changes — only visual/theming
+- ✅ `OpticAdmin` branding is present in top bar and wiki content.
 
+---
+
+## 2) Gaps to close (next actions)
+
+### 2.1 Route label map in `AdminTopBar`
+
+The route label map should prioritize **new canonical paths** (`/admin/pricing/...`, `/admin/sales/...`, etc.) first, then include legacy fallbacks only if needed.
+
+**Action**
+
+- Update `ROUTE_LABELS` in `src/components/admin/AdminTopBar.tsx` to match active canonical route paths.
+
+### 2.2 Sidebar/header interaction cleanup
+
+The previous note about removing the sidebar header is not currently implemented.
+
+**Action options (pick one explicitly)**
+
+1. Keep sidebar header + collapse button (document as intentional), or
+2. Move collapse behavior to hover/flyout interaction and remove static header row.
+
+### 2.3 Copy consistency for placeholder screens
+
+Current placeholder message is: **"Coming in a future phase."**
+
+**Action**
+
+- Standardize placeholder copy strategy per module (friendly/neutral/enterprise tone), with optional module-specific variants.
+
+---
+
+## 3) Placeholder Pages Delivery Backlog (description-ready)
+
+> Purpose: every placeholder route gets a stable slot so full feature descriptions can be added later.
+
+Use this template for each page as details are discovered:
+
+- **Purpose**
+- **Primary users / roles**
+- **Core workflows**
+- **Data entities**
+- **Permissions**
+- **Integrations**
+- **MVP acceptance criteria**
+- **Future phase notes**
+
+### 3.1 Sales app placeholders
+
+1. `/admin/sales/web-orders`
+   - Status: Placeholder
+   - Description: _TBD_
+2. `/admin/sales/rx-orders`
+   - Status: Placeholder
+   - Description: _TBD_
+
+### 3.2 Leads app placeholders
+
+3. `/admin/leads/finder`
+   - Status: Placeholder
+   - Description: _TBD_
+4. `/admin/leads/campaigns`
+   - Status: Placeholder
+   - Description: _TBD_
+5. `/admin/leads/reports`
+   - Status: Placeholder
+   - Description: _TBD_
+6. `/admin/leads/ai`
+   - Status: Placeholder
+   - Description: _TBD_
+7. `/admin/leads/settings`
+   - Status: Placeholder
+   - Description: _TBD_
+
+### 3.3 CRM app placeholders
+
+8. `/admin/crm/pipeline`
+   - Status: Placeholder
+   - Description: _TBD_
+9. `/admin/crm/activities`
+   - Status: Placeholder
+   - Description: _TBD_
+
+### 3.4 Helpdesk app placeholders
+
+10. `/admin/helpdesk/tickets`
+    - Status: Placeholder
+    - Description: _TBD_
+11. `/admin/helpdesk/teams`
+    - Status: Placeholder
+    - Description: _TBD_
+12. `/admin/helpdesk/sla`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.5 Website app placeholders
+
+13. `/admin/website/microsites`
+    - Status: Placeholder
+    - Description: _TBD_
+14. `/admin/website/portals`
+    - Status: Placeholder
+    - Description: _TBD_
+15. `/admin/website/store`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.6 Knowledge app placeholders
+
+16. `/admin/knowledge/help`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.7 Settings app placeholders
+
+17. `/admin/settings/integrations`
+    - Status: Placeholder
+    - Description: _TBD_
+
+---
+
+## 4) Suggested micro-copy change (quick win)
+
+### Proposal
+
+For `/admin/crm/pipeline`, change placeholder text from:
+
+- **"Coming in a future phase."**
+
+to:
+
+- **"See you soon."**
+
+### Why
+
+- Warmer and less formal tone for a customer-facing-feeling CRM surface.
+- Good as an experiment for module-specific placeholder messaging.
+
+### Implementation approach
+
+- Preferred: add an optional copy override map in `PlaceholderPage` keyed by route.
+- Fallback: global replacement if we want one message everywhere.
+
+---
+
+## 5) UI Rule: Admin Page Headers (still active)
+
+Every admin page with a heading **must** use the shared:
+`<AdminPageHeader icon={Icon} title="Page Title" />`
+from `src/components/admin/AdminPageHeader.tsx`.
+
+- Always pass a relevant Lucide icon and a properly capitalized title.
+- Optional `children` slot renders right-aligned actions.
+- Do not use ad hoc inline `<h1>` patterns on admin pages.
+
+---
+
+## 6) Preview Template Rules (binding)
+
+All document preview templates — pricelists, quotations, proposals, and any
+future PdfPreviewShell consumer — must follow these rules.
+
+### 6.1 Narrow margins by default
+- `DEFAULT_PRINT_SETTINGS.marginPreset` is `"narrow"` (8 mm).
+- Users may override per-document, but the starting state is always narrow.
+
+### 6.2 Dark-mode immune
+- Preview content always renders with a fixed white background and dark text.
+- The preview iframe / container must never inherit dark-mode CSS variables.
+- Branded header colors (e.g. `#1e4db7`) are hardcoded, not token-based.
+
+### 6.3 Consistent template structure
+- Every preview uses `PdfPreviewShell` with the shared toolbar (paper size,
+  orientation, scale, print button).
+- Branded header, date, format label, and page numbering layout must not vary
+  between preview types.
+
+### 6.4 Responsive table contents and page breaks
+- `thead` uses `display: table-header-group` so headers repeat on every page.
+- Long table bodies allow row-level breaks (`break-inside: auto`).
+- Section headings use `break-after: avoid` to stay with following content.
+- Standalone grid/card sections use `break-inside: avoid`.

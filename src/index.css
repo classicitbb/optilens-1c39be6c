@@ -231,6 +231,28 @@
   --admin-table-row-risk: 0 70% 96%;
   --admin-table-row-loss: 0 70% 95%;
   --admin-table-row-warning: 45 80% 94%;
+  --admin-table-row-even: 0 0% 100%;
+  --admin-table-row-odd: 215 20% 98%;
+  --admin-table-row-pending: 0 80% 97%;
+  --admin-table-col-bbd: 215 60% 97%;
+  --admin-table-col-bbd-fg: 215 60% 30%;
+  --admin-table-col-usd: 140 60% 97%;
+  --admin-table-col-usd-fg: 140 50% 22%;
+  --admin-table-col-override: 35 90% 95%;
+  --admin-table-col-override-fg: 35 80% 30%;
+  --admin-table-col-margin: 280 30% 93%;
+  --admin-table-col-margin-fg: 280 40% 30%;
+  --admin-table-subheader: 215 15% 93%;
+  --admin-table-subheader-fg: 215 30% 35%;
+  --admin-table-category-bg: 210 60% 93%;
+  --admin-table-category-fg: 215 65% 28%;
+  --admin-table-addon-header: 215 15% 94%;
+  --admin-table-addon-header-fg: 215 30% 20%;
+  --admin-table-matrix-fg: 215 30% 55%;
+  --admin-table-supplier-fg: 215 50% 40%;
+  --admin-table-link-fg: 215 65% 45%;
+  --admin-table-link-supply-fg: 130 55% 40%;
+  --admin-table-label-fg: 215 15% 40%;
   --admin-radius: 4px;
 
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -266,6 +288,28 @@
   --admin-table-row-risk: 0 40% 22%;
   --admin-table-row-loss: 0 45% 20%;
   --admin-table-row-warning: 40 45% 22%;
+  --admin-table-row-even: 215 28% 12%;
+  --admin-table-row-odd: 215 24% 14%;
+  --admin-table-row-pending: 0 40% 18%;
+  --admin-table-col-bbd: 215 35% 18%;
+  --admin-table-col-bbd-fg: 215 60% 75%;
+  --admin-table-col-usd: 140 30% 16%;
+  --admin-table-col-usd-fg: 140 50% 70%;
+  --admin-table-col-override: 35 40% 18%;
+  --admin-table-col-override-fg: 35 80% 70%;
+  --admin-table-col-margin: 280 25% 18%;
+  --admin-table-col-margin-fg: 280 40% 75%;
+  --admin-table-subheader: 215 24% 16%;
+  --admin-table-subheader-fg: 215 20% 75%;
+  --admin-table-category-bg: 210 30% 18%;
+  --admin-table-category-fg: 210 50% 78%;
+  --admin-table-addon-header: 215 24% 16%;
+  --admin-table-addon-header-fg: 215 20% 80%;
+  --admin-table-matrix-fg: 215 20% 60%;
+  --admin-table-supplier-fg: 215 30% 65%;
+  --admin-table-link-fg: 215 55% 65%;
+  --admin-table-link-supply-fg: 130 40% 60%;
+  --admin-table-label-fg: 215 15% 65%;
 }
 
 .admin-tool * {
