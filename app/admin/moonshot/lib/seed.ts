@@ -1,5 +1,5 @@
 import { addDays, format, subWeeks } from "date-fns";
-import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, Rock, Todo } from "./types";
+import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OrgChart, Rock, Todo } from "./types";
 
 const today = new Date();
 
@@ -21,6 +21,17 @@ export const seedUsers: MoonshotUser[] = [
   { id: "u3", name: "Russell Hunte", role: "Visionary", avatar: "RH", seatsUsed: 1 },
   { id: "u4", name: "Roy Hunte", role: "Sales", avatar: "RO", seatsUsed: 1 },
 ];
+
+export const seedOrgChart: OrgChart = {
+  seats: [
+    { id: "s1", title: "CEO", department: "Leadership", parentId: null, childIds: ["s2", "s3"], assignedUserIds: ["u3"] },
+    { id: "s2", title: "Integrator", department: "Leadership", parentId: "s1", childIds: ["s4", "s5"], assignedUserIds: ["u2"] },
+    { id: "s3", title: "Revenue Lead", department: "Growth", parentId: "s1", childIds: ["s6"], assignedUserIds: ["u1"] },
+    { id: "s4", title: "Operations Manager", department: "Operations", parentId: "s2", childIds: [], assignedUserIds: [] },
+    { id: "s5", title: "People Manager", department: "People", parentId: "s2", childIds: [], assignedUserIds: [] },
+    { id: "s6", title: "Account Executive", department: "Sales", parentId: "s3", childIds: [], assignedUserIds: ["u4"] },
+  ],
+};
 
 export const seedMeetings: Meeting[] = [
   { id: "m1", title: "Weekly Leadership", owner: "Classic", date: format(addDays(today, 1), "yyyy-MM-dd"), status: "Scheduled", notes: "Review scorecard + IDS top 3 issues", frequency: "weekly", duration: 90, attendeeIds: ["u1", "u2", "u3"], agenda: bloomAgenda, checkInPrompt: "Share good news from your week.", checkInResponse: "", summary: "" },

@@ -2,8 +2,8 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, seedSettings, seedTodos, seedUsers } from "./seed";
-import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedOrgChart, seedRocks, seedSettings, seedTodos, seedUsers } from "./seed";
+import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OrgChart, OrgChartSeat, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
 type TileScope = "dashboard" | "workspace";
 type MoonshotTheme = "light" | "dark";
@@ -13,6 +13,7 @@ type MoonshotState = {
   theme: MoonshotTheme;
   settings: MoonshotSettings;
   users: MoonshotUser[];
+  orgChart: OrgChart;
   meetings: Meeting[];
   metrics: Metric[];
   rocks: Rock[];
@@ -58,6 +59,10 @@ type MoonshotState = {
   addUser: (user: Omit<MoonshotUser, "id">) => void;
   updateUser: (id: string, updates: Partial<MoonshotUser>) => void;
   deleteUser: (id: string) => void;
+  addOrgSeat: (parentId: string | null, payload: Pick<OrgChartSeat, "title" | "department">) => void;
+  updateOrgSeat: (id: string, updates: Partial<Pick<OrgChartSeat, "title" | "department">>) => void;
+  assignUserToSeat: (seatId: string, userId: string | null) => void;
+  deleteOrgSeat: (id: string) => void;
 };
 
 const makeId = (prefix: string) => `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
@@ -93,10 +98,42 @@ const defaultAgenda: AgendaSection[] = [
 const defaultDashboardTiles = [makeTile("metrics", 2), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
 const defaultWorkspaceTiles = [makeTile("headlines", 2), makeTile("quick-links", 2), makeTile("metrics"), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
 
+const updateTiles = (scope: TileScope, next: WorkspaceTile[]) => (scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next });
+
+const syncSeatUsage = (users: MoonshotUser[], orgChart: OrgChart): MoonshotUser[] => {
+  const usage = orgChart.seats.reduce<Record<string, number>>((acc, seat) => {
+    seat.assignedUserIds.forEach((userId) => {
+      acc[userId] = (acc[userId] ?? 0) + 1;
+    });
+    return acc;
+  }, {});
+
+  return users.map((user) => ({ ...user, seatsUsed: usage[user.id] ?? 0 }));
+};
+
+const removeSeatBranch = (seats: OrgChartSeat[], id: string): OrgChartSeat[] => {
+  const byId = new Map(seats.map((seat) => [seat.id, seat]));
+  const toRemove = new Set<string>();
+
+  const walk = (seatId: string) => {
+    const seat = byId.get(seatId);
+    if (!seat || toRemove.has(seatId)) return;
+    toRemove.add(seatId);
+    seat.childIds.forEach(walk);
+  };
+
+  walk(id);
+
+  return seats
+    .filter((seat) => !toRemove.has(seat.id))
+    .map((seat) => ({ ...seat, childIds: seat.childIds.filter((childId) => !toRemove.has(childId)) }));
+};
+
 const baseState = {
   currentUser: null,
   theme: "light" as MoonshotTheme,
-  users: seedUsers,
+  users: syncSeatUsage(seedUsers, seedOrgChart),
+  orgChart: seedOrgChart,
   settings: seedSettings,
   meetings: seedMeetings,
   metrics: seedMetrics,
@@ -116,8 +153,6 @@ const baseState = {
   workspaceTiles: defaultWorkspaceTiles,
 };
 
-const updateTiles = (scope: TileScope, next: WorkspaceTile[]) => (scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next });
-
 export const useMoonshotStore = create<MoonshotState>()(
   persist(
     (set) => ({
@@ -125,7 +160,12 @@ export const useMoonshotStore = create<MoonshotState>()(
       login: () => set({ currentUser: seedUsers[0] }),
       logout: () => set({ currentUser: null }),
       setTheme: (theme) => set({ theme }),
-      importDemoData: (payload) => set((s) => ({ ...s, ...payload })),
+      importDemoData: (payload) =>
+        set((s) => {
+          const next = { ...s, ...payload };
+          const orgChart = payload.orgChart ?? s.orgChart;
+          return { ...next, orgChart, users: syncSeatUsage(next.users, orgChart) };
+        }),
       resetDemoData: () => set({ ...baseState, currentUser: seedUsers[0], dashboardTiles: defaultDashboardTiles, workspaceTiles: defaultWorkspaceTiles }),
       updateSettings: (updates) => set((s) => ({ settings: { ...s.settings, ...updates } })),
       addTile: (scope, type) =>
@@ -171,9 +211,54 @@ export const useMoonshotStore = create<MoonshotState>()(
       updateIssue: (id, updates) => set((s) => ({ issues: s.issues.map((i) => (i.id === id ? { ...i, ...updates } : i)) })),
       deleteIssue: (id) => set((s) => ({ issues: s.issues.filter((i) => i.id !== id) })),
       updateBusinessPlan: (plan) => set((s) => ({ businessPlan: { ...s.businessPlan, ...plan } })),
-      addUser: (user) => set((s) => ({ users: [...s.users, { id: makeId("u"), ...user }] })),
+      addUser: (user) =>
+        set((s) => {
+          const users = [...s.users, { id: makeId("u"), ...user, seatsUsed: 0 }];
+          return { users: syncSeatUsage(users, s.orgChart) };
+        }),
       updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)) })),
-      deleteUser: (id) => set((s) => ({ users: s.users.filter((u) => u.id !== id) })),
+      deleteUser: (id) =>
+        set((s) => {
+          const orgChart = {
+            seats: s.orgChart.seats.map((seat) => ({ ...seat, assignedUserIds: seat.assignedUserIds.filter((userId) => userId !== id) })),
+          };
+          const users = s.users.filter((u) => u.id !== id);
+          return { orgChart, users: syncSeatUsage(users, orgChart) };
+        }),
+      addOrgSeat: (parentId, payload) =>
+        set((s) => {
+          const seatId = makeId("seat");
+          const seats = [
+            ...s.orgChart.seats.map((seat) =>
+              seat.id === parentId
+                ? {
+                    ...seat,
+                    childIds: [...seat.childIds, seatId],
+                  }
+                : seat,
+            ),
+            { id: seatId, title: payload.title, department: payload.department, parentId, childIds: [], assignedUserIds: [] },
+          ];
+          return { orgChart: { seats } };
+        }),
+      updateOrgSeat: (id, updates) =>
+        set((s) => ({
+          orgChart: {
+            seats: s.orgChart.seats.map((seat) => (seat.id === id ? { ...seat, ...updates } : seat)),
+          },
+        })),
+      assignUserToSeat: (seatId, userId) =>
+        set((s) => {
+          const orgChart = {
+            seats: s.orgChart.seats.map((seat) => (seat.id === seatId ? { ...seat, assignedUserIds: userId ? [userId] : [] } : seat)),
+          };
+          return { orgChart, users: syncSeatUsage(s.users, orgChart) };
+        }),
+      deleteOrgSeat: (id) =>
+        set((s) => {
+          const orgChart = { seats: removeSeatBranch(s.orgChart.seats, id) };
+          return { orgChart, users: syncSeatUsage(s.users, orgChart) };
+        }),
     }),
     { name: "moonshot-store" },
   ),

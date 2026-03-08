@@ -7,6 +7,19 @@ export type MoonshotUser = {
   invitedEmail?: string;
 };
 
+export type OrgChartSeat = {
+  id: string;
+  title: string;
+  department: string;
+  parentId: string | null;
+  childIds: string[];
+  assignedUserIds: string[];
+};
+
+export type OrgChart = {
+  seats: OrgChartSeat[];
+};
+
 export type AgendaSection = {
   id: string;
   title: string;
