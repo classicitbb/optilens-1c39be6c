@@ -62,6 +62,8 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/helpdesk": "helpdesk",
   "/admin/helpdesk/tickets": "helpdesk",
   "/admin/helpdesk/teams": "helpdesk-teams",
+  "/admin/helpdesk/stages": "helpdesk",
+  "/admin/helpdesk/config": "helpdesk",
   "/admin/helpdesk/sla": "helpdesk-sla",
   "/admin/contacts": "contacts",
   "/admin/website/content": "content",

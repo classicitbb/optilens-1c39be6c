@@ -248,6 +248,8 @@ const App = () => (
                 <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
                 <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
                 <Route path="helpdesk/sla" element={<HelpdeskSlaPoliciesPage />} />
+                <Route path="helpdesk/stages" element={<HelpdeskStagesPage />} />
+                <Route path="helpdesk/config" element={<HelpdeskConfigPage />} />
 
                 {/* ═══ Website App ═══ */}
                 <Route path="website" element={<Navigate to="/admin/website/content" replace />} />
