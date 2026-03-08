@@ -324,7 +324,7 @@ const App = () => (
                 <Route path="tools/one-on-ones" element={<MoonshotOneOnOnesPage />} />
                 <Route path="tools/right-person-right-seat" element={<MoonshotRightPersonRightSeatPage />} />
                 <Route path="users" element={<MoonshotUsersPage />} />
-                <Route path="resources" element={<MoonshotPlaceholderPage title="Resources library coming soon" />} />
+                <Route path="resources" element={<MoonshotResourcesPage />} />
                 <Route path="settings" element={<MoonshotSettingsPage />} />
                 <Route path="feedback" element={<MoonshotPlaceholderPage title="Thanks! Feedback form coming soon" />} />
               </Route>
