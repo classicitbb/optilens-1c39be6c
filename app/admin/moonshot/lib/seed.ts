@@ -1,5 +1,5 @@
 import { addDays, format, subWeeks } from "date-fns";
-import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneTemplate, Rock, Seat, SeatFitReview, Todo } from "./types";
+import { AgendaSection, BusinessPlan, GoodNewsEntry, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneTemplate, RapidFireEntry, Rock, Seat, SeatFitReview, Todo } from "./types";
 
 const today = new Date();
 
@@ -103,6 +103,19 @@ export const seedIssues: Issue[] = [
   { id: "i1", title: "Trial conversion drop in SMB segment", ownerId: "u1", priority: "High", status: "Open", identified: "SMB trial-to-paid down 9%", discussed: "Need faster activation flow", solved: "", meetingId: "m1" },
   { id: "i2", title: "Support SLA misses on weekends", ownerId: "u2", priority: "Medium", status: "In Progress", identified: "Weekend backlog spikes", discussed: "Pilot rotation schedule", solved: "", meetingId: "m2" },
   { id: "i3", title: "Onboarding docs outdated", ownerId: "u4", priority: "Low", status: "Resolved", identified: "Mismatch with new UI", discussed: "Assign docs owner", solved: "Docs refreshed and published", meetingId: "m1" },
+];
+
+
+export const seedGoodNewsEntries: GoodNewsEntry[] = [
+  { id: "gn1", message: "Customer NPS hit an all-time high this sprint.", ownerId: "u1", createdAt: format(addDays(today, -1), "yyyy-MM-dd"), meetingId: "m1" },
+  { id: "gn2", message: "Sales team closed 3 expansion deals this week.", ownerId: "u2", createdAt: format(addDays(today, -2), "yyyy-MM-dd"), meetingId: "m2" },
+  { id: "gn3", message: "Support CSAT improved after weekend rotation pilot.", ownerId: "u4", createdAt: format(addDays(today, -3), "yyyy-MM-dd") },
+];
+
+export const seedRapidFireEntries: RapidFireEntry[] = [
+  { id: "rf1", topic: "Prioritize activation analytics instrumentation", ownerId: "u1", status: "Open", createdAt: format(addDays(today, -1), "yyyy-MM-dd"), meetingId: "m1" },
+  { id: "rf2", topic: "Clarify ownership for partner onboarding", ownerId: "u2", status: "Discussed", createdAt: format(addDays(today, -2), "yyyy-MM-dd"), meetingId: "m2" },
+  { id: "rf3", topic: "Turn churn analysis into action plan", ownerId: "u3", status: "Converted to Action", createdAt: format(addDays(today, -4), "yyyy-MM-dd"), meetingId: "m1" },
 ];
 
 export const seedBusinessPlan: BusinessPlan = {

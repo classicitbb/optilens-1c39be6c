@@ -2,8 +2,41 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedOneOnOnes, seedRocks, seedSeatFitReviews, seedSeats, seedSettings, seedTodos, seedUsers } from "./seed";
-import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneActionItem, OneOnOneTemplate, Rock, Seat, SeatFitReview, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import {
+  seedBusinessPlan,
+  seedGoodNewsEntries,
+  seedIssues,
+  seedMeetings,
+  seedMetrics,
+  seedOneOnOnes,
+  seedRapidFireEntries,
+  seedRocks,
+  seedSeatFitReviews,
+  seedSeats,
+  seedSettings,
+  seedTodos,
+  seedUsers,
+} from "./seed";
+import {
+  AgendaSection,
+  BusinessPlan,
+  GoodNewsEntry,
+  Issue,
+  Meeting,
+  Metric,
+  MoonshotSettings,
+  MoonshotUser,
+  OneOnOneActionItem,
+  OneOnOneTemplate,
+  RapidFireEntry,
+  Rock,
+  Seat,
+  SeatFitReview,
+  Todo,
+  WorkspaceLayoutPreference,
+  WorkspaceTile,
+  WorkspaceTileType,
+} from "./types";
 
 type TileScope = "dashboard" | "workspace";
 type MoonshotTheme = "light" | "dark";
@@ -21,6 +54,8 @@ type MoonshotState = {
   rocks: Rock[];
   todos: Todo[];
   issues: Issue[];
+  goodNewsEntries: GoodNewsEntry[];
+  rapidFireEntries: RapidFireEntry[];
   businessPlan: BusinessPlan;
   coreValues: string[];
   privateNotes: string;
@@ -28,6 +63,7 @@ type MoonshotState = {
   quickLinks: { label: string; href: string }[];
   dashboardTiles: WorkspaceTile[];
   workspaceTiles: WorkspaceTile[];
+  workspaceLayoutPreferences: Record<string, Record<TileScope, WorkspaceLayoutPreference>>;
   login: () => void;
   logout: () => void;
   setTheme: (theme: MoonshotTheme) => void;
@@ -38,6 +74,9 @@ type MoonshotState = {
   removeTile: (scope: TileScope, id: string) => void;
   moveTile: (scope: TileScope, from: number, to: number) => void;
   resizeTile: (scope: TileScope, id: string, colSpan: WorkspaceTile["colSpan"]) => void;
+  renameTile: (scope: TileScope, id: string, title: string) => void;
+  setTileVisibility: (scope: TileScope, id: string, visible: boolean) => void;
+  clearHiddenTiles: (scope: TileScope) => void;
   updatePrivateNotes: (notes: string) => void;
   addMeeting: (meeting: Omit<Meeting, "id" | "agenda" | "checkInPrompt" | "checkInResponse" | "summary"> & Partial<Pick<Meeting, "agenda" | "checkInPrompt" | "checkInResponse" | "summary">>) => void;
   updateMeeting: (id: string, updates: Partial<Meeting>) => void;
@@ -57,6 +96,8 @@ type MoonshotState = {
   addIssue: (issue: Omit<Issue, "id">) => void;
   updateIssue: (id: string, updates: Partial<Issue>) => void;
   deleteIssue: (id: string) => void;
+  addGoodNewsEntry: (entry: Omit<GoodNewsEntry, "id" | "createdAt"> & Partial<Pick<GoodNewsEntry, "createdAt">>) => void;
+  addRapidFireEntry: (entry: Omit<RapidFireEntry, "id" | "createdAt" | "status"> & Partial<Pick<RapidFireEntry, "createdAt" | "status">>) => void;
   updateBusinessPlan: (plan: Partial<BusinessPlan>) => void;
   addUser: (user: Omit<MoonshotUser, "id" | "seatsUsed">) => void;
   updateUser: (id: string, updates: Partial<MoonshotUser>) => void;
@@ -73,6 +114,7 @@ type MoonshotState = {
 };
 
 const makeId = (prefix: string) => `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
+const getActiveUserId = (state: { currentUser: MoonshotUser | null }) => state.currentUser?.id ?? "u1";
 
 const tileLabelMap: Record<WorkspaceTileType, string> = {
   metrics: "My Metrics",
@@ -80,6 +122,8 @@ const tileLabelMap: Record<WorkspaceTileType, string> = {
   todos: "My To-Dos",
   issues: "Open Issues",
   headlines: "Headlines",
+  "good-news": "Good News",
+  "rapid-fire": "Rapid Fire Zone",
   "core-values": "Core Values",
   notes: "Private Notes",
   "quick-links": "Quick Links",
@@ -102,8 +146,21 @@ const defaultAgenda: AgendaSection[] = [
   { id: "a7", title: "Wrap-up", minutes: 5 },
 ];
 
-const defaultDashboardTiles = [makeTile("metrics", 2), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
-const defaultWorkspaceTiles = [makeTile("headlines", 2), makeTile("quick-links", 2), makeTile("metrics"), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
+const defaultDashboardTiles = [makeTile("metrics", 2), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("good-news"), makeTile("core-values"), makeTile("notes", 2)];
+const defaultWorkspaceTiles = [makeTile("headlines", 2), makeTile("good-news", 2), makeTile("rapid-fire", 2), makeTile("quick-links", 2), makeTile("metrics"), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
+
+const makeLayout = (tiles: WorkspaceTile[]): WorkspaceLayoutPreference => ({
+  order: tiles.map((tile) => tile.id),
+  hiddenTileIds: [],
+  tileSizes: Object.fromEntries(tiles.map((tile) => [tile.id, tile.colSpan])),
+});
+
+const makeDefaultLayoutPreferences = () => ({
+  u1: {
+    dashboard: makeLayout(defaultDashboardTiles),
+    workspace: makeLayout(defaultWorkspaceTiles),
+  },
+});
 
 const updateTiles = (scope: TileScope, next: WorkspaceTile[]) => (scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next });
 
@@ -120,6 +177,8 @@ const baseState = {
   rocks: seedRocks,
   todos: seedTodos,
   issues: seedIssues,
+  goodNewsEntries: seedGoodNewsEntries,
+  rapidFireEntries: seedRapidFireEntries,
   businessPlan: seedBusinessPlan,
   coreValues: ["Do the right thing", "Own the outcome", "Be curious", "Keep commitments"],
   privateNotes: "Capture your private notes from meetings and weekly priorities here.",
@@ -131,40 +190,143 @@ const baseState = {
   ],
   dashboardTiles: defaultDashboardTiles,
   workspaceTiles: defaultWorkspaceTiles,
+  workspaceLayoutPreferences: makeDefaultLayoutPreferences(),
 };
 
 export const useMoonshotStore = create<MoonshotState>()(
   persist(
     (set) => ({
       ...baseState,
-      login: () => set({ currentUser: seedUsers[0] }),
+      login: () =>
+        set((s) => ({
+          currentUser: seedUsers[0],
+          workspaceLayoutPreferences: s.workspaceLayoutPreferences[seedUsers[0].id]
+            ? s.workspaceLayoutPreferences
+            : {
+                ...s.workspaceLayoutPreferences,
+                [seedUsers[0].id]: {
+                  dashboard: makeLayout(s.dashboardTiles),
+                  workspace: makeLayout(s.workspaceTiles),
+                },
+              },
+        })),
       logout: () => set({ currentUser: null }),
       setTheme: (theme) => set({ theme }),
       importDemoData: (payload) => set((s) => ({ ...s, ...payload })),
-      resetDemoData: () => set({ ...baseState, currentUser: seedUsers[0], dashboardTiles: defaultDashboardTiles, workspaceTiles: defaultWorkspaceTiles }),
+      resetDemoData: () => set({ ...baseState, currentUser: seedUsers[0], dashboardTiles: defaultDashboardTiles, workspaceTiles: defaultWorkspaceTiles, workspaceLayoutPreferences: makeDefaultLayoutPreferences() }),
       updateSettings: (updates) => set((s) => ({ settings: { ...s.settings, ...updates } })),
       addTile: (scope, type) =>
         set((s) => {
+          const userId = getActiveUserId(s);
           const tiles = scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles;
-          return updateTiles(scope, [...tiles, makeTile(type)]);
+          const nextTile = makeTile(type);
+          const nextTiles = [...tiles, nextTile];
+          const userPrefs = s.workspaceLayoutPreferences[userId] ?? { dashboard: makeLayout(s.dashboardTiles), workspace: makeLayout(s.workspaceTiles) };
+          return {
+            ...updateTiles(scope, nextTiles),
+            workspaceLayoutPreferences: {
+              ...s.workspaceLayoutPreferences,
+              [userId]: {
+                ...userPrefs,
+                [scope]: {
+                  ...userPrefs[scope],
+                  order: [...userPrefs[scope].order.filter((id) => id !== nextTile.id), nextTile.id],
+                  tileSizes: { ...userPrefs[scope].tileSizes, [nextTile.id]: nextTile.colSpan },
+                },
+              },
+            },
+          };
         }),
       removeTile: (scope, id) =>
         set((s) => {
           const tiles = scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles;
-          return updateTiles(scope, tiles.filter((tile) => tile.id !== id));
+          const nextTiles = tiles.filter((tile) => tile.id !== id);
+          const nextPrefs: MoonshotState["workspaceLayoutPreferences"] = {};
+          for (const [userId, pref] of Object.entries(s.workspaceLayoutPreferences)) {
+            const scoped = pref[scope];
+            const { [id]: _, ...tileSizes } = scoped.tileSizes;
+            nextPrefs[userId] = {
+              ...pref,
+              [scope]: {
+                ...scoped,
+                order: scoped.order.filter((tileId) => tileId !== id),
+                hiddenTileIds: scoped.hiddenTileIds.filter((tileId) => tileId !== id),
+                tileSizes,
+              },
+            };
+          }
+          return { ...updateTiles(scope, nextTiles), workspaceLayoutPreferences: nextPrefs };
         }),
       moveTile: (scope, from, to) =>
         set((s) => {
-          const tiles = [...(scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles)];
-          if (from < 0 || to < 0 || from >= tiles.length || to >= tiles.length) return {};
-          const [item] = tiles.splice(from, 1);
-          tiles.splice(to, 0, item);
-          return updateTiles(scope, tiles);
+          const userId = getActiveUserId(s);
+          const userPrefs = s.workspaceLayoutPreferences[userId] ?? { dashboard: makeLayout(s.dashboardTiles), workspace: makeLayout(s.workspaceTiles) };
+          const order = [...userPrefs[scope].order];
+          if (from < 0 || to < 0 || from >= order.length || to >= order.length) return {};
+          const [item] = order.splice(from, 1);
+          order.splice(to, 0, item);
+          return {
+            workspaceLayoutPreferences: {
+              ...s.workspaceLayoutPreferences,
+              [userId]: {
+                ...userPrefs,
+                [scope]: { ...userPrefs[scope], order },
+              },
+            },
+          };
         }),
       resizeTile: (scope, id, colSpan) =>
         set((s) => {
-          const tiles = (scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles).map((tile) => (tile.id === id ? { ...tile, colSpan } : tile));
-          return updateTiles(scope, tiles);
+          const userId = getActiveUserId(s);
+          const userPrefs = s.workspaceLayoutPreferences[userId] ?? { dashboard: makeLayout(s.dashboardTiles), workspace: makeLayout(s.workspaceTiles) };
+          return {
+            workspaceLayoutPreferences: {
+              ...s.workspaceLayoutPreferences,
+              [userId]: {
+                ...userPrefs,
+                [scope]: {
+                  ...userPrefs[scope],
+                  tileSizes: { ...userPrefs[scope].tileSizes, [id]: colSpan },
+                },
+              },
+            },
+          };
+        }),
+      renameTile: (scope, id, title) =>
+        set((s) => {
+          const tiles = scope === "dashboard" ? s.dashboardTiles : s.workspaceTiles;
+          return updateTiles(scope, tiles.map((tile) => (tile.id === id ? { ...tile, title } : tile)));
+        }),
+      setTileVisibility: (scope, id, visible) =>
+        set((s) => {
+          const userId = getActiveUserId(s);
+          const userPrefs = s.workspaceLayoutPreferences[userId] ?? { dashboard: makeLayout(s.dashboardTiles), workspace: makeLayout(s.workspaceTiles) };
+          const hidden = new Set(userPrefs[scope].hiddenTileIds);
+          if (visible) hidden.delete(id);
+          else hidden.add(id);
+          return {
+            workspaceLayoutPreferences: {
+              ...s.workspaceLayoutPreferences,
+              [userId]: {
+                ...userPrefs,
+                [scope]: { ...userPrefs[scope], hiddenTileIds: [...hidden] },
+              },
+            },
+          };
+        }),
+      clearHiddenTiles: (scope) =>
+        set((s) => {
+          const userId = getActiveUserId(s);
+          const userPrefs = s.workspaceLayoutPreferences[userId] ?? { dashboard: makeLayout(s.dashboardTiles), workspace: makeLayout(s.workspaceTiles) };
+          return {
+            workspaceLayoutPreferences: {
+              ...s.workspaceLayoutPreferences,
+              [userId]: {
+                ...userPrefs,
+                [scope]: { ...userPrefs[scope], hiddenTileIds: [] },
+              },
+            },
+          };
         }),
       updatePrivateNotes: (privateNotes) => set({ privateNotes }),
       addMeeting: (meeting) => set((s) => ({ meetings: [...s.meetings, { id: makeId("m"), agenda: meeting.agenda ?? defaultAgenda, checkInPrompt: meeting.checkInPrompt ?? "Share good news...", checkInResponse: meeting.checkInResponse ?? "", summary: meeting.summary ?? "", ...meeting }] })),
@@ -185,89 +347,28 @@ export const useMoonshotStore = create<MoonshotState>()(
       addIssue: (issue) => set((s) => ({ issues: [...s.issues, { id: makeId("i"), ...issue }] })),
       updateIssue: (id, updates) => set((s) => ({ issues: s.issues.map((i) => (i.id === id ? { ...i, ...updates } : i)) })),
       deleteIssue: (id) => set((s) => ({ issues: s.issues.filter((i) => i.id !== id) })),
+      addGoodNewsEntry: (entry) => set((s) => ({ goodNewsEntries: [{ id: makeId("gn"), createdAt: new Date().toISOString(), ...entry }, ...s.goodNewsEntries] })),
+      addRapidFireEntry: (entry) => set((s) => ({ rapidFireEntries: [{ id: makeId("rf"), createdAt: new Date().toISOString(), status: "Open", ...entry }, ...s.rapidFireEntries] })),
       updateBusinessPlan: (plan) => set((s) => ({ businessPlan: { ...s.businessPlan, ...plan } })),
-      addUser: (user) =>
-        set((s) => ({
-          users: [...s.users, { id: makeId("u"), ...user, seatsUsed: user.seatIds.length }],
-        })),
-      updateUser: (id, updates) =>
-        set((s) => ({
-          users: s.users.map((u) => {
-            if (u.id !== id) return u;
-            const nextSeatIds = updates.seatIds ?? u.seatIds;
-            return { ...u, ...updates, seatsUsed: nextSeatIds.length };
-          }),
-        })),
-      deleteUser: (id) =>
-        set((s) => ({
-          users: s.users.filter((u) => u.id !== id),
-          meetings: s.meetings.map((meeting) => ({ ...meeting, attendeeIds: meeting.attendeeIds.filter((attendeeId) => attendeeId !== id), ownerId: meeting.ownerId === id ? s.currentUser?.id ?? "u1" : meeting.ownerId })),
-          rocks: s.rocks.map((rock) => ({ ...rock, ownerId: rock.ownerId === id ? s.currentUser?.id ?? "u1" : rock.ownerId })),
-          todos: s.todos.map((todo) => ({ ...todo, ownerId: todo.ownerId === id ? s.currentUser?.id ?? "u1" : todo.ownerId })),
-          issues: s.issues.map((issue) => ({ ...issue, ownerId: issue.ownerId === id ? s.currentUser?.id ?? "u1" : issue.ownerId })),
-        })),
-      addOneOnOne: (template) =>
-        set((s) => ({
-          oneOnOnes: [
-            ...s.oneOnOnes,
-            {
-              id: makeId("o11"),
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              actionItems: (template.actionItems ?? []).map((item) => ({ ...item, id: makeId("o11a"), completed: item.completed ?? false })),
-              ...template,
-            },
-          ],
-        })),
-      updateOneOnOne: (id, updates) =>
-        set((s) => ({
-          oneOnOnes: s.oneOnOnes.map((template) => (template.id === id ? { ...template, ...updates, updatedAt: new Date().toISOString() } : template)),
-        })),
+      addUser: (user) => set((s) => ({ users: [...s.users, { id: makeId("u"), ...user, seatsUsed: user.seatIds.length }] })),
+      updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => { if (u.id !== id) return u; const nextSeatIds = updates.seatIds ?? u.seatIds; return { ...u, ...updates, seatsUsed: nextSeatIds.length }; }) })),
+      deleteUser: (id) => set((s) => ({
+        users: s.users.filter((u) => u.id !== id),
+        meetings: s.meetings.map((meeting) => ({ ...meeting, attendeeIds: meeting.attendeeIds.filter((attendeeId) => attendeeId !== id), ownerId: meeting.ownerId === id ? s.currentUser?.id ?? "u1" : meeting.ownerId })),
+        rocks: s.rocks.map((rock) => ({ ...rock, ownerId: rock.ownerId === id ? s.currentUser?.id ?? "u1" : rock.ownerId })),
+        todos: s.todos.map((todo) => ({ ...todo, ownerId: todo.ownerId === id ? s.currentUser?.id ?? "u1" : todo.ownerId })),
+        issues: s.issues.map((issue) => ({ ...issue, ownerId: issue.ownerId === id ? s.currentUser?.id ?? "u1" : issue.ownerId })),
+        goodNewsEntries: s.goodNewsEntries.map((entry) => ({ ...entry, ownerId: entry.ownerId === id ? s.currentUser?.id ?? "u1" : entry.ownerId })),
+        rapidFireEntries: s.rapidFireEntries.map((entry) => ({ ...entry, ownerId: entry.ownerId === id ? s.currentUser?.id ?? "u1" : entry.ownerId })),
+      })),
+      addOneOnOne: (template) => set((s) => ({ oneOnOnes: [...s.oneOnOnes, { id: makeId("o11"), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), actionItems: (template.actionItems ?? []).map((item) => ({ ...item, id: makeId("o11a"), completed: item.completed ?? false })), ...template }] })),
+      updateOneOnOne: (id, updates) => set((s) => ({ oneOnOnes: s.oneOnOnes.map((template) => (template.id === id ? { ...template, ...updates, updatedAt: new Date().toISOString() } : template)) })),
       deleteOneOnOne: (id) => set((s) => ({ oneOnOnes: s.oneOnOnes.filter((template) => template.id !== id) })),
-      addOneOnOneActionItem: (templateId, item) =>
-        set((s) => ({
-          oneOnOnes: s.oneOnOnes.map((template) =>
-            template.id === templateId
-              ? {
-                  ...template,
-                  updatedAt: new Date().toISOString(),
-                  actionItems: [...template.actionItems, { ...item, id: makeId("o11a"), completed: item.completed ?? false }],
-                }
-              : template,
-          ),
-        })),
-      updateOneOnOneActionItem: (templateId, itemId, updates) =>
-        set((s) => ({
-          oneOnOnes: s.oneOnOnes.map((template) =>
-            template.id === templateId
-              ? {
-                  ...template,
-                  updatedAt: new Date().toISOString(),
-                  actionItems: template.actionItems.map((item) => (item.id === itemId ? { ...item, ...updates } : item)),
-                }
-              : template,
-          ),
-        })),
-      deleteOneOnOneActionItem: (templateId, itemId) =>
-        set((s) => ({
-          oneOnOnes: s.oneOnOnes.map((template) =>
-            template.id === templateId
-              ? {
-                  ...template,
-                  updatedAt: new Date().toISOString(),
-                  actionItems: template.actionItems.filter((item) => item.id !== itemId),
-                }
-              : template,
-          ),
-        })),
-      addSeatFitReview: (review) =>
-        set((s) => ({
-          seatFitReviews: [...s.seatFitReviews, { ...review, id: makeId("sfr"), updatedAt: new Date().toISOString() }],
-        })),
-      updateSeatFitReview: (id, updates) =>
-        set((s) => ({
-          seatFitReviews: s.seatFitReviews.map((review) => (review.id === id ? { ...review, ...updates, updatedAt: new Date().toISOString() } : review)),
-        })),
+      addOneOnOneActionItem: (templateId, item) => set((s) => ({ oneOnOnes: s.oneOnOnes.map((template) => template.id === templateId ? { ...template, updatedAt: new Date().toISOString(), actionItems: [...template.actionItems, { ...item, id: makeId("o11a"), completed: item.completed ?? false }] } : template) })),
+      updateOneOnOneActionItem: (templateId, itemId, updates) => set((s) => ({ oneOnOnes: s.oneOnOnes.map((template) => template.id === templateId ? { ...template, updatedAt: new Date().toISOString(), actionItems: template.actionItems.map((item) => (item.id === itemId ? { ...item, ...updates } : item)) } : template) })),
+      deleteOneOnOneActionItem: (templateId, itemId) => set((s) => ({ oneOnOnes: s.oneOnOnes.map((template) => template.id === templateId ? { ...template, updatedAt: new Date().toISOString(), actionItems: template.actionItems.filter((item) => item.id !== itemId) } : template) })),
+      addSeatFitReview: (review) => set((s) => ({ seatFitReviews: [...s.seatFitReviews, { ...review, id: makeId("sfr"), updatedAt: new Date().toISOString() }] })),
+      updateSeatFitReview: (id, updates) => set((s) => ({ seatFitReviews: s.seatFitReviews.map((review) => (review.id === id ? { ...review, ...updates, updatedAt: new Date().toISOString() } : review)) })),
       deleteSeatFitReview: (id) => set((s) => ({ seatFitReviews: s.seatFitReviews.filter((review) => review.id !== id) })),
     }),
     { name: "moonshot-store" },
