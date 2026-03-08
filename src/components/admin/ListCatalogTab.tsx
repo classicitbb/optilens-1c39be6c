@@ -494,7 +494,7 @@ const ListCatalogTab = ({
             {displayBbd !== null ? `$${displayBbd.toFixed(2)}` : "—"}
           </div>
         </td>
-        <td className="px-3 py-1.5 text-right border border-border font-medium" style={{ background: "#f0fff4", color: GREEN_TEXT }}>
+        <td className="px-3 py-1.5 text-right border border-border font-medium" style={{ background: "hsl(var(--admin-table-col-usd))", color: "hsl(var(--admin-table-col-usd-fg))" }}>
           {displayUsd !== null ? `$${displayUsd.toFixed(2)}` : "—"}
         </td>
         <td className="px-3 py-1.5 text-center border border-border no-print">
