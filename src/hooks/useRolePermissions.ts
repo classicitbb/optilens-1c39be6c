@@ -24,12 +24,15 @@ export const FEATURES = [
   "costings",
   "catalog-publisher",
   "quotations",
+  "orders",
   "crm",
   "helpdesk",
   "helpdesk-teams",
   "helpdesk-sla",
   "contacts",
+  "leads",
   "content",
+  "website",
   "wiki",
   "users",
   "roles",
@@ -37,6 +40,8 @@ export const FEATURES = [
   "integrations",
   "parameters",
   "history",
+  "moonshot",
+  "runtime-errors",
 ] as const;
 
 export type Feature = (typeof FEATURES)[number];
