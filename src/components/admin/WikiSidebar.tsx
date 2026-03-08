@@ -25,6 +25,7 @@ const WikiSidebar = ({
   onSearchChange,
   canEdit,
   onAddHeading,
+  onRefresh,
   isCategoryVisible,
 }: WikiSidebarProps) => {
   const displayCategories = categories.filter((category) => category.articles.length > 0 && (isCategoryVisible ? isCategoryVisible(category.id) : true));
