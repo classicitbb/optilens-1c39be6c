@@ -551,18 +551,18 @@ const ListCatalogTab = ({
           <table className="w-full text-xs border-collapse">
               <thead>
                 <tr>
-                  <th className="w-8 no-print border border-slate-300" style={{ background: "hsl(215 15% 93%)" }} />
-                  <th className="px-2 py-2 text-center font-semibold border border-slate-300 w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
-                  <th className="px-3 py-2 text-left font-semibold border border-slate-300" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
+                  <th className="w-8 no-print border border-border" style={{ background: "hsl(215 15% 93%)" }} />
+                  <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
+                  <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
                   {/* Matrix Cell header — screen only, before BBD */}
-                  <th className="px-2 py-2 text-left font-semibold border border-slate-300 w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>
+                  <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(215 20% 90%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>
                     Matrix Cell
                   </th>
-                  <th className={`px-3 py-2 text-right font-semibold border border-slate-300 w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
-                  <th className="px-3 py-2 text-right font-semibold border border-slate-300 w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
-                  <th className="px-3 py-2 text-center font-semibold border border-slate-300 w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
-                  <th className="w-7 no-print border border-slate-300" title="Override" />
-                  <th className="w-6 no-print border border-slate-300" />
+                  <th className={`px-3 py-2 text-right font-semibold border border-border w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
+                  <th className="px-3 py-2 text-right font-semibold border border-border w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
+                  <th className="px-3 py-2 text-center font-semibold border border-border w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
+                  <th className="w-7 no-print border border-border" title="Override" />
+                  <th className="w-6 no-print border border-border" />
                 </tr>
               </thead>
               <tbody>{displayRows.map((row, i) => renderRow(row, i, rowType, title, displayRows.length))}</tbody>
