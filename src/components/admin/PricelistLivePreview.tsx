@@ -242,9 +242,9 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                   </thead>
                   <tbody>
                     {rows.map((row, i) => (
-                      <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                        <td className="px-4 py-2" style={{ color: "#1a202c" }}>{row.display_description}</td>
-                        <td className="px-4 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
+                      <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid hsl(var(--admin-table-border))" }}>
+                        <td className="px-4 py-2" style={{ color: "hsl(var(--admin-content-fg))" }}>{row.display_description}</td>
+                        <td className="px-4 py-2 text-right font-semibold" style={{ color: "hsl(var(--admin-content-fg))" }}>
                           {hierarchyCatalogPrice(row)}
                         </td>
                       </tr>
