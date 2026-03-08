@@ -125,7 +125,7 @@ const AdminWikiPage = () => {
               <BookOpen className="h-3 w-3" /> Articles
             </TabsTrigger>
             <TabsTrigger value="assignments" className="text-xs h-6 px-2.5 gap-1">
-              <List className="h-3 w-3" /> Assignments
+              <List className="h-3 w-3" /> Help Assignments
             </TabsTrigger>
           </TabsList>
         </div>
