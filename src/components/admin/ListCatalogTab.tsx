@@ -445,7 +445,7 @@ const ListCatalogTab = ({
       <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
         {/* Reorder arrows for addon/supply rows */}
         {showReorder &&
-        <td className="border border-slate-200 p-0 no-print w-8">
+        <td className="border border-border p-0 no-print w-8">
             <div className="flex flex-col items-center opacity-0 group-hover/row:opacity-100 transition-opacity">
               <button className="p-0.5 hover:bg-muted/50 disabled:opacity-20" disabled={i === 0} onClick={() => moveRow(section, row.key, "up", rowType)}>
                 <ArrowUp className="h-2.5 w-2.5 text-muted-foreground" />
