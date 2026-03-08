@@ -303,7 +303,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                   key={item.id}
                   className={canEdit ? "cursor-pointer" : ""}
                   onClick={() => canEdit && setEditItem(item)}
-                  style={selected.has(item.id) ? { background: "hsl(215 65% 50% / 0.04)" } : undefined}
+                  style={selected.has(item.id) ? { background: "hsl(var(--admin-accent) / 0.04)" } : undefined}
                 >
                   {canEdit && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
