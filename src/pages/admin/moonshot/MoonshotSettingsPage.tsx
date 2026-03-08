@@ -83,7 +83,7 @@ export default function MoonshotSettingsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div />
-        <Button variant="outline" onClick={() => navigate("/admin/moonshot/tools/org-chart")} className="gap-2">
+        <Button variant="outline" onClick={() => navigate("/admin/moonshot/users")} className="gap-2">
           <Users className="h-4 w-4" /> Manage Users
         </Button>
       </div>
