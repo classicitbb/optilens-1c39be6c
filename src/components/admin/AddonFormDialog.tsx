@@ -422,7 +422,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               {isPending ? "Saving…" : addon ? "Save" : "Create"}
             </Button>
             {onSubmitAndClose &&
-            <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || !ruleValid || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
+            <Button type="button" size="sm" className="h-7 text-xs bg-primary/80 text-primary-foreground" disabled={isPending || !form.name || !ruleValid || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
                 Save & Close
               </Button>
             }
