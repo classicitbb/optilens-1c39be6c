@@ -76,8 +76,8 @@ const HelpdeskTicketsPage = () => {
   const handleCreate = async () => {
     if (!form.title.trim()) { toast({ title: "Ticket title is required", variant: "destructive" }); return; }
     try {
-      await createTicket.mutateAsync({ title: form.title, description: form.description, teamId: form.teamId || null, stageId: form.stageId || null, priority: Number(form.priority), ownerUserId: user?.id ?? null, sourceChannel: "manual" });
-      setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1" });
+      await createTicket.mutateAsync({ title: form.title, description: form.description, teamId: form.teamId || null, stageId: form.stageId || null, priority: Number(form.priority), ownerUserId: user?.id ?? null, partnerContactId: form.contactId || null, sourceChannel: "manual" });
+      setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "" });
       toast({ title: "Ticket created" });
     } catch (error) {
       toast({ title: "Unable to create ticket", description: (error as Error).message, variant: "destructive" });
