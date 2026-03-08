@@ -191,7 +191,7 @@ const ProductCatalogPage = () => {
           key={t.key}
           onClick={() => handleTabChange(t.key)}
           className="px-4 py-2 text-sm font-medium transition-colors relative text-sidebar-foreground"
-          style={{ color: activeTab === t.key ? "hsl(215 30% 15%)" : "hsl(215 15% 50%)" }}>
+          style={{ color: activeTab === t.key ? "hsl(var(--admin-content-fg))" : "hsl(var(--admin-muted-fg))" }}>
 
             {t.label}
             {activeTab === t.key &&
