@@ -236,9 +236,9 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                   <div>
                     <div className="flex items-center gap-1">
                       <Label className={labelCls}>Category</Label>
-                      <button type="button" className="p-0.5 rounded hover:bg-black/5" title="Manage categories" onClick={() => { setCatEditItem(null); setCatModalOpen(true); }}>
-                        <Settings2 className="h-3 w-3" style={{ color: "hsl(215 15% 50%)" }} />
-                      </button>
+                       <button type="button" className="p-0.5 rounded hover:bg-muted" title="Manage categories" onClick={() => { setCatEditItem(null); setCatModalOpen(true); }}>
+                        <Settings2 className="h-3 w-3 text-muted-foreground" />
+                       </button>
                     </div>
                     <Select value={form.category} onValueChange={(v) => set("category", v)}>
                       <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
