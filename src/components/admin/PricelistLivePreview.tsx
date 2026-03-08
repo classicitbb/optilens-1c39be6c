@@ -176,8 +176,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                 </thead>
                 <tbody>
                   {activeCats.map((cat, i) => (
-                    <tr key={cat} style={{ borderBottom: "1px solid hsl(var(--admin-table-border))" }}>
-                      <td className="px-4 py-2 font-medium" style={{ color: "hsl(var(--admin-content-fg))" }}>{cat}</td>
+                    <tr key={cat} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                      <td className="px-4 py-2 font-medium" style={{ color: "#1a202c" }}>{cat}</td>
                       {visibleCols.map((col) => {
                         const alloc = allocations.find(
                           (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
