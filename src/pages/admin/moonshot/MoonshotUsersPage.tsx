@@ -14,6 +14,8 @@ import type { MoonshotUser } from "@/features/admin/moonshot/lib/types";
 
 type SortKey = "name" | "seat" | "supervisor" | "invite";
 
+const defaultInvitation: MoonshotUser["invitation"] = { status: "pending", pendingAt: new Date().toISOString() };
+
 const invitationTone: Record<MoonshotUser["invitation"]["status"], "secondary" | "outline" | "default"> = {
   pending: "secondary",
   sent: "outline",
