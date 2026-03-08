@@ -4,6 +4,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, FileText, BookOpen } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { renderWikiContent } from "@/components/admin/wikiFormatting";
+import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
 
 const MOONSHOT_SLUGS = [
   "moonshot",
@@ -40,8 +48,6 @@ export default function MoonshotResourcesPage() {
       .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title));
   }, [articles, search, lower]);
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center gap-3">
@@ -70,37 +76,39 @@ export default function MoonshotResourcesPage() {
         </div>
       ) : (
         <ScrollArea className="flex-1">
-          <div className="p-4 space-y-2">
-            {filtered.map((article) => (
-              <button
-                key={article.id}
-                onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
-                className="w-full text-left rounded-lg border border-border bg-card p-3 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex items-start gap-2">
-                  <FileText className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{article.title}</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
+          <div className="p-4">
+            <Accordion type="single" collapsible className="space-y-2">
+              {filtered.map((article) => (
+                <AccordionItem
+                  key={article.id}
+                  value={article.id}
+                  className="rounded-lg border border-border bg-card px-4 [&[data-state=open]]:bg-muted/20"
+                >
+                  <AccordionTrigger className="hover:no-underline gap-3 py-3">
+                    <div className="flex items-center gap-2 text-left min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium truncate">{article.title}</span>
                       {article.context_slugs
                         .filter((s) => s.startsWith("moonshot"))
                         .map((slug) => (
-                          <Badge key={slug} variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
+                          <Badge key={slug} variant="secondary" className="text-[10px] px-1.5 py-0 font-normal shrink-0">
                             {slug.replace("moonshot/", "").replace("moonshot", "all")}
                           </Badge>
                         ))}
                     </div>
-                    {expandedId === article.id && (
-                      <div
-                        className="mt-3 text-xs text-muted-foreground prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: article.content }}
-                      />
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
-            <p className="text-[11px] text-muted-foreground pt-2">
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="prose prose-sm max-w-none text-sm text-muted-foreground leading-relaxed pb-2">
+                      {renderWikiContent(article.content)}
+                    </div>
+                    <div className="border-t border-border pt-3 mt-3">
+                      <HelpFeedbackButtons articleId={article.id} />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+            <p className="text-[11px] text-muted-foreground pt-3">
               {filtered.length} article{filtered.length !== 1 ? "s" : ""}
             </p>
           </div>
