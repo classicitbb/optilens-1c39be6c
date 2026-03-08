@@ -41,9 +41,6 @@ import {
 "lucide-react";
 import { format } from "date-fns";
 
-const BLUE = "hsl(215 65% 50%)";
-const LABEL_COLOR = "hsl(215 15% 40%)";
-
 interface VersionSelectorPanelProps {
   pageTitle: string;
   pageSubtitle?: string;
@@ -292,11 +289,11 @@ const VersionSelectorPanel = ({
       {/* Page title */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-muted-foreground" style={{ color: "hsl(215 30% 15%)" }}>
+          <h1 className="text-lg font-semibold text-foreground">
             {pageTitle}
           </h1>
           {pageSubtitle &&
-          <p className="text-xs mt-0.5" style={{ color: LABEL_COLOR }}>
+          <p className="text-xs mt-0.5 text-muted-foreground">
               {pageSubtitle}
             </p>
           }
@@ -304,33 +301,28 @@ const VersionSelectorPanel = ({
         {canEdit &&
         <Button
           size="sm"
-          className="h-7 text-xs gap-1"
-          style={{ background: BLUE, color: "white" }}
+          className="h-7 text-xs gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={openCreate}>
-          
             <Plus className="h-3.5 w-3.5" /> New Pricelist
           </Button>
         }
       </div>
 
       {/* Version Selector */}
-      <div className="border border-border rounded-md overflow-hidden">
+      <div className="border border-border overflow-hidden">
         <button
-          className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors"
-          style={{ background: "hsl(215 15% 96%)" }}
+          className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/50 transition-colors bg-muted/30"
           onClick={() => setSelectorCollapsed((c) => !c)}>
-          
-          <span className="text-xs font-bold" style={{ color: "hsl(215 30% 15%)" }}>
+          <span className="text-xs font-bold text-foreground">
             Pricelist Versions
             {activeVersion && selectorCollapsed &&
-            <span className="ml-2 font-semibold" style={{ color: BLUE }}>
+            <span className="ml-2 font-semibold text-primary">
                 — {activeVersion.name}
               </span>
             }
           </span>
           {selectorCollapsed ?
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> :
-
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           }
         </button>
@@ -342,7 +334,7 @@ const VersionSelectorPanel = ({
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div> :
           !versions || versions.length === 0 ?
-          <p className="text-xs text-center py-4" style={{ color: LABEL_COLOR }}>
+          <p className="text-xs text-center py-4 text-muted-foreground">
                 No pricelist versions yet. Click "+ New Pricelist" to create one.
               </p> :
 
@@ -352,29 +344,24 @@ const VersionSelectorPanel = ({
               return (
                 <div
                   key={v.id}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors"
-                  style={{
-                    background: isActive ? "hsl(215 65% 50% / 0.08)" : "transparent",
-                    border: isActive ?
-                    "1px solid hsl(215 65% 50% / 0.3)" :
-                    "1px solid transparent"
-                  }}
+                  className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${
+                    isActive
+                      ? "bg-primary/10 border border-primary/30"
+                      : "border border-transparent hover:bg-muted/50"
+                  }`}
                   onClick={() => onVersionChange(v.id)}>
-                  
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span
-                        className="text-xs font-semibold truncate"
-                        style={{ color: isActive ? BLUE : "hsl(215 30% 15%)" }}>
-                        
+                        className={`text-xs font-semibold truncate ${
+                          isActive ? "text-primary" : "text-foreground"
+                        }`}>
                             {v.name}
                           </span>
                           {v.is_template &&
                       <Badge
                         variant="outline"
-                        className="text-[9px] px-1 py-0 h-3.5"
-                        style={{ borderColor: BLUE, color: BLUE }}>
-                        
+                        className="text-[9px] px-1 py-0 h-3.5 border-primary text-primary">
                               Template
                             </Badge>
                       }
@@ -383,11 +370,11 @@ const VersionSelectorPanel = ({
                           </Badge>
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[10px]" style={{ color: LABEL_COLOR }}>
+                          <span className="text-[10px] text-muted-foreground">
                             Markup: {v.markup_percent ?? 0}% · Discount:{" "}
                             {v.discount_percent ?? 0}%
                           </span>
-                          <span className="text-[10px]" style={{ color: "hsl(215 15% 60%)" }}>
+                          <span className="text-[10px] text-muted-foreground/70">
                             Created{" "}
                             {v.created_at ?
                         format(new Date(v.created_at), "dd MMM yyyy") :
@@ -398,14 +385,11 @@ const VersionSelectorPanel = ({
                       <div
                     className="flex items-center gap-0.5 shrink-0"
                     onClick={(e) => e.stopPropagation()}>
-                    
                         {onPreviewClick &&
                     <button
                       onClick={() => {onVersionChange(v.id);onPreviewClick(v.id);}}
-                      className="p-1 rounded hover:bg-primary/10 flex items-center gap-0.5 text-[10px]"
-                      title="Preview this pricelist"
-                      style={{ color: BLUE }}>
-                      
+                      className="p-1 hover:bg-primary/10 flex items-center gap-0.5 text-[10px] text-primary"
+                      title="Preview this pricelist">
                             <Eye className="h-3 w-3" />
                           </button>
                     }
@@ -413,30 +397,24 @@ const VersionSelectorPanel = ({
                     <>
                             <button
                         onClick={() => openEdit(v)}
-                        className="p-1 rounded hover:bg-black/5"
+                        className="p-1 hover:bg-muted text-muted-foreground"
                         title="Edit">
-                        
-                              <Pencil className="h-3 w-3" style={{ color: LABEL_COLOR }} />
+                              <Pencil className="h-3 w-3" />
                             </button>
                             <button
                         onClick={() => handleDuplicate(v)}
-                        className="p-1 rounded hover:bg-black/5"
+                        className="p-1 hover:bg-muted text-muted-foreground"
                         title="Duplicate"
                         disabled={createMutation.isPending}>
-                        
-                              <Copy className="h-3 w-3" style={{ color: LABEL_COLOR }} />
+                              <Copy className="h-3 w-3" />
                             </button>
                             {isAdmin &&
                       <button
                         onClick={() => handleDelete(v)}
-                        className="p-1 rounded hover:bg-red-50"
+                        className="p-1 hover:bg-destructive/10 text-destructive"
                         title="Delete"
                         disabled={deleteMutation.isPending}>
-                        
-                                <Trash2
-                          className="h-3 w-3"
-                          style={{ color: "hsl(0 60% 50%)" }} />
-                        
+                                <Trash2 className="h-3 w-3" />
                               </button>
                       }
                           </>
@@ -453,24 +431,15 @@ const VersionSelectorPanel = ({
 
       {/* Editing context banner */}
       {activeVersion &&
-      <div
-        className="rounded-md border space-y-0"
-        style={{
-          background: "hsl(215 65% 50% / 0.05)",
-          borderColor: "hsl(215 65% 50% / 0.2)"
-        }}>
-        
+      <div className="border space-y-0 bg-primary/5 border-primary/20">
           {/* Top row: version info + currency toggle */}
           <div className="flex items-center gap-3 px-4 py-2.5">
             <div className="flex-1 space-y-0.5">
-              <p className="text-xs font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+              <p className="text-xs font-semibold text-foreground">
                 You are editing:{" "}
-                <span style={{ color: BLUE }}>{activeVersion.name}</span>
+                <span className="text-primary">{activeVersion.name}</span>
               </p>
-              <div
-              className="flex items-center gap-4 text-[10px]"
-              style={{ color: LABEL_COLOR }}>
-              
+              <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <CalendarDays className="h-3 w-3" />
                   Created{" "}
@@ -493,21 +462,14 @@ const VersionSelectorPanel = ({
             </div>
             {/* BBD/USD toggle */}
             <div className="flex items-center gap-2 shrink-0">
-              <span
-              className="text-[10px] font-medium"
-              style={{ color: showUSD ? LABEL_COLOR : BLUE }}>
-              
+              <span className={`text-[10px] font-medium ${showUSD ? "text-muted-foreground" : "text-primary"}`}>
                 BBD
               </span>
               <Switch
               checked={showUSD}
               onCheckedChange={onShowUSDChange}
               aria-label="Toggle currency" />
-            
-              <span
-              className="text-[10px] font-medium"
-              style={{ color: showUSD ? BLUE : LABEL_COLOR }}>
-              
+              <span className={`text-[10px] font-medium ${showUSD ? "text-primary" : "text-muted-foreground"}`}>
                 USD
               </span>
             </div>
@@ -527,7 +489,7 @@ const VersionSelectorPanel = ({
       children :
 
       <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
-          <p className="text-sm" style={{ color: LABEL_COLOR }}>
+          <p className="text-sm text-muted-foreground">
             Select or create a pricelist version above to start editing.
           </p>
         </div>
@@ -540,7 +502,6 @@ const VersionSelectorPanel = ({
           setDialogOpen(o);
           if (!o) resetForm();
         }}>
-        
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">
@@ -549,10 +510,7 @@ const VersionSelectorPanel = ({
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label
-                className="text-xs font-medium mb-1 block"
-                style={{ color: LABEL_COLOR }}>
-                
+              <label className="text-xs font-medium mb-1 block text-muted-foreground">
                 Version Name <span className="text-destructive">*</span>
               </label>
               <Input
@@ -562,14 +520,10 @@ const VersionSelectorPanel = ({
                 placeholder="e.g. Retail RX Feb 2026"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && handleSave()} />
-              
             </div>
             {!editMode &&
             <div>
-                <label
-                className="text-xs font-medium mb-1 block"
-                style={{ color: LABEL_COLOR }}>
-                
+                <label className="text-xs font-medium mb-1 block text-muted-foreground">
                   Copy Prices From
                 </label>
                 <Select value={copyFrom} onValueChange={setCopyFrom}>
@@ -590,10 +544,7 @@ const VersionSelectorPanel = ({
               </div>
             }
             <div>
-              <label
-                className="text-xs font-medium mb-1 block"
-                style={{ color: LABEL_COLOR }}>
-                
+              <label className="text-xs font-medium mb-1 block text-muted-foreground">
                 Base Currency
               </label>
               <div className="flex gap-2">
@@ -601,13 +552,11 @@ const VersionSelectorPanel = ({
                 <button
                   key={c}
                   onClick={() => setCurrency(c)}
-                  className="flex-1 py-1.5 text-xs font-medium rounded border transition-colors"
-                  style={{
-                    background: currency === c ? BLUE : "transparent",
-                    color: currency === c ? "white" : LABEL_COLOR,
-                    borderColor: currency === c ? BLUE : "hsl(215 15% 80%)"
-                  }}>
-                  
+                  className={`flex-1 py-1.5 text-xs font-medium border transition-colors ${
+                    currency === c
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-transparent text-muted-foreground border-border hover:bg-muted/50"
+                  }`}>
                     {c}
                   </button>
                 )}
@@ -617,11 +566,11 @@ const VersionSelectorPanel = ({
             {!editMode &&
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Markup %</label>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">Markup %</label>
                   <Input type="number" step="0.01" min="0" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} className="h-8 text-xs text-right" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Discount %</label>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">Discount %</label>
                   <Input type="number" step="0.01" min="0" value={discountPct} onChange={(e) => setDiscountPct(e.target.value)} className="h-8 text-xs text-right" />
                 </div>
               </div>
@@ -631,14 +580,14 @@ const VersionSelectorPanel = ({
             {editMode &&
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Master Markup %</label>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">Master Markup %</label>
                   <div className="relative">
                     <Input type="number" step="0.01" min="0" value={masterMarkupPct} onChange={(e) => setMasterMarkupPct(e.target.value)} className="h-8 text-xs text-right pr-6" placeholder="0" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: LABEL_COLOR }}>Master Discount %</label>
+                  <label className="text-xs font-medium mb-1 block text-muted-foreground">Master Discount %</label>
                   <div className="relative">
                     <Input type="number" step="0.01" min="0" value={masterDiscountPct} onChange={(e) => setMasterDiscountPct(e.target.value)} className="h-8 text-xs text-right pr-6" placeholder="0" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
@@ -651,7 +600,7 @@ const VersionSelectorPanel = ({
             {editMode &&
             <div className="space-y-3 pt-1">
                 {SECTION_TYPES.map((st) =>
-              <div key={st} className="border border-border rounded-md p-3 bg-muted/30">
+              <div key={st} className="border border-border p-3 bg-muted/30">
                     <h4 className="text-xs font-semibold text-foreground mb-2">{st}</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -676,8 +625,8 @@ const VersionSelectorPanel = ({
 
             <div className="flex items-center justify-between pt-1">
               <div>
-                <p className="text-xs font-medium" style={{ color: LABEL_COLOR }}>Mark as Template</p>
-                <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Templates appear as copy sources for future versions.</p>
+                <p className="text-xs font-medium text-muted-foreground">Mark as Template</p>
+                <p className="text-[10px] text-muted-foreground/70">Templates appear as copy sources for future versions.</p>
               </div>
               <Switch checked={isTemplate} onCheckedChange={setIsTemplate} />
             </div>
@@ -691,20 +640,17 @@ const VersionSelectorPanel = ({
                 setDialogOpen(false);
                 resetForm();
               }}>
-              
               Cancel
             </Button>
             <Button
               size="sm"
-              className="h-7 text-xs"
-              style={{ background: BLUE, color: "white" }}
+              className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={handleSave}
               disabled={
               !name.trim() ||
               createMutation.isPending ||
               updateMutation.isPending
               }>
-              
               {createMutation.isPending || updateMutation.isPending ?
               <Loader2 className="h-3 w-3 animate-spin mr-1" /> :
               null}
