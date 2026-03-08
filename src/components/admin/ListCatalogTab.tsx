@@ -478,7 +478,7 @@ const ListCatalogTab = ({
           {row.supplyId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(var(--admin-table-link-supply-fg))" }}>↳ linked supply</div>}
         </td>
         {/* Matrix Cell — screen-only, hidden on print/export — BEFORE BBD */}
-        <td className="px-2 py-1.5 border border-border no-print max-w-[160px]" style={{ color: "hsl(215 30% 55%)", fontSize: "10px" }}>
+        <td className="px-2 py-1.5 border border-border no-print max-w-[160px]" style={{ color: "hsl(var(--admin-table-matrix-fg))", fontSize: "10px" }}>
           {row.matrixCell ?
           <span className="truncate block" title={row.matrixCell}>{row.matrixCell}</span> :
           "—"}
