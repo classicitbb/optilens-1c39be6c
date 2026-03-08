@@ -340,7 +340,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
                   onChange={(e) => handleRuleChange(e.target.value)}
                   placeholder='e.g. {"sph_over": 10} or {"has_prism": true}' />
 
-                  {!ruleValid && <p className="text-[10px] mt-1" style={{ color: "hsl(0 70% 50%)" }}>Invalid JSON</p>}
+                  {!ruleValid && <p className="text-[10px] mt-1 text-destructive">Invalid JSON</p>}
                 </div>
               }
             </div>
