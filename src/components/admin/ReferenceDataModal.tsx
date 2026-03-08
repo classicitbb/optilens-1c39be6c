@@ -38,7 +38,7 @@ const ReferenceDataModal = ({ open, onOpenChange, mode, initialName = "", initia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" style={{ borderRadius: "4px" }}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold">
             {mode === "create" ? `Add ${entityLabel}` : `Edit ${entityLabel}`}
