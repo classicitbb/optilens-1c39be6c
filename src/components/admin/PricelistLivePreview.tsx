@@ -271,7 +271,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
               <th
                 colSpan={2}
                 className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm"
-                style={{ background: "#1e4db7", color: "white" }}
+                style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))" }}
               >
                 {label}
                 {isContinuation ? " (cont.)" : ""}
