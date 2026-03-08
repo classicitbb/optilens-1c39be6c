@@ -100,9 +100,9 @@ export const renderWikiContent = (text: string) => {
             : "text-sm font-semibold text-foreground mt-3 mb-1";
 
       elements.push(
-        <h3 key={i} id={anchorId} className={`${className} flex items-center gap-2 group scroll-mt-4`}>
-          <span>{label}</span>
-          <a href={`#${anchorId}`} className="opacity-0 group-hover:opacity-60 transition-opacity" aria-label={`Link to ${label}`}>
+        <h3 key={i} id={anchorId} className={`${className} flex items-start gap-2 group scroll-mt-4 min-w-0`}>
+          <span className="min-w-0 flex-1 break-words whitespace-normal">{label}</span>
+          <a href={`#${anchorId}`} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0" aria-label={`Link to ${label}`}>
             <Link2 className="h-3.5 w-3.5 text-primary" />
           </a>
         </h3>,
@@ -117,30 +117,30 @@ export const renderWikiContent = (text: string) => {
       const label = boldHeadingMatch[1].replace(/:$/, "").trim();
       const anchorId = toAnchorId(label);
       elements.push(
-        <h3 key={i} id={anchorId} className="text-sm font-semibold text-foreground mt-4 mb-1 flex items-center gap-2 group scroll-mt-4">
-          {withBold}
-          <a href={`#${anchorId}`} className="opacity-0 group-hover:opacity-60 transition-opacity" aria-label={`Link to ${label}`}>
+        <h3 key={i} id={anchorId} className="text-sm font-semibold text-foreground mt-4 mb-1 flex items-start gap-2 group scroll-mt-4 min-w-0">
+          <span className="min-w-0 flex-1 break-words whitespace-normal">{withBold}</span>
+          <a href={`#${anchorId}`} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0" aria-label={`Link to ${label}`}>
             <Link2 className="h-3.5 w-3.5 text-primary" />
           </a>
         </h3>,
       );
     } else if (trimmed.startsWith("• ") || trimmed.startsWith("- ")) {
       elements.push(
-        <div key={i} className="flex gap-2 pl-3">
+        <div key={i} className="flex gap-2 pl-3 min-w-0">
           <span className="shrink-0 text-primary">•</span>
-          <span>{withBold.map((p) => (typeof p === "string" ? p.replace(/^[•\-]\s*/, "") : p))}</span>
+          <span className="min-w-0 break-words whitespace-normal">{withBold.map((p) => (typeof p === "string" ? p.replace(/^[•\-]\s*/, "") : p))}</span>
         </div>,
       );
     } else if (/^\d+\.\s/.test(trimmed)) {
       const num = trimmed.match(/^(\d+)\./)?.[1];
       elements.push(
-        <div key={i} className="flex gap-2 pl-3">
+        <div key={i} className="flex gap-2 pl-3 min-w-0">
           <span className="shrink-0 font-medium text-primary">{num}.</span>
-          <span>{withBold.map((p) => (typeof p === "string" ? p.replace(/^\d+\.\s*/, "") : p))}</span>
+          <span className="min-w-0 break-words whitespace-normal">{withBold.map((p) => (typeof p === "string" ? p.replace(/^\d+\.\s*/, "") : p))}</span>
         </div>,
       );
     } else {
-      elements.push(<p key={i}>{withBold}</p>);
+      elements.push(<p key={i} className="break-words whitespace-normal">{withBold}</p>);
     }
   });
 
