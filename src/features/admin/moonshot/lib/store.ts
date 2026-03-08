@@ -233,7 +233,16 @@ export const useMoonshotStore = create<MoonshotState>()(
       updateBusinessPlan: (plan) => set((s) => ({ businessPlan: { ...s.businessPlan, ...plan } })),
       addUser: (user) =>
         set((s) => {
-          const users = [...s.users, { id: makeId("u"), ...user, seatsUsed: 0 }];
+          const newUser: MoonshotUser = {
+            id: makeId("u"),
+            seatsUsed: 0,
+            seatIds: user.seatIds ?? [],
+            status: user.status ?? "active",
+            email: user.email ?? "",
+            invitation: user.invitation ?? { status: "pending", pendingAt: new Date().toISOString() },
+            ...user,
+          };
+          const users = [...s.users, newUser];
           return { users: syncSeatUsage(users, s.orgChart) };
         }),
       updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)) })),
