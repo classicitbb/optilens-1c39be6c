@@ -254,7 +254,8 @@ const App = () => (
                 <Route path="crm/catalog-publisher" element={<RedirectToProposals />} />
 
                 {/* ═══ Helpdesk App ═══ */}
-                <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
+                <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/overview" replace />} />
+                <Route path="helpdesk/overview" element={<HelpdeskOverviewPage />} />
                 <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
                 <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
                 <Route path="helpdesk/sla" element={<HelpdeskSlaPoliciesPage />} />
