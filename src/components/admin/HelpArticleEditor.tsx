@@ -138,7 +138,7 @@ const HelpArticleEditor = () => {
             <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
               Content
             </label>
-            <Suspense fallback={<div className="h-[200px] border border-border rounded-lg animate-pulse bg-muted/20" />}>
+            <Suspense fallback={<div className="h-[200px] border border-border animate-pulse bg-muted/20" />}>
               <RichTextEditor
                 content={editing.content || ""}
                 onChange={(html) => setEditing({ ...editing, content: html })}
