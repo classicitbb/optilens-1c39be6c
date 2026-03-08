@@ -338,7 +338,7 @@
   --foreground: var(--admin-content-fg);
   --card: var(--admin-card);
   --card-foreground: var(--admin-content-fg);
-  --popover: 0 0% 100%;
+  --popover: var(--admin-card);
   --popover-foreground: var(--admin-content-fg);
   --muted: var(--admin-muted);
   --muted-foreground: var(--admin-muted-fg);
