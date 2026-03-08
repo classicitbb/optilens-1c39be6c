@@ -333,7 +333,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               {/* Auto-Apply Rule */}
               {form.is_auto &&
               <div>
-                  <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Auto-Apply Rule</p>
+                  <p className={sectionCls + " text-muted-foreground"}>Auto-Apply Rule</p>
                   <Textarea
                   className={`text-xs min-h-[60px] font-mono ${!ruleValid ? "border-red-400" : ""}`}
                   value={ruleText}
