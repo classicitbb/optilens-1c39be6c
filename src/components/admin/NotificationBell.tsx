@@ -77,19 +77,19 @@ const NotificationBell = () => {
             </div>
           </div>
 
-          <div className="max-h-72 overflow-y-auto bg-slate-200 rounded-none">
+          <div className="max-h-72 overflow-y-auto bg-popover">
             {notifications.length === 0 ?
           <p className="text-xs text-muted-foreground p-4 text-center">All clear — no notifications.</p> :
 
           notifications.map((n) =>
           <button
             key={n.id}
-            className="w-full text-left px-3 py-2 border-b hover:bg-accent/50 transition-colors flex gap-2 items-start rounded-none border"
+            className="w-full text-left px-3 py-2 border-b border-border hover:bg-accent/50 transition-colors flex gap-2 items-start"
             onClick={() => handleClick(n.id, n.href)}>
 
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs font-medium truncate ${severityColor[n.severity] ?? ""}`}>{n.title}</p>
-                    <p className="text-[11px] line-clamp-2 text-slate-500">{n.message}</p>
+                    <p className="text-[11px] line-clamp-2 text-muted-foreground">{n.message}</p>
                   </div>
                   <button
               className="shrink-0 text-muted-foreground hover:text-foreground text-xs mt-0.5"

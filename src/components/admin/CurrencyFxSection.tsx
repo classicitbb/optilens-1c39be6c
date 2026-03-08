@@ -152,7 +152,7 @@ const CurrencyFxSection = ({
 
       {/* Conversion Preview */}
       {preview && (
-        <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-2.5 space-y-1">
+        <div className="border border-dashed border-primary/30 bg-primary/5 px-3 py-2.5 space-y-1">
           <p className="text-[10px] font-semibold text-primary uppercase tracking-wide">Conversion Preview</p>
           <p className="text-xs text-foreground">
             <span className="font-mono font-medium">{preview.exampleBase} {baseCurrency}</span>

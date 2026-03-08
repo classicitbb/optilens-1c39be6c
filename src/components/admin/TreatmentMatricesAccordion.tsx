@@ -831,15 +831,15 @@ const TreatmentMatricesAccordion = ({
       </div>
 
       {/* ── CLEAR LENSES ─────────────────────────────────────────────────────── */}
-      <div className="border rounded-lg overflow-hidden border-border">
+      <div className="border overflow-hidden border-border">
         <button
           className="w-full flex items-center gap-2 px-4 py-2.5 border-b border-border transition-colors text-left bg-[#1e4cb8]"
           onClick={() => toggleExpanded("clear" as any)}>
 
           {expanded.has("clear" as any) ?
-          <ChevronDown className="h-4 w-4 shrink-0 bg-secondary-foreground opacity-100 text-popover-foreground" /> :
+          <ChevronDown className="h-4 w-4 shrink-0 text-white" /> :
 
-          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          <ChevronRight className="h-4 w-4 text-white/60 shrink-0" />
           }
           <span className="text-sm font-bold text-primary-foreground">Clear Lenses</span>
         </button>
