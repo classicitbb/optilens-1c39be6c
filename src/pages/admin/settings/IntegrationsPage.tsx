@@ -54,7 +54,7 @@ interface IntegrationHealthMetric {
 interface IntegrationSyncJob {
   id: string;
   sync_kind: "initial" | "incremental";
-  status: "queued" | "running" | "success" | "failed";
+  status: "queued" | "running" | "success" | "failed" | "canceled";
   requested_at: string;
   started_at: string | null;
   completed_at: string | null;
