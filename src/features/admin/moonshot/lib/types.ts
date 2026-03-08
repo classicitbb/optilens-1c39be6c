@@ -1,17 +1,35 @@
+export type InvitationStatus = "pending" | "sent" | "accepted";
+
+export type Invitation = {
+  status: InvitationStatus;
+  pendingAt: string;
+  sentAt?: string;
+  acceptedAt?: string;
+};
+
 export type MoonshotUser = {
   id: string;
   name: string;
+  email: string;
   role: string;
   avatar: string;
   seatsUsed: number;
+  seatIds: string[];
+  status: "active" | "inactive";
+  supervisorId?: string;
+  invitation: Invitation;
   invitedEmail?: string;
 };
+
+export type SeatType = "leadership" | "management" | "individual";
 
 export type Seat = {
   id: string;
   name: string;
   department: string;
   reportsToSeatId?: string;
+  capacity: number;
+  seatType: SeatType;
 };
 
 export type OneOnOneActionItem = {
