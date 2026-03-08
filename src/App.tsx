@@ -97,6 +97,7 @@ import MoonshotBusinessPlanPage from "./pages/admin/moonshot/MoonshotBusinessPla
 import MoonshotToolsPage from "./pages/admin/moonshot/MoonshotToolsPage";
 import MoonshotUsersPage from "./pages/admin/moonshot/MoonshotUsersPage";
 import MoonshotPlaceholderPage from "./pages/admin/moonshot/MoonshotPlaceholderPage";
+import MoonshotResourcesPage from "./pages/admin/moonshot/MoonshotResourcesPage";
 import MoonshotSettingsPage from "./pages/admin/moonshot/MoonshotSettingsPage";
 import MoonshotOrgChartPage from "./pages/admin/moonshot/MoonshotOrgChartPage";
 import MoonshotOneOnOnesPage from "./pages/admin/moonshot/MoonshotOneOnOnesPage";
