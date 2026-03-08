@@ -439,7 +439,7 @@ const ListCatalogTab = ({
       : row.margin;
 
     return (
-      <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(0 80% 97%)" : i % 2 === 0 ? "white" : "hsl(215 20% 98%)" }}>
+      <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(var(--admin-table-row-pending))" : i % 2 === 0 ? "hsl(var(--admin-table-row-even))" : "hsl(var(--admin-table-row-odd))" }}>
         {/* Reorder arrows for addon/supply rows */}
         {showReorder &&
         <td className="border border-border p-0 no-print w-8">
