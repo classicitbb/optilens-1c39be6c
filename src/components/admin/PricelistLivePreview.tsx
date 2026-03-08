@@ -192,8 +192,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                       })}
                     </tr>
                   ))}
-                  <tr style={{ borderTop: "2px solid hsl(var(--admin-border))", background: "hsl(var(--admin-muted))" }}>
-                    <td className="px-4 py-2 italic text-xs" style={{ color: "hsl(var(--admin-muted-fg))" }}>Col. Averages</td>
+                  <tr style={{ borderTop: "2px solid #cbd5e0", background: "#f7fafc" }}>
+                    <td className="px-4 py-2 italic text-xs" style={{ color: "#718096" }}>Col. Averages</td>
                     {visibleCols.map((col) => {
                       const avg = getColAvg(col.key, tt);
                       return (
