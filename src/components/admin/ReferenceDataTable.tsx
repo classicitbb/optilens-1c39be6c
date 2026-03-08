@@ -367,7 +367,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
-                    style={{ color: "hsl(215 65% 50%)" }}
+                    style={{ color: "hsl(var(--admin-accent))" }}
                     onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
                   >
                     Load more ({filtered.length - visibleCount} remaining)
