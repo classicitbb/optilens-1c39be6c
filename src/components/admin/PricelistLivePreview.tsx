@@ -158,7 +158,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                   <tr>
                     <th
                       className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm"
-                      style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))", borderBottom: "none" }}
+                      style={{ background: "#1e4db7", color: "white", borderBottom: "none" }}
                       colSpan={1}
                     >
                       {TREATMENT_LABELS[tt]}
@@ -167,7 +167,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                       <th
                         key={col.key}
                         className="px-3 py-2.5 text-center font-bold uppercase tracking-wider"
-                        style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))", minWidth: "90px", borderBottom: "none" }}
+                        style={{ background: "#1e4db7", color: "white", minWidth: "90px", borderBottom: "none" }}
                       >
                         {col.key}
                       </th>
@@ -176,14 +176,14 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                 </thead>
                 <tbody>
                   {activeCats.map((cat, i) => (
-                    <tr key={cat} style={{ borderBottom: "1px solid hsl(var(--admin-table-border))" }}>
-                      <td className="px-4 py-2 font-medium" style={{ color: "hsl(var(--admin-content-fg))" }}>{cat}</td>
+                    <tr key={cat} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                      <td className="px-4 py-2 font-medium" style={{ color: "#1a202c" }}>{cat}</td>
                       {visibleCols.map((col) => {
                         const alloc = allocations.find(
                           (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
                         );
                         return (
-                          <td key={col.key} className="px-3 py-2 text-right font-semibold" style={{ color: "hsl(var(--admin-content-fg))" }}>
+                          <td key={col.key} className="px-3 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
                             {alloc?.allocated_price_bbd != null
                               ? hierarchyMatrixPrice(alloc.allocated_price_bbd, alloc.id ? String(alloc.id) : undefined)
                               : "—"}
@@ -192,20 +192,20 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                       })}
                     </tr>
                   ))}
-                  <tr style={{ borderTop: "2px solid hsl(var(--admin-border))", background: "hsl(var(--admin-muted))" }}>
-                    <td className="px-4 py-2 italic text-xs" style={{ color: "hsl(var(--admin-muted-fg))" }}>Col. Averages</td>
+                  <tr style={{ borderTop: "2px solid #cbd5e0", background: "#f7fafc" }}>
+                    <td className="px-4 py-2 italic text-xs" style={{ color: "#718096" }}>Col. Averages</td>
                     {visibleCols.map((col) => {
                       const avg = getColAvg(col.key, tt);
                       return (
-                        <td key={col.key} className="px-3 py-2 text-right italic" style={{ color: "hsl(var(--admin-muted-fg))" }}>
+                        <td key={col.key} className="px-3 py-2 text-right italic" style={{ color: "#4a5568" }}>
                           {avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}
                         </td>
                       );
                     })}
                   </tr>
                   {tt !== "clear" && (
-                    <tr style={{ background: "hsl(var(--admin-table-row-warning))", borderTop: "1px solid hsl(var(--admin-table-border))" }}>
-                      <td className="px-4 py-2 italic text-xs" style={{ color: "hsl(var(--admin-warning))" }}>Δ vs Clear</td>
+                    <tr style={{ background: "#fffbeb", borderTop: "1px solid #e2e8f0" }}>
+                      <td className="px-4 py-2 italic text-xs" style={{ color: "#b7791f" }}>Δ vs Clear</td>
                       {visibleCols.map((col) => {
                         const treatAvg = getColAvg(col.key, tt);
                         const clearAvg = getColAvg(col.key, "clear");
@@ -236,15 +236,15 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr>
-                      <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))" }}>{sec}</th>
-                      <th className="px-4 py-2.5 text-right font-bold uppercase tracking-wider w-32" style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))" }}>{currency} PRICE</th>
+                      <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white" }}>{sec}</th>
+                      <th className="px-4 py-2.5 text-right font-bold uppercase tracking-wider w-32" style={{ background: "#1e4db7", color: "white" }}>{currency} PRICE</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row, i) => (
-                      <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid hsl(var(--admin-table-border))" }}>
-                        <td className="px-4 py-2" style={{ color: "hsl(var(--admin-content-fg))" }}>{row.display_description}</td>
-                        <td className="px-4 py-2 text-right font-semibold" style={{ color: "hsl(var(--admin-content-fg))" }}>
+                      <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                        <td className="px-4 py-2" style={{ color: "#1a202c" }}>{row.display_description}</td>
+                        <td className="px-4 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
                           {hierarchyCatalogPrice(row)}
                         </td>
                       </tr>
@@ -271,7 +271,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
               <th
                 colSpan={2}
                 className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm"
-                style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))" }}
+                style={{ background: "#1e4db7", color: "white" }}
               >
                 {label}
                 {isContinuation ? " (cont.)" : ""}
@@ -280,9 +280,9 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid hsl(var(--admin-table-border))" }}>
-                <td className="px-4 py-2.5" style={{ color: "hsl(var(--admin-content-fg))" }}>{row.display_description}</td>
-                <td className="px-4 py-2.5 text-right font-semibold w-32" style={{ color: "hsl(var(--admin-content-fg))" }}>
+              <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                <td className="px-4 py-2.5" style={{ color: "#1a202c" }}>{row.display_description}</td>
+                <td className="px-4 py-2.5 text-right font-semibold w-32" style={{ color: "#1a202c" }}>
                   {hierarchyCatalogPrice(row)}
                 </td>
               </tr>
@@ -337,25 +337,25 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   };
 
   return (
-    <div className="space-y-4" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "hsl(var(--admin-content-fg))" }}>
+    <div className="space-y-4 rounded-md p-6" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", background: "#ffffff" }}>
       {/* Header — matching reference screenshot */}
-      <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid hsl(var(--admin-border))" }}>
+      <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
         <div className="flex-1 text-center">
-          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "hsl(var(--admin-content-fg))" }}>
+          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "#1a202c" }}>
             {CATALOG_TITLES[catalogType] ?? "PRICE LIST"}
           </h1>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-xs" style={{ color: "hsl(var(--admin-muted-fg))" }}>
+          <p className="text-xs" style={{ color: "#4a5568" }}>
             {previewFormat === "matrix" ? "Matrix Format" : "List Format"} · {today}
           </p>
-          <p className="text-xs font-semibold" style={{ color: "hsl(var(--admin-content-fg))" }}>{currency}</p>
+          <p className="text-xs font-semibold" style={{ color: "#2d3748" }}>{currency}</p>
         </div>
       </div>
 
       {previewFormat === "matrix" ? <MatrixPreview /> : <ListPreview />}
 
-      <p className="text-center pt-3" style={{ fontSize: "9px", color: "hsl(var(--admin-muted-fg))", borderTop: "1px solid hsl(var(--admin-border))" }}>
+      <p className="text-center pt-3" style={{ fontSize: "9px", color: "#a0aec0", borderTop: "1px solid #e2e8f0" }}>
         All prices in {currency}. Prices subject to change without notice. · {company?.company_name}
       </p>
     </div>
