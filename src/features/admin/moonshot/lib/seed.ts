@@ -15,18 +15,20 @@ const bloomAgenda: AgendaSection[] = [
 
 const weeklyPoints = (vals: number[]) => vals.map((value, idx) => ({ date: format(subWeeks(today, vals.length - idx - 1), "MMM d"), value }));
 
+const now = format(today, "yyyy-MM-dd'T'HH:mm:ss");
+
 export const seedUsers: MoonshotUser[] = [
-  { id: "u1", name: "Classic", role: "Admin", avatar: "CL", seatsUsed: 1 },
-  { id: "u2", name: "Maya Brooks", role: "Integrator", avatar: "MB", seatsUsed: 1 },
-  { id: "u3", name: "Russell Hunte", role: "Visionary", avatar: "RH", seatsUsed: 1 },
-  { id: "u4", name: "Roy Hunte", role: "Sales", avatar: "RO", seatsUsed: 1 },
+  { id: "u1", name: "Classic", email: "classic@classicvisions.com", role: "Admin", avatar: "CL", seatsUsed: 1, seatIds: ["s1"], status: "active", invitation: { status: "accepted", pendingAt: now, acceptedAt: now } },
+  { id: "u2", name: "Maya Brooks", email: "maya@classicvisions.com", role: "Integrator", avatar: "MB", seatsUsed: 1, seatIds: ["s2"], status: "active", supervisorId: "u1", invitation: { status: "accepted", pendingAt: now, acceptedAt: now } },
+  { id: "u3", name: "Russell Hunte", email: "russell@classicvisions.com", role: "Visionary", avatar: "RH", seatsUsed: 1, seatIds: ["s1"], status: "active", supervisorId: "u1", invitation: { status: "accepted", pendingAt: now, acceptedAt: now } },
+  { id: "u4", name: "Roy Hunte", email: "roy@classicvisions.com", role: "Sales", avatar: "RO", seatsUsed: 1, seatIds: ["s4"], status: "active", supervisorId: "u2", invitation: { status: "sent", pendingAt: now, sentAt: now } },
 ];
 
 export const seedSeats: Seat[] = [
-  { id: "s1", name: "General Manager", department: "Leadership" },
-  { id: "s2", name: "Technology", department: "Operations", reportsToSeatId: "s1" },
-  { id: "s3", name: "Finance", department: "Finance", reportsToSeatId: "s1" },
-  { id: "s4", name: "Sales", department: "Sales", reportsToSeatId: "s1" },
+  { id: "s1", name: "General Manager", department: "Leadership", capacity: 2, seatType: "leadership" },
+  { id: "s2", name: "Technology", department: "Operations", reportsToSeatId: "s1", capacity: 3, seatType: "management" },
+  { id: "s3", name: "Finance", department: "Finance", reportsToSeatId: "s1", capacity: 2, seatType: "individual" },
+  { id: "s4", name: "Sales", department: "Sales", reportsToSeatId: "s1", capacity: 4, seatType: "individual" },
 ];
 
 export const seedOrgChart: OrgChart = {

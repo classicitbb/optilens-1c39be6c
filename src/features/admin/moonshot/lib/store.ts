@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedOneOnOnes, seedOrgChart, seedRocks, seedSeatFitReviews, seedSeats, seedSettings, seedTodos, seedUsers } from "./seed";
-import type { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneActionItem, OneOnOneTemplate, OrgChart, OrgChartSeat, Rock, Seat, SeatFitReview, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import type { AgendaSection, BusinessPlan, Invitation, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneActionItem, OneOnOneTemplate, OrgChart, OrgChartSeat, Rock, Seat, SeatFitReview, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
 /** Migrate old flat businessPlan shape to the new nested one */
 function migrateBusinessPlan(raw: unknown): BusinessPlan {
@@ -233,7 +233,16 @@ export const useMoonshotStore = create<MoonshotState>()(
       updateBusinessPlan: (plan) => set((s) => ({ businessPlan: { ...s.businessPlan, ...plan } })),
       addUser: (user) =>
         set((s) => {
-          const users = [...s.users, { id: makeId("u"), ...user, seatsUsed: 0 }];
+          const newUser: MoonshotUser = {
+            id: makeId("u"),
+            seatsUsed: 0,
+            seatIds: user.seatIds ?? [],
+            status: user.status ?? "active",
+            email: user.email ?? "",
+            invitation: user.invitation ?? { status: "pending", pendingAt: new Date().toISOString() },
+            ...user,
+          };
+          const users = [...s.users, newUser];
           return { users: syncSeatUsage(users, s.orgChart) };
         }),
       updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)) })),
