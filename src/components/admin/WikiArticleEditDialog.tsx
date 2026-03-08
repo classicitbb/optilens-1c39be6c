@@ -36,7 +36,7 @@ const WikiArticleEditDialog = ({
   onSaved,
 }: WikiArticleEditDialogProps) => {
   const { upsertArticle } = useHelpArticles();
-  const { canView } = useRolePermissions();
+  
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
