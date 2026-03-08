@@ -1,98 +1,231 @@
-# Plan: Make Lead Finder Produce Real Results
+## Admin Experience Plan (Updated to Current Codebase)
 
-## Current State Analysis
+### Plan intent
 
-The Lead Finder infrastructure is well-built but **every provider is either a stub or requires an API key nobody has configured (remove any stubs that are impossible to configure because they do not have API keys or require complicated setup)**:
+This plan is now aligned with the **current modular admin architecture** (`/admin/<app>/...`) and the work that already exists in the repository.
 
+---
 
-| Provider         | Status                                                    |
-| ---------------- | --------------------------------------------------------- |
-| Google Places    | **Real implementation** but needs `google_places` API key |
-| Facebook Graph   | Stub — always returns `[]`                                |
-| Instagram Graph  | Stub — always returns `[]`                                |
-| WhatsApp Signals | Stub — always returns `[]`                                |
-| Yellow Pages     | Stub — always returns `[]`                                |
-| Bing             | Stub — always returns `[]`                                |
-| Yahoo            | Stub — always returns `[]`                                |
+## Here is proof we are connected.
 
+## 1) Current state snapshot (what is already done)
 
-The mock fallback only fires when `LEAD_INTELLIGENCE_ENABLE_MOCK_RESULTS=true` (non-production env var), and even then it's just 2 hardcoded rows. No connectors are linked. The scoring, strategy planner, CRM save, campaigns, sequences, and audit reports all work — they just have no data to process.
+### 1.1 Admin shell and navigation foundation
 
-## Fastest Path to Results (Two Layers)
+- ✅ `ADMIN_APPS` registry is implemented and drives app metadata, default routes, and sidebar items.
+- ✅ App Launcher and Sidebar are dynamic and role-filtered.
+- ✅ Admin route groups are modularized by app domain:
+  - Pricing (`/admin/pricing/*`)
+  - Sales (`/admin/sales/*`)
+  - Contacts (`/admin/contacts/*`)
+  - Leads (`/admin/leads/*`)
+  - CRM (`/admin/crm/*`)
+  - Helpdesk (`/admin/helpdesk/*`)
+  - Website (`/admin/website/*`)
+  - Knowledge (`/admin/knowledge/*`)
+  - Settings (`/admin/settings/*`)
+- ✅ Legacy routes are redirected to the new structure.
 
-### Layer 1: AI-Powered Lead Generation (zero setup, works immediately)
+### 1.2 Admin Top Bar redesign status
 
-Add a new `**ai_search**` provider to the `lead-intelligence` edge function that uses the **Lovable AI Gateway** (LOVABLE_API_KEY is already provisioned). When all other providers return nothing, this provider calls the AI gateway with a structured tool-call prompt like:
+- ✅ Top bar exists with the intended structure:
+  - Apps toggle
+  - `OpticAdmin` brand label
+  - Page label
+  - Global search
+  - Bell placeholder
+  - Help toggle
+  - Lovable external link (admin-only)
+  - User display name + avatar dropdown
+- ✅ User display name resolves from `profiles.display_name` with email fallback.
+- ✅ Avatar dropdown includes:
+  - Helpdesk / Wiki
+  - My Profile
+  - Install App
+  - Logout
 
-> "Find 10-15 real optical businesses in {city}, {country} matching '{query}'. Return name, city, country, estimated Google rating, whether they likely have a website, and any known social handles."
+### 1.3 Branding updates
 
-The AI model returns structured JSON via tool calling. These results get scored and displayed like any other provider's results. This guarantees results on every search with zero configuration.
+- ✅ `OpticAdmin` branding is present in top bar and wiki content.
 
-### Layer 2: Firecrawl Web Search (real web data, requires connector)
+---
 
-Connect the **Firecrawl connector** and add a `firecrawl_search` provider that uses Firecrawl's search endpoint to find real businesses on the web. This provides grounded, real-world results with actual URLs and business details.
+## 2) Gaps to close (next actions)
 
-## Implementation Details
+### 2.1 Route label map in `AdminTopBar`
 
-### 1. New AI Search Provider
+The route label map should prioritize **new canonical paths** (`/admin/pricing/...`, `/admin/sales/...`, etc.) first, then include legacy fallbacks only if needed.
 
-**File**: `supabase/functions/lead-intelligence/providers/aiSearch.ts`
+**Action**
 
-- Uses `LOVABLE_API_KEY` + Lovable AI Gateway
-- Sends a structured tool-call request asking for business listings matching the query/location
-- Parses the tool-call response into `LeadCandidate[]`
-- Falls back gracefully if rate-limited or unavailable
-- Always marked as "configured" since LOVABLE_API_KEY is auto-provisioned
+- Update `ROUTE_LABELS` in `src/components/admin/AdminTopBar.tsx` to match active canonical route paths.
 
-### 2. New Firecrawl Search Provider
+### 2.2 Sidebar/header interaction cleanup
 
-**File**: `supabase/functions/lead-intelligence/providers/firecrawlSearch.ts`
+The previous note about removing the sidebar header is not currently implemented.
 
-- Uses `FIRECRAWL_API_KEY` from the Firecrawl connector
-- Calls Firecrawl's `/v1/search` endpoint with the lead query
-- Extracts business names, locations, and URLs from search results
-- Only active when Firecrawl connector is linked
+**Action options (pick one explicitly)**
 
-### 3. Update Edge Function Index
+1. Keep sidebar header + collapse button (document as intentional), or
+2. Move collapse behavior to hover/flyout interaction and remove static header row.
 
-**File**: `supabase/functions/lead-intelligence/index.ts`
+### 2.3 Copy consistency for placeholder screens
 
-- Import and register both new providers
-- Add `aiSearchConfigured` and `firecrawlSearchConfigured` to `providerStatus` diagnostics
-- AI search provider runs last as a fallback if other providers return nothing
+Current placeholder message is: **"Coming in a future phase."**
 
-### 4. Update Frontend Diagnostics
+**Action**
 
-**File**: `src/features/admin/leads/hooks/useLeadFinder.ts`
+- Standardize placeholder copy strategy per module (friendly/neutral/enterprise tone), with optional module-specific variants.
 
-- Add `aiSearchConfigured` and `firecrawlSearchConfigured` to the `providerStatus` type
+---
 
-**File**: `src/pages/admin/leads/LeadFinderPage.tsx`
+## 3) Placeholder Pages Delivery Backlog (description-ready)
 
-- Show the two new providers in the real-time provider trace panel
+> Purpose: every placeholder route gets a stable slot so full feature descriptions can be added later.
 
-### 5. Settings Page Update
+Use this template for each page as details are discovered:
 
-**File**: `src/pages/admin/leads/LeadSettingsPage.tsx`
+- **Purpose**
+- **Primary users / roles**
+- **Core workflows**
+- **Data entities**
+- **Permissions**
+- **Integrations**
+- **MVP acceptance criteria**
+- **Future phase notes**
 
-- Add Firecrawl to the provider list (with note that it uses the connector)
-- Add an "AI Search" row that shows as always-configured (no key needed)
+### 3.1 Sales app placeholders
 
-## What This Achieves
+1. `/admin/sales/web-orders`
+   - Status: Placeholder
+   - Description: _TBD_
+2. `/admin/sales/rx-orders`
+   - Status: Placeholder
+   - Description: _TBD_
 
-- **Immediate results**: AI search works out of the box on every query. No API keys needed.
-- **Real web data**: Connecting Firecrawl adds grounded search results with actual URLs.
-- **Existing flow preserved**: Scoring, CRM save, campaigns, sequences, audit reports all work unchanged — they just finally have data to process.
-- **Google Places still works**: If someone adds a Google API key, that provider produces the best structured data.
+### 3.2 Leads app placeholders
 
-## Files Modified/Created
+3. `/admin/leads/finder`
+   - Status: Placeholder
+   - Description: _TBD_
+4. `/admin/leads/campaigns`
+   - Status: Placeholder
+   - Description: _TBD_
+5. `/admin/leads/reports`
+   - Status: Placeholder
+   - Description: _TBD_
+6. `/admin/leads/ai`
+   - Status: Placeholder
+   - Description: _TBD_
+7. `/admin/leads/settings`
+   - Status: Placeholder
+   - Description: _TBD_
 
+### 3.3 CRM app placeholders
 
-| File                                                                | Action                                   |
-| ------------------------------------------------------------------- | ---------------------------------------- |
-| `supabase/functions/lead-intelligence/providers/aiSearch.ts`        | Create                                   |
-| `supabase/functions/lead-intelligence/providers/firecrawlSearch.ts` | Create                                   |
-| `supabase/functions/lead-intelligence/index.ts`                     | Edit — register new providers            |
-| `src/features/admin/leads/hooks/useLeadFinder.ts`                   | Edit — add new provider status fields    |
-| `src/pages/admin/leads/LeadFinderPage.tsx`                          | Edit — show new providers in diagnostics |
-| `src/pages/admin/leads/LeadSettingsPage.tsx`                        | Edit — show new provider rows            |
+8. `/admin/crm/pipeline`
+   - Status: Placeholder
+   - Description: _TBD_
+9. `/admin/crm/activities`
+   - Status: Placeholder
+   - Description: _TBD_
+
+### 3.4 Helpdesk app placeholders
+
+10. `/admin/helpdesk/tickets`
+    - Status: Placeholder
+    - Description: _TBD_
+11. `/admin/helpdesk/teams`
+    - Status: Placeholder
+    - Description: _TBD_
+12. `/admin/helpdesk/sla`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.5 Website app placeholders
+
+13. `/admin/website/microsites`
+    - Status: Placeholder
+    - Description: _TBD_
+14. `/admin/website/portals`
+    - Status: Placeholder
+    - Description: _TBD_
+15. `/admin/website/store`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.6 Knowledge app placeholders
+
+16. `/admin/knowledge/help`
+    - Status: Placeholder
+    - Description: _TBD_
+
+### 3.7 Settings app placeholders
+
+17. `/admin/settings/integrations`
+    - Status: Placeholder
+    - Description: _TBD_
+
+---
+
+## 4) Suggested micro-copy change (quick win)
+
+### Proposal
+
+For `/admin/crm/pipeline`, change placeholder text from:
+
+- **"Coming in a future phase."**
+
+to:
+
+- **"See you soon."**
+
+### Why
+
+- Warmer and less formal tone for a customer-facing-feeling CRM surface.
+- Good as an experiment for module-specific placeholder messaging.
+
+### Implementation approach
+
+- Preferred: add an optional copy override map in `PlaceholderPage` keyed by route.
+- Fallback: global replacement if we want one message everywhere.
+
+---
+
+## 5) UI Rule: Admin Page Headers (still active)
+
+Every admin page with a heading **must** use the shared:
+`<AdminPageHeader icon={Icon} title="Page Title" />`
+from `src/components/admin/AdminPageHeader.tsx`.
+
+- Always pass a relevant Lucide icon and a properly capitalized title.
+- Optional `children` slot renders right-aligned actions.
+- Do not use ad hoc inline `<h1>` patterns on admin pages.
+
+---
+
+## 6) Preview Template Rules (binding)
+
+All document preview templates — pricelists, quotations, proposals, and any
+future PdfPreviewShell consumer — must follow these rules.
+
+### 6.1 Narrow margins by default
+- `DEFAULT_PRINT_SETTINGS.marginPreset` is `"narrow"` (8 mm).
+- Users may override per-document, but the starting state is always narrow.
+
+### 6.2 Dark-mode immune
+- Preview content always renders with a fixed white background and dark text.
+- The preview iframe / container must never inherit dark-mode CSS variables.
+- Branded header colors (e.g. `#1e4db7`) are hardcoded, not token-based.
+
+### 6.3 Consistent template structure
+- Every preview uses `PdfPreviewShell` with the shared toolbar (paper size,
+  orientation, scale, print button).
+- Branded header, date, format label, and page numbering layout must not vary
+  between preview types.
+
+### 6.4 Responsive table contents and page breaks
+- `thead` uses `display: table-header-group` so headers repeat on every page.
+- Long table bodies allow row-level breaks (`break-inside: auto`).
+- Section headings use `break-after: avoid` to stay with following content.
+- Standalone grid/card sections use `break-inside: avoid`.

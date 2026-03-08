@@ -63,12 +63,8 @@ export interface LeadFinderDiagnostics {
   };
   providerStatus: {
     googlePlacesConfigured: boolean;
-    facebookGraphConfigured: boolean;
-    instagramGraphConfigured: boolean;
-    whatsappBusinessSignalsConfigured: boolean;
-    yellowPagesConfigured: boolean;
-    bingConfigured: boolean;
-    yahooConfigured: boolean;
+    firecrawlSearchConfigured: boolean;
+    aiSearchConfigured: boolean;
   };
   providersUsed: string[];
   providerTelemetry: Record<string, {
@@ -92,12 +88,6 @@ export interface LeadFinderResult {
   warning?: string | null;
 }
 
-interface ComplianceErrorPayload {
-  error?: string;
-  compliant_alternatives?: string[];
-  blocked_category?: string;
-}
-
 export const useLeadFinder = () => {
   return useMutation({
     mutationFn: async ({ query, country, cities, globalSearch, mode, constraints }: FinderInput): Promise<LeadFinderResult> => {
@@ -118,12 +108,8 @@ export const useLeadFinder = () => {
             planner: { mode: "manual", rankedIntents: [], selectedIntent: null },
             providerStatus: {
               googlePlacesConfigured: false,
-              facebookGraphConfigured: false,
-              instagramGraphConfigured: false,
-              whatsappBusinessSignalsConfigured: false,
-              yellowPagesConfigured: false,
-              bingConfigured: false,
-              yahooConfigured: false,
+              firecrawlSearchConfigured: false,
+              aiSearchConfigured: false,
             },
             providersUsed: [],
             providerTelemetry: {},
@@ -131,7 +117,7 @@ export const useLeadFinder = () => {
             queryEcho: { query, country, city: cities?.[0] },
             fetchedAt: new Date().toISOString(),
           },
-          warning: "Live provider search is temporarily unavailable. Confirm Edge Function deployment and provider credentials in /admin/leads/settings.",
+          warning: "Live provider search is temporarily unavailable. Confirm backend function deployment and provider credentials in /admin/leads/settings.",
         };
       }
 
