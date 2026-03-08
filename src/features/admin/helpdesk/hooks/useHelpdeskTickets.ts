@@ -10,6 +10,8 @@ export interface HelpdeskTicket {
   team_id: string | null;
   stage_id: string | null;
   owner_user_id: string | null;
+  partner_contact_id: string | null;
+  ticket_type_id: string | null;
   deadline: string | null;
   opened_at: string | null;
   assigned_at: string | null;
@@ -25,6 +27,10 @@ export interface HelpdeskTicket {
     sequence: number;
   } | null;
   team?: {
+    id: string;
+    name: string;
+  } | null;
+  ticket_type?: {
     id: string;
     name: string;
   } | null;
