@@ -311,8 +311,8 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               {/* Pricing Sheets */}
               {sheets.length > 0 &&
               <div>
-                  <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Pricing Sheets</p>
-                  <div className="space-y-1.5 rounded border p-2" style={{ borderColor: "hsl(215 20% 88%)" }}>
+                  <p className={sectionCls + " text-muted-foreground"}>Pricing Sheets</p>
+                  <div className="space-y-1.5 border p-2 border-border">
                     {sheets.map((s, idx) => {
                     const sheet = pricingSheets.find((p) => p.id === s.pricing_sheet_id);
                     return (
