@@ -331,19 +331,31 @@
   background: hsl(var(--admin-content-bg));
   color: hsl(var(--admin-content-fg));
 
-  /* Override global tokens so all components render in light mode inside admin content */
+  /* Override global tokens so shadcn components inherit admin theme */
   --background: var(--admin-content-bg);
   --foreground: var(--admin-content-fg);
   --card: var(--admin-card);
   --card-foreground: var(--admin-content-fg);
   --popover: var(--admin-card);
   --popover-foreground: var(--admin-content-fg);
+  --primary: var(--admin-accent);
+  --primary-foreground: var(--admin-accent-fg);
+  --destructive: var(--admin-destructive);
   --muted: var(--admin-muted);
   --muted-foreground: var(--admin-muted-fg);
   --border: var(--admin-border);
   --input: var(--admin-border);
   --accent: var(--admin-accent);
   --accent-foreground: var(--admin-accent-fg);
+  --ring: var(--admin-accent);
+}
+
+/* Ensure popovers/dropdowns on the admin surface (topbar) inherit admin tokens */
+.admin-tool .admin-surface {
+  --popover: var(--admin-topbar-bg);
+  --popover-foreground: var(--admin-content-fg);
+  --accent: var(--admin-muted);
+  --accent-foreground: var(--admin-content-fg);
 }
 
 .admin-tool table {
