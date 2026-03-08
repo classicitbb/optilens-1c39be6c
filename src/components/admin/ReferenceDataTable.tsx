@@ -313,9 +313,9 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                       />
                     </TableCell>
                   )}
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{item.abbrev || "—"}</TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{item.code || "—"}</TableCell>
+                  <TableCell className="font-medium text-foreground">{item.name}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{item.abbrev || "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{item.code || "—"}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
