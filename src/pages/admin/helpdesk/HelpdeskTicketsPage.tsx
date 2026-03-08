@@ -86,7 +86,7 @@ const HelpdeskTicketsPage = () => {
 
   const openEdit = (ticket: any) => {
     setEditTicket(ticket);
-    setEditForm({ title: ticket.title, description: ticket.description || "", priority: String(ticket.priority), team_id: ticket.team_id || "" });
+    setEditForm({ title: ticket.title, description: ticket.description || "", priority: String(ticket.priority), team_id: ticket.team_id || "", contactId: ticket.partner_contact_id || "" });
   };
 
   const saveEdit = () => {
