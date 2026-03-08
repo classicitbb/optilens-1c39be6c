@@ -474,8 +474,8 @@ const ListCatalogTab = ({
               </button>
             }
           </div>
-          {row.lensId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(215 65% 45%)" }}>↳ linked lens</div>}
-          {row.supplyId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(130 55% 40%)" }}>↳ linked supply</div>}
+          {row.lensId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(var(--admin-table-link-fg))" }}>↳ linked lens</div>}
+          {row.supplyId && <div className="text-[9px] mt-0.5" style={{ color: "hsl(var(--admin-table-link-supply-fg))" }}>↳ linked supply</div>}
         </td>
         {/* Matrix Cell — screen-only, hidden on print/export — BEFORE BBD */}
         <td className="px-2 py-1.5 border border-border no-print max-w-[160px]" style={{ color: "hsl(215 30% 55%)", fontSize: "10px" }}>
