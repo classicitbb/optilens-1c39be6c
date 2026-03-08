@@ -327,7 +327,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
                   })}
                   </div>
-                  <p className="text-[10px] mt-1" style={{ color: "hsl(215 15% 50%)" }}>Leave override blank to use the default price.</p>
+                  <p className="text-[10px] mt-1 text-muted-foreground">Leave override blank to use the default price.</p>
                 </div>
               }
               {/* Auto-Apply Rule */}
