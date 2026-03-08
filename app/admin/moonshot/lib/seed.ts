@@ -1,5 +1,5 @@
 import { addDays, format, subWeeks } from "date-fns";
-import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OrgChart, Rock, Todo } from "./types";
+import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneTemplate, Rock, Seat, SeatFitReview, Todo } from "./types";
 
 const today = new Date();
 
@@ -22,16 +22,58 @@ export const seedUsers: MoonshotUser[] = [
   { id: "u4", name: "Roy Hunte", role: "Sales", avatar: "RO", seatsUsed: 1 },
 ];
 
-export const seedOrgChart: OrgChart = {
-  seats: [
-    { id: "s1", title: "CEO", department: "Leadership", parentId: null, childIds: ["s2", "s3"], assignedUserIds: ["u3"] },
-    { id: "s2", title: "Integrator", department: "Leadership", parentId: "s1", childIds: ["s4", "s5"], assignedUserIds: ["u2"] },
-    { id: "s3", title: "Revenue Lead", department: "Growth", parentId: "s1", childIds: ["s6"], assignedUserIds: ["u1"] },
-    { id: "s4", title: "Operations Manager", department: "Operations", parentId: "s2", childIds: [], assignedUserIds: [] },
-    { id: "s5", title: "People Manager", department: "People", parentId: "s2", childIds: [], assignedUserIds: [] },
-    { id: "s6", title: "Account Executive", department: "Sales", parentId: "s3", childIds: [], assignedUserIds: ["u4"] },
-  ],
-};
+
+
+export const seedSeats: Seat[] = [
+  { id: "s1", name: "General Manager", department: "Leadership" },
+  { id: "s2", name: "Technology", department: "Operations", reportsToSeatId: "s1" },
+  { id: "s3", name: "Finance", department: "Finance", reportsToSeatId: "s1" },
+  { id: "s4", name: "Sales", department: "Sales", reportsToSeatId: "s1" },
+];
+
+export const seedOneOnOnes: OneOnOneTemplate[] = [
+  {
+    id: "o11_1",
+    title: "Weekly Leadership 1:1",
+    cadence: "weekly",
+    participantIds: ["u1", "u2"],
+    agendaNotes: "Review scorecard trends, team health, and key blockers.",
+    actionItems: [
+      { id: "o11a_1", text: "Follow up on onboarding handoff", ownerId: "u2", dueDate: format(addDays(today, 3), "yyyy-MM-dd"), completed: false },
+      { id: "o11a_2", text: "Share customer retention update", ownerId: "u1", dueDate: format(addDays(today, 5), "yyyy-MM-dd"), completed: true },
+    ],
+    createdBy: "u1",
+    createdAt: format(addDays(today, -21), "yyyy-MM-dd"),
+    updatedAt: format(addDays(today, -1), "yyyy-MM-dd"),
+  },
+];
+
+export const seedSeatFitReviews: SeatFitReview[] = [
+  {
+    id: "sfr_1",
+    userId: "u3",
+    seatId: "s1",
+    valuesMatch: 5,
+    roleCompetency: 4,
+    performanceConfidence: 4,
+    fitStatus: "Great fit",
+    notes: "Strong cross-functional leadership and decision velocity.",
+    reviewDate: format(addDays(today, 30), "yyyy-MM-dd"),
+    updatedAt: format(today, "yyyy-MM-dd"),
+  },
+  {
+    id: "sfr_2",
+    userId: "u4",
+    seatId: "s4",
+    valuesMatch: 4,
+    roleCompetency: 3,
+    performanceConfidence: 3,
+    fitStatus: "Good fit",
+    notes: "Solid results; continue coaching on forecasting and pipeline hygiene.",
+    reviewDate: format(addDays(today, 45), "yyyy-MM-dd"),
+    updatedAt: format(today, "yyyy-MM-dd"),
+  },
+];
 
 export const seedMeetings: Meeting[] = [
   { id: "m1", title: "Weekly Leadership", owner: "Classic", date: format(addDays(today, 1), "yyyy-MM-dd"), status: "Scheduled", notes: "Review scorecard + IDS top 3 issues", frequency: "weekly", duration: 90, attendeeIds: ["u1", "u2", "u3"], agenda: bloomAgenda, checkInPrompt: "Share good news from your week.", checkInResponse: "", summary: "" },
