@@ -197,7 +197,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                     {visibleCols.map((col) => {
                       const avg = getColAvg(col.key, tt);
                       return (
-                        <td key={col.key} className="px-3 py-2 text-right italic" style={{ color: "hsl(var(--admin-muted-fg))" }}>
+                        <td key={col.key} className="px-3 py-2 text-right italic" style={{ color: "#4a5568" }}>
                           {avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}
                         </td>
                       );
