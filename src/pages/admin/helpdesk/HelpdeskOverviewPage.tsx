@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback, useRef, DragEvent } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect, DragEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil } from "lucide-react";
+import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil, ChevronRight, ChevronDown } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
