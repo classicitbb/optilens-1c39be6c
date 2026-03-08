@@ -383,7 +383,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               {/* Calculated Values */}
               <div className="px-[10px] py-[10px] border rounded">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className={sectionCls + " mb-0"} style={{ color: "hsl(215 15% 45%)" }}>Calculated Values</p>
+                  <p className={sectionCls + " mb-0 text-muted-foreground"}>Calculated Values</p>
                   {calc?.margin_status &&
                   <Badge className={`text-[10px] px-1.5 py-0 ${MARGIN_STATUS_COLORS[calc.margin_status]}`}>
                       {calc.margin_status === "loss" && <AlertTriangle className="h-3 w-3 mr-0.5" />}
