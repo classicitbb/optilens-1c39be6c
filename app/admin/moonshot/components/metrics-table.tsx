@@ -41,13 +41,13 @@ export function MetricsTable({ frequency, compact = false }: { frequency: Metric
         </thead>
         <tbody>
           {filteredMetrics.map((metric) => {
-            const user = users.find((u) => u.name === metric.owner);
+            const user = users.find((u) => u.id === metric.ownerId);
             return (
               <tr key={metric.id} className="border-b align-top">
                 <td className="py-2 pr-2">
                   <div className="flex items-center gap-2">
-                    <Avatar className="h-7 w-7"><AvatarFallback>{user?.avatar ?? metric.owner.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-                    <span>{metric.owner}</span>
+                    <Avatar className="h-7 w-7"><AvatarFallback>{user?.avatar ?? metric.name.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+                    <span>{user?.name ?? "Unknown"}</span>
                   </div>
                 </td>
                 <td className="py-2 pr-2"><Input value={metric.name} onChange={(e) => updateMetric(metric.id, { name: e.target.value })} className="h-8" /></td>

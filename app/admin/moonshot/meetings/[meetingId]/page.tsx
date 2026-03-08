@@ -131,10 +131,10 @@ export default function MeetingDetailPage() {
             <CardContent className="space-y-2">
               <div className="flex gap-2"><Input placeholder="Add a to-do" value={newTodo} onChange={(e) => setNewTodo(e.target.value)} /><Button onClick={() => {
                 if (!newTodo) return;
-                addTodo({ title: newTodo, owner: "Classic", dueDate: format(new Date(), "yyyy-MM-dd"), completed: false });
+                addTodo({ title: newTodo, ownerId: "u1", dueDate: format(new Date(), "yyyy-MM-dd"), completed: false });
                 setNewTodo("");
               }}>Add</Button></div>
-              {todos.map((t) => <div key={t.id} className="border rounded p-2 flex items-center justify-between"><label className="flex items-center gap-2"><input type="checkbox" checked={t.completed} onChange={(e) => updateTodo(t.id, { completed: e.target.checked })} />{t.title}</label><span className="text-xs text-muted-foreground">{t.owner}</span></div>)}
+              {todos.map((t) => <div key={t.id} className="border rounded p-2 flex items-center justify-between"><label className="flex items-center gap-2"><input type="checkbox" checked={t.completed} onChange={(e) => updateTodo(t.id, { completed: e.target.checked })} />{t.title}</label><span className="text-xs text-muted-foreground">{users.find((u) => u.id === t.ownerId)?.name ?? "Unknown"}</span></div>)}
             </CardContent>
           </Card>
         )}
@@ -145,7 +145,7 @@ export default function MeetingDetailPage() {
             <CardContent className="space-y-2">
               <div className="flex gap-2"><Input placeholder="Identify issue" value={newIssue} onChange={(e) => setNewIssue(e.target.value)} /><Button onClick={() => {
                 if (!newIssue) return;
-                addIssue({ title: newIssue, owner: "Classic", priority: "Medium", status: "Open" });
+                addIssue({ title: newIssue, ownerId: "u1", priority: "Medium", status: "Open" });
                 setNewIssue("");
               }}>Add</Button></div>
               {issues.map((issue) => <div key={issue.id} className="border rounded p-2 flex items-center justify-between gap-2"><div><p>{issue.title}</p><p className="text-xs text-muted-foreground">{issue.priority}</p></div><Select value={issue.status} onValueChange={(v: "Open" | "In Progress" | "Resolved") => updateIssue(issue.id, { status: v })}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Open">Identify</SelectItem><SelectItem value="In Progress">Discuss</SelectItem><SelectItem value="Resolved">Solve</SelectItem></SelectContent></Select></div>)}

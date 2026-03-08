@@ -58,7 +58,7 @@ type MoonshotState = {
   updateIssue: (id: string, updates: Partial<Issue>) => void;
   deleteIssue: (id: string) => void;
   updateBusinessPlan: (plan: Partial<BusinessPlan>) => void;
-  addUser: (user: Omit<MoonshotUser, "id">) => void;
+  addUser: (user: Omit<MoonshotUser, "id" | "seatsUsed">) => void;
   updateUser: (id: string, updates: Partial<MoonshotUser>) => void;
   deleteUser: (id: string) => void;
   addOneOnOne: (template: Omit<OneOnOneTemplate, "id" | "actionItems" | "createdAt" | "updatedAt"> & { actionItems?: Omit<OneOnOneActionItem, "id">[] }) => void;
@@ -107,35 +107,6 @@ const defaultWorkspaceTiles = [makeTile("headlines", 2), makeTile("quick-links",
 
 const updateTiles = (scope: TileScope, next: WorkspaceTile[]) => (scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next });
 
-const syncSeatUsage = (users: MoonshotUser[], orgChart: OrgChart): MoonshotUser[] => {
-  const usage = orgChart.seats.reduce<Record<string, number>>((acc, seat) => {
-    seat.assignedUserIds.forEach((userId) => {
-      acc[userId] = (acc[userId] ?? 0) + 1;
-    });
-    return acc;
-  }, {});
-
-  return users.map((user) => ({ ...user, seatsUsed: usage[user.id] ?? 0 }));
-};
-
-const removeSeatBranch = (seats: OrgChartSeat[], id: string): OrgChartSeat[] => {
-  const byId = new Map(seats.map((seat) => [seat.id, seat]));
-  const toRemove = new Set<string>();
-
-  const walk = (seatId: string) => {
-    const seat = byId.get(seatId);
-    if (!seat || toRemove.has(seatId)) return;
-    toRemove.add(seatId);
-    seat.childIds.forEach(walk);
-  };
-
-  walk(id);
-
-  return seats
-    .filter((seat) => !toRemove.has(seat.id))
-    .map((seat) => ({ ...seat, childIds: seat.childIds.filter((childId) => !toRemove.has(childId)) }));
-};
-
 const baseState = {
   currentUser: null,
   theme: "light" as MoonshotTheme,
@@ -169,12 +140,7 @@ export const useMoonshotStore = create<MoonshotState>()(
       login: () => set({ currentUser: seedUsers[0] }),
       logout: () => set({ currentUser: null }),
       setTheme: (theme) => set({ theme }),
-      importDemoData: (payload) =>
-        set((s) => {
-          const next = { ...s, ...payload };
-          const orgChart = payload.orgChart ?? s.orgChart;
-          return { ...next, orgChart, users: syncSeatUsage(next.users, orgChart) };
-        }),
+      importDemoData: (payload) => set((s) => ({ ...s, ...payload })),
       resetDemoData: () => set({ ...baseState, currentUser: seedUsers[0], dashboardTiles: defaultDashboardTiles, workspaceTiles: defaultWorkspaceTiles }),
       updateSettings: (updates) => set((s) => ({ settings: { ...s.settings, ...updates } })),
       addTile: (scope, type) =>
@@ -221,12 +187,25 @@ export const useMoonshotStore = create<MoonshotState>()(
       deleteIssue: (id) => set((s) => ({ issues: s.issues.filter((i) => i.id !== id) })),
       updateBusinessPlan: (plan) => set((s) => ({ businessPlan: { ...s.businessPlan, ...plan } })),
       addUser: (user) =>
-        set((s) => {
-          const users = [...s.users, { id: makeId("u"), ...user, seatsUsed: 0 }];
-          return { users: syncSeatUsage(users, s.orgChart) };
-        }),
-      updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)) })),
-      deleteUser: (id) => set((s) => ({ users: s.users.filter((u) => u.id !== id) })),
+        set((s) => ({
+          users: [...s.users, { id: makeId("u"), ...user, seatsUsed: user.seatIds.length }],
+        })),
+      updateUser: (id, updates) =>
+        set((s) => ({
+          users: s.users.map((u) => {
+            if (u.id !== id) return u;
+            const nextSeatIds = updates.seatIds ?? u.seatIds;
+            return { ...u, ...updates, seatsUsed: nextSeatIds.length };
+          }),
+        })),
+      deleteUser: (id) =>
+        set((s) => ({
+          users: s.users.filter((u) => u.id !== id),
+          meetings: s.meetings.map((meeting) => ({ ...meeting, attendeeIds: meeting.attendeeIds.filter((attendeeId) => attendeeId !== id), ownerId: meeting.ownerId === id ? s.currentUser?.id ?? "u1" : meeting.ownerId })),
+          rocks: s.rocks.map((rock) => ({ ...rock, ownerId: rock.ownerId === id ? s.currentUser?.id ?? "u1" : rock.ownerId })),
+          todos: s.todos.map((todo) => ({ ...todo, ownerId: todo.ownerId === id ? s.currentUser?.id ?? "u1" : todo.ownerId })),
+          issues: s.issues.map((issue) => ({ ...issue, ownerId: issue.ownerId === id ? s.currentUser?.id ?? "u1" : issue.ownerId })),
+        })),
       addOneOnOne: (template) =>
         set((s) => ({
           oneOnOnes: [

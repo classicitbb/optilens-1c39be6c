@@ -1,16 +1,27 @@
 export type MoonshotUser = {
   id: string;
   name: string;
+  email: string;
   role: string;
   avatar: string;
   seatsUsed: number;
-  invitedEmail?: string;
+  seatIds: string[];
+  supervisorId?: string;
+  status: "active" | "inactive";
+  invitation: {
+    status: "pending" | "sent" | "accepted";
+    pendingAt: string;
+    sentAt?: string;
+    acceptedAt?: string;
+  };
 };
 
 export type Seat = {
   id: string;
   name: string;
   department: string;
+  seatType: "Leadership" | "Manager" | "Individual Contributor";
+  capacity: number;
   reportsToSeatId?: string;
 };
 
@@ -65,7 +76,7 @@ export type MetricPoint = {
 export type Meeting = {
   id: string;
   title: string;
-  owner: string;
+  ownerId: string;
   date: string;
   status: "Scheduled" | "Completed" | "Draft" | "In Progress";
   notes: string;
@@ -81,7 +92,7 @@ export type Meeting = {
 export type Metric = {
   id: string;
   name: string;
-  owner: string;
+  ownerId: string;
   target: number;
   actual: number;
   trend: "up" | "down" | "flat";
@@ -94,7 +105,7 @@ export type Metric = {
 export type Rock = {
   id: string;
   title: string;
-  owner: string;
+  ownerId: string;
   dueDate: string;
   status: "On Track" | "At Risk" | "Off Track" | "Completed";
   percentComplete?: number;
@@ -105,7 +116,7 @@ export type Rock = {
 export type Todo = {
   id: string;
   title: string;
-  owner: string;
+  ownerId: string;
   dueDate: string;
   completed: boolean;
   meetingId?: string;
@@ -114,7 +125,7 @@ export type Todo = {
 export type Issue = {
   id: string;
   title: string;
-  owner: string;
+  ownerId: string;
   priority: "High" | "Medium" | "Low";
   status: "Open" | "In Progress" | "Resolved";
   identified?: string;
