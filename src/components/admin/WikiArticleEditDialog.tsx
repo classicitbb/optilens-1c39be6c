@@ -11,7 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import RichTextEditor from "./RichTextEditor";
 import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
-import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
 
 interface WikiArticleEditDialogProps {
   open: boolean;
