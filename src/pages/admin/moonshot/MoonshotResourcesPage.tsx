@@ -11,7 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { renderWikiContent } from "@/components/admin/wikiFormatting";
-import { HelpFeedbackButtons } from "@/components/admin/HelpFeedbackButtons";
+import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
 
 const MOONSHOT_SLUGS = [
   "moonshot",
