@@ -68,7 +68,7 @@ export default function MoonshotUsersPage() {
             ? seatA.localeCompare(seatB)
             : sortKey === "supervisor"
               ? supA.localeCompare(supB)
-              : a.invitation.status.localeCompare(b.invitation.status);
+              : (a.invitation ?? defaultInvitation).status.localeCompare((b.invitation ?? defaultInvitation).status);
       return sortDirection === "asc" ? value : value * -1;
     });
 
