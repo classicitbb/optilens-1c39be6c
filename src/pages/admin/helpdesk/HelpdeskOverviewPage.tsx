@@ -167,7 +167,7 @@ const TicketEditDialog = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Select value={form.stage_id || "__none"} onValueChange={v => setForm(p => ({ ...p, stage_id: v === "__none" ? "" : v }))}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
               <SelectContent>
@@ -180,6 +180,13 @@ const TicketEditDialog = ({
               onValueChange={v => setForm(p => ({ ...p, partner_contact_id: v }))}
               placeholder="Assign contact"
             />
+            <Select value={form.ticket_type_id || "__none"} onValueChange={v => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setForm(p => ({ ...p, ticket_type_id: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                {ticketTypes.map(t => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>
