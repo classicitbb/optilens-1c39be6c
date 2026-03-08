@@ -1,203 +1,87 @@
-## Admin Experience Plan (Updated to Current Codebase)
 
-### Plan intent
 
-This plan is now aligned with the **current modular admin architecture** (`/admin/<app>/...`) and the work that already exists in the repository.
+## Helpdesk Module -- Full Review and Fix Plan
 
----
+### Issues Found
 
-## Here is proof we are connected.
+**1. Missing database columns (CRITICAL -- blocks Teams page entirely)**
+The `helpdesk_teams` table was created by migration `20260301*` **without** `assignment_mode` or `visibility` columns. The later migration `20260308113000` used `CREATE TABLE IF NOT EXISTS`, which silently skipped because the table already existed. Result: the Teams page crashes with `column helpdesk_teams.assignment_mode does not exist`.
 
-## 1) Current state snapshot (what is already done)
+**2. Missing RLS on newer helpdesk tables**
+The `20260308113000` and `20260308130000` migrations created/recreated tables but did **not** include `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` or any RLS policies for:
+- `helpdesk_sla_policies`
+- `helpdesk_ticket_sla_status`
 
-### 1.1 Admin shell and navigation foundation
+The older `20260301*` migration correctly set RLS on `helpdesk_teams`, `helpdesk_tickets`, `helpdesk_ticket_stages`, `helpdesk_ticket_types`, `helpdesk_ticket_tags`, `helpdesk_ticket_events`, and `helpdesk_ticket_tag_rel`. Those are fine.
 
-- ✅ `ADMIN_APPS` registry is implemented and drives app metadata, default routes, and sidebar items.
-- ✅ App Launcher and Sidebar are dynamic and role-filtered.
-- ✅ Admin route groups are modularized by app domain:
-  - Pricing (`/admin/pricing/*`)
-  - Sales (`/admin/sales/*`)
-  - Contacts (`/admin/contacts/*`)
-  - Leads (`/admin/leads/*`)
-  - CRM (`/admin/crm/*`)
-  - Helpdesk (`/admin/helpdesk/*`)
-  - Website (`/admin/website/*`)
-  - Knowledge (`/admin/knowledge/*`)
-  - Settings (`/admin/settings/*`)
-- ✅ Legacy routes are redirected to the new structure.
+**3. No delete/archive capability for tickets**
+Tickets can only be created, stage-changed, and assigned. There is no UI or hook for deleting or archiving tickets. SLA policies and teams can only be toggled active/inactive but never deleted.
 
-### 1.2 Admin Top Bar redesign status
+**4. No edit capability for teams, SLA policies, or tickets**
+Teams cannot be renamed or have their assignment mode changed after creation. SLA policies cannot have target hours adjusted. Tickets have no inline edit for title/description/priority.
 
-- ✅ Top bar exists with the intended structure:
-  - Apps toggle
-  - `OpticAdmin` brand label
-  - Page label
-  - Global search
-  - Bell placeholder
-  - Help toggle
-  - Lovable external link (admin-only)
-  - User display name + avatar dropdown
-- ✅ User display name resolves from `profiles.display_name` with email fallback.
-- ✅ Avatar dropdown includes:
-  - Helpdesk / Wiki
-  - My Profile
-  - Install App
-  - Logout
+**5. Stages are not configurable from the UI**
+The `helpdesk_ticket_stages` table exists with seed data but there is no page to create, reorder, rename, or delete stages.
 
-### 1.3 Branding updates
-
-- ✅ `OpticAdmin` branding is present in top bar and wiki content.
+**6. Ticket types and tags have no UI**
+Tables `helpdesk_ticket_types` and `helpdesk_ticket_tags` exist in the database but are completely unmanaged from the frontend.
 
 ---
 
-## 2) Gaps to close (next actions)
+### Implementation Plan
 
-### 2.1 Route label map in `AdminTopBar`
+#### Step 1 -- Database migration to add missing columns and RLS
+Run a single migration that:
+- `ALTER TABLE helpdesk_teams ADD COLUMN IF NOT EXISTS assignment_mode text NOT NULL DEFAULT 'manual'` with CHECK constraint
+- `ALTER TABLE helpdesk_teams ADD COLUMN IF NOT EXISTS visibility text NOT NULL DEFAULT 'internal'` with CHECK constraint
+- `ALTER TABLE helpdesk_sla_policies ENABLE ROW LEVEL SECURITY` + SELECT/INSERT/UPDATE/DELETE policies (same pattern: `has_any_role` for SELECT, `has_edit_role` for INSERT/UPDATE, `has_role(...,'admin')` for DELETE)
+- `ALTER TABLE helpdesk_ticket_sla_status ENABLE ROW LEVEL SECURITY` + policies
 
-The route label map should prioritize **new canonical paths** (`/admin/pricing/...`, `/admin/sales/...`, etc.) first, then include legacy fallbacks only if needed.
+#### Step 2 -- Add delete mutations and UI actions
 
-**Action**
+**Tickets**: Add a `useDeleteHelpdeskTicket` hook and a delete button per row (admin only, with confirmation dialog).
 
-- Update `ROUTE_LABELS` in `src/components/admin/AdminTopBar.tsx` to match active canonical route paths.
+**Teams**: Add a delete mutation and button (admin only).
 
-### 2.2 Sidebar/header interaction cleanup
+**SLA Policies**: Add a delete mutation and button (admin only).
 
-The previous note about removing the sidebar header is not currently implemented.
+#### Step 3 -- Add inline edit capability
 
-**Action options (pick one explicitly)**
+**Teams**: Add an edit dialog/row that allows renaming, changing assignment mode, and visibility.
 
-1. Keep sidebar header + collapse button (document as intentional), or
-2. Move collapse behavior to hover/flyout interaction and remove static header row.
+**SLA Policies**: Add an edit dialog for name, target hours, priority filter, team, and target stage.
 
-### 2.3 Copy consistency for placeholder screens
+**Tickets**: Add an edit dialog for title, description, priority, team, and type.
 
-Current placeholder message is: **"Coming in a future phase."**
+#### Step 4 -- Add Stages configuration page
 
-**Action**
+Create `HelpdeskStagesPage.tsx` at `/admin/helpdesk/stages` with:
+- List of stages with sequence, name, is_closed, is_folded columns
+- Create form (name, sequence, is_closed toggle)
+- Inline edit for name and sequence
+- Delete button (admin only)
+- Wire route in App.tsx
 
-- Standardize placeholder copy strategy per module (friendly/neutral/enterprise tone), with optional module-specific variants.
+#### Step 5 -- Add Ticket Types and Tags management
 
----
+Create `HelpdeskConfigPage.tsx` at `/admin/helpdesk/config` with two sections:
+- **Ticket Types**: CRUD table (name, description, is_active toggle, delete)
+- **Ticket Tags**: CRUD table (name, color picker, delete)
+- Wire route in App.tsx and add sidebar navigation
 
-## 3) Placeholder Pages Delivery Backlog (description-ready)
+#### Step 6 -- Add sidebar navigation entries
 
-> Purpose: every placeholder route gets a stable slot so full feature descriptions can be added later.
-
-Use this template for each page as details are discovered:
-
-- **Purpose**
-- **Primary users / roles**
-- **Core workflows**
-- **Data entities**
-- **Permissions**
-- **Integrations**
-- **MVP acceptance criteria**
-- **Future phase notes**
-
-### 3.1 Sales app placeholders
-
-1. `/admin/sales/web-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-2. `/admin/sales/rx-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.2 Leads app placeholders
-
-3. `/admin/leads/finder`
-   - Status: Placeholder
-   - Description: _TBD_
-4. `/admin/leads/campaigns`
-   - Status: Placeholder
-   - Description: _TBD_
-5. `/admin/leads/reports`
-   - Status: Placeholder
-   - Description: _TBD_
-6. `/admin/leads/ai`
-   - Status: Placeholder
-   - Description: _TBD_
-7. `/admin/leads/settings`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.3 CRM app placeholders
-
-8. `/admin/crm/pipeline`
-   - Status: Placeholder
-   - Description: _TBD_
-9. `/admin/crm/activities`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.4 Helpdesk app placeholders
-
-10. `/admin/helpdesk/tickets`
-    - Status: Placeholder
-    - Description: _TBD_
-11. `/admin/helpdesk/teams`
-    - Status: Placeholder
-    - Description: _TBD_
-12. `/admin/helpdesk/sla`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.5 Website app placeholders
-
-13. `/admin/website/microsites`
-    - Status: Placeholder
-    - Description: _TBD_
-14. `/admin/website/portals`
-    - Status: Placeholder
-    - Description: _TBD_
-15. `/admin/website/store`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.6 Knowledge app placeholders
-
-16. `/admin/knowledge/help`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.7 Settings app placeholders
-
-17. `/admin/settings/integrations`
-    - Status: Placeholder
-    - Description: _TBD_
+Update the admin sidebar to include sub-links for: Tickets, Teams, Stages, SLA Policies, Config (Types & Tags).
 
 ---
 
-## 4) Suggested micro-copy change (quick win)
+### Technical Details
 
-### Proposal
+**Migration SQL** will use `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` for safety and `DO $$ ... END $$` blocks for conditional RLS policy creation.
 
-For `/admin/crm/pipeline`, change placeholder text from:
+All new hooks follow the existing pattern: `(supabase as any).from("table_name")` with `useMutation` + `useQueryClient` invalidation.
 
-- **"Coming in a future phase."**
+Delete operations use `AlertDialog` for confirmation, consistent with the rest of the admin UI.
 
-to:
+RBAC enforcement: all new pages check `canView("helpdesk")` / `canEditFeature("helpdesk")`, delete is further restricted to admin via `isAdmin` from `useUserRole`.
 
-- **"See you soon."**
-
-### Why
-
-- Warmer and less formal tone for a customer-facing-feeling CRM surface.
-- Good as an experiment for module-specific placeholder messaging.
-
-### Implementation approach
-
-- Preferred: add an optional copy override map in `PlaceholderPage` keyed by route.
-- Fallback: global replacement if we want one message everywhere.
-
----
-
-## 5) UI Rule: Admin Page Headers (still active)
-
-Every admin page with a heading **must** use the shared:
-`<AdminPageHeader icon={Icon} title="Page Title" />`
-from `src/components/admin/AdminPageHeader.tsx`.
-
-- Always pass a relevant Lucide icon and a properly capitalized title.
-- Optional `children` slot renders right-aligned actions.
-- Do not use ad hoc inline `<h1>` patterns on admin pages.
