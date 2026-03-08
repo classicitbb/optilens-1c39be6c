@@ -271,18 +271,27 @@ export const useMoonshotStore = create<MoonshotState>()(
         }),
       // ─── 1:1s ───
       addOneOnOne: (template) =>
-        set((s) => ({
-          oneOnOnes: [
-            ...s.oneOnOnes,
-            {
-              id: makeId("o11"),
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              actionItems: (template.actionItems ?? []).map((item) => ({ ...item, id: makeId("o11a"), completed: (item as any).completed ?? false })),
-              ...template,
-            },
-          ],
-        })),
+        set((s) => {
+          const actionItems: OneOnOneActionItem[] = (template.actionItems ?? []).map((item) => ({
+            text: item.text,
+            ownerId: item.ownerId,
+            dueDate: item.dueDate,
+            id: makeId("o11a"),
+            completed: (item as any).completed ?? false,
+          }));
+          const newTemplate: OneOnOneTemplate = {
+            id: makeId("o11"),
+            title: template.title,
+            cadence: template.cadence,
+            participantIds: template.participantIds,
+            agendaNotes: template.agendaNotes,
+            createdBy: template.createdBy,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            actionItems,
+          };
+          return { oneOnOnes: [...s.oneOnOnes, newTemplate] };
+        }),
       updateOneOnOne: (id, updates) =>
         set((s) => ({
           oneOnOnes: s.oneOnOnes.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t)),
