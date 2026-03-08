@@ -35,6 +35,7 @@ interface OverviewTicket {
   deadline: string | null;
   stage: { id: string; name: string; sequence: number; is_closed: boolean; is_folded: boolean } | null;
   team: { id: string; name: string } | null;
+  contact: { id: string; name: string; is_company: boolean } | null;
 }
 
 interface StageColumn {
@@ -207,7 +208,7 @@ const HelpdeskOverviewPage = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("helpdesk_tickets")
-        .select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name)")
+        .select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,is_company)")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -447,6 +448,14 @@ const KanbanView = ({
                         </div>
                       </div>
 
+                      {/* Contact */}
+                      {ticket.contact && (
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground truncate">
+                          <span>{ticket.contact.is_company ? "🏢" : "👤"}</span>
+                          <span className="truncate">{ticket.contact.name}</span>
+                        </div>
+                      )}
+
                       {/* Bottom row */}
                       <div className="flex items-center justify-between">
                         <PriorityStars priority={ticket.priority} />
@@ -503,8 +512,9 @@ const ListView = ({
                 <tr className="text-xs text-muted-foreground border-b border-border">
                   <th className="text-left py-1.5 px-2 font-medium w-20">ID</th>
                   <th className="text-left py-1.5 px-2 font-medium">Priority</th>
-                  <th className="text-left py-1.5 px-2 font-medium">Name</th>
-                  <th className="text-left py-1.5 px-2 font-medium">Assigned to</th>
+                   <th className="text-left py-1.5 px-2 font-medium">Name</th>
+                   <th className="text-left py-1.5 px-2 font-medium">Customer</th>
+                   <th className="text-left py-1.5 px-2 font-medium">Assigned to</th>
                   <th className="text-left py-1.5 px-2 font-medium">SLA Deadline</th>
                   <th className="text-left py-1.5 px-2 font-medium">Stage</th>
                   {canEdit && <th className="text-left py-1.5 px-2 font-medium w-12"></th>}
@@ -518,6 +528,14 @@ const ListView = ({
                       <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{ticket.ticket_number}</td>
                       <td className="py-2 px-2"><PriorityStars priority={ticket.priority} /></td>
                       <td className="py-2 px-2 font-medium text-foreground">{ticket.title}</td>
+                      <td className="py-2 px-2 text-xs text-foreground">
+                        {ticket.contact ? (
+                          <span className="flex items-center gap-1">
+                            <span>{ticket.contact.is_company ? "🏢" : "👤"}</span>
+                            {ticket.contact.name}
+                          </span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </td>
                       <td className="py-2 px-2">
                         {owner ? (
                           <div className="flex items-center gap-1.5">
