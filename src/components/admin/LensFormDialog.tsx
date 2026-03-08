@@ -303,7 +303,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
             <DialogTitle className="text-sm font-semibold text-foreground">
               {lens ? "Edit Lens" : "Add Lens"}
             </DialogTitle>
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               {lens && onNavigate && lenses && <>
                 <span>{currentIndex + 1} / {lenses.length}</span>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
