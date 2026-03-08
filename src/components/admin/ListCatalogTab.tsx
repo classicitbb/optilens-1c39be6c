@@ -556,7 +556,7 @@ const ListCatalogTab = ({
                     Matrix Cell
                   </th>
                   <th className={`px-3 py-2 text-right font-semibold border border-border w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={title} col="bbd" /></th>
-                  <th className="px-3 py-2 text-right font-semibold border border-border w-28" style={{ background: GREEN_BG, color: GREEN_TEXT }}>USD <SortIcon section={title} col="usd" /></th>
+                  <th className="px-3 py-2 text-right font-semibold border border-border w-28" style={{ background: "hsl(var(--admin-table-col-usd))", color: "hsl(var(--admin-table-col-usd-fg))" }}>USD <SortIcon section={title} col="usd" /></th>
                   <th className="px-3 py-2 text-center font-semibold border border-border w-20 no-print" style={{ background: "hsl(280 30% 93%)", color: "hsl(280 40% 30%)" }}>Margin % <SortIcon section={title} col="margin" /></th>
                   <th className="w-7 no-print border border-border" title="Override" />
                   <th className="w-6 no-print border border-border" />
