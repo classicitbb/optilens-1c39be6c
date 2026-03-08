@@ -24,6 +24,7 @@ const AdminWikiPage = () => {
   const { canView } = useRolePermissions();
   const { toast } = useToast();
   const { articles: dbArticles, isLoading: articlesLoading } = useHelpArticles("knowledge/wiki");
+  const { articles: allDbArticles, isLoading: allArticlesLoading } = useHelpArticles();
   const { headings: dbHeadings, createHeading, refetch: refetchHeadings } = useWikiHeadings();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeArticleId, setActiveArticleId] = useState<string | null>(wikiCategories[0]?.articles[0]?.id ?? null);
