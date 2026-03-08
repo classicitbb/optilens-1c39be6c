@@ -67,10 +67,10 @@ const fmt = (n: number) => n.toFixed(2);
 const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
 const MARGIN_STATUS_COLORS: Record<string, string> = {
-  healthy: "bg-green-100 text-green-800",
-  thin: "bg-yellow-100 text-yellow-800",
-  below_floor: "bg-orange-100 text-orange-800",
-  loss: "bg-red-100 text-red-800"
+  healthy: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  thin: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  below_floor: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+  loss: "bg-red-500/15 text-red-700 dark:text-red-400"
 };
 
 const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmitAndClose, onNavigate, isPending, pricingSheets, addonPricingSheets }: Props) => {
@@ -238,10 +238,10 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
         <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+            <DialogTitle className="text-sm font-semibold text-foreground">
               {addon ? "Edit Add-On" : "New Add-On"}
             </DialogTitle>
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 {addon && onNavigate && addons && <>
                   <span>{currentIndex + 1} / {addons.length}</span>
                   <Button type="button" variant="outline" size="icon" className="h-6 w-6"
@@ -268,7 +268,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
             {/* LEFT COLUMN */}
             <div className="space-y-4">
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Item Info</p>
+                <p className={sectionCls + " text-muted-foreground"}>Item Info</p>
                 <div className="grid grid-cols-4 gap-3">
                   <div className="col-span-2">
                     <Label className={labelCls}>Name *</Label>
@@ -311,14 +311,14 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               {/* Pricing Sheets */}
               {sheets.length > 0 &&
               <div>
-                  <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Pricing Sheets</p>
-                  <div className="space-y-1.5 rounded border p-2" style={{ borderColor: "hsl(215 20% 88%)" }}>
+                  <p className={sectionCls + " text-muted-foreground"}>Pricing Sheets</p>
+                  <div className="space-y-1.5 border p-2 border-border">
                     {sheets.map((s, idx) => {
                     const sheet = pricingSheets.find((p) => p.id === s.pricing_sheet_id);
                     return (
                       <div key={s.pricing_sheet_id} className="flex items-center gap-3">
                           <Checkbox checked={s.checked} onCheckedChange={(v) => updateSheet(idx, { checked: !!v })} />
-                          <span className="text-xs flex-1 truncate" style={{ color: "hsl(215 30% 15%)" }}>{sheet?.name ?? s.pricing_sheet_id}</span>
+                          <span className="text-xs flex-1 truncate text-foreground">{sheet?.name ?? s.pricing_sheet_id}</span>
                           {s.checked &&
                         <Input className="h-7 text-xs w-24" type="number" step="0.01" min="0" placeholder="Override (BBD)"
                         value={s.price_override} onChange={(e) => updateSheet(idx, { price_override: e.target.value })} />
@@ -327,20 +327,20 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
                   })}
                   </div>
-                  <p className="text-[10px] mt-1" style={{ color: "hsl(215 15% 50%)" }}>Leave override blank to use the default price.</p>
+                  <p className="text-[10px] mt-1 text-muted-foreground">Leave override blank to use the default price.</p>
                 </div>
               }
               {/* Auto-Apply Rule */}
               {form.is_auto &&
               <div>
-                  <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Auto-Apply Rule</p>
+                  <p className={sectionCls + " text-muted-foreground"}>Auto-Apply Rule</p>
                   <Textarea
                   className={`text-xs min-h-[60px] font-mono ${!ruleValid ? "border-red-400" : ""}`}
                   value={ruleText}
                   onChange={(e) => handleRuleChange(e.target.value)}
                   placeholder='e.g. {"sph_over": 10} or {"has_prism": true}' />
 
-                  {!ruleValid && <p className="text-[10px] mt-1" style={{ color: "hsl(0 70% 50%)" }}>Invalid JSON</p>}
+                  {!ruleValid && <p className="text-[10px] mt-1 text-destructive">Invalid JSON</p>}
                 </div>
               }
             </div>
@@ -349,7 +349,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
             <div className="space-y-4">
               {/* Flags */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Flags</p>
+                <p className={sectionCls + " text-muted-foreground"}>Flags</p>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                   <label className="flex items-center gap-1.5 text-xs">
                     <Switch checked={form.is_active} onCheckedChange={(v) => set("is_active", v)} /> Active
@@ -365,7 +365,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               <Separator />
               {/* Pricing & Cost */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Pricing & Cost</p>
+                <p className={sectionCls + " text-muted-foreground"}>Pricing & Cost</p>
                 <div className="grid grid-cols-4 gap-3">
                   <div>
                     <Label className={labelCls}>Cost (USD)</Label>
@@ -383,7 +383,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
               {/* Calculated Values */}
               <div className="px-[10px] py-[10px] border rounded">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className={sectionCls + " mb-0"} style={{ color: "hsl(215 15% 45%)" }}>Calculated Values</p>
+                  <p className={sectionCls + " mb-0 text-muted-foreground"}>Calculated Values</p>
                   {calc?.margin_status &&
                   <Badge className={`text-[10px] px-1.5 py-0 ${MARGIN_STATUS_COLORS[calc.margin_status]}`}>
                       {calc.margin_status === "loss" && <AlertTriangle className="h-3 w-3 mr-0.5" />}
@@ -407,7 +407,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
                 {calc?.governance_flags && (calc.governance_flags.at_loss || calc.governance_flags.below_floor) &&
                 <div className="mt-2 flex flex-wrap gap-1.5">
                     {calc.governance_flags.at_loss && <Badge variant="destructive" className="text-[10px]">At Loss</Badge>}
-                    {calc.governance_flags.below_floor && <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-700">Below Floor</Badge>}
+                    {calc.governance_flags.below_floor && <Badge variant="outline" className="text-[10px] border-orange-500 text-orange-700 dark:text-orange-400">Below Floor</Badge>}
                     {calc.governance_flags.below_target && <Badge variant="outline" className="text-[10px]">Below Target</Badge>}
                   </div>
                 }
@@ -418,11 +418,11 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || !ruleValid || governance.blocked}>
+            <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-primary-foreground" disabled={isPending || !form.name || !ruleValid || governance.blocked}>
               {isPending ? "Saving…" : addon ? "Save" : "Create"}
             </Button>
             {onSubmitAndClose &&
-            <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || !ruleValid || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
+            <Button type="button" size="sm" className="h-7 text-xs bg-primary/80 text-primary-foreground" disabled={isPending || !form.name || !ruleValid || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
                 Save & Close
               </Button>
             }
@@ -447,15 +447,8 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
 const ReadOnly = ({ label, value, highlight }: {label: string;value: string;highlight?: boolean;}) =>
 <div>
-    <span className="text-[10px]" style={{ color: "hsl(215 15% 50%)" }}>{label}</span>
-    <div
-    className="h-7 flex items-center px-2 rounded text-xs tabular-nums"
-    style={{
-      background: highlight ? "hsl(215 60% 95%)" : "hsl(215 20% 97%)",
-      color: "hsl(215 30% 15%)",
-      fontWeight: highlight ? 600 : 400
-    }}>
-
+    <span className="text-[10px] text-muted-foreground">{label}</span>
+    <div className={`h-7 flex items-center px-2 text-xs tabular-nums text-foreground ${highlight ? "bg-primary/10 font-semibold" : "bg-muted"}`}>
       {value}
     </div>
   </div>;

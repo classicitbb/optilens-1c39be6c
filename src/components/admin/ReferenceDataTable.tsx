@@ -189,12 +189,12 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold" style={{ color: "hsl(215 30% 15%)" }}>{entityLabel}</h2>
+        <h2 className="text-base font-semibold text-foreground">{entityLabel}</h2>
         {canEdit && (
           <Button
             size="sm"
             className="h-7 text-xs gap-1"
-            style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }}
+            style={{ background: "hsl(var(--admin-accent))", color: "hsl(var(--admin-accent-fg))" }}
             onClick={() => setModalOpen(true)}
           >
             <Plus className="h-3.5 w-3.5" /> Add
@@ -211,8 +211,8 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
               onClick={() => handleFilterChange(t.value)}
               className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
               style={{
-                background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
-                color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
+                background: filter === t.value ? "hsl(var(--admin-accent) / 0.12)" : "transparent",
+                color: filter === t.value ? "hsl(var(--admin-accent))" : "hsl(var(--admin-muted-fg))",
               }}
             >
               {t.label}
@@ -220,18 +220,18 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
           ))}
         </div>
         <div className="relative max-w-[200px]">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }} placeholder="Search…" className="h-7 text-xs pl-7" />
         </div>
-        <span className="ml-auto text-xs py-1" style={{ color: "hsl(215 15% 50%)" }}>
+        <span className="ml-auto text-xs py-1 text-muted-foreground">
           {visibleCount < filtered.length ? `${visibleCount} of ` : ""}{filtered.length} record{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Bulk actions bar */}
       {selected.size > 0 && canEdit && (
-        <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "hsl(215 65% 50% / 0.06)", border: "1px solid hsl(215 65% 50% / 0.15)" }}>
-          <span className="text-xs font-medium" style={{ color: "hsl(215 65% 50%)" }}>
+        <div className="flex items-center gap-2 p-2" style={{ background: "hsl(var(--admin-accent) / 0.06)", border: "1px solid hsl(var(--admin-accent) / 0.15)" }}>
+          <span className="text-xs font-medium" style={{ color: "hsl(var(--admin-accent))" }}>
             {selected.size} selected
           </span>
           <div className="ml-auto flex gap-1.5">
@@ -268,9 +268,9 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
       )}
 
       {/* Table */}
-      <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)", maxHeight: "calc(100vh - 320px)" }}>
+      <div className="border overflow-auto" style={{ borderColor: "hsl(var(--admin-border))", background: "hsl(var(--admin-table-bg))", maxHeight: "calc(100vh - 320px)" }}>
         <Table>
-          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
+          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(var(--admin-table-header-bg))", boxShadow: "inset 0 -1px 0 hsl(var(--admin-border))" }}>
             <TableRow>
               {canEdit && (
                 <TableHead className="w-10">
@@ -293,7 +293,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
           <TableBody>
             {visibleItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={colCount} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={colCount} className="text-center py-8 text-xs text-muted-foreground">
                   No records found.
                 </TableCell>
               </TableRow>
@@ -303,7 +303,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                   key={item.id}
                   className={canEdit ? "cursor-pointer" : ""}
                   onClick={() => canEdit && setEditItem(item)}
-                  style={selected.has(item.id) ? { background: "hsl(215 65% 50% / 0.04)" } : undefined}
+                  style={selected.has(item.id) ? { background: "hsl(var(--admin-accent) / 0.04)" } : undefined}
                 >
                   {canEdit && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -313,25 +313,25 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                       />
                     </TableCell>
                   )}
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{item.abbrev || "—"}</TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>{item.code || "—"}</TableCell>
+                  <TableCell className="font-medium text-foreground">{item.name}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{item.abbrev || "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{item.code || "—"}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 h-5 border-0 font-medium"
                       style={{
-                        background: item.is_active ? "hsl(142 71% 45% / 0.1)" : "hsl(215 10% 92%)",
-                        color: item.is_active ? "hsl(142 71% 35%)" : "hsl(215 15% 50%)",
+                        background: item.is_active ? "hsl(var(--admin-success) / 0.1)" : "hsl(var(--admin-muted))",
+                        color: item.is_active ? "hsl(var(--admin-success))" : "hsl(var(--admin-muted-fg))",
                       }}
                     >
                       {item.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  <TableCell className="text-xs text-muted-foreground">
                     {format(new Date(item.created_at), "dd MMM yyyy")}
                   </TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  <TableCell className="text-xs text-muted-foreground">
                     {format(new Date(item.updated_at), "dd MMM yyyy")}
                   </TableCell>
                   {canEdit && (
@@ -367,7 +367,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
-                    style={{ color: "hsl(215 65% 50%)" }}
+                    style={{ color: "hsl(var(--admin-accent))" }}
                     onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
                   >
                     Load more ({filtered.length - visibleCount} remaining)

@@ -43,10 +43,10 @@ const fmt = (n: number) => n.toFixed(2);
 const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
 const MARGIN_STATUS_COLORS: Record<string, string> = {
-  healthy: "bg-green-100 text-green-800",
-  thin: "bg-yellow-100 text-yellow-800",
-  below_floor: "bg-orange-100 text-orange-800",
-  loss: "bg-red-100 text-red-800"
+  healthy: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  thin: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  below_floor: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+  loss: "bg-red-500/15 text-red-700 dark:text-red-400"
 };
 
 const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAndClose, onNavigate, isPending }: Props) => {
@@ -300,10 +300,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
       <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+            <DialogTitle className="text-sm font-semibold text-foreground">
               {lens ? "Edit Lens" : "Add Lens"}
             </DialogTitle>
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               {lens && onNavigate && lenses && <>
                 <span>{currentIndex + 1} / {lenses.length}</span>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
@@ -331,7 +331,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
             {/* LEFT COLUMN - Item Info */}
             <div className="space-y-4">
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Item Info</p>
+                <p className={sectionCls + " text-muted-foreground"}>Item Info</p>
                 <div className="space-y-2">
                   <div>
                     <Label className="text-[11px]">Name</Label>
@@ -367,7 +367,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
               {/* Specifications */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Specifications</p>
+                <p className={sectionCls + " text-muted-foreground"}>Specifications</p>
                 <div className="grid grid-cols-2 gap-2">
                   <NumInput label="Index" value={form.index_value} step="0.01" onChange={(v) => setNum("index_value", v)} />
                   <div />
@@ -396,7 +396,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
               {/* Flags */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Flags</p>
+                <p className={sectionCls + " text-muted-foreground"}>Flags</p>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                   {([
                   ["is_active", "Active"],
@@ -416,7 +416,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
               {/* Pricing & Cost */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Pricing & Cost</p>
+                <p className={sectionCls + " text-muted-foreground"}>Pricing & Cost</p>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className={labelCls}>Cost (USD)</Label>
@@ -434,7 +434,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
               {/* Calculated Values */}
               <div className="px-[10px] py-[10px] border rounded">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className={sectionCls + " mb-0"} style={{ color: "hsl(215 15% 45%)" }}>Calculated Values</p>
+                  <p className={sectionCls + " mb-0 text-muted-foreground"}>Calculated Values</p>
                   {calc?.margin_status &&
                   <Badge className={`text-[10px] px-1.5 py-0 ${MARGIN_STATUS_COLORS[calc.margin_status]}`}>
                       {calc.margin_status === "loss" && <AlertTriangle className="h-3 w-3 mr-0.5" />}
@@ -467,7 +467,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                 {calc?.governance_flags && (calc.governance_flags.at_loss || calc.governance_flags.below_floor || calc.governance_flags.below_target) &&
                 <div className="mt-2 flex flex-wrap gap-1.5">
                     {calc.governance_flags.at_loss && <Badge variant="destructive" className="text-[10px]">At Loss</Badge>}
-                    {calc.governance_flags.below_floor && <Badge variant="outline" className="text-[10px] border-orange-400 text-orange-700">Below Floor</Badge>}
+                    {calc.governance_flags.below_floor && <Badge variant="outline" className="text-[10px] border-orange-500 text-orange-700 dark:text-orange-400">Below Floor</Badge>}
                     {calc.governance_flags.below_target && <Badge variant="outline" className="text-[10px]">Below Target</Badge>}
                   </div>
                 }
@@ -480,12 +480,12 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }}
+            <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-primary-foreground"
             disabled={!isValid || isPending || governance.blocked}>
               {isPending ? "Saving…" : "Save"}
             </Button>
             {onSubmitAndClose &&
-            <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }}
+            <Button type="button" size="sm" className="h-7 text-xs bg-primary/80 text-primary-foreground"
             disabled={!isValid || isPending || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
                 Save & Close
               </Button>
@@ -511,13 +511,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
 const ReadOnly = ({ label, value, highlight }: {label: string;value: string;highlight?: boolean;}) =>
 <div>
-    <span className="text-[10px]" style={{ color: "hsl(215 15% 50%)" }}>{label}</span>
-    <div className="h-7 flex items-center px-2 rounded text-xs tabular-nums"
-  style={{
-    background: highlight ? "hsl(215 60% 95%)" : "hsl(215 20% 97%)",
-    color: "hsl(215 30% 15%)",
-    fontWeight: highlight ? 600 : 400
-  }}>
+    <span className="text-[10px] text-muted-foreground">{label}</span>
+    <div className={`h-7 flex items-center px-2 text-xs tabular-nums text-foreground ${highlight ? "bg-primary/10 font-semibold" : "bg-muted"}`}>
       {value}
     </div>
   </div>;
