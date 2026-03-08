@@ -258,7 +258,6 @@ export default function MoonshotUsersPage() {
                             : { ...inv, status: v, acceptedAt: new Date().toISOString() },
                     });
                   }}
-                  }
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="pending">Pending</SelectItem><SelectItem value="sent">Sent</SelectItem><SelectItem value="accepted">Accepted</SelectItem></SelectContent>
