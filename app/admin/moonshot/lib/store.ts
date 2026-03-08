@@ -8,7 +8,7 @@ import { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, 
 type TileScope = "dashboard" | "workspace";
 type MoonshotTheme = "light" | "dark";
 
-type MoonshotState = {
+export type MoonshotState = {
   currentUser: MoonshotUser | null;
   theme: MoonshotTheme;
   settings: MoonshotSettings;
