@@ -352,7 +352,7 @@ const VersionSelectorPanel = ({
                   return (
                     <div
                       key={v.id}
-                      className="flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors"
                       style={{
                         background: isActive ? "hsl(215 65% 50% / 0.08)" : "transparent",
                         border: isActive
