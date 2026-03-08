@@ -157,7 +157,7 @@ const AdminWikiPage = () => {
         />
       </TabsContent>
 
-      <TabsContent value="assignments" className="flex flex-1 min-h-0 mt-0">
+      <TabsContent value="assignments" className="flex flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
         <WikiAssignmentsPanel articles={allDbArticles} isLoading={allArticlesLoading} />
       </TabsContent>
 
