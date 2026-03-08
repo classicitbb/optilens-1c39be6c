@@ -106,7 +106,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
 
   return (
     <div
-      className="fixed top-0 right-0 h-full z-50 flex"
+      className="fixed top-0 right-0 h-full z-50 flex admin-content"
       style={{ width }}
     >
       <div
