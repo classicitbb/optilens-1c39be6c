@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Ticket } from "lucide-react";
+import { Ticket, ChevronDown, ChevronUp } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,24 +15,28 @@ import { useHelpdeskTickets } from "@/features/admin/helpdesk/hooks/useHelpdeskT
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
 import { useAssignHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useAssignHelpdeskTicket";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
-import { useDeleteHelpdeskTicket, useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
-import { normalizeHelpdeskPriorityLabel, normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normalization";
+import { useArchiveHelpdeskTicket, useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
+import { normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normalization";
 import { supabase } from "@/integrations/supabase/client";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface TeamOption { id: string; name: string; }
 interface StageOption { id: string; name: string; is_closed: boolean; }
 interface TicketTypeOption { id: string; name: string; }
+interface PriorityOption { level: number; label: string; color: string; }
 
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
+  const isMobile = useIsMobile();
   const canViewTickets = canView("helpdesk");
   const canEditTickets = canEditFeature("helpdesk");
 
@@ -40,10 +44,13 @@ const HelpdeskTicketsPage = () => {
   const [teamId, setTeamId] = useState<string>("all");
   const [onlyOpen, setOnlyOpen] = useState(true);
   const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "" });
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "", contactId: "", ticket_type_id: "" });
+
+  const formRef = useRef<HTMLFormElement>(null);
 
   const { data: teams = [] } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
@@ -75,14 +82,28 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
+  const { data: priorities = [] } = useQuery({
+    queryKey: ["helpdesk", "priorities"],
+    enabled: canViewTickets,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("helpdesk_priorities").select("level,label,color").eq("is_active", true).order("level");
+      if (error) throw error;
+      return (data ?? []) as PriorityOption[];
+    },
+  });
+
   const ticketQuery = useHelpdeskTickets({ search, onlyOpen, teamId: teamId === "all" ? undefined : teamId });
   const createTicket = useCreateHelpdeskTicket();
   const assignTicket = useAssignHelpdeskTicket();
   const updateStage = useUpdateHelpdeskTicketStage();
-  const deleteTicket = useDeleteHelpdeskTicket();
+  const archiveTicket = useArchiveHelpdeskTicket();
   const updateTicket = useUpdateHelpdeskTicket();
 
   const stageMap = useMemo(() => new Map(stages.map((s) => [s.id, s.name])), [stages]);
+  const closedStage = useMemo(() => stages.find(s => s.is_closed), [stages]);
+
+  const getPrioLabel = (level: number) => priorities.find(p => p.level === level)?.label ?? "Normal";
+  const getPrioColor = (level: number) => priorities.find(p => p.level === level)?.color ?? "#6b7280";
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast({ title: "Ticket title is required", variant: "destructive" }); return; }
@@ -90,8 +111,16 @@ const HelpdeskTicketsPage = () => {
       await createTicket.mutateAsync({ title: form.title, description: form.description, teamId: form.teamId || null, stageId: form.stageId || null, priority: Number(form.priority), ownerUserId: user?.id ?? null, partnerContactId: form.contactId || null, ticketTypeId: form.ticketTypeId || null, sourceChannel: "manual" });
       setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "" });
       toast({ title: "Ticket created" });
+      if (isMobile) setShowCreateForm(false);
     } catch (error) {
       toast({ title: "Unable to create ticket", description: (error as Error).message, variant: "destructive" });
+    }
+  };
+
+  const handleFormKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleCreate();
     }
   };
 
@@ -114,9 +143,9 @@ const HelpdeskTicketsPage = () => {
     <div className="space-y-4">
       <AdminPageHeader title="Helpdesk Tickets" icon={Ticket}>
         <div className="flex gap-2 flex-wrap items-center">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ticket number or title" className="h-8 w-72 text-xs" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ticket number or title" className="h-8 w-full sm:w-72 text-xs" />
           <Select value={teamId} onValueChange={setTeamId}>
-            <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-full sm:w-44 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="text-xs">All teams</SelectItem>
               {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
@@ -128,43 +157,60 @@ const HelpdeskTicketsPage = () => {
         </div>
       </AdminPageHeader>
 
+      {/* Create form — mobile collapsible */}
       {canEditTickets && (
-        <Card>
-          <CardHeader className="py-3"><CardTitle className="text-sm">Create Ticket</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-8 gap-2 items-end">
-            <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs md:col-span-2" />
-            <Input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" className="h-8 text-xs md:col-span-2" />
-            <Select value={form.ticketTypeId || "__none"} onValueChange={(v) => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setForm((p) => ({ ...p, ticketTypeId: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none" className="text-xs">No type</SelectItem>
-                {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <ContactPickerSelect value={form.contactId} onValueChange={(v) => setForm((p) => ({ ...p, contactId: v }))} placeholder="Contact" />
-            <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none" className="text-xs">No team</SelectItem>
-                {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={form.priority} onValueChange={(v) => setForm((p) => ({ ...p, priority: v }))}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Priority" /></SelectTrigger>
-              <SelectContent>
-                {[0, 1, 2, 3, 4, 5].map((l) => <SelectItem key={l} value={String(l)} className="text-xs">{normalizeHelpdeskPriorityLabel(l)}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={form.stageId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, stageId: v === "__none" ? "" : v }))}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Initial stage" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none" className="text-xs">No stage</SelectItem>
-                {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button size="sm" className="h-8 text-xs" onClick={handleCreate} disabled={createTicket.isPending}>Create</Button>
-          </CardContent>
-        </Card>
+        <>
+          {isMobile && (
+            <Button className="w-full h-10 text-sm gap-2" onClick={() => setShowCreateForm(p => !p)}>
+              {showCreateForm ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {showCreateForm ? "Hide Create Form" : "Create Ticket"}
+            </Button>
+          )}
+          {(!isMobile || showCreateForm) && (
+            <Card>
+              <CardHeader className="py-3"><CardTitle className="text-sm">Create Ticket</CardTitle></CardHeader>
+              <CardContent>
+                <div
+                  className={cn("gap-2 items-end", isMobile ? "flex flex-col" : "grid grid-cols-1 md:grid-cols-8")}
+                  onKeyDown={handleFormKeyDown}
+                  role="form"
+                >
+                  <Select value={form.ticketTypeId || "__none"} onValueChange={(v) => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setForm((p) => ({ ...p, ticketTypeId: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
+                    <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                      {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs md:col-span-2 focus:ring-2 focus:ring-primary" />
+                  <Input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" className="h-8 text-xs md:col-span-2 focus:ring-2 focus:ring-primary" />
+                  <ContactPickerSelect value={form.contactId} onValueChange={(v) => setForm((p) => ({ ...p, contactId: v }))} placeholder="Contact" />
+                  <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
+                    <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none" className="text-xs">No team</SelectItem>
+                      {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={form.priority} onValueChange={(v) => setForm((p) => ({ ...p, priority: v }))}>
+                    <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
+                    <SelectContent>
+                      {priorities.map((p) => <SelectItem key={p.level} value={String(p.level)} className="text-xs">{p.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={form.stageId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, stageId: v === "__none" ? "" : v }))}>
+                    <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Initial stage" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none" className="text-xs">No stage</SelectItem>
+                      {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" className={cn("h-8 text-xs", isMobile && "w-full h-10")} onClick={handleCreate} disabled={createTicket.isPending}>Create</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       <Card>
@@ -185,76 +231,90 @@ const HelpdeskTicketsPage = () => {
             <p className="text-xs text-muted-foreground">No tickets found. Create one to get started.</p>
           )}
           {!ticketQuery.isLoading && !ticketQuery.isError && (ticketQuery.data?.length ?? 0) > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ticket</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>SLA</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Updated</TableHead>
-                  {canEditTickets && <TableHead className="w-28">Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ticketQuery.data?.map((ticket) => {
-                  const slaStatus = normalizeSlaBadgeStatus({ deadline: ticket.deadline, closedAt: ticket.closed_at });
-                  return (
-                    <TableRow key={ticket.id}>
-                      <TableCell className="font-mono text-xs">{ticket.ticket_number}</TableCell>
-                      <TableCell>{ticket.title}</TableCell>
-                      <TableCell>{ticket.team?.name ?? "—"}</TableCell>
-                      <TableCell>{normalizeHelpdeskPriorityLabel(ticket.priority)}</TableCell>
-                      <TableCell className="capitalize">{slaStatus.replace("_", " ")}</TableCell>
-                      <TableCell>
-                        {canEditTickets ? (
-                          <Select value={ticket.stage_id ?? "__none"} onValueChange={(v) => { if (v !== "__none" && v !== ticket.stage_id) updateStage.mutate({ ticketId: ticket.id, stageId: v, actorUserId: user?.id }); }}>
-                            <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none" className="text-xs">Unstaged</SelectItem>
-                              {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        ) : (stageMap.get(ticket.stage_id ?? "") ?? "Unstaged")}
-                      </TableCell>
-                      <TableCell>
-                        {canEditTickets && user ? (
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => assignTicket.mutate({ ticketId: ticket.id, ownerUserId: ticket.owner_user_id ? null : user.id, actorUserId: user.id })}>
-                            {ticket.owner_user_id ? "Unassign" : "Assign to me"}
-                          </Button>
-                        ) : (ticket.owner_user_id ? "Assigned" : "Unassigned")}
-                      </TableCell>
-                      <TableCell>{new Date(ticket.updated_at).toLocaleString()}</TableCell>
-                      {canEditTickets && (
-                        <TableCell className="flex gap-1">
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(ticket)}>Edit</Button>
-                          {isAdmin && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="destructive" className="h-7 text-xs">Delete</Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete ticket {ticket.ticket_number}?</AlertDialogTitle>
-                                  <AlertDialogDescription>This will permanently remove the ticket and all associated events.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteTicket.mutate(ticket.id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ticket</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead className="hidden md:table-cell">Team</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead className="hidden md:table-cell">SLA</TableHead>
+                    <TableHead>Stage</TableHead>
+                    <TableHead className="hidden lg:table-cell">Owner</TableHead>
+                    <TableHead className="hidden lg:table-cell">Updated</TableHead>
+                    {canEditTickets && <TableHead className="w-24">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ticketQuery.data?.map((ticket) => {
+                    const slaStatus = normalizeSlaBadgeStatus({ deadline: ticket.deadline, closedAt: ticket.closed_at });
+                    const prioColor = getPrioColor(ticket.priority);
+                    return (
+                      <TableRow
+                        key={ticket.id}
+                        className="cursor-pointer hover:bg-muted/40"
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest('[data-no-row-click]')) return;
+                          openEdit(ticket);
+                        }}
+                        style={{ borderLeft: `3px solid ${prioColor}` }}
+                      >
+                        <TableCell className="font-mono text-xs">{ticket.ticket_number}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{ticket.ticket_type?.name ?? "—"}</TableCell>
+                        <TableCell className="font-medium">{ticket.title}</TableCell>
+                        <TableCell className="hidden md:table-cell">{ticket.team?.name ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[9px] px-1 py-0" style={{ borderColor: prioColor, color: prioColor }}>{getPrioLabel(ticket.priority)}</Badge>
                         </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        <TableCell className="capitalize hidden md:table-cell">{slaStatus.replace("_", " ")}</TableCell>
+                        <TableCell data-no-row-click>
+                          {canEditTickets ? (
+                            <Select value={ticket.stage_id ?? "__none"} onValueChange={(v) => { if (v !== "__none" && v !== ticket.stage_id) updateStage.mutate({ ticketId: ticket.id, stageId: v, actorUserId: user?.id }); }}>
+                              <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none" className="text-xs">Unstaged</SelectItem>
+                                {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          ) : (stageMap.get(ticket.stage_id ?? "") ?? "Unstaged")}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell" data-no-row-click>
+                          {canEditTickets && user ? (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => assignTicket.mutate({ ticketId: ticket.id, ownerUserId: ticket.owner_user_id ? null : user.id, actorUserId: user.id })}>
+                              {ticket.owner_user_id ? "Unassign" : "Assign to me"}
+                            </Button>
+                          ) : (ticket.owner_user_id ? "Assigned" : "Unassigned")}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">{new Date(ticket.updated_at).toLocaleString()}</TableCell>
+                        {canEditTickets && (
+                          <TableCell data-no-row-click>
+                            {closedStage && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-7 text-xs">Archive</Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Archive ticket {ticket.ticket_number}?</AlertDialogTitle>
+                                    <AlertDialogDescription>This will move the ticket to the "{closedStage.name}" stage.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => archiveTicket.mutate({ ticketId: ticket.id, closedStageId: closedStage.id })}>Archive</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -264,13 +324,21 @@ const HelpdeskTicketsPage = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Edit Ticket</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            {/* Type above title */}
+            <Select value={editForm.ticket_type_id || "__none"} onValueChange={(v) => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setEditForm((p) => ({ ...p, ticket_type_id: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Ticket Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <Input value={editForm.title} onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs" />
             <Textarea value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" className="text-xs min-h-[80px]" />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Select value={editForm.priority} onValueChange={(v) => setEditForm((p) => ({ ...p, priority: v }))}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {[0, 1, 2, 3, 4, 5].map((l) => <SelectItem key={l} value={String(l)} className="text-xs">{normalizeHelpdeskPriorityLabel(l)}</SelectItem>)}
+                  {priorities.map((p) => <SelectItem key={p.level} value={String(p.level)} className="text-xs">{p.label}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={editForm.team_id || "__none"} onValueChange={(v) => setEditForm((p) => ({ ...p, team_id: v === "__none" ? "" : v }))}>
@@ -278,13 +346,6 @@ const HelpdeskTicketsPage = () => {
                 <SelectContent>
                   <SelectItem value="__none" className="text-xs">No team</SelectItem>
                   {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={editForm.ticket_type_id || "__none"} onValueChange={(v) => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setEditForm((p) => ({ ...p, ticket_type_id: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none" className="text-xs">No type</SelectItem>
-                  {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
