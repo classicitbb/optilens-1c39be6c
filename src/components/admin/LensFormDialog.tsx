@@ -485,7 +485,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
               {isPending ? "Saving…" : "Save"}
             </Button>
             {onSubmitAndClose &&
-            <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }}
+            <Button type="button" size="sm" className="h-7 text-xs bg-primary/80 text-primary-foreground"
             disabled={!isValid || isPending || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
                 Save & Close
               </Button>
