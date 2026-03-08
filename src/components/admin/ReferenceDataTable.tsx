@@ -328,10 +328,10 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                       {item.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  <TableCell className="text-xs text-muted-foreground">
                     {format(new Date(item.created_at), "dd MMM yyyy")}
                   </TableCell>
-                  <TableCell className="text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  <TableCell className="text-xs text-muted-foreground">
                     {format(new Date(item.updated_at), "dd MMM yyyy")}
                   </TableCell>
                   {canEdit && (
