@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedRocks, seedSettings, seedTodos, seedUsers } from "./seed";
-import type { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, Rock, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedOneOnOnes, seedOrgChart, seedRocks, seedSeatFitReviews, seedSeats, seedSettings, seedTodos, seedUsers } from "./seed";
+import type { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneActionItem, OneOnOneTemplate, OrgChart, OrgChartSeat, Rock, Seat, SeatFitReview, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
 
 /** Migrate old flat businessPlan shape to the new nested one */
 function migrateBusinessPlan(raw: unknown): BusinessPlan {
@@ -19,6 +19,10 @@ type MoonshotState = {
   theme: MoonshotTheme;
   settings: MoonshotSettings;
   users: MoonshotUser[];
+  seats: Seat[];
+  orgChart: OrgChart;
+  oneOnOnes: OneOnOneTemplate[];
+  seatFitReviews: SeatFitReview[];
   meetings: Meeting[];
   metrics: Metric[];
   rocks: Rock[];
@@ -64,6 +68,22 @@ type MoonshotState = {
   addUser: (user: Omit<MoonshotUser, "id">) => void;
   updateUser: (id: string, updates: Partial<MoonshotUser>) => void;
   deleteUser: (id: string) => void;
+  // Org Chart
+  addOrgSeat: (parentId: string | null, seat: { title: string; department: string }) => void;
+  updateOrgSeat: (id: string, updates: Partial<Pick<OrgChartSeat, "title" | "department">>) => void;
+  deleteOrgSeat: (id: string) => void;
+  assignUserToSeat: (seatId: string, userId: string | null) => void;
+  // 1:1s
+  addOneOnOne: (template: Omit<OneOnOneTemplate, "id" | "actionItems" | "createdAt" | "updatedAt"> & { actionItems?: Omit<OneOnOneActionItem, "id">[] }) => void;
+  updateOneOnOne: (id: string, updates: Partial<Omit<OneOnOneTemplate, "id" | "actionItems">>) => void;
+  deleteOneOnOne: (id: string) => void;
+  addOneOnOneActionItem: (templateId: string, item: Omit<OneOnOneActionItem, "id" | "completed"> & { completed?: boolean }) => void;
+  updateOneOnOneActionItem: (templateId: string, itemId: string, updates: Partial<OneOnOneActionItem>) => void;
+  deleteOneOnOneActionItem: (templateId: string, itemId: string) => void;
+  // Seat-fit reviews
+  addSeatFitReview: (review: Omit<SeatFitReview, "id" | "updatedAt">) => void;
+  updateSeatFitReview: (id: string, updates: Partial<Omit<SeatFitReview, "id">>) => void;
+  deleteSeatFitReview: (id: string) => void;
 };
 
 const makeId = (prefix: string) => `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
@@ -99,10 +119,41 @@ const defaultAgenda: AgendaSection[] = [
 const defaultDashboardTiles = [makeTile("metrics", 2), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
 const defaultWorkspaceTiles = [makeTile("headlines", 2), makeTile("quick-links", 2), makeTile("metrics"), makeTile("rocks"), makeTile("todos"), makeTile("issues"), makeTile("core-values"), makeTile("notes", 2)];
 
+const updateTiles = (scope: TileScope, next: WorkspaceTile[]) => (scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next });
+
+const syncSeatUsage = (users: MoonshotUser[], orgChart: OrgChart): MoonshotUser[] => {
+  const usage = orgChart.seats.reduce<Record<string, number>>((acc, seat) => {
+    seat.assignedUserIds.forEach((userId) => {
+      acc[userId] = (acc[userId] ?? 0) + 1;
+    });
+    return acc;
+  }, {});
+  return users.map((user) => ({ ...user, seatsUsed: usage[user.id] ?? 0 }));
+};
+
+const removeSeatBranch = (seats: OrgChartSeat[], id: string): OrgChartSeat[] => {
+  const byId = new Map(seats.map((seat) => [seat.id, seat]));
+  const toRemove = new Set<string>();
+  const walk = (seatId: string) => {
+    const seat = byId.get(seatId);
+    if (!seat || toRemove.has(seatId)) return;
+    toRemove.add(seatId);
+    seat.childIds.forEach(walk);
+  };
+  walk(id);
+  return seats
+    .filter((seat) => !toRemove.has(seat.id))
+    .map((seat) => ({ ...seat, childIds: seat.childIds.filter((childId) => !toRemove.has(childId)) }));
+};
+
 const baseState = {
   currentUser: null as MoonshotUser | null,
   theme: "light" as MoonshotTheme,
   users: seedUsers,
+  seats: seedSeats,
+  orgChart: seedOrgChart,
+  oneOnOnes: seedOneOnOnes,
+  seatFitReviews: seedSeatFitReviews,
   settings: seedSettings,
   meetings: seedMeetings,
   metrics: seedMetrics,
@@ -122,8 +173,6 @@ const baseState = {
   workspaceTiles: defaultWorkspaceTiles,
 };
 
-const updateTiles = (scope: TileScope, next: WorkspaceTile[]) => (scope === "dashboard" ? { dashboardTiles: next } : { workspaceTiles: next });
-
 export const useMoonshotStore = create<MoonshotState>()(
   persist(
     (set) => ({
@@ -131,7 +180,12 @@ export const useMoonshotStore = create<MoonshotState>()(
       login: () => set({ currentUser: seedUsers[0] }),
       logout: () => set({ currentUser: null }),
       setTheme: (theme) => set({ theme }),
-      importDemoData: (payload) => set((s) => ({ ...s, ...payload })),
+      importDemoData: (payload) =>
+        set((s) => {
+          const next = { ...s, ...payload };
+          const orgChart = payload.orgChart ?? s.orgChart;
+          return { ...next, orgChart, users: syncSeatUsage(next.users, orgChart) };
+        }),
       resetDemoData: () => set({ ...baseState, currentUser: seedUsers[0], dashboardTiles: defaultDashboardTiles, workspaceTiles: defaultWorkspaceTiles }),
       updateSettings: (updates) => set((s) => ({ settings: { ...s.settings, ...updates } })),
       addTile: (scope, type) =>
@@ -177,9 +231,97 @@ export const useMoonshotStore = create<MoonshotState>()(
       updateIssue: (id, updates) => set((s) => ({ issues: s.issues.map((i) => (i.id === id ? { ...i, ...updates } : i)) })),
       deleteIssue: (id) => set((s) => ({ issues: s.issues.filter((i) => i.id !== id) })),
       updateBusinessPlan: (plan) => set((s) => ({ businessPlan: { ...s.businessPlan, ...plan } })),
-      addUser: (user) => set((s) => ({ users: [...s.users, { id: makeId("u"), ...user }] })),
+      addUser: (user) =>
+        set((s) => {
+          const users = [...s.users, { id: makeId("u"), ...user, seatsUsed: 0 }];
+          return { users: syncSeatUsage(users, s.orgChart) };
+        }),
       updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)) })),
       deleteUser: (id) => set((s) => ({ users: s.users.filter((u) => u.id !== id) })),
+      // ─── Org Chart ───
+      addOrgSeat: (parentId, seat) =>
+        set((s) => {
+          const newId = makeId("org");
+          const newSeat: OrgChartSeat = { id: newId, title: seat.title, department: seat.department, parentId, childIds: [], assignedUserIds: [] };
+          const seats = parentId
+            ? s.orgChart.seats.map((existing) => (existing.id === parentId ? { ...existing, childIds: [...existing.childIds, newId] } : existing))
+            : s.orgChart.seats;
+          return { orgChart: { seats: [...seats, newSeat] } };
+        }),
+      updateOrgSeat: (id, updates) =>
+        set((s) => ({
+          orgChart: { seats: s.orgChart.seats.map((seat) => (seat.id === id ? { ...seat, ...updates } : seat)) },
+        })),
+      deleteOrgSeat: (id) =>
+        set((s) => {
+          const nextSeats = removeSeatBranch(s.orgChart.seats, id);
+          const orgChart = { seats: nextSeats };
+          return { orgChart, users: syncSeatUsage(s.users, orgChart) };
+        }),
+      assignUserToSeat: (seatId, userId) =>
+        set((s) => {
+          const orgChart = {
+            seats: s.orgChart.seats.map((seat) =>
+              seat.id === seatId
+                ? { ...seat, assignedUserIds: userId ? [userId] : [] }
+                : seat,
+            ),
+          };
+          return { orgChart, users: syncSeatUsage(s.users, orgChart) };
+        }),
+      // ─── 1:1s ───
+      addOneOnOne: (template) =>
+        set((s) => ({
+          oneOnOnes: [
+            ...s.oneOnOnes,
+            {
+              id: makeId("o11"),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              actionItems: (template.actionItems ?? []).map((item) => ({ ...item, id: makeId("o11a"), completed: (item as any).completed ?? false })),
+              ...template,
+            },
+          ],
+        })),
+      updateOneOnOne: (id, updates) =>
+        set((s) => ({
+          oneOnOnes: s.oneOnOnes.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t)),
+        })),
+      deleteOneOnOne: (id) => set((s) => ({ oneOnOnes: s.oneOnOnes.filter((t) => t.id !== id) })),
+      addOneOnOneActionItem: (templateId, item) =>
+        set((s) => ({
+          oneOnOnes: s.oneOnOnes.map((t) =>
+            t.id === templateId
+              ? { ...t, updatedAt: new Date().toISOString(), actionItems: [...t.actionItems, { ...item, id: makeId("o11a"), completed: item.completed ?? false }] }
+              : t,
+          ),
+        })),
+      updateOneOnOneActionItem: (templateId, itemId, updates) =>
+        set((s) => ({
+          oneOnOnes: s.oneOnOnes.map((t) =>
+            t.id === templateId
+              ? { ...t, updatedAt: new Date().toISOString(), actionItems: t.actionItems.map((a) => (a.id === itemId ? { ...a, ...updates } : a)) }
+              : t,
+          ),
+        })),
+      deleteOneOnOneActionItem: (templateId, itemId) =>
+        set((s) => ({
+          oneOnOnes: s.oneOnOnes.map((t) =>
+            t.id === templateId
+              ? { ...t, updatedAt: new Date().toISOString(), actionItems: t.actionItems.filter((a) => a.id !== itemId) }
+              : t,
+          ),
+        })),
+      // ─── Seat-fit reviews ───
+      addSeatFitReview: (review) =>
+        set((s) => ({
+          seatFitReviews: [...s.seatFitReviews, { ...review, id: makeId("sfr"), updatedAt: new Date().toISOString() }],
+        })),
+      updateSeatFitReview: (id, updates) =>
+        set((s) => ({
+          seatFitReviews: s.seatFitReviews.map((r) => (r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r)),
+        })),
+      deleteSeatFitReview: (id) => set((s) => ({ seatFitReviews: s.seatFitReviews.filter((r) => r.id !== id) })),
     }),
     {
       name: "moonshot-store",
@@ -190,6 +332,10 @@ export const useMoonshotStore = create<MoonshotState>()(
           ...current,
           ...p,
           businessPlan: migrateBusinessPlan(p.businessPlan),
+          orgChart: p.orgChart && typeof p.orgChart === "object" && "seats" in (p.orgChart as Record<string, unknown>) ? p.orgChart as OrgChart : seedOrgChart,
+          seats: Array.isArray(p.seats) ? p.seats as Seat[] : seedSeats,
+          oneOnOnes: Array.isArray(p.oneOnOnes) ? p.oneOnOnes as OneOnOneTemplate[] : seedOneOnOnes,
+          seatFitReviews: Array.isArray(p.seatFitReviews) ? p.seatFitReviews as SeatFitReview[] : seedSeatFitReviews,
           settings: p.settings && typeof p.settings === "object" && "organizationName" in (p.settings as Record<string, unknown>) ? p.settings as MoonshotSettings : seedSettings,
         };
       },
