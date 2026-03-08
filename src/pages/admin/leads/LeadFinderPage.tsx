@@ -181,13 +181,9 @@ const LeadFinderPage = () => {
               {diagnostics ? (
                 <>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
-                  <p>Google: {diagnostics.providerStatus.googlePlacesConfigured ? "configured" : "not configured"}</p>
-                  <p>Facebook: {diagnostics.providerStatus.facebookGraphConfigured ? "configured" : "not configured"}</p>
-                  <p>Instagram: {diagnostics.providerStatus.instagramGraphConfigured ? "configured" : "not configured"}</p>
-                  <p>WhatsApp: {diagnostics.providerStatus.whatsappBusinessSignalsConfigured ? "configured" : "not configured"}</p>
-                  <p>Yellow Pages: {diagnostics.providerStatus.yellowPagesConfigured ? "configured" : "not configured"}</p>
-                  <p>Bing: {diagnostics.providerStatus.bingConfigured ? "configured" : "not configured"}</p>
-                  <p>Yahoo: {diagnostics.providerStatus.yahooConfigured ? "configured" : "not configured"}</p>
+                  <p>Google Places: {diagnostics.providerStatus.googlePlacesConfigured ? "configured" : "not configured"}</p>
+                  <p>Firecrawl Search: {diagnostics.providerStatus.firecrawlSearchConfigured ? "configured" : "not configured"}</p>
+                  <p>AI Search: {diagnostics.providerStatus.aiSearchConfigured ? <span className="text-green-600 font-medium">active (auto)</span> : "not configured"}</p>
                 </div>
                 <div className="space-y-1">
                   {Object.entries(diagnostics.providerTelemetry).map(([provider, outcome]) => (
