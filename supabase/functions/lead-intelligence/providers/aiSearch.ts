@@ -2,7 +2,11 @@ import type { LeadCandidate, ProviderAdapter, ProviderSearchParams } from "./typ
 
 const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
+const aiFallbackEnabled = () => (Deno.env.get("ENABLE_AI_SEARCH_FALLBACK") ?? "").trim().toLowerCase() === "true";
+
 const search = async ({ query, country, city }: ProviderSearchParams): Promise<LeadCandidate[]> => {
+  if (!aiFallbackEnabled()) throw new Error("NOT_CONFIGURED");
+
   const apiKey = Deno.env.get("LOVABLE_API_KEY")?.trim();
   if (!apiKey) throw new Error("NOT_CONFIGURED");
 
@@ -21,14 +25,14 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
         {
           role: "system",
           content:
-            "You are a B2B lead research assistant for an optical lens manufacturer. " +
-            "When asked, return real or plausible businesses using the tool provided. " +
-            "Focus on optical shops, optometrists, eye clinics, eyewear retailers, and pharmacies with optical departments. " +
-            "Provide realistic data including estimated Google ratings, review counts, and any known websites or social handles.",
+            "You are a strict business data extractor for B2B lead research. " +
+            "Only return businesses that are real and verifiable. " +
+            "Never invent names, addresses, websites, ratings, review counts, or social handles. " +
+            "If you cannot verify a business, omit it. If no verified businesses are found, return an empty list.",
         },
         {
           role: "user",
-          content: `Find 12-15 businesses${locationClause} matching "${query}". Include optical stores, optometrists, eye clinics, eyewear retailers. Return each with name, city, country, estimated Google rating (1-5), estimated review count, website URL if known, and any Instagram handle or Facebook page.`,
+          content: `Find up to 10 verified businesses${locationClause} matching \"${query}\". Return only businesses you can verify as real. If uncertain, exclude the business. Include fields: name, city, country, website URL if known, instagram_handle if known, facebook_page if known, google_rating if known, google_reviews_count if known.`,
         },
       ],
       tools: [
@@ -36,7 +40,7 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
           type: "function",
           function: {
             name: "return_leads",
-            description: "Return a list of business leads matching the search criteria.",
+            description: "Return a list of verified business leads matching the search criteria.",
             parameters: {
               type: "object",
               properties: {
@@ -48,8 +52,8 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
                       name: { type: "string", description: "Business name" },
                       city: { type: "string", description: "City" },
                       country: { type: "string", description: "Country" },
-                      google_rating: { type: "number", description: "Estimated Google rating 1-5" },
-                      google_reviews_count: { type: "integer", description: "Estimated number of Google reviews" },
+                      google_rating: { type: "number", description: "Google rating 1-5 if known" },
+                      google_reviews_count: { type: "integer", description: "Google reviews count if known" },
                       website: { type: "string", description: "Website URL or null" },
                       instagram_handle: { type: "string", description: "Instagram handle or null" },
                       facebook_page: { type: "string", description: "Facebook page URL or null" },
@@ -107,6 +111,6 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
 
 export const aiSearchProvider: ProviderAdapter = {
   id: "ai_search",
-  isConfigured: () => Boolean(Deno.env.get("LOVABLE_API_KEY")?.trim()),
+  isConfigured: () => aiFallbackEnabled() && Boolean(Deno.env.get("LOVABLE_API_KEY")?.trim()),
   search,
 };
