@@ -32,8 +32,11 @@ const HelpFeedbackButtons = ({ articleId, pageSlug, onEdit }: Props) => {
       setShowSuggestion(false);
       setSuggestion("");
       toast({ title: "Thanks for your feedback!" });
-    } catch {
-      toast({ title: "Error submitting feedback", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message?.includes("only supported for database") 
+        ? "Feedback not available for built-in articles" 
+        : "Error submitting feedback";
+      toast({ title: msg, variant: "destructive" });
     }
   };
 
