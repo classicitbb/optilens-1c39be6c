@@ -759,7 +759,7 @@ const ListCatalogTab = ({
         }
 
         <div className="mt-8 px-2 py-4 border-t border-border text-center">
-          <p className="text-[10px] italic" style={{ color: LABEL }}>
+          <p className="text-[10px] italic" style={{ color: "hsl(var(--admin-table-label-fg))" }}>
             {companySettings?.pdf_footer_html || "Prices subject to change without notice."} All prices in {showUSD ? "USD" : "BBD"} unless otherwise stated. {today}.
           </p>
         </div>
