@@ -557,6 +557,7 @@ const ListView = ({
                       <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{ticket.ticket_number}</td>
                       <td className="py-2 px-2"><PriorityStars priority={ticket.priority} /></td>
                       <td className="py-2 px-2 font-medium text-foreground">{ticket.title}</td>
+                      <td className="py-2 px-2 text-xs text-muted-foreground">{ticket.ticket_type?.name ?? "—"}</td>
                       <td className="py-2 px-2 text-xs text-foreground">
                         {ticket.contact ? (
                           <span className="flex items-center gap-1">
