@@ -145,11 +145,11 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
               return (
                 <div
                   key={article.id}
-                  className="border border-border rounded-lg overflow-hidden"
+                  className="border border-border rounded-lg overflow-hidden min-w-0"
                 >
                   <button
                     onClick={() => toggleArticle(article.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors min-w-0"
                   >
                     <ChevronRight
                       className="h-3.5 w-3.5 shrink-0 transition-transform text-muted-foreground"
@@ -157,15 +157,15 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
                         transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                       }}
                     />
-                    <span className="text-[13px] font-medium text-foreground flex-1">{article.title}</span>
-                    <Badge variant={isExactContext ? "default" : "outline"} className="text-[10px] h-5 px-1.5">
+                    <span className="text-[13px] font-medium text-foreground flex-1 truncate min-w-0">{article.title}</span>
+                    <Badge variant={isExactContext ? "default" : "outline"} className="text-[10px] h-5 px-1.5 shrink-0">
                       {isExactContext ? "Page" : article.context_slugs.includes("all") ? "Global" : getContextLabel(article.context_slugs[0] ?? "all")}
                     </Badge>
                   </button>
 
                   {isExpanded && (
-                    <div className="px-4 pb-4 space-y-3">
-                      <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground">
+                    <div className="px-4 pb-4 space-y-3 min-w-0 overflow-hidden">
+                      <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground overflow-x-auto min-w-0">
                         {renderContent(article.content)}
                       </div>
                       <HelpFeedbackButtons
