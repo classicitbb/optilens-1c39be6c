@@ -1,5 +1,5 @@
 import { addDays, format, subWeeks } from "date-fns";
-import type { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, Rock, Todo } from "./types";
+import type { AgendaSection, BusinessPlan, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneTemplate, OrgChart, Rock, Seat, SeatFitReview, Todo } from "./types";
 
 const today = new Date();
 
@@ -20,6 +20,66 @@ export const seedUsers: MoonshotUser[] = [
   { id: "u2", name: "Maya Brooks", role: "Integrator", avatar: "MB", seatsUsed: 1 },
   { id: "u3", name: "Russell Hunte", role: "Visionary", avatar: "RH", seatsUsed: 1 },
   { id: "u4", name: "Roy Hunte", role: "Sales", avatar: "RO", seatsUsed: 1 },
+];
+
+export const seedSeats: Seat[] = [
+  { id: "s1", name: "General Manager", department: "Leadership" },
+  { id: "s2", name: "Technology", department: "Operations", reportsToSeatId: "s1" },
+  { id: "s3", name: "Finance", department: "Finance", reportsToSeatId: "s1" },
+  { id: "s4", name: "Sales", department: "Sales", reportsToSeatId: "s1" },
+];
+
+export const seedOrgChart: OrgChart = {
+  seats: [
+    { id: "org1", title: "CEO", department: "Leadership", parentId: null, childIds: ["org2", "org3", "org4"], assignedUserIds: ["u3"] },
+    { id: "org2", title: "Operations", department: "Operations", parentId: "org1", childIds: [], assignedUserIds: ["u2"] },
+    { id: "org3", title: "Finance", department: "Finance", parentId: "org1", childIds: [], assignedUserIds: [] },
+    { id: "org4", title: "Sales", department: "Sales", parentId: "org1", childIds: [], assignedUserIds: ["u4"] },
+  ],
+};
+
+export const seedOneOnOnes: OneOnOneTemplate[] = [
+  {
+    id: "o11_1",
+    title: "Weekly Leadership 1:1",
+    cadence: "weekly",
+    participantIds: ["u1", "u2"],
+    agendaNotes: "Review scorecard trends, team health, and key blockers.",
+    actionItems: [
+      { id: "o11a_1", text: "Follow up on onboarding handoff", ownerId: "u2", dueDate: format(addDays(today, 3), "yyyy-MM-dd"), completed: false },
+      { id: "o11a_2", text: "Share customer retention update", ownerId: "u1", dueDate: format(addDays(today, 5), "yyyy-MM-dd"), completed: true },
+    ],
+    createdBy: "u1",
+    createdAt: format(addDays(today, -21), "yyyy-MM-dd"),
+    updatedAt: format(addDays(today, -1), "yyyy-MM-dd"),
+  },
+];
+
+export const seedSeatFitReviews: SeatFitReview[] = [
+  {
+    id: "sfr_1",
+    userId: "u3",
+    seatId: "s1",
+    valuesMatch: 5,
+    roleCompetency: 4,
+    performanceConfidence: 4,
+    fitStatus: "Great fit",
+    notes: "Strong cross-functional leadership and decision velocity.",
+    reviewDate: format(addDays(today, 30), "yyyy-MM-dd"),
+    updatedAt: format(today, "yyyy-MM-dd"),
+  },
+  {
+    id: "sfr_2",
+    userId: "u4",
+    seatId: "s4",
+    valuesMatch: 4,
+    roleCompetency: 3,
+    performanceConfidence: 3,
+    fitStatus: "Good fit",
+    notes: "Solid results; continue coaching on forecasting and pipeline hygiene.",
+    reviewDate: format(addDays(today, 45), "yyyy-MM-dd"),
+    updatedAt: format(today, "yyyy-MM-dd"),
+  },
 ];
 
 export const seedMeetings: Meeting[] = [
