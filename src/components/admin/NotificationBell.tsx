@@ -60,8 +60,8 @@ const NotificationBell = () => {
       </Tooltip>
 
       {open &&
-      <div className="absolute right-0 top-full mt-1 z-50 w-80 rounded-md border border-[hsl(var(--admin-border))] shadow-lg bg-slate-500">
-          <div className="flex items-center justify-between px-3 py-2 border-b bg-muted-foreground rounded-none">
+      <div className="absolute right-0 top-full mt-1 z-50 w-80 border border-[hsl(var(--admin-border))] shadow-lg bg-popover text-popover-foreground">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted">
             <span className="text-xs font-semibold">Notifications</span>
             <div className="flex gap-1">
               {unreadCount > 0 &&
