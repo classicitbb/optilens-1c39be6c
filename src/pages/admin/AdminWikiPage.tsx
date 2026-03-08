@@ -21,8 +21,8 @@ const AdminWikiPage = () => {
   const { canEdit } = useAdminRole();
   const { canView } = useRolePermissions();
   const { toast } = useToast();
-  const { articles: dbArticles } = useHelpArticles("knowledge/wiki");
-  const { headings: dbHeadings, createHeading } = useWikiHeadings();
+  const { articles: dbArticles, isLoading: articlesLoading } = useHelpArticles("knowledge/wiki");
+  const { headings: dbHeadings, createHeading, refetch: refetchHeadings } = useWikiHeadings();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeArticleId, setActiveArticleId] = useState<string | null>(wikiCategories[0]?.articles[0]?.id ?? null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -132,6 +132,7 @@ const AdminWikiPage = () => {
           onSearchChange={setSearchTerm}
           canEdit={canEdit}
           onAddHeading={handleAddHeading}
+          onRefresh={refetchHeadings}
           isCategoryVisible={(categoryId) => canViewWikiCategory(categoryId, canView)}
         />
         <WikiContentPanel

@@ -65,5 +65,6 @@ export const useWikiHeadings = () => {
     headings: query.data ?? [],
     isLoading: query.isLoading,
     createHeading: createMutation.mutateAsync,
+    refetch: query.refetch,
   };
 };
