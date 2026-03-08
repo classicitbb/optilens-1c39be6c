@@ -61,10 +61,8 @@ const WikiArticleEditDialog = ({
     });
   }, [article, wikiHeadings]);
 
-  const visibleContextOptions = useMemo(
-    () => ADMIN_CONTEXT_OPTIONS.filter((option) => canViewContextSlug(option.value, canView)),
-    [canView]
-  );
+  // Show all context options in editor — admins should assign articles to any page
+  const visibleContextOptions = ADMIN_CONTEXT_OPTIONS;
 
   const toggleContext = (slug: string) => {
     setForm((prev) => {
