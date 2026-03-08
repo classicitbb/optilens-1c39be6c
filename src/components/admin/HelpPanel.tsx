@@ -91,7 +91,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
     if (isHtml(text)) {
       return (
         <div
-          className="prose prose-sm max-w-none text-muted-foreground [&_strong]:text-foreground [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1 [&_p]:leading-relaxed [&_ul]:pl-4 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_li]:my-0.5 [&_li]:leading-relaxed [&_li]:marker:text-primary [&_a]:text-primary [&_a]:underline [&_br]:leading-3"
+          className="prose prose-sm max-w-none break-words text-muted-foreground [&_strong]:text-foreground [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1 [&_p]:leading-relaxed [&_ul]:pl-4 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_li]:my-0.5 [&_li]:leading-relaxed [&_li]:marker:text-primary [&_a]:text-primary [&_a]:underline [&_br]:leading-3 [&_pre]:overflow-x-auto [&_pre]:text-xs [&_pre]:whitespace-pre-wrap [&_pre]:break-all [&_code]:break-all [&_code]:text-xs"
           dangerouslySetInnerHTML={{ __html: text }}
         />
       );
@@ -106,7 +106,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
 
   return (
     <div
-      className="fixed top-0 right-0 h-full z-50 flex"
+      className="fixed top-0 right-0 h-full z-50 flex admin-content"
       style={{ width }}
     >
       <div
