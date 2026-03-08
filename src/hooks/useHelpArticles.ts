@@ -65,7 +65,7 @@ export const useHelpArticles = (pageSlug?: string) => {
   const query = useQuery({
     queryKey: ["help_articles", pageSlug, canPublish],
     queryFn: async () => {
-      let query = supabase
+      let query: any = supabase
         .from("help_articles")
         .select("*, help_article_contexts(context_slug)")
         .eq("is_active", true)
@@ -172,9 +172,9 @@ export const useHelpArticles = (pageSlug?: string) => {
 
   const restoreVersion = useMutation({
     mutationFn: async ({ articleId, version }: { articleId: string; version: HelpArticleVersion }) => {
-      const { data: current, error: fetchError } = await supabase.from("help_articles").select("version_number").eq("id", articleId).single();
+      const { data: current, error: fetchError } = await (supabase as any).from("help_articles").select("version_number").eq("id", articleId).single();
       if (fetchError) throw fetchError;
-      const nextVersion = (current?.version_number ?? 1) + 1;
+      const nextVersion = ((current as any)?.version_number ?? 1) + 1;
       const { error } = await supabase.from("help_articles").update({
         title: version.title_snapshot,
         body_json: version.body_snapshot,
