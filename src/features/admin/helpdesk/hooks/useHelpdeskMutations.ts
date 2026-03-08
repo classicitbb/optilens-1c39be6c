@@ -26,12 +26,13 @@ export const useUpdateHelpdeskTicket = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async ({ id, ...fields }: { id: string; title?: string; description?: string; priority?: number; team_id?: string | null; ticket_type_id?: string | null }) => {
+    mutationFn: async ({ id, ...fields }: { id: string; title?: string; description?: string; priority?: number; team_id?: string | null; ticket_type_id?: string | null; partner_contact_id?: string | null }) => {
       const { error } = await db().from("helpdesk_tickets").update(fields).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["helpdesk-tickets"] });
+      qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
       toast({ title: "Ticket updated" });
     },
     onError: (err: Error) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),

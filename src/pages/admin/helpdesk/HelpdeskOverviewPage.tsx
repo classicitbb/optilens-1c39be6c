@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { normalizeHelpdeskPriorityLabel } from "@/features/admin/helpdesk/utils/normalization";
 import { useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
+import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -99,7 +100,7 @@ const TicketEditDialog = ({
   const updateStage = useUpdateHelpdeskTicketStage();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const [form, setForm] = useState({ title: "", description: "", priority: "1", team_id: "", stage_id: "" });
+  const [form, setForm] = useState({ title: "", description: "", priority: "1", team_id: "", stage_id: "", partner_contact_id: "" });
 
   // Sync form when ticket changes
   const lastId = useRef<string | null>(null);
@@ -111,21 +112,21 @@ const TicketEditDialog = ({
       priority: String(ticket.priority),
       team_id: ticket.team_id || "",
       stage_id: ticket.stage_id || "",
+      partner_contact_id: ticket.partner_contact_id || "",
     });
   }
   if (!ticket && lastId.current) lastId.current = null;
 
   const save = async () => {
     if (!ticket) return;
-    // Update core fields
     await updateTicket.mutateAsync({
       id: ticket.id,
       title: form.title.trim(),
       description: form.description.trim(),
       priority: Number(form.priority),
       team_id: form.team_id || null,
+      partner_contact_id: form.partner_contact_id || null,
     });
-    // If stage changed, update via dedicated hook
     if (form.stage_id !== (ticket.stage_id || "") && form.stage_id) {
       await updateStage.mutateAsync({
         ticketId: ticket.id,
@@ -144,7 +145,7 @@ const TicketEditDialog = ({
         <div className="space-y-3">
           <Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs" />
           <Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Description" className="text-xs min-h-[80px]" />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Select value={form.priority} onValueChange={v => setForm(p => ({ ...p, priority: v }))}>
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -158,6 +159,8 @@ const TicketEditDialog = ({
                 {teams.map(t => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
             <Select value={form.stage_id || "__none"} onValueChange={v => setForm(p => ({ ...p, stage_id: v === "__none" ? "" : v }))}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
               <SelectContent>
@@ -165,6 +168,11 @@ const TicketEditDialog = ({
                 {stages.map(s => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            <ContactPickerSelect
+              value={form.partner_contact_id}
+              onValueChange={v => setForm(p => ({ ...p, partner_contact_id: v }))}
+              placeholder="Assign contact"
+            />
           </div>
         </div>
         <DialogFooter>

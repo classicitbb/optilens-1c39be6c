@@ -18,6 +18,7 @@ import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/us
 import { useDeleteHelpdeskTicket, useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import { normalizeHelpdeskPriorityLabel, normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normalization";
 import { supabase } from "@/integrations/supabase/client";
+import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -37,11 +38,11 @@ const HelpdeskTicketsPage = () => {
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState<string>("all");
   const [onlyOpen, setOnlyOpen] = useState(true);
-  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1" });
+  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "" });
 
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "" });
+  const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "", contactId: "" });
 
   const { data: teams = [] } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
@@ -75,8 +76,8 @@ const HelpdeskTicketsPage = () => {
   const handleCreate = async () => {
     if (!form.title.trim()) { toast({ title: "Ticket title is required", variant: "destructive" }); return; }
     try {
-      await createTicket.mutateAsync({ title: form.title, description: form.description, teamId: form.teamId || null, stageId: form.stageId || null, priority: Number(form.priority), ownerUserId: user?.id ?? null, sourceChannel: "manual" });
-      setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1" });
+      await createTicket.mutateAsync({ title: form.title, description: form.description, teamId: form.teamId || null, stageId: form.stageId || null, priority: Number(form.priority), ownerUserId: user?.id ?? null, partnerContactId: form.contactId || null, sourceChannel: "manual" });
+      setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "" });
       toast({ title: "Ticket created" });
     } catch (error) {
       toast({ title: "Unable to create ticket", description: (error as Error).message, variant: "destructive" });
@@ -85,12 +86,12 @@ const HelpdeskTicketsPage = () => {
 
   const openEdit = (ticket: any) => {
     setEditTicket(ticket);
-    setEditForm({ title: ticket.title, description: ticket.description || "", priority: String(ticket.priority), team_id: ticket.team_id || "" });
+    setEditForm({ title: ticket.title, description: ticket.description || "", priority: String(ticket.priority), team_id: ticket.team_id || "", contactId: ticket.partner_contact_id || "" });
   };
 
   const saveEdit = () => {
     if (!editTicket) return;
-    updateTicket.mutate({ id: editTicket.id, title: editForm.title.trim(), description: editForm.description.trim(), priority: Number(editForm.priority), team_id: editForm.team_id || null });
+    updateTicket.mutate({ id: editTicket.id, title: editForm.title.trim(), description: editForm.description.trim(), priority: Number(editForm.priority), team_id: editForm.team_id || null, partner_contact_id: editForm.contactId || null });
     setEditTicket(null);
   };
 
@@ -119,9 +120,10 @@ const HelpdeskTicketsPage = () => {
       {canEditTickets && (
         <Card>
           <CardHeader className="py-3"><CardTitle className="text-sm">Create Ticket</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+          <CardContent className="grid grid-cols-1 md:grid-cols-7 gap-2 items-end">
             <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs md:col-span-2" />
             <Input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" className="h-8 text-xs md:col-span-2" />
+            <ContactPickerSelect value={form.contactId} onValueChange={(v) => setForm((p) => ({ ...p, contactId: v }))} placeholder="Contact" />
             <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
               <SelectContent>
@@ -261,6 +263,11 @@ const HelpdeskTicketsPage = () => {
                 </SelectContent>
               </Select>
             </div>
+            <ContactPickerSelect
+              value={editForm.contactId}
+              onValueChange={(v) => setEditForm((p) => ({ ...p, contactId: v }))}
+              placeholder="Assign contact"
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setEditTicket(null)}>Cancel</Button>
