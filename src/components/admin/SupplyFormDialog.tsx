@@ -410,11 +410,11 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || governance.blocked}>
+            <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-primary-foreground rounded" disabled={isPending || !form.name || governance.blocked}>
               {isPending ? "Saving…" : "Save"}
             </Button>
             {onSubmitAndClose && (
-              <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
+              <Button type="button" size="sm" className="h-7 text-xs bg-primary/80 text-primary-foreground rounded" disabled={isPending || !form.name || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
                 Save & Close
               </Button>
             )}
