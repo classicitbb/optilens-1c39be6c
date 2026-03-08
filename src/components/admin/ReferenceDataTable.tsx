@@ -189,7 +189,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold" style={{ color: "hsl(215 30% 15%)" }}>{entityLabel}</h2>
+        <h2 className="text-base font-semibold text-foreground">{entityLabel}</h2>
         {canEdit && (
           <Button
             size="sm"
