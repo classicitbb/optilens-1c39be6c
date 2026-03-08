@@ -548,7 +548,7 @@ const ListCatalogTab = ({
           <table className="w-full text-xs border-collapse">
               <thead>
                 <tr>
-                  <th className="w-8 no-print border border-border" style={{ background: "hsl(215 15% 93%)" }} />
+                  <th className="w-8 no-print border border-border" style={{ background: "hsl(var(--admin-table-subheader))" }} />
                   <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 35%)", fontSize: "10px" }}>Supp.</th>
                   <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(215 15% 93%)", color: "hsl(215 30% 15%)" }}>Description <SortIcon section={title} col="description" /></th>
                   {/* Matrix Cell header — screen only, before BBD */}
