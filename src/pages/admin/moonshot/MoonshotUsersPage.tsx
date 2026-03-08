@@ -246,16 +246,18 @@ export default function MoonshotUsersPage() {
               <div className="space-y-1">
                 <Label>Invitation status</Label>
                 <Select
-                  value={editingUser.invitation.status}
-                  onValueChange={(v: "pending" | "sent" | "accepted") =>
+                  value={(editingUser.invitation ?? defaultInvitation).status}
+                  onValueChange={(v: "pending" | "sent" | "accepted") => {
+                    const inv = editingUser.invitation ?? defaultInvitation;
                     updateUser(editingUser.id, {
                       invitation:
                         v === "pending"
-                          ? { ...editingUser.invitation, status: v, sentAt: undefined, acceptedAt: undefined }
+                          ? { ...inv, status: v, sentAt: undefined, acceptedAt: undefined }
                           : v === "sent"
-                            ? { ...editingUser.invitation, status: v, sentAt: new Date().toISOString(), acceptedAt: undefined }
-                            : { ...editingUser.invitation, status: v, acceptedAt: new Date().toISOString() },
-                    })
+                            ? { ...inv, status: v, sentAt: new Date().toISOString(), acceptedAt: undefined }
+                            : { ...inv, status: v, acceptedAt: new Date().toISOString() },
+                    });
+                  }}
                   }
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
