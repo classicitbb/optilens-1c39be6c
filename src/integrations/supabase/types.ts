@@ -1252,6 +1252,36 @@ export type Database = {
           },
         ]
       }
+      helpdesk_priorities: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          is_active: boolean
+          label: string
+          level: number
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          level: number
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          level?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       helpdesk_sla_policies: {
         Row: {
           active: boolean

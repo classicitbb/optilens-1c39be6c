@@ -15,10 +15,12 @@ import { useUserRole } from "@/hooks/useUserRole";
 import {
   useCreateHelpdeskTicketType, useUpdateHelpdeskTicketType, useDeleteHelpdeskTicketType,
   useCreateHelpdeskTicketTag, useDeleteHelpdeskTicketTag,
+  useCreateHelpdeskPriority, useUpdateHelpdeskPriority, useDeleteHelpdeskPriority,
 } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 
 interface TicketType { id: string; name: string; is_active: boolean; created_at: string; }
 interface TicketTag { id: string; name: string; color: string; created_at: string; }
+interface PriorityRow { id: string; level: number; label: string; color: string; is_active: boolean; }
 
 const HelpdeskConfigPage = () => {
   const { canView, canEditFeature } = useRolePermissions();
@@ -29,6 +31,9 @@ const HelpdeskConfigPage = () => {
   const [typeName, setTypeName] = useState("");
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState("#3b82f6");
+  const [prioLabel, setPrioLabel] = useState("");
+  const [prioLevel, setPrioLevel] = useState("");
+  const [prioColor, setPrioColor] = useState("#6b7280");
 
   const { data: types = [], isLoading: typesLoading } = useQuery({
     queryKey: ["helpdesk", "ticket-types"],
@@ -50,11 +55,24 @@ const HelpdeskConfigPage = () => {
     },
   });
 
+  const { data: priorities = [], isLoading: priosLoading } = useQuery({
+    queryKey: ["helpdesk", "priorities"],
+    enabled: canViewConfig,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("helpdesk_priorities").select("id,level,label,color,is_active").order("level");
+      if (error) throw error;
+      return (data ?? []) as PriorityRow[];
+    },
+  });
+
   const createType = useCreateHelpdeskTicketType();
   const updateType = useUpdateHelpdeskTicketType();
   const deleteType = useDeleteHelpdeskTicketType();
   const createTag = useCreateHelpdeskTicketTag();
   const deleteTag = useDeleteHelpdeskTicketTag();
+  const createPrio = useCreateHelpdeskPriority();
+  const updatePrio = useUpdateHelpdeskPriority();
+  const deletePrio = useDeleteHelpdeskPriority();
 
   if (!canViewConfig) {
     return <p className="text-sm text-muted-foreground">You do not have access to Helpdesk config.</p>;
@@ -63,6 +81,78 @@ const HelpdeskConfigPage = () => {
   return (
     <div className="space-y-6">
       <AdminPageHeader title="Helpdesk Configuration" icon={Settings2} />
+
+      {/* ── Priorities ── */}
+      <Card>
+        <CardHeader className="py-3">
+          <CardTitle className="text-sm flex items-center justify-between">
+            Priorities <Badge variant="outline">{priorities.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {canEditConfig && (
+            <div className="flex gap-2 items-end">
+              <Input value={prioLevel} onChange={(e) => setPrioLevel(e.target.value)} placeholder="Level (0-5)" type="number" className="h-8 text-xs w-24" />
+              <Input value={prioLabel} onChange={(e) => setPrioLabel(e.target.value)} placeholder="Label" className="h-8 text-xs w-40" />
+              <input type="color" value={prioColor} onChange={(e) => setPrioColor(e.target.value)} className="h-8 w-10 rounded border border-border cursor-pointer" />
+              <Button size="sm" className="h-8 text-xs" disabled={createPrio.isPending || !prioLabel.trim() || prioLevel === ""} onClick={() => { createPrio.mutate({ level: Number(prioLevel), label: prioLabel.trim(), color: prioColor }); setPrioLabel(""); setPrioLevel(""); }}>Add Priority</Button>
+            </div>
+          )}
+          {priosLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
+          {!priosLoading && priorities.length === 0 && <p className="text-xs text-muted-foreground">No priorities configured.</p>}
+          {!priosLoading && priorities.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Level</TableHead>
+                  <TableHead>Label</TableHead>
+                  <TableHead>Color</TableHead>
+                  <TableHead>Active</TableHead>
+                  {isAdmin && <TableHead className="w-24">Action</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {priorities.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-mono text-xs">{p.level}</TableCell>
+                    <TableCell>{p.label}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="h-4 w-4 rounded-full inline-block" style={{ backgroundColor: p.color }} />
+                        <span className="text-xs text-muted-foreground">{p.color}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {canEditConfig ? (
+                        <Switch checked={p.is_active} onCheckedChange={(v) => updatePrio.mutate({ id: p.id, is_active: v })} />
+                      ) : (p.is_active ? "Yes" : "No")}
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive" className="h-7 text-xs">Delete</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete priority "{p.label}"?</AlertDialogTitle>
+                              <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deletePrio.mutate(p.id)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── Ticket Types ── */}
       <Card>
