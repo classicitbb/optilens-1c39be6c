@@ -514,7 +514,7 @@ const ListCatalogTab = ({
             title="Override price for this line"
             onClick={() => openOverride(row, rowType)}>
 
-              <Pencil className="h-3 w-3" style={{ color: isOverridden ? "hsl(35 80% 45%)" : "hsl(215 65% 50%)" }} />
+              <Pencil className="h-3 w-3" style={{ color: isOverridden ? "hsl(var(--admin-table-col-override-fg))" : "hsl(var(--admin-table-link-fg))" }} />
             </button>
           }
         </td>
