@@ -13,6 +13,7 @@ import type { Supply, SupplyFormData } from "@/hooks/useSupplies";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { checkGovernance } from "@/hooks/useGovernanceCheck";
+import { cn } from "@/lib/utils";
 import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
 import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
@@ -192,10 +193,10 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
       <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>
+            <DialogTitle className="text-sm font-semibold text-foreground">
               {supply ? "Edit Supply Item" : "New Supply"}
             </DialogTitle>
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               {supply && onNavigate && supplies && <>
                 <span>{currentIndex + 1} / {supplies.length}</span>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
@@ -222,7 +223,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
             {/* LEFT COLUMN */}
             <div className="space-y-4">
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Item Info</p>
+                <p className={sectionCls + " text-muted-foreground"}>Item Info</p>
                 <div className="grid grid-cols-4 gap-3">
                   <div className="col-span-2">
                     <Label className={labelCls}>Name *</Label>
@@ -235,9 +236,9 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                   <div>
                     <div className="flex items-center gap-1">
                       <Label className={labelCls}>Category</Label>
-                      <button type="button" className="p-0.5 rounded hover:bg-black/5" title="Manage categories" onClick={() => { setCatEditItem(null); setCatModalOpen(true); }}>
-                        <Settings2 className="h-3 w-3" style={{ color: "hsl(215 15% 50%)" }} />
-                      </button>
+                       <button type="button" className="p-0.5 rounded hover:bg-muted" title="Manage categories" onClick={() => { setCatEditItem(null); setCatModalOpen(true); }}>
+                        <Settings2 className="h-3 w-3 text-muted-foreground" />
+                       </button>
                     </div>
                     <Select value={form.category} onValueChange={(v) => set("category", v)}>
                       <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
@@ -304,7 +305,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
             <div className="space-y-4">
               {/* Flags */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Flags</p>
+                <p className={sectionCls + " text-muted-foreground"}>Flags</p>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                   {([
                     ["is_active", "Active"],
@@ -325,7 +326,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
               {/* Pricing & Cost */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Pricing & Cost</p>
+                <p className={sectionCls + " text-muted-foreground"}>Pricing & Cost</p>
                 <div className="grid grid-cols-4 gap-3">
                   <div>
                     <Label className={labelCls}>Currency</Label>
@@ -364,7 +365,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
               {/* Calculated Values */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <p className={sectionCls + " mb-0"} style={{ color: "hsl(215 15% 45%)" }}>Calculated Values</p>
+                  <p className={sectionCls + " mb-0 text-muted-foreground"}>Calculated Values</p>
                   {calc?.margin_status && (
                     <Badge className={`text-[10px] px-1.5 py-0 ${MARGIN_STATUS_COLORS[calc.margin_status]}`}>
                       {calc.margin_status === "loss" && <AlertTriangle className="h-3 w-3 mr-0.5" />}
@@ -410,11 +411,11 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || governance.blocked}>
+            <Button type="submit" size="sm" className="h-7 text-xs bg-primary text-primary-foreground rounded" disabled={isPending || !form.name || governance.blocked}>
               {isPending ? "Saving…" : "Save"}
             </Button>
             {onSubmitAndClose && (
-              <Button type="button" size="sm" className="h-7 text-xs" style={{ background: "hsl(215 45% 35%)", color: "white", borderRadius: "4px" }} disabled={isPending || !form.name || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
+              <Button type="button" size="sm" className="h-7 text-xs bg-primary/80 text-primary-foreground rounded" disabled={isPending || !form.name || governance.blocked} onClick={() => attemptSave("saveAndClose")}>
                 Save & Close
               </Button>
             )}
@@ -456,14 +457,12 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
 const ReadOnly = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
   <div>
-    <span className="text-[10px]" style={{ color: "hsl(215 15% 50%)" }}>{label}</span>
+    <span className="text-[10px] text-muted-foreground">{label}</span>
     <div
-      className="h-7 flex items-center px-2 rounded text-xs tabular-nums"
-      style={{
-        background: highlight ? "hsl(215 60% 95%)" : "hsl(215 20% 97%)",
-        color: "hsl(215 30% 15%)",
-        fontWeight: highlight ? 600 : 400,
-      }}
+      className={cn(
+        "h-7 flex items-center px-2 rounded text-xs tabular-nums text-foreground",
+        highlight ? "bg-primary/10 font-semibold" : "bg-muted"
+      )}
     >
       {value}
     </div>
