@@ -97,7 +97,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
       );
     }
 
-    return <div className="space-y-1">{renderWikiContent(text.replace(/\\n/g, "\n"))}</div>;
+    return <div className="space-y-1 break-words overflow-wrap-anywhere">{renderWikiContent(text.replace(/\\n/g, "\n"))}</div>;
   };
 
   const toggleArticle = (id: string) => {
@@ -164,8 +164,8 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
                   </button>
 
                   {isExpanded && (
-                    <div className="px-4 pb-4 space-y-3 min-w-0 overflow-hidden">
-                      <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground overflow-x-auto min-w-0">
+                    <div className="px-4 pb-4 space-y-3 min-w-0">
+                      <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground min-w-0 break-words" style={{ overflowWrap: 'anywhere' }}>
                         {renderContent(article.content)}
                       </div>
                       <HelpFeedbackButtons
