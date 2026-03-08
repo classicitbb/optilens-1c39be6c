@@ -116,7 +116,7 @@ const AdminWikiPage = () => {
   };
 
   return (
-    <Tabs defaultValue="wiki" className="flex flex-col h-full">
+    <Tabs defaultValue="wiki" className="flex flex-col h-full [&>[data-state=inactive]]:hidden">
       <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <AdminPageHeader icon={BookOpen} title="Help / Wiki" />
