@@ -94,9 +94,9 @@ const HelpArticleEditor = () => {
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-100">{editing.id ? "Edit Article" : "New Article"}</h3>
+          <h3 className="text-sm font-semibold text-foreground">{editing.id ? "Edit Article" : "New Article"}</h3>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(null)}>
-            <X className="h-3.5 w-3.5 text-slate-400" />
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
         </div>
 
