@@ -450,7 +450,7 @@ const KanbanView = ({
 
                       {/* Contact */}
                       {ticket.contact && (
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground truncate">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground truncate">
                           <span>{ticket.contact.is_company ? "🏢" : "👤"}</span>
                           <span className="truncate">{ticket.contact.name}</span>
                         </div>
