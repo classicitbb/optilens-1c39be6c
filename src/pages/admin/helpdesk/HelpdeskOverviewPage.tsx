@@ -448,6 +448,14 @@ const KanbanView = ({
                         </div>
                       </div>
 
+                      {/* Contact */}
+                      {ticket.contact && (
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground truncate">
+                          <span>{ticket.contact.is_company ? "🏢" : "👤"}</span>
+                          <span className="truncate">{ticket.contact.name}</span>
+                        </div>
+                      )}
+
                       {/* Bottom row */}
                       <div className="flex items-center justify-between">
                         <PriorityStars priority={ticket.priority} />
