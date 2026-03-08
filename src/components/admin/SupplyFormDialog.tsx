@@ -195,7 +195,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
             <DialogTitle className="text-sm font-semibold text-foreground">
               {supply ? "Edit Supply Item" : "New Supply"}
             </DialogTitle>
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               {supply && onNavigate && supplies && <>
                 <span>{currentIndex + 1} / {supplies.length}</span>
                 <Button type="button" variant="outline" size="icon" className="h-6 w-6"
