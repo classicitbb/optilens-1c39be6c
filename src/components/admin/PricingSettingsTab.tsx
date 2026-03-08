@@ -179,8 +179,8 @@ const PricingSettingsTab = () => {
   };
 
   const Section = ({ title, children }: {title: string;children: React.ReactNode;}) =>
-  <div className="space-y-3 border border-border p-4 bg-card">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+  <div className="space-y-3 border border-border p-3 sm:p-4 bg-card min-w-0 overflow-hidden">
+      <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
       {children}
     </div>;
 
