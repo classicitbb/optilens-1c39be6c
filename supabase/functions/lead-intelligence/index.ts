@@ -270,11 +270,13 @@ serve(async (req) => {
       firecrawlSearchProvider,
     ];
 
-    // AI search runs as a fallback if primary providers return nothing
+    const aiFallbackConfigured = aiSearchProvider.isConfigured(providerCredentials);
+
+    // AI fallback is intentionally opt-in and disabled by default to avoid synthetic leads.
     const providerStatus = {
       googlePlacesConfigured: googlePlacesProvider.isConfigured(providerCredentials),
       firecrawlSearchConfigured: firecrawlSearchProvider.isConfigured(),
-      aiSearchConfigured: aiSearchProvider.isConfigured(),
+      aiSearchConfigured: aiFallbackConfigured,
     };
 
     const { leads: primaryLeads, telemetry: primaryTelemetry } = await executeProviders(primaryProviders, {
@@ -287,8 +289,8 @@ serve(async (req) => {
     let allLeads = primaryLeads;
     let telemetry = { ...primaryTelemetry };
 
-    // If primary providers returned nothing, use AI search as fallback
-    if (allLeads.length === 0 && aiSearchProvider.isConfigured()) {
+    // If primary providers returned nothing, use AI search as fallback only when explicitly enabled.
+    if (allLeads.length === 0 && aiFallbackConfigured) {
       const { leads: aiLeads, telemetry: aiTelemetry } = await executeProviders([aiSearchProvider], {
         query: resolvedQuery,
         country: effectiveCountry,
@@ -298,7 +300,7 @@ serve(async (req) => {
       allLeads = aiLeads;
       telemetry = { ...telemetry, ...aiTelemetry };
     } else {
-      // Mark AI search as not attempted since primary providers had results
+      // Mark AI search as not attempted when grounded providers had results or fallback is disabled.
       telemetry["ai_search"] = {
         attempted: false,
         resultCount: 0,
