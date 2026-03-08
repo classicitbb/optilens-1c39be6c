@@ -87,6 +87,7 @@ const HelpdeskTeamsPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskTeam
 const HelpdeskSlaPoliciesPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskSlaPoliciesPage"));
 const HelpdeskStagesPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskStagesPage"));
 const HelpdeskConfigPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskConfigPage"));
+const HelpdeskOverviewPage = lazy(() => import("./pages/admin/helpdesk/HelpdeskOverviewPage"));
 
 // Moonshot
 const MoonshotLayout = lazy(() => import("./features/admin/moonshot/MoonshotLayout"));
