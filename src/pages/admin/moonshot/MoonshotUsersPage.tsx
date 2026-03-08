@@ -271,7 +271,7 @@ export default function MoonshotUsersPage() {
                           checked={checked}
                           onCheckedChange={(c) =>
                             updateUser(editingUser.id, {
-                              seatIds: c ? [...editingUser.seatIds, seat.id] : editingUser.seatIds.filter((id) => id !== seat.id),
+                              seatIds: c ? [...(editingUser.seatIds ?? []), seat.id] : (editingUser.seatIds ?? []).filter((id) => id !== seat.id),
                             })
                           }
                         />
