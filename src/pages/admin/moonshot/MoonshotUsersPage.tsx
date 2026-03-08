@@ -90,6 +90,7 @@ export default function MoonshotUsersPage() {
       email: inviteEmail,
       role: "Member",
       avatar: inviteEmail.slice(0, 2).toUpperCase(),
+      seatsUsed: 0,
       seatIds: [],
       status: "active",
       invitation: { status: "pending", pendingAt: now },
