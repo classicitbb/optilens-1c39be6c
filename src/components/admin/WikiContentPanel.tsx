@@ -3,6 +3,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Pencil, Eye, FilePenLine, Save, Upload, Undo2, XCircle, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown } from "lucide-react";
 import type { WikiCategory } from "@/data/wikiContent";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
 import RichTextEditor from "./RichTextEditor";
@@ -12,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
 import { canonicalToHtml, toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
 import { Badge } from "@/components/ui/badge";
+import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 
 interface WikiContentPanelProps {
   categories: WikiCategory[];
@@ -27,7 +33,7 @@ interface WikiContentPanelProps {
 const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEdit, onEditArticle, onEditingChange, isCategoryVisible, wikiHeadings }: WikiContentPanelProps) => {
   const displayCategories = categories.filter((category) => category.articles.length > 0 && (isCategoryVisible ? isCategoryVisible(category.id) : true));
   const [isPreview, setIsPreview] = useState(false);
-  const [form, setForm] = useState({ title: "", content: "", category: wikiHeadings[0]?.id ?? "", status: "draft" as "draft" | "published" | "archived", note: "" });
+  const [form, setForm] = useState({ title: "", content: "", category: wikiHeadings[0]?.id ?? "", status: "draft" as "draft" | "published" | "archived", note: "", context_slugs: ["knowledge/wiki"] as string[] });
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const { toast } = useToast();
   const { upsertArticle, fetchVersions, restoreVersion, canPublish } = useHelpArticles();
