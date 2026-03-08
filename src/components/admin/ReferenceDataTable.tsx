@@ -194,7 +194,7 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
           <Button
             size="sm"
             className="h-7 text-xs gap-1"
-            style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }}
+            style={{ background: "hsl(var(--admin-accent))", color: "hsl(var(--admin-accent-fg))" }}
             onClick={() => setModalOpen(true)}
           >
             <Plus className="h-3.5 w-3.5" /> Add
