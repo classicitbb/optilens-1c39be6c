@@ -396,8 +396,8 @@ const PricingSettingsTab = () => {
           ))}
           {!d && (
             <div className="flex items-center gap-1">
-              <Input className="h-6 w-24 text-[10px]" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-              <Input className="h-6 w-16 text-[10px]" placeholder="Code" value={newCode} onChange={(e) => setNewCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+              <Input className="h-6 min-w-[4rem] w-auto text-[10px]" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+              <Input className="h-6 min-w-[3rem] w-auto text-[10px]" placeholder="Code" value={newCode} onChange={(e) => setNewCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
               <button onClick={handleAdd} className="text-primary hover:text-primary/80"><Plus className="h-3 w-3" /></button>
             </div>
           )}
