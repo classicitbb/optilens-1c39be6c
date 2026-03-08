@@ -1,231 +1,114 @@
-## Admin Experience Plan (Updated to Current Codebase)
 
-### Plan intent
 
-This plan is now aligned with the **current modular admin architecture** (`/admin/<app>/...`) and the work that already exists in the repository.
+# Plan: Helpdesk Overview & Tickets Major Enhancement
 
----
-
-## Here is proof we are connected.
-
-## 1) Current state snapshot (what is already done)
-
-### 1.1 Admin shell and navigation foundation
-
-- ✅ `ADMIN_APPS` registry is implemented and drives app metadata, default routes, and sidebar items.
-- ✅ App Launcher and Sidebar are dynamic and role-filtered.
-- ✅ Admin route groups are modularized by app domain:
-  - Pricing (`/admin/pricing/*`)
-  - Sales (`/admin/sales/*`)
-  - Contacts (`/admin/contacts/*`)
-  - Leads (`/admin/leads/*`)
-  - CRM (`/admin/crm/*`)
-  - Helpdesk (`/admin/helpdesk/*`)
-  - Website (`/admin/website/*`)
-  - Knowledge (`/admin/knowledge/*`)
-  - Settings (`/admin/settings/*`)
-- ✅ Legacy routes are redirected to the new structure.
-
-### 1.2 Admin Top Bar redesign status
-
-- ✅ Top bar exists with the intended structure:
-  - Apps toggle
-  - `OpticAdmin` brand label
-  - Page label
-  - Global search
-  - Bell placeholder
-  - Help toggle
-  - Lovable external link (admin-only)
-  - User display name + avatar dropdown
-- ✅ User display name resolves from `profiles.display_name` with email fallback.
-- ✅ Avatar dropdown includes:
-  - Helpdesk / Wiki
-  - My Profile
-  - Install App
-  - Logout
-
-### 1.3 Branding updates
-
-- ✅ `OpticAdmin` branding is present in top bar and wiki content.
+This is a large set of interconnected changes across the Helpdesk module. Here is the breakdown:
 
 ---
 
-## 2) Gaps to close (next actions)
+## 1. Database: Create `helpdesk_priorities` table
 
-### 2.1 Route label map in `AdminTopBar`
+A new configurable priorities table so admins can manage priority levels from the config page.
 
-The route label map should prioritize **new canonical paths** (`/admin/pricing/...`, `/admin/sales/...`, etc.) first, then include legacy fallbacks only if needed.
+```sql
+CREATE TABLE public.helpdesk_priorities (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  level integer NOT NULL UNIQUE,
+  label text NOT NULL,
+  color text NOT NULL DEFAULT '#6b7280',
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
-**Action**
+ALTER TABLE public.helpdesk_priorities ENABLE ROW LEVEL SECURITY;
 
-- Update `ROUTE_LABELS` in `src/components/admin/AdminTopBar.tsx` to match active canonical route paths.
+CREATE POLICY "Authenticated users can view priorities"
+  ON public.helpdesk_priorities FOR SELECT TO authenticated USING (true);
 
-### 2.2 Sidebar/header interaction cleanup
+CREATE POLICY "Admins can manage priorities"
+  ON public.helpdesk_priorities FOR ALL TO authenticated
+  USING (public.has_edit_role(auth.uid()))
+  WITH CHECK (public.has_edit_role(auth.uid()));
 
-The previous note about removing the sidebar header is not currently implemented.
-
-**Action options (pick one explicitly)**
-
-1. Keep sidebar header + collapse button (document as intentional), or
-2. Move collapse behavior to hover/flyout interaction and remove static header row.
-
-### 2.3 Copy consistency for placeholder screens
-
-Current placeholder message is: **"Coming in a future phase."**
-
-**Action**
-
-- Standardize placeholder copy strategy per module (friendly/neutral/enterprise tone), with optional module-specific variants.
-
----
-
-## 3) Placeholder Pages Delivery Backlog (description-ready)
-
-> Purpose: every placeholder route gets a stable slot so full feature descriptions can be added later.
-
-Use this template for each page as details are discovered:
-
-- **Purpose**
-- **Primary users / roles**
-- **Core workflows**
-- **Data entities**
-- **Permissions**
-- **Integrations**
-- **MVP acceptance criteria**
-- **Future phase notes**
-
-### 3.1 Sales app placeholders
-
-1. `/admin/sales/web-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-2. `/admin/sales/rx-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.2 Leads app placeholders
-
-3. `/admin/leads/finder`
-   - Status: Placeholder
-   - Description: _TBD_
-4. `/admin/leads/campaigns`
-   - Status: Placeholder
-   - Description: _TBD_
-5. `/admin/leads/reports`
-   - Status: Placeholder
-   - Description: _TBD_
-6. `/admin/leads/ai`
-   - Status: Placeholder
-   - Description: _TBD_
-7. `/admin/leads/settings`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.3 CRM app placeholders
-
-8. `/admin/crm/pipeline`
-   - Status: Placeholder
-   - Description: _TBD_
-9. `/admin/crm/activities`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.4 Helpdesk app placeholders
-
-10. `/admin/helpdesk/tickets`
-    - Status: Placeholder
-    - Description: _TBD_
-11. `/admin/helpdesk/teams`
-    - Status: Placeholder
-    - Description: _TBD_
-12. `/admin/helpdesk/sla`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.5 Website app placeholders
-
-13. `/admin/website/microsites`
-    - Status: Placeholder
-    - Description: _TBD_
-14. `/admin/website/portals`
-    - Status: Placeholder
-    - Description: _TBD_
-15. `/admin/website/store`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.6 Knowledge app placeholders
-
-16. `/admin/knowledge/help`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.7 Settings app placeholders
-
-17. `/admin/settings/integrations`
-    - Status: Placeholder
-    - Description: _TBD_
+-- Seed defaults
+INSERT INTO public.helpdesk_priorities (level, label, color) VALUES
+  (0, 'Low', '#6b7280'),
+  (1, 'Normal', '#6b7280'),
+  (2, 'Medium', '#f59e0b'),
+  (3, 'High', '#f97316'),
+  (4, 'Urgent', '#ef4444'),
+  (5, 'Critical', '#dc2626');
+```
 
 ---
 
-## 4) Suggested micro-copy change (quick win)
+## 2. HelpdeskConfigPage — Add Priorities section
 
-### Proposal
-
-For `/admin/crm/pipeline`, change placeholder text from:
-
-- **"Coming in a future phase."**
-
-to:
-
-- **"See you soon."**
-
-### Why
-
-- Warmer and less formal tone for a customer-facing-feeling CRM surface.
-- Good as an experiment for module-specific placeholder messaging.
-
-### Implementation approach
-
-- Preferred: add an optional copy override map in `PlaceholderPage` keyed by route.
-- Fallback: global replacement if we want one message everywhere.
+Add a third card for "Priorities" with columns: Level, Label, Color, Active, and Delete. CRUD mirrors the Ticket Types pattern using new mutations `useCreateHelpdeskPriority`, `useUpdateHelpdeskPriority`, `useDeleteHelpdeskPriority`.
 
 ---
 
-## 5) UI Rule: Admin Page Headers (still active)
+## 3. Mutations — Add priority CRUD hooks
 
-Every admin page with a heading **must** use the shared:
-`<AdminPageHeader icon={Icon} title="Page Title" />`
-from `src/components/admin/AdminPageHeader.tsx`.
-
-- Always pass a relevant Lucide icon and a properly capitalized title.
-- Optional `children` slot renders right-aligned actions.
-- Do not use ad hoc inline `<h1>` patterns on admin pages.
+In `useHelpdeskMutations.ts`, add three new hooks for the `helpdesk_priorities` table following the existing pattern.
 
 ---
 
-## 6) Preview Template Rules (binding)
+## 4. HelpdeskOverviewPage — Major overhaul
 
-All document preview templates — pricelists, quotations, proposals, and any
-future PdfPreviewShell consumer — must follow these rules.
+### 4a. Click tile to edit (remove pencil-on-hover)
+Make the entire Kanban card clickable to open the edit dialog. Remove the pencil icon from cards.
 
-### 6.1 Narrow margins by default
-- `DEFAULT_PRINT_SETTINGS.marginPreset` is `"narrow"` (8 mm).
-- Users may override per-document, but the starting state is always narrow.
+### 4b. Priority colors shade tiles
+Fetch priorities from `helpdesk_priorities` table. Use the priority's `color` as a subtle background tint on each tile (e.g., `background: ${color}15` for 8% opacity).
 
-### 6.2 Dark-mode immune
-- Preview content always renders with a fixed white background and dark text.
-- The preview iframe / container must never inherit dark-mode CSS variables.
-- Branded header colors (e.g. `#1e4db7`) are hardcoded, not token-based.
+### 4c. Ticket type above title
+Show ticket type badge above the title line on cards and prepend it in list view.
 
-### 6.3 Consistent template structure
-- Every preview uses `PdfPreviewShell` with the shared toolbar (paper size,
-  orientation, scale, print button).
-- Branded header, date, format label, and page numbering layout must not vary
-  between preview types.
+### 4d. Foldable resolved/cancelled columns
+Add a `collapsedCols` state set. Columns where `is_closed` or `is_folded` start collapsed. Show a chevron toggle icon. When collapsed, show just the header with count and a drop zone strip. Drag-and-drop still works on collapsed columns.
 
-### 6.4 Responsive table contents and page breaks
-- `thead` uses `display: table-header-group` so headers repeat on every page.
-- Long table bodies allow row-level breaks (`break-inside: auto`).
-- Section headings use `break-after: avoid` to stay with following content.
-- Standalone grid/card sections use `break-inside: avoid`.
+### 4e. Urgent/Critical tickets > 20h old → red alert popup
+On mount and every 30s refetch, check for tickets with priority >= 4 and `created_at` older than 20 hours that are not in a closed stage. Show a bold red alert dialog listing them.
+
+### 4f. Responsive layout
+- Desktop: Kanban board as-is
+- Tablet (<1024px): Kanban columns wrap or scroll horizontally
+- Mobile (<768px): Auto-switch to list view. Header controls stack vertically. Search full-width.
+
+### 4g. List view — click row to edit
+Make the entire row clickable (except the stage dropdown) to open the edit dialog. Remove the pencil column.
+
+---
+
+## 5. HelpdeskTicketsPage — Enhancements
+
+### 5a. Enter/Tab through create form
+Add `onKeyDown` handlers: Enter on any field triggers `handleCreate()`, Tab naturally flows through fields. Add visible focus ring styling (`focus:ring-2 focus:ring-primary`).
+
+### 5b. Archive instead of delete
+Replace the "Delete" button with "Archive" — sets ticket to a closed/archived stage instead of hard-deleting. Remove delete functionality for non-admin or change to archive-only.
+
+### 5c. Click row to edit
+Make the entire ticket row clickable to open the edit dialog. Remove the separate Edit button.
+
+### 5d. Mobile-responsive create form
+On mobile, the create form collapses into a single-column layout with larger touch targets. Sidebar collapses automatically (already handled by AdminLayout). Add a sticky "Create Ticket" button that expands the form.
+
+### 5e. Ticket type ahead of title
+In the ticket queue table, show Type column before Title column.
+
+---
+
+## Files to modify
+
+| File | Changes |
+|------|---------|
+| Migration SQL | Create `helpdesk_priorities` table with seed data |
+| `src/features/admin/helpdesk/hooks/useHelpdeskMutations.ts` | Add priority CRUD mutations |
+| `src/pages/admin/helpdesk/HelpdeskConfigPage.tsx` | Add Priorities config card |
+| `src/pages/admin/helpdesk/HelpdeskOverviewPage.tsx` | Click-to-edit tiles, priority color shading, foldable columns, urgent alert, responsive, type above title |
+| `src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx` | Enter/Tab create, archive-not-delete, click-row-to-edit, responsive create form, type before title |
+| `src/features/admin/helpdesk/utils/normalization.ts` | Update priority label function to optionally use DB priorities |
+
