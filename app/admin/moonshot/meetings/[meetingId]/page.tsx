@@ -21,6 +21,8 @@ export default function MeetingDetailPage() {
     rocks,
     todos,
     issues,
+    goodNewsEntries,
+    rapidFireEntries,
     addTodo,
     updateTodo,
     updateRock,
@@ -98,6 +100,13 @@ export default function MeetingDetailPage() {
               <div className="rounded-md border bg-teal-50 p-3 text-sm">{meeting.checkInPrompt}</div>
               <Textarea placeholder="Share good news..." value={meeting.checkInResponse} onChange={(e) => updateMeeting(meeting.id, { checkInResponse: e.target.value, notes: `${meeting.notes}\nCheck-in: ${e.target.value}` })} />
               <div className="flex gap-2">{users.filter((u) => meeting.attendeeIds.includes(u.id)).map((u) => <Badge key={u.id} variant="outline">{u.name}</Badge>)}</div>
+              <div className="space-y-2">
+                {goodNewsEntries.filter((entry) => !entry.meetingId || entry.meetingId === meeting.id).slice(0, 4).map((entry) => (
+                  <div key={entry.id} className="rounded border p-2 text-sm">
+                    {entry.message}
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -121,7 +130,8 @@ export default function MeetingDetailPage() {
         {sectionKey?.includes("headline") && (
           <Card>
             <CardHeader><CardTitle>Headlines</CardTitle></CardHeader>
-            <CardContent><Textarea placeholder="Capture major headlines and blockers..." value={meeting.notes} onChange={(e) => updateMeeting(meeting.id, { notes: e.target.value })} /></CardContent>
+            <CardContent className="space-y-3"><Textarea placeholder="Capture major headlines and blockers..." value={meeting.notes} onChange={(e) => updateMeeting(meeting.id, { notes: e.target.value })} />
+              <div className="space-y-2">{rapidFireEntries.filter((entry) => !entry.meetingId || entry.meetingId === meeting.id).slice(0, 5).map((entry) => <div key={entry.id} className="rounded border p-2 text-sm flex items-center justify-between"><span>{entry.topic}</span><Badge variant="outline">{entry.status}</Badge></div>)}</div></CardContent>
           </Card>
         )}
 

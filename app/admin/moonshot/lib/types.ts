@@ -134,6 +134,23 @@ export type Issue = {
   meetingId?: string;
 };
 
+export type GoodNewsEntry = {
+  id: string;
+  message: string;
+  ownerId: string;
+  createdAt: string;
+  meetingId?: string;
+};
+
+export type RapidFireEntry = {
+  id: string;
+  topic: string;
+  ownerId: string;
+  status: "Open" | "Discussed" | "Converted to Action";
+  createdAt: string;
+  meetingId?: string;
+};
+
 export type BusinessPlan = {
   futureFocus: {
     coreValues: string[];
@@ -165,13 +182,19 @@ export type BusinessPlan = {
   };
 };
 
-export type WorkspaceTileType = "metrics" | "rocks" | "todos" | "issues" | "headlines" | "core-values" | "notes" | "quick-links";
+export type WorkspaceTileType = "metrics" | "rocks" | "todos" | "issues" | "headlines" | "good-news" | "rapid-fire" | "core-values" | "notes" | "quick-links";
 
 export type WorkspaceTile = {
   id: string;
   type: WorkspaceTileType;
   title: string;
   colSpan: 1 | 2 | 3 | 4;
+};
+
+export type WorkspaceLayoutPreference = {
+  order: string[];
+  hiddenTileIds: string[];
+  tileSizes: Record<string, WorkspaceTile["colSpan"]>;
 };
 
 export type PermissionLevel = "none" | "view" | "edit" | "admin";
