@@ -238,10 +238,10 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
         <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
-            {addon ? "Edit Add-On" : "New Add-On"}
+            <DialogTitle className="text-sm font-semibold text-foreground">
               {addon ? "Edit Add-On" : "New Add-On"}
             </DialogTitle>
-            <div className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 {addon && onNavigate && addons && <>
                   <span>{currentIndex + 1} / {addons.length}</span>
                   <Button type="button" variant="outline" size="icon" className="h-6 w-6"
