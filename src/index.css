@@ -272,6 +272,12 @@
   border-radius: var(--admin-radius);
 }
 
+/* Print/PDF preview areas must have no rounded corners */
+.print-preview-container,
+.print-preview-container * {
+  border-radius: 0 !important;
+}
+
 /* Force light-mode inputs/selects inside admin tool regardless of theme */
 .admin-tool input,
 .admin-tool textarea,
