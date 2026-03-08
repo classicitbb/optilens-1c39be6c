@@ -10,7 +10,7 @@ import WikiArticleRenderer from "./WikiArticleRenderer";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useToast } from "@/hooks/use-toast";
 import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
-import { toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
+import { canonicalToHtml, toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
 import { Badge } from "@/components/ui/badge";
 
 interface WikiContentPanelProps {
@@ -33,7 +33,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
   const { upsertArticle, fetchVersions, restoreVersion, canPublish } = useHelpArticles();
 
   let activeCategory: WikiCategory | undefined;
-  let activeArticle: { id: string; title: string; content: string; body_json?: BlogCanonicalContent; status?: "draft" | "published" | "archived"; version_number?: number } | undefined;
+  let activeArticle: { id: string; title: string; content: string; body_json?: BlogCanonicalContent; context_slugs?: string[]; status?: "draft" | "published" | "archived"; version_number?: number } | undefined;
 
   for (const cat of displayCategories) {
     const found = cat.articles.find((a: any) => a.id === activeArticleId);
@@ -50,7 +50,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
     if (isEditing) {
       setForm({
         title: activeArticle?.title ?? "",
-        content: activeArticle?.content ?? "",
+        content: activeArticle?.body_json ? canonicalToHtml(activeArticle.body_json) : activeArticle?.content ?? "",
         category: activeCategory?.id ?? wikiHeadings[0]?.id ?? "",
         status: (activeArticle as any)?.status ?? "draft",
         note: "",
@@ -58,6 +58,8 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
       setIsPreview(false);
     }
   }, [isEditing, activeArticleId, activeArticle?.title, activeArticle?.content, activeCategory?.id, wikiHeadings]);
+
+  const currentContexts = activeArticle?.context_slugs?.length ? activeArticle.context_slugs : ["knowledge/wiki"];
 
   useEffect(() => {
     if (!isEditing) return;
@@ -74,7 +76,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
           content: form.content,
           category: form.category,
           page_slug: "knowledge/wiki",
-          context_slugs: ["knowledge/wiki"],
+          context_slugs: currentContexts,
           status: form.status,
           change_note: "Autosave",
           version_number: (activeArticle as any)?.version_number,
@@ -94,7 +96,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
       content: form.content,
       category: form.category,
       page_slug: "knowledge/wiki",
-      context_slugs: ["knowledge/wiki"],
+      context_slugs: currentContexts,
       status: "draft",
       change_note: form.note || "Saved draft",
       version_number: (activeArticle as any)?.version_number,
@@ -119,7 +121,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
       content: form.content,
       category: form.category,
       page_slug: "knowledge/wiki",
-      context_slugs: ["knowledge/wiki"],
+      context_slugs: currentContexts,
       status: "published",
       change_note: form.note || "Published",
       version_number: (activeArticle as any)?.version_number,
@@ -136,7 +138,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
       content: form.content,
       category: form.category,
       page_slug: "knowledge/wiki",
-      context_slugs: ["knowledge/wiki"],
+      context_slugs: currentContexts,
       status: "draft",
       change_note: "Unpublished",
       version_number: (activeArticle as any)?.version_number,

@@ -8,7 +8,7 @@ import { useHelpArticles } from "@/hooks/useHelpArticles";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
-import { renderWikiContent } from "./wikiFormatting";
+import WikiArticleRenderer from "./WikiArticleRenderer";
 import { getContextLabel, pathnameToContextSlug } from "@/lib/adminContexts";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
 import { canViewContextSlug } from "@/lib/wikiPermissions";
@@ -85,21 +85,6 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
     ? scopedArticles.find((a) => a.id === editArticleId)
     : null;
 
-  const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
-
-  const renderContent = (text: string) => {
-    if (isHtml(text)) {
-      return (
-        <div
-          className="prose prose-sm max-w-none break-words text-muted-foreground [&_strong]:text-foreground [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1 [&_p]:leading-relaxed [&_ul]:pl-4 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_li]:my-0.5 [&_li]:leading-relaxed [&_li]:marker:text-primary [&_a]:text-primary [&_a]:underline [&_br]:leading-3 [&_pre]:overflow-x-auto [&_pre]:text-xs [&_pre]:whitespace-pre-wrap [&_pre]:break-all [&_code]:break-all [&_code]:text-xs"
-          dangerouslySetInnerHTML={{ __html: text }}
-        />
-      );
-    }
-
-    return <div className="space-y-1 break-words overflow-wrap-anywhere">{renderWikiContent(text.replace(/\\n/g, "\n"))}</div>;
-  };
-
   const toggleArticle = (id: string) => {
     setExpandedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
@@ -166,7 +151,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-3 min-w-0">
                       <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground min-w-0 break-words" style={{ overflowWrap: 'anywhere' }}>
-                        {renderContent(article.content)}
+                        <WikiArticleRenderer bodyJson={(article as any).body_json} legacyContent={article.content} className="text-sm" emptyMessage="No content available." />
                       </div>
                       <HelpFeedbackButtons
                         articleId={article.id}

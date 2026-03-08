@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { canViewContextSlug } from "@/lib/wikiPermissions";
-import { toCanonicalDocument } from "@/lib/wikiCanonical";
+import { canonicalToHtml, toCanonicalDocument } from "@/lib/wikiCanonical";
 import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
 
 export interface HelpArticle {
@@ -108,11 +108,12 @@ export const useHelpArticles = (pageSlug?: string) => {
       const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
       const primarySlug = contexts[0] ?? "all";
       const bodyJson = toCanonicalDocument(article.body_json ?? article.content);
+      const htmlContent = canonicalToHtml(bodyJson);
       const payload: any = {
         title: article.title,
-        content: article.content,
+        content: htmlContent,
         body_json: bodyJson,
-        body_html: article.content,
+        body_html: htmlContent,
         page_slug: primarySlug,
         sort_order: article.sort_order ?? 0,
         category: article.category ?? "",
@@ -130,10 +131,12 @@ export const useHelpArticles = (pageSlug?: string) => {
         const { error } = await supabase.from("help_articles").update(payload).eq("id", article.id);
         if (error) throw error;
 
-        const { error: deleteContextError } = await supabase.from("help_article_contexts").delete().eq("article_id", article.id);
-        if (deleteContextError) throw deleteContextError;
-        const { error: insertContextError } = await supabase.from("help_article_contexts").insert(contexts.map((context_slug) => ({ article_id: article.id as string, context_slug })));
-        if (insertContextError) throw insertContextError;
+        if (article.context_slugs && article.context_slugs.length > 0) {
+          const { error: deleteContextError } = await supabase.from("help_article_contexts").delete().eq("article_id", article.id);
+          if (deleteContextError) throw deleteContextError;
+          const { error: insertContextError } = await supabase.from("help_article_contexts").insert(contexts.map((context_slug) => ({ article_id: article.id as string, context_slug })));
+          if (insertContextError) throw insertContextError;
+        }
 
         await saveVersionSnapshot(article.id, article.title, bodyJson, nextVersion, article.change_note);
       } else {
@@ -175,8 +178,8 @@ export const useHelpArticles = (pageSlug?: string) => {
       const { error } = await supabase.from("help_articles").update({
         title: version.title_snapshot,
         body_json: version.body_snapshot,
-        content: JSON.stringify(version.body_snapshot),
-        body_html: JSON.stringify(version.body_snapshot),
+        content: canonicalToHtml(version.body_snapshot),
+        body_html: canonicalToHtml(version.body_snapshot),
         version_number: nextVersion,
       } as any).eq("id", articleId);
       if (error) throw error;
