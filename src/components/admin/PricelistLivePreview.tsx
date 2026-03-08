@@ -236,8 +236,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr>
-                      <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white" }}>{sec}</th>
-                      <th className="px-4 py-2.5 text-right font-bold uppercase tracking-wider w-32" style={{ background: "#1e4db7", color: "white" }}>{currency} PRICE</th>
+                      <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))" }}>{sec}</th>
+                      <th className="px-4 py-2.5 text-right font-bold uppercase tracking-wider w-32" style={{ background: "hsl(var(--admin-table-header-bg))", color: "hsl(var(--admin-table-header-fg))" }}>{currency} PRICE</th>
                     </tr>
                   </thead>
                   <tbody>
