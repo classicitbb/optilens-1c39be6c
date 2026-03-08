@@ -21,10 +21,7 @@ import { compareCategoryOrder } from "@/lib/sortOrder";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
 
 const BLUE_BG = "#1e4db7";
-const GREEN_BG = "#d4edda";
 const BLUE_TEXT = "#fff";
-const GREEN_TEXT = "#155724";
-const LABEL = "hsl(215 15% 40%)";
 
 export interface CatalogRow {
   key: string;
