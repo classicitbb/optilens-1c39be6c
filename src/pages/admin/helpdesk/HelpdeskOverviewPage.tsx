@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { normalizeHelpdeskPriorityLabel } from "@/features/admin/helpdesk/utils/normalization";
 import { useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
+import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
