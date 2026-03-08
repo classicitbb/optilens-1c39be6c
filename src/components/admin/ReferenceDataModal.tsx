@@ -72,7 +72,7 @@ const ReferenceDataModal = ({ open, onOpenChange, mode, initialName = "", initia
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 className="h-8 text-sm mt-1"
-                style={{ borderRadius: "4px" }}
+                
                 placeholder="Optional"
               />
             </div>
