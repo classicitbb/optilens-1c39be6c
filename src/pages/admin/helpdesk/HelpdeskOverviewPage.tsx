@@ -262,6 +262,16 @@ const HelpdeskOverviewPage = () => {
     },
   });
 
+  const { data: ticketTypes = [] } = useQuery({
+    queryKey: ["helpdesk-overview-ticket-types"],
+    enabled: canViewHelpdesk,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("helpdesk_ticket_types").select("id,name").order("name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string }[];
+    },
+  });
+
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     return tickets.filter(t => {
