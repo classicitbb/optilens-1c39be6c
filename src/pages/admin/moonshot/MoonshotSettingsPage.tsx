@@ -52,6 +52,7 @@ function SettingPermission({ label, value, onValueChange }: { label: string; val
 
 export default function MoonshotSettingsPage() {
   const { settings, updateSettings, theme, setTheme, importDemoData, resetDemoData } = useMoonshotStore();
+  const navigate = useNavigate();
   const [rawJson, setRawJson] = useState("");
 
   const patch = <K extends keyof MoonshotSettings>(key: K, value: MoonshotSettings[K]) => updateSettings({ [key]: value } as Partial<MoonshotSettings>);
