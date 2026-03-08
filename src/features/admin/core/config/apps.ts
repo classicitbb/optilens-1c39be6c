@@ -173,6 +173,8 @@ export const ADMIN_APPS = {
       { label: 'Business Plan', route: '/admin/moonshot/business-plan', icon: MsPlan },
       { label: 'Tools', route: '/admin/moonshot/tools', icon: MsTools },
       { label: 'Users', route: '/admin/moonshot/users', icon: MsUsers },
+      { label: 'Resources', route: '/admin/moonshot/resources', icon: BookOpen },
+      { label: 'Settings', route: '/admin/moonshot/settings', icon: Settings },
     ] satisfies SidebarItem[],
   },
 } as const;
