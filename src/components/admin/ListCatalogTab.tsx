@@ -510,7 +510,7 @@ const ListCatalogTab = ({
 
         </td>
         {/* Pencil override icon */}
-        <td className="border border-slate-200 p-0 no-print w-7">
+        <td className="border border-border p-0 no-print w-7">
           {(row.lensId || row.addonId || row.supplyId) && versionId &&
           <button
             className="w-full h-full flex items-center justify-center p-1 hover:bg-primary/10 transition-colors"
@@ -521,7 +521,7 @@ const ListCatalogTab = ({
             </button>
           }
         </td>
-        <td className="border border-slate-200 p-0 no-print">
+        <td className="border border-border p-0 no-print">
           <button className="w-full h-full flex items-center justify-center p-1 hover:bg-destructive/10 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
             <X className="h-3 w-3 text-destructive/60 hover:text-destructive" />
           </button>
