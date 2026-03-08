@@ -111,9 +111,9 @@ const HelpArticleEditor = () => {
           </div>
 
           <div>
-            <label className="text-[11px] font-medium text-slate-400 mb-1 block">Page</label>
+            <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Page</label>
             <Select value={editing.page_slug || "all"} onValueChange={(v) => setEditing({ ...editing, page_slug: v })}>
-              <SelectTrigger className="h-8 text-xs bg-slate-800 border-slate-700 text-slate-200">
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
