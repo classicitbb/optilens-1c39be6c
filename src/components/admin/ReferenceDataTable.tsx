@@ -230,8 +230,8 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
 
       {/* Bulk actions bar */}
       {selected.size > 0 && canEdit && (
-        <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "hsl(215 65% 50% / 0.06)", border: "1px solid hsl(215 65% 50% / 0.15)" }}>
-          <span className="text-xs font-medium" style={{ color: "hsl(215 65% 50%)" }}>
+        <div className="flex items-center gap-2 p-2" style={{ background: "hsl(var(--admin-accent) / 0.06)", border: "1px solid hsl(var(--admin-accent) / 0.15)" }}>
+          <span className="text-xs font-medium" style={{ color: "hsl(var(--admin-accent))" }}>
             {selected.size} selected
           </span>
           <div className="ml-auto flex gap-1.5">
