@@ -133,12 +133,12 @@ export const useLegalPage = (slug: string) => {
   return useQuery({
     queryKey: ["legal_page", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("help_articles")
         .select("*")
         .eq("content_type", "legal")
         .eq("page_slug", slug)
-        .eq("is_active", true)
+        .eq("is_active", true) as any)
         .eq("status", "published")
         .in("visibility", ["public", "customer"])
         .single();
