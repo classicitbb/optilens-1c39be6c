@@ -1,184 +1,223 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Pencil } from "lucide-react";
+import { Pencil, Eye, FilePenLine, Save, Upload, Undo2, XCircle, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { WikiCategory } from "@/data/wikiContent";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
+import RichTextEditor from "./RichTextEditor";
+import WikiArticleRenderer from "./WikiArticleRenderer";
+import { useHelpArticles } from "@/hooks/useHelpArticles";
+import { useToast } from "@/hooks/use-toast";
+import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
+import { canonicalToHtml, toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
+import { Badge } from "@/components/ui/badge";
 
 interface WikiContentPanelProps {
   categories: WikiCategory[];
   activeArticleId: string | null;
+  editingArticleId?: string | null;
   canEdit?: boolean;
-  onEditArticle?: (article: { id: string; title: string; content: string }, categoryId: string) => void;
+  onEditArticle?: (article: { id: string; title: string; content: string }) => void;
+  onEditingChange?: (articleId: string | null) => void;
   isCategoryVisible?: (categoryId: string) => boolean;
+  wikiHeadings: { id: string; title: string }[];
 }
 
-/** Shared prose classes used by both the Tiptap editor and this read-only view */
-export const WIKI_PROSE_CLASSES =
-  "prose prose-sm max-w-none text-muted-foreground " +
-  "[&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-5 [&_h1]:text-foreground " +
-  "[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-1.5 [&_h2]:mt-4 [&_h2]:text-foreground " +
-  "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:text-foreground " +
-  "[&_p]:text-sm [&_p]:leading-relaxed [&_p]:mb-1 " +
-  "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 " +
-  "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2 " +
-  "[&_li]:text-sm [&_li]:mb-0.5 " +
-  "[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer " +
-  "[&_strong]:text-foreground [&_strong]:font-semibold " +
-  "[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic " +
-  "[&_pre]:bg-muted/30 [&_pre]:rounded-md [&_pre]:p-3 [&_pre]:text-xs [&_pre]:overflow-x-auto " +
-  "[&_code]:text-xs [&_code]:bg-muted/40 [&_code]:px-1 [&_code]:rounded " +
-  "[&_hr]:border-border [&_hr]:my-4";
-
-/**
- * Lightweight markdown→HTML converter for static wiki articles.
- * Handles: headings, bold, bullets, ordered lists, code blocks, code spans, blank lines.
- */
-function markdownToHtml(md: string): string {
-  const lines = md.split("\n");
-  const out: string[] = [];
-  let inCode = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // fenced code blocks
-    if (trimmed.startsWith("```")) {
-      if (inCode) {
-        out.push("</code></pre>");
-        inCode = false;
-      } else {
-        out.push("<pre><code>");
-        inCode = true;
-      }
-      continue;
-    }
-    if (inCode) {
-      out.push(line.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
-      continue;
-    }
-
-    // blank line
-    if (!trimmed) {
-      out.push("<br/>");
-      continue;
-    }
-
-    // headings
-    const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)/);
-    if (headingMatch) {
-      const level = headingMatch[1].length;
-      out.push(`<h${level}>${inlineMd(headingMatch[2])}</h${level}>`);
-      continue;
-    }
-
-    // bullet
-    if (trimmed.startsWith("• ") || trimmed.startsWith("- ")) {
-      out.push(`<ul><li>${inlineMd(trimmed.replace(/^[•\-]\s*/, ""))}</li></ul>`);
-      continue;
-    }
-
-    // ordered list
-    const olMatch = trimmed.match(/^(\d+)\.\s+(.+)/);
-    if (olMatch) {
-      out.push(`<ol start="${olMatch[1]}"><li>${inlineMd(olMatch[2])}</li></ol>`);
-      continue;
-    }
-
-    out.push(`<p>${inlineMd(trimmed)}</p>`);
-  }
-
-  if (inCode) out.push("</code></pre>");
-
-  // Merge adjacent <ul> and <ol> tags
-  return out
-    .join("\n")
-    .replace(/<\/ul>\n<ul>/g, "")
-    .replace(/<\/ol>\n<ol(?: start="\d+")?>/g, "");
-}
-
-/** Inline markdown: bold, inline code, backtick */
-function inlineMd(text: string): string {
-  return text
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-}
-
-/** Detect if content is HTML (from Tiptap) or plain markdown */
-function isHtml(content: string): boolean {
-  return /<[a-z][\s\S]*>/i.test(content);
-}
-
-const WikiContentPanel = ({ categories, activeArticleId, canEdit, onEditArticle, isCategoryVisible }: WikiContentPanelProps) => {
+const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEdit, onEditArticle, onEditingChange, isCategoryVisible, wikiHeadings }: WikiContentPanelProps) => {
   const displayCategories = categories.filter((category) => category.articles.length > 0 && (isCategoryVisible ? isCategoryVisible(category.id) : true));
+  const [isPreview, setIsPreview] = useState(false);
+  const [form, setForm] = useState({ title: "", content: "", category: wikiHeadings[0]?.id ?? "", status: "draft" as "draft" | "published" | "archived", note: "" });
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const { toast } = useToast();
+  const { upsertArticle, fetchVersions, restoreVersion, canPublish } = useHelpArticles();
+
   let activeCategory: WikiCategory | undefined;
-  let activeArticle: { id: string; title: string; content: string } | undefined;
+  let activeArticle: { id: string; title: string; content: string; body_json?: BlogCanonicalContent; context_slugs?: string[]; status?: "draft" | "published" | "archived"; version_number?: number } | undefined;
 
   for (const cat of displayCategories) {
-    const found = cat.articles.find(a => a.id === activeArticleId);
+    const found = cat.articles.find((a: any) => a.id === activeArticleId);
     if (found) {
       activeCategory = cat;
-      activeArticle = found;
+      activeArticle = found as any;
       break;
     }
   }
 
-  const renderedHtml = useMemo(() => {
-    if (!activeArticle?.content) return "<p>No content yet.</p>";
-    return isHtml(activeArticle.content) ? activeArticle.content : markdownToHtml(activeArticle.content);
-  }, [activeArticle?.content]);
+  const isEditing = Boolean(editingArticleId) && (editingArticleId === activeArticleId || editingArticleId === "new");
 
-  if (!activeArticle || !activeCategory) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">
-          Select an article from the sidebar.
-        </p>
-      </div>
-    );
+  useEffect(() => {
+    if (isEditing) {
+      setForm({
+        title: activeArticle?.title ?? "",
+        content: activeArticle?.body_json ? canonicalToHtml(activeArticle.body_json) : activeArticle?.content ?? "",
+        category: activeCategory?.id ?? wikiHeadings[0]?.id ?? "",
+        status: (activeArticle as any)?.status ?? "draft",
+        note: "",
+      });
+      setIsPreview(false);
+    }
+  }, [isEditing, activeArticleId, activeArticle?.title, activeArticle?.content, activeCategory?.id, wikiHeadings]);
+
+  const currentContexts = activeArticle?.context_slugs?.length ? activeArticle.context_slugs : ["knowledge/wiki"];
+
+  useEffect(() => {
+    if (!isEditing) return;
+    setSaveState("saving");
+    const t = setTimeout(async () => {
+      try {
+        if (!form.title.trim()) {
+          setSaveState("idle");
+          return;
+        }
+        await upsertArticle({
+          id: editingArticleId && editingArticleId !== "new" ? editingArticleId : undefined,
+          title: form.title,
+          content: form.content,
+          category: form.category,
+          page_slug: "knowledge/wiki",
+          context_slugs: currentContexts,
+          status: form.status,
+          change_note: "Autosave",
+          version_number: (activeArticle as any)?.version_number,
+        } as any);
+        setSaveState("saved");
+      } catch {
+        setSaveState("idle");
+      }
+    }, 1400);
+    return () => clearTimeout(t);
+  }, [form.title, form.content, form.category, form.status, isEditing, editingArticleId, activeArticle]);
+
+  const handleSaveDraft = async () => {
+    await upsertArticle({
+      id: editingArticleId && editingArticleId !== "new" ? editingArticleId : undefined,
+      title: form.title,
+      content: form.content,
+      category: form.category,
+      page_slug: "knowledge/wiki",
+      context_slugs: currentContexts,
+      status: "draft",
+      change_note: form.note || "Saved draft",
+      version_number: (activeArticle as any)?.version_number,
+    } as any);
+    toast({ title: "Draft saved" });
+  };
+
+  const handlePublish = async () => {
+    const doc = toCanonicalDocument(form.content);
+    const validation = validateCanonicalDocument(doc);
+    if (!validation.valid) {
+      toast({ title: "Cannot publish", description: validation.message, variant: "destructive" });
+      return;
+    }
+    if (!canPublish) {
+      toast({ title: "Publishing permission required", variant: "destructive" });
+      return;
+    }
+    await upsertArticle({
+      id: editingArticleId && editingArticleId !== "new" ? editingArticleId : undefined,
+      title: form.title,
+      content: form.content,
+      category: form.category,
+      page_slug: "knowledge/wiki",
+      context_slugs: currentContexts,
+      status: "published",
+      change_note: form.note || "Published",
+      version_number: (activeArticle as any)?.version_number,
+    } as any);
+    toast({ title: "Article published" });
+    onEditingChange?.(null);
+  };
+
+  const handleUnpublish = async () => {
+    if (!editingArticleId || editingArticleId === "new") return;
+    await upsertArticle({
+      id: editingArticleId,
+      title: form.title,
+      content: form.content,
+      category: form.category,
+      page_slug: "knowledge/wiki",
+      context_slugs: currentContexts,
+      status: "draft",
+      change_note: "Unpublished",
+      version_number: (activeArticle as any)?.version_number,
+    } as any);
+    toast({ title: "Article unpublished" });
+  };
+
+  const handleRollback = async () => {
+    if (!editingArticleId || editingArticleId === "new") return;
+    const versions = await fetchVersions(editingArticleId);
+    const target = versions[1];
+    if (!target) {
+      toast({ title: "No previous version" });
+      return;
+    }
+    await restoreVersion({ articleId: editingArticleId, version: target });
+    toast({ title: `Rolled back to v${target.version_number}` });
+  };
+
+  if (!activeArticle && editingArticleId !== "new") {
+    return <div className="flex-1 flex items-center justify-center bg-background"><p className="text-sm text-muted-foreground">Select an article from the sidebar.</p></div>;
   }
-
-  const Icon = activeCategory.icon;
 
   return (
     <ScrollArea className="flex-1 bg-background">
       <div className="max-w-3xl mx-auto p-8 space-y-4">
-        {/* Breadcrumb + Edit */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <Icon className="h-3 w-3" />
-            <span>{activeCategory.title}</span>
+            <span>{activeCategory?.title ?? "New Article"}</span>
             <span>/</span>
-            <span className="text-foreground">{activeArticle.title}</span>
+            <span className="text-foreground">{isEditing ? form.title || "Untitled" : activeArticle?.title}</span>
+            {!isEditing && (activeArticle as any)?.status && <Badge variant="secondary" className="text-[10px]">{(activeArticle as any).status}</Badge>}
           </div>
-          {canEdit && onEditArticle && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              title="Edit article"
-              onClick={() => onEditArticle(activeArticle!, activeCategory!.id)}
-            >
+          {canEdit && !isEditing && activeArticle && onEditArticle && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit article" onClick={() => { onEditArticle(activeArticle!); onEditingChange?.(activeArticle.id); }}>
               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           )}
         </div>
 
-        {/* Title */}
-        <h1 className="text-xl font-bold text-foreground tracking-tight">
-          {activeArticle.title}
-        </h1>
+        {isEditing ? (
+          <>
+            <div className="flex items-center gap-2">
+              <Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Article title" className="h-9 text-base font-semibold" />
+              <Button variant="outline" size="sm" onClick={() => setIsPreview((prev) => !prev)} className="gap-1.5">
+                <Eye className="h-3.5 w-3.5" /> {isPreview ? "Return to Editing" : "Preview"}
+              </Button>
+            </div>
 
-        {/* Content */}
-        <div
-          className={WIKI_PROSE_CLASSES}
-          dangerouslySetInnerHTML={{ __html: renderedHtml }}
-        />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock3 className="h-3.5 w-3.5" />
+              {saveState === "saving" ? "Autosaving…" : saveState === "saved" ? "All changes saved" : "Autosave idle"}
+            </div>
 
-        {/* Feedback */}
-        <div className="pt-6">
-          <HelpFeedbackButtons articleId={activeArticle.id} pageSlug="wiki" />
-        </div>
+            {isPreview ? (
+              <div className="border rounded-lg p-4">
+                <WikiArticleRenderer bodyJson={toCanonicalDocument(form.content)} emptyMessage="Nothing to preview yet." />
+              </div>
+            ) : (
+              <RichTextEditor content={form.content} onChange={(value) => setForm((prev) => ({ ...prev, content: value }))} placeholder="Write wiki content..." minHeight="380px" />
+            )}
+
+            <Input value={form.note} onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))} placeholder="Optional change note" className="h-8 text-xs" />
+
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSaveDraft}><Save className="h-3.5 w-3.5" />Save Draft</Button>
+              <Button size="sm" className="gap-1.5" onClick={handlePublish}><Upload className="h-3.5 w-3.5" />Publish</Button>
+              {editingArticleId && editingArticleId !== "new" && <Button size="sm" variant="outline" className="gap-1.5" onClick={handleUnpublish}><FilePenLine className="h-3.5 w-3.5" />Unpublish</Button>}
+              {editingArticleId && editingArticleId !== "new" && <Button size="sm" variant="outline" className="gap-1.5" onClick={handleRollback}><Undo2 className="h-3.5 w-3.5" />Rollback</Button>}
+              <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => onEditingChange?.(null)}><XCircle className="h-3.5 w-3.5" />Cancel editing</Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">{activeArticle?.title}</h1>
+            <WikiArticleRenderer bodyJson={(activeArticle as any)?.body_json} legacyContent={activeArticle?.content} className="text-sm" emptyMessage="No content yet." />
+            <div className="pt-6"><HelpFeedbackButtons articleId={activeArticle!.id} pageSlug="wiki" /></div>
+          </>
+        )}
       </div>
     </ScrollArea>
   );
