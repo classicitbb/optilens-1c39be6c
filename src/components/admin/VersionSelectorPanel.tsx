@@ -429,7 +429,7 @@ const VersionSelectorPanel = ({
                             {isAdmin && (
                               <button
                                 onClick={() => handleDelete(v)}
-                                className="p-1 rounded hover:bg-red-50"
+                                className="p-1 hover:bg-destructive/10"
                                 title="Delete"
                                 disabled={deleteMutation.isPending}
                               >
