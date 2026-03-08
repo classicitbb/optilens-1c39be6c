@@ -211,8 +211,8 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
               onClick={() => handleFilterChange(t.value)}
               className="px-2.5 py-1 text-xs font-medium rounded transition-colors"
               style={{
-                background: filter === t.value ? "hsl(215 65% 50% / 0.1)" : "transparent",
-                color: filter === t.value ? "hsl(215 65% 50%)" : "hsl(215 15% 50%)",
+                background: filter === t.value ? "hsl(var(--admin-accent) / 0.12)" : "transparent",
+                color: filter === t.value ? "hsl(var(--admin-accent))" : "hsl(var(--admin-muted-fg))",
               }}
             >
               {t.label}
