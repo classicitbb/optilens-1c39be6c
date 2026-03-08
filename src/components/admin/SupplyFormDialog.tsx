@@ -304,7 +304,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
             <div className="space-y-4">
               {/* Flags */}
               <div>
-                <p className={sectionCls} style={{ color: "hsl(215 15% 45%)" }}>Flags</p>
+                <p className={sectionCls + " text-muted-foreground"}>Flags</p>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                   {([
                     ["is_active", "Active"],
