@@ -470,7 +470,7 @@ const ListCatalogTab = ({
             }
             {rowType === "lens" && !isEditingThisDesc &&
             <button className="opacity-0 group-hover:opacity-100 transition-opacity no-print shrink-0" title="Change linked lens" onClick={() => {setPickerTarget({ section, rowKey: row.key, mode: "cell" });setLensPickerOpen(true);}}>
-                <Search className="h-3 w-3" style={{ color: "hsl(215 65% 50%)" }} />
+                <Search className="h-3 w-3" style={{ color: "hsl(var(--admin-table-link-fg))" }} />
               </button>
             }
           </div>
