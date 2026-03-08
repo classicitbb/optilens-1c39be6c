@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback, useRef, DragEvent } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect, DragEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil } from "lucide-react";
+import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil, ChevronRight, ChevronDown } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -352,13 +352,37 @@ const KanbanView = ({
   getOwnerName,
   onDrop,
   onEdit
-
-
-
-
-
 }: {columns: StageColumn[];getOwnerName: (t: OverviewTicket) => string | null;onDrop?: (ticketId: string, stageId: string) => void;onEdit?: (t: OverviewTicket) => void;}) => {
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+
+  // Collapsed columns state — initialise from is_closed / is_folded
+  const [collapsedCols, setCollapsedCols] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    columns.forEach((c) => { if (c.is_closed || c.is_folded) initial.add(c.id); });
+    return initial;
+  });
+
+  // Keep in sync when columns change (e.g. new stages added)
+  useEffect(() => {
+    setCollapsedCols((prev) => {
+      const next = new Set(prev);
+      columns.forEach((c) => {
+        if ((c.is_closed || c.is_folded) && !prev.has(c.id) && prev.size === 0) {
+          // Only auto-collapse on first load; afterwards user controls it
+        }
+      });
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columns.length]);
+
+  const toggleCollapse = (colId: string) => {
+    setCollapsedCols((prev) => {
+      const next = new Set(prev);
+      if (next.has(colId)) next.delete(colId); else next.add(colId);
+      return next;
+    });
+  };
 
   const handleDragStart = (e: DragEvent, ticketId: string) => {
     e.dataTransfer.setData("text/plain", ticketId);
@@ -383,91 +407,121 @@ const KanbanView = ({
   return (
     <div className="flex-1 overflow-x-auto">
       <div className="flex gap-3 p-4 min-h-0 h-full">
-        {columns.map((col) =>
-        <div
-          key={col.id}
-          className={cn(
-            "flex flex-col min-w-[280px] max-w-[320px] shrink-0 rounded-lg transition-colors",
-            dragOverCol === col.id && "bg-primary/5 ring-2 ring-primary/30"
-          )}
-          onDragOver={onDrop ? (e) => handleDragOver(e, col.id) : undefined}
-          onDragLeave={onDrop ? handleDragLeave : undefined}
-          onDrop={onDrop ? (e) => handleDropOnCol(e, col.id) : undefined}>
-          
-            {/* Column header */}
-            <div className="flex items-center justify-between px-3 py-2 mb-2">
-              <h3 className="font-semibold text-foreground text-lg">{col.name}</h3>
-              <Badge variant="secondary" className="text-[10px] font-mono">{col.tickets.length}</Badge>
-            </div>
+        {columns.map((col) => {
+          const isCollapsed = collapsedCols.has(col.id);
 
-            {/* Progress bar */}
-            <div className="h-1 rounded-full bg-muted mx-3 mb-3 overflow-hidden">
-              <div
-              className={cn("h-full rounded-full transition-all", col.is_closed ? "bg-emerald-500" : col.is_folded ? "bg-muted-foreground" : "bg-primary")}
-              style={{ width: col.tickets.length > 0 ? "100%" : "0%" }} />
-            
-            </div>
+          return (
+            <div
+              key={col.id}
+              className={cn(
+                "flex flex-col shrink-0 rounded-lg transition-colors",
+                isCollapsed ? "min-w-[56px] max-w-[56px]" : "min-w-[280px] max-w-[320px]",
+                dragOverCol === col.id && "bg-primary/5 ring-2 ring-primary/30"
+              )}
+              onDragOver={onDrop ? (e) => handleDragOver(e, col.id) : undefined}
+              onDragLeave={onDrop ? handleDragLeave : undefined}
+              onDrop={onDrop ? (e) => handleDropOnCol(e, col.id) : undefined}>
 
-            {/* Cards */}
-            <ScrollArea className="flex-1">
-              <div className="space-y-2 px-3 pb-4">
-                {col.tickets.map((ticket) => {
-                const owner = getOwnerName(ticket);
-                return (
-                  <div
-                    key={ticket.id}
-                    draggable={!!onDrop}
-                    onDragStart={onDrop ? (e) => handleDragStart(e, ticket.id) : undefined}
-                    className={cn(
-                      "rounded-lg border border-border bg-card p-3 space-y-2 shadow-sm hover:shadow-md transition-shadow group",
-                      onDrop && "cursor-grab active:cursor-grabbing"
-                    )}>
-                    
-                      {/* Title row */}
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
-                          {ticket.title}
-                          <span className="text-muted-foreground font-normal"> (#{ticket.ticket_number})</span>
-                        </p>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {onEdit &&
+              {isCollapsed ? (
+                /* ── Collapsed column ── */
+                <div className="flex flex-col items-center gap-2 py-2 h-full">
+                  <button
+                    onClick={() => toggleCollapse(col.id)}
+                    className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    title={`Expand ${col.name}`}>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                  <span className="text-[10px] font-semibold text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                    {col.name}
+                  </span>
+                  <Badge variant="secondary" className="text-[9px] font-mono px-1">{col.tickets.length}</Badge>
+                  {/* Drop zone strip */}
+                  <div className={cn(
+                    "flex-1 w-full rounded-md border-2 border-dashed transition-colors",
+                    dragOverCol === col.id ? "border-primary/50 bg-primary/10" : "border-transparent"
+                  )} />
+                </div>
+              ) : (
+                /* ── Expanded column ── */
+                <>
+                  {/* Column header */}
+                  <div className="flex items-center justify-between px-3 py-2 mb-2">
+                    <div className="flex items-center gap-1.5">
+                      {(col.is_closed || col.is_folded) && (
                         <button
-                          onClick={() => onEdit(ticket)}
-                          className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Edit ticket">
-                          
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                        }
-                          {owner &&
-                        <div className={cn("h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white", getAvatarColor(owner))} title={owner}>
-                              {getInitial(owner)}
+                          onClick={() => toggleCollapse(col.id)}
+                          className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          title={`Collapse ${col.name}`}>
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <h3 className="font-semibold text-foreground text-lg">{col.name}</h3>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] font-mono">{col.tickets.length}</Badge>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="h-1 rounded-full bg-muted mx-3 mb-3 overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all", col.is_closed ? "bg-emerald-500" : col.is_folded ? "bg-muted-foreground" : "bg-primary")}
+                      style={{ width: col.tickets.length > 0 ? "100%" : "0%" }} />
+                  </div>
+
+                  {/* Cards */}
+                  <ScrollArea className="flex-1">
+                    <div className="space-y-2 px-3 pb-4">
+                      {col.tickets.map((ticket) => {
+                        const owner = getOwnerName(ticket);
+                        return (
+                          <div
+                            key={ticket.id}
+                            draggable={!!onDrop}
+                            onDragStart={onDrop ? (e) => handleDragStart(e, ticket.id) : undefined}
+                            onClick={() => onEdit?.(ticket)}
+                            className={cn(
+                              "rounded-lg border border-border bg-card p-3 space-y-2 shadow-sm hover:shadow-md transition-shadow group",
+                              onDrop && "cursor-grab active:cursor-grabbing",
+                              onEdit && "cursor-pointer"
+                            )}>
+                            {/* Title row */}
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+                                {ticket.title}
+                                <span className="text-muted-foreground font-normal"> (#{ticket.ticket_number})</span>
+                              </p>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {owner &&
+                                  <div className={cn("h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white", getAvatarColor(owner))} title={owner}>
+                                    {getInitial(owner)}
+                                  </div>
+                                }
+                              </div>
                             </div>
-                        }
-                        </div>
-                      </div>
 
-                      {/* Bottom row */}
-                      <div className="flex items-center justify-between">
-                        <PriorityStars priority={ticket.priority} />
-                        <div className="flex items-center gap-1.5">
-                          {ticket.deadline && <span className="text-[10px] text-muted-foreground">⏱</span>}
-                          {ticket.team && <Badge variant="outline" className="text-[9px] px-1 py-0">{ticket.team.name.slice(0, 1)}</Badge>}
-                        </div>
-                      </div>
-                    </div>);
-
-              })}
-                {col.tickets.length === 0 &&
-              <p className="text-xs text-muted-foreground text-center py-6">No tickets</p>
-              }
-              </div>
-            </ScrollArea>
-          </div>
-        )}
+                            {/* Bottom row */}
+                            <div className="flex items-center justify-between">
+                              <PriorityStars priority={ticket.priority} />
+                              <div className="flex items-center gap-1.5">
+                                {ticket.deadline && <span className="text-[10px] text-muted-foreground">⏱</span>}
+                                {ticket.team && <Badge variant="outline" className="text-[9px] px-1 py-0">{ticket.team.name.slice(0, 1)}</Badge>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {col.tickets.length === 0 &&
+                        <p className="text-xs text-muted-foreground text-center py-6">No tickets</p>
+                      }
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
-    </div>);
-
+    </div>
+  );
 };
 
 /* ═══════════════════ List View ═══════════════════ */
