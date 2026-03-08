@@ -92,12 +92,14 @@ const TicketEditDialog = ({
   onClose,
   stages,
   teams,
+  ticketTypes,
 }: {
   ticket: OverviewTicket | null;
   open: boolean;
   onClose: () => void;
   stages: { id: string; name: string }[];
   teams: { id: string; name: string }[];
+  ticketTypes: { id: string; name: string }[];
 }) => {
   const updateTicket = useUpdateHelpdeskTicket();
   const updateStage = useUpdateHelpdeskTicketStage();
