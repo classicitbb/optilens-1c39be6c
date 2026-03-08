@@ -318,7 +318,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
                     return (
                       <div key={s.pricing_sheet_id} className="flex items-center gap-3">
                           <Checkbox checked={s.checked} onCheckedChange={(v) => updateSheet(idx, { checked: !!v })} />
-                          <span className="text-xs flex-1 truncate" style={{ color: "hsl(215 30% 15%)" }}>{sheet?.name ?? s.pricing_sheet_id}</span>
+                          <span className="text-xs flex-1 truncate text-foreground">{sheet?.name ?? s.pricing_sheet_id}</span>
                           {s.checked &&
                         <Input className="h-7 text-xs w-24" type="number" step="0.01" min="0" placeholder="Override (BBD)"
                         value={s.price_override} onChange={(e) => updateSheet(idx, { price_override: e.target.value })} />
