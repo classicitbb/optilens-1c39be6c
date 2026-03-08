@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import RichTextEditor from "./RichTextEditor";
-import { useRolePermissions } from "@/hooks/useRolePermissions";
-import { canViewContextSlug } from "@/lib/wikiPermissions";
 import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
 
 interface WikiArticleEditDialogProps {
@@ -38,7 +36,7 @@ const WikiArticleEditDialog = ({
   onSaved,
 }: WikiArticleEditDialogProps) => {
   const { upsertArticle } = useHelpArticles();
-  const { canView } = useRolePermissions();
+  
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -61,10 +59,8 @@ const WikiArticleEditDialog = ({
     });
   }, [article, wikiHeadings]);
 
-  const visibleContextOptions = useMemo(
-    () => ADMIN_CONTEXT_OPTIONS.filter((option) => canViewContextSlug(option.value, canView)),
-    [canView]
-  );
+  // Show all context options in editor — admins should assign articles to any page
+  const visibleContextOptions = ADMIN_CONTEXT_OPTIONS;
 
   const toggleContext = (slug: string) => {
     setForm((prev) => {
