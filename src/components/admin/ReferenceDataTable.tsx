@@ -268,9 +268,9 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
       )}
 
       {/* Table */}
-      <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 15% 85%)", background: "hsl(0 0% 100%)", maxHeight: "calc(100vh - 320px)" }}>
+      <div className="border overflow-auto" style={{ borderColor: "hsl(var(--admin-border))", background: "hsl(var(--admin-table-bg))", maxHeight: "calc(100vh - 320px)" }}>
         <Table>
-          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(0 0% 100%)", boxShadow: "inset 0 -1px 0 hsl(215 15% 85%)" }}>
+          <TableHeader className="sticky top-0 z-10" style={{ background: "hsl(var(--admin-table-header-bg))", boxShadow: "inset 0 -1px 0 hsl(var(--admin-border))" }}>
             <TableRow>
               {canEdit && (
                 <TableHead className="w-10">
