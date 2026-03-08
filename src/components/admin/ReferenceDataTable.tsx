@@ -321,8 +321,8 @@ const ReferenceDataTable = ({ table, entityLabel }: Props) => {
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 h-5 border-0 font-medium"
                       style={{
-                        background: item.is_active ? "hsl(142 71% 45% / 0.1)" : "hsl(215 10% 92%)",
-                        color: item.is_active ? "hsl(142 71% 35%)" : "hsl(215 15% 50%)",
+                        background: item.is_active ? "hsl(var(--admin-success) / 0.1)" : "hsl(var(--admin-muted))",
+                        color: item.is_active ? "hsl(var(--admin-success))" : "hsl(var(--admin-muted-fg))",
                       }}
                     >
                       {item.is_active ? "Active" : "Inactive"}
