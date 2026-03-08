@@ -431,7 +431,7 @@ const KanbanView = ({
                     title={`Expand ${col.name}`}>
                     <ChevronRight className="h-4 w-4" />
                   </button>
-                  <span className="text-[10px] font-semibold text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none">
+                  <span className="text-sm font-bold text-muted-foreground [writing-mode:vertical-lr] rotate-180 select-none tracking-wide">
                     {col.name}
                   </span>
                   <Badge variant="secondary" className="text-[9px] font-mono px-1">{col.tickets.length}</Badge>
