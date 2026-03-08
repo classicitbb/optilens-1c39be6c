@@ -96,6 +96,9 @@ import MoonshotToolsPage from "./pages/admin/moonshot/MoonshotToolsPage";
 import MoonshotUsersPage from "./pages/admin/moonshot/MoonshotUsersPage";
 import MoonshotPlaceholderPage from "./pages/admin/moonshot/MoonshotPlaceholderPage";
 import MoonshotSettingsPage from "./pages/admin/moonshot/MoonshotSettingsPage";
+import MoonshotOrgChartPage from "./pages/admin/moonshot/MoonshotOrgChartPage";
+import MoonshotOneOnOnesPage from "./pages/admin/moonshot/MoonshotOneOnOnesPage";
+import MoonshotRightPersonRightSeatPage from "./pages/admin/moonshot/MoonshotRightPersonRightSeatPage";
 // ZenVue feature pages
 import ZenvueHome from "./pages/zenvue/ZenvueHome";
 import ZenvueBrilliance from "./pages/zenvue/ZenvueBrilliance";
@@ -312,9 +315,9 @@ const App = () => (
                 <Route path="issues" element={<MoonshotIssuesPage />} />
                 <Route path="business-plan" element={<MoonshotBusinessPlanPage />} />
                 <Route path="tools" element={<MoonshotToolsPage />} />
-                <Route path="tools/org-chart" element={<MoonshotPlaceholderPage title="Org Chart tool coming soon" />} />
-                <Route path="tools/one-on-ones" element={<MoonshotPlaceholderPage title="1:1s tool coming soon" />} />
-                <Route path="tools/right-person-right-seat" element={<MoonshotPlaceholderPage title="Right Person Right Seat tool coming soon" />} />
+                <Route path="tools/org-chart" element={<MoonshotOrgChartPage />} />
+                <Route path="tools/one-on-ones" element={<MoonshotOneOnOnesPage />} />
+                <Route path="tools/right-person-right-seat" element={<MoonshotRightPersonRightSeatPage />} />
                 <Route path="users" element={<MoonshotUsersPage />} />
                 <Route path="resources" element={<MoonshotPlaceholderPage title="Resources library coming soon" />} />
                 <Route path="settings" element={<MoonshotSettingsPage />} />
