@@ -102,11 +102,11 @@ const HelpArticleEditor = () => {
 
         <div className="space-y-3">
           <div>
-            <label className="text-[11px] font-medium text-slate-400 mb-1 block">Title</label>
+            <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Title</label>
             <Input
               value={editing.title || ""}
               onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-              className="h-8 text-xs bg-slate-800 border-slate-700 text-slate-200"
+              className="h-8 text-xs"
             />
           </div>
 
