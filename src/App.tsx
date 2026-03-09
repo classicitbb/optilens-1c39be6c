@@ -117,7 +117,7 @@ const MoonshotSettingsPage = lazy(() => import("./pages/admin/moonshot/MoonshotS
 const MoonshotOrgChartPage = lazy(() => import("./pages/admin/moonshot/MoonshotOrgChartPage"));
 const MoonshotOneOnOnesPage = lazy(() => import("./pages/admin/moonshot/MoonshotOneOnOnesPage"));
 const MoonshotRightPersonRightSeatPage = lazy(() => import("./pages/admin/moonshot/MoonshotRightPersonRightSeatPage"));
-const MoonshotLoginPage = lazy(() => import("./pages/moonshot/MoonshotLoginPage"));
+// MoonshotLoginPage removed – Moonshot uses shared /auth
 
 // ZenVue
 const ZenvueHome = lazy(() => import("./pages/zenvue/ZenvueHome"));
@@ -176,13 +176,14 @@ const App = () => (
           <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
           <Routes>
             <Route element={<CustomerShell />}>
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
-              <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+              <Route path="/store" element={<Store />} />
+              <Route path="/knowledge" element={<Knowledge />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+
               <Route path="/legal/:slug" element={<LegalPage />} />
               <Route path="/privacy-policy" element={<Navigate to="/legal/privacy-policy" replace />} />
               <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
@@ -222,13 +223,13 @@ const App = () => (
               <Route path="/return-policy" element={<LegalPage />} />
 
               {/* ZenVue integrated feature pages */}
-              <Route path="/zenvue" element={<ProtectedRoute><ZenvueHome /></ProtectedRoute>} />
-              <Route path="/zenvue/brilliance" element={<ProtectedRoute><ZenvueBrilliance /></ProtectedRoute>} />
-              <Route path="/zenvue/single-vision" element={<ProtectedRoute><ZenvueSingleVision /></ProtectedRoute>} />
-              <Route path="/zenvue/sundun" element={<ProtectedRoute><ZenvueSunDun /></ProtectedRoute>} />
-              <Route path="/zenvue/darkun" element={<ProtectedRoute><ZenvueDarkun /></ProtectedRoute>} />
-              <Route path="/zenvue/compare" element={<ProtectedRoute><ZenvueCompare /></ProtectedRoute>} />
-              <Route path="/zenvue/wholesale" element={<ProtectedRoute><ZenvueWholesale /></ProtectedRoute>} />
+              <Route path="/zenvue" element={<ZenvueHome />} />
+              <Route path="/zenvue/brilliance" element={<ZenvueBrilliance />} />
+              <Route path="/zenvue/single-vision" element={<ZenvueSingleVision />} />
+              <Route path="/zenvue/sundun" element={<ZenvueSunDun />} />
+              <Route path="/zenvue/darkun" element={<ZenvueDarkun />} />
+              <Route path="/zenvue/compare" element={<ZenvueCompare />} />
+              <Route path="/zenvue/wholesale" element={<ZenvueWholesale />} />
             </Route>
 
               {/* Admin — all apps share AdminLayout */}
@@ -350,7 +351,7 @@ const App = () => (
               </Route>
 
               {/* ═══ Moonshot App (standalone layout) ═══ */}
-              <Route path="/moonshot/login" element={<MoonshotLoginPage />} />
+              {/* Moonshot login removed – uses shared /auth */}
               <Route path="/moonshot" element={<MoonshotProtectedRoute><MoonshotLayout /></MoonshotProtectedRoute>}>
                 <Route index element={<Navigate to="/moonshot/dashboard" replace />} />
                 <Route path="dashboard" element={<MoonshotDashboardPage />} />
