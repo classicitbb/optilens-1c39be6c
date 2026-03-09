@@ -9,6 +9,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { hasPermission } from "@/lib/accessControl";
 import { lovable } from "@/integrations/lovable";
 import { useRobotsMeta } from "@/hooks/useRobotsMeta";
+import { supabase } from "@/integrations/supabase/client";
+import type { AppRole } from "@/hooks/useUserRole";
 
 const MoonshotLoginPage = () => {
   useRobotsMeta("noindex, nofollow");
@@ -64,14 +66,29 @@ const MoonshotLoginPage = () => {
   const handleSignIn = async (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
-    const { error } = await signIn(email, password);
+    const { error, data } = await signIn(email, password);
     setSubmitting(false);
     if (error) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
       return;
     }
     localStorage.setItem("moonshot:last-email", email);
-    routeUser();
+
+    // Fetch role directly instead of waiting for React Query to resolve
+    const userId = data?.user?.id;
+    if (userId) {
+      const { data: roleRow } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const freshRole = (roleRow?.role as AppRole) ?? null;
+      if (hasPermission(freshRole, "moonshot_access")) {
+        navigate(moonshotRedirectTarget, { replace: true });
+        return;
+      }
+    }
+    navigate("/moonshot/login?error=access_denied", { replace: true });
   };
 
   return (
