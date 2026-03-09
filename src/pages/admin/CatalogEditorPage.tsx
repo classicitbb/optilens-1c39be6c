@@ -35,15 +35,15 @@ interface CatalogSection {
 
 /* ─── Hooks ─── */
 const useAllPricelistVersions = () => {
-  return useQuery({
-    queryKey: ["all-pricelist-versions-brief"],
+  return useQuery<PricelistVersion[]>({
+    queryKey: ["all-pricelist-versions-full"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pricelist_versions")
-        .select("id, name, format_type")
+        .select("*")
         .order("name");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as PricelistVersion[];
     },
   });
 };
