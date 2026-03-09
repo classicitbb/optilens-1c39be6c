@@ -267,8 +267,8 @@ const App = () => (
                 <Route path="crm/dashboard" element={<CrmDashboardPage />} />
                 <Route path="crm/pipeline" element={<CrmPipelinePage />} />
                 <Route path="crm/activities" element={<CrmActivitiesPage />} />
-                <Route path="crm/proposals" element={<RedirectToProposals />} />
-                <Route path="crm/catalog-publisher" element={<RedirectToProposals />} />
+                <Route path="crm/proposals" element={<Navigate to="/admin/sales/proposals" replace />} />
+                <Route path="crm/catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
 
                 {/* ═══ Helpdesk App ═══ */}
                 <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/overview" replace />} />
