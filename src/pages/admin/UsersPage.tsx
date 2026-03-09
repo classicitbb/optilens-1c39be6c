@@ -116,8 +116,7 @@ const UsersPage = () => {
       if (error) throw error;
       toast({ title: "Name updated" });
       setEditingName(null);
-      // Force refetch
-      window.location.reload();
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
