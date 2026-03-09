@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
+import MoonshotProtectedRoute from "./components/MoonshotProtectedRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 
@@ -115,6 +116,7 @@ const MoonshotSettingsPage = lazy(() => import("./pages/admin/moonshot/MoonshotS
 const MoonshotOrgChartPage = lazy(() => import("./pages/admin/moonshot/MoonshotOrgChartPage"));
 const MoonshotOneOnOnesPage = lazy(() => import("./pages/admin/moonshot/MoonshotOneOnOnesPage"));
 const MoonshotRightPersonRightSeatPage = lazy(() => import("./pages/admin/moonshot/MoonshotRightPersonRightSeatPage"));
+const MoonshotLoginPage = lazy(() => import("./pages/moonshot/MoonshotLoginPage"));
 
 // ZenVue
 const ZenvueHome = lazy(() => import("./pages/zenvue/ZenvueHome"));
@@ -289,11 +291,11 @@ const App = () => (
                 {/* ═══ Settings App ═══ */}
                 <Route path="settings" element={<Navigate to="/admin/settings/company" replace />} />
                 <Route path="settings/company" element={<CompanySettingsPage />} />
-                <Route path="settings/users" element={<UsersPage />} />
-                <Route path="settings/roles" element={<RolesPermissionsPage />} />
-                <Route path="settings/audit" element={<AuditLogPage />} />
+                <Route path="settings/users" element={<AdminOnlyRoute><UsersPage /></AdminOnlyRoute>} />
+                <Route path="settings/roles" element={<AdminOnlyRoute><RolesPermissionsPage /></AdminOnlyRoute>} />
+                <Route path="settings/audit" element={<AdminOnlyRoute><AuditLogPage /></AdminOnlyRoute>} />
                 <Route path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>} />
-                <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
+                <Route path="settings/runtime-errors" element={<AdminOnlyRoute><RuntimeErrorsPage /></AdminOnlyRoute>} />
 
                 {/* ═══ Legacy redirects ═══ */}
                 <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
@@ -328,8 +330,9 @@ const App = () => (
               </Route>
 
               {/* ═══ Moonshot App (standalone layout) ═══ */}
-              <Route path="/admin/moonshot" element={<AdminProtectedRoute><MoonshotLayout /></AdminProtectedRoute>}>
-                <Route index element={<Navigate to="/admin/moonshot/dashboard" replace />} />
+              <Route path="/moonshot/login" element={<MoonshotLoginPage />} />
+              <Route path="/moonshot" element={<MoonshotProtectedRoute><MoonshotLayout /></MoonshotProtectedRoute>}>
+                <Route index element={<Navigate to="/moonshot/dashboard" replace />} />
                 <Route path="dashboard" element={<MoonshotDashboardPage />} />
                 <Route path="workspace" element={<MoonshotWorkspacePage />} />
                 <Route path="meetings" element={<MoonshotMeetingsPage />} />
@@ -349,6 +352,7 @@ const App = () => (
                 <Route path="settings" element={<MoonshotSettingsPage />} />
                 <Route path="feedback" element={<MoonshotPlaceholderPage title="Thanks! Feedback form coming soon" />} />
               </Route>
+              <Route path="/admin/moonshot/*" element={<Navigate to="/moonshot" replace />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

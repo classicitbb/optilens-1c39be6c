@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { PanelLeftClose, PanelLeft, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
+import { canAccessRoute } from "@/lib/accessControl";
 
 type IntegrationConnectionRow = {
   status: "connected" | "error" | "not_configured" | null;
@@ -23,6 +25,7 @@ const AdminSidebar = () => {
   }, [currentPath]);
 
   const activeApp = activeAppKey ? ADMIN_APPS[activeAppKey] : null;
+  const { role } = useUserRole();
 
   const { data: integrationStatus } = useQuery({
     queryKey: ["integration-connection-status", "odoo"],
@@ -88,7 +91,7 @@ const AdminSidebar = () => {
 
       {/* Sidebar items for active app */}
       <nav className="flex-1 overflow-y-auto py-2 space-y-0.5 rounded-none">
-        {activeApp?.sidebarItems.map((item) => {
+        {activeApp?.sidebarItems.filter((item) => canAccessRoute(role, item.route)).map((item) => {
           const active = isActive(item.route);
           const Icon = item.icon;
           return (

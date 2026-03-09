@@ -165,9 +165,9 @@ const baseState = {
   privateNotes: "Capture your private notes from meetings and weekly priorities here.",
   headlines: ["Q2 onboarding launch on track", "Retention improved +3% this month"],
   quickLinks: [
-    { label: "All Meetings", href: "/admin/moonshot/meetings" },
-    { label: "Scorecards", href: "/admin/moonshot/scorecards" },
-    { label: "Quarterly Rocks", href: "/admin/moonshot/rocks" },
+    { label: "All Meetings", href: "/moonshot/meetings" },
+    { label: "Scorecards", href: "/moonshot/scorecards" },
+    { label: "Quarterly Rocks", href: "/moonshot/rocks" },
   ],
   dashboardTiles: defaultDashboardTiles,
   workspaceTiles: defaultWorkspaceTiles,

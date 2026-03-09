@@ -42,7 +42,7 @@ export default function MoonshotLoginGate() {
 
   const handleGoogle = async () => {
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/admin/moonshot/dashboard",
+      redirect_uri: window.location.origin + "/moonshot/dashboard",
     });
     if (error) toast({ title: "Google sign-in failed", description: error.message, variant: "destructive" });
   };
