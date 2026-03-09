@@ -117,7 +117,7 @@ const MoonshotSettingsPage = lazy(() => import("./pages/admin/moonshot/MoonshotS
 const MoonshotOrgChartPage = lazy(() => import("./pages/admin/moonshot/MoonshotOrgChartPage"));
 const MoonshotOneOnOnesPage = lazy(() => import("./pages/admin/moonshot/MoonshotOneOnOnesPage"));
 const MoonshotRightPersonRightSeatPage = lazy(() => import("./pages/admin/moonshot/MoonshotRightPersonRightSeatPage"));
-const MoonshotLoginPage = lazy(() => import("./pages/moonshot/MoonshotLoginPage"));
+// MoonshotLoginPage removed – Moonshot uses shared /auth
 
 // ZenVue
 const ZenvueHome = lazy(() => import("./pages/zenvue/ZenvueHome"));
