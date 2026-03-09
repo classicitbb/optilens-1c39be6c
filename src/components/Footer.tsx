@@ -66,7 +66,7 @@ const footerColumns = [
 
 const Footer = () => {
   const { data: copyrightArticle } = useLegalPage("copyright");
-  const copyrightText = copyrightArticle?.content || "© 2024 OptiLens Pro. All rights reserved.";
+  const copyrightText = copyrightArticle?.content || "© 2026 OptiLens Pro. All rights reserved.";
 
   return (
     <footer className="border-t border-border bg-primary text-primary-foreground">
