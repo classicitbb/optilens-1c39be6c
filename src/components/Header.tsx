@@ -194,7 +194,10 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
 const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
   const [open, setOpen] = useState(false);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const [arrowLeft, setArrowLeft] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -206,6 +209,15 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (open && btnRef.current && panelRef.current) {
+      const btnRect = btnRef.current.getBoundingClientRect();
+      const panelRect = panelRef.current.getBoundingClientRect();
+      const btnCenter = btnRect.left + btnRect.width / 2;
+      setArrowLeft(btnCenter - panelRect.left);
+    }
+  }, [open]);
 
   const handleTriggerClick = () => {
     if (isPinnedOpen) {
@@ -229,6 +241,7 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
       ref={ref}
     >
       <button
+        ref={btnRef}
         type="button"
         onClick={handleTriggerClick}
         className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -240,10 +253,10 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
       </button>
 
       {open && (
-        <div className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
-          {/* Arrow pointing up at the trigger */}
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-border" />
-          <div className="absolute -top-[7px] left-1/2 -translate-x-1/2 h-0 w-0 border-x-[7px] border-b-[7px] border-x-transparent border-b-background" />
+        <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+          {/* Arrow pointing up at the trigger button */}
+          <div style={{ left: arrowLeft }} className="absolute -top-2 -translate-x-1/2 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-border" />
+          <div style={{ left: arrowLeft }} className="absolute -top-[7px] -translate-x-1/2 h-0 w-0 border-x-[7px] border-b-[7px] border-x-transparent border-b-background" />
           <div className="grid gap-4 md:grid-cols-3">
           {item.sections.map((section) => (
             <div key={section.title}>
