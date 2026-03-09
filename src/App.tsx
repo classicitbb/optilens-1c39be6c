@@ -34,6 +34,7 @@ const CaringForCoatedLensesPage = lazy(() => import("./pages/coatings/CaringForC
 const ProfessionalsPage = lazy(() => import("./pages/ProfessionalsPage"));
 const PatientsPage = lazy(() => import("./pages/PatientsPage"));
 const ProfessionalsPortalPage = lazy(() => import("./pages/ProfessionalsPortalPage"));
+const ProfessionalsChemistriePage = lazy(() => import("./pages/ProfessionalsChemistriePage"));
 const OfficeOccupationalPage = lazy(() => import("./pages/lenses/OfficeOccupationalPage"));
 const AntiFatiguePage = lazy(() => import("./pages/lenses/AntiFatiguePage"));
 const BlueFilterPage = lazy(() => import("./pages/lenses/BlueFilterPage"));
