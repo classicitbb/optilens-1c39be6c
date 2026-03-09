@@ -174,8 +174,10 @@ const App = () => (
               <Route path="/accessibility" element={<Navigate to="/legal/accessibility" replace />} />
               <Route path="/lenses" element={<Navigate to="/lenses/lens-types" replace />} />
               <Route path="/lenses/lens-types" element={<LensDesignGuidePage />} />
+              <Route path="/lenses/progressive" element={<ProgressivePage />} />
               <Route path="/lenses/office-occupational" element={<OfficeOccupationalPage />} />
               <Route path="/lenses/anti-fatigue" element={<AntiFatiguePage />} />
+              <Route path="/lenses/single-vision" element={<SingleVisionPage />} />
               <Route path="/lenses/blue-filter" element={<BlueFilterPage />} />
               <Route path="/lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
               <Route path="/lenses/materials" element={<MaterialsPage />} />
