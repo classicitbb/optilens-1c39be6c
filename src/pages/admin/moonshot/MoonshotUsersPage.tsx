@@ -1,9 +1,6 @@
 import { formatDistanceToNowStrict } from "date-fns";
 import { ArrowUpDown, Pencil, Trash2, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useUserRole } from "@/hooks/useUserRole";
-import { hasRole } from "@/lib/accessControl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,8 +26,6 @@ const userRoles = ["Admin", "Integrator", "Visionary", "Manager", "Member"];
 
 export default function MoonshotUsersPage() {
   const { users, seats, addUser, updateUser, deleteUser } = useMoonshotStore();
-  const { toast } = useToast();
-  const { role } = useUserRole();
   const [query, setQuery] = useState("");
   const [seatFilter, setSeatFilter] = useState("all");
   const [supervisorFilter, setSupervisorFilter] = useState("all");
@@ -39,7 +34,6 @@ export default function MoonshotUsersPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [inviteEmail, setInviteEmail] = useState("");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [isInviting, setIsInviting] = useState(false);
 
   const usersById = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
   const seatsById = useMemo(() => new Map(seats.map((s) => [s.id, s])), [seats]);
@@ -90,53 +84,20 @@ export default function MoonshotUsersPage() {
     setSortDirection("asc");
   };
 
-  const canInviteUsers = hasRole(role, ["admin", "operator"]);
-
-  const inviteUser = async () => {
-    const email = inviteEmail.trim().toLowerCase();
-
-    if (!canInviteUsers) {
-      toast({ title: "Not authorized", description: "You are not allowed to invite users.", variant: "destructive" });
-      return;
-    }
-
-    if (!email) {
-      toast({ title: "Email required", description: "Please enter an email to send an invite.", variant: "destructive" });
-      return;
-    }
-
-    const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!validEmail) {
-      toast({ title: "Invalid email", description: "Enter a valid email address before inviting.", variant: "destructive" });
-      return;
-    }
-
-    if (users.some((user) => user.email.toLowerCase() === email)) {
-      toast({ title: "Already invited", description: `${email} already exists in Moonshot users.`, variant: "destructive" });
-      return;
-    }
-
-    try {
-      setIsInviting(true);
-      const now = new Date().toISOString();
-      addUser({
-        name: email.split("@")[0],
-        email,
-        role: "Member",
-        avatar: email.slice(0, 2).toUpperCase(),
-        seatsUsed: 0,
-        seatIds: [],
-        status: "active",
-        invitation: { status: "pending", pendingAt: now },
-      });
-      setInviteEmail("");
-      toast({ title: "Invite queued", description: `Added ${email} to Moonshot user invites.` });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to process invite right now.";
-      toast({ title: "Invite failed", description: message, variant: "destructive" });
-    } finally {
-      setIsInviting(false);
-    }
+  const inviteUser = () => {
+    if (!inviteEmail.trim()) return;
+    const now = new Date().toISOString();
+    addUser({
+      name: inviteEmail.split("@")[0],
+      email: inviteEmail,
+      role: "Member",
+      avatar: inviteEmail.slice(0, 2).toUpperCase(),
+      seatsUsed: 0,
+      seatIds: [],
+      status: "active",
+      invitation: { status: "pending", pendingAt: now },
+    });
+    setInviteEmail("");
   };
 
   const editingUser = users.find((u) => u.id === editingUserId);
@@ -196,21 +157,8 @@ export default function MoonshotUsersPage() {
               </SelectContent>
             </Select>
             <div className="flex gap-2">
-              <Input
-                placeholder="invite@company.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void inviteUser();
-                  }
-                }}
-              />
-              <Button type="button" onClick={() => void inviteUser()} disabled={isInviting || !canInviteUsers}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                {isInviting ? "Inviting..." : "Invite"}
-              </Button>
+              <Input placeholder="invite@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+              <Button onClick={inviteUser}><UserPlus className="mr-2 h-4 w-4" />Invite</Button>
             </div>
           </div>
 

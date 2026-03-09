@@ -1,6 +1,5 @@
 import { Navigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
-import { getDefaultLandingPageForRole } from "@/lib/accessControl";
 
 const AdminHomeRedirect = () => {
   const { role, isLoading } = useUserRole();
@@ -13,7 +12,8 @@ const AdminHomeRedirect = () => {
     );
   }
 
-  return <Navigate to={getDefaultLandingPageForRole(role)} replace />;
+  const hasCrmAccess = role === "admin" || role === "operator" || role === "viewer";
+  return <Navigate to={hasCrmAccess ? "/admin/crm/pipeline" : "/admin/pricing/catalog"} replace />;
 };
 
 export default AdminHomeRedirect;

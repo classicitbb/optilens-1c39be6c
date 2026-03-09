@@ -95,19 +95,19 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   // Knowledge
   "/admin/knowledge/wiki": "wiki",
   // Moonshot
-  "/moonshot": "moonshot",
-  "/moonshot/dashboard": "moonshot",
-  "/moonshot/workspace": "moonshot",
-  "/moonshot/meetings": "moonshot",
-  "/moonshot/scorecards": "moonshot",
-  "/moonshot/rocks": "moonshot",
-  "/moonshot/todos": "moonshot",
-  "/moonshot/issues": "moonshot",
-  "/moonshot/business-plan": "moonshot",
-  "/moonshot/tools": "moonshot",
-  "/moonshot/users": "moonshot",
-  "/moonshot/resources": "moonshot",
-  "/moonshot/settings": "moonshot",
+  "/admin/moonshot": "moonshot",
+  "/admin/moonshot/dashboard": "moonshot",
+  "/admin/moonshot/workspace": "moonshot",
+  "/admin/moonshot/meetings": "moonshot",
+  "/admin/moonshot/scorecards": "moonshot",
+  "/admin/moonshot/rocks": "moonshot",
+  "/admin/moonshot/todos": "moonshot",
+  "/admin/moonshot/issues": "moonshot",
+  "/admin/moonshot/business-plan": "moonshot",
+  "/admin/moonshot/tools": "moonshot",
+  "/admin/moonshot/users": "moonshot",
+  "/admin/moonshot/resources": "moonshot",
+  "/admin/moonshot/settings": "moonshot",
   // Settings
   "/admin/settings/company": "parameters",
   "/admin/settings/users": "users",
@@ -187,10 +187,14 @@ export const useRolePermissions = () => {
   });
 
   /** Check if user has access to at least one feature under an app's featurePrefix */
-  const hasAppAccess = (featurePrefix: string): boolean =>
-    myPermissions.some(
+  const hasAppAccess = (featurePrefix: string): boolean => {
+    // Admin always has access to everything
+    if (effectiveRole === "admin") return true;
+    // Check if any permission with a matching feature prefix grants view access
+    return myPermissions.some(
       (p) => (p.feature === featurePrefix || p.feature.startsWith(featurePrefix + "-")) && p.can_view
     );
+  };
 
   return {
     allPermissions,

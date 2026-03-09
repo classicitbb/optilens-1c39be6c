@@ -40,8 +40,8 @@ export function useAdminNotifications() {
   const notificationsQuery = useQuery({
     queryKey: ["admin-notifications"],
     queryFn: async () => {
-      const [runtimeErrors, syncProgress, taskReminders] = await Promise.all([
-        Promise.resolve(getRuntimeErrorNotifications(8)),
+      const runtimeErrors = getRuntimeErrorNotifications(8);
+      const [syncProgress, taskReminders] = await Promise.all([
         getSyncProgressNotifications(),
         getTaskReminderNotifications(),
       ]);
@@ -49,8 +49,7 @@ export function useAdminNotifications() {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 20);
     },
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    refetchInterval: 30_000,
   });
 
   const notifications = notificationsQuery.data ?? [];

@@ -112,14 +112,14 @@ export function WorkspaceGrid({ scope }: { scope: Scope }) {
 
   const navigateForTile = (type: WorkspaceTileType) => {
     const routeMap: Record<WorkspaceTileType, string> = {
-      metrics: "/moonshot/scorecards",
-      rocks: "/moonshot/rocks",
-      todos: "/moonshot/todos",
-      issues: "/moonshot/issues",
-      headlines: "/moonshot/workspace",
-      "core-values": "/moonshot/business-plan",
-      notes: "/moonshot/workspace",
-      "quick-links": "/moonshot/workspace",
+      metrics: "/admin/moonshot/scorecards",
+      rocks: "/admin/moonshot/rocks",
+      todos: "/admin/moonshot/todos",
+      issues: "/admin/moonshot/issues",
+      headlines: "/admin/moonshot/workspace",
+      "core-values": "/admin/moonshot/business-plan",
+      notes: "/admin/moonshot/workspace",
+      "quick-links": "/admin/moonshot/workspace",
     };
     navigate(routeMap[type]);
   };

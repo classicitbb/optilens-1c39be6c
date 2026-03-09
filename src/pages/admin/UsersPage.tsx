@@ -1,6 +1,5 @@
 import { useState, useMemo, Fragment } from "react";
 import { useAdminUsers, type AdminUser } from "@/hooks/useAdminUsers";
-import { useQueryClient } from "@tanstack/react-query";
 import type { AppRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
@@ -27,7 +26,6 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 };
 
 const UsersPage = () => {
-  const qc = useQueryClient();
   const { users, isLoading, assignRole, removeRole, resetPassword, inviteUser, createUser } = useAdminUsers();
   const { realRole, startImpersonation } = useAdminRole();
   const { toast } = useToast();
@@ -69,9 +67,8 @@ const UsersPage = () => {
   }, [users, search]);
 
   const handleAssign = async (userId: string, role: AppRole) => {
-    const dbRole = role === "standard_user" ? "viewer" : role;
     try {
-      await assignRole.mutateAsync({ userId, role: dbRole });
+      await assignRole.mutateAsync({ userId, role });
       setEditingUser(null);
       toast({ title: "Role updated", description: `User role set to ${role}.` });
     } catch {
@@ -117,7 +114,8 @@ const UsersPage = () => {
       if (error) throw error;
       toast({ title: "Name updated" });
       setEditingName(null);
-      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      // Force refetch
+      window.location.reload();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {

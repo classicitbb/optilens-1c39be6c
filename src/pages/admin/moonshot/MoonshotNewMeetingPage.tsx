@@ -14,7 +14,7 @@ export default function MoonshotNewMeetingPage() {
       <CardContent>
         <Button onClick={() => {
           addMeeting({ title: "New Meeting", owner: "Classic", date: format(new Date(), "yyyy-MM-dd"), status: "Draft", notes: "", frequency: "weekly", duration: 90, attendeeIds: ["u1", "u2"] });
-          navigate("/moonshot/meetings");
+          navigate("/admin/moonshot/meetings");
         }}>
           Create Draft Meeting
         </Button>

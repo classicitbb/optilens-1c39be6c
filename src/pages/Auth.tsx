@@ -27,6 +27,35 @@ const authSchema = z.object({
 
 type AuthFormData = z.infer<typeof authSchema>;
 
+/* ── Floating math symbols ── */
+const MATH_SYMBOLS = ["∑", "∫", "π", "∞", "Δ", "√", "±", "≈", "θ", "λ", "Ω", "∂", "≠", "≤", "≥", "∝", "÷", "×", "φ", "σ"];
+
+const FloatingSymbols = () =>
+<div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+    {MATH_SYMBOLS.map((s, i) => {
+    const size = 14 + Math.random() * 28;
+    const left = Math.random() * 100;
+    const dur = 18 + Math.random() * 22;
+    const delay = Math.random() * -30;
+    const opacity = 0.08 + Math.random() * 0.12;
+    return (
+      <span
+        key={i}
+        className="absolute animate-float-up select-none"
+        style={{
+          left: `${left}%`,
+          fontSize: `${size}px`,
+          animationDuration: `${dur}s`,
+          animationDelay: `${delay}s`,
+          opacity,
+          color: "white"
+        }}>
+
+          {s}
+        </span>);
+
+  })}
+  </div>;
 
 
 const Auth = () => {
@@ -89,7 +118,21 @@ const Auth = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[hsl(210,80%,18%)]">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
+      {/* ── Animated gradient background (Caribbean flag colours) ── */}
+      <div className="absolute inset-0 animate-gradient-shift bg-[length:400%_400%]"
+      style={{
+        backgroundImage:
+        "linear-gradient(135deg, hsl(210 80% 18%) 0%, hsl(195 90% 30%) 20%, hsl(48 95% 50%) 40%, hsl(145 55% 35%) 60%, hsl(0 75% 45%) 75%, hsl(215 65% 25%) 100%)"
+      }} />
+
+
+      {/* Extra glow blobs */}
+      <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-[hsl(195_90%_30%/0.35)] blur-[120px] animate-pulse" />
+      <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-[hsl(48_95%_50%/0.25)] blur-[120px] animate-pulse [animation-delay:2s]" />
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-[hsl(145_55%_35%/0.2)] blur-[100px] animate-pulse [animation-delay:4s]" />
+
+      <FloatingSymbols />
 
       {/* ── Login card ── */}
       <div className="relative z-10 w-full max-w-md px-4">
@@ -162,7 +205,15 @@ const Auth = () => {
             </form>
           </Form>
 
-          <div className="mt-4">
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/20" />
+            </div>
+          <div className="relative text-xs uppercase flex items-end justify-center">
+              <span className="bg-transparent px-2 text-white/50 mt-[9px]">Or continue with</span>
+            </div>
+          </div>
+
           <Button
             type="button"
             variant="outline"
@@ -183,7 +234,6 @@ const Auth = () => {
             </svg>
             Sign in with Google
           </Button>
-          </div>
 
           <div className="mt-5 text-center">
             <button

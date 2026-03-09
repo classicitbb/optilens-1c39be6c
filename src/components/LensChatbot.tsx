@@ -5,14 +5,13 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
-import { isSupabaseConfigured, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
 
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
 
-const CHAT_URL = `${SUPABASE_URL}/functions/v1/lens-assistant`;
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lens-assistant`;
 
 export const LensChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,18 +41,6 @@ export const LensChatbot = () => {
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
 
-    if (!isSupabaseConfigured) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "Lens Assistant is unavailable until Supabase runtime configuration is set (VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY).",
-        },
-      ]);
-      return;
-    }
-
     const userMessage: Message = { role: "user", content: input.trim() };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
@@ -77,7 +64,7 @@ export const LensChatbot = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ messages: [...messages, userMessage] }),
       });
