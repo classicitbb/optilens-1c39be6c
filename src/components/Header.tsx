@@ -58,6 +58,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
           { label: "SunDun™ Polarized", description: "Featured polarized lens page", to: "/zenvue/sundun" },
           { label: "Darkun™ Photochromic", description: "Featured photochromic lens page", to: "/zenvue/darkun" },
+          { label: "ZenVue Wholesale", description: "Partner application for optical professionals", to: "/zenvue/wholesale" },
         ],
       },
       {
