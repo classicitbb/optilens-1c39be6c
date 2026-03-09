@@ -162,14 +162,6 @@ const Auth = () => {
             </form>
           </Form>
 
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/20" />
-            </div>
-          <div className="relative text-xs uppercase flex items-end justify-center">
-              <span className="bg-transparent px-2 text-white/50 mt-[9px]">Or continue with</span>
-            </div>
-          </div>
 
           <Button
             type="button"
