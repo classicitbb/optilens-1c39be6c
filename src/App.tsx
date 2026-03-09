@@ -199,6 +199,8 @@ const App = () => (
               <Route path="/professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
               <Route path="/professionals/dispensing-tips" element={<DispensingTipsPage />} />
               <Route path="/professionals/tracing-cutting-guide" element={<TracingCuttingGuidePage />} />
+              <Route path="/professionals/lab-process-overview" element={<LabProcessOverviewPage />} />
+              <Route path="/professionals/lens-ordering-tips" element={<LensOrderingTipsPage />} />
               <Route path="/professionals/:slug" element={<ProfessionalsPortalPage />} />
               <Route path="/patients" element={<ProtectedRoute><PatientsPage /></ProtectedRoute>} />
               <Route path="/return-policy" element={<LegalPage />} />
