@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { AppRole } from "@/hooks/useUserRole";
 
+/** DB-level role enum (subset of AppRole that the user_roles table accepts) */
+type DbRole = Exclude<AppRole, "standard_user">;
+
 export interface AdminUser {
   user_id: string;
   email: string;

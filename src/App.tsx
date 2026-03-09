@@ -352,7 +352,7 @@ const App = () => (
                 <Route path="settings" element={<MoonshotSettingsPage />} />
                 <Route path="feedback" element={<MoonshotPlaceholderPage title="Thanks! Feedback form coming soon" />} />
               </Route>
-              <Route path="/admin/moonshot/*" element={<Navigate to="/moonshot" replace />} />
+              <Route path="/admin/moonshot/*" element={<LegacyMoonshotRedirect />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
