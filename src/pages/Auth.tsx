@@ -162,7 +162,7 @@ const Auth = () => {
             </form>
           </Form>
 
-
+          <div className="mt-4">
           <Button
             type="button"
             variant="outline"
@@ -183,6 +183,7 @@ const Auth = () => {
             </svg>
             Sign in with Google
           </Button>
+          </div>
 
           <div className="mt-5 text-center">
             <button
