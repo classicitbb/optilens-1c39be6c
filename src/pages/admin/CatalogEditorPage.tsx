@@ -18,7 +18,7 @@ import SectionContentDialog from "@/components/admin/SectionContentDialog";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { compareCategoryOrder } from "@/lib/sortOrder";
+
 
 /* ─── Types ─── */
 interface CatalogSection {
