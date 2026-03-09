@@ -117,7 +117,6 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
           { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
           { label: "Chemistrie Lens System", description: "Magnetic clip system overview", to: "/professionals/chemistrie-lens-system" },
-          { label: "ZenVue Wholesale", description: "Feature-page application for optical partners", to: "/zenvue/wholesale" },
         ],
       },
       {
