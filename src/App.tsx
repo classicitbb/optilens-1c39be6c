@@ -235,8 +235,8 @@ const App = () => (
                 <Route path="pricing/reference" element={<ReferenceDataPage />} />
                 <Route path="pricing/imports" element={<ImportsPage />} />
                 <Route path="pricing/settings" element={<PricingSettingsPage />} />
-                {/* Legacy pricing route */}
-                <Route path="pricing/legacy" element={<LensPricesPage />} />
+                {/* Legacy pricing redirect */}
+                <Route path="pricing/legacy" element={<Navigate to="/admin/pricing/catalog" replace />} />
 
                 {/* ═══ Sales App ═══ */}
                 <Route path="sales" element={<Navigate to="/admin/sales/proposals" replace />} />
