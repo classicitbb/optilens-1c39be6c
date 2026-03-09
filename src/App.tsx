@@ -282,7 +282,7 @@ const App = () => (
                 {/* ═══ Website App ═══ */}
                 <Route path="website" element={<Navigate to="/admin/website/content" replace />} />
                 <Route path="website/content" element={<ContentManagerPage />} />
-                <Route path="website/microsites" element={<Navigate to="/admin/website/features" replace />} />
+                <Route path="website/microsites" element={<Navigate to="/admin/website/content" replace />} />
                 <Route path="website/features" element={<PlaceholderPage />} />
                 <Route path="website/portals" element={<PlaceholderPage />} />
                 <Route path="website/store" element={<PlaceholderPage />} />
