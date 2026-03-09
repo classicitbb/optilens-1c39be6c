@@ -9,6 +9,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { getDefaultLandingPageForRole, hasPermission } from "@/lib/accessControl";
 import { lovable } from "@/integrations/lovable";
 import { useRobotsMeta } from "@/hooks/useRobotsMeta";
+import { supabase } from "@/integrations/supabase/client";
+import type { AppRole } from "@/hooks/useUserRole";
 
 const MoonshotLoginPage = () => {
   useRobotsMeta("noindex, nofollow");
@@ -26,9 +28,10 @@ const MoonshotLoginPage = () => {
 
   const detectedEmail = useMemo(() => user?.email ?? localStorage.getItem("moonshot:last-email") ?? "", [user?.email]);
 
-  const routeUser = () => {
-    const target = redirect && redirect.startsWith("/moonshot") ? redirect : getDefaultLandingPageForRole(role);
-    navigate(hasPermission(role, "moonshot_access") ? target : getDefaultLandingPageForRole(role), { replace: true });
+  const routeUser = (resolvedRole?: AppRole | null) => {
+    const r = resolvedRole ?? role;
+    const target = redirect && redirect.startsWith("/moonshot") ? redirect : getDefaultLandingPageForRole(r);
+    navigate(hasPermission(r, "moonshot_access") ? target : getDefaultLandingPageForRole(r), { replace: true });
   };
 
   const handleQuickEnter = async () => {
@@ -50,14 +53,24 @@ const MoonshotLoginPage = () => {
   const handleSignIn = async (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
-    const { error } = await signIn(email, password);
+    const { error, data } = await signIn(email, password);
     setSubmitting(false);
     if (error) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
       return;
     }
     localStorage.setItem("moonshot:last-email", email);
-    routeUser();
+    // Fetch role immediately so we don't misroute while the query cache is empty
+    if (data?.user) {
+      const { data: roleRow } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      routeUser((roleRow?.role as AppRole) ?? null);
+    } else {
+      routeUser();
+    }
   };
 
   return (

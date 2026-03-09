@@ -3,7 +3,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
+
+/** Redirect /admin/moonshot/* → /moonshot/* preserving the subpath */
+const LegacyMoonshotRedirect = () => {
+  const { pathname } = useLocation();
+  const subpath = pathname.replace(/^\/admin\/moonshot\/?/, "");
+  return <Navigate to={subpath ? `/moonshot/${subpath}` : "/moonshot"} replace />;
+};
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -352,7 +359,7 @@ const App = () => (
                 <Route path="settings" element={<MoonshotSettingsPage />} />
                 <Route path="feedback" element={<MoonshotPlaceholderPage title="Thanks! Feedback form coming soon" />} />
               </Route>
-              <Route path="/admin/moonshot/*" element={<Navigate to="/moonshot" replace />} />
+              <Route path="/admin/moonshot/*" element={<LegacyMoonshotRedirect />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
