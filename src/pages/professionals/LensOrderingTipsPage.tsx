@@ -409,19 +409,19 @@ const LensOrderingTipsPage = () => {
             </p>
           </div>
 
-          {/* Sticky nav */}
-          <nav
-            className="sticky top-16 z-40 mt-8 border-y border-border bg-background/90 backdrop-blur-md"
-            aria-label="Page sections"
-          >
-            <div className="container mx-auto flex max-w-5xl gap-2 overflow-x-auto px-4 py-2 lg:px-8 scrollbar-none">
+          {/* Jump nav */}
+          <nav className="mt-8 rounded-xl border border-border bg-card p-5" aria-label="Page sections">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Jump to section
+            </p>
+            <div className="flex flex-wrap gap-2">
               {SECTIONS.map((s) => (
                 <a
                   key={s.id}
                   href={`#${s.id}`}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground sm:text-sm"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
                 >
-                  <span className="hidden sm:inline">{s.icon}</span>
+                  {s.icon}
                   {s.label}
                 </a>
               ))}
