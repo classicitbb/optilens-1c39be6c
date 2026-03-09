@@ -54,7 +54,7 @@ const ReferenceDataPage = lazy(() => import("./pages/admin/ReferenceDataPage"));
 const PlaceholderPage = lazy(() => import("./pages/admin/PlaceholderPage"));
 const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
 const ProductCatalogPage = lazy(() => import("./pages/admin/ProductCatalogPage"));
-const LensPricesPage = lazy(() => import("./pages/admin/LensPricesPage"));
+
 const RxLensPricesPage = lazy(() => import("./pages/admin/RxLensPricesPage"));
 const StockLensPricesPage = lazy(() => import("./pages/admin/StockLensPricesPage"));
 const BuySellPricesPage = lazy(() => import("./pages/admin/BuySellPricesPage"));
