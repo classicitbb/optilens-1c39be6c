@@ -134,12 +134,6 @@ const queryClient = new QueryClient({
   },
 });
 
-const RedirectToProposals = () => {
-  const location = useLocation();
-  const target = `/admin/sales/proposals${location.search}${location.hash}`;
-
-  return <Navigate to={target} replace state={location.state} />;
-};
 
 const CustomerShell = () => (
   <CartProvider>
