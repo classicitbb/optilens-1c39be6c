@@ -37,6 +37,28 @@ Use `./scripts/npm-clean.sh` to run npm without that deprecated env var while pr
 
 CI workflows in this repo use the wrapper by default.
 
+## Supabase runtime configuration
+
+This app requires client-side Supabase environment variables for auth and API-backed features:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+Create a local env file before running the app:
+
+```bash
+cp .env.example .env.local
+```
+
+Then set values in `.env.local` (or `.env` for Vite):
+
+```bash
+VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<your-anon-publishable-key>
+```
+
+Without these values, the UI still renders in degraded mode, but login and Supabase-backed data APIs will fail.
+
 ## Local development
 
 ```bash

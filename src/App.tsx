@@ -16,7 +16,7 @@ import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import MoonshotProtectedRoute from "./components/MoonshotProtectedRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import CookieConsentBanner from "./components/CookieConsentBanner";
-import { isSupabaseConfigured } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, missingSupabaseConfigMessage } from "@/integrations/supabase/client";
 
 // Lazy-loaded pages for code-splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -144,7 +144,7 @@ const RuntimeConfigWarning = () => {
   if (isSupabaseConfigured) return null;
   return (
     <div className="fixed left-4 right-4 top-4 z-[100] rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow">
-      Missing Supabase environment variables (VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY). The UI can load, but login and data APIs will fail until runtime configuration is fixed.
+      {missingSupabaseConfigMessage} The UI can load, but login and data APIs will fail until runtime configuration is fixed.
     </div>
   );
 };
