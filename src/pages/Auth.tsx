@@ -118,21 +118,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      {/* ── Animated gradient background (Caribbean flag colours) ── */}
-      <div className="absolute inset-0 animate-gradient-shift bg-[length:400%_400%]"
-      style={{
-        backgroundImage:
-        "linear-gradient(135deg, hsl(210 80% 18%) 0%, hsl(195 90% 30%) 20%, hsl(48 95% 50%) 40%, hsl(145 55% 35%) 60%, hsl(0 75% 45%) 75%, hsl(215 65% 25%) 100%)"
-      }} />
-
-
-      {/* Extra glow blobs */}
-      <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-[hsl(195_90%_30%/0.35)] blur-[120px] animate-pulse" />
-      <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-[hsl(48_95%_50%/0.25)] blur-[120px] animate-pulse [animation-delay:2s]" />
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-[hsl(145_55%_35%/0.2)] blur-[100px] animate-pulse [animation-delay:4s]" />
-
-      <FloatingSymbols />
+    <div className="relative flex min-h-screen items-center justify-center bg-[hsl(210,80%,18%)]">
 
       {/* ── Login card ── */}
       <div className="relative z-10 w-full max-w-md px-4">
