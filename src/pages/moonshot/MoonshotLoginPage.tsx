@@ -9,6 +9,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { hasPermission } from "@/lib/accessControl";
 import { lovable } from "@/integrations/lovable";
 import { useRobotsMeta } from "@/hooks/useRobotsMeta";
+import { supabase } from "@/integrations/supabase/client";
+import type { AppRole } from "@/hooks/useUserRole";
 
 const MoonshotLoginPage = () => {
   useRobotsMeta("noindex, nofollow");
