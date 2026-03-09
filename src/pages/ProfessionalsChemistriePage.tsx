@@ -186,11 +186,15 @@ export default function ProfessionalsChemistriePage() {
       <section className="relative min-h-[92vh] pt-16 overflow-hidden">
         {/* Background image fills the entire section */}
         <div className="absolute inset-0">
-          <img
-            src={chemHero}
-            alt="Chemistrie magnetic clip-on lens system on prescription eyeglasses"
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
             className="h-full w-full object-cover"
-          />
+          >
+            <source src="https://www.forecps.com/wp-content/uploads/2025/06/chem-sun-short.mp4" type="video/mp4" />
+          </video>
           {/* Gradient overlay: transparent on right → dark on left */}
           <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-background/10" />
         </div>
