@@ -67,14 +67,14 @@ const BlueFilterPage = () => {
 
         {/* Jump nav */}
         <nav className="sticky top-16 z-40 mt-10 border-y border-border bg-background/90 backdrop-blur-md">
-          <div className="container mx-auto flex max-w-5xl gap-2 overflow-x-auto px-4 py-2 lg:px-8">
+          <div className="container mx-auto flex max-w-5xl gap-2 overflow-x-auto px-4 py-2 lg:px-8 scrollbar-none">
             {SECTIONS.map((s) => (
               <a
                 key={s.id}
                 href={`#${s.id}`}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:px-3.5 sm:py-2 sm:text-sm"
               >
-                {s.icon}
+                <span className="hidden sm:inline">{s.icon}</span>
                 {s.label}
               </a>
             ))}
