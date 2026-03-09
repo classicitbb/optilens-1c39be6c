@@ -14,12 +14,11 @@ const MoonshotProtectedRoute = ({ children }: { children: React.ReactNode }) => 
 
   if (!user) {
     const redirect = location.pathname + location.search + location.hash;
-    return <Navigate to={`/moonshot/login?redirect=${encodeURIComponent(redirect)}`} replace />;
+    return <Navigate to={`/auth?redirect=${encodeURIComponent(redirect)}`} replace />;
   }
 
   if (!hasPermission(role, "moonshot_access") || !canAccessRoute(role, location.pathname)) {
-    const deniedRedirect = `/moonshot/login?error=access_denied&redirect=${encodeURIComponent(location.pathname + location.search + location.hash)}`;
-    return <Navigate to={deniedRedirect} replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

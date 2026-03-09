@@ -351,7 +351,7 @@ const App = () => (
               </Route>
 
               {/* ═══ Moonshot App (standalone layout) ═══ */}
-              <Route path="/moonshot/login" element={<MoonshotLoginPage />} />
+              {/* Moonshot login removed – uses shared /auth */}
               <Route path="/moonshot" element={<MoonshotProtectedRoute><MoonshotLayout /></MoonshotProtectedRoute>}>
                 <Route index element={<Navigate to="/moonshot/dashboard" replace />} />
                 <Route path="dashboard" element={<MoonshotDashboardPage />} />
