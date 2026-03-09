@@ -321,58 +321,21 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
 const EditorLivePreview = ({ template, sections, versions, articles, settings }: {
   template: CatalogTemplate;
   sections: CatalogSection[];
-  versions: { id: number; name: string }[];
+  versions: PricelistVersion[];
   articles: { id: string; title: string; category: string; content?: string; description?: string }[];
   settings: any;
 }) => {
   const includedSections = sections.filter((s) => s.is_included !== false);
 
-  const versionIds = useMemo(() => {
-    const ids = new Set<number>();
-    includedSections.forEach((s) => {
-      if (s.pricelist_version_id) ids.add(s.pricelist_version_id);
-    });
-    return Array.from(ids);
-  }, [includedSections]);
+  const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
 
-  const { data: allRows = [] } = useQuery({
-    queryKey: ["catalog-preview-all-rows", versionIds],
-    queryFn: async () => {
-      if (versionIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("pricelist_catalog_rows")
-        .select("section, display_description, bbd_price, row_type, catalog_type, pricelist_version_id, sort_order")
-        .in("pricelist_version_id", versionIds)
-        .order("sort_order");
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: versionIds.length > 0,
-  });
-
-  const { data: addons = [] } = useQuery({
-    queryKey: ["catalog-preview-addons"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("addons")
-        .select("name, price, category")
-        .eq("is_active", true)
-        .order("sort_order");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const rowsByVersionType = useMemo(() => {
-    const map: Record<string, Record<string, { description: string; price: number | null }[]>> = {};
-    allRows.forEach((r: any) => {
-      const key = `${r.pricelist_version_id}-${r.catalog_type}`;
-      if (!map[key]) map[key] = {};
-      if (!map[key][r.section]) map[key][r.section] = [];
-      map[key][r.section].push({ description: r.display_description, price: r.bbd_price });
-    });
-    return map;
-  }, [allRows]);
+  const getKnowledgePreviewCopy = (article: { content?: string | null; description?: string | null } | null | undefined, mode: string | null) => {
+    const description = article?.description ?? "";
+    const content = article?.content ?? "";
+    if (mode === "full") return { description, content };
+    if (mode === "excerpt") return { description, content: content.slice(0, 1800) + (content.length > 1800 ? "…" : "") };
+    return { description, content: content.slice(0, 700) + (content.length > 700 ? "…" : "") };
+  };
 
   const docStyles: React.CSSProperties = {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -381,30 +344,6 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
     lineHeight: 1.5,
     background: "white",
   };
-
-  const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
-
-  const getKnowledgePreviewCopy = (article: { content?: string | null; description?: string | null } | null | undefined, mode: string | null) => {
-    const description = article?.description ?? "";
-    const content = article?.content ?? "";
-
-    if (mode === "full") return { description, content };
-    if (mode === "excerpt") {
-      return {
-        description,
-        content: content.slice(0, 1800) + ((content.length ?? 0) > 1800 ? "…" : ""),
-      };
-    }
-
-    return {
-      description,
-      content: content.slice(0, 700) + ((content.length ?? 0) > 700 ? "…" : ""),
-    };
-  };
-
-  /** Sort section keys by canonical category order */
-  const sortSectionKeys = (keys: string[]) =>
-    [...keys].sort((a, b) => compareCategoryOrder(a, b));
 
   return (
     <div className="flex flex-col h-full">
@@ -480,60 +419,21 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                 ? (s.custom_title || art?.title || "Knowledge Article")
                 : getSectionLabel(s.section_type);
               const isPricing = ["rx_prices", "stock_prices", "supplies_prices"].includes(s.section_type);
-              const catalogType = SECTION_TO_CATALOG_TYPE[s.section_type];
-              const dataKey = s.pricelist_version_id ? `${s.pricelist_version_id}-${catalogType}` : null;
-              const sectionData = dataKey ? rowsByVersionType[dataKey] : null;
-              const sectionKeys = sectionData ? sortSectionKeys(Object.keys(sectionData)) : [];
+              const catalogType = SECTION_TO_CATALOG_TYPE[s.section_type] as "rx" | "stock" | "buysell" | undefined;
+              const version = s.pricelist_version_id ? versions.find((v) => v.id === s.pricelist_version_id) : null;
+              const previewFormat: "matrix" | "list" = (s.section_type === "rx_prices" && s.format_choice === "matrix") ? "matrix" : "list";
 
               return (
-                <div key={s.id ?? i} style={{ padding: "20px 24px", borderBottom: "1px solid #e2e8f0" }}>
-                  <div style={{
-                    background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
-                    fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
-                    marginBottom: "12px", borderRadius: "2px", display: "flex", alignItems: "center", gap: "6px",
-                  }}>
-                    <span>{getSectionIcon(s.section_type)}</span>
-                    {label}
-                    {s.format_choice && (
-                      <span style={{ marginLeft: "auto", fontSize: "8px", opacity: 0.8, textTransform: "none", fontWeight: 400 }}>
-                        ({s.format_choice})
-                      </span>
-                    )}
-                  </div>
-
-                  {isPricing && sectionKeys.length > 0 ? (
-                    <div>
-                      {sectionKeys.map((sectionName) => (
-                        <div key={sectionName} style={{ marginBottom: "12px" }}>
-                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                            <thead>
-                              <tr>
-                                <th
-                                  colSpan={2}
-                                  style={{
-                                    textAlign: "left", padding: "6px 10px", fontSize: "9px", fontWeight: 700,
-                                    textTransform: "uppercase", letterSpacing: "0.4px", color: "white",
-                                    background: "#1e4db7",
-                                  }}
-                                >
-                                  {sectionName} ({sectionData![sectionName].length})
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {sectionData![sectionName].map((row, idx) => (
-                                <tr key={idx}>
-                                  <td style={{ padding: "4px 10px", fontSize: "9px", borderBottom: "1px solid #edf2f7", color: "#2d3748" }}>{row.description}</td>
-                                  <td style={{ padding: "4px 10px", fontSize: "9px", borderBottom: "1px solid #edf2f7", textAlign: "right", fontWeight: 600, color: "#1a202c", width: "70px" }}>
-                                    ${fmtPrice(row.price)}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ))}
-                    </div>
+                <div key={s.id ?? i} style={{ padding: "4px 0", borderBottom: "1px solid #e2e8f0" }}>
+                  {/* Pricing sections: embed PricelistLivePreview directly */}
+                  {isPricing && version && catalogType ? (
+                    <PricelistLivePreview
+                      version={version}
+                      previewFormat={previewFormat}
+                      showUSD={false}
+                      fxRate={1}
+                      catalogType={catalogType}
+                    />
                   ) : isPricing && !s.pricelist_version_id ? (
                     <div style={{ textAlign: "center", padding: "16px", color: "#a0aec0", fontSize: "9px", fontStyle: "italic" }}>
                       Select a pricelist version to see pricing data
@@ -544,10 +444,19 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                     </div>
                   ) : null}
 
+                  {/* Knowledge article sections */}
                   {art && (() => {
                     const previewCopy = getKnowledgePreviewCopy(art, s.format_choice);
                     return (
-                      <div>
+                      <div style={{ padding: "16px 24px" }}>
+                        <div style={{
+                          background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
+                          fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
+                          marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px",
+                        }}>
+                          <span>{getSectionIcon(s.section_type)}</span>
+                          {label}
+                        </div>
                         {previewCopy.description && (
                           <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{previewCopy.description}</p>
                         )}
@@ -566,15 +475,26 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                     );
                   })()}
 
+                  {/* Fixed sections placeholder */}
                   {!isPricing && !art && (
-                    <div style={{ padding: "12px", background: "#f7fafc", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
-                      <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic" }}>
-                        {label} content will be rendered from company settings and templates.
-                      </p>
+                    <div style={{ padding: "16px 24px" }}>
+                      <div style={{
+                        background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
+                        fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
+                        marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px",
+                      }}>
+                        <span>{getSectionIcon(s.section_type)}</span>
+                        {label}
+                      </div>
+                      <div style={{ padding: "12px", background: "#f7fafc", border: "1px solid #e2e8f0" }}>
+                        <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic" }}>
+                          {label} content will be rendered from company settings and templates.
+                        </p>
+                      </div>
                     </div>
                   )}
 
-                  <div style={{ textAlign: "center", marginTop: "12px", fontSize: "8px", color: "#a0aec0" }}>
+                  <div style={{ textAlign: "center", marginTop: "8px", paddingBottom: "8px", fontSize: "8px", color: "#a0aec0" }}>
                     Page {i + 2}
                   </div>
                 </div>
@@ -587,7 +507,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
               </div>
             )}
 
-            <div style={{ padding: "12px 24px", borderTop: "1px solid #e2e8f0", textAlign: "center", fontSize: "8px", color: "#a0aec0", borderRadius: "0 0 4px 4px", background: "#f7fafc" }}>
+            <div style={{ padding: "12px 24px", borderTop: "1px solid #e2e8f0", textAlign: "center", fontSize: "8px", color: "#a0aec0", background: "#f7fafc" }}>
               {settings?.company_name && <div>{settings.company_name} — {settings?.slogan}</div>}
               {settings?.tel && <div style={{ marginTop: "2px" }}>{settings.tel} · {settings.email}</div>}
             </div>
