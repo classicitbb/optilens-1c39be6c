@@ -36,6 +36,8 @@ const ProfessionalsPortalPage = lazy(() => import("./pages/ProfessionalsPortalPa
 const ProfessionalsChemistriePage = lazy(() => import("./pages/ProfessionalsChemistriePage"));
 const DispensingTipsPage = lazy(() => import("./pages/professionals/DispensingTipsPage"));
 const TracingCuttingGuidePage = lazy(() => import("./pages/professionals/TracingCuttingGuidePage"));
+const LabProcessOverviewPage = lazy(() => import("./pages/professionals/LabProcessOverviewPage"));
+const LensOrderingTipsPage = lazy(() => import("./pages/professionals/LensOrderingTipsPage"));
 const ProgressivePage = lazy(() => import("./pages/lenses/ProgressivePage"));
 const OfficeOccupationalPage = lazy(() => import("./pages/lenses/OfficeOccupationalPage"));
 const AntiFatiguePage = lazy(() => import("./pages/lenses/AntiFatiguePage"));
@@ -197,6 +199,8 @@ const App = () => (
               <Route path="/professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
               <Route path="/professionals/dispensing-tips" element={<DispensingTipsPage />} />
               <Route path="/professionals/tracing-cutting-guide" element={<TracingCuttingGuidePage />} />
+              <Route path="/professionals/lab-process-overview" element={<LabProcessOverviewPage />} />
+              <Route path="/professionals/lens-ordering-tips" element={<LensOrderingTipsPage />} />
               <Route path="/professionals/:slug" element={<ProfessionalsPortalPage />} />
               <Route path="/patients" element={<ProtectedRoute><PatientsPage /></ProtectedRoute>} />
               <Route path="/return-policy" element={<LegalPage />} />
