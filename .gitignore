@@ -25,3 +25,4 @@ dist-ssr
 
 # Optional local Bun lockfile
 bun.lockb
+.env
