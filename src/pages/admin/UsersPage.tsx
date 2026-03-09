@@ -1,5 +1,6 @@
 import { useState, useMemo, Fragment } from "react";
 import { useAdminUsers, type AdminUser } from "@/hooks/useAdminUsers";
+import { useQueryClient } from "@tanstack/react-query";
 import type { AppRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
