@@ -4,6 +4,8 @@ import { ArrowLeft, HelpCircle, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useUserRole } from "@/hooks/useUserRole";
+import { canAccessRoute } from "@/lib/accessControl";
 
 // Color map per app key for icon tinting
 const APP_COLORS: Record<string, string> = {
@@ -29,9 +31,10 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { hasAppAccess } = useRolePermissions();
+  const { role } = useUserRole();
 
   const visibleApps = Object.values(ADMIN_APPS).filter((app) =>
-  hasAppAccess(app.featurePrefix)
+    hasAppAccess(app.featurePrefix) && canAccessRoute(role, app.defaultRoute)
   );
 
   useEffect(() => {
