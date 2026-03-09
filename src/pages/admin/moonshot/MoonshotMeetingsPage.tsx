@@ -77,8 +77,8 @@ export default function MoonshotMeetingsPage() {
                   <span className="text-xs text-muted-foreground flex items-center gap-1"><Users className="h-3.5 w-3.5" />{attendeeList.length} attendees</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button className="flex-1" onClick={() => navigate(`/admin/moonshot/meetings/${meeting.id}`)}>Join</Button>
-                  <Button variant="outline" className="flex-1" onClick={() => navigate(`/admin/moonshot/meetings/${meeting.id}`)}>Start Meeting</Button>
+                  <Button className="flex-1" onClick={() => navigate(`/moonshot/meetings/${meeting.id}`)}>Join</Button>
+                  <Button variant="outline" className="flex-1" onClick={() => navigate(`/moonshot/meetings/${meeting.id}`)}>Start Meeting</Button>
                 </div>
               </CardContent>
             </Card>
