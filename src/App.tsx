@@ -223,13 +223,13 @@ const App = () => (
               <Route path="/return-policy" element={<LegalPage />} />
 
               {/* ZenVue integrated feature pages */}
-              <Route path="/zenvue" element={<ProtectedRoute><ZenvueHome /></ProtectedRoute>} />
-              <Route path="/zenvue/brilliance" element={<ProtectedRoute><ZenvueBrilliance /></ProtectedRoute>} />
-              <Route path="/zenvue/single-vision" element={<ProtectedRoute><ZenvueSingleVision /></ProtectedRoute>} />
-              <Route path="/zenvue/sundun" element={<ProtectedRoute><ZenvueSunDun /></ProtectedRoute>} />
-              <Route path="/zenvue/darkun" element={<ProtectedRoute><ZenvueDarkun /></ProtectedRoute>} />
-              <Route path="/zenvue/compare" element={<ProtectedRoute><ZenvueCompare /></ProtectedRoute>} />
-              <Route path="/zenvue/wholesale" element={<ProtectedRoute><ZenvueWholesale /></ProtectedRoute>} />
+              <Route path="/zenvue" element={<ZenvueHome />} />
+              <Route path="/zenvue/brilliance" element={<ZenvueBrilliance />} />
+              <Route path="/zenvue/single-vision" element={<ZenvueSingleVision />} />
+              <Route path="/zenvue/sundun" element={<ZenvueSunDun />} />
+              <Route path="/zenvue/darkun" element={<ZenvueDarkun />} />
+              <Route path="/zenvue/compare" element={<ZenvueCompare />} />
+              <Route path="/zenvue/wholesale" element={<ZenvueWholesale />} />
             </Route>
 
               {/* Admin — all apps share AdminLayout */}
