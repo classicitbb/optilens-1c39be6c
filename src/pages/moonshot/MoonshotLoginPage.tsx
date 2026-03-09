@@ -26,9 +26,10 @@ const MoonshotLoginPage = () => {
 
   const detectedEmail = useMemo(() => user?.email ?? localStorage.getItem("moonshot:last-email") ?? "", [user?.email]);
 
-  const routeUser = () => {
-    const target = redirect && redirect.startsWith("/moonshot") ? redirect : getDefaultLandingPageForRole(role);
-    navigate(hasPermission(role, "moonshot_access") ? target : getDefaultLandingPageForRole(role), { replace: true });
+  const routeUser = (resolvedRole?: AppRole | null) => {
+    const r = resolvedRole ?? role;
+    const target = redirect && redirect.startsWith("/moonshot") ? redirect : getDefaultLandingPageForRole(r);
+    navigate(hasPermission(r, "moonshot_access") ? target : getDefaultLandingPageForRole(r), { replace: true });
   };
 
   const handleQuickEnter = async () => {
