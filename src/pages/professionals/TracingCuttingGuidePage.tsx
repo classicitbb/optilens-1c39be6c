@@ -43,7 +43,7 @@ const TracingCuttingGuidePage = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="pb-20 pt-24">
+      <main id="main-content" className="pb-20 pt-24">
         {/* Hero */}
         <section className="container mx-auto max-w-5xl px-4 lg:px-8">
           <nav className="mb-4 text-sm text-muted-foreground">
