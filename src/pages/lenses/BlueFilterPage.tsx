@@ -319,7 +319,7 @@ const BlueFilterPage = () => {
                 response="I'm glad they're comfortable! What usually happens is that the lens they got also has excellent anti-glare coating, which is the part doing the work. We can get you the same comfort — or better — with a clear premium AR without the colour distortion that blue coatings can introduce."
               />
               <ConversationCard
-                patient='"I want them anyway — I just feel better knowing they\'re there."'
+                patient={'"I want them anyway — I just feel better knowing they\'re there."'}
                 response="Absolutely, we can accommodate that preference. I just want to be upfront that the clinical evidence for screen protection is very limited, so I'd call it a comfort choice rather than a medical necessity. Let me make sure the rest of your lens design is optimised too."
               />
             </div>
