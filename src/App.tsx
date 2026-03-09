@@ -36,6 +36,8 @@ const ProfessionalsPortalPage = lazy(() => import("./pages/ProfessionalsPortalPa
 const ProfessionalsChemistriePage = lazy(() => import("./pages/ProfessionalsChemistriePage"));
 const DispensingTipsPage = lazy(() => import("./pages/professionals/DispensingTipsPage"));
 const TracingCuttingGuidePage = lazy(() => import("./pages/professionals/TracingCuttingGuidePage"));
+const LabProcessOverviewPage = lazy(() => import("./pages/professionals/LabProcessOverviewPage"));
+const LensOrderingTipsPage = lazy(() => import("./pages/professionals/LensOrderingTipsPage"));
 const ProgressivePage = lazy(() => import("./pages/lenses/ProgressivePage"));
 const OfficeOccupationalPage = lazy(() => import("./pages/lenses/OfficeOccupationalPage"));
 const AntiFatiguePage = lazy(() => import("./pages/lenses/AntiFatiguePage"));
