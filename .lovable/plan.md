@@ -1,231 +1,95 @@
-## Admin Experience Plan (Updated to Current Codebase)
+# Full-Fledged Lens Pages + Header Navigation Restructure
 
-### Plan intent
+## Summary
 
-This plan is now aligned with the **current modular admin architecture** (`/admin/<app>/...`) and the work that already exists in the repository.
+Create 4 rich, content-dense lens pages with like structure and theming using data from the IOT brochure and comparison site, and restructure the Header nav to group ZenVue-branded lenses under their own column.  
+  
+use representative icons or create svgs to match the key technologies.
 
----
+## Pages to Create/Update
 
-## Here is proof we are connected.
+### 1. NEW: Progressive (All-Day Use) — `/lenses/progressive`
 
-## 1) Current state snapshot (what is already done)
+Full page (not ZenVue-branded, uses Header/Footer shell like other `/lenses/*` pages). Content sourced from the IOT brochure and comparison site — **no Camber**. Sections:
 
-### 1.1 Admin shell and navigation foundation
+- Hero with eyebrow/title/description
+- **Product Lineup comparison table**: Endless Steady (Best), Essential Steady (Better), Classic (Good), Adapt (Basic) — showing MFH options, personalization level, key features
+- **Key Technologies**: Spatial Vision, Eye Focus, Visual Stability, Ray Tracing, Digital Surfacing, Digital Vision (from brochure page 4)
+- **Benefits grid**: cards for peripheral blur reduction, image stability, binocular vision, digital device comfort
+- **Ideal Wearer profiles**: Near Vision, Distance Vision, Intermediate Vision personas
+- **CTA**: Contact / Shop
 
-- ✅ `ADMIN_APPS` registry is implemented and drives app metadata, default routes, and sidebar items.
-- ✅ App Launcher and Sidebar are dynamic and role-filtered.
-- ✅ Admin route groups are modularized by app domain:
-  - Pricing (`/admin/pricing/*`)
-  - Sales (`/admin/sales/*`)
-  - Contacts (`/admin/contacts/*`)
-  - Leads (`/admin/leads/*`)
-  - CRM (`/admin/crm/*`)
-  - Helpdesk (`/admin/helpdesk/*`)
-  - Website (`/admin/website/*`)
-  - Knowledge (`/admin/knowledge/*`)
-  - Settings (`/admin/settings/*`)
-- ✅ Legacy routes are redirected to the new structure.
+### 2. UPDATE: Office / Occupational — `/lenses/office-occupational`
 
-### 1.2 Admin Top Bar redesign status
+Replace stub `LensResourcePage` with full content. Sections:
 
-- ✅ Top bar exists with the intended structure:
-  - Apps toggle
-  - `OpticAdmin` brand label
-  - Page label
-  - Global search
-  - Bell placeholder
-  - Help toggle
-  - Lovable external link (admin-only)
-  - User display name + avatar dropdown
-- ✅ User display name resolves from `profiles.display_name` with email fallback.
-- ✅ Avatar dropdown includes:
-  - Helpdesk / Wiki
-  - My Profile
-  - Install App
-  - Logout
+- Hero section
+- **Three distance configurations**: Workstation (35cm–2m), Room (35cm–4m), and the 6m option — each with clear vision range, ideal wearer, and use cases
+- **Key Benefits**: Maximum near/intermediate FOV, improved posture, digital device comfort, immediate adaptation, peripheral blur elimination
+- **Technologies**: IOT Digital Ray-Path 2, personalized design
+- **Ideal Wearer cards**
 
-### 1.3 Branding updates
+### 3. UPDATE: Anti-Fatigue — `/lenses/anti-fatigue`
 
-- ✅ `OpticAdmin` branding is present in top bar and wiki content.
+Replace stub with full content from IOT data. Sections:
 
----
+- Hero section
+- **How It Works**: Power boost explanation (0.50D, 0.75D, 1.00D options)
+- **Benefits**: Relaxed vision, reduced accommodative effort, excellent distance & peripheral vision
+- **Technologies**: IOT Digital Ray-Path 2, personalized
+- **Ideal For**: Pre-presbyopes, digital device users, students
+- **MFH options**: 14, 18mm
 
-## 2) Gaps to close (next actions)
+### 4. UPDATE: Endless Single Vision — `/lenses/single-vision` (NEW route, non-ZenVue)
 
-### 2.1 Route label map in `AdminTopBar`
+Create a new public-facing single vision page at `/lenses/single-vision` (separate from the ZenVue-branded `/zenvue/single-vision`). Sections:
 
-The route label map should prioritize **new canonical paths** (`/admin/pricing/...`, `/admin/sales/...`, etc.) first, then include legacy fallbacks only if needed.
+- Hero section
+- **Key Benefits**: Impeccable visual quality for high Rx, comfortable focus, peripheral blur elimination, digital device quality
+- **Technologies**: IOT Digital Ray-Path 2, personalized
+- **Ideal For cards**: Distance, Reading, Computer
+- **Materials table**
 
-**Action**
+## Header Navigation Restructure
 
-- Update `ROUTE_LABELS` in `src/components/admin/AdminTopBar.tsx` to match active canonical route paths.
+Update `PRIMARY_MENU` in `Header.tsx` to separate ZenVue products into their own column:
 
-### 2.2 Sidebar/header interaction cleanup
+```text
+Lenses Menu:
+┌─────────────────────┬──────────────────────┬──────────────────────┐
+│ Everyday Vision     │ Lifestyle Lenses     │ ZenVue Collection    │
+│ ─────────────────── │ ──────────────────── │ ──────────────────── │
+│ Progressive         │ Photochromic         │ Brilliance™ Prog.    │
+│ Office/Occupational │ Blue Filter          │ Single Vision        │
+│ Anti-Fatigue        │ Polarized            │ SunDun™ Polarized    │
+│ Single Vision       │ Tints & Colors       │ Darkun™ Photochromic │
+├─────────────────────┴──────────────────────┴──────────────────────┤
+│ Technical Specs                                                   │
+│ Materials · Thickness Chart · Lens Design Guide                   │
+└───────────────────────────────────────────────────────────────────┘
+```
 
-The previous note about removing the sidebar header is not currently implemented.
+## Routing Changes (App.tsx)
 
-**Action options (pick one explicitly)**
+- Add route: `/lenses/progressive` → new `ProgressivePage`
+- Add route: `/lenses/single-vision` → new `SingleVisionPage`
+- Keep existing ZenVue routes unchanged
+- Update lazy imports
 
-1. Keep sidebar header + collapse button (document as intentional), or
-2. Move collapse behavior to hover/flyout interaction and remove static header row.
+## Files to Create
 
-### 2.3 Copy consistency for placeholder screens
+- `src/pages/lenses/ProgressivePage.tsx` — full progressive page
+- `src/pages/lenses/SingleVisionPage.tsx` — full single vision page (non-ZenVue)
 
-Current placeholder message is: **"Coming in a future phase."**
+## Files to Modify
 
-**Action**
+- `src/pages/lenses/OfficeOccupationalPage.tsx` — replace stub with full content
+- `src/pages/lenses/AntiFatiguePage.tsx` — replace stub with full content
+- `src/components/Header.tsx` — restructure menu sections, add ZenVue column
+- `src/App.tsx` — add new routes and lazy imports
 
-- Standardize placeholder copy strategy per module (friendly/neutral/enterprise tone), with optional module-specific variants.
+## Design Approach
 
----
-
-## 3) Placeholder Pages Delivery Backlog (description-ready)
-
-> Purpose: every placeholder route gets a stable slot so full feature descriptions can be added later.
-
-Use this template for each page as details are discovered:
-
-- **Purpose**
-- **Primary users / roles**
-- **Core workflows**
-- **Data entities**
-- **Permissions**
-- **Integrations**
-- **MVP acceptance criteria**
-- **Future phase notes**
-
-### 3.1 Sales app placeholders
-
-1. `/admin/sales/web-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-2. `/admin/sales/rx-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.2 Leads app placeholders
-
-3. `/admin/leads/finder`
-   - Status: Placeholder
-   - Description: _TBD_
-4. `/admin/leads/campaigns`
-   - Status: Placeholder
-   - Description: _TBD_
-5. `/admin/leads/reports`
-   - Status: Placeholder
-   - Description: _TBD_
-6. `/admin/leads/ai`
-   - Status: Placeholder
-   - Description: _TBD_
-7. `/admin/leads/settings`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.3 CRM app placeholders
-
-8. `/admin/crm/pipeline`
-   - Status: Placeholder
-   - Description: _TBD_
-9. `/admin/crm/activities`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.4 Helpdesk app placeholders
-
-10. `/admin/helpdesk/tickets`
-    - Status: Placeholder
-    - Description: _TBD_
-11. `/admin/helpdesk/teams`
-    - Status: Placeholder
-    - Description: _TBD_
-12. `/admin/helpdesk/sla`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.5 Website app placeholders
-
-13. `/admin/website/microsites`
-    - Status: Placeholder
-    - Description: _TBD_
-14. `/admin/website/portals`
-    - Status: Placeholder
-    - Description: _TBD_
-15. `/admin/website/store`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.6 Knowledge app placeholders
-
-16. `/admin/knowledge/help`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.7 Settings app placeholders
-
-17. `/admin/settings/integrations`
-    - Status: Placeholder
-    - Description: _TBD_
-
----
-
-## 4) Suggested micro-copy change (quick win)
-
-### Proposal
-
-For `/admin/crm/pipeline`, change placeholder text from:
-
-- **"Coming in a future phase."**
-
-to:
-
-- **"See you soon."**
-
-### Why
-
-- Warmer and less formal tone for a customer-facing-feeling CRM surface.
-- Good as an experiment for module-specific placeholder messaging.
-
-### Implementation approach
-
-- Preferred: add an optional copy override map in `PlaceholderPage` keyed by route.
-- Fallback: global replacement if we want one message everywhere.
-
----
-
-## 5) UI Rule: Admin Page Headers (still active)
-
-Every admin page with a heading **must** use the shared:
-`<AdminPageHeader icon={Icon} title="Page Title" />`
-from `src/components/admin/AdminPageHeader.tsx`.
-
-- Always pass a relevant Lucide icon and a properly capitalized title.
-- Optional `children` slot renders right-aligned actions.
-- Do not use ad hoc inline `<h1>` patterns on admin pages.
-
----
-
-## 6) Preview Template Rules (binding)
-
-All document preview templates — pricelists, quotations, proposals, and any
-future PdfPreviewShell consumer — must follow these rules.
-
-### 6.1 Narrow margins by default
-- `DEFAULT_PRINT_SETTINGS.marginPreset` is `"narrow"` (8 mm).
-- Users may override per-document, but the starting state is always narrow.
-
-### 6.2 Dark-mode immune
-- Preview content always renders with a fixed white background and dark text.
-- The preview iframe / container must never inherit dark-mode CSS variables.
-- Branded header colors (e.g. `#1e4db7`) are hardcoded, not token-based.
-
-### 6.3 Consistent template structure
-- Every preview uses `PdfPreviewShell` with the shared toolbar (paper size,
-  orientation, scale, print button).
-- Branded header, date, format label, and page numbering layout must not vary
-  between preview types.
-
-### 6.4 Responsive table contents and page breaks
-- `thead` uses `display: table-header-group` so headers repeat on every page.
-- Long table bodies allow row-level breaks (`break-inside: auto`).
-- Section headings use `break-after: avoid` to stay with following content.
-- Standalone grid/card sections use `break-inside: avoid`.
+All `/lenses/*` pages use the public Header/Footer shell (not ZenVue shell). Each page follows a consistent section pattern: Hero → Product/Feature details → Technologies → Benefits grid → Ideal For cards → CTA. Styling matches existing site theme (not ZenVue obsidian theme).  
+  
+Header navigation is responsive and stays centered in the page, while connected to the button itself. 
