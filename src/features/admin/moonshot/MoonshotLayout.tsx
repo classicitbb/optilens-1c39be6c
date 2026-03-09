@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMoonshotStore } from "./lib/store";
+import MoonshotLoginGate from "./components/MoonshotLoginGate";
 
 type NavItem = {
   label: string;
