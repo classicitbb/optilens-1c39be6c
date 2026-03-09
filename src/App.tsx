@@ -312,7 +312,7 @@ const App = () => (
                 <Route path="supplies-prices" element={<Navigate to="/admin/pricing/supplies" replace />} />
                 <Route path="imports" element={<Navigate to="/admin/pricing/imports" replace />} />
                 <Route path="catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
-                <Route path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher-old" replace />} />
+                <Route path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher" replace />} />
                 <Route path="catalog-publisher/:id" element={<Navigate to="/admin/pricing/publisher" replace />} />
                 <Route path="quotations" element={<Navigate to="/admin/sales/quotations" replace />} />
                 <Route path="costings/shipments" element={<Navigate to="/admin/pricing/costings" replace />} />
