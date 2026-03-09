@@ -36,30 +36,35 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
       {
         title: "Everyday Vision",
         links: [
-          { label: "Progressive (All-Day Use)", description: "Premium multifocal options", to: "/zenvue/brilliance" },
-          { label: "ZenVue Brilliance™", description: "Featured progressive product page", to: "/zenvue/brilliance" },
+          { label: "Progressive", description: "Premium multifocal options for all-day use", to: "/lenses/progressive" },
           { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
-          { label: "Anti-Fatigue", description: "Digital comfort with near support", to: "/lenses/anti-fatigue" },
-          { label: "Single Vision", description: "Everyday distance and near correction", to: "/zenvue/single-vision" },
-          { label: "ZenVue Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
+          { label: "Anti-Fatigue", description: "Digital comfort with near support boost", to: "/lenses/anti-fatigue" },
+          { label: "Single Vision", description: "Everyday distance and near correction", to: "/lenses/single-vision" },
         ],
       },
       {
         title: "Lifestyle Lenses",
         links: [
           { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/zenvue/darkun" },
-          { label: "ZenVue Darkun™", description: "Featured photochromic lens page", to: "/zenvue/darkun" },
           { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
           { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
-          { label: "ZenVue SunDun™", description: "Featured polarized lens page", to: "/zenvue/sundun" },
           { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
+        ],
+      },
+      {
+        title: "ZenVue Collection",
+        links: [
+          { label: "Brilliance™ Progressive", description: "Featured progressive product page", to: "/zenvue/brilliance" },
+          { label: "Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
+          { label: "SunDun™ Polarized", description: "Featured polarized lens page", to: "/zenvue/sundun" },
+          { label: "Darkun™ Photochromic", description: "Featured photochromic lens page", to: "/zenvue/darkun" },
         ],
       },
       {
         title: "Technical Specs",
         links: [
-          { label: "Materials (1.50, 1.56, 1.60, 1.67, 1.74)", description: "Compare index and material performance", to: "/lenses/materials" },
-          { label: "Edge & Center Thickness Chart", description: "Thickness guidance across prescriptions", to: "/lenses/thickness-chart" },
+          { label: "Materials (1.50–1.74)", description: "Compare index and material performance", to: "/lenses/materials" },
+          { label: "Thickness Chart", description: "Thickness guidance across prescriptions", to: "/lenses/thickness-chart" },
           { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lenses/lens-types" },
         ],
       },
