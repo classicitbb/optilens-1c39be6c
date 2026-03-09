@@ -27,6 +27,7 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 };
 
 const UsersPage = () => {
+  const qc = useQueryClient();
   const { users, isLoading, assignRole, removeRole, resetPassword, inviteUser, createUser } = useAdminUsers();
   const { realRole, startImpersonation } = useAdminRole();
   const { toast } = useToast();
