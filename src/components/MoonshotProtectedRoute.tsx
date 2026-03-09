@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { canAccessRoute, getDefaultLandingPageForRole, hasPermission } from "@/lib/accessControl";
+import { canAccessRoute, hasPermission } from "@/lib/accessControl";
 
 const MoonshotProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
@@ -18,7 +18,8 @@ const MoonshotProtectedRoute = ({ children }: { children: React.ReactNode }) => 
   }
 
   if (!hasPermission(role, "moonshot_access") || !canAccessRoute(role, location.pathname)) {
-    return <Navigate to={getDefaultLandingPageForRole(role)} replace />;
+    const deniedRedirect = `/moonshot/login?error=access_denied&redirect=${encodeURIComponent(location.pathname + location.search + location.hash)}`;
+    return <Navigate to={deniedRedirect} replace />;
   }
 
   return <>{children}</>;

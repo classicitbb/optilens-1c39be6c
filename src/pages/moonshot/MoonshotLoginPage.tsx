@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { getDefaultLandingPageForRole, hasPermission } from "@/lib/accessControl";
+import { hasPermission } from "@/lib/accessControl";
 import { lovable } from "@/integrations/lovable";
 import { useRobotsMeta } from "@/hooks/useRobotsMeta";
 
@@ -17,18 +17,25 @@ const MoonshotLoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { signIn, user } = useAuth();
+  const { signIn, signOut, user } = useAuth();
   const { role } = useUserRole();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const redirect = new URLSearchParams(location.search).get("redirect");
+  const params = new URLSearchParams(location.search);
+  const redirect = params.get("redirect");
+  const authError = params.get("error");
   const moonshotRedirectTarget = redirect && redirect.startsWith("/moonshot") ? redirect : "/moonshot/dashboard";
 
   const detectedEmail = useMemo(() => user?.email ?? localStorage.getItem("moonshot:last-email") ?? "", [user?.email]);
 
   const routeUser = useCallback(() => {
-    navigate(hasPermission(role, "moonshot_access") ? moonshotRedirectTarget : getDefaultLandingPageForRole(role), { replace: true });
+    if (hasPermission(role, "moonshot_access")) {
+      navigate(moonshotRedirectTarget, { replace: true });
+      return;
+    }
+
+    navigate("/moonshot/login?error=access_denied", { replace: true });
   }, [moonshotRedirectTarget, navigate, role]);
 
 
@@ -81,6 +88,21 @@ const MoonshotLoginPage = () => {
 
       <section className="flex items-center justify-center p-6 bg-[#042549]">
         <div className={`w-full max-w-md rounded-2xl bg-[#f4f5f7] shadow-2xl p-8 transition-all duration-300 ${expanded ? "min-h-[520px]" : "min-h-[320px]"}`}>
+          {authError === "access_denied" && (
+            <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              Your account is authenticated, but it does not currently have Moonshot access.
+              <button
+                type="button"
+                className="ml-2 font-semibold underline"
+                onClick={async () => {
+                  await signOut();
+                  navigate("/moonshot/login", { replace: true });
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
           {!expanded ? (
             <div className="space-y-6 text-center">
               <h2 className="text-3xl font-semibold text-[#0b2a4a]">Welcome back</h2>
