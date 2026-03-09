@@ -1,231 +1,88 @@
-## Admin Experience Plan (Updated to Current Codebase)
 
-### Plan intent
+## Plan: Chemistrie Lens System Feature Page at `/professionals/chemistrie-lens-system`
 
-This plan is now aligned with the **current modular admin architecture** (`/admin/<app>/...`) and the work that already exists in the repository.
+### What I found
 
----
+**Your existing site** (classicvisions.net/chemistrie) covers:
+- Hero image + "Chemistrie Lens System" title
+- Feature bullets: custom-made in-house, fits any frame, base curve matched, lightweight, 24 polarized colors, 5 titanium bridge colors, 3 magnet colors, square/round magnets, 12 Swarovski crystals
+- Product text about magnetic clip technology
+- Color swatch rows (solid, mirror, gradient)
+- Style options: Magnets (gunmetal/gold/silver), Bridges (bronze/gunmetal/gold/silver/black), Swarovski crystals (12 colors)
+- Chemistrie+ Reader Lenses section
 
-## Here is proof we are connected.
+**forecps.com** (the brand's own ECP site) covers these sub-products referenced in the screenshot dropdown:
+- **Sun** — polarized clip-ons (forecps.com/chemistrie-sun)
+- **Reading** — Chemistrie+ readers
+- **Driving Lenses** — specialty tints for driving
+- **Blue Light** — Chemistrie Blue clip (forecps.com/chemistrie-blue)
+- **Avulux** — migraine & light sensitivity
+- **FL-41** — rose-tinted for light sensitivity
+- **3D** — 3D cinema clip
+- **Color Deficiency** — EnChroma-style clip
 
-## 1) Current state snapshot (what is already done)
-
-### 1.1 Admin shell and navigation foundation
-
-- ✅ `ADMIN_APPS` registry is implemented and drives app metadata, default routes, and sidebar items.
-- ✅ App Launcher and Sidebar are dynamic and role-filtered.
-- ✅ Admin route groups are modularized by app domain:
-  - Pricing (`/admin/pricing/*`)
-  - Sales (`/admin/sales/*`)
-  - Contacts (`/admin/contacts/*`)
-  - Leads (`/admin/leads/*`)
-  - CRM (`/admin/crm/*`)
-  - Helpdesk (`/admin/helpdesk/*`)
-  - Website (`/admin/website/*`)
-  - Knowledge (`/admin/knowledge/*`)
-  - Settings (`/admin/settings/*`)
-- ✅ Legacy routes are redirected to the new structure.
-
-### 1.2 Admin Top Bar redesign status
-
-- ✅ Top bar exists with the intended structure:
-  - Apps toggle
-  - `OpticAdmin` brand label
-  - Page label
-  - Global search
-  - Bell placeholder
-  - Help toggle
-  - Lovable external link (admin-only)
-  - User display name + avatar dropdown
-- ✅ User display name resolves from `profiles.display_name` with email fallback.
-- ✅ Avatar dropdown includes:
-  - Helpdesk / Wiki
-  - My Profile
-  - Install App
-  - Logout
-
-### 1.3 Branding updates
-
-- ✅ `OpticAdmin` branding is present in top bar and wiki content.
+**Current page** at `/professionals/chemistrie-lens-system` is just a 2-line placeholder in `ProfessionalsPortalPage.tsx` using the generic catch-all template.
 
 ---
 
-## 2) Gaps to close (next actions)
+### Approach
 
-### 2.1 Route label map in `AdminTopBar`
-
-The route label map should prioritize **new canonical paths** (`/admin/pricing/...`, `/admin/sales/...`, etc.) first, then include legacy fallbacks only if needed.
-
-**Action**
-
-- Update `ROUTE_LABELS` in `src/components/admin/AdminTopBar.tsx` to match active canonical route paths.
-
-### 2.2 Sidebar/header interaction cleanup
-
-The previous note about removing the sidebar header is not currently implemented.
-
-**Action options (pick one explicitly)**
-
-1. Keep sidebar header + collapse button (document as intentional), or
-2. Move collapse behavior to hover/flyout interaction and remove static header row.
-
-### 2.3 Copy consistency for placeholder screens
-
-Current placeholder message is: **"Coming in a future phase."**
-
-**Action**
-
-- Standardize placeholder copy strategy per module (friendly/neutral/enterprise tone), with optional module-specific variants.
+Replace the generic portal catch-all for this slug with a **dedicated full-featured page** rendered at the same URL. The page will be a self-contained React file (`src/pages/ProfessionalsChemistriePage.tsx`) that uses the existing `Header` + `Footer` shell. The router in `App.tsx` will get a specific route before the catch-all so this slug gets its own page.
 
 ---
 
-## 3) Placeholder Pages Delivery Backlog (description-ready)
+### Page Layout (7 sections)
 
-> Purpose: every placeholder route gets a stable slot so full feature descriptions can be added later.
-
-Use this template for each page as details are discovered:
-
-- **Purpose**
-- **Primary users / roles**
-- **Core workflows**
-- **Data entities**
-- **Permissions**
-- **Integrations**
-- **MVP acceptance criteria**
-- **Future phase notes**
-
-### 3.1 Sales app placeholders
-
-1. `/admin/sales/web-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-2. `/admin/sales/rx-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.2 Leads app placeholders
-
-3. `/admin/leads/finder`
-   - Status: Placeholder
-   - Description: _TBD_
-4. `/admin/leads/campaigns`
-   - Status: Placeholder
-   - Description: _TBD_
-5. `/admin/leads/reports`
-   - Status: Placeholder
-   - Description: _TBD_
-6. `/admin/leads/ai`
-   - Status: Placeholder
-   - Description: _TBD_
-7. `/admin/leads/settings`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.3 CRM app placeholders
-
-8. `/admin/crm/pipeline`
-   - Status: Placeholder
-   - Description: _TBD_
-9. `/admin/crm/activities`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.4 Helpdesk app placeholders
-
-10. `/admin/helpdesk/tickets`
-    - Status: Placeholder
-    - Description: _TBD_
-11. `/admin/helpdesk/teams`
-    - Status: Placeholder
-    - Description: _TBD_
-12. `/admin/helpdesk/sla`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.5 Website app placeholders
-
-13. `/admin/website/microsites`
-    - Status: Placeholder
-    - Description: _TBD_
-14. `/admin/website/portals`
-    - Status: Placeholder
-    - Description: _TBD_
-15. `/admin/website/store`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.6 Knowledge app placeholders
-
-16. `/admin/knowledge/help`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.7 Settings app placeholders
-
-17. `/admin/settings/integrations`
-    - Status: Placeholder
-    - Description: _TBD_
+```text
+┌─────────────────────────────────────────────────────────┐
+│  HERO  (split: left photo | right dark panel)           │
+│  Chemistrie Lens System · "For Eyecare Professionals"   │
+│  3 bullet checkmarks  ·  CTA: Contact / Order           │
+├─────────────────────────────────────────────────────────┤
+│  STAT BAR  1M+ Clips Sold · #1 Best Selling · 100+ Labs │
+├─────────────────────────────────────────────────────────┤
+│  ABOUT SECTION  (text left | product image right)       │
+│  Magnetic Lens Layering Technology intro                 │
+│  "Fits virtually any frame, base curve matched"         │
+├─────────────────────────────────────────────────────────┤
+│  PRODUCT LINE CARDS  (8 tiles, 2×4 or 4+4 grid)        │
+│  ☀ Sun  📖 Reading  🚗 Driving  💡 Blue Light           │
+│  🌿 Avulux  🌸 FL-41  🎬 3D  🌈 Color Deficiency        │
+│  Each card: icon, title, description, link to forecps   │
+├─────────────────────────────────────────────────────────┤
+│  STYLE OPTIONS (tabs: Sunlens Colors | Bridges/Magnets  │
+│  | Swarovski)                                           │
+│  Tab 1: 3 swatchbar rows (Solid / Mirror / Gradient)   │
+│  Tab 2: Magnet colors + Bridge colors as chips         │
+│  Tab 3: Swarovski crystal names grid                   │
+├─────────────────────────────────────────────────────────┤
+│  KEY SPECS  (icon grid, 3-col)                          │
+│  Custom-made in-house · Fits any frame · Base curve    │
+│  matched · Extremely lightweight · Square or Round      │
+│  Magnets · 100% UV protection                          │
+├─────────────────────────────────────────────────────────┤
+│  CTA STRIP  (dark bg, contact + order buttons)         │
+│  "Order Chemistrie for Your Practice"                  │
+│  [Contact Us]  [Apply for Trade Account]               │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 4) Suggested micro-copy change (quick win)
+### Files to create / modify
 
-### Proposal
+1. **`src/pages/ProfessionalsChemistriePage.tsx`** — new dedicated page (all content inline, no external images required — use Unsplash optical URLs for lifestyle shots)
+2. **`src/App.tsx`** — add a specific route `/professionals/chemistrie-lens-system` **before** the `/professionals/:slug` catch-all so this gets its own component
 
-For `/admin/crm/pipeline`, change placeholder text from:
+### Routing change
+```tsx
+// BEFORE (catch-all handles it):
+<Route path="/professionals/:slug" element={<ProfessionalsPortalPage />} />
 
-- **"Coming in a future phase."**
+// AFTER (specific route first):
+<Route path="/professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
+<Route path="/professionals/:slug" element={<ProfessionalsPortalPage />} />
+```
 
-to:
-
-- **"See you soon."**
-
-### Why
-
-- Warmer and less formal tone for a customer-facing-feeling CRM surface.
-- Good as an experiment for module-specific placeholder messaging.
-
-### Implementation approach
-
-- Preferred: add an optional copy override map in `PlaceholderPage` keyed by route.
-- Fallback: global replacement if we want one message everywhere.
-
----
-
-## 5) UI Rule: Admin Page Headers (still active)
-
-Every admin page with a heading **must** use the shared:
-`<AdminPageHeader icon={Icon} title="Page Title" />`
-from `src/components/admin/AdminPageHeader.tsx`.
-
-- Always pass a relevant Lucide icon and a properly capitalized title.
-- Optional `children` slot renders right-aligned actions.
-- Do not use ad hoc inline `<h1>` patterns on admin pages.
-
----
-
-## 6) Preview Template Rules (binding)
-
-All document preview templates — pricelists, quotations, proposals, and any
-future PdfPreviewShell consumer — must follow these rules.
-
-### 6.1 Narrow margins by default
-- `DEFAULT_PRINT_SETTINGS.marginPreset` is `"narrow"` (8 mm).
-- Users may override per-document, but the starting state is always narrow.
-
-### 6.2 Dark-mode immune
-- Preview content always renders with a fixed white background and dark text.
-- The preview iframe / container must never inherit dark-mode CSS variables.
-- Branded header colors (e.g. `#1e4db7`) are hardcoded, not token-based.
-
-### 6.3 Consistent template structure
-- Every preview uses `PdfPreviewShell` with the shared toolbar (paper size,
-  orientation, scale, print button).
-- Branded header, date, format label, and page numbering layout must not vary
-  between preview types.
-
-### 6.4 Responsive table contents and page breaks
-- `thead` uses `display: table-header-group` so headers repeat on every page.
-- Long table bodies allow row-level breaks (`break-inside: auto`).
-- Section headings use `break-after: avoid` to stay with following content.
-- Standalone grid/card sections use `break-inside: avoid`.
+### Content sourcing
+All content from your classicvisions.net page + forecps.com — no fabricated claims. External links to forecps.com sub-pages (Sun, Blue, ChemTech) will open in a new tab so professionals can get full product detail direct from the brand.
