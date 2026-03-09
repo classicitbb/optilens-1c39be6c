@@ -66,18 +66,23 @@ const BlueFilterPage = () => {
         </section>
 
         {/* Jump nav */}
-        <nav className="sticky top-16 z-40 mt-10 border-y border-border bg-background/90 backdrop-blur-md">
-          <div className="container mx-auto flex max-w-5xl gap-2 overflow-x-auto px-4 py-2 lg:px-8 scrollbar-none">
-            {SECTIONS.map((s) => (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:px-3.5 sm:py-2 sm:text-sm"
-              >
-                <span className="hidden sm:inline">{s.icon}</span>
-                {s.label}
-              </a>
-            ))}
+        <nav className="container mx-auto mt-8 max-w-5xl px-4 lg:px-8" aria-label="Page sections">
+          <div className="rounded-xl border border-border bg-card p-5">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Jump to section
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SECTIONS.map((s) => (
+                <a
+                  key={s.id}
+                  href={`#${s.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+                >
+                  {s.icon}
+                  {s.label}
+                </a>
+              ))}
+            </div>
           </div>
         </nav>
 
