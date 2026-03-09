@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
+import type { PricelistVersion } from "@/hooks/usePricelistVersions";
 import { useCatalogTemplates, type CatalogTemplate } from "@/hooks/useCatalogTemplates";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
