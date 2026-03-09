@@ -65,6 +65,7 @@ const SLUG_MAP: Record<string, string> = {
   "return-policy": "return-policy",
   "disclaimer": "disclaimer",
   "cookie-policy": "cookie-policy",
+  "accessibility": "accessibility",
 };
 
 const LegalPage = () => {
