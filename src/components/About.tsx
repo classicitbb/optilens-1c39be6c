@@ -27,17 +27,17 @@ const values = [
 
 const About = () => {
   return (
-    <section id="about" className="py-24">
+    <section id="about" className="py-16 sm:py-24" aria-label="About OptiVisionNow">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Intro */}
-        <div className="mx-auto mb-16 max-w-3xl text-center">
+        <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-16">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-accent">
-            <Eye className="h-7 w-7 text-accent-foreground" />
+            <Eye className="h-7 w-7 text-accent-foreground" aria-hidden="true" />
           </div>
-          <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">
+          <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
             About OptiVisionNow
           </h2>
-          <p className="text-lg leading-relaxed text-muted-foreground">
+          <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
             OptiVisionNow is a trusted wholesale supplier of premium prescription lenses, 
             serving independent opticians, optical chains, and eye care professionals. 
             We combine decades of optical expertise with modern technology to deliver 
@@ -46,29 +46,29 @@ const About = () => {
         </div>
 
         {/* Stats */}
-        <div className="mb-20 grid grid-cols-2 gap-6 md:grid-cols-4">
+        <div className="mb-16 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4 sm:mb-20">
           {stats.map((stat, index) => (
             <div
               key={stat.label}
-              className="rounded-xl bg-card p-6 text-center shadow-soft opacity-0 animate-fade-in"
+              className="rounded-xl bg-card p-4 text-center shadow-soft opacity-0 animate-fade-in sm:p-6"
               style={{ animationDelay: `${index * 80}ms` }}
             >
-              <div className="mb-1 text-3xl font-bold text-accent">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
+              <div className="mb-1 text-2xl font-bold text-accent sm:text-3xl">{stat.value}</div>
+              <div className="text-xs text-muted-foreground sm:text-sm">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Mission + Values */}
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
           <div>
-            <h3 className="mb-4 text-2xl font-bold text-foreground">Our Mission</h3>
-            <p className="mb-4 text-muted-foreground leading-relaxed">
+            <h3 className="mb-4 text-xl font-bold text-foreground sm:text-2xl">Our Mission</h3>
+            <p className="mb-4 text-sm text-muted-foreground leading-relaxed sm:text-base">
               We exist to empower optical professionals with access to high-quality lenses 
               at competitive wholesale prices — without compromising on service, speed, or 
               technical support.
             </p>
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed sm:text-base">
               From single vision to complex free-form progressives, our extensive catalog 
               and expert team ensure you always have the right lens for every patient. 
               Whether you're a single-location practice or a growing chain, OptiVisionNow 
@@ -76,19 +76,19 @@ const About = () => {
             </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {values.map((item, index) => (
               <div
                 key={item.title}
-                className="flex gap-4 rounded-xl bg-muted/50 p-5 opacity-0 animate-fade-in"
+                className="flex gap-4 rounded-xl bg-muted/50 p-4 opacity-0 animate-fade-in sm:p-5"
                 style={{ animationDelay: `${index * 100 + 200}ms` }}
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card shadow-soft">
-                  <item.icon className="h-6 w-6 text-accent" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card shadow-soft sm:h-12 sm:w-12">
+                  <item.icon className="h-5 w-5 text-accent sm:h-6 sm:w-6" aria-hidden="true" />
                 </div>
                 <div>
                   <h4 className="mb-1 font-semibold text-foreground">{item.title}</h4>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                  <p className="text-xs text-muted-foreground sm:text-sm">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -96,24 +96,24 @@ const About = () => {
         </div>
 
         {/* Team / Trust */}
-        <div className="mt-20 rounded-2xl bg-muted/50 p-8 text-center md:p-12">
+        <div className="mt-16 rounded-2xl bg-muted/50 p-6 text-center sm:mt-20 sm:p-8 md:p-12">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-card shadow-soft">
-            <Users className="h-6 w-6 text-accent" />
+            <Users className="h-6 w-6 text-accent" aria-hidden="true" />
           </div>
-          <h3 className="mb-3 text-2xl font-bold text-foreground">Trusted by Professionals</h3>
-          <p className="mx-auto max-w-2xl text-muted-foreground leading-relaxed">
+          <h3 className="mb-3 text-xl font-bold text-foreground sm:text-2xl">Trusted by Professionals</h3>
+          <p className="mx-auto max-w-2xl text-sm text-muted-foreground leading-relaxed sm:text-base">
             Thousands of optical professionals across the country rely on OptiVisionNow 
             for their daily lens needs. Our dedicated account managers, fast turnaround times, 
             and industry-leading quality control make us the wholesale partner of choice 
             for practices that demand the best.
           </p>
-          <div className="mt-6 flex items-center justify-center gap-6 text-muted-foreground">
-            <div className="flex items-center gap-2 text-sm">
-              <Globe className="h-4 w-4 text-accent" />
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-muted-foreground sm:gap-6">
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Globe className="h-4 w-4 text-accent" aria-hidden="true" />
               Nationwide Delivery
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Award className="h-4 w-4 text-accent" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Award className="h-4 w-4 text-accent" aria-hidden="true" />
               ISO Certified
             </div>
           </div>
