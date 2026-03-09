@@ -58,6 +58,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
           { label: "SunDun™ Polarized", description: "Featured polarized lens page", to: "/zenvue/sundun" },
           { label: "Darkun™ Photochromic", description: "Featured photochromic lens page", to: "/zenvue/darkun" },
+          { label: "ZenVue Wholesale", description: "Partner application for optical professionals", to: "/zenvue/wholesale" },
         ],
       },
       {
@@ -117,7 +118,6 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
           { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
           { label: "Chemistrie Lens System", description: "Magnetic clip system overview", to: "/professionals/chemistrie-lens-system" },
-          { label: "ZenVue Wholesale", description: "Feature-page application for optical partners", to: "/zenvue/wholesale" },
         ],
       },
       {
