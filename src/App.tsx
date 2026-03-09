@@ -202,7 +202,7 @@ const App = () => (
               <Route path="/professionals/lab-process-overview" element={<LabProcessOverviewPage />} />
               <Route path="/professionals/lens-ordering-tips" element={<LensOrderingTipsPage />} />
               <Route path="/professionals/:slug" element={<ProfessionalsPortalPage />} />
-              <Route path="/patients" element={<ProtectedRoute><PatientsPage /></ProtectedRoute>} />
+              {/* duplicate /patients removed — line 198 handles it */}
               <Route path="/return-policy" element={<LegalPage />} />
 
               {/* ZenVue integrated feature pages */}
