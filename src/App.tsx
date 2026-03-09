@@ -3,7 +3,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
+
+/** Redirect /admin/moonshot/* → /moonshot/* preserving the subpath */
+const LegacyMoonshotRedirect = () => {
+  const { pathname } = useLocation();
+  const subpath = pathname.replace(/^\/admin\/moonshot\/?/, "");
+  return <Navigate to={subpath ? `/moonshot/${subpath}` : "/moonshot"} replace />;
+};
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/components/theme-provider";

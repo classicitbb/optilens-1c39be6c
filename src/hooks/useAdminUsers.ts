@@ -62,7 +62,7 @@ export const useAdminUsers = () => {
   });
 
   const assignRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: DbRole }) => {
       const existing = users.find((u) => u.user_id === userId);
       if (existing?.role_id) {
         const { error } = await supabase
@@ -73,7 +73,7 @@ export const useAdminUsers = () => {
       } else {
         const { error } = await supabase
           .from("user_roles")
-          .insert({ user_id: userId, role });
+          .insert([{ user_id: userId, role }]);
         if (error) throw error;
       }
     },
