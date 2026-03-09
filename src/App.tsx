@@ -165,6 +165,9 @@ const App = () => (
               <Route path="/privacy-policy" element={<Navigate to="/legal/privacy-policy" replace />} />
               <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
               <Route path="/terms-of-use" element={<Navigate to="/legal/terms" replace />} />
+              <Route path="/cookie-policy" element={<Navigate to="/legal/cookie-policy" replace />} />
+              <Route path="/disclaimer" element={<Navigate to="/legal/disclaimer" replace />} />
+              <Route path="/accessibility" element={<Navigate to="/legal/accessibility" replace />} />
               <Route path="/lenses" element={<Navigate to="/lenses/lens-types" replace />} />
               <Route path="/lenses/lens-types" element={<LensDesignGuidePage />} />
               <Route path="/lenses/office-occupational" element={<OfficeOccupationalPage />} />

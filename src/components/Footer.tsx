@@ -44,13 +44,22 @@ const footerColumns = [
     ],
   },
   {
+    title: "Legal",
+    links: [
+      { label: "Terms of Use", to: "/legal/terms" },
+      { label: "Privacy Policy", to: "/legal/privacy-policy" },
+      { label: "Cookie Policy", to: "/legal/cookie-policy" },
+      { label: "Disclaimer", to: "/legal/disclaimer" },
+      { label: "Return Policy", to: "/legal/return-policy" },
+      { label: "Accessibility", to: "/legal/accessibility" },
+    ],
+  },
+  {
     title: "About",
     links: [
       { label: "Our Story", to: "/#about" },
       { label: "News & Articles", to: "/knowledge" },
       { label: "Contact Us", to: "/#contact" },
-      { label: "Terms of Use", to: "/terms" },
-      { label: "Privacy Policy", to: "/privacy-policy" },
     ],
   },
 ] as const;
