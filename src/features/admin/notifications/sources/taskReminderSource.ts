@@ -22,14 +22,24 @@ const PLACEHOLDER_ROUTES = [
 export async function getTaskReminderNotifications(): Promise<AdminNotificationEvent[]> {
   const reminders: AdminNotificationEvent[] = [];
 
-  const { data: draftQuotes } = await supabase
-    .from("quotes")
-    .select("id,updated_at")
-    .eq("status", "draft")
-    .order("updated_at", { ascending: false })
-    .limit(1);
+  // Fire both queries in parallel
+  const [draftQuotesResult, campaignProfilesResult] = await Promise.all([
+    supabase
+      .from("quotes")
+      .select("id,updated_at")
+      .eq("status", "draft")
+      .order("updated_at", { ascending: false })
+      .limit(1),
+    (supabase as any)
+      .from("lead_campaign_activation_profiles")
+      .select("id,created_at")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then((r: any) => r)
+      .catch(() => ({ data: null })),
+  ]);
 
-  const latestDraftQuote = ((draftQuotes ?? [])[0] ?? null) as DraftQuoteRow | null;
+  const latestDraftQuote = ((draftQuotesResult.data ?? [])[0] ?? null) as DraftQuoteRow | null;
   if (latestDraftQuote) {
     reminders.push({
       id: `task_reminder:draft_quote:${latestDraftQuote.id}`,
@@ -42,17 +52,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
     });
   }
 
-  let latestCampaignProfile: CampaignActivationProfileRow | null = null;
-  try {
-    const { data: campaignProfiles } = await (supabase as any)
-      .from("lead_campaign_activation_profiles")
-      .select("id,created_at")
-      .order("created_at", { ascending: false })
-      .limit(1);
-    latestCampaignProfile = ((campaignProfiles ?? [])[0] ?? null) as CampaignActivationProfileRow | null;
-  } catch {
-    // Table may not exist yet — skip silently
-  }
+  const latestCampaignProfile = ((campaignProfilesResult.data ?? [])[0] ?? null) as CampaignActivationProfileRow | null;
   if (latestCampaignProfile) {
     reminders.push({
       id: `task_reminder:campaign_packet:${latestCampaignProfile.id}`,
