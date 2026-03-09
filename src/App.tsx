@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
+import CookieConsentBanner from "./components/CookieConsentBanner";
 
 // Lazy-loaded pages for code-splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -149,6 +150,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <GlobalErrorLogger />
+      <CookieConsentBanner />
       <BrowserRouter>
         <AuthProvider>
           <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
@@ -165,6 +167,9 @@ const App = () => (
               <Route path="/privacy-policy" element={<Navigate to="/legal/privacy-policy" replace />} />
               <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
               <Route path="/terms-of-use" element={<Navigate to="/legal/terms" replace />} />
+              <Route path="/cookie-policy" element={<Navigate to="/legal/cookie-policy" replace />} />
+              <Route path="/disclaimer" element={<Navigate to="/legal/disclaimer" replace />} />
+              <Route path="/accessibility" element={<Navigate to="/legal/accessibility" replace />} />
               <Route path="/lenses" element={<Navigate to="/lenses/lens-types" replace />} />
               <Route path="/lenses/lens-types" element={<LensDesignGuidePage />} />
               <Route path="/lenses/office-occupational" element={<OfficeOccupationalPage />} />
