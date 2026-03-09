@@ -71,16 +71,7 @@ export default function MoonshotLayout() {
   const contentPadding = collapsed ? "md:pl-[56px]" : "md:pl-[280px]";
 
   if (!currentUser) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-muted p-6">
-        <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-sm">
-          <h1 className="text-2xl font-semibold mb-2">Moonshot Login</h1>
-          <p className="text-sm text-muted-foreground mb-4">Use local demo auth to continue.</p>
-          <Input value="Classic" readOnly className="mb-4" />
-          <Button className="w-full" onClick={login}>Login as Classic</Button>
-        </div>
-      </div>
-    );
+    return <MoonshotLoginGate />;
   }
 
   const NavButton = ({ item, isFooter = false }: { item: NavItem | typeof footerItems[number]; isFooter?: boolean }) => {
