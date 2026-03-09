@@ -2,17 +2,20 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+
+export const missingSupabaseConfigMessage =
+  "Missing Supabase environment variables (VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY).";
 
 const fallbackUrl = 'https://placeholder.supabase.co';
 const fallbackKey = 'public-anon-key';
 
 if (!isSupabaseConfigured) {
   console.error(
-    '[supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. App is running in degraded mode until env vars are configured.',
+    `[supabase] ${missingSupabaseConfigMessage} App is running in degraded mode until env vars are configured.`,
   );
 }
 
