@@ -147,7 +147,7 @@ const MAGNET_COLORS = [
   { name: "Silver", hex: "#A8A9AD" },
 ];
 
-const MAGNET_SHAPES = ["Square", "Round"];
+const MAGNET_SHAPES = ["Round"];
 
 const SWAROVSKI = [
   "Crystal Clear",
