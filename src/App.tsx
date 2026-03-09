@@ -30,8 +30,6 @@ const BlueBlockARPage = lazy(() => import("./pages/coatings/BlueBlockARPage"));
 const ScratchResistantPage = lazy(() => import("./pages/coatings/ScratchResistantPage"));
 const UVShieldPage = lazy(() => import("./pages/coatings/UVShieldPage"));
 const HydrophobicOleophobicPage = lazy(() => import("./pages/coatings/HydrophobicOleophobicPage"));
-const HowARCoatingWorksPage = lazy(() => import("./pages/coatings/HowARCoatingWorksPage"));
-const CaringForCoatedLensesPage = lazy(() => import("./pages/coatings/CaringForCoatedLensesPage"));
 const ProfessionalsPage = lazy(() => import("./pages/ProfessionalsPage"));
 const PatientsPage = lazy(() => import("./pages/PatientsPage"));
 const ProfessionalsPortalPage = lazy(() => import("./pages/ProfessionalsPortalPage"));
@@ -190,8 +188,8 @@ const App = () => (
               <Route path="/coatings/scratch-resistant" element={<ScratchResistantPage />} />
               <Route path="/coatings/uv-shield" element={<UVShieldPage />} />
               <Route path="/coatings/hydrophobic-oleophobic" element={<HydrophobicOleophobicPage />} />
-              <Route path="/coatings/how-ar-coating-works" element={<HowARCoatingWorksPage />} />
-              <Route path="/coatings/caring-for-coated-lenses" element={<CaringForCoatedLensesPage />} />
+              <Route path="/coatings/how-ar-coating-works" element={<Navigate to="/knowledge#how-ar-coating-works" replace />} />
+              <Route path="/coatings/caring-for-coated-lenses" element={<Navigate to="/knowledge#caring-for-coated-lenses" replace />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
               <Route path="/patients" element={<PatientsPage />} />
               <Route path="/professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
