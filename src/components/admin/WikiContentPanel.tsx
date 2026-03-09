@@ -3,6 +3,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Pencil, Eye, FilePenLine, Save, Upload, Undo2, XCircle, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown } from "lucide-react";
 import type { WikiCategory } from "@/data/wikiContent";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
 import RichTextEditor from "./RichTextEditor";
@@ -12,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
 import { canonicalToHtml, toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
 import { Badge } from "@/components/ui/badge";
+import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 
 interface WikiContentPanelProps {
   categories: WikiCategory[];
@@ -27,7 +33,7 @@ interface WikiContentPanelProps {
 const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEdit, onEditArticle, onEditingChange, isCategoryVisible, wikiHeadings }: WikiContentPanelProps) => {
   const displayCategories = categories.filter((category) => category.articles.length > 0 && (isCategoryVisible ? isCategoryVisible(category.id) : true));
   const [isPreview, setIsPreview] = useState(false);
-  const [form, setForm] = useState({ title: "", content: "", category: wikiHeadings[0]?.id ?? "", status: "draft" as "draft" | "published" | "archived", note: "" });
+  const [form, setForm] = useState({ title: "", content: "", category: wikiHeadings[0]?.id ?? "", status: "draft" as "draft" | "published" | "archived", note: "", context_slugs: ["knowledge/wiki"] as string[] });
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const { toast } = useToast();
   const { upsertArticle, fetchVersions, restoreVersion, canPublish } = useHelpArticles();
@@ -54,12 +60,22 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
         category: activeCategory?.id ?? wikiHeadings[0]?.id ?? "",
         status: (activeArticle as any)?.status ?? "draft",
         note: "",
+        context_slugs: activeArticle?.context_slugs?.length ? activeArticle.context_slugs : ["knowledge/wiki"],
       });
       setIsPreview(false);
     }
   }, [isEditing, activeArticleId, activeArticle?.title, activeArticle?.content, activeCategory?.id, wikiHeadings]);
 
-  const currentContexts = activeArticle?.context_slugs?.length ? activeArticle.context_slugs : ["knowledge/wiki"];
+  const toggleContext = (slug: string) => {
+    setForm((prev) => {
+      const has = prev.context_slugs.includes(slug);
+      if (has) {
+        const remaining = prev.context_slugs.filter((s) => s !== slug);
+        return { ...prev, context_slugs: remaining.length > 0 ? remaining : ["all"] };
+      }
+      return { ...prev, context_slugs: [...prev.context_slugs, slug] };
+    });
+  };
 
   useEffect(() => {
     if (!isEditing) return;
@@ -76,7 +92,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
           content: form.content,
           category: form.category,
           page_slug: "knowledge/wiki",
-          context_slugs: currentContexts,
+          context_slugs: form.context_slugs,
           status: form.status,
           change_note: "Autosave",
           version_number: (activeArticle as any)?.version_number,
@@ -87,7 +103,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
       }
     }, 1400);
     return () => clearTimeout(t);
-  }, [form.title, form.content, form.category, form.status, isEditing, editingArticleId, activeArticle]);
+  }, [form.title, form.content, form.category, form.status, form.context_slugs, isEditing, editingArticleId, activeArticle]);
 
   const handleSaveDraft = async () => {
     await upsertArticle({
@@ -96,7 +112,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
       content: form.content,
       category: form.category,
       page_slug: "knowledge/wiki",
-      context_slugs: currentContexts,
+      context_slugs: form.context_slugs,
       status: "draft",
       change_note: form.note || "Saved draft",
       version_number: (activeArticle as any)?.version_number,
@@ -121,7 +137,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
       content: form.content,
       category: form.category,
       page_slug: "knowledge/wiki",
-      context_slugs: currentContexts,
+      context_slugs: form.context_slugs,
       status: "published",
       change_note: form.note || "Published",
       version_number: (activeArticle as any)?.version_number,
@@ -138,7 +154,7 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
       content: form.content,
       category: form.category,
       page_slug: "knowledge/wiki",
-      context_slugs: currentContexts,
+      context_slugs: form.context_slugs,
       status: "draft",
       change_note: "Unpublished",
       version_number: (activeArticle as any)?.version_number,
@@ -161,6 +177,12 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
   if (!activeArticle && editingArticleId !== "new") {
     return <div className="flex-1 flex items-center justify-center bg-background"><p className="text-sm text-muted-foreground">Select an article from the sidebar.</p></div>;
   }
+
+  const contextLabel = form.context_slugs.includes("all")
+    ? "All Pages"
+    : form.context_slugs.length === 1
+      ? (ADMIN_CONTEXT_OPTIONS.find((o) => o.value === form.context_slugs[0])?.label ?? form.context_slugs[0])
+      : `${form.context_slugs.length} pages`;
 
   return (
     <ScrollArea className="flex-1 bg-background">
@@ -188,9 +210,52 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
               </Button>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock3 className="h-3.5 w-3.5" />
-              {saveState === "saving" ? "Autosaving…" : saveState === "saved" ? "All changes saved" : "Autosave idle"}
+            {/* Metadata row: heading + context pages + status */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Heading</Label>
+                <Select value={form.category} onValueChange={(v) => setForm((prev) => ({ ...prev, category: v }))}>
+                  <SelectTrigger className="h-7 text-xs w-44">
+                    <SelectValue placeholder="Select heading…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wikiHeadings.map((h) => (
+                      <SelectItem key={h.id} value={h.id} className="text-xs">{h.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Shows on</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1 min-w-32 justify-between">
+                      <span className="truncate">{contextLabel}</span>
+                      <ChevronDown className="h-3 w-3 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="start">
+                    <p className="text-[10px] text-muted-foreground mb-1.5 px-1">Select which pages show this article in the help flyout.</p>
+                    <div className="max-h-56 overflow-y-auto space-y-0.5">
+                      {ADMIN_CONTEXT_OPTIONS.map((option) => (
+                        <label key={option.value} className="flex items-center gap-2 text-xs cursor-pointer px-1 py-0.5 rounded hover:bg-muted">
+                          <Checkbox
+                            checked={form.context_slugs.includes(option.value)}
+                            onCheckedChange={() => toggleContext(option.value)}
+                          />
+                          <span>{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock3 className="h-3.5 w-3.5" />
+                {saveState === "saving" ? "Autosaving…" : saveState === "saved" ? "All changes saved" : "Autosave idle"}
+              </div>
             </div>
 
             {isPreview ? (
@@ -224,3 +289,5 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
 };
 
 export default WikiContentPanel;
+
+
