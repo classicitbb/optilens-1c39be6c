@@ -114,6 +114,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
       {
         title: "Technical Resources",
         links: [
+          { label: "Dispensing Tips & Guide", description: "Professional dispensing and patient care", to: "/professionals/dispensing-tips" },
           { label: "Lab Process Overview", description: "Production flow and checkpoints", to: "/professionals/lab-process-overview" },
           { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
           { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
