@@ -26,7 +26,7 @@ import {
   Phone,
   Mail,
 } from "lucide-react";
-import chemHero from "@/assets/chemistrie-hero.jpg";
+
 
 /* ─────────────── DATA ─────────────── */
 
