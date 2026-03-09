@@ -183,6 +183,7 @@ const App = () => (
               <Route path="/knowledge" element={<Knowledge />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+
               <Route path="/legal/:slug" element={<LegalPage />} />
               <Route path="/privacy-policy" element={<Navigate to="/legal/privacy-policy" replace />} />
               <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
