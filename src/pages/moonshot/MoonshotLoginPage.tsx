@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Rocket } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,13 +23,20 @@ const MoonshotLoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const redirect = new URLSearchParams(location.search).get("redirect");
+  const moonshotRedirectTarget = redirect && redirect.startsWith("/moonshot") ? redirect : "/moonshot/dashboard";
 
   const detectedEmail = useMemo(() => user?.email ?? localStorage.getItem("moonshot:last-email") ?? "", [user?.email]);
 
-  const routeUser = () => {
-    const target = redirect && redirect.startsWith("/moonshot") ? redirect : getDefaultLandingPageForRole(role);
-    navigate(hasPermission(role, "moonshot_access") ? target : getDefaultLandingPageForRole(role), { replace: true });
-  };
+  const routeUser = useCallback(() => {
+    navigate(hasPermission(role, "moonshot_access") ? moonshotRedirectTarget : getDefaultLandingPageForRole(role), { replace: true });
+  }, [moonshotRedirectTarget, navigate, role]);
+
+
+  useEffect(() => {
+    if (user) {
+      routeUser();
+    }
+  }, [routeUser, user]);
 
   const handleQuickEnter = async () => {
     if (user) {
@@ -38,7 +45,7 @@ const MoonshotLoginPage = () => {
     }
 
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/moonshot`,
+      redirect_uri: `${window.location.origin}/moonshot/login?redirect=${encodeURIComponent(moonshotRedirectTarget)}`,
       extraParams: detectedEmail ? { login_hint: detectedEmail } : undefined,
     });
 

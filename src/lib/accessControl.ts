@@ -10,7 +10,7 @@ export const normalizeRole = (role: AppRole | null | undefined): CanonicalRole |
 };
 
 const routeAccessRules: Array<{ pattern: RegExp; roles: CanonicalRole[] }> = [
-  { pattern: /^\/admin\/settings\/(users|roles|audit|integrations)(\/|$)/, roles: ["admin"] },
+  { pattern: /^\/admin\/settings\/(users|roles|audit|integrations|runtime-errors)(\/|$)/, roles: ["admin"] },
   { pattern: /^\/admin(\/|$)/, roles: ["admin", "operator"] },
   { pattern: /^\/moonshot\/users(\/|$)/, roles: ["admin", "operator"] },
   { pattern: /^\/moonshot\/settings(\/|$)/, roles: ["admin"] },
