@@ -176,11 +176,11 @@ const App = () => (
           <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
           <Routes>
             <Route element={<CustomerShell />}>
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
-              <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+              <Route path="/store" element={<Store />} />
+              <Route path="/knowledge" element={<Knowledge />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
               <Route path="/legal/:slug" element={<LegalPage />} />
