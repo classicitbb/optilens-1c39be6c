@@ -69,12 +69,13 @@ const Footer = () => {
   const copyrightText = copyrightArticle?.content || "© 2026 OptiLens Pro. All rights reserved.";
 
   return (
-    <footer className="border-t border-border bg-primary text-primary-foreground">
-      <div className="container mx-auto px-4 py-16 lg:px-8">
-        <div className="mb-10 flex flex-col gap-4 border-b border-primary-foreground/10 pb-10 md:flex-row md:items-center md:justify-between">
-          <Link to="/" className="flex items-center gap-2">
+    <footer className="border-t border-border bg-primary text-primary-foreground" role="contentinfo">
+      <div className="container mx-auto px-4 py-12 sm:py-16 lg:px-8">
+        {/* Brand row */}
+        <div className="mb-10 flex flex-col gap-4 border-b border-primary-foreground/10 pb-10 sm:flex-row sm:items-center sm:justify-between">
+          <Link to="/" className="flex items-center gap-2" aria-label="OptiLens Pro home">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-              <Eye className="h-5 w-5 text-accent-foreground" />
+              <Eye className="h-5 w-5 text-accent-foreground" aria-hidden="true" />
             </div>
             <span className="text-xl font-bold">OptiLens Pro</span>
           </Link>
@@ -83,13 +84,18 @@ const Footer = () => {
           </p>
         </div>
 
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-6">
+        {/* Link columns — responsive grid */}
+        <div className="grid gap-8 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           {footerColumns.map((column) => (
-            <div key={column.title} className="space-y-4">
+            <div key={column.title} className="space-y-3">
               <h4 className="text-sm font-semibold uppercase tracking-wider">{column.title}</h4>
-              <nav className="flex flex-col gap-2">
+              <nav className="flex flex-col gap-2" aria-label={`${column.title} links`}>
                 {column.links.map((link) => (
-                  <Link key={link.label} to={link.to} className="text-sm text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+                  <Link
+                    key={link.label}
+                    to={link.to}
+                    className="text-sm leading-snug text-primary-foreground/70 transition-colors hover:text-primary-foreground"
+                  >
                     {link.label}
                   </Link>
                 ))}
@@ -97,11 +103,12 @@ const Footer = () => {
             </div>
           ))}
 
-          <div className="space-y-4">
+          {/* Contact column */}
+          <div className="col-span-2 space-y-3 sm:col-span-3 lg:col-span-full xl:col-span-1">
             <h4 className="text-sm font-semibold uppercase tracking-wider">Classic Visions</h4>
             <div className="space-y-3 text-sm text-primary-foreground/70">
               <p className="flex items-start gap-2">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>Regency Park, Christ Church, Barbados</span>
               </p>
               <a
@@ -110,20 +117,24 @@ const Footer = () => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 transition-colors hover:text-primary-foreground"
               >
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Directions
               </a>
-              <a href="tel:+12464334928" className="flex items-center gap-2 transition-colors hover:text-primary-foreground">
-                <Phone className="h-4 w-4" />
-                Call +1 246 433-4928
+              <a
+                href="tel:+12464334928"
+                className="flex items-center gap-2 transition-colors hover:text-primary-foreground"
+              >
+                <Phone className="h-4 w-4" aria-hidden="true" />
+                <span>Call +1 246 433-4928</span>
               </a>
             </div>
           </div>
         </div>
 
-        <div className="mt-12 border-t border-primary-foreground/10 pt-8 text-center text-sm text-primary-foreground/60 md:flex md:items-center md:justify-between md:text-left">
+        {/* Copyright */}
+        <div className="mt-12 border-t border-primary-foreground/10 pt-8 text-center text-sm text-primary-foreground/60 sm:flex sm:items-center sm:justify-between sm:text-left">
           <p>{copyrightText}</p>
-          <p className="mt-2 md:mt-0">Powered by Classic Visions Digital</p>
+          <p className="mt-2 sm:mt-0">Powered by Classic Visions Digital</p>
         </div>
       </div>
     </footer>

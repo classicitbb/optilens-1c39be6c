@@ -137,10 +137,34 @@
     background-color: hsl(var(--background));
   }
 
+  /* Honour reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     min-height: 100vh;
+  }
+
+  /* Skip-to-content link (screen-reader first, visible on focus) */
+  .skip-to-content {
+    @apply fixed left-2 top-2 z-[100] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0;
+  }
+
+  /* Ensure visible focus rings across all interactive elements */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
@@ -177,6 +201,15 @@
   .glass-effect {
     @apply backdrop-blur-md;
     background: var(--gradient-glass);
+  }
+
+  /* Hide scrollbar cross-browser */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 

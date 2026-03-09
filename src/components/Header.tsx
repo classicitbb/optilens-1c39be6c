@@ -325,16 +325,17 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
+      <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2" aria-label="OptiVisionNow home">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-accent">
-            <Eye className="h-5 w-5 text-accent-foreground" />
+            <Eye className="h-5 w-5 text-accent-foreground" aria-hidden="true" />
           </div>
           <span className="text-xl font-bold text-foreground">OptiVisionNow</span>
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
           {PRIMARY_MENU.map((item) => (
             <MegaMenu key={item.label} item={item} />
           ))}
@@ -490,7 +491,10 @@ const Header = () => {
           )}
 
           <Button variant="hero" size="sm" asChild>
-            <Link to="/store">Order Lenses</Link>
+            <Link to="/store">
+              <span className="hidden sm:inline">Order Lenses</span>
+              <span className="sm:hidden">Order</span>
+            </Link>
           </Button>
         </div>
       </div>
