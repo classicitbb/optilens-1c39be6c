@@ -335,7 +335,7 @@ const Header = () => {
           <span className="text-xl font-bold text-foreground">OptiVisionNow</span>
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
           {PRIMARY_MENU.map((item) => (
             <MegaMenu key={item.label} item={item} />
           ))}
