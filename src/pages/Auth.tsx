@@ -183,6 +183,7 @@ const Auth = () => {
             </svg>
             Sign in with Google
           </Button>
+          </div>
 
           <div className="mt-5 text-center">
             <button
