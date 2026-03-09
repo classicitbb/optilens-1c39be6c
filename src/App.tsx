@@ -259,8 +259,8 @@ const App = () => (
                 <Route path="leads/reports" element={<LeadAuditReportsPage />} />
                 <Route path="leads/ai" element={<LeadsAiAssistantPage />} />
                 <Route path="leads/settings" element={<LeadSettingsPage />} />
-                <Route path="leads/proposals" element={<RedirectToProposals />} />
-                <Route path="leads/catalog-publisher" element={<RedirectToProposals />} />
+                <Route path="leads/proposals" element={<Navigate to="/admin/sales/proposals" replace />} />
+                <Route path="leads/catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
 
                 {/* ═══ CRM App ═══ */}
                 <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
