@@ -202,6 +202,15 @@
     @apply backdrop-blur-md;
     background: var(--gradient-glass);
   }
+
+  /* Hide scrollbar cross-browser */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ── Auth page animations ── */

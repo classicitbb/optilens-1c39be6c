@@ -491,7 +491,10 @@ const Header = () => {
           )}
 
           <Button variant="hero" size="sm" asChild>
-            <Link to="/store">Order Lenses</Link>
+            <Link to="/store">
+              <span className="hidden sm:inline">Order Lenses</span>
+              <span className="sm:hidden">Order</span>
+            </Link>
           </Button>
         </div>
       </div>
