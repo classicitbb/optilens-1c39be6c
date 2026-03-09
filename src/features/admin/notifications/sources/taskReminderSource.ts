@@ -30,13 +30,8 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       .eq("status", "draft")
       .order("updated_at", { ascending: false })
       .limit(1),
-    (supabase as any)
-      .from("lead_campaign_activation_profiles")
-      .select("id,created_at")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .then((r: any) => r)
-      .catch(() => ({ data: null })),
+    // Table does not exist yet – skip query to avoid 404 noise
+    Promise.resolve({ data: null } as { data: null }),
   ]);
 
   const latestDraftQuote = ((draftQuotesResult.data ?? [])[0] ?? null) as DraftQuoteRow | null;
