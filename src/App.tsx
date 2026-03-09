@@ -30,8 +30,6 @@ const BlueBlockARPage = lazy(() => import("./pages/coatings/BlueBlockARPage"));
 const ScratchResistantPage = lazy(() => import("./pages/coatings/ScratchResistantPage"));
 const UVShieldPage = lazy(() => import("./pages/coatings/UVShieldPage"));
 const HydrophobicOleophobicPage = lazy(() => import("./pages/coatings/HydrophobicOleophobicPage"));
-const HowARCoatingWorksPage = lazy(() => import("./pages/coatings/HowARCoatingWorksPage"));
-const CaringForCoatedLensesPage = lazy(() => import("./pages/coatings/CaringForCoatedLensesPage"));
 const ProfessionalsPage = lazy(() => import("./pages/ProfessionalsPage"));
 const PatientsPage = lazy(() => import("./pages/PatientsPage"));
 const ProfessionalsPortalPage = lazy(() => import("./pages/ProfessionalsPortalPage"));
