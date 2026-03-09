@@ -69,8 +69,9 @@ const UsersPage = () => {
   }, [users, search]);
 
   const handleAssign = async (userId: string, role: AppRole) => {
+    const dbRole = role === "standard_user" ? "viewer" : role;
     try {
-      await assignRole.mutateAsync({ userId, role });
+      await assignRole.mutateAsync({ userId, role: dbRole });
       setEditingUser(null);
       toast({ title: "Role updated", description: `User role set to ${role}.` });
     } catch {
