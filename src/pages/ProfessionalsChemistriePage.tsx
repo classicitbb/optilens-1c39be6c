@@ -24,154 +24,154 @@ import {
   Award,
   ArrowRight,
   Phone,
-  Mail,
-} from "lucide-react";
+  Mail } from
+"lucide-react";
 
 
 /* ─────────────── DATA ─────────────── */
 
 const STATS = [
-  { value: "1M+", label: "Clips Sold Worldwide" },
-  { value: "#1", label: "Best-Selling Magnetic Clip System" },
-  { value: "100+", label: "Optical Labs Equipped" },
-  { value: "24", label: "Polarized Color Options" },
-];
+{ value: "1M+", label: "Clips Sold Worldwide" },
+{ value: "#1", label: "Best-Selling Magnetic Clip System" },
+{ value: "100+", label: "Optical Labs Equipped" },
+{ value: "24", label: "Polarized Color Options" }];
+
 
 const PRODUCTS = [
-  {
-    icon: Sun,
-    title: "Chemistrie Sun",
-    description:
-      "24 polarized lens colors in solid, mirror, and gradient. Base-curve matched, custom-made to fit any frame.",
-    href: "https://www.forecps.com/chemistrie-sun",
-    accent: "hsl(var(--primary))",
-  },
-  {
-    icon: BookOpen,
-    title: "Chemistrie+ Reading",
-    description:
-      "Prescription reading power integrated into the magnetic clip, eliminating the need for a separate pair.",
-    href: "https://www.forecps.com/chemistrie-reading",
-    accent: "hsl(var(--accent))",
-  },
-  {
-    icon: Car,
-    title: "Chemistrie Driving",
-    description:
-      "Specialty driving tints optimized for road contrast and glare reduction at the wheel.",
-    href: "https://www.forecps.com/chemistrie-driving",
-    accent: "hsl(var(--primary))",
-  },
-  {
-    icon: Monitor,
-    title: "Chemistrie Blue",
-    description:
-      "Blue light filtering clip for digital device use. Reduces digital eye strain throughout the workday.",
-    href: "https://www.forecps.com/chemistrie-blue",
-    accent: "hsl(var(--accent))",
-  },
-  {
-    icon: Leaf,
-    title: "Chemistrie Avulux",
-    description:
-      "Precision light filtering for migraine and light sensitivity sufferers. Developed with clinical research.",
-    href: "https://www.forecps.com/avulux",
-    accent: "hsl(var(--primary))",
-  },
-  {
-    icon: FlowerIcon,
-    title: "Chemistrie FL-41",
-    description:
-      "Rose-tinted FL-41 filter for photophobia, blepharospasm, and light-triggered headache relief.",
-    href: "https://www.forecps.com/fl41",
-    accent: "hsl(var(--accent))",
-  },
-  {
-    icon: Film,
-    title: "Chemistrie 3D",
-    description:
-      "Premium 3D clip for cinema use. Fits over prescription frames with no compromise to optical clarity.",
-    href: "https://www.forecps.com/3d",
-    accent: "hsl(var(--primary))",
-  },
-  {
-    icon: Eye,
-    title: "Color Deficiency",
-    description:
-      "Specialty clip for color vision deficiency, helping patients perceive a broader color spectrum.",
-    href: "https://www.forecps.com/color-deficiency",
-    accent: "hsl(var(--accent))",
-  },
-];
+{
+  icon: Sun,
+  title: "Chemistrie Sun",
+  description:
+  "24 polarized lens colors in solid, mirror, and gradient. Base-curve matched, custom-made to fit any frame.",
+  href: "https://www.forecps.com/chemistrie-sun",
+  accent: "hsl(var(--primary))"
+},
+{
+  icon: BookOpen,
+  title: "Chemistrie+ Reading",
+  description:
+  "Prescription reading power integrated into the magnetic clip, eliminating the need for a separate pair.",
+  href: "https://www.forecps.com/chemistrie-reading",
+  accent: "hsl(var(--accent))"
+},
+{
+  icon: Car,
+  title: "Chemistrie Driving",
+  description:
+  "Specialty driving tints optimized for road contrast and glare reduction at the wheel.",
+  href: "https://www.forecps.com/chemistrie-driving",
+  accent: "hsl(var(--primary))"
+},
+{
+  icon: Monitor,
+  title: "Chemistrie Blue",
+  description:
+  "Blue light filtering clip for digital device use. Reduces digital eye strain throughout the workday.",
+  href: "https://www.forecps.com/chemistrie-blue",
+  accent: "hsl(var(--accent))"
+},
+{
+  icon: Leaf,
+  title: "Chemistrie Avulux",
+  description:
+  "Precision light filtering for migraine and light sensitivity sufferers. Developed with clinical research.",
+  href: "https://www.forecps.com/avulux",
+  accent: "hsl(var(--primary))"
+},
+{
+  icon: FlowerIcon,
+  title: "Chemistrie FL-41",
+  description:
+  "Rose-tinted FL-41 filter for photophobia, blepharospasm, and light-triggered headache relief.",
+  href: "https://www.forecps.com/fl41",
+  accent: "hsl(var(--accent))"
+},
+{
+  icon: Film,
+  title: "Chemistrie 3D",
+  description:
+  "Premium 3D clip for cinema use. Fits over prescription frames with no compromise to optical clarity.",
+  href: "https://www.forecps.com/3d",
+  accent: "hsl(var(--primary))"
+},
+{
+  icon: Eye,
+  title: "Color Deficiency",
+  description:
+  "Specialty clip for color vision deficiency, helping patients perceive a broader color spectrum.",
+  href: "https://www.forecps.com/color-deficiency",
+  accent: "hsl(var(--accent))"
+}];
+
 
 const SOLID_COLORS = [
-  { name: "Grey", hex: "#6B7280" },
-  { name: "Brown", hex: "#92400E" },
-  { name: "G-15", hex: "#4B5320" },
-  { name: "Blue", hex: "#1E40AF" },
-  { name: "Copper", hex: "#B45309" },
-  { name: "Amber", hex: "#D97706" },
-  { name: "Pink", hex: "#DB2777" },
-  { name: "Purple", hex: "#7C3AED" },
-];
+{ name: "Grey", hex: "#6B7280" },
+{ name: "Brown", hex: "#92400E" },
+{ name: "G-15", hex: "#4B5320" },
+{ name: "Blue", hex: "#1E40AF" },
+{ name: "Copper", hex: "#B45309" },
+{ name: "Amber", hex: "#D97706" },
+{ name: "Pink", hex: "#DB2777" },
+{ name: "Purple", hex: "#7C3AED" }];
+
 
 const MIRROR_COLORS = [
-  { name: "Silver Mirror", hex: "#C0C0C0" },
-  { name: "Gold Mirror", hex: "#D4AF37" },
-  { name: "Blue Mirror", hex: "#3B82F6" },
-  { name: "Green Mirror", hex: "#16A34A" },
-  { name: "Rose Gold Mirror", hex: "#C7849C" },
-  { name: "Red Mirror", hex: "#DC2626" },
-  { name: "Orange Mirror", hex: "#EA580C" },
-  { name: "Purple Mirror", hex: "#9333EA" },
-];
+{ name: "Silver Mirror", hex: "#C0C0C0" },
+{ name: "Gold Mirror", hex: "#D4AF37" },
+{ name: "Blue Mirror", hex: "#3B82F6" },
+{ name: "Green Mirror", hex: "#16A34A" },
+{ name: "Rose Gold Mirror", hex: "#C7849C" },
+{ name: "Red Mirror", hex: "#DC2626" },
+{ name: "Orange Mirror", hex: "#EA580C" },
+{ name: "Purple Mirror", hex: "#9333EA" }];
+
 
 const GRADIENT_COLORS = [
-  { name: "Grey Gradient", top: "#6B7280", bottom: "#D1D5DB" },
-  { name: "Brown Gradient", top: "#92400E", bottom: "#FDE68A" },
-  { name: "Blue Gradient", top: "#1E40AF", bottom: "#BFDBFE" },
-  { name: "Pink Gradient", top: "#DB2777", bottom: "#FBD3E9" },
-];
+{ name: "Grey Gradient", top: "#6B7280", bottom: "#D1D5DB" },
+{ name: "Brown Gradient", top: "#92400E", bottom: "#FDE68A" },
+{ name: "Blue Gradient", top: "#1E40AF", bottom: "#BFDBFE" },
+{ name: "Pink Gradient", top: "#DB2777", bottom: "#FBD3E9" }];
+
 
 const BRIDGE_COLORS = [
-  { name: "Bronze", hex: "#CD7F32" },
-  { name: "Gunmetal", hex: "#2C3E50" },
-  { name: "Gold", hex: "#D4AF37" },
-  { name: "Silver", hex: "#A8A9AD" },
-  { name: "Black", hex: "#1A1A1A" },
-];
+{ name: "Bronze", hex: "#CD7F32" },
+{ name: "Gunmetal", hex: "#2C3E50" },
+{ name: "Gold", hex: "#D4AF37" },
+{ name: "Silver", hex: "#A8A9AD" },
+{ name: "Black", hex: "#1A1A1A" }];
+
 
 const MAGNET_COLORS = [
-  { name: "Gunmetal", hex: "#2C3E50" },
-  { name: "Gold", hex: "#D4AF37" },
-  { name: "Silver", hex: "#A8A9AD" },
-];
+{ name: "Gunmetal", hex: "#2C3E50" },
+{ name: "Gold", hex: "#D4AF37" },
+{ name: "Silver", hex: "#A8A9AD" }];
+
 
 const MAGNET_SHAPES = ["Round"];
 
 const SWAROVSKI = [
-  "Crystal Clear",
-  "Crystal AB",
-  "Jet Black",
-  "Rose",
-  "Aquamarine",
-  "Sapphire",
-  "Peridot",
-  "Amethyst",
-  "Topaz",
-  "Citrine",
-  "Ruby",
-  "Emerald",
-];
+"Crystal Clear",
+"Crystal AB",
+"Jet Black",
+"Rose",
+"Aquamarine",
+"Sapphire",
+"Peridot",
+"Amethyst",
+"Topaz",
+"Citrine",
+"Ruby",
+"Emerald"];
+
 
 const SPECS = [
-  { icon: Settings, label: "Custom-made in-house", detail: "Crafted to your exact order specifications" },
-  { icon: Layers, label: "Fits virtually any frame", detail: "Proprietary base-curve matching system" },
-  { icon: Shield, label: "100% UV protection", detail: "Full UV400 blocking on all clip models" },
-  { icon: Feather, label: "Extremely lightweight", detail: "Titanium bridge construction, feather-light" },
-  { icon: Magnet, label: "Secure magnetic attachment", detail: "Square or round magnet options" },
-  { icon: Sparkles, label: "Swarovski crystal options", detail: "12 premium crystal colors available" },
-];
+{ icon: Settings, label: "Custom-made in-house", detail: "Crafted to your exact order specifications" },
+{ icon: Layers, label: "Fits virtually any frame", detail: "Proprietary base-curve matching system" },
+{ icon: Shield, label: "100% UV protection", detail: "Full UV400 blocking on all clip models" },
+{ icon: Feather, label: "Extremely lightweight", detail: "Titanium bridge construction, feather-light" },
+{ icon: Magnet, label: "Secure magnetic attachment", detail: "Square or round magnet options" },
+{ icon: Sparkles, label: "Swarovski crystal options", detail: "12 premium crystal colors available" }];
+
 
 /* ─────────────── COMPONENT ─────────────── */
 
@@ -191,8 +191,8 @@ export default function ProfessionalsChemistriePage() {
             muted
             loop
             playsInline
-            className="h-full w-full object-cover"
-          >
+            className="h-full w-full object-cover">
+            
             <source src="https://www.forecps.com/wp-content/uploads/2025/06/chem-sun-short.mp4" type="video/mp4" />
           </video>
           {/* Gradient overlay: transparent on right → dark on left */}
@@ -216,15 +216,15 @@ export default function ProfessionalsChemistriePage() {
 
             <ul className="mb-10 space-y-3">
               {[
-                "24 polarized color options — solid, mirror & gradient",
-                "Titanium bridge in 5 colours, magnets in 3 shapes",
-                "Optional Swarovski crystal embellishments",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-foreground">
+              "24 polarized color options — solid, mirror & gradient",
+              "Titanium bridge in 5 colours, magnets in 3 shapes",
+              "Optional Swarovski crystal embellishments"].
+              map((item) =>
+              <li key={item} className="flex items-start gap-3 text-foreground">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                   <span className="text-sm">{item}</span>
                 </li>
-              ))}
+              )}
             </ul>
 
             <div className="flex flex-wrap gap-4">
@@ -245,14 +245,14 @@ export default function ProfessionalsChemistriePage() {
       <section className="border-y border-border bg-muted/40">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="grid grid-cols-2 divide-x divide-border lg:grid-cols-4">
-            {STATS.map((s) => (
-              <div key={s.label} className="flex flex-col items-center gap-1 px-6 py-8 text-center">
+            {STATS.map((s) =>
+            <div key={s.label} className="flex flex-col items-center gap-1 px-6 py-8 text-center">
                 <span className="text-3xl font-bold text-primary lg:text-4xl">{s.value}</span>
                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {s.label}
                 </span>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -284,8 +284,8 @@ export default function ProfessionalsChemistriePage() {
                   <a
                     href="https://www.forecps.com/chemistrie-technology"
                     target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                    rel="noopener noreferrer">
+                    
                     Explore the Technology <ExternalLink className="ml-1 h-4 w-4" />
                   </a>
                 </Button>
@@ -298,22 +298,22 @@ export default function ProfessionalsChemistriePage() {
             {/* Right: visual feature tiles */}
             <div className="grid grid-cols-2 gap-4">
               {[
-                { icon: Layers, title: "Base-Curve Matched", desc: "Every clip is precision-fitted to the primary lens curvature" },
-                { icon: Magnet, title: "Magnetic Bridge", desc: "Titanium bridge bonds to the lens, not the frame" },
-                { icon: Feather, title: "Feather-Light", desc: "Near-weightless wear — patients forget they have it on" },
-                { icon: Award, title: "Lab-Controlled", desc: "Custom-manufactured in-house for quality assurance" },
-              ].map(({ icon: Icon, title, desc }) => (
-                <div
-                  key={title}
-                  className="rounded-xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow"
-                >
+              { icon: Layers, title: "Base-Curve Matched", desc: "Every clip is precision-fitted to the primary lens curvature" },
+              { icon: Magnet, title: "Magnetic Bridge", desc: "Titanium bridge bonds to the lens, not the frame" },
+              { icon: Feather, title: "Feather-Light", desc: "Near-weightless wear — patients forget they have it on" },
+              { icon: Award, title: "Lab-Controlled", desc: "Custom-manufactured in-house for quality assurance" }].
+              map(({ icon: Icon, title, desc }) =>
+              <div
+                key={title}
+                className="rounded-xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
+                
                   <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
                   <h3 className="mb-1 text-sm font-semibold text-foreground">{title}</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -336,18 +336,18 @@ export default function ProfessionalsChemistriePage() {
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {PRODUCTS.map(({ icon: Icon, title, description, href, accent }) => (
-              <a
-                key={title}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-all hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5"
-              >
+            {PRODUCTS.map(({ icon: Icon, title, description, href, accent }) =>
+            <a
+              key={title}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-all hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5">
+              
                 <div
-                  className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg"
-                  style={{ background: accent }}
-                >
+                className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg"
+                style={{ background: accent }}>
+                
                   <Icon className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <h3 className="mb-2 font-semibold text-foreground">{title}</h3>
@@ -359,7 +359,7 @@ export default function ProfessionalsChemistriePage() {
                   <ExternalLink className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                 </div>
               </a>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -398,46 +398,46 @@ export default function ProfessionalsChemistriePage() {
             {/* ── Tab 1: Sun Colors ── */}
             <TabsContent value="sun-colors" className="space-y-8">
               {[
-                { label: "Solid Polarized", colors: SOLID_COLORS, gradient: false },
-                { label: "Mirror Polarized", colors: MIRROR_COLORS, gradient: false },
-              ].map(({ label, colors }) => (
-                <div key={label}>
+              { label: "Solid Polarized", colors: SOLID_COLORS, gradient: false },
+              { label: "Mirror Polarized", colors: MIRROR_COLORS, gradient: false }].
+              map(({ label, colors }) =>
+              <div key={label}>
                   <p className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                     {label}
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    {colors.map((c) => (
-                      <div key={c.name} className="flex flex-col items-center gap-1.5">
+                    {colors.map((c) =>
+                  <div key={c.name} className="flex flex-col items-center gap-1.5">
                         <div
-                          className="h-10 w-10 rounded-full border-2 border-border shadow-sm"
-                          style={{ background: c.hex }}
-                          title={c.name}
-                        />
+                      className="h-10 w-10 rounded-full border-2 border-border shadow-sm"
+                      style={{ background: c.hex }}
+                      title={c.name} />
+                    
                         <span className="text-xs text-muted-foreground whitespace-nowrap">{c.name}</span>
                       </div>
-                    ))}
+                  )}
                   </div>
                 </div>
-              ))}
+              )}
               <div>
                 <p className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   Gradient Polarized
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {GRADIENT_COLORS.map((c) => (
-                    <div key={c.name} className="flex flex-col items-center gap-1.5">
+                  {GRADIENT_COLORS.map((c) =>
+                  <div key={c.name} className="flex flex-col items-center gap-1.5 px-[19px]">
                       <div
-                        className="h-10 w-10 rounded-full border-2 border-border shadow-sm"
-                        style={{
-                          background: `linear-gradient(to bottom, ${c.top}, ${c.bottom})`,
-                        }}
-                        title={c.name}
-                      />
+                      className="h-10 w-10 rounded-full border-2 border-border shadow-sm"
+                      style={{
+                        background: `linear-gradient(to bottom, ${c.top}, ${c.bottom})`
+                      }}
+                      title={c.name} />
+                    
                       <span className="text-xs text-muted-foreground whitespace-nowrap max-w-[56px] text-center leading-tight">
                         {c.name}
                       </span>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -446,8 +446,8 @@ export default function ProfessionalsChemistriePage() {
                   href="https://www.forecps.com/chemistrie-sun"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-1 text-primary hover:underline"
-                >
+                  className="ml-1 text-primary hover:underline">
+                  
                   Full colour chart at ForECPs.com →
                 </a>
               </p>
@@ -461,15 +461,15 @@ export default function ProfessionalsChemistriePage() {
                     Titanium Bridge Colors
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    {BRIDGE_COLORS.map((c) => (
-                      <div key={c.name} className="flex flex-col items-center gap-1.5">
+                    {BRIDGE_COLORS.map((c) =>
+                    <div key={c.name} className="flex flex-col items-center gap-1.5">
                         <div
-                          className="h-10 w-10 rounded-full border-2 border-border shadow-sm"
-                          style={{ background: c.hex }}
-                        />
+                        className="h-10 w-10 rounded-full border-2 border-border shadow-sm"
+                        style={{ background: c.hex }} />
+                      
                         <span className="text-xs text-muted-foreground">{c.name}</span>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
                 <div>
@@ -477,28 +477,28 @@ export default function ProfessionalsChemistriePage() {
                     Magnet Colors
                   </p>
                   <div className="flex flex-wrap gap-3 mb-6">
-                    {MAGNET_COLORS.map((c) => (
-                      <div key={c.name} className="flex flex-col items-center gap-1.5">
+                    {MAGNET_COLORS.map((c) =>
+                    <div key={c.name} className="flex flex-col items-center gap-1.5">
                         <div
-                          className="h-10 w-10 rounded-full border-2 border-border shadow-sm"
-                          style={{ background: c.hex }}
-                        />
+                        className="h-10 w-10 rounded-full border-2 border-border shadow-sm"
+                        style={{ background: c.hex }} />
+                      
                         <span className="text-xs text-muted-foreground">{c.name}</span>
                       </div>
-                    ))}
+                    )}
                   </div>
                   <p className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                     Magnet Shape
                   </p>
                   <div className="flex gap-3">
-                    {MAGNET_SHAPES.map((shape) => (
-                      <span
-                        key={shape}
-                        className="rounded-full border border-border bg-muted px-4 py-1.5 text-sm font-medium text-foreground"
-                      >
+                    {MAGNET_SHAPES.map((shape) =>
+                    <span
+                      key={shape}
+                      className="rounded-full border border-border bg-muted px-4 py-1.5 text-sm font-medium text-foreground">
+                      
                         {shape}
                       </span>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -511,15 +511,15 @@ export default function ProfessionalsChemistriePage() {
                 available in 12 premium colours applied to the bridge hardware.
               </p>
               <div className="flex flex-wrap gap-3">
-                {SWAROVSKI.map((name) => (
-                  <div
-                    key={name}
-                    className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm"
-                  >
+                {SWAROVSKI.map((name) =>
+                <div
+                  key={name}
+                  className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm">
+                  
                     <Sparkles className="h-3.5 w-3.5 text-primary" />
                     {name}
                   </div>
-                ))}
+                )}
               </div>
               <p className="mt-6 text-xs text-muted-foreground">
                 Swarovski crystals are an optional add-on to any Chemistrie Sun order.
@@ -543,11 +543,11 @@ export default function ProfessionalsChemistriePage() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {SPECS.map(({ icon: Icon, label, detail }) => (
-              <div
-                key={label}
-                className="flex items-start gap-4 rounded-xl border border-border bg-card p-6 shadow-sm"
-              >
+            {SPECS.map(({ icon: Icon, label, detail }) =>
+            <div
+              key={label}
+              className="flex items-start gap-4 rounded-xl border border-border bg-card p-6 shadow-sm">
+              
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
@@ -556,7 +556,7 @@ export default function ProfessionalsChemistriePage() {
                   <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -576,8 +576,8 @@ export default function ProfessionalsChemistriePage() {
               <Button
                 size="lg"
                 variant="secondary"
-                asChild
-              >
+                asChild>
+                
                 <Link to="/professionals/trade-account">
                   Apply for a Trade Account <ArrowRight className="ml-1 h-5 w-5" />
                 </Link>
@@ -585,8 +585,8 @@ export default function ProfessionalsChemistriePage() {
               <Button
                 size="lg"
                 className="border-2 border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
-                asChild
-              >
+                asChild>
+                
                 <Link to="/professionals/customer-service">Contact Us</Link>
               </Button>
             </div>
@@ -607,6 +607,6 @@ export default function ProfessionalsChemistriePage() {
       </section>
 
       <Footer />
-    </div>
-  );
+    </div>);
+
 }
