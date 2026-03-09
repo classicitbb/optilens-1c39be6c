@@ -51,14 +51,24 @@ const MoonshotLoginPage = () => {
   const handleSignIn = async (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
-    const { error } = await signIn(email, password);
+    const { error, data } = await signIn(email, password);
     setSubmitting(false);
     if (error) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
       return;
     }
     localStorage.setItem("moonshot:last-email", email);
-    routeUser();
+    // Fetch role immediately so we don't misroute while the query cache is empty
+    if (data?.user) {
+      const { data: roleRow } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      routeUser((roleRow?.role as AppRole) ?? null);
+    } else {
+      routeUser();
+    }
   };
 
   return (
