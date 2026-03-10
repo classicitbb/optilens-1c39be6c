@@ -145,7 +145,7 @@ const Auth = () => {
               {isLogin ? "Welcome Back" : "Create Account"}
             </h1>
             <p className="mt-1 text-sm text-white/70">
-              {isLogin ? "Sign in to access OptiLens Pro" : "Sign up to get started"}
+              {isLogin ? "Sign in to access your account" : "Sign up to get started"}
             </p>
           </div>
 
