@@ -1449,65 +1449,195 @@ Moonshot Settings configures the preferences and defaults for the Moonshot opera
     articles: [
       {
         id: "wiki-overview",
-        title: "Wiki System Overview",
-        content: `## Overview
+        title: "Overview: What this module does",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Overview
+- **Build version:** 0.0.0
 
-The Wiki is the centralised knowledge management system for the platform. It stores all internal documentation, help articles, operational procedures, and reference guides in a structured, searchable, and versioned format.
+## What this module does
+The Wiki module is the internal knowledge base for admin users. It centralizes SOPs, route-level instructions, and operating playbooks so teams can execute consistently.
 
-## Key capabilities
+## Primary capabilities
+1. Browse module categories and route-specific docs.
+2. Access context-aware guidance from operational pages.
+3. Maintain internal procedures as living documentation.
+4. Keep release-facing guidance aligned to ledger artifacts.
 
-- **Rich text editing** — Articles are created and edited using a WYSIWYG rich text editor with formatting for headings, bold, italic, lists, links, and images
-- **Versioning** — Every save creates a version snapshot allowing rollback to any previous state
-- **Publishing workflow** — Articles move through Draft, Published, and Archived statuses with controlled visibility
-- **Context assignment** — Articles are linked to specific platform pages so the Help panel displays relevant content automatically
-- **Search** — Full-text search across all article titles and content
-- **Feedback** — Built-in feedback buttons on every article allow readers to rate helpfulness and suggest improvements
+## Scope
+This route is the documentation hub for all admin module workflows.`,
+      },
+      {
+        id: "wiki-first-run-setup",
+        title: "First-run setup",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** First-run setup
+- **Build version:** 0.0.0
 
-## Article structure
+## Setup checklist
+1. Confirm your role can view the Wiki feature.
+2. Open **/admin/knowledge/wiki** and validate category navigation.
+3. Verify search returns both static and managed wiki entries.
+4. Confirm release ledger docs load under the Release Ledger section.
+5. Save any missing-route documentation gaps as follow-up tasks.
 
-Every well-formed wiki article should include:
+## Done criteria
+Setup is complete when users can browse categories, open route docs, and resolve one real task using only wiki guidance.`,
+      },
+      {
+        id: "wiki-daily-workflow",
+        title: "Daily workflow",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Daily workflow
+- **Build version:** 0.0.0
 
-1. A clear purpose statement explaining what the article covers
-2. Step-by-step procedural instructions for workflows
-3. A practical scenario showing when and why to use the workflow
-4. Best practices or guardrails to prevent common mistakes
-5. Troubleshooting guidance for known issues where applicable`,
+## Daily operator routine
+1. Start with latest release notes/changelog check.
+2. Open route docs for today’s active tasks.
+3. Execute procedures exactly as documented.
+4. Flag stale content as soon as route behavior changes.
+5. Capture end-of-day doc updates or open edit requests.
+
+## Expected output
+Operations stay consistent even when team members rotate coverage.`,
+      },
+      {
+        id: "wiki-team-workflow",
+        title: "Team workflow",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Team workflow
+- **Build version:** 0.0.0
+
+## Team operating model
+1. Assign a documentation owner per module route family.
+2. Review high-traffic docs in weekly team sync.
+3. Triage update requests by business impact.
+4. Require peer review before publishing major edits.
+5. Announce meaningful documentation changes in release comms.
+
+## Team standard
+Treat workflow documentation defects like operational defects with explicit owner and SLA.`,
+      },
+      {
+        id: "wiki-admin-workflow",
+        title: "Admin workflow",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Admin workflow
+- **Build version:** 0.0.0
+
+## Admin responsibilities
+1. Enforce least-privilege access for wiki editing.
+2. Maintain category taxonomy and naming consistency.
+3. Ensure required route docs exist for active modules.
+4. Run periodic quality audits for stale or duplicate content.
+5. Verify docs align with release-ledger updates.
+
+## Governance rule
+No critical workflow rollout should close until matching documentation is updated.`,
+      },
+      {
+        id: "wiki-troubleshooting",
+        title: "Troubleshooting",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Troubleshooting
+- **Build version:** 0.0.0
+
+## Common issues
+### Missing categories or articles
+- Confirm role permissions include wiki visibility.
+- Check category-level visibility controls.
+
+### Outdated content after release
+- Compare article steps against latest release notes.
+- Queue immediate revision for changed route behavior.
+
+### Contextual help not showing on a page
+- Validate route-to-context mapping exists.
+- Ensure article contains matching context slug.
+
+### Search returns incomplete results
+- Add route keywords to article titles.
+- Confirm content is saved under visible categories.`,
+      },
+      {
+        id: "wiki-faq",
+        title: "FAQ",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** FAQ
+- **Build version:** 0.0.0
+
+## Frequently asked questions
+### Who can edit wiki docs?
+Users with admin/content permissions for wiki management.
+
+### Should every route have a dedicated article?
+Yes for workflow routes; redirects/placeholders can share parent docs.
+
+### How often should we review docs?
+At minimum once per release cycle.
+
+### How do we keep docs aligned with builds?
+Update docs in the same release lane and cross-check release ledger artifacts.
+
+### Can temporary instructions be published?
+Yes, but mark as temporary and include explicit removal date.`,
+      },
+      {
+        id: "wiki-best-practices",
+        title: "Best practices",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Best practices
+- **Build version:** 0.0.0
+
+## Best practices
+1. Keep one workflow objective per article.
+2. Include explicit route path and role context.
+3. Use numbered actions and short decision notes.
+4. Keep troubleshooting steps concrete and testable.
+5. Refresh high-impact docs every release, even if unchanged.
+
+## Quality bar
+A new operator should complete the workflow correctly without live coaching.`,
       },
       {
         id: "wiki-article-standard",
-        title: "Help Article Editing and Publishing",
-        content: `## Creating a new article
+        title: "Help Article Formatting Standard",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Writing standard
+- **Build version:** 0.0.0
 
-1. Click the New Article button in the Wiki header
-2. Enter a descriptive title that clearly identifies the topic
-3. Write the article content using the rich text editor toolbar
-4. Select the wiki heading category from the dropdown
-5. Optionally add a change note describing the initial content
+## Required structure for every help article
+1. **Purpose / Route**
+2. **Step-by-step workflow**
+3. **Use-case scenario**
+4. **Best practices / guardrails**
+5. **Troubleshooting** (when relevant)
 
-## Editing an existing article
+## Formatting rules
+- Use clear markdown headings (## / ###).
+- Prefer numbered steps for procedural actions.
+- Keep paragraphs short and operational.
+- Avoid architecture-only text without user actions.
 
-1. Navigate to the article in the wiki sidebar
-2. Click the pencil edit icon to enter editing mode
-3. Make your changes in the rich text editor
-4. The system autosaves your work every few seconds
-5. Use the Preview button to see how the article will render
-6. Save as Draft to continue working or Publish to make it live
-
-## Publishing workflow
-
-- **Draft** — The article is only visible to editors and administrators
-- **Published** — The article is visible to all users with access to its assigned context
-- **Archived** — The article is hidden from normal views but retained for reference
-
-## Version management
-
-- Every save creates a version snapshot with a sequential version number
-- Use the Rollback button to restore a previous version if needed
-- Each version records the change note, timestamp, and the user who made the change
-
-## Context assignments
-
-Articles are linked to specific platform pages through context slugs. When a user opens the Help panel on a particular page, only articles assigned to that page's context are displayed. Context assignments are managed through the Help Assignments tab in the Wiki.`,
+## Completion definition
+An article is complete when a new operator can execute the workflow end-to-end without external coaching.`,
       },
     ],
   },
