@@ -9,10 +9,13 @@ import { useAdminRoleSafe } from "@/contexts/AdminRoleContext";
 interface Props {
   articleId: string;
   pageSlug?: string;
+  articleTitle?: string;
+  articleContent?: string;
+  articleContextSlugs?: string[];
   onEdit?: (articleId: string) => void;
 }
 
-const HelpFeedbackButtons = ({ articleId, pageSlug, onEdit }: Props) => {
+const HelpFeedbackButtons = ({ articleId, pageSlug, articleTitle, articleContent, articleContextSlugs, onEdit }: Props) => {
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [suggestion, setSuggestion] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
@@ -27,6 +30,9 @@ const HelpFeedbackButtons = ({ articleId, pageSlug, onEdit }: Props) => {
         feedbackType: type,
         suggestionText: type === "suggestion" ? suggestion : undefined,
         pageSlug,
+        articleTitle,
+        articleContent,
+        articleContextSlugs,
       });
       setSubmitted(type);
       setShowSuggestion(false);
