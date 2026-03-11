@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,8 @@ export default function MoonshotOneOnOnesPage() {
   const [cadence, setCadence] = useState<OneOnOneTemplate["cadence"]>("weekly");
   const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [agendaNotes, setAgendaNotes] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("10:00");
+  const [timeZone, setTimeZone] = useState("America/Asuncion");
 
   const selectedTemplate = useMemo(() => oneOnOnes.find((item) => item.id === selectedId) ?? null, [oneOnOnes, selectedId]);
 
@@ -37,6 +40,12 @@ export default function MoonshotOneOnOnesPage() {
       cadence,
       participantIds,
       agendaNotes: agendaNotes.trim(),
+      scheduleAnchorDate: new Date().toISOString().slice(0, 10),
+      scheduleTime,
+      timeZone,
+      talkingPoints: [],
+      privateNotes: "",
+      sharedNotes: "",
       createdBy: currentUser?.id ?? users[0]?.id ?? "u1",
     });
     setTitle("");
@@ -47,6 +56,15 @@ export default function MoonshotOneOnOnesPage() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader><CardTitle>Tool links & help</CardTitle></CardHeader>
+        <CardContent className="flex flex-wrap gap-2 text-sm">
+          <Button asChild size="sm" variant="outline"><Link to="/admin/moonshot/tools/org-chart">Go to Org Chart</Link></Button>
+          <Button asChild size="sm" variant="outline"><Link to="/admin/moonshot/tools/right-person-right-seat">Go to Right Person Right Seat</Link></Button>
+          <Button asChild size="sm" variant="ghost"><Link to="/admin/moonshot/resources">Open help resources</Link></Button>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <Card>
           <CardHeader><CardTitle>Create recurring 1:1 template</CardTitle></CardHeader>
@@ -55,19 +73,19 @@ export default function MoonshotOneOnOnesPage() {
               <Input placeholder="Template name" value={title} onChange={(e) => setTitle(e.target.value)} />
               <Select value={cadence} onValueChange={(v) => setCadence(v as OneOnOneTemplate["cadence"])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {cadences.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
+                <SelectContent>{cadences.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
+                <Input placeholder="Timezone" value={timeZone} onChange={(e) => setTimeZone(e.target.value)} />
+              </div>
               <div className="space-y-1 rounded-md border p-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Participants</p>
                 {users.map((user) => (
                   <label key={user.id} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={participantIds.includes(user.id)}
-                      onCheckedChange={(checked) =>
-                        setParticipantIds((prev) => checked ? [...prev, user.id] : prev.filter((id) => id !== user.id))
-                      }
+                      onCheckedChange={(checked) => setParticipantIds((prev) => checked ? [...prev, user.id] : prev.filter((id) => id !== user.id))}
                     />
                     {user.name} <span className="text-xs text-muted-foreground">({user.role})</span>
                   </label>
@@ -90,6 +108,7 @@ export default function MoonshotOneOnOnesPage() {
             <div className="grid gap-3 md:grid-cols-2">
               {oneOnOnes.map((template) => {
                 const completed = template.actionItems.filter((item) => item.completed).length;
+                const open = template.actionItems.length - completed;
                 return (
                   <button
                     key={template.id}
@@ -98,8 +117,8 @@ export default function MoonshotOneOnOnesPage() {
                     onClick={() => setSelectedId(template.id)}
                   >
                     <p className="font-medium">{template.title}</p>
-                    <p className="text-xs text-muted-foreground">Cadence: {template.cadence}</p>
-                    <p className="text-xs text-muted-foreground">Action items: {completed}/{template.actionItems.length}</p>
+                    <p className="text-xs text-muted-foreground">Cadence: {template.cadence} • {template.scheduleTime ?? "10:00"} {template.timeZone ?? "local"}</p>
+                    <p className="text-xs text-muted-foreground">Follow-up todos open: {open}</p>
                   </button>
                 );
               })}
@@ -119,9 +138,7 @@ export default function MoonshotOneOnOnesPage() {
                 onUpdateActionItem={updateActionItem}
                 onDeleteActionItem={deleteActionItem}
               />
-            ) : (
-              <p className="text-sm text-muted-foreground">Select a template to edit agenda notes and action items.</p>
-            )}
+            ) : <p className="text-sm text-muted-foreground">Select a template to edit talking points, notes, and follow-up todos.</p>}
           </CardContent>
         </Card>
       </div>
@@ -143,6 +160,9 @@ function TemplateEditor({ template, users, onUpdate, onDelete, onAddActionItem, 
   const [newActionText, setNewActionText] = useState("");
   const [newActionOwnerId, setNewActionOwnerId] = useState(users[0]?.id ?? "");
   const [newActionDueDate, setNewActionDueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [talkingPointDraft, setTalkingPointDraft] = useState("");
+
+  const talkingPoints = template.talkingPoints ?? [];
 
   return (
     <div className="space-y-4 rounded-md border p-4">
@@ -154,14 +174,52 @@ function TemplateEditor({ template, users, onUpdate, onDelete, onAddActionItem, 
         <Button size="sm" variant="destructive" onClick={() => onDelete(template.id)}>Delete</Button>
       </div>
 
-      <textarea
-        className="min-h-24 w-full rounded-md border bg-background p-2 text-sm"
-        value={template.agendaNotes}
-        onChange={(e) => onUpdate(template.id, { agendaNotes: e.target.value })}
-      />
+      <div className="grid gap-2 md:grid-cols-3">
+        <Select value={template.cadence} onValueChange={(v) => onUpdate(template.id, { cadence: v as OneOnOneTemplate["cadence"] })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>{cadences.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+        </Select>
+        <Input type="time" value={template.scheduleTime ?? "10:00"} onChange={(e) => onUpdate(template.id, { scheduleTime: e.target.value })} />
+        <Input value={template.timeZone ?? "America/Asuncion"} onChange={(e) => onUpdate(template.id, { timeZone: e.target.value })} />
+      </div>
+
+      <textarea className="min-h-24 w-full rounded-md border bg-background p-2 text-sm" value={template.agendaNotes} onChange={(e) => onUpdate(template.id, { agendaNotes: e.target.value })} />
 
       <div className="space-y-2">
-        <h4 className="text-sm font-semibold">Action items</h4>
+        <h4 className="text-sm font-semibold">Talking points</h4>
+        {talkingPoints.map((point, idx) => (
+          <div key={`${template.id}_tp_${idx}`} className="flex gap-2">
+            <Input value={point} onChange={(e) => {
+              const next = [...talkingPoints];
+              next[idx] = e.target.value;
+              onUpdate(template.id, { talkingPoints: next });
+            }} />
+            <Button size="sm" variant="outline" onClick={() => onUpdate(template.id, { talkingPoints: talkingPoints.filter((_, i) => i !== idx) })}>Remove</Button>
+          </div>
+        ))}
+        <div className="flex gap-2">
+          <Input placeholder="Add talking point" value={talkingPointDraft} onChange={(e) => setTalkingPointDraft(e.target.value)} />
+          <Button size="sm" onClick={() => {
+            if (!talkingPointDraft.trim()) return;
+            onUpdate(template.id, { talkingPoints: [...talkingPoints, talkingPointDraft.trim()] });
+            setTalkingPointDraft("");
+          }}>Add</Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase text-muted-foreground">Private notes</p>
+          <textarea className="min-h-20 w-full rounded-md border bg-background p-2 text-sm" value={template.privateNotes ?? ""} onChange={(e) => onUpdate(template.id, { privateNotes: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase text-muted-foreground">Shared notes</p>
+          <textarea className="min-h-20 w-full rounded-md border bg-background p-2 text-sm" value={template.sharedNotes ?? ""} onChange={(e) => onUpdate(template.id, { sharedNotes: e.target.value })} />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h4 className="text-sm font-semibold">Follow-up todos</h4>
         {template.actionItems.map((item) => (
           <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2">
             <Checkbox checked={item.completed} onCheckedChange={(checked) => onUpdateActionItem(template.id, item.id, { completed: !!checked })} />
@@ -176,22 +234,17 @@ function TemplateEditor({ template, users, onUpdate, onDelete, onAddActionItem, 
         ))}
 
         <div className="grid gap-2 md:grid-cols-[1fr_180px_140px_auto]">
-          <Input placeholder="New action item" value={newActionText} onChange={(e) => setNewActionText(e.target.value)} />
+          <Input placeholder="New follow-up todo" value={newActionText} onChange={(e) => setNewActionText(e.target.value)} />
           <Select value={newActionOwnerId} onValueChange={setNewActionOwnerId}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{users.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent>
           </Select>
           <Input type="date" value={newActionDueDate} onChange={(e) => setNewActionDueDate(e.target.value)} />
-          <Button
-            disabled={!newActionText.trim()}
-            onClick={() => {
-              if (!newActionText.trim()) return;
-              onAddActionItem(template.id, { text: newActionText.trim(), ownerId: newActionOwnerId, dueDate: newActionDueDate });
-              setNewActionText("");
-            }}
-          >
-            Add
-          </Button>
+          <Button disabled={!newActionText.trim()} onClick={() => {
+            if (!newActionText.trim()) return;
+            onAddActionItem(template.id, { text: newActionText.trim(), ownerId: newActionOwnerId, dueDate: newActionDueDate });
+            setNewActionText("");
+          }}>Add</Button>
         </div>
       </div>
     </div>
