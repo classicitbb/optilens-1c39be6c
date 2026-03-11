@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Search, Phone, Sun, Moon, Monitor } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import PublicSearchPanel from "@/components/PublicSearchPanel";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -397,12 +398,9 @@ const Header = () => {
             </SheetContent>
           </Sheet>
 
-          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-            <Link to="/store">
-              <Search className="mr-2 h-4 w-4" />
-              Search
-            </Link>
-          </Button>
+          <div className="hidden sm:block">
+            <PublicSearchPanel compact />
+          </div>
 
           <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
             <a href="tel:+12464334928">
