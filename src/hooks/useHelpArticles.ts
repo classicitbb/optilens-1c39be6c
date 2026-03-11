@@ -65,19 +65,18 @@ export const useHelpArticles = (pageSlug?: string) => {
   const query = useQuery({
     queryKey: ["help_articles", pageSlug, canPublish],
     queryFn: async () => {
-      let query: any = supabase
+      const query = supabase
         .from("help_articles")
         .select("*, help_article_contexts(context_slug)")
         .eq("is_active", true)
         .order("sort_order");
-      if (pageSlug) query = query.eq("page_slug", pageSlug);
-      if (!canPublish) query = query.eq("status", "published");
       const { data, error } = await query;
       if (error) throw error;
 
       return ((data ?? []) as unknown as HelpArticleRow[])
         .map(normalizeArticle)
-        .filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
+        .filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)))
+        .filter((article) => !pageSlug || article.context_slugs.includes(pageSlug) || article.context_slugs.includes("all"));
     },
     enabled: canView("wiki"),
   });
@@ -107,9 +106,9 @@ export const useHelpArticles = (pageSlug?: string) => {
     mutationFn: async (article: Partial<HelpArticle> & { title: string; content: string; page_slug?: string; category?: string; context_slugs?: string[]; change_note?: string }) => {
       const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
       const primarySlug = contexts[0] ?? "all";
-      const bodyJson = toCanonicalDocument(article.body_json ?? article.content);
+      const bodyJson = article.body_json ?? toCanonicalDocument(article.content);
       const htmlContent = canonicalToHtml(bodyJson);
-      const payload: any = {
+      const payload: Record<string, any> = {
         title: article.title,
         content: htmlContent,
         body_json: bodyJson,
@@ -128,7 +127,7 @@ export const useHelpArticles = (pageSlug?: string) => {
         const nextVersion = (article.version_number ?? 1) + 1;
         payload.version_number = nextVersion;
         payload.published_at = payload.status === "published" ? new Date().toISOString() : null;
-        const { error } = await supabase.from("help_articles").update(payload).eq("id", article.id);
+        const { error } = await (supabase as any).from("help_articles").update(payload).eq("id", article.id);
         if (error) throw error;
 
         if (article.context_slugs && article.context_slugs.length > 0) {
@@ -142,7 +141,7 @@ export const useHelpArticles = (pageSlug?: string) => {
       } else {
         payload.version_number = 1;
         payload.published_at = payload.status === "published" ? new Date().toISOString() : null;
-        const { data, error } = await supabase.from("help_articles").insert(payload).select("id").single();
+        const { data, error } = await (supabase as any).from("help_articles").insert(payload).select("id").single();
         if (error) throw error;
 
         const { error: insertContextError } = await supabase.from("help_article_contexts").insert(contexts.map((context_slug) => ({ article_id: data.id, context_slug })));
