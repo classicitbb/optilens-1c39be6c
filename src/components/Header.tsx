@@ -160,6 +160,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Computer & Mobile Use", description: "Reduce digital eye strain with practical habits", to: "/patients#vision-tips" },
           { label: "Sunlight & Protection", description: "UV and glare guidance for outdoor comfort", to: "/patients#vision-tips" },
           { label: "Regular Eye Exams", description: "Protect long-term vision health", to: "/patients#vision-tips" },
+          { label: "Night Driving Aids", description: "Reduce glare and improve clarity after dark", to: "/patients/night-driving-aids" },
         ],
       },
     ],
