@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, HelpCircle, X } from "lucide-react";
+import { ArrowLeft, HelpCircle, LayoutDashboard, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 
 // Color map per app key for icon tinting
 const APP_COLORS: Record<string, string> = {
+  launchpad: "hsl(172 72% 40%)",
   pricing: "hsl(215 65% 50%)",
   sales: "hsl(260 50% 55%)",
   contacts: "hsl(168 76% 42%)",
@@ -18,6 +19,13 @@ const APP_COLORS: Record<string, string> = {
   settings: "hsl(215 15% 50%)",
   moonshot: "hsl(168 76% 42%)",
 };
+
+const LAUNCH_PAD_APP = {
+  key: "launchpad",
+  title: "Launch Pad",
+  icon: LayoutDashboard,
+  defaultRoute: "/admin/dashboard",
+} as const;
 
 interface AppLauncherProps {
   open: boolean;
@@ -33,6 +41,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
   const visibleApps = Object.values(ADMIN_APPS).filter((app) =>
   hasAppAccess(app.featurePrefix)
   );
+  const launchableApps = [LAUNCH_PAD_APP, ...visibleApps];
 
   useEffect(() => {
     if (!open) return;
@@ -58,7 +67,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
 
   if (!open) return null;
 
-  const handleSelect = (app: (typeof visibleApps)[number]) => {
+  const handleSelect = (app: (typeof launchableApps)[number]) => {
     navigate(app.defaultRoute);
     onClose();
   };
@@ -76,7 +85,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
 
         <div className="flex-1 overflow-auto p-4">
           <div className="grid grid-cols-3 gap-3">
-            {visibleApps.map((app) =>
+            {launchableApps.map((app) =>
             <button
               key={app.key}
               onClick={() => handleSelect(app)}
@@ -130,7 +139,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
       </div>
 
       <div className="grid grid-cols-4 gap-3">
-        {visibleApps.map((app) =>
+        {launchableApps.map((app) =>
         <button
           key={app.key}
           onClick={() => handleSelect(app)}
