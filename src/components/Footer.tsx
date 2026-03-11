@@ -1,4 +1,5 @@
-import { Eye, ExternalLink, MapPin, Phone } from "lucide-react";
+import { ExternalLink, MapPin, Phone } from "lucide-react";
+import cleanLogo from "@/assets/clean_logo.svg";
 import { Link } from "react-router-dom";
 import { useLegalPage } from "@/hooks/useContentArticles";
 
@@ -75,7 +76,7 @@ const Footer = () => {
         <div className="mb-10 flex flex-col gap-4 border-b border-primary-foreground/10 pb-10 sm:flex-row sm:items-center sm:justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="Classic Visions home">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-              <Eye className="h-5 w-5 text-accent-foreground" aria-hidden="true" />
+              <img src={cleanLogo} alt="Classic Visions" className="h-6 w-6" />
             </div>
             <span className="text-xl font-bold">Classic Visions</span>
           </Link>
