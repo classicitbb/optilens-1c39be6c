@@ -18,6 +18,7 @@ type MegaMenuLink = {
   to?: string;
   href?: string;
   externalLabel?: string;
+  isCta?: boolean;
 };
 
 type MegaMenuSection = {
@@ -120,6 +121,8 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
           { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
           { label: "Chemistrie Lens System", description: "Magnetic clip system overview", to: "/professionals/chemistrie-lens-system" },
+          { label: "ZenVue Wholesale", description: "Feature-page application for optical partners", to: "/zenvue/wholesale" },
+          { label: "Knowledge Hub", description: "Browse guides, FAQs, and support articles", to: "/knowledge", isCta: true },
         ],
       },
       {
@@ -272,9 +275,9 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={handleLinkClick}
-                      className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
+                      className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}
                     >
-                      <p className="text-sm font-medium text-foreground">{link.label}</p>
+                      <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                       <p className="text-xs text-muted-foreground">{link.description}</p>
                       {link.externalLabel && <p className="text-[11px] font-semibold text-primary">{link.externalLabel}</p>}
                     </a>
@@ -283,9 +286,9 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
                       key={link.label}
                       to={link.to || "/"}
                       onClick={handleLinkClick}
-                      className="rounded-lg px-2 py-2 transition-colors hover:bg-muted"
+                      className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}
                     >
-                      <p className="text-sm font-medium text-foreground">{link.label}</p>
+                      <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                       <p className="text-xs text-muted-foreground">{link.description}</p>
                     </Link>
                   )
@@ -378,12 +381,12 @@ const Header = () => {
                                       href={link.href}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                                      className={`block rounded-md px-2 py-1.5 text-sm ${link.isCta ? "border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
                                     >
                                       {link.label} {link.externalLabel ? `(${link.externalLabel})` : ""}
                                     </a>
                                   ) : (
-                                    <Link key={link.label} to={link.to || "/"} className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+                                    <Link key={link.label} to={link.to || "/"} className={`block rounded-md px-2 py-1.5 text-sm ${link.isCta ? "border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                                       {link.label}
                                     </Link>
                                   )

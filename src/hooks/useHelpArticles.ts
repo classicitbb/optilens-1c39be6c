@@ -106,9 +106,13 @@ export const useHelpArticles = (pageSlug?: string) => {
     mutationFn: async (article: Partial<HelpArticle> & { title: string; content: string; page_slug?: string; category?: string; context_slugs?: string[]; change_note?: string }) => {
       const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
       const primarySlug = contexts[0] ?? "all";
-      const bodyJson = article.body_json ?? toCanonicalDocument(article.content);
-      const htmlContent = canonicalToHtml(bodyJson);
-      const payload: Record<string, any> = {
+      const payload: {
+        title: string;
+        content: string;
+        page_slug: string;
+        sort_order: number;
+        category?: string;
+      } = {
         title: article.title,
         content: htmlContent,
         body_json: bodyJson,
