@@ -46,6 +46,39 @@ const popularFinishes = [
   },
 ];
 
+const finishComparisonRows = [
+  {
+    finish: "Silver Flash",
+    intensity: "Medium",
+    condition: "Bright all-day sun",
+    baseTint: "Gray / smoke",
+    notes: "Balanced appearance with neutral color perception.",
+  },
+  {
+    finish: "Blue Ice",
+    intensity: "High",
+    condition: "Water, coastal, high-glare",
+    baseTint: "Gray / blue-gray",
+    notes: "Popular for sport styling and high reflective cosmetics.",
+  },
+  {
+    finish: "Rose Gold",
+    intensity: "Medium",
+    condition: "Lifestyle, city sun",
+    baseTint: "Brown / amber",
+    notes: "Warmer aesthetic with premium fashion positioning.",
+  },
+  {
+    finish: "Emerald Green",
+    intensity: "High",
+    condition: "Trail, variable terrain",
+    baseTint: "Brown / green",
+    notes: "Sport-led look with strong outdoor contrast perception.",
+  },
+];
+
+const bestForTags = ["Driving", "Beach", "Cycling", "Ski / Snow", "Outdoor sports"];
+
 const bestUseCases = [
   "Sunglass dispensing where cosmetic appeal and glare reduction are priorities.",
   "Outdoor and sport eyewear requiring high visible-light rejection.",
@@ -118,6 +151,17 @@ const MirrorFinishPage = () => {
                 Compare lifestyle styling with close-up reflective detail to guide finish selection.
               </p>
 
+              <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Best use scenarios for mirror coatings">
+                {bestForTags.map((tag) => (
+                  <span key={tag} className="rounded-full border border-border/80 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+                    Best for: {tag}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Not ideal for mostly indoor wearers or low-light commuting due to reduced transmission.
+              </p>
+
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <figure className="overflow-hidden rounded-lg border border-border/80 bg-muted/20">
                   <img
@@ -160,6 +204,37 @@ const MirrorFinishPage = () => {
                 ))}
               </div>
             </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h3 className="text-lg font-semibold text-foreground">Finish comparison</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Use this quick matrix to match finish style, environment, and base tint recommendations.
+              </p>
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="px-3 py-2 font-semibold text-foreground">Finish</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Cosmetic intensity</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Best light condition</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Typical base tint</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {finishComparisonRows.map((row) => (
+                      <tr key={row.finish} className="border-b border-border/70 last:border-0">
+                        <td className="px-3 py-2 text-foreground">{row.finish}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.intensity}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.condition}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.baseTint}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </section>
 
           <section className="mt-8 space-y-6" aria-labelledby="mirror-finish-guidance-heading">
@@ -175,31 +250,33 @@ const MirrorFinishPage = () => {
               </ul>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-6">
-              <h2 id="mirror-finish-guidance-heading" className="text-xl font-semibold text-foreground">
-                Best use-cases
-              </h2>
-              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
-                {bestUseCases.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 id="mirror-finish-guidance-heading" className="text-xl font-semibold text-foreground">
+                  Best use-cases
+                </h2>
+                <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                  {bestUseCases.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
 
-              <h3 className="mt-6 text-lg font-semibold text-foreground">Compatibility notes</h3>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
-                {compatibilityNotes.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
+                <h3 className="mt-6 text-lg font-semibold text-foreground">Compatibility notes</h3>
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
+                  {compatibilityNotes.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
 
-            <div className="rounded-xl border border-border bg-card p-6">
-              <h2 className="text-xl font-semibold text-foreground">What mirror coatings do not do</h2>
-              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
-                {limitations.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 className="text-xl font-semibold text-foreground">What mirror coatings do not do</h2>
+                <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                  {limitations.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
             <div className="rounded-xl border border-border bg-card p-6">
@@ -230,6 +307,15 @@ const MirrorFinishPage = () => {
                   <p className="mt-1 text-sm text-muted-foreground">{guide.description}</p>
                 </Link>
               ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button asChild>
+                <Link to="/store">Shop mirror lens options</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/professionals/lens-ordering-tips">Professional ordering & compatibility</Link>
+              </Button>
             </div>
           </section>
 
