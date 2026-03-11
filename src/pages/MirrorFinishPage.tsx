@@ -46,6 +46,34 @@ const popularFinishes = [
   },
 ];
 
+const bestUseCases = [
+  "Sunglass dispensing where cosmetic appeal and glare reduction are priorities.",
+  "Outdoor and sport eyewear requiring high visible-light rejection.",
+  "Fashion-forward frames that benefit from a reflective, statement finish.",
+  "Ski, water, and driving applications where intense light management is needed.",
+];
+
+const compatibilityNotes = [
+  "Mirror coatings are applied on top of a base tint — they do not replace tinting.",
+  "Best paired with backside AR treatments for reduced ghost reflections.",
+  "Not all lens materials accept every mirror color; confirm with lab before ordering.",
+  "Flash mirrors (lighter reflection) are available for subtler cosmetic effects.",
+];
+
+const limitations = [
+  "Mirror coatings do not provide UV protection on their own — a UV-blocking substrate or treatment is still required.",
+  "They are not scratch-proof; a hard coat underneath is recommended.",
+  "Reflective layers can show fingerprints and smudges more readily than standard tints.",
+  "Mirror finishes may not be suitable for indoor or low-light use due to reduced light transmission.",
+];
+
+const careTips = [
+  "Clean with a microfiber cloth and lens-safe spray — avoid paper towels or rough fabrics.",
+  "Store lenses in a hard case to prevent surface abrasion.",
+  "Avoid placing lenses face-down on hard surfaces.",
+  "Periodic professional cleaning can extend the life of the mirror layer.",
+];
+
 const relatedGuides = [
   {
     title: "UltraClear AR coating",
