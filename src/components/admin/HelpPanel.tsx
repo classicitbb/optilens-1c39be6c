@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useMemo } from "react";
+import { useState, useEffect, lazy, Suspense, useMemo, useRef } from "react";
 import { X, BookOpen, ChevronRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -94,17 +94,23 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
     return [...exact, ...shared, ...other];
   }, [mergedArticles, currentSlug, canView]);
 
+  const initKeyRef = useRef<string>("");
+
+  const articleSignature = useMemo(
+    () => scopedArticles.map((article) => article.id).join("|"),
+    [scopedArticles]
+  );
+
   useEffect(() => {
+    const initKey = `${currentSlug}::${articleSignature}`;
+    if (initKeyRef.current === initKey) return;
+
     const exactIds = scopedArticles.filter((a) => a.context_slugs.includes(currentSlug)).map((a) => a.id);
     const nextIds = exactIds.length > 0 ? [exactIds[0]] : scopedArticles.length > 0 ? [scopedArticles[0].id] : [];
 
-    setExpandedIds((prev) => {
-      if (prev.length === nextIds.length && prev.every((id, idx) => id === nextIds[idx])) {
-        return prev;
-      }
-      return nextIds;
-    });
-  }, [currentSlug, scopedArticles]);
+    setExpandedIds(nextIds);
+    initKeyRef.current = initKey;
+  }, [currentSlug, articleSignature, scopedArticles]);
 
   useEffect(() => {
     if (!resizing) return;
@@ -243,8 +249,8 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
             }
             wikiHeadings={headings.map((heading) => ({ id: heading.slug, title: heading.title }))}
           />
-        )}
-      </Suspense>
+        </Suspense>
+      )}
     </aside>
   );
 };
