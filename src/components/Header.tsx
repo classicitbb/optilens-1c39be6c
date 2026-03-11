@@ -358,8 +358,8 @@ const Header = () => {
             </SheetTrigger>
             <SheetContent side="left" className="w-80">
               <SheetTitle className="mb-6 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-accent">
-                  <Eye className="h-4 w-4 text-accent-foreground" />
+                <div className="flex h-8 w-8 items-center justify-center">
+                  <img src={cleanLogo} alt="Classic Visions" className="h-6 w-6" />
                 </div>
                 <span className="text-lg font-bold text-foreground">Classic Visions</span>
               </SheetTitle>
