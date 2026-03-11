@@ -122,12 +122,12 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
           { label: "Chemistrie Lens System", description: "Magnetic clip system overview", to: "/professionals/chemistrie-lens-system" },
           { label: "ZenVue Wholesale", description: "Feature-page application for optical partners", to: "/zenvue/wholesale" },
-          { label: "Knowledge Hub", description: "Browse guides, FAQs, and support articles", to: "/knowledge", isCta: true },
         ],
       },
       {
         title: "Support",
         links: [
+          { label: "Knowledge Hub", description: "Browse guides, FAQs, and support articles", to: "/knowledge", isCta: true },
           { label: "Customer Service", description: "Contact channels and service hours", to: "/professionals/customer-service" },
           { label: "Freight & Delivery Policy", description: "Shipping methods and SLAs", to: "/professionals/freight-delivery-policy" },
           { label: "Returns / Replacements", description: "RMA and remake policy", to: "/professionals/returns-replacements" },
