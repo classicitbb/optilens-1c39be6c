@@ -168,7 +168,7 @@ export default function MoonshotLayout() {
           {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 items-center justify-center rounded-full bg-[#0f766e] border-2 border-white/30 text-white hover:bg-[#14b8a6] transition-colors shadow-md z-50"
+            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 items-center justify-center rounded-full bg-[#0f766e] border-2 border-white/30 text-white hover:bg-[#14b8a6] transition-colors shadow-md z-40"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
