@@ -106,17 +106,9 @@ export const useHelpArticles = (pageSlug?: string) => {
     mutationFn: async (article: Partial<HelpArticle> & { title: string; content: string; page_slug?: string; category?: string; context_slugs?: string[]; change_note?: string }) => {
       const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
       const primarySlug = contexts[0] ?? "all";
-      const payload: {
-        title: string;
-        content: string;
-        page_slug: string;
-        sort_order: number;
-        category?: string;
-      } = {
+      const payload: Record<string, any> = {
         title: article.title,
-        content: htmlContent,
-        body_json: bodyJson,
-        body_html: htmlContent,
+        content: article.content,
         page_slug: primarySlug,
         sort_order: article.sort_order ?? 0,
         category: article.category ?? "",
@@ -141,7 +133,7 @@ export const useHelpArticles = (pageSlug?: string) => {
           if (insertContextError) throw insertContextError;
         }
 
-        await saveVersionSnapshot(article.id, article.title, bodyJson, nextVersion, article.change_note);
+        await saveVersionSnapshot(article.id, article.title, article.content as any, nextVersion, article.change_note);
       } else {
         payload.version_number = 1;
         payload.published_at = payload.status === "published" ? new Date().toISOString() : null;
@@ -151,7 +143,7 @@ export const useHelpArticles = (pageSlug?: string) => {
         const { error: insertContextError } = await supabase.from("help_article_contexts").insert(contexts.map((context_slug) => ({ article_id: data.id, context_slug })));
         if (insertContextError) throw insertContextError;
 
-        await saveVersionSnapshot(data.id, article.title, bodyJson, 1, article.change_note ?? "Initial draft");
+        await saveVersionSnapshot(data.id, article.title, article.content as any, 1, article.change_note ?? "Initial draft");
       }
     },
     onSuccess: () => {
