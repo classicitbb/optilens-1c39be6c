@@ -133,7 +133,7 @@ export const useHelpArticles = (pageSlug?: string) => {
           if (insertContextError) throw insertContextError;
         }
 
-        await saveVersionSnapshot(article.id, article.title, article.content, nextVersion, article.change_note);
+        await saveVersionSnapshot(article.id, article.title, article.content as any, nextVersion, article.change_note);
       } else {
         payload.version_number = 1;
         payload.published_at = payload.status === "published" ? new Date().toISOString() : null;
