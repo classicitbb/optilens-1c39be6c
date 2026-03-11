@@ -18,7 +18,7 @@ export const LensChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hi! I'm your OptiLens Pro assistant. I can help you choose the right lenses and answer any technical questions about our products. What can I help you with today?",
+      content: "Hi! I'm your Classic Visions assistant. I can help you choose the right lenses and answer any technical questions about our products. What can I help you with today?",
     },
   ]);
   const [input, setInput] = useState("");

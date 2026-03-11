@@ -230,8 +230,8 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
         </ScrollArea>
       </div>
 
-      {canEdit && (
-        <Suspense fallback={null}>
+      <Suspense fallback={null}>
+        {canEdit && editDialogOpen && (
           <WikiArticleEditDialog
             open={editDialogOpen}
             onOpenChange={setEditDialogOpen}

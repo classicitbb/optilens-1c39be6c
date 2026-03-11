@@ -113,11 +113,12 @@ export const usePublicKnowledge = () => {
   return useQuery({
     queryKey: ["public_knowledge"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("help_articles")
         .select("*")
         .in("content_type", ["knowledge", "faq"])
-        .eq("is_active", true)
+        .eq("is_active", true) as any)
+        .eq("status", "published")
         .in("visibility", ["public", "customer"])
         .order("category")
         .order("sort_order");
@@ -132,12 +133,13 @@ export const useLegalPage = (slug: string) => {
   return useQuery({
     queryKey: ["legal_page", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("help_articles")
         .select("*")
         .eq("content_type", "legal")
         .eq("page_slug", slug)
-        .eq("is_active", true)
+        .eq("is_active", true) as any)
+        .eq("status", "published")
         .in("visibility", ["public", "customer"])
         .single();
       if (error && error.code !== "PGRST116") throw error;

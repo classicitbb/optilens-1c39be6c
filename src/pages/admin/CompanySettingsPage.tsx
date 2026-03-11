@@ -47,8 +47,8 @@ const Field = ({ label, children }: {label: string;children: React.ReactNode;}) 
 
 
 const Section = ({ title, children }: {title: string;children: React.ReactNode;}) =>
-<div className="space-y-3 rounded-lg border border-border p-4 bg-destructive-foreground">
-    <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+<div className="space-y-3 rounded-lg border border-[hsl(var(--admin-table-border))] p-4 bg-[hsl(var(--admin-card))]">
+    <h3 className="text-sm font-semibold text-[hsl(var(--admin-content-fg))]">{title}</h3>
     {children}
   </div>;
 

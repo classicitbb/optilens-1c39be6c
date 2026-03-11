@@ -1252,6 +1252,36 @@ export type Database = {
           },
         ]
       }
+      helpdesk_priorities: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          is_active: boolean
+          label: string
+          level: number
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          level: number
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          level?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       helpdesk_sla_policies: {
         Row: {
           active: boolean
@@ -1299,6 +1329,38 @@ export type Database = {
           },
           {
             foreignKeyName: "helpdesk_sla_policies_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helpdesk_team_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_team_members_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "helpdesk_teams"
@@ -4320,6 +4382,10 @@ export type Database = {
       }
     }
     Functions: {
+      cancel_integration_sync_job: {
+        Args: { p_sync_job_id: string }
+        Returns: undefined
+      }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
       get_addons_safe: {
         Args: never
@@ -4476,6 +4542,7 @@ export type Database = {
         Returns: undefined
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
+      timeout_stale_integration_sync_jobs: { Args: never; Returns: number }
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
         Returns: string
