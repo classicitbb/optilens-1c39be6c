@@ -180,9 +180,6 @@ const MirrorFinishPage = () => {
             </div>
           </section>
 
-          <p className="mt-8 text-sm text-muted-foreground">
-            Canonical slug: <code>/coatings/mirror</code>. Legacy <code>/coatings/mirrors</code> requests are redirected.
-          </p>
         </div>
       </main>
       <Footer />
