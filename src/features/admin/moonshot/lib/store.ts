@@ -251,7 +251,7 @@ export const useMoonshotStore = create<MoonshotState>()(
       addOrgSeat: (parentId, seat) =>
         set((s) => {
           const newId = makeId("org");
-          const newSeat: OrgChartSeat = { id: newId, title: seat.title, department: seat.department, vacancyStatus: "planned", parentId, childIds: [], assignedUserIds: [] };
+          const newSeat: OrgChartSeat = { id: newId, title: seat.title, department: seat.department, vacancyStatus: "planned" as const, parentId, childIds: [], assignedUserIds: [] };
           const seats = parentId
             ? s.orgChart.seats.map((existing) => (existing.id === parentId ? { ...existing, childIds: [...existing.childIds, newId] } : existing))
             : s.orgChart.seats;
