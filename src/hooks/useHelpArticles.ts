@@ -143,7 +143,7 @@ export const useHelpArticles = (pageSlug?: string) => {
         const { error: insertContextError } = await supabase.from("help_article_contexts").insert(contexts.map((context_slug) => ({ article_id: data.id, context_slug })));
         if (insertContextError) throw insertContextError;
 
-        await saveVersionSnapshot(data.id, article.title, article.content, 1, article.change_note ?? "Initial draft");
+        await saveVersionSnapshot(data.id, article.title, article.content as any, 1, article.change_note ?? "Initial draft");
       }
     },
     onSuccess: () => {
