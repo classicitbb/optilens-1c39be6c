@@ -46,6 +46,29 @@ const popularFinishes = [
   },
 ];
 
+const relatedGuides = [
+  {
+    title: "UltraClear AR coating",
+    description: "Pair mirror fronts with backside anti-reflective performance for cleaner optics.",
+    to: "/coatings/ultraclear-ar",
+  },
+  {
+    title: "BlueBlock AR coating",
+    description: "Compare reflective color behavior with blue-light management and AR stacks.",
+    to: "/coatings/blueblock-ar",
+  },
+  {
+    title: "Hydrophobic + oleophobic topcoat",
+    description: "Improve smudge resistance and cleanability on finished mirror lenses.",
+    to: "/coatings/hydrophobic-oleophobic",
+  },
+  {
+    title: "Knowledge: caring for coated lenses",
+    description: "Review cleaning and care best practices for long-lasting mirror coatings.",
+    to: "/knowledge#caring-for-coated-lenses",
+  },
+];
+
 const MirrorFinishPage = () => {
   return (
     <div className="min-h-screen bg-background">
@@ -135,6 +158,27 @@ const MirrorFinishPage = () => {
               </Button>
             </div>
           </div>
+
+          <section className="mt-8 rounded-xl border border-border bg-card p-6" aria-labelledby="related-guides-heading">
+            <h2 id="related-guides-heading" className="text-xl font-semibold text-foreground">
+              Related guides
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Continue with complementary coating references often reviewed alongside mirror finish options.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {relatedGuides.map((guide) => (
+                <Link
+                  key={guide.to}
+                  to={guide.to}
+                  className="rounded-lg border border-border/80 bg-background p-4 transition-colors hover:border-primary/40 hover:bg-muted/30"
+                >
+                  <h3 className="text-sm font-semibold text-foreground">{guide.title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{guide.description}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           <p className="mt-8 text-sm text-muted-foreground">
             Canonical slug: <code>/coatings/mirror</code>. Legacy <code>/coatings/mirrors</code> requests are redirected.
