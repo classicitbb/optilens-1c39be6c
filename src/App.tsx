@@ -125,6 +125,7 @@ const ZenvueSunDun = lazy(() => import("./pages/zenvue/ZenvueSunDun"));
 const ZenvueDarkun = lazy(() => import("./pages/zenvue/ZenvueDarkun"));
 const ZenvueCompare = lazy(() => import("./pages/zenvue/ZenvueCompare"));
 const ZenvueWholesale = lazy(() => import("./pages/zenvue/ZenvueWholesale"));
+const PhotochromicGuidePage = lazy(() => import("./pages/photochromic/PhotochromicGuidePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -206,6 +207,7 @@ const App = () => (
               <Route path="/zenvue/single-vision" element={<ProtectedRoute><ZenvueSingleVision /></ProtectedRoute>} />
               <Route path="/zenvue/sundun" element={<ProtectedRoute><ZenvueSunDun /></ProtectedRoute>} />
               <Route path="/zenvue/darkun" element={<ProtectedRoute><ZenvueDarkun /></ProtectedRoute>} />
+              <Route path="/photochromic" element={<PhotochromicGuidePage />} />
               <Route path="/zenvue/compare" element={<ProtectedRoute><ZenvueCompare /></ProtectedRoute>} />
               <Route path="/zenvue/wholesale" element={<ProtectedRoute><ZenvueWholesale /></ProtectedRoute>} />
             </Route>
