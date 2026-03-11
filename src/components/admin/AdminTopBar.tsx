@@ -47,6 +47,7 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/knowledge/wiki", "Knowledge · Wiki"],
 ["/admin/website/content", "Website · Content"],
 ["/admin/contacts", "Contacts"],
+["/admin/dashboard", "Launch Pad"],
 ["/admin/crm", "CRM"],
 ["/admin/helpdesk", "Helpdesk"],
 ["/admin/settings/audit", "Settings · Audit Log"],
