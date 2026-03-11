@@ -1,5 +1,4 @@
 import { useState, useEffect, lazy, Suspense, useMemo } from "react";
-import { useLocation } from "react-router-dom";
 import { X, BookOpen, ChevronRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -8,22 +7,37 @@ import { useHelpArticles } from "@/hooks/useHelpArticles";
 import HelpFeedbackButtons from "./HelpFeedbackButtons";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
-import WikiArticleRenderer from "./WikiArticleRenderer";
-import { getContextLabel, pathnameToContextSlug } from "@/lib/adminContexts";
+import { renderWikiContent } from "./wikiFormatting";
+import { getContextLabel } from "@/lib/adminContexts";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
-import { canViewContextSlug } from "@/lib/wikiPermissions";
+import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
+import { wikiCategories } from "@/data/wikiContent";
 
 const WikiArticleEditDialog = lazy(() => import("./WikiArticleEditDialog"));
 
 interface HelpPanelProps {
   open: boolean;
   onClose: () => void;
+  currentSlug: string;
 }
 
-const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
-  const location = useLocation();
-  const slug = pathnameToContextSlug(location.pathname);
-  const { articles, isLoading } = useHelpArticles(slug);
+const CATEGORY_DEFAULT_CONTEXT: Record<string, string> = {
+  "release-ledger": "knowledge/wiki",
+  "getting-started": "knowledge/wiki",
+  "pricing-app": "pricing/catalog",
+  "sales-app": "sales/proposals",
+  "contacts-app": "contacts",
+  "leads-app": "leads/finder",
+  "crm-app": "crm/dashboard",
+  "helpdesk-app": "helpdesk/tickets",
+  "website-app": "website/content",
+  "moonshot-app": "moonshot/dashboard",
+  "knowledge-app": "knowledge/wiki",
+  "settings-app": "settings/company",
+};
+
+const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
+  const { articles, isLoading } = useHelpArticles(currentSlug);
   const { headings } = useWikiHeadings();
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [width, setWidth] = useState(380);
@@ -33,17 +47,56 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
   const [editArticleId, setEditArticleId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
+  const staticArticles = useMemo(() => {
+    return wikiCategories
+      .filter((category) => canViewWikiCategory(category.id, canView))
+      .flatMap((category) =>
+        category.articles.map((article) => {
+          const contexts = article.context_slugs?.length
+            ? article.context_slugs
+            : [CATEGORY_DEFAULT_CONTEXT[category.id] ?? "knowledge/wiki"];
+
+          return {
+            id: `static:${article.id}`,
+            sourceArticleId: article.id,
+            title: article.title,
+            content: article.content,
+            page_slug: contexts[0] ?? "knowledge/wiki",
+            context_slugs: contexts,
+            sort_order: 0,
+          };
+        })
+      )
+      .filter(
+        (article) =>
+          article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)) &&
+          (article.context_slugs.includes(currentSlug) || article.context_slugs.includes("all"))
+      );
+  }, [canView, currentSlug]);
+
+  const mergedArticles = useMemo(() => {
+    const dbMapped = articles.map((article) => ({
+      ...article,
+      sourceArticleId: article.id,
+    }));
+
+    const seen = new Set(dbMapped.map((article) => article.title.trim().toLowerCase()));
+    const dedupedStatic = staticArticles.filter((article) => !seen.has(article.title.trim().toLowerCase()));
+
+    return [...dbMapped, ...dedupedStatic];
+  }, [articles, staticArticles]);
+
   const scopedArticles = useMemo(() => {
-    const visible = articles.filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
-    const exact = visible.filter((a) => a.context_slugs.includes(slug));
+    const visible = mergedArticles.filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
+    const exact = visible.filter((a) => a.context_slugs.includes(currentSlug));
     const shared = visible.filter((a) => a.context_slugs.includes("all"));
-    const other = visible.filter((a) => !a.context_slugs.includes(slug) && !a.context_slugs.includes("all"));
+    const other = visible.filter((a) => !a.context_slugs.includes(currentSlug) && !a.context_slugs.includes("all"));
     return [...exact, ...shared, ...other];
-  }, [articles, slug, canView]);
+  }, [mergedArticles, currentSlug, canView]);
 
   useEffect(() => {
-    const exactIds = scopedArticles.filter((a) => a.page_slug === slug).map((a) => a.id);
-    const nextIds = exactIds.length > 0 ? exactIds : scopedArticles.length > 0 ? [scopedArticles[0].id] : [];
+    const exactIds = scopedArticles.filter((a) => a.context_slugs.includes(currentSlug)).map((a) => a.id);
+    const nextIds = exactIds.length > 0 ? [exactIds[0]] : scopedArticles.length > 0 ? [scopedArticles[0].id] : [];
 
     setExpandedIds((prev) => {
       if (prev.length === nextIds.length && prev.every((id, idx) => id === nextIds[idx])) {
@@ -51,14 +104,14 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
       }
       return nextIds;
     });
-  }, [slug, scopedArticles]);
+  }, [currentSlug, scopedArticles]);
 
   useEffect(() => {
     if (!resizing) return;
     const onMove = (e: MouseEvent) => {
       e.preventDefault();
       const newWidth = window.innerWidth - e.clientX;
-      setWidth(Math.min(Math.max(280, newWidth), 600));
+      setWidth(Math.min(Math.max(300, newWidth), 720));
     };
     const onUp = () => setResizing(false);
     document.body.style.userSelect = "none";
@@ -81,26 +134,36 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
 
   if (!open) return null;
 
-  const editingArticle = editArticleId
-    ? scopedArticles.find((a) => a.id === editArticleId)
-    : null;
+  const editingArticle = editArticleId ? scopedArticles.find((a) => a.id === editArticleId) : null;
+
+  const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
+
+  const renderContent = (text: string) => {
+    if (isHtml(text)) {
+      return (
+        <div
+          className="prose prose-sm max-w-none break-words text-muted-foreground [&_strong]:text-foreground [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-foreground [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-[13px] [&_h3]:font-semibold [&_h3]:text-foreground [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1 [&_p]:leading-relaxed [&_ul]:pl-4 [&_ul]:my-1 [&_ul]:list-disc [&_ol]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_li]:my-0.5 [&_li]:leading-relaxed [&_li]:marker:text-primary [&_a]:text-primary [&_a]:underline [&_br]:leading-3 [&_pre]:overflow-x-auto [&_pre]:text-xs [&_pre]:whitespace-pre-wrap [&_pre]:break-all [&_code]:break-all [&_code]:text-xs"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      );
+    }
+
+    return <div className="space-y-1 break-words [overflow-wrap:anywhere]">{renderWikiContent(text.replace(/\\n/g, "\n"))}</div>;
+  };
 
   const toggleArticle = (id: string) => {
     setExpandedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   return (
-    <div
-      className="fixed top-0 right-0 h-full z-50 flex admin-content"
-      style={{ width }}
-    >
+    <aside className="h-full flex border-l border-border bg-background shrink-0 min-w-0" style={{ width }}>
       <div
         className="w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors shrink-0"
         onMouseDown={() => setResizing(true)}
         style={{ background: resizing ? "hsl(215 65% 50% / 0.3)" : "transparent" }}
       />
 
-      <div className="flex-1 flex flex-col border-l shadow-xl bg-background border-border min-w-0">
+      <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between px-4 h-11 border-b border-border shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <BookOpen className="h-4 w-4 shrink-0 text-primary" />
@@ -113,34 +176,25 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-4 space-y-2">
-            {isLoading && (
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            )}
+            {isLoading && <p className="text-xs text-muted-foreground">Loading...</p>}
 
             {!isLoading && scopedArticles.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                No help articles available for this page.
-              </p>
+              <p className="text-xs text-muted-foreground">No help articles available for this page.</p>
             )}
 
             {scopedArticles.map((article) => {
               const isExpanded = expandedIds.includes(article.id);
-              const isExactContext = article.context_slugs.includes(slug);
+              const isExactContext = article.context_slugs.includes(currentSlug);
 
               return (
-                <div
-                  key={article.id}
-                  className="border border-border overflow-hidden min-w-0"
-                >
+                <div key={article.id} className="border border-border overflow-hidden min-w-0">
                   <button
                     onClick={() => toggleArticle(article.id)}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors min-w-0"
                   >
                     <ChevronRight
                       className="h-3.5 w-3.5 shrink-0 transition-transform text-muted-foreground"
-                      style={{
-                        transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                      }}
+                      style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}
                     />
                     <span className="text-[13px] font-medium text-foreground flex-1 truncate min-w-0">{article.title}</span>
                     <Badge variant={isExactContext ? "default" : "outline"} className="text-[10px] h-5 px-1.5 shrink-0">
@@ -150,12 +204,15 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
 
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-3 min-w-0">
-                      <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground min-w-0 break-words" style={{ overflowWrap: 'anywhere' }}>
-                        <WikiArticleRenderer bodyJson={(article as any).body_json} legacyContent={article.content} className="text-sm" emptyMessage="No content available." />
+                      <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground min-w-0 break-words [overflow-wrap:anywhere]">
+                        {renderContent(article.content)}
                       </div>
                       <HelpFeedbackButtons
-                        articleId={article.id}
-                        pageSlug={slug}
+                        articleId={article.sourceArticleId}
+                        articleTitle={article.title}
+                        articleContent={article.content}
+                        articleContextSlugs={article.context_slugs}
+                        pageSlug={currentSlug}
                         onEdit={canEdit ? handleEditFromFeedback : undefined}
                       />
                     </div>
@@ -175,7 +232,7 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
             article={
               editingArticle
                 ? {
-                    id: editingArticle.id,
+                    id: editingArticle.sourceArticleId,
                     title: editingArticle.title,
                     content: editingArticle.content,
                     page_slug: editingArticle.page_slug,
@@ -186,9 +243,9 @@ const HelpPanel = ({ open, onClose }: HelpPanelProps) => {
             }
             wikiHeadings={headings.map((heading) => ({ id: heading.slug, title: heading.title }))}
           />
-        )}
-      </Suspense>
-    </div>
+        </Suspense>
+      )}
+    </aside>
   );
 };
 

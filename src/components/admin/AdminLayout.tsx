@@ -2,7 +2,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";
-
+import HelpPanel from "./HelpPanel";
+import { pathnameToContextSlug } from "@/lib/adminContexts";
 
 const AdminLayout = () => {
   const { pathname } = useLocation();
@@ -11,17 +12,16 @@ const AdminLayout = () => {
   return (
     <AdminRoleProvider>
       <div className="admin-tool dark flex flex-col h-screen w-full overflow-hidden rounded-none">
-        <AdminTopBar />
+        <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
         <div className="flex flex-1 min-h-0">
           {!hideSidebar ? <AdminSidebar /> : null}
           <main className="admin-content flex-1 overflow-auto p-4">
             <Outlet />
           </main>
         </div>
-        
       </div>
-    </AdminRoleProvider>);
-
+    </AdminRoleProvider>
+  );
 };
 
 export default AdminLayout;

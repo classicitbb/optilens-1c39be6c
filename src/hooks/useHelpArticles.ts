@@ -65,19 +65,18 @@ export const useHelpArticles = (pageSlug?: string) => {
   const query = useQuery({
     queryKey: ["help_articles", pageSlug, canPublish],
     queryFn: async () => {
-      let query: any = supabase
+      const query = supabase
         .from("help_articles")
         .select("*, help_article_contexts(context_slug)")
         .eq("is_active", true)
         .order("sort_order");
-      if (pageSlug) query = query.eq("page_slug", pageSlug);
-      if (!canPublish) query = query.eq("status", "published");
       const { data, error } = await query;
       if (error) throw error;
 
       return ((data ?? []) as unknown as HelpArticleRow[])
         .map(normalizeArticle)
-        .filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
+        .filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)))
+        .filter((article) => !pageSlug || article.context_slugs.includes(pageSlug) || article.context_slugs.includes("all"));
     },
     enabled: canView("wiki"),
   });
@@ -107,9 +106,13 @@ export const useHelpArticles = (pageSlug?: string) => {
     mutationFn: async (article: Partial<HelpArticle> & { title: string; content: string; page_slug?: string; category?: string; context_slugs?: string[]; change_note?: string }) => {
       const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
       const primarySlug = contexts[0] ?? "all";
-      const bodyJson = toCanonicalDocument(article.body_json ?? article.content);
-      const htmlContent = canonicalToHtml(bodyJson);
-      const payload: any = {
+      const payload: {
+        title: string;
+        content: string;
+        page_slug: string;
+        sort_order: number;
+        category?: string;
+      } = {
         title: article.title,
         content: htmlContent,
         body_json: bodyJson,
