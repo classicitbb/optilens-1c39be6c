@@ -1,10 +1,16 @@
-import { ArrowRight, BarChart3, Globe, LifeBuoy, Megaphone, ShoppingCart, Target, Users } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Rocket, Settings, ShoppingCart, Target, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const appTiles = [
+  {
+    title: "Pricing",
+    description: "Configure product pricing, lens catalogs, imports, and costing workflows.",
+    route: "/admin/pricing/catalog",
+    icon: DollarSign,
+  },
   {
     title: "Sales",
     description: "Manage proposals, quotations, and order workflows across all channels.",
@@ -40,6 +46,24 @@ const appTiles = [
     description: "Update website content and manage feature pages and storefront touchpoints.",
     route: "/admin/website/content",
     icon: Globe,
+  },
+  {
+    title: "Knowledge Base",
+    description: "Browse and maintain internal wiki articles, process docs, and shared references.",
+    route: "/admin/knowledge/wiki",
+    icon: BookOpen,
+  },
+  {
+    title: "Settings",
+    description: "Manage company settings, users, permissions, integrations, and audit controls.",
+    route: "/admin/settings/company",
+    icon: Settings,
+  },
+  {
+    title: "Moonshot",
+    description: "Run strategic planning with scorecards, meetings, rocks, and execution tools.",
+    route: "/admin/moonshot/dashboard",
+    icon: Rocket,
   },
 ];
 
