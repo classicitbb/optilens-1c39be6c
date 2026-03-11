@@ -134,7 +134,7 @@ const PhotochromicGuidePage = () => {
         <div className="container relative mx-auto max-w-6xl px-4 text-center lg:px-8">
           <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">Photochromic Knowledge Hub</p>
           <h1 className="text-4xl font-bold leading-tight text-foreground md:text-5xl">Photochromic Lens Comparison Guide</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-lg text-muted-foreground">Compare Darkun™, generic photochromics, and key Transitions® families in one place. This page is designed to answer real buying questions quickly: darkness behavior, in-car activation, polarization, and available colors.</p>
+          <p className="mx-auto mt-5 max-w-3xl text-lg text-muted-foreground">Photochromics, and key Transitions® families in one place. This page is designed to answer real buying questions quickly: darkness behavior, in-car activation, polarization, and available colors.</p>
           <p className="mx-auto mt-4 max-w-3xl text-sm text-muted-foreground">Transitions family descriptions are aligned to publicly available product positioning from transitions.com. Exact availability can vary by country, lens material, and lab program.</p>
         </div>
       </section>
