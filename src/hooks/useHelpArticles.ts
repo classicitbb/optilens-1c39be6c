@@ -106,13 +106,9 @@ export const useHelpArticles = (pageSlug?: string) => {
     mutationFn: async (article: Partial<HelpArticle> & { title: string; content: string; page_slug?: string; category?: string; context_slugs?: string[]; change_note?: string }) => {
       const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
       const primarySlug = contexts[0] ?? "all";
-      const payload: {
-        title: string;
-        content: string;
-        page_slug: string;
-        sort_order: number;
-        category?: string;
-      } = {
+      const bodyJson = article.body_json ?? toCanonicalDocument(article.content);
+      const htmlContent = canonicalToHtml(bodyJson);
+      const payload: Record<string, any> = {
         title: article.title,
         content: htmlContent,
         body_json: bodyJson,
@@ -131,7 +127,7 @@ export const useHelpArticles = (pageSlug?: string) => {
         const nextVersion = (article.version_number ?? 1) + 1;
         payload.version_number = nextVersion;
         payload.published_at = payload.status === "published" ? new Date().toISOString() : null;
-        const { error } = await supabase.from("help_articles").update(payload).eq("id", article.id);
+        const { error } = await (supabase as any).from("help_articles").update(payload).eq("id", article.id);
         if (error) throw error;
 
         if (article.context_slugs && article.context_slugs.length > 0) {
