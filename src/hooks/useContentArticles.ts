@@ -17,6 +17,7 @@ export interface ContentArticle {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  status?: "draft" | "published" | "archived" | null;
 }
 
 export const VISIBILITY_OPTIONS: { value: ContentVisibility; label: string; color: string }[] = [
@@ -113,17 +114,23 @@ export const usePublicKnowledge = () => {
   return useQuery({
     queryKey: ["public_knowledge"],
     queryFn: async () => {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("help_articles")
         .select("*")
         .in("content_type", ["knowledge", "faq"])
-        .eq("is_active", true) as any)
-        .eq("status", "published")
-        .in("visibility", ["public", "customer"])
+        .eq("is_active", true)
         .order("category")
         .order("sort_order");
+
       if (error) throw error;
-      return data as ContentArticle[];
+
+      const visible = ((data || []) as ContentArticle[]).filter((article) => {
+        const publishState = article.status ?? "published";
+        const visibility = article.visibility ?? "public";
+        return publishState === "published" && ["public", "customer"].includes(visibility);
+      });
+
+      return visible;
     },
   });
 };
