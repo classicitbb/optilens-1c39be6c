@@ -26,15 +26,38 @@ export const useUpdateHelpdeskTicket = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async ({ id, ...fields }: { id: string; title?: string; description?: string; priority?: number; team_id?: string | null; ticket_type_id?: string | null }) => {
+    mutationFn: async ({ id, ...fields }: { id: string; title?: string; description?: string; priority?: number; team_id?: string | null; ticket_type_id?: string | null; partner_contact_id?: string | null }) => {
       const { error } = await db().from("helpdesk_tickets").update(fields).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["helpdesk-tickets"] });
+      qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
       toast({ title: "Ticket updated" });
     },
     onError: (err: Error) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+  });
+};
+
+/* ── Archive ticket (move to closed stage) ── */
+
+export const useArchiveHelpdeskTicket = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ ticketId, closedStageId }: { ticketId: string; closedStageId: string }) => {
+      const { error } = await db()
+        .from("helpdesk_tickets")
+        .update({ stage_id: closedStageId, closed_at: new Date().toISOString() })
+        .eq("id", ticketId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["helpdesk-tickets"] });
+      qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
+      toast({ title: "Ticket archived" });
+    },
+    onError: (err: Error) => toast({ title: "Archive failed", description: err.message, variant: "destructive" }),
   });
 };
 
@@ -235,6 +258,56 @@ export const useDeleteHelpdeskTicketTag = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["helpdesk", "ticket-tags"] });
       toast({ title: "Tag deleted" });
+    },
+    onError: (err: Error) => toast({ title: "Delete failed", description: err.message, variant: "destructive" }),
+  });
+};
+
+/* ── Priorities ── */
+
+export const useCreateHelpdeskPriority = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (fields: { level: number; label: string; color?: string }) => {
+      const { error } = await db().from("helpdesk_priorities").insert(fields);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["helpdesk", "priorities"] });
+      toast({ title: "Priority created" });
+    },
+    onError: (err: Error) => toast({ title: "Create failed", description: err.message, variant: "destructive" }),
+  });
+};
+
+export const useUpdateHelpdeskPriority = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ id, ...fields }: { id: string; label?: string; color?: string; is_active?: boolean }) => {
+      const { error } = await db().from("helpdesk_priorities").update(fields).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["helpdesk", "priorities"] });
+      toast({ title: "Priority updated" });
+    },
+    onError: (err: Error) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+  });
+};
+
+export const useDeleteHelpdeskPriority = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (priorityId: string) => {
+      const { error } = await db().from("helpdesk_priorities").delete().eq("id", priorityId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["helpdesk", "priorities"] });
+      toast({ title: "Priority deleted" });
     },
     onError: (err: Error) => toast({ title: "Delete failed", description: err.message, variant: "destructive" }),
   });

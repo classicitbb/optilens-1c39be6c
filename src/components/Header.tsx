@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Search, Phone, Sun, Moon, Monitor } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import PublicSearchPanel from "@/components/PublicSearchPanel";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -37,30 +38,36 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
       {
         title: "Everyday Vision",
         links: [
-          { label: "Progressive (All-Day Use)", description: "Premium multifocal options", to: "/zenvue/brilliance" },
-          { label: "ZenVue Brilliance™", description: "Featured progressive product page", to: "/zenvue/brilliance" },
+          { label: "Progressive", description: "Premium multifocal options for all-day use", to: "/lenses/progressive" },
           { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
-          { label: "Anti-Fatigue", description: "Digital comfort with near support", to: "/lenses/anti-fatigue" },
-          { label: "Single Vision", description: "Everyday distance and near correction", to: "/zenvue/single-vision" },
-          { label: "ZenVue Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
+          { label: "Anti-Fatigue", description: "Digital comfort with near support boost", to: "/lenses/anti-fatigue" },
+          { label: "Single Vision", description: "Everyday distance and near correction", to: "/lenses/single-vision" },
         ],
       },
       {
         title: "Lifestyle Lenses",
         links: [
           { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/zenvue/darkun" },
-          { label: "ZenVue Darkun™", description: "Featured photochromic lens page", to: "/zenvue/darkun" },
           { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
           { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
-          { label: "ZenVue SunDun™", description: "Featured polarized lens page", to: "/zenvue/sundun" },
           { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
+        ],
+      },
+      {
+        title: "ZenVue Collection",
+        links: [
+          { label: "Brilliance™ Progressive", description: "Featured progressive product page", to: "/zenvue/brilliance" },
+          { label: "Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
+          { label: "SunDun™ Polarized", description: "Featured polarized lens page", to: "/zenvue/sundun" },
+          { label: "Darkun™ Photochromic", description: "Featured photochromic lens page", to: "/zenvue/darkun" },
+          { label: "ZenVue Wholesale", description: "Partner application for optical professionals", to: "/zenvue/wholesale" },
         ],
       },
       {
         title: "Technical Specs",
         links: [
-          { label: "Materials (1.50, 1.56, 1.60, 1.67, 1.74)", description: "Compare index and material performance", to: "/lenses/materials" },
-          { label: "Edge & Center Thickness Chart", description: "Thickness guidance across prescriptions", to: "/lenses/thickness-chart" },
+          { label: "Materials (1.50–1.74)", description: "Compare index and material performance", to: "/lenses/materials" },
+          { label: "Thickness Chart", description: "Thickness guidance across prescriptions", to: "/lenses/thickness-chart" },
           { label: "Lens Design Guide", description: "Design and recommendation support", to: "/lenses/lens-types" },
         ],
       },
@@ -70,12 +77,26 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     label: "Coatings",
     sections: [
       {
-        title: "Lens Treatments",
+        title: "Premium Performance",
         links: [
-          { label: "Mirror & Finish Guide", description: "Compare coating and finish options", to: "/mirror-finish-guide" },
-          { label: "Sun & Specialty", description: "Photochromic and tinted offerings", to: "/zenvue/sundun" },
-          { label: "Knowledge Articles", description: "Technical coating resources", to: "/knowledge#lens-coatings" },
-          { label: "ZenVue Compare", description: "Compare all ZenVue feature lenses", to: "/zenvue/compare" },
+          { label: "UltraClear AR (Super AR)", description: "Multi-layer anti-reflective for maximum clarity", to: "/coatings/ultraclear-ar" },
+          { label: "BlueBlock AR (BlueGuard)", description: "Blue-violet management with AR clarity", to: "/coatings/blueblock-ar" },
+          { label: "Mirror Finish", description: "Fashion and sport mirror coatings", to: "/coatings/mirror" },
+        ],
+      },
+      {
+        title: "Everyday Protection",
+        links: [
+          { label: "Scratch-Resistant", description: "Hard coat durability foundation", to: "/coatings/scratch-resistant" },
+          { label: "UV Shield — UVA, UVB, BV", description: "Ultraviolet and blue-violet filtering", to: "/coatings/uv-shield" },
+          { label: "Hydrophobic & Oleophobic", description: "Water and oil repellent top coats", to: "/coatings/hydrophobic-oleophobic" },
+        ],
+      },
+      {
+        title: "Resources",
+        links: [
+          { label: "How AR Coating Works", description: "The science behind anti-reflective layers", to: "/knowledge#how-ar-coating-works" },
+          { label: "Caring for Your Coated Lenses", description: "Maintenance tips and best practices", to: "/knowledge#caring-for-coated-lenses" },
         ],
       },
     ],
@@ -95,6 +116,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
       {
         title: "Technical Resources",
         links: [
+          { label: "Dispensing Tips & Guide", description: "Professional dispensing and patient care", to: "/professionals/dispensing-tips" },
           { label: "Lab Process Overview", description: "Production flow and checkpoints", to: "/professionals/lab-process-overview" },
           { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
           { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
@@ -177,7 +199,10 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
 const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
   const [open, setOpen] = useState(false);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const [arrowLeft, setArrowLeft] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -189,6 +214,15 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    if (open && btnRef.current && panelRef.current) {
+      const btnRect = btnRef.current.getBoundingClientRect();
+      const panelRect = panelRef.current.getBoundingClientRect();
+      const btnCenter = btnRect.left + btnRect.width / 2;
+      setArrowLeft(btnCenter - panelRect.left);
+    }
+  }, [open]);
 
   const handleTriggerClick = () => {
     if (isPinnedOpen) {
@@ -212,6 +246,7 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
       ref={ref}
     >
       <button
+        ref={btnRef}
         type="button"
         onClick={handleTriggerClick}
         className="flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -223,7 +258,10 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
       </button>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+        <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+          {/* Arrow pointing up at the trigger button */}
+          <div style={{ left: arrowLeft }} className="absolute -top-2 -translate-x-1/2 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-border" />
+          <div style={{ left: arrowLeft }} className="absolute -top-[7px] -translate-x-1/2 h-0 w-0 border-x-[7px] border-b-[7px] border-x-transparent border-b-background" />
           <div className="grid gap-4 md:grid-cols-3">
           {item.sections.map((section) => (
             <div key={section.title}>
@@ -267,6 +305,8 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [showSearchMenu, setShowSearchMenu] = useState(false);
   const { toast } = useToast();
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
   const bannerDismissed = useAccountRequestDismissed();
@@ -291,22 +331,23 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
+      <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2" aria-label="Classic Visions home">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-accent">
-            <Eye className="h-5 w-5 text-accent-foreground" />
+            <Eye className="h-5 w-5 text-accent-foreground" aria-hidden="true" />
           </div>
-          <span className="text-xl font-bold text-foreground">OptiVisionNow</span>
+          <span className="text-xl font-bold text-foreground">Classic Visions</span>
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className={`hidden items-center gap-7 lg:flex ${isSearchMode ? "opacity-0 pointer-events-none" : ""}`} aria-label="Main navigation">
           {PRIMARY_MENU.map((item) => (
             <MegaMenu key={item.label} item={item} />
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${isSearchMode ? "flex-1 justify-end" : ""}`}>
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">
@@ -318,7 +359,7 @@ const Header = () => {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-accent">
                   <Eye className="h-4 w-4 text-accent-foreground" />
                 </div>
-                <span className="text-lg font-bold text-foreground">OptiVisionNow</span>
+                <span className="text-lg font-bold text-foreground">Classic Visions</span>
               </SheetTitle>
               <nav>
                 <Accordion type="multiple" className="space-y-3">
@@ -362,104 +403,140 @@ const Header = () => {
             </SheetContent>
           </Sheet>
 
-          <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-            <Link to="/store">
-              <Search className="mr-2 h-4 w-4" />
-              Search
-            </Link>
-          </Button>
-
-          <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
-            <a href="tel:+12464334928">
-              <Phone className="mr-2 h-4 w-4" />
-              +1 246 433-4928
-            </a>
-          </Button>
-
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <User className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Account</span>
-                  <ChevronDown className="ml-1 h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/orders" className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Orders
-                  </Link>
-                </DropdownMenuItem>
-                {hasAccess && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin" className="flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      Admin
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                {showRequestInMenu && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" });
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <User className="h-4 w-4" />
-                    Request Account
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="flex items-center gap-2">
-                    {cycleThemeIcon()}
-                    Theme
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
-                      <DropdownMenuRadioItem value="light" className="flex items-center gap-2">
-                        <Sun className="h-4 w-4" />
-                        Light
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="dark" className="flex items-center gap-2">
-                        <Moon className="h-4 w-4" />
-                        Dark
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="system" className="flex items-center gap-2">
-                        <Monitor className="h-4 w-4" />
-                        System
-                      </DropdownMenuRadioItem>
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {isSearchMode ? (
+            <>
+              <div className="hidden lg:block lg:flex-1 lg:max-w-3xl">
+                <PublicSearchPanel />
+              </div>
+              <Button variant="ghost" size="sm" className="hidden lg:inline-flex" onClick={() => setShowSearchMenu((current) => !current)}>
+                <Menu className="mr-2 h-4 w-4" />
+                Menu
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setIsSearchMode(false); setShowSearchMenu(false); }}>
+                <X className="mr-2 h-4 w-4" />
+                Close
+              </Button>
+            </>
           ) : (
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth">
-                <User className="mr-2 h-4 w-4" />
-                Sign in
-              </Link>
-            </Button>
-          )}
+            <>
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => setIsSearchMode(true)}>
+                <Search className="mr-2 h-4 w-4" />
+                Search
+              </Button>
 
-          <Button variant="hero" size="sm" asChild>
-            <Link to="/store">Order Lenses</Link>
-          </Button>
+              <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
+                <a href="tel:+12464334928">
+                  <Phone className="mr-2 h-4 w-4" />
+                  +1 246 433-4928
+                </a>
+              </Button>
+
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <User className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Account</span>
+                      <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/orders" className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    {hasAccess && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {showRequestInMenu && (
+                      <DropdownMenuItem onClick={() => { toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" }); }} className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Request Account
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger className="flex items-center gap-2">
+                        {cycleThemeIcon()}
+                        Theme
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
+                          <DropdownMenuRadioItem value="light" className="flex items-center gap-2">
+                            <Sun className="h-4 w-4" />
+                            Light
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="dark" className="flex items-center gap-2">
+                            <Moon className="h-4 w-4" />
+                            Dark
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="system" className="flex items-center gap-2">
+                            <Monitor className="h-4 w-4" />
+                            System
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/auth">
+                    <User className="mr-2 h-4 w-4" />
+                    Sign in
+                  </Link>
+                </Button>
+              )}
+
+              <Button variant="hero" size="sm" asChild>
+                <Link to="/store">
+                  <span className="hidden sm:inline">Order Lenses</span>
+                  <span className="sm:hidden">Order</span>
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {isSearchMode && showSearchMenu && (
+        <div className="hidden border-t border-border/50 bg-background/95 lg:block">
+          <div className="container mx-auto flex items-center gap-2 px-4 py-2 lg:px-8">
+            <Button variant="ghost" size="sm" asChild>
+              <a href="tel:+12464334928">
+                <Phone className="mr-2 h-4 w-4" />
+                +1 246 433-4928
+              </a>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={user ? "/profile" : "/auth"}>
+                <User className="mr-2 h-4 w-4" />
+                {user ? "Account" : "Sign in"}
+              </Link>
+            </Button>
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/store">Order Lenses</Link>
+            </Button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

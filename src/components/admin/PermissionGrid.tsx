@@ -59,41 +59,31 @@ const PermissionGrid = () => {
   };
 
   return (
-    <div className="border rounded overflow-auto" style={{ borderColor: "hsl(215 22% 19%)" }}>
+    <div className="border border-[hsl(var(--admin-border))] rounded overflow-auto">
       <table className="w-full text-xs">
         <thead>
-          <tr style={{ background: "hsl(215 45% 28%)" }}>
-            <th
-              className="text-left px-3 py-2.5 font-semibold uppercase tracking-wider text-[11px]"
-              style={{ color: "hsl(0 0% 100%)" }}
-            >
+          <tr className="bg-[hsl(var(--admin-accent))]">
+            <th className="text-left px-3 py-2.5 font-semibold uppercase tracking-wider text-[11px] text-[hsl(var(--admin-accent-fg))]">
               Feature
             </th>
             {ROLE_ORDER.map((role) => (
               <th
                 key={role}
                 colSpan={2}
-                className="text-center px-2 py-2.5 font-semibold uppercase tracking-wider text-[11px] capitalize"
-                style={{ color: "hsl(0 0% 100%)" }}
+                className="text-center px-2 py-2.5 font-semibold uppercase tracking-wider text-[11px] capitalize text-[hsl(var(--admin-accent-fg))]"
               >
                 {role}
               </th>
             ))}
           </tr>
-          <tr style={{ background: "hsl(215 35% 22%)" }}>
+          <tr className="bg-[hsl(var(--admin-table-header-bg))]">
             <td />
             {ROLE_ORDER.map((role) => (
               <Fragment key={role}>
-                <td
-                  className="text-center px-1 py-1.5 font-medium text-[10px]"
-                  style={{ color: "hsl(215 70% 75%)" }}
-                >
+                <td className="text-center px-1 py-1.5 font-medium text-[10px] text-[hsl(var(--admin-table-muted-fg))]">
                   View
                 </td>
-                <td
-                  className="text-center px-1 py-1.5 font-medium text-[10px]"
-                  style={{ color: "hsl(215 70% 75%)" }}
-                >
+                <td className="text-center px-1 py-1.5 font-medium text-[10px] text-[hsl(var(--admin-table-muted-fg))]">
                   Edit
                 </td>
               </Fragment>
@@ -104,15 +94,9 @@ const PermissionGrid = () => {
           {FEATURES.map((feature, idx) => (
             <tr
               key={feature}
-              style={{
-                background: idx % 2 === 0 ? "hsl(215 30% 11%)" : "hsl(215 28% 14%)",
-                borderBottom: "1px solid hsl(215 22% 19%)",
-              }}
+              className={`border-b border-[hsl(var(--admin-table-border))] ${idx % 2 === 0 ? "bg-[hsl(var(--admin-table-row-even))]" : "bg-[hsl(var(--admin-table-row-odd))]"}`}
             >
-              <td
-                className="px-3 py-2 font-medium"
-                style={{ color: "hsl(215 70% 75%)" }}
-              >
+              <td className="px-3 py-2 font-medium text-[hsl(var(--admin-table-fg))]">
                 {FEATURE_LABELS[feature] ?? feature}
               </td>
               {ROLE_ORDER.map((role) => {
@@ -124,14 +108,14 @@ const PermissionGrid = () => {
                       <Checkbox
                         checked={perm.can_view}
                         onCheckedChange={(v) => handleToggle(perm, "can_view", !!v)}
-                        className="mx-auto border-[hsl(215_50%_40%)] data-[state=checked]:bg-[hsl(215_65%_50%)] data-[state=checked]:border-[hsl(215_65%_50%)]"
+                        className="mx-auto border-[hsl(var(--admin-border))] data-[state=checked]:bg-[hsl(var(--admin-accent))] data-[state=checked]:border-[hsl(var(--admin-accent))]"
                       />
                     </td>
                     <td className="text-center px-1 py-2">
                       <Checkbox
                         checked={perm.can_edit}
                         onCheckedChange={(v) => handleToggle(perm, "can_edit", !!v)}
-                        className="mx-auto border-[hsl(215_50%_40%)] data-[state=checked]:bg-[hsl(215_65%_50%)] data-[state=checked]:border-[hsl(215_65%_50%)]"
+                        className="mx-auto border-[hsl(var(--admin-border))] data-[state=checked]:bg-[hsl(var(--admin-accent))] data-[state=checked]:border-[hsl(var(--admin-accent))]"
                       />
                     </td>
                   </Fragment>

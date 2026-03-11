@@ -17,6 +17,7 @@ export interface ContentArticle {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  status?: "draft" | "published" | "archived" | null;
 }
 
 export const VISIBILITY_OPTIONS: { value: ContentVisibility; label: string; color: string }[] = [
@@ -118,11 +119,18 @@ export const usePublicKnowledge = () => {
         .select("*")
         .in("content_type", ["knowledge", "faq"])
         .eq("is_active", true)
-        .in("visibility", ["public", "customer"])
         .order("category")
         .order("sort_order");
+
       if (error) throw error;
-      return data as ContentArticle[];
+
+      const visible = ((data || []) as ContentArticle[]).filter((article) => {
+        const publishState = article.status ?? "published";
+        const visibility = article.visibility ?? "public";
+        return publishState === "published" && ["public", "customer"].includes(visibility);
+      });
+
+      return visible;
     },
   });
 };
@@ -132,12 +140,13 @@ export const useLegalPage = (slug: string) => {
   return useQuery({
     queryKey: ["legal_page", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("help_articles")
         .select("*")
         .eq("content_type", "legal")
         .eq("page_slug", slug)
-        .eq("is_active", true)
+        .eq("is_active", true) as any)
+        .eq("status", "published")
         .in("visibility", ["public", "customer"])
         .single();
       if (error && error.code !== "PGRST116") throw error;

@@ -1,19 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { bingProvider } from "./providers/bing.ts";
-import { facebookGraphProvider } from "./providers/facebookGraph.ts";
 import { googlePlacesProvider } from "./providers/googlePlaces.ts";
-import { instagramGraphProvider } from "./providers/instagramGraph.ts";
+import { aiSearchProvider } from "./providers/aiSearch.ts";
+import { firecrawlSearchProvider } from "./providers/firecrawlSearch.ts";
 import type { LeadCandidate, ProviderAdapter } from "./providers/types.ts";
-import { whatsappBusinessSignalsProvider } from "./providers/whatsappBusinessSignals.ts";
-import { yahooProvider } from "./providers/yahoo.ts";
-import { yellowPagesProvider } from "./providers/yellowPages.ts";
 import { loadScoringWeights, scoreLead } from "./scoring.ts";
 import { generateSearchPlan, type AutopilotConstraints } from "./strategy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 type ProviderTelemetry = {
@@ -22,8 +18,6 @@ type ProviderTelemetry = {
   latencyMs: number;
   errorCode: string | null;
 };
-
-
 
 type PlannerDiagnostics = {
   mode: "manual" | "autopilot";
@@ -201,17 +195,6 @@ async function loadProviderCredentials(
   }
 }
 
-async function enrichFacebookInstagram(candidates: LeadCandidate[]) {
-  const fbToken = Deno.env.get("FACEBOOK_GRAPH_API_TOKEN");
-  if (!fbToken) return candidates;
-
-  return candidates.map((c) => ({
-    ...c,
-    instagram_handle: c.instagram_handle ?? null,
-    facebook_page: c.facebook_page ?? null,
-  }));
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -275,48 +258,60 @@ serve(async (req) => {
     const normalizedCity = typeof selectedCity === "string" && selectedCity.trim().length > 0
       ? selectedCity.trim()
       : undefined;
-    // In global mode, do not pass remembered geo defaults into provider queries/scoring.
-    // This keeps global runs unscoped and avoids misleading local-biased diagnostics/results.
     const effectiveCountry = globalSearch ? undefined : normalizedCountry;
     const effectiveCity = globalSearch ? undefined : normalizedCity;
     const resolvedQuery = plannedQuery;
 
     const providerCredentials = await loadProviderCredentials(supabaseClient);
 
-    const providers: ProviderAdapter[] = [
+    // Primary providers: Google Places + Firecrawl (real data sources)
+    const primaryProviders: ProviderAdapter[] = [
       googlePlacesProvider,
-      facebookGraphProvider,
-      instagramGraphProvider,
-      whatsappBusinessSignalsProvider,
-      yellowPagesProvider,
-      bingProvider,
-      yahooProvider,
+      firecrawlSearchProvider,
     ];
 
-    const allowMockResults = Deno.env.get("DENO_ENV") !== "production" &&
-      Deno.env.get("LEAD_INTELLIGENCE_ENABLE_MOCK_RESULTS") === "true";
+    const aiFallbackConfigured = aiSearchProvider.isConfigured(providerCredentials);
 
+    // AI fallback is intentionally opt-in and disabled by default to avoid synthetic leads.
     const providerStatus = {
       googlePlacesConfigured: googlePlacesProvider.isConfigured(providerCredentials),
-      facebookGraphConfigured: facebookGraphProvider.isConfigured(providerCredentials),
-      instagramGraphConfigured: instagramGraphProvider.isConfigured(providerCredentials),
-      whatsappBusinessSignalsConfigured: whatsappBusinessSignalsProvider.isConfigured(providerCredentials),
-      yellowPagesConfigured: yellowPagesProvider.isConfigured(providerCredentials),
-      bingConfigured: bingProvider.isConfigured(providerCredentials),
-      yahooConfigured: yahooProvider.isConfigured(providerCredentials),
+      firecrawlSearchConfigured: firecrawlSearchProvider.isConfigured(),
+      aiSearchConfigured: aiFallbackConfigured,
     };
 
-    const { leads: providerLeads, telemetry } = await executeProviders(providers, {
+    const { leads: primaryLeads, telemetry: primaryTelemetry } = await executeProviders(primaryProviders, {
       query: resolvedQuery,
       country: effectiveCountry,
       city: effectiveCity,
       credentials: providerCredentials,
     });
 
+    let allLeads = primaryLeads;
+    let telemetry = { ...primaryTelemetry };
+
+    // If primary providers returned nothing, use AI search as fallback only when explicitly enabled.
+    if (allLeads.length === 0 && aiFallbackConfigured) {
+      const { leads: aiLeads, telemetry: aiTelemetry } = await executeProviders([aiSearchProvider], {
+        query: resolvedQuery,
+        country: effectiveCountry,
+        city: effectiveCity,
+        credentials: providerCredentials,
+      });
+      allLeads = aiLeads;
+      telemetry = { ...telemetry, ...aiTelemetry };
+    } else {
+      // Mark AI search as not attempted when grounded providers had results or fallback is disabled.
+      telemetry["ai_search"] = {
+        attempted: false,
+        resultCount: 0,
+        latencyMs: 0,
+        errorCode: allLeads.length > 0 ? "SKIPPED_PRIMARY_HAD_RESULTS" : "NOT_CONFIGURED",
+      };
+    }
+
     const scoringWeights = await loadScoringWeights(supabaseClient);
 
-    let leads = await enrichFacebookInstagram(providerLeads);
-    leads = leads.map((lead) => {
+    let leads = allLeads.map((lead) => {
       const scored = scoreLead(lead, scoringWeights, {
         country: effectiveCountry,
         city: effectiveCity,
@@ -325,30 +320,12 @@ serve(async (req) => {
       return { ...lead, score: scored.score, lead_score_breakdown: scored.lead_score_breakdown };
     });
 
-    if (leads.length === 0 && allowMockResults) {
-      leads = [
-        { name: "VisionCare Bridgetown", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.1, google_reviews_count: 42, website: null },
-        { name: "Island Optical Plus", country: effectiveCountry ?? "Barbados", city: effectiveCity ?? "Bridgetown", google_rating: 4.6, google_reviews_count: 28, website: "https://example.com" },
-      ].map((lead) => {
-        const scored = scoreLead(lead, scoringWeights, {
-          country: effectiveCountry,
-          city: effectiveCity,
-          query: resolvedQuery,
-        });
-        return { ...lead, score: scored.score, lead_score_breakdown: scored.lead_score_breakdown };
-      });
-    }
-
     const providersUsed = Object.entries(telemetry)
       .filter(([, data]) => data.attempted && data.resultCount > 0)
       .map(([providerId]) => providerId);
 
-    if (providerLeads.length === 0 && allowMockResults) {
-      providersUsed.push("mock_fallback");
-    }
-
     const providerTelemetryEntries = Object.values(telemetry);
-    const configuredProviderCount = providerTelemetryEntries.filter((entry) => entry.errorCode !== "NOT_CONFIGURED").length;
+    const configuredProviderCount = providerTelemetryEntries.filter((entry) => entry.errorCode !== "NOT_CONFIGURED" && entry.errorCode !== "SKIPPED_PRIMARY_HAD_RESULTS").length;
     const attemptedProviderEntries = providerTelemetryEntries.filter((entry) => entry.attempted);
     const attemptedWithFailures = attemptedProviderEntries.filter((entry) => entry.errorCode !== null);
 
