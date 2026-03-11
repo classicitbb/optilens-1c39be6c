@@ -337,9 +337,9 @@ const Header = () => {
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
         <Link to="/" className="flex items-center gap-2" aria-label="Classic Visions home">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-accent">
-            <Eye className="h-5 w-5 text-accent-foreground" aria-hidden="true" />
-          </div>
+          <div className="flex h-10 w-10 items-center justify-center">
+              <img src={cleanLogo} alt="Classic Visions" className="h-8 w-8" />
+            </div>
           <span className="text-xl font-bold text-foreground">Classic Visions</span>
         </Link>
 
