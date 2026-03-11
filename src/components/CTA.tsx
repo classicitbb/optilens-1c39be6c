@@ -16,7 +16,7 @@ const CTA = () => {
           Ready to Partner with Us?
         </h2>
         <p className="mx-auto mb-8 max-w-2xl text-base text-primary-foreground/80 sm:text-lg">
-          Join hundreds of optical professionals who trust OptiLens Pro for their 
+          Join hundreds of optical professionals who trust Classic Visions for their 
           prescription lens needs. Get started today.
         </p>
 

@@ -73,7 +73,7 @@ const ResetPassword = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-accent">
               <Eye className="h-5 w-5 text-accent-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">OptiLens Pro</span>
+            <span className="text-xl font-bold text-foreground">Classic Visions</span>
           </Link>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/auth" className="flex items-center gap-2">

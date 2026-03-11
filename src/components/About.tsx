@@ -27,7 +27,7 @@ const values = [
 
 const About = () => {
   return (
-    <section id="about" className="py-16 sm:py-24" aria-label="About OptiVisionNow">
+    <section id="about" className="py-16 sm:py-24" aria-label="About Classic Visions">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Intro */}
         <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-16">
@@ -35,10 +35,10 @@ const About = () => {
             <Eye className="h-7 w-7 text-accent-foreground" aria-hidden="true" />
           </div>
           <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
-            About OptiVisionNow
+            About Classic Visions
           </h2>
           <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
-            OptiVisionNow is a trusted wholesale supplier of premium prescription lenses, 
+            Classic Visions is a trusted wholesale supplier of premium prescription lenses, 
             serving independent opticians, optical chains, and eye care professionals. 
             We combine decades of optical expertise with modern technology to deliver 
             lenses that meet the highest standards of clarity, durability, and value.
@@ -71,7 +71,7 @@ const About = () => {
             <p className="text-sm text-muted-foreground leading-relaxed sm:text-base">
               From single vision to complex free-form progressives, our extensive catalog 
               and expert team ensure you always have the right lens for every patient. 
-              Whether you're a single-location practice or a growing chain, OptiVisionNow 
+              Whether you're a single-location practice or a growing chain, Classic Visions 
               is your partner in delivering exceptional vision care.
             </p>
           </div>
@@ -102,7 +102,7 @@ const About = () => {
           </div>
           <h3 className="mb-3 text-xl font-bold text-foreground sm:text-2xl">Trusted by Professionals</h3>
           <p className="mx-auto max-w-2xl text-sm text-muted-foreground leading-relaxed sm:text-base">
-            Thousands of optical professionals across the country rely on OptiVisionNow 
+            Thousands of optical professionals across the country rely on Classic Visions 
             for their daily lens needs. Our dedicated account managers, fast turnaround times, 
             and industry-leading quality control make us the wholesale partner of choice 
             for practices that demand the best.
