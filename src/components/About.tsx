@@ -32,8 +32,8 @@ const About = () => {
       <div className="container mx-auto px-4 lg:px-8">
         {/* Intro */}
         <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-16">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-accent">
-            <Eye className="h-7 w-7 text-accent-foreground" aria-hidden="true" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center">
+            <img src={cleanLogoSmooth} alt="Classic Visions" className="h-10 w-10" />
           </div>
           <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
             About Classic Visions
