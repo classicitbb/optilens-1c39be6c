@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertCircle, BarChart3, Bell, Book, Calendar, CheckSquare,
-  ChevronRight, FileText, Grid, Home, Menu, Rocket, Settings, Target, Wrench,
+  ChevronLeft, ChevronRight, FileText, Grid, Home, Menu, Rocket, Settings, Target, Wrench,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import AppLauncher from "@/components/admin/AppLauncher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
