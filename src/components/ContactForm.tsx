@@ -72,14 +72,14 @@ const ContactForm = () => {
   };
 
   return (
-    <section id="contact" className="py-20 bg-muted/30">
+    <section id="contact" className="py-16 bg-muted/30 sm:py-20" aria-label="Contact form">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-2xl font-bold text-foreground mb-4 sm:text-3xl md:text-4xl">
               Contact Our Team
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base text-muted-foreground sm:text-lg">
               Have questions about our lens products? Fill out the form below and
               our optical experts will respond within 24 hours.
             </p>

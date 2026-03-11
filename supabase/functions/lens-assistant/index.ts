@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are OptiLens Pro's AI lens specialist assistant. You help customers choose the right prescription lenses and answer technical questions about optical products.
+const SYSTEM_PROMPT = `You are Classic Visions' AI lens specialist assistant. You help customers choose the right prescription lenses and answer technical questions about optical products.
 
 Your expertise includes:
 - Single vision, bifocal, and progressive lenses

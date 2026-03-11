@@ -217,8 +217,9 @@ export const computeShipmentTotals = (
     const rowTotal = (c.amount_bbd || 0) + (c.vat_bbd || 0) + (c.duty_bbd || 0);
     return sum + rowTotal;
   }, 0);
-  const totalLandedBbd = fobBbd + totalChargesBbd;
-  const multiplier = fobBbd > 0 ? totalLandedBbd / fobBbd : 1;
+  const totalLandedBbd = invoiceBbd + totalChargesBbd;
+  const fobUsd = shipment.fob_foreign || 1;
+  const multiplier = fobUsd > 0 ? totalLandedBbd / fobUsd : 1;
 
   return { fobBbd, invoiceBbd, totalChargesBbd, totalLandedBbd, multiplier };
 };
