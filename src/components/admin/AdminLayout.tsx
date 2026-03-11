@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
 import AdminSidebar from "./AdminSidebar";
@@ -8,6 +9,8 @@ import { pathnameToContextSlug } from "@/lib/adminContexts";
 const AdminLayout = () => {
   const { pathname } = useLocation();
   const hideSidebar = pathname === "/admin/dashboard";
+  const [helpOpen, setHelpOpen] = useState(false);
+  const contextSlug = pathnameToContextSlug(pathname);
 
   return (
     <AdminRoleProvider>
@@ -18,6 +21,7 @@ const AdminLayout = () => {
           <main className="admin-content flex-1 overflow-auto p-4">
             <Outlet />
           </main>
+          <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug={contextSlug} />
         </div>
       </div>
     </AdminRoleProvider>
