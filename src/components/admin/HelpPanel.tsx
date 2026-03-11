@@ -243,8 +243,8 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
             }
             wikiHeadings={headings.map((heading) => ({ id: heading.slug, title: heading.title }))}
           />
-        </Suspense>
-      )}
+        )}
+      </Suspense>
     </aside>
   );
 };
