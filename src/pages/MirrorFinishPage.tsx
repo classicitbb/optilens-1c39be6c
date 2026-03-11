@@ -46,6 +46,33 @@ const popularFinishes = [
   },
 ];
 
+const bestUseCases = [
+  "Water, snow, and beach dispensing where bright-light intensity is consistently high.",
+  "Sport and driving sunwear where wearers want both comfort and a high-reflection cosmetic look.",
+  "Outdoor occupational eyewear when sunglass performance and appearance are both priorities.",
+  "Lifestyle sunglasses that benefit from color-matched mirror aesthetics.",
+];
+
+const compatibilityNotes = [
+  "AR: Back-surface AR is recommended to reduce internal reflections and improve clarity.",
+  "Polarization: Mirror + polarized is a common premium stack for reflected glare from roads, water, and snow.",
+  "Photochromic: Available in select programs; mirror color can make the light-state transition appear less obvious.",
+];
+
+const limitations = [
+  "Mirror coatings do not replace UV protection; UV coverage depends on lens material and treatment specs.",
+  "They do not correct prescription, centration, or fitting errors.",
+  "They do not fully replace polarization for harsh reflected glare control.",
+  "They do not make lenses scratch-proof or impact-proof without appropriate material and care.",
+];
+
+const careTips = [
+  "Rinse debris before wiping, then use approved lens cleaner and microfiber.",
+  "Avoid dry wiping, paper towels, and household cleaners that can damage top coats.",
+  "Store in a hard case to reduce cosmetic wear during transport.",
+  "Avoid prolonged high heat (for example, dashboard storage) to preserve coating durability.",
+];
+
 const MirrorFinishPage = () => {
   return (
     <div className="min-h-screen bg-background">
@@ -54,8 +81,8 @@ const MirrorFinishPage = () => {
         <div className="container mx-auto max-w-4xl px-4 lg:px-8">
           <h1 className="text-4xl font-bold text-foreground">Mirror Coatings & Finish Guide</h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Mirror coatings apply a reflective top layer to tinted or sun lenses, improving style and bright-light comfort
-            for active wearers.
+            Mirror coatings apply a reflective top layer to tinted or sun lenses, supporting bright-light comfort with a
+            distinct cosmetic finish.
           </p>
 
           <section className="mt-8 space-y-6" aria-labelledby="mirror-finish-visuals-heading">
@@ -111,30 +138,55 @@ const MirrorFinishPage = () => {
             </div>
           </section>
 
-          <div className="mt-8 rounded-xl border border-border bg-card p-6">
-            <h2 className="text-xl font-semibold text-foreground">When to recommend mirror coatings</h2>
-            <ul className="mt-4 space-y-3">
-              {highlights.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-muted-foreground">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg">
-                <Link to="/store?category=finished" data-cta="mirror-finish-shop-options">
-                  Shop Mirror Lens Options
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/professionals/lens-ordering-tips" data-cta="mirror-finish-professional-compatibility">
-                  Professional ordering &amp; compatibility
-                </Link>
-              </Button>
+          <section className="mt-8 space-y-6" aria-labelledby="mirror-finish-guidance-heading">
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-xl font-semibold text-foreground">When to recommend mirror coatings</h2>
+              <ul className="mt-4 space-y-3">
+                {highlights.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-muted-foreground">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 id="mirror-finish-guidance-heading" className="text-xl font-semibold text-foreground">
+                Best use-cases
+              </h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {bestUseCases.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+
+              <h3 className="mt-6 text-lg font-semibold text-foreground">Compatibility notes</h3>
+              <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
+                {compatibilityNotes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-xl font-semibold text-foreground">What mirror coatings do not do</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {limitations.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-xl font-semibold text-foreground">Care & durability tips</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {careTips.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
 
           <p className="mt-8 text-sm text-muted-foreground">
             Canonical slug: <code>/coatings/mirror</code>. Legacy <code>/coatings/mirrors</code> requests are redirected.
