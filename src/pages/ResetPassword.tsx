@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Eye, Lock, ArrowLeft, CheckCircle } from "lucide-react";
+import { Lock, ArrowLeft, CheckCircle } from "lucide-react";
+import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,8 +71,8 @@ const ResetPassword = () => {
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-accent">
-              <Eye className="h-5 w-5 text-accent-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center">
+              <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
             <span className="text-xl font-bold text-foreground">Classic Visions</span>
           </Link>
