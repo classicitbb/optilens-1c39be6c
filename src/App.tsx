@@ -50,6 +50,7 @@ const ThicknessChartPage = lazy(() => import("./pages/lenses/ThicknessChartPage"
 // Admin pages
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const AdminHomeRedirect = lazy(() => import("./components/admin/AdminHomeRedirect"));
+const AdminDashboardHomePage = lazy(() => import("./pages/admin/AdminDashboardHomePage"));
 const ReferenceDataPage = lazy(() => import("./pages/admin/ReferenceDataPage"));
 const PlaceholderPage = lazy(() => import("./pages/admin/PlaceholderPage"));
 const AuditLogPage = lazy(() => import("./pages/admin/AuditLogPage"));
@@ -212,6 +213,7 @@ const App = () => (
               {/* Admin — all apps share AdminLayout */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
                 <Route index element={<AdminHomeRedirect />} />
+                <Route path="dashboard" element={<AdminDashboardHomePage />} />
 
                 {/* ═══ Pricing App ═══ */}
                 <Route path="pricing" element={<Navigate to="/admin/pricing/catalog" replace />} />
