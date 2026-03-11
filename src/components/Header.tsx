@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor } from "lucide-react";
+import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PublicSearchPanel from "@/components/PublicSearchPanel";
@@ -302,6 +302,8 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [showSearchMenu, setShowSearchMenu] = useState(false);
   const { toast } = useToast();
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
   const bannerDismissed = useAccountRequestDismissed();
@@ -336,13 +338,13 @@ const Header = () => {
           <span className="text-xl font-bold text-foreground">Classic Visions</span>
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
+        <nav className={`hidden items-center gap-7 lg:flex ${isSearchMode ? "opacity-0 pointer-events-none" : ""}`} aria-label="Main navigation">
           {PRIMARY_MENU.map((item) => (
             <MegaMenu key={item.label} item={item} />
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${isSearchMode ? "flex-1 justify-end" : ""}`}>
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">
@@ -398,104 +400,140 @@ const Header = () => {
             </SheetContent>
           </Sheet>
 
-          <div className="hidden sm:block">
-            <PublicSearchPanel compact />
-          </div>
-
-          <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
-            <a href="tel:+12464334928">
-              <Phone className="mr-2 h-4 w-4" />
-              +1 246 433-4928
-            </a>
-          </Button>
-
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <User className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Account</span>
-                  <ChevronDown className="ml-1 h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/orders" className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Orders
-                  </Link>
-                </DropdownMenuItem>
-                {hasAccess && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin" className="flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      Admin
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                {showRequestInMenu && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" });
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <User className="h-4 w-4" />
-                    Request Account
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="flex items-center gap-2">
-                    {cycleThemeIcon()}
-                    Theme
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
-                      <DropdownMenuRadioItem value="light" className="flex items-center gap-2">
-                        <Sun className="h-4 w-4" />
-                        Light
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="dark" className="flex items-center gap-2">
-                        <Moon className="h-4 w-4" />
-                        Dark
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="system" className="flex items-center gap-2">
-                        <Monitor className="h-4 w-4" />
-                        System
-                      </DropdownMenuRadioItem>
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {isSearchMode ? (
+            <>
+              <div className="hidden lg:block lg:flex-1 lg:max-w-3xl">
+                <PublicSearchPanel />
+              </div>
+              <Button variant="ghost" size="sm" className="hidden lg:inline-flex" onClick={() => setShowSearchMenu((current) => !current)}>
+                <Menu className="mr-2 h-4 w-4" />
+                Menu
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setIsSearchMode(false); setShowSearchMenu(false); }}>
+                <X className="mr-2 h-4 w-4" />
+                Close
+              </Button>
+            </>
           ) : (
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth">
-                <User className="mr-2 h-4 w-4" />
-                Sign in
-              </Link>
-            </Button>
-          )}
+            <>
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => setIsSearchMode(true)}>
+                <Search className="mr-2 h-4 w-4" />
+                Search
+              </Button>
 
-          <Button variant="hero" size="sm" asChild>
-            <Link to="/store">
-              <span className="hidden sm:inline">Order Lenses</span>
-              <span className="sm:hidden">Order</span>
-            </Link>
-          </Button>
+              <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
+                <a href="tel:+12464334928">
+                  <Phone className="mr-2 h-4 w-4" />
+                  +1 246 433-4928
+                </a>
+              </Button>
+
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <User className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Account</span>
+                      <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/orders" className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    {hasAccess && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {showRequestInMenu && (
+                      <DropdownMenuItem onClick={() => { toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" }); }} className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Request Account
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger className="flex items-center gap-2">
+                        {cycleThemeIcon()}
+                        Theme
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
+                          <DropdownMenuRadioItem value="light" className="flex items-center gap-2">
+                            <Sun className="h-4 w-4" />
+                            Light
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="dark" className="flex items-center gap-2">
+                            <Moon className="h-4 w-4" />
+                            Dark
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="system" className="flex items-center gap-2">
+                            <Monitor className="h-4 w-4" />
+                            System
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/auth">
+                    <User className="mr-2 h-4 w-4" />
+                    Sign in
+                  </Link>
+                </Button>
+              )}
+
+              <Button variant="hero" size="sm" asChild>
+                <Link to="/store">
+                  <span className="hidden sm:inline">Order Lenses</span>
+                  <span className="sm:hidden">Order</span>
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {isSearchMode && showSearchMenu && (
+        <div className="hidden border-t border-border/50 bg-background/95 lg:block">
+          <div className="container mx-auto flex items-center gap-2 px-4 py-2 lg:px-8">
+            <Button variant="ghost" size="sm" asChild>
+              <a href="tel:+12464334928">
+                <Phone className="mr-2 h-4 w-4" />
+                +1 246 433-4928
+              </a>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={user ? "/profile" : "/auth"}>
+                <User className="mr-2 h-4 w-4" />
+                {user ? "Account" : "Sign in"}
+              </Link>
+            </Button>
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/store">Order Lenses</Link>
+            </Button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
