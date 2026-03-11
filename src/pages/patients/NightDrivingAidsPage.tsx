@@ -6,31 +6,31 @@ import { AlertTriangle, ArrowRight, Car, ExternalLink, MoonStar, Shield } from "
 import { Link } from "react-router-dom";
 
 const recommendations = [
-  {
-    title: "Premium anti-reflective (AR) coatings",
-    reason:
-      "High-quality AR coatings reduce headlight reflections on both lens surfaces, improving contrast and reducing halo-like glare for many wearers.",
-    bestFor: "Everyday single-vision and progressive wearers who drive after dark.",
-  },
-  {
-    title: "Accurate Rx + well-centered optics",
-    reason:
-      "Night discomfort can worsen when prescription power, fitting height, or frame alignment is off. A current exam and precise fitting are foundational before specialty add-ons.",
-    bestFor: "Anyone noticing new starbursts, blur, or fatigue at night.",
-  },
-  {
-    title: "Chemistrie® Driving clip options",
-    reason:
-      "Chemistrie Driving products are positioned for improved road contrast and daytime glare control, with customizable clip formats that preserve your base prescription frame.",
-    bestFor: "Drivers wanting optional clip-on support for specific road conditions.",
-  },
-  {
-    title: "Comfort-focused driving habits",
-    reason:
-      "Dry-eye management, clean lenses, and reduced windshield haze can meaningfully improve night-time clarity without changing lens technology.",
-    bestFor: "Drivers with intermittent discomfort rather than constant blur.",
-  },
-];
+{
+  title: "Premium anti-reflective (AR) coatings",
+  reason:
+  "High-quality AR coatings reduce headlight reflections on both lens surfaces, improving contrast and reducing halo-like glare for many wearers.",
+  bestFor: "Everyday single-vision and progressive wearers who drive after dark."
+},
+{
+  title: "Accurate Rx + well-centered optics",
+  reason:
+  "Night discomfort can worsen when prescription power, fitting height, or frame alignment is off. A current exam and precise fitting are foundational before specialty add-ons.",
+  bestFor: "Anyone noticing new starbursts, blur, or fatigue at night."
+},
+{
+  title: "Chemistrie® Driving clip options",
+  reason:
+  "Chemistrie Driving products are positioned for improved road contrast and daytime glare control, with customizable clip formats that preserve your base prescription frame.",
+  bestFor: "Drivers wanting optional clip-on support for specific road conditions."
+},
+{
+  title: "Comfort-focused driving habits",
+  reason:
+  "Dry-eye management, clean lenses, and reduced windshield haze can meaningfully improve night-time clarity without changing lens technology.",
+  bestFor: "Drivers with intermittent discomfort rather than constant blur."
+}];
+
 
 const NightDrivingAidsPage = () => {
   return (
@@ -55,7 +55,7 @@ const NightDrivingAidsPage = () => {
               <Link to="/professionals/chemistrie-lens-system">Explore Chemistrie System</Link>
             </Button>
             <Button variant="outline" asChild>
-              <a href="https://www.forecps.com/chemistrie-driving" target="_blank" rel="noreferrer noopener">
+              <a target="_blank" rel="noreferrer noopener" href="https://www.forecps.com/chemistrie-drive/">
                 Forecps Chemistrie Driving
                 <ExternalLink className="ml-2 h-4 w-4" />
               </a>
@@ -66,15 +66,15 @@ const NightDrivingAidsPage = () => {
 
       <main className="container mx-auto max-w-6xl space-y-8 px-4 py-12 lg:px-8">
         <section className="grid gap-6 md:grid-cols-2">
-          {recommendations.map((item) => (
-            <Card key={item.title} variant="glass">
+          {recommendations.map((item) =>
+          <Card key={item.title} variant="glass">
               <CardContent className="space-y-3 p-6">
                 <h2 className="text-xl font-semibold text-foreground">{item.title}</h2>
                 <p className="text-sm text-muted-foreground">{item.reason}</p>
                 <p className="text-sm"><span className="font-semibold text-foreground">Best for:</span> <span className="text-muted-foreground">{item.bestFor}</span></p>
               </CardContent>
             </Card>
-          ))}
+          )}
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-6">
@@ -100,16 +100,16 @@ const NightDrivingAidsPage = () => {
 
         <section className="grid gap-4 rounded-2xl border border-border bg-card p-6 md:grid-cols-3">
           {[
-            { icon: MoonStar, title: "Start with clear optics", text: "Update prescription and verify centration before adding specialty products." },
-            { icon: Shield, title: "Control reflections", text: "Premium AR and clean lens surfaces reduce unnecessary scatter from headlights." },
-            { icon: Car, title: "Use driving aids selectively", text: "Use driving-specific clips where they match your route conditions and clinician advice." },
-          ].map((item) => (
-            <div key={item.title} className="space-y-2">
+          { icon: MoonStar, title: "Start with clear optics", text: "Update prescription and verify centration before adding specialty products." },
+          { icon: Shield, title: "Control reflections", text: "Premium AR and clean lens surfaces reduce unnecessary scatter from headlights." },
+          { icon: Car, title: "Use driving aids selectively", text: "Use driving-specific clips where they match your route conditions and clinician advice." }].
+          map((item) =>
+          <div key={item.title} className="space-y-2">
               <item.icon className="h-5 w-5 text-accent" />
               <h3 className="font-semibold text-foreground">{item.title}</h3>
               <p className="text-sm text-muted-foreground">{item.text}</p>
             </div>
-          ))}
+          )}
         </section>
 
         <section className="rounded-2xl border border-border bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 p-6">
@@ -134,8 +134,8 @@ const NightDrivingAidsPage = () => {
       </main>
 
       <Footer />
-    </div>
-  );
+    </div>);
+
 };
 
 export default NightDrivingAidsPage;
