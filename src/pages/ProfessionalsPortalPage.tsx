@@ -72,7 +72,7 @@ const portalPages: Record<string, PortalPage> = {
     description: "Professional support channels for order and account assistance.",
     body: [
       "Phone: +1 246 433-4928",
-      "Email: support@optivisionnow.com",
+      "Email: support@classicvisions.com",
       "Hours: Mon–Fri, 8:00 AM–5:00 PM (AST)",
     ],
   },

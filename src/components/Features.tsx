@@ -29,7 +29,7 @@ const Features = () => {
       <div className="container mx-auto px-4 lg:px-8">
         <div className="mb-12 text-center sm:mb-16">
           <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
-            Why Choose OptiLens Pro?
+            Why Choose Classic Visions?
           </h2>
           <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
             We're committed to providing optical professionals with the best products 

@@ -10,7 +10,7 @@ const LEGAL_FALLBACKS: Record<string, { title: string; content: string }> = {
     title: "Privacy Policy",
     content: `Last updated: March 2026
 
-OptiLens Pro ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.
+Classic Visions ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services.
 
 ## Information We Collect
 
@@ -114,7 +114,7 @@ For privacy questions or to exercise your data rights, contact us at:
     title: "Terms of Use",
     content: `Last updated: March 2026
 
-These Terms of Use ("Terms") govern your access to and use of OptiLens Pro services, websites, and applications. By using our services, you agree to be bound by these Terms.
+These Terms of Use ("Terms") govern your access to and use of Classic Visions services, websites, and applications. By using our services, you agree to be bound by these Terms.
 
 ## Acceptance of Terms
 By accessing or using our services, you confirm that you are at least 18 years old and have the legal capacity to enter into these Terms. If you are using our services on behalf of a business, you represent that you have authority to bind that business.
@@ -145,7 +145,7 @@ You agree to use our services only for lawful purposes and in accordance with th
 - Turnaround times are estimates and may vary by product and treatment
 
 ## Intellectual Property
-All content, trademarks, logos, and intellectual property on our website are owned by OptiLens Pro or its licensors. You may not use, reproduce, or distribute any content without prior written permission.
+All content, trademarks, logos, and intellectual property on our website are owned by Classic Visions or its licensors. You may not use, reproduce, or distribute any content without prior written permission.
 
 ## Limitation of Liability
 TO THE FULLEST EXTENT PERMITTED BY LAW:
@@ -154,7 +154,7 @@ TO THE FULLEST EXTENT PERMITTED BY LAW:
 - Our total liability shall not exceed the amount paid by you in the preceding 12 months
 
 ## Indemnification
-You agree to indemnify and hold harmless OptiLens Pro, its affiliates, and employees from any claims, damages, or expenses arising from your use of our services or violation of these Terms.
+You agree to indemnify and hold harmless Classic Visions, its affiliates, and employees from any claims, damages, or expenses arising from your use of our services or violation of these Terms.
 
 ## Governing Law
 These Terms are governed by the laws of Barbados. Any disputes shall be resolved in the courts of Barbados, without regard to conflict of law principles.
@@ -175,7 +175,7 @@ Questions about these Terms can be directed to info@classicvisions.net.`,
     title: "Cookie Policy",
     content: `Last updated: March 2026
 
-This Cookie Policy explains how OptiLens Pro ("we", "us", or "our") uses cookies and similar technologies when you visit our website.
+This Cookie Policy explains how Classic Visions ("we", "us", or "our") uses cookies and similar technologies when you visit our website.
 
 ## What Are Cookies?
 Cookies are small text files placed on your device when you visit a website. They are widely used to make websites work efficiently and provide information to website owners.
@@ -248,7 +248,7 @@ For questions about our use of cookies, contact us at info@classicvisions.net.`,
 
 ## General Disclaimer
 
-The information provided on OptiLens Pro website and services is for general informational purposes only. While we strive to provide accurate and up-to-date information, we make no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, suitability, or availability of the information, products, services, or related graphics.
+The information provided on Classic Visions website and services is for general informational purposes only. While we strive to provide accurate and up-to-date information, we make no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, suitability, or availability of the information, products, services, or related graphics.
 
 ## Professional Advice
 
@@ -268,11 +268,11 @@ Our website may contain links to external websites. We have no control over the 
 
 ## Limitation of Liability
 
-To the fullest extent permitted by applicable law, OptiLens Pro shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your access to or use of our website or services.
+To the fullest extent permitted by applicable law, Classic Visions shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your access to or use of our website or services.
 
 ## Indemnification
 
-You agree to defend, indemnify, and hold harmless OptiLens Pro, its affiliates, officers, directors, employees, and agents from any claims, liabilities, damages, losses, or expenses arising from your use of our website or violation of these terms.
+You agree to defend, indemnify, and hold harmless Classic Visions, its affiliates, officers, directors, employees, and agents from any claims, liabilities, damages, losses, or expenses arising from your use of our website or violation of these terms.
 
 ## Jurisdiction
 
@@ -292,7 +292,7 @@ For questions regarding this disclaimer, contact us at info@classicvisions.net.`
 
 ## Our Commitment
 
-OptiLens Pro is committed to ensuring digital accessibility for people with disabilities. We continually improve the user experience for everyone and apply relevant accessibility standards to make our website accessible to all users.
+Classic Visions is committed to ensuring digital accessibility for people with disabilities. We continually improve the user experience for everyone and apply relevant accessibility standards to make our website accessible to all users.
 
 ## Accessibility Standards
 
@@ -363,7 +363,7 @@ If you are not satisfied with our response, you may file a complaint with the re
 
 ## Overview
 
-OptiLens Pro is committed to your satisfaction. This Return Policy outlines the conditions under which products may be returned or exchanged.
+Classic Visions is committed to your satisfaction. This Return Policy outlines the conditions under which products may be returned or exchanged.
 
 ## Standard Returns
 
