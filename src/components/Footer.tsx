@@ -1,4 +1,5 @@
-import { Eye, ExternalLink, MapPin, Phone } from "lucide-react";
+import { ExternalLink, MapPin, Phone } from "lucide-react";
+import cleanLogo from "@/assets/clean_logo.svg";
 import { Link } from "react-router-dom";
 import { useLegalPage } from "@/hooks/useContentArticles";
 
