@@ -70,7 +70,7 @@ type MoonshotState = {
   deleteUser: (id: string) => void;
   // Org Chart
   addOrgSeat: (parentId: string | null, seat: { title: string; department: string }) => void;
-  updateOrgSeat: (id: string, updates: Partial<Pick<OrgChartSeat, "title" | "department">>) => void;
+  updateOrgSeat: (id: string, updates: Partial<Pick<OrgChartSeat, "title" | "department" | "vacancyStatus">>) => void;
   deleteOrgSeat: (id: string) => void;
   assignUserToSeat: (seatId: string, userId: string | null) => void;
   // 1:1s
@@ -251,7 +251,7 @@ export const useMoonshotStore = create<MoonshotState>()(
       addOrgSeat: (parentId, seat) =>
         set((s) => {
           const newId = makeId("org");
-          const newSeat: OrgChartSeat = { id: newId, title: seat.title, department: seat.department, parentId, childIds: [], assignedUserIds: [] };
+          const newSeat: OrgChartSeat = { id: newId, title: seat.title, department: seat.department, vacancyStatus: "planned", parentId, childIds: [], assignedUserIds: [] };
           const seats = parentId
             ? s.orgChart.seats.map((existing) => (existing.id === parentId ? { ...existing, childIds: [...existing.childIds, newId] } : existing))
             : s.orgChart.seats;
@@ -272,7 +272,7 @@ export const useMoonshotStore = create<MoonshotState>()(
           const orgChart = {
             seats: s.orgChart.seats.map((seat) =>
               seat.id === seatId
-                ? { ...seat, assignedUserIds: userId ? [userId] : [] }
+                ? { ...seat, assignedUserIds: userId ? [userId] : [], vacancyStatus: userId ? "filled" : "vacant" }
                 : seat,
             ),
           };
@@ -286,14 +286,20 @@ export const useMoonshotStore = create<MoonshotState>()(
             ownerId: item.ownerId,
             dueDate: item.dueDate,
             id: makeId("o11a"),
-            completed: (item as any).completed ?? false,
+            completed: item.completed ?? false,
           }));
           const newTemplate: OneOnOneTemplate = {
             id: makeId("o11"),
             title: template.title,
             cadence: template.cadence,
             participantIds: template.participantIds,
+            scheduleAnchorDate: template.scheduleAnchorDate,
+            scheduleTime: template.scheduleTime,
+            timeZone: template.timeZone,
             agendaNotes: template.agendaNotes,
+            talkingPoints: template.talkingPoints ?? [],
+            privateNotes: template.privateNotes ?? "",
+            sharedNotes: template.sharedNotes ?? "",
             createdBy: template.createdBy,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

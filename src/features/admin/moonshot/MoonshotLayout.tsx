@@ -1,15 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertCircle, BarChart3, Bell, Book, Calendar, CheckSquare,
-  ChevronLeft, ChevronRight, FileText, Grid, Home, Menu, Moon, Rocket, Settings, Target, Wrench,
+  ChevronRight, FileText, Grid, Home, Menu, Rocket, Settings, Target, Wrench,
 } from "lucide-react";
 import AppLauncher from "@/components/admin/AppLauncher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMoonshotStore } from "./lib/store";
 
 type NavItem = {
@@ -59,7 +59,38 @@ export default function MoonshotLayout() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [launcherOpen, setLauncherOpen] = useState(false);
-  const { currentUser, login, logout } = useMoonshotStore();
+  const authUser = useAuth().user;
+  const { currentUser, users, logout } = useMoonshotStore();
+
+  useEffect(() => {
+    if (!authUser) {
+      if (currentUser) logout();
+      return;
+    }
+
+    const normalizedEmail = authUser.email?.toLowerCase();
+    if (!normalizedEmail) return;
+
+    if (currentUser?.email?.toLowerCase() === normalizedEmail) return;
+
+    const matched = users.find((u) => u.email.toLowerCase() === normalizedEmail);
+    if (matched) {
+      useMoonshotStore.setState({ currentUser: matched });
+      return;
+    }
+
+    const fallback = users[0];
+    if (!fallback) return;
+
+    useMoonshotStore.setState({
+      currentUser: {
+        ...fallback,
+        email: normalizedEmail,
+        name: (authUser.user_metadata?.full_name as string | undefined) ?? fallback.name,
+        avatar: fallback.avatar,
+      },
+    });
+  }, [authUser, currentUser, users, logout]);
 
   const crumbs = useMemo(() => {
     const segments = pathname.split("/").filter(Boolean).slice(2);
@@ -71,13 +102,8 @@ export default function MoonshotLayout() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen grid place-items-center bg-muted p-6">
-        <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-sm">
-          <h1 className="text-2xl font-semibold mb-2">Moonshot Login</h1>
-          <p className="text-sm text-muted-foreground mb-4">Use local demo auth to continue.</p>
-          <Input value="Classic" readOnly className="mb-4" />
-          <Button className="w-full" onClick={login}>Login as Classic</Button>
-        </div>
+      <div className="flex min-h-screen items-center justify-center" style={{ background: "hsl(210 20% 97%)" }}>
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: "hsl(215 65% 50%)", borderTopColor: "transparent" }} />
       </div>
     );
   }

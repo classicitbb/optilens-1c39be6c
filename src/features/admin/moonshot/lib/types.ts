@@ -30,6 +30,8 @@ export type Seat = {
   reportsToSeatId?: string;
   capacity: number;
   seatType: SeatType;
+  roleExpectations?: string;
+  competencyRubric?: string;
 };
 
 export type OneOnOneActionItem = {
@@ -44,8 +46,14 @@ export type OneOnOneTemplate = {
   id: string;
   title: string;
   cadence: "weekly" | "biweekly" | "monthly" | "quarterly";
+  scheduleAnchorDate?: string;
+  scheduleTime?: string;
+  timeZone?: string;
   participantIds: string[];
   agendaNotes: string;
+  talkingPoints?: string[];
+  privateNotes?: string;
+  sharedNotes?: string;
   actionItems: OneOnOneActionItem[];
   createdBy: string;
   createdAt: string;
@@ -62,15 +70,21 @@ export type SeatFitReview = {
   roleCompetency: number;
   performanceConfidence: number;
   fitStatus: SeatFitStatus;
+  reviewCadence?: "monthly" | "quarterly" | "biannual";
+  roleExpectations?: string;
+  competencyRubric?: string;
   notes: string;
   reviewDate: string;
   updatedAt: string;
 };
 
+export type VacancyStatus = "filled" | "vacant" | "actively-hiring" | "planned";
+
 export type OrgChartSeat = {
   id: string;
   title: string;
   department: string;
+  vacancyStatus?: VacancyStatus;
   parentId: string | null;
   childIds: string[];
   assignedUserIds: string[];

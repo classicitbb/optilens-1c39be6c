@@ -25,18 +25,18 @@ export const seedUsers: MoonshotUser[] = [
 ];
 
 export const seedSeats: Seat[] = [
-  { id: "s1", name: "General Manager", department: "Leadership", capacity: 2, seatType: "leadership" },
-  { id: "s2", name: "Technology", department: "Operations", reportsToSeatId: "s1", capacity: 3, seatType: "management" },
-  { id: "s3", name: "Finance", department: "Finance", reportsToSeatId: "s1", capacity: 2, seatType: "individual" },
-  { id: "s4", name: "Sales", department: "Sales", reportsToSeatId: "s1", capacity: 4, seatType: "individual" },
+  { id: "s1", name: "General Manager", department: "Leadership", capacity: 2, seatType: "leadership", roleExpectations: "Sets company direction, owns quarterly priorities, and keeps leadership aligned.", competencyRubric: "Vision (5), Decision quality (5), Accountability (4), Coaching (4)" },
+  { id: "s2", name: "Technology", department: "Operations", reportsToSeatId: "s1", capacity: 3, seatType: "management", roleExpectations: "Ships reliable product increments, reduces cycle time, and improves team throughput.", competencyRubric: "Execution (5), Technical depth (4), Delegation (4), Collaboration (4)" },
+  { id: "s3", name: "Finance", department: "Finance", reportsToSeatId: "s1", capacity: 2, seatType: "individual", roleExpectations: "Owns forecasting rhythm, monthly close, and cash discipline.", competencyRubric: "Accuracy (5), Analysis (4), Planning (4), Communication (3)" },
+  { id: "s4", name: "Sales", department: "Sales", reportsToSeatId: "s1", capacity: 4, seatType: "individual", roleExpectations: "Builds qualified pipeline, closes target deals, and improves forecast reliability.", competencyRubric: "Prospecting (4), Discovery (4), Closing (4), Forecasting (3)" },
 ];
 
 export const seedOrgChart: OrgChart = {
   seats: [
-    { id: "org1", title: "CEO", department: "Leadership", parentId: null, childIds: ["org2", "org3", "org4"], assignedUserIds: ["u3"] },
-    { id: "org2", title: "Operations", department: "Operations", parentId: "org1", childIds: [], assignedUserIds: ["u2"] },
-    { id: "org3", title: "Finance", department: "Finance", parentId: "org1", childIds: [], assignedUserIds: [] },
-    { id: "org4", title: "Sales", department: "Sales", parentId: "org1", childIds: [], assignedUserIds: ["u4"] },
+    { id: "org1", title: "CEO", department: "Leadership", vacancyStatus: "filled", parentId: null, childIds: ["org2", "org3", "org4"], assignedUserIds: ["u3"] },
+    { id: "org2", title: "Operations", department: "Operations", vacancyStatus: "filled", parentId: "org1", childIds: [], assignedUserIds: ["u2"] },
+    { id: "org3", title: "Finance", department: "Finance", vacancyStatus: "vacant", parentId: "org1", childIds: [], assignedUserIds: [] },
+    { id: "org4", title: "Sales", department: "Sales", vacancyStatus: "filled", parentId: "org1", childIds: [], assignedUserIds: ["u4"] },
   ],
 };
 
@@ -46,7 +46,13 @@ export const seedOneOnOnes: OneOnOneTemplate[] = [
     title: "Weekly Leadership 1:1",
     cadence: "weekly",
     participantIds: ["u1", "u2"],
+    scheduleAnchorDate: format(addDays(today, -21), "yyyy-MM-dd"),
+    scheduleTime: "10:00",
+    timeZone: "America/Asuncion",
     agendaNotes: "Review scorecard trends, team health, and key blockers.",
+    talkingPoints: ["Last week wins", "Top blockers", "Coaching request"],
+    privateNotes: "Manager prep: inspect leading indicators before the meeting.",
+    sharedNotes: "Shared decisions and key updates live here.",
     actionItems: [
       { id: "o11a_1", text: "Follow up on onboarding handoff", ownerId: "u2", dueDate: format(addDays(today, 3), "yyyy-MM-dd"), completed: false },
       { id: "o11a_2", text: "Share customer retention update", ownerId: "u1", dueDate: format(addDays(today, 5), "yyyy-MM-dd"), completed: true },
@@ -66,6 +72,9 @@ export const seedSeatFitReviews: SeatFitReview[] = [
     roleCompetency: 4,
     performanceConfidence: 4,
     fitStatus: "Great fit",
+    reviewCadence: "quarterly",
+    roleExpectations: "Set direction, remove blockers, and keep leadership team healthy.",
+    competencyRubric: "Vision 5/5, Team leadership 4/5, Decision quality 4/5",
     notes: "Strong cross-functional leadership and decision velocity.",
     reviewDate: format(addDays(today, 30), "yyyy-MM-dd"),
     updatedAt: format(today, "yyyy-MM-dd"),
@@ -78,6 +87,9 @@ export const seedSeatFitReviews: SeatFitReview[] = [
     roleCompetency: 3,
     performanceConfidence: 3,
     fitStatus: "Good fit",
+    reviewCadence: "monthly",
+    roleExpectations: "Grow pipeline quality and improve closing predictability.",
+    competencyRubric: "Pipeline hygiene 3/5, Deal strategy 4/5, Forecasting 3/5",
     notes: "Solid results; continue coaching on forecasting and pipeline hygiene.",
     reviewDate: format(addDays(today, 45), "yyyy-MM-dd"),
     updatedAt: format(today, "yyyy-MM-dd"),
