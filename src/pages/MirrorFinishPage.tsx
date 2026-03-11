@@ -1,6 +1,8 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroLensesImage from "@/assets/hero-lenses.jpg";
 import chemistrieHeroImage from "@/assets/chemistrie-hero.jpg";
 
