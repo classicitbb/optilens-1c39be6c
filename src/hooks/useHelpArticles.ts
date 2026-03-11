@@ -141,7 +141,7 @@ export const useHelpArticles = (pageSlug?: string) => {
       } else {
         payload.version_number = 1;
         payload.published_at = payload.status === "published" ? new Date().toISOString() : null;
-        const { data, error } = await supabase.from("help_articles").insert(payload).select("id").single();
+        const { data, error } = await (supabase as any).from("help_articles").insert(payload).select("id").single();
         if (error) throw error;
 
         const { error: insertContextError } = await supabase.from("help_article_contexts").insert(contexts.map((context_slug) => ({ article_id: data.id, context_slug })));
