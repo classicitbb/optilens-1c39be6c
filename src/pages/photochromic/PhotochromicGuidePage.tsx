@@ -1,8 +1,10 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, Circle, Car, Palette, Sun, Shield, Timer, CloudSun, HelpCircle } from "lucide-react";
+import { CheckCircle2, Circle, Car, Palette, Sun, Shield, Timer } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type LensProfile = {
   name: string;
@@ -11,6 +13,7 @@ type LensProfile = {
   summary: string;
   idealFor: string[];
   colors: { name: string; hex: string }[];
+  cta?: { label: string; to: string };
 };
 
 const LENSES: LensProfile[] = [
@@ -20,21 +23,21 @@ const LENSES: LensProfile[] = [
     positioning: "Value adaptive lenses",
     summary: "Baseline photochromic lenses that darken in UV light and clear indoors. Performance varies by supplier and material.",
     idealFor: ["Budget-focused buyers", "First-time photochromic wearers", "General everyday use"],
-    colors: [{ name: "Gray", hex: "#6b7280" }, { name: "Brown", hex: "#8b5e3c" }],
+    colors: [{ name: "Gray", hex: "#6b7280" }],
   },
   {
     name: "Darkun™",
     family: "Darkun",
-    positioning: "Neochrome house photochromic",
+    positioning: "House photochromic option",
     summary: "Darkun is our branded photochromic option with UV activation, rapid fade back, and all-day UV400 protection for one-pair convenience.",
     idealFor: ["Patients who want one pair", "Daily commuters", "Users comparing branded upgrades"],
-    colors: [{ name: "Gray", hex: "#5b6470" }, { name: "Brown", hex: "#7b5538" }, { name: "Graphite", hex: "#3f4957" }],
+    colors: [{ name: "Gray", hex: "#5b6470" }, { name: "Brown (special order)", hex: "#7b5538" }],
   },
   {
     name: "Transitions® GEN S™",
     family: "Transitions",
-    positioning: "Fast everyday flagship",
-    summary: "Transitions positions GEN S as its newest everyday generation focused on very fast activation and fade, with broad style colors for daily wear.",
+    positioning: "Fast everyday flagship + style color family",
+    summary: "Transitions positions GEN S as a fast everyday generation; style color options are grouped here for shoppers comparing both performance and color personalization.",
     idealFor: ["Patients moving in/outdoors often", "Style-conscious users", "General all-day wear"],
     colors: [
       { name: "Gray", hex: "#68707b" },
@@ -53,7 +56,7 @@ const LENSES: LensProfile[] = [
     positioning: "Extra-light-reactive performance",
     summary: "XTRActive New Generation is designed for people sensitive to bright light, with deeper activation outdoors and noticeable in-car activation behind windshields.",
     idealFor: ["Bright climate wearers", "Frequent drivers", "Light-sensitive users"],
-    colors: [{ name: "Gray", hex: "#5c6570" }, { name: "Brown", hex: "#664732" }, { name: "Graphite Green", hex: "#526151" }],
+    colors: [{ name: "Gray", hex: "#5c6570" }, { name: "Brown", hex: "#664732" }],
   },
   {
     name: "Transitions® XTRActive® Polarized",
@@ -61,24 +64,7 @@ const LENSES: LensProfile[] = [
     positioning: "Adaptive + polarization",
     summary: "XTRActive Polarized combines photochromic adaptation with dynamic polarization outdoors to reduce reflective glare from roads, water, and bright surfaces.",
     idealFor: ["Drivers", "Boaters", "Patients wanting adaptive glare control"],
-    colors: [{ name: "Gray-Green", hex: "#4f5c53" }],
-  },
-  {
-    name: "Transitions® Style Colors",
-    family: "Transitions",
-    positioning: "Fashion-forward adaptive colors",
-    summary: "Transitions Colors expands tint personalities (including mirrored options in some markets) for wearers prioritizing both style and adaptive comfort.",
-    idealFor: ["Fashion-driven frames", "Second-pair shoppers", "Younger wearers"],
-    colors: [
-      { name: "Amethyst", hex: "#6e5a7d" },
-      { name: "Amber", hex: "#b2672f" },
-      { name: "Emerald", hex: "#2f6f57" },
-      { name: "Sapphire", hex: "#2e4d87" },
-      { name: "Ruby", hex: "#8c2f3f" },
-      { name: "Gray", hex: "#6f7781" },
-      { name: "Brown", hex: "#6a4d35" },
-      { name: "Graphite Green", hex: "#4f5e52" },
-    ],
+    colors: [{ name: "Gray", hex: "#5a626d" }],
   },
   {
     name: "Transitions® Drivewear®",
@@ -87,6 +73,7 @@ const LENSES: LensProfile[] = [
     summary: "Drivewear is a dedicated polarized driving lens that starts tinted (not clear indoors) and shifts color intensity with changing outdoor and behind-the-windshield conditions.",
     idealFor: ["Dedicated driving pair", "High-glare commuters", "Road sport enthusiasts"],
     colors: [{ name: "Olive/Amber-Copper family", hex: "#7e5d2d" }],
+    cta: { label: "Night driving guide", to: "/patients/night-driving-aids" },
   },
 ];
 
@@ -100,23 +87,22 @@ const FEATURE_ROWS = [
 ];
 
 const FEATURE_MATRIX: Record<string, Record<string, string>> = {
-  "Generic Photochromics": { indoorClear: "Usually yes", inCar: "Often minimal", polarized: "No", styleColors: "Limited", brightLight: "Entry level", onePair: "Yes" },
-  "Darkun™": { indoorClear: "Yes", inCar: "Limited", polarized: "No", styleColors: "Core colors", brightLight: "Balanced", onePair: "Yes" },
+  "Generic Photochromics": { indoorClear: "Usually yes", inCar: "Often minimal", polarized: "No", styleColors: "Gray only", brightLight: "Entry level", onePair: "Yes" },
+  "Darkun™": { indoorClear: "Yes", inCar: "Limited", polarized: "No", styleColors: "Gray + Brown (special order)", brightLight: "Balanced", onePair: "Yes" },
   "Transitions® GEN S™": { indoorClear: "Yes", inCar: "Limited", polarized: "No", styleColors: "Very broad", brightLight: "Balanced-fast", onePair: "Excellent" },
-  "Transitions® XTRActive® New Generation": { indoorClear: "Slight indoor tint", inCar: "Yes", polarized: "No", styleColors: "Selected", brightLight: "High", onePair: "Excellent" },
-  "Transitions® XTRActive® Polarized": { indoorClear: "Slight indoor tint", inCar: "Yes", polarized: "Yes", styleColors: "Single signature", brightLight: "High + glare", onePair: "Excellent outdoors" },
-  "Transitions® Style Colors": { indoorClear: "Yes", inCar: "Limited", polarized: "No", styleColors: "Fashion-first", brightLight: "Balanced", onePair: "Yes" },
+  "Transitions® XTRActive® New Generation": { indoorClear: "Slight indoor tint", inCar: "Yes", polarized: "No", styleColors: "Gray + Brown", brightLight: "High", onePair: "Excellent" },
+  "Transitions® XTRActive® Polarized": { indoorClear: "Slight indoor tint", inCar: "Yes", polarized: "Yes", styleColors: "Gray only", brightLight: "High + glare", onePair: "Excellent outdoors" },
   "Transitions® Drivewear®": { indoorClear: "No (always tinted)", inCar: "Yes", polarized: "Yes", styleColors: "Driving palette", brightLight: "Very high", onePair: "Best as dedicated driving pair" },
 };
 
 const faqItems = [
   {
     q: "Myth: XTRActive Polarized is always darker than XTRActive New Generation.",
-    a: "Fact-check: XTRActive Polarized is optimized for glare-cutting polarization outdoors, not simply maximum darkness in every condition. In practical wear, perceived darkness depends on UV level, temperature, and whether you are in-car or outdoors.",
+    a: "XTRActive Polarized is optimized for polarized glare reduction outdoors, not simply maximum darkness in every condition. Perceived darkness depends on light, temperature, and environment.",
   },
   {
     q: "Myth: XTRActive New Generation is always darker than GEN S.",
-    a: "Fact-check: They target different use cases. XTRActive New Generation prioritizes extra activation (especially for bright-light-sensitive users and in-car response), while GEN S focuses on very fast everyday transition behavior and broad color/style options.",
+    a: "They are designed for different priorities. XTRActive New Generation focuses on higher light-reactivity and in-car response, while GEN S focuses on rapid everyday transitions and broader color style options.",
   },
   {
     q: "Do Drivewear lenses replace everyday clear photochromics?",
@@ -134,8 +120,8 @@ const PhotochromicGuidePage = () => {
         <div className="container relative mx-auto max-w-6xl px-4 text-center lg:px-8">
           <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">Photochromic Knowledge Hub</p>
           <h1 className="text-4xl font-bold leading-tight text-foreground md:text-5xl">Photochromic Lens Comparison Guide</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-lg text-muted-foreground">Photochromics, and key Transitions® families in one place. This page is designed to answer real buying questions quickly: darkness behavior, in-car activation, polarization, and available colors.</p>
-          <p className="mx-auto mt-4 max-w-3xl text-sm text-muted-foreground">Transitions family descriptions are aligned to publicly available product positioning from transitions.com. Exact availability can vary by country, lens material, and lab program.</p>
+          <p className="mx-auto mt-5 max-w-3xl text-lg text-muted-foreground">Compare Darkun™, generic photochromics, and key Transitions® families in one place. This page is designed to answer real buying questions quickly: darkness behavior, in-car activation, polarization, and available colors.</p>
+          <p className="mx-auto mt-4 max-w-3xl text-sm text-muted-foreground">Color availability used here: Generic photochromics (Gray), Darkun™ (Gray + Brown special order), XTRActive® New Generation (Gray/Brown), and XTRActive® Polarized (Gray).</p>
         </div>
       </section>
 
@@ -156,6 +142,13 @@ const PhotochromicGuidePage = () => {
                     <Badge variant="secondary">{lens.family}</Badge>
                   </div>
                   <p className="text-sm leading-relaxed text-muted-foreground">{lens.summary}</p>
+                  {lens.cta && (
+                    <div>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={lens.cta.to}>{lens.cta.label}</Link>
+                      </Button>
+                    </div>
+                  )}
                   <div>
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/80">Best for</p>
                     <ul className="space-y-1.5">
@@ -218,14 +211,11 @@ const PhotochromicGuidePage = () => {
 
         <section className="rounded-2xl border border-border bg-card p-8">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-foreground">FAQ Bubbles: Myth vs Fact</h2>
+            <h2 className="text-2xl font-bold text-foreground">FAQ: Myth vs Fact</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {faqItems.map((faq) => (
               <div key={faq.q} className="rounded-2xl border border-border bg-muted/30 p-5">
-                <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-background px-3 py-1 text-xs font-semibold text-accent">
-                  <HelpCircle className="h-3.5 w-3.5" /> Myth check
-                </div>
                 <h3 className="text-sm font-semibold text-foreground">{faq.q}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{faq.a}</p>
               </div>
