@@ -1,4 +1,4 @@
-import { Wrench, Loader2, Save } from "lucide-react";
+import { Wrench, Loader2, Save, Sparkles } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const PROVIDERS = [
-  { id: "google_places", label: "Google Places" },
-  { id: "facebook_graph", label: "Facebook" },
-  { id: "instagram_graph", label: "Instagram" },
-  { id: "whatsapp_business_signals", label: "WhatsApp" },
-  { id: "yellow_pages", label: "Yellow Pages" },
-  { id: "bing", label: "Bing" },
-  { id: "yahoo", label: "Yahoo" },
+  { id: "google_places", label: "Google Places", note: "Requires Google API key" },
+  { id: "firecrawl_search", label: "Firecrawl Web Search", note: "Requires Firecrawl connector" },
 ] as const;
 
 type ProviderId = (typeof PROVIDERS)[number]["id"];
@@ -69,6 +64,20 @@ const LeadSettingsPage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading && <p className="text-sm text-muted-foreground">Loading provider status...</p>}
+
+          {/* AI Search — always active, no key needed */}
+          <div className="rounded-md border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800 p-3 space-y-1">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-medium inline-flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5" /> AI Search (Lovable AI)
+              </Label>
+              <Badge variant="default">Always Active</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Powered by Lovable AI Gateway. Generates lead results using AI when no other providers return data. No API key required.
+            </p>
+          </div>
+
           {PROVIDERS.map((provider) => (
             <ProviderRow
               key={provider.id}
@@ -92,7 +101,7 @@ const ProviderRow = ({
   isPending,
   onSave,
 }: {
-  provider: { id: ProviderId; label: string };
+  provider: { id: ProviderId; label: string; note: string };
   configured: boolean;
   updatedAt: string | null;
   isPending: boolean;
@@ -101,7 +110,10 @@ const ProviderRow = ({
   return (
     <div className="rounded-md border p-3 space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <Label className="text-sm font-medium">{provider.label}</Label>
+        <div>
+          <Label className="text-sm font-medium">{provider.label}</Label>
+          <p className="text-[10px] text-muted-foreground">{provider.note}</p>
+        </div>
         <Badge variant={configured ? "default" : "outline"}>{configured ? "Configured" : "Not configured"}</Badge>
       </div>
       <div className="flex gap-2">

@@ -54,7 +54,7 @@ interface IntegrationHealthMetric {
 interface IntegrationSyncJob {
   id: string;
   sync_kind: "initial" | "incremental";
-  status: "queued" | "running" | "success" | "failed";
+  status: "queued" | "running" | "success" | "failed" | "canceled";
   requested_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -335,7 +335,7 @@ export default function IntegrationsPage() {
       qc.invalidateQueries({ queryKey: ["integration-recent-sync-jobs"] });
       qc.invalidateQueries({ queryKey: ["integration-latest-sync-job"] });
       qc.invalidateQueries({ queryKey: ["integration-connection", "odoo"] });
-      toast({ title: "Sync job canceled", description: "Queued sync job was canceled before execution." });
+      toast({ title: "Sync job canceled", description: "The sync job has been canceled." });
     },
     onError: (error: PostgrestError) => {
       toast({ title: "Unable to cancel sync job", description: error.message, variant: "destructive" });
@@ -625,14 +625,14 @@ export default function IntegrationsPage() {
                     <td className="px-3 py-2 capitalize">{job.status}</td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{job.error_message ?? "—"}</td>
                     <td className="px-3 py-2 text-right">
-                      {job.status === "queued" ? (
+                      {(job.status === "queued" || job.status === "running") ? (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={job.status === "running" ? "destructive" : "outline"}
                           onClick={() => cancelSyncJobMutation.mutate(job.id)}
                           disabled={cancelSyncJobMutation.isPending}
                         >
-                          Cancel
+                          {job.status === "running" ? "Force Cancel" : "Cancel"}
                         </Button>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>

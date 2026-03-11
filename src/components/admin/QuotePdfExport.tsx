@@ -376,7 +376,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         {/* Header */}
         <div className="header">
           <div>
-            <div className="company-name">OptiLens Pro</div>
+            <div className="company-name">Classic Visions</div>
             <div className="company-tagline">
               Precision Optics & Lens Solutions
             </div>
@@ -631,7 +631,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         )}
 
         <div className="footer print-strict-avoid-break">
-          <div>OptiLens Pro — Precision Optics & Lens Solutions</div>
+          <div>Classic Visions — Precision Optics & Lens Solutions</div>
           <div style={{ marginTop: "4px" }}>
             This quote is valid for {quote.lead_time_days || 30} days from the
             date of issue.
@@ -879,7 +879,7 @@ export const QuotePreviewPanel = ({
                             color: "#2b6cb0",
                           }}
                         >
-                          OptiLens Pro
+                          Classic Visions
                         </div>
                         <div
                           style={{
@@ -1588,7 +1588,7 @@ export const QuotePreviewPanel = ({
                         color: "#a0aec0",
                       }}
                     >
-                      OptiLens Pro — Precision Optics & Lens Solutions
+                      Classic Visions — Precision Optics & Lens Solutions
                     </div>
                   </div>
                 </div>

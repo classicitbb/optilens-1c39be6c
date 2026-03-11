@@ -17,7 +17,6 @@ import {
 "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import GlobalSearch from "./GlobalSearch";
-import HelpPanel from "./HelpPanel";
 import AppLauncher from "./AppLauncher";
 import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
 import NotificationBell from "./NotificationBell";
@@ -47,6 +46,7 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/knowledge/wiki", "Knowledge · Wiki"],
 ["/admin/website/content", "Website · Content"],
 ["/admin/contacts", "Contacts"],
+["/admin/dashboard", "Launch Pad"],
 ["/admin/crm", "CRM"],
 ["/admin/helpdesk", "Helpdesk"],
 ["/admin/settings/audit", "Settings · Audit Log"],
@@ -90,12 +90,16 @@ function getRouteLabel(pathname: string): string {
   return "Dashboard";
 }
 
-const AdminTopBar = () => {
+interface AdminTopBarProps {
+  helpOpen: boolean;
+  onHelpToggle: () => void;
+}
+
+const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   const { user, signOut } = useAuth();
   const { role, realRole, isImpersonating, impersonatedUserName, stopImpersonation } = useAdminRole();
   const navigate = useNavigate();
   const location = useLocation();
-  const [helpOpen, setHelpOpen] = useState(false);
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [launcherOpen, setLauncherOpen] = useState(() => {
@@ -221,7 +225,7 @@ const AdminTopBar = () => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setHelpOpen(!helpOpen)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onHelpToggle} aria-pressed={helpOpen}>
                   <HelpCircle className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
                 </Button>
               </TooltipTrigger>
@@ -296,7 +300,6 @@ const AdminTopBar = () => {
         </div>
       </header>
 
-      <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
       <AppLauncher open={launcherOpen} onClose={() => setLauncherOpen(false)} />
     </>);
 

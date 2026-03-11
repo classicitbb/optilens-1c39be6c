@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const AdminHomeRedirect = () => {
-  const { role, isLoading } = useUserRole();
+  const { isLoading } = useUserRole();
 
   if (isLoading) {
     return (
@@ -12,8 +12,7 @@ const AdminHomeRedirect = () => {
     );
   }
 
-  const hasCrmAccess = role === "admin" || role === "operator" || role === "viewer";
-  return <Navigate to={hasCrmAccess ? "/admin/crm/pipeline" : "/admin/pricing/catalog"} replace />;
+  return <Navigate to="/admin/dashboard" replace />;
 };
 
 export default AdminHomeRedirect;

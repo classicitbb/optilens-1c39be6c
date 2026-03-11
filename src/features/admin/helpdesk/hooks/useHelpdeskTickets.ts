@@ -10,6 +10,8 @@ export interface HelpdeskTicket {
   team_id: string | null;
   stage_id: string | null;
   owner_user_id: string | null;
+  partner_contact_id: string | null;
+  ticket_type_id: string | null;
   deadline: string | null;
   opened_at: string | null;
   assigned_at: string | null;
@@ -25,6 +27,10 @@ export interface HelpdeskTicket {
     sequence: number;
   } | null;
   team?: {
+    id: string;
+    name: string;
+  } | null;
+  ticket_type?: {
     id: string;
     name: string;
   } | null;
@@ -66,7 +72,7 @@ export const useHelpdeskTickets = (filters?: HelpdeskTicketFilters) => {
       let query = (supabase as any)
         .from("helpdesk_tickets")
         .select(
-          "id,ticket_number,title,description,priority,team_id,stage_id,owner_user_id,deadline,opened_at,assigned_at,closed_at,source_channel,created_at,updated_at,stage:helpdesk_ticket_stages(id,name,is_closed,is_folded,sequence),team:helpdesk_teams(id,name)"
+          "id,ticket_number,title,description,priority,team_id,stage_id,owner_user_id,partner_contact_id,ticket_type_id,deadline,opened_at,assigned_at,closed_at,source_channel,created_at,updated_at,stage:helpdesk_ticket_stages(id,name,is_closed,is_folded,sequence),team:helpdesk_teams(id,name),ticket_type:helpdesk_ticket_types(id,name)"
         )
         .order("created_at", { ascending: false })
         .limit(normalized.limit ?? 200);
