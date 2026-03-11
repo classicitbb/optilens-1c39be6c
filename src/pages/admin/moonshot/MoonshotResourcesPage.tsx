@@ -24,6 +24,9 @@ const MOONSHOT_SLUGS = [
   "moonshot/issues",
   "moonshot/business-plan",
   "moonshot/tools",
+  "moonshot/tools/org-chart",
+  "moonshot/tools/one-on-ones",
+  "moonshot/tools/right-person-right-seat",
   "moonshot/users",
   "moonshot/resources",
 ];
