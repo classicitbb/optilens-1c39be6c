@@ -1,6 +1,8 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroLensesImage from "@/assets/hero-lenses.jpg";
 import chemistrieHeroImage from "@/assets/chemistrie-hero.jpg";
 
@@ -119,6 +121,19 @@ const MirrorFinishPage = () => {
                 </li>
               ))}
             </ul>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg">
+                <Link to="/store?category=finished" data-cta="mirror-finish-shop-options">
+                  Shop Mirror Lens Options
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link to="/professionals/lens-ordering-tips" data-cta="mirror-finish-professional-compatibility">
+                  Professional ordering &amp; compatibility
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <p className="mt-8 text-sm text-muted-foreground">
