@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Eye, LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, X } from "lucide-react";
+import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, X } from "lucide-react";
+import cleanLogo from "@/assets/clean_logo.svg";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PublicSearchPanel from "@/components/PublicSearchPanel";
