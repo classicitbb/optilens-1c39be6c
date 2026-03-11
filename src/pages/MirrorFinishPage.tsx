@@ -46,31 +46,27 @@ const popularFinishes = [
   },
 ];
 
-const bestUseCases = [
-  "Water, snow, and beach dispensing where bright-light intensity is consistently high.",
-  "Sport and driving sunwear where wearers want both comfort and a high-reflection cosmetic look.",
-  "Outdoor occupational eyewear when sunglass performance and appearance are both priorities.",
-  "Lifestyle sunglasses that benefit from color-matched mirror aesthetics.",
-];
-
-const compatibilityNotes = [
-  "AR: Back-surface AR is recommended to reduce internal reflections and improve clarity.",
-  "Polarization: Mirror + polarized is a common premium stack for reflected glare from roads, water, and snow.",
-  "Photochromic: Available in select programs; mirror color can make the light-state transition appear less obvious.",
-];
-
-const limitations = [
-  "Mirror coatings do not replace UV protection; UV coverage depends on lens material and treatment specs.",
-  "They do not correct prescription, centration, or fitting errors.",
-  "They do not fully replace polarization for harsh reflected glare control.",
-  "They do not make lenses scratch-proof or impact-proof without appropriate material and care.",
-];
-
-const careTips = [
-  "Rinse debris before wiping, then use approved lens cleaner and microfiber.",
-  "Avoid dry wiping, paper towels, and household cleaners that can damage top coats.",
-  "Store in a hard case to reduce cosmetic wear during transport.",
-  "Avoid prolonged high heat (for example, dashboard storage) to preserve coating durability.",
+const relatedGuides = [
+  {
+    title: "UltraClear AR coating",
+    description: "Pair mirror fronts with backside anti-reflective performance for cleaner optics.",
+    to: "/coatings/ultraclear-ar",
+  },
+  {
+    title: "BlueBlock AR coating",
+    description: "Compare reflective color behavior with blue-light management and AR stacks.",
+    to: "/coatings/blueblock-ar",
+  },
+  {
+    title: "Hydrophobic + oleophobic topcoat",
+    description: "Improve smudge resistance and cleanability on finished mirror lenses.",
+    to: "/coatings/hydrophobic-oleophobic",
+  },
+  {
+    title: "Knowledge: caring for coated lenses",
+    description: "Review cleaning and care best practices for long-lasting mirror coatings.",
+    to: "/knowledge#caring-for-coated-lenses",
+  },
 ];
 
 const MirrorFinishPage = () => {
@@ -188,9 +184,27 @@ const MirrorFinishPage = () => {
             </div>
           </section>
 
-          <p className="mt-8 text-sm text-muted-foreground">
-            Canonical slug: <code>/coatings/mirror</code>. Legacy <code>/coatings/mirrors</code> requests are redirected.
-          </p>
+          <section className="mt-8 rounded-xl border border-border bg-card p-6" aria-labelledby="related-guides-heading">
+            <h2 id="related-guides-heading" className="text-xl font-semibold text-foreground">
+              Related guides
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Continue with complementary coating references often reviewed alongside mirror finish options.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {relatedGuides.map((guide) => (
+                <Link
+                  key={guide.to}
+                  to={guide.to}
+                  className="rounded-lg border border-border/80 bg-background p-4 transition-colors hover:border-primary/40 hover:bg-muted/30"
+                >
+                  <h3 className="text-sm font-semibold text-foreground">{guide.title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{guide.description}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+
         </div>
       </main>
       <Footer />
