@@ -17,7 +17,8 @@
     "qa:pr-checks": "node scripts/pr_checks.mjs",
     "supabase:types:generate": "npx supabase gen types typescript --local > src/integrations/supabase/types.ts",
     "preinstall": "node scripts/check-runtime.mjs",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "help:improvements:export": "node scripts/export_help_improvements.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
