@@ -78,32 +78,32 @@ const metrics = [
 
 const AdminDashboardHomePage = () => {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-8 px-1 pb-6 pt-2 md:space-y-10">
-      <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-primary/15 via-background to-slate-500/10 p-6 shadow-sm md:p-10">
-        <div className="absolute right-4 top-4">
+    <div className="mx-auto w-full max-w-7xl space-y-5 px-1 pb-4 pt-1 md:space-y-6">
+      <section className="relative overflow-hidden rounded-xl border border-border/70 bg-gradient-to-br from-primary/15 via-background to-slate-500/10 p-5 shadow-sm md:p-6">
+        <div className="absolute right-3 top-3">
           <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">Launch Pad Home</Badge>
         </div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Welcome</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">OpticAdmin</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-base">
+        <h1 className="mt-1.5 text-3xl font-bold tracking-tight md:text-4xl">OpticAdmin</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-base">
           Your ERP command center for managing sales, customer relationships, service operations, and website performance in one unified workspace.
           This dashboard is a placeholder that will evolve into live operational and analytics insights.
         </p>
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-3">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
-          <h2 className="text-xl font-semibold tracking-tight">Website Analytics (Placeholder Metrics)</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Website Analytics (Placeholder Metrics)</h2>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
           {metrics.map((metric) => (
             <Card key={metric.label} className="border-border/70">
-              <CardHeader className="pb-2">
-                <CardDescription>{metric.label}</CardDescription>
-                <CardTitle className="text-3xl leading-none">{metric.value}</CardTitle>
+              <CardHeader className="space-y-1 p-4 pb-1.5">
+                <CardDescription className="text-xs">{metric.label}</CardDescription>
+                <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 pt-0">
                 <p className="text-xs text-emerald-600 dark:text-emerald-400">{metric.trend}</p>
               </CardContent>
             </Card>
@@ -111,22 +111,22 @@ const AdminDashboardHomePage = () => {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold tracking-tight">Applications</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">Applications</h2>
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 2xl:grid-cols-5">
           {appTiles.map((tile) => {
             const Icon = tile.icon;
             return (
               <Card key={tile.title} className="flex h-full flex-col border-border/70 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <CardHeader>
-                  <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                <CardHeader className="space-y-1.5 p-4 pb-2">
+                  <div className="mb-1 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                     <Icon className="h-4 w-4 text-primary" />
                   </div>
-                  <CardTitle>{tile.title}</CardTitle>
-                  <CardDescription>{tile.description}</CardDescription>
+                  <CardTitle className="text-xl">{tile.title}</CardTitle>
+                  <CardDescription className="text-xs leading-relaxed">{tile.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="mt-auto">
-                  <Button asChild className="w-full">
+                <CardContent className="mt-auto p-4 pt-1">
+                  <Button asChild className="h-9 w-full text-sm">
                     <Link to={tile.route}>
                       Open {tile.title}
                       <ArrowRight className="ml-2 h-4 w-4" />
