@@ -47,7 +47,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
       {
         title: "Lifestyle Lenses",
         links: [
-          { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/zenvue/darkun" },
+          { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/photochromic" },
           { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
           { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
           { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
@@ -59,7 +59,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Brilliance™ Progressive", description: "Featured progressive product page", to: "/zenvue/brilliance" },
           { label: "Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
           { label: "SunDun™ Polarized", description: "Featured polarized lens page", to: "/zenvue/sundun" },
-          { label: "Darkun™ Photochromic", description: "Featured photochromic lens page", to: "/zenvue/darkun" },
+          { label: "Photochromic Guide", description: "Compare Darkun™, Transitions® families, and use-cases", to: "/photochromic" },
           { label: "ZenVue Wholesale", description: "Partner application for optical professionals", to: "/zenvue/wholesale" },
         ],
       },

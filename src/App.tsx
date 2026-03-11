@@ -32,6 +32,7 @@ const UVShieldPage = lazy(() => import("./pages/coatings/UVShieldPage"));
 const HydrophobicOleophobicPage = lazy(() => import("./pages/coatings/HydrophobicOleophobicPage"));
 const ProfessionalsPage = lazy(() => import("./pages/ProfessionalsPage"));
 const PatientsPage = lazy(() => import("./pages/PatientsPage"));
+const NightDrivingAidsPage = lazy(() => import("./pages/patients/NightDrivingAidsPage"));
 const ProfessionalsPortalPage = lazy(() => import("./pages/ProfessionalsPortalPage"));
 const ProfessionalsChemistriePage = lazy(() => import("./pages/ProfessionalsChemistriePage"));
 const DispensingTipsPage = lazy(() => import("./pages/professionals/DispensingTipsPage"));
@@ -125,6 +126,7 @@ const ZenvueSunDun = lazy(() => import("./pages/zenvue/ZenvueSunDun"));
 const ZenvueDarkun = lazy(() => import("./pages/zenvue/ZenvueDarkun"));
 const ZenvueCompare = lazy(() => import("./pages/zenvue/ZenvueCompare"));
 const ZenvueWholesale = lazy(() => import("./pages/zenvue/ZenvueWholesale"));
+const PhotochromicGuidePage = lazy(() => import("./pages/photochromic/PhotochromicGuidePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -191,6 +193,7 @@ const App = () => (
               <Route path="/coatings/caring-for-coated-lenses" element={<Navigate to="/knowledge#caring-for-coated-lenses" replace />} />
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
               <Route path="/patients" element={<PatientsPage />} />
+              <Route path="/patients/night-driving-aids" element={<NightDrivingAidsPage />} />
               <Route path="/professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
               <Route path="/professionals/dispensing-tips" element={<DispensingTipsPage />} />
               <Route path="/professionals/tracing-cutting-guide" element={<TracingCuttingGuidePage />} />
@@ -206,6 +209,7 @@ const App = () => (
               <Route path="/zenvue/single-vision" element={<ProtectedRoute><ZenvueSingleVision /></ProtectedRoute>} />
               <Route path="/zenvue/sundun" element={<ProtectedRoute><ZenvueSunDun /></ProtectedRoute>} />
               <Route path="/zenvue/darkun" element={<ProtectedRoute><ZenvueDarkun /></ProtectedRoute>} />
+              <Route path="/photochromic" element={<PhotochromicGuidePage />} />
               <Route path="/zenvue/compare" element={<ProtectedRoute><ZenvueCompare /></ProtectedRoute>} />
               <Route path="/zenvue/wholesale" element={<ProtectedRoute><ZenvueWholesale /></ProtectedRoute>} />
             </Route>

@@ -146,6 +146,11 @@ const PatientsPage = () => {
                   </div>
                 ))}
               </div>
+              <div className="mt-5">
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/patients/night-driving-aids">Explore Night Driving Aids</Link>
+                </Button>
+              </div>
             </article>
           </section>
 
