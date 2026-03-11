@@ -272,7 +272,7 @@ export const useMoonshotStore = create<MoonshotState>()(
           const orgChart = {
             seats: s.orgChart.seats.map((seat) =>
               seat.id === seatId
-                ? { ...seat, assignedUserIds: userId ? [userId] : [], vacancyStatus: userId ? "filled" : "vacant" }
+                ? { ...seat, assignedUserIds: userId ? [userId] : [], vacancyStatus: (userId ? "filled" : "vacant") as OrgChartSeat["vacancyStatus"] }
                 : seat,
             ),
           };
