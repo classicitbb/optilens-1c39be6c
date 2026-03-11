@@ -359,7 +359,7 @@ const Header = () => {
             <SheetContent side="left" className="w-80">
               <SheetTitle className="mb-6 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center">
-                  <img src={cleanLogo} alt="Classic Visions" className="h-6 w-6" />
+                  <img src={cleanLogoSmooth} alt="Classic Visions" className="h-6 w-6" />
                 </div>
                 <span className="text-lg font-bold text-foreground">Classic Visions</span>
               </SheetTitle>

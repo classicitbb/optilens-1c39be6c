@@ -76,7 +76,7 @@ const Footer = () => {
         <div className="mb-10 flex flex-col gap-4 border-b border-primary-foreground/10 pb-10 sm:flex-row sm:items-center sm:justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="Classic Visions home">
             <div className="flex h-10 w-10 items-center justify-center">
-              <img src={cleanLogo} alt="Classic Visions" className="h-8 w-8" />
+              <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
             <span className="text-xl font-bold">Classic Visions</span>
           </Link>
