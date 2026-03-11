@@ -77,8 +77,8 @@ const MirrorFinishPage = () => {
         <div className="container mx-auto max-w-4xl px-4 lg:px-8">
           <h1 className="text-4xl font-bold text-foreground">Mirror Coatings & Finish Guide</h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Mirror coatings apply a reflective top layer to tinted or sun lenses, improving style and bright-light comfort
-            for active wearers.
+            Mirror coatings apply a reflective top layer to tinted or sun lenses, supporting bright-light comfort with a
+            distinct cosmetic finish.
           </p>
 
           <section className="mt-8 space-y-6" aria-labelledby="mirror-finish-visuals-heading">
@@ -134,30 +134,55 @@ const MirrorFinishPage = () => {
             </div>
           </section>
 
-          <div className="mt-8 rounded-xl border border-border bg-card p-6">
-            <h2 className="text-xl font-semibold text-foreground">When to recommend mirror coatings</h2>
-            <ul className="mt-4 space-y-3">
-              {highlights.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-muted-foreground">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg">
-                <Link to="/store?category=finished" data-cta="mirror-finish-shop-options">
-                  Shop Mirror Lens Options
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/professionals/lens-ordering-tips" data-cta="mirror-finish-professional-compatibility">
-                  Professional ordering &amp; compatibility
-                </Link>
-              </Button>
+          <section className="mt-8 space-y-6" aria-labelledby="mirror-finish-guidance-heading">
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-xl font-semibold text-foreground">When to recommend mirror coatings</h2>
+              <ul className="mt-4 space-y-3">
+                {highlights.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-muted-foreground">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 id="mirror-finish-guidance-heading" className="text-xl font-semibold text-foreground">
+                Best use-cases
+              </h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {bestUseCases.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+
+              <h3 className="mt-6 text-lg font-semibold text-foreground">Compatibility notes</h3>
+              <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
+                {compatibilityNotes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-xl font-semibold text-foreground">What mirror coatings do not do</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {limitations.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-xl font-semibold text-foreground">Care & durability tips</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {careTips.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
 
           <section className="mt-8 rounded-xl border border-border bg-card p-6" aria-labelledby="related-guides-heading">
             <h2 id="related-guides-heading" className="text-xl font-semibold text-foreground">
