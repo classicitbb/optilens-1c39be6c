@@ -1,4 +1,5 @@
-import { Eye, Award, Users, Globe, Target, Handshake } from "lucide-react";
+import { Award, Users, Globe, Target, Handshake } from "lucide-react";
+import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 
 const stats = [
   { value: "25+", label: "Years in Business" },
