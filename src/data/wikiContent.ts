@@ -406,9 +406,182 @@ Leadership team uses Moonshot to move from reactive updates to structured execut
     title: "Knowledge App",
     articles: [
       {
+        id: "wiki-overview",
+        title: "Overview: What this module does",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Overview
+- **Build version:** 0.0.0
+
+## What this module does
+The Wiki module is the internal knowledge base for admin users. It centralizes SOPs, route-level instructions, and operating playbooks so teams can execute consistently.
+
+## Primary capabilities
+1. Browse module categories and route-specific docs.
+2. Access context-aware guidance from operational pages.
+3. Maintain internal procedures as living documentation.
+4. Keep release-facing guidance aligned to ledger artifacts.
+
+## Scope
+This route is the documentation hub for all admin module workflows.`,
+      },
+      {
+        id: "wiki-first-run-setup",
+        title: "First-run setup",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** First-run setup
+- **Build version:** 0.0.0
+
+## Setup checklist
+1. Confirm your role can view the Wiki feature.
+2. Open **/admin/knowledge/wiki** and validate category navigation.
+3. Verify search returns both static and managed wiki entries.
+4. Confirm release ledger docs load under the Release Ledger section.
+5. Save any missing-route documentation gaps as follow-up tasks.
+
+## Done criteria
+Setup is complete when users can browse categories, open route docs, and resolve one real task using only wiki guidance.`,
+      },
+      {
+        id: "wiki-daily-workflow",
+        title: "Daily workflow",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Daily workflow
+- **Build version:** 0.0.0
+
+## Daily operator routine
+1. Start with latest release notes/changelog check.
+2. Open route docs for today’s active tasks.
+3. Execute procedures exactly as documented.
+4. Flag stale content as soon as route behavior changes.
+5. Capture end-of-day doc updates or open edit requests.
+
+## Expected output
+Operations stay consistent even when team members rotate coverage.`,
+      },
+      {
+        id: "wiki-team-workflow",
+        title: "Team workflow",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Team workflow
+- **Build version:** 0.0.0
+
+## Team operating model
+1. Assign a documentation owner per module route family.
+2. Review high-traffic docs in weekly team sync.
+3. Triage update requests by business impact.
+4. Require peer review before publishing major edits.
+5. Announce meaningful documentation changes in release comms.
+
+## Team standard
+Treat workflow documentation defects like operational defects with explicit owner and SLA.`,
+      },
+      {
+        id: "wiki-admin-workflow",
+        title: "Admin workflow",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Admin workflow
+- **Build version:** 0.0.0
+
+## Admin responsibilities
+1. Enforce least-privilege access for wiki editing.
+2. Maintain category taxonomy and naming consistency.
+3. Ensure required route docs exist for active modules.
+4. Run periodic quality audits for stale or duplicate content.
+5. Verify docs align with release-ledger updates.
+
+## Governance rule
+No critical workflow rollout should close until matching documentation is updated.`,
+      },
+      {
+        id: "wiki-troubleshooting",
+        title: "Troubleshooting",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Troubleshooting
+- **Build version:** 0.0.0
+
+## Common issues
+### Missing categories or articles
+- Confirm role permissions include wiki visibility.
+- Check category-level visibility controls.
+
+### Outdated content after release
+- Compare article steps against latest release notes.
+- Queue immediate revision for changed route behavior.
+
+### Contextual help not showing on a page
+- Validate route-to-context mapping exists.
+- Ensure article contains matching context slug.
+
+### Search returns incomplete results
+- Add route keywords to article titles.
+- Confirm content is saved under visible categories.`,
+      },
+      {
+        id: "wiki-faq",
+        title: "FAQ",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** FAQ
+- **Build version:** 0.0.0
+
+## Frequently asked questions
+### Who can edit wiki docs?
+Users with admin/content permissions for wiki management.
+
+### Should every route have a dedicated article?
+Yes for workflow routes; redirects/placeholders can share parent docs.
+
+### How often should we review docs?
+At minimum once per release cycle.
+
+### How do we keep docs aligned with builds?
+Update docs in the same release lane and cross-check release ledger artifacts.
+
+### Can temporary instructions be published?
+Yes, but mark as temporary and include explicit removal date.`,
+      },
+      {
+        id: "wiki-best-practices",
+        title: "Best practices",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Best practices
+- **Build version:** 0.0.0
+
+## Best practices
+1. Keep one workflow objective per article.
+2. Include explicit route path and role context.
+3. Use numbered actions and short decision notes.
+4. Keep troubleshooting steps concrete and testable.
+5. Refresh high-impact docs every release, even if unchanged.
+
+## Quality bar
+A new operator should complete the workflow correctly without live coaching.`,
+      },
+      {
         id: "wiki-article-standard",
         title: "Help Article Formatting Standard",
-        content: `## Required structure for every help article
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Writing standard
+- **Build version:** 0.0.0
+
+## Required structure for every help article
 1. **Purpose / Route**
 2. **Step-by-step workflow**
 3. **Use-case scenario**
