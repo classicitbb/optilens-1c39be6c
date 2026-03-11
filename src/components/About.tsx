@@ -33,7 +33,7 @@ const About = () => {
         {/* Intro */}
         <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-16">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center">
-            <img src={cleanLogoSmooth} alt="Classic Visions" className="h-10 w-10" />
+            <img src={cleanLogoSmooth} alt="Classic Visions" className="h-20 w-20" />
           </div>
           <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
             About Classic Visions
