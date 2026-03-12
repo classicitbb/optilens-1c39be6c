@@ -220,6 +220,25 @@ const BREADCRUMB_LABELS: Record<string, string> = {
 };
 
 
+
+const BREADCRUMB_NAV_TARGETS = new Set<string>([
+  "/",
+  "/auth",
+  "/reset-password",
+  "/store",
+  "/knowledge",
+  "/profile",
+  "/orders",
+  "/lenses",
+  "/patients",
+  "/for-professionals",
+  "/zenvue",
+]);
+
+const resolveBreadcrumbTarget = (candidatePath: string) => (
+  BREADCRUMB_NAV_TARGETS.has(candidatePath) ? candidatePath : "/"
+);
+
 const getBreadcrumbLabel = (segment: string) => {
   const normalized = segment.toLowerCase();
   if (BREADCRUMB_LABELS[normalized]) {
@@ -585,7 +604,7 @@ const Header = () => {
         <nav aria-label="Breadcrumb" className="mt-16">
           <div className="container mx-auto max-w-5xl px-4 pt-4 lg:px-8">
             <div className="text-sm text-muted-foreground">
-              <span className="text-foreground">Home</span>
+              <Link to="/" className="text-foreground hover:text-foreground/80">Home</Link>
               {pathSegments.map((segment, index) => {
                 const to = `/${pathSegments.slice(0, index + 1).join("/")}`;
                 const isLast = index === pathSegments.length - 1;
@@ -594,7 +613,11 @@ const Header = () => {
                 return (
                   <span key={to}>
                     <span className="mx-2">/</span>
-                    <span className={isLast ? "text-foreground" : undefined}>{label}</span>
+                    {isLast ? (
+                      <span className="text-foreground">{label}</span>
+                    ) : (
+                      <Link to={resolveBreadcrumbTarget(to)} className="hover:text-foreground">{label}</Link>
+                    )}
                   </span>
                 );
               })}
