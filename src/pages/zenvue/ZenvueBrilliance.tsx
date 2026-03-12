@@ -59,8 +59,8 @@ const ZenvueBrilliance = () => {
 
       {/* Options: Clear & Darkun */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
+        <div className="container mx-auto px-4 py-16 lg:px-8">
+          <h2 className="text-2xl font-bold text-foreground">
             Available Options
           </h2>
           <div className="mt-8 mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
@@ -105,8 +105,8 @@ const ZenvueBrilliance = () => {
 
       {/* Materials & Specs */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
+        <div className="container mx-auto px-4 py-16 lg:px-8">
+          <h2 className="text-2xl font-bold text-foreground">
             Materials & Specifications
           </h2>
           <div className="mt-8 mx-auto max-w-2xl overflow-x-auto rounded-lg border border-border">
@@ -149,8 +149,8 @@ const ZenvueBrilliance = () => {
 
       {/* Coatings */}
       <section className="border-b border-border bg-muted/30">
-        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
+        <div className="container mx-auto px-4 py-16 lg:px-8">
+          <h2 className="text-2xl font-bold text-foreground">
             Coatings Included
           </h2>
           <div className="mt-8 mx-auto max-w-xl space-y-3">
@@ -171,8 +171,8 @@ const ZenvueBrilliance = () => {
 
       {/* Ideal For */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">Ideal For</h2>
+        <div className="container mx-auto px-4 py-16 lg:px-8">
+          <h2 className="text-2xl font-bold text-foreground">Ideal For</h2>
           <div className="mt-8 grid gap-6 md:grid-cols-3">
             {IDEAL_FOR.map((item) => (
               <Card

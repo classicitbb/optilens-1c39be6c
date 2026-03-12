@@ -88,7 +88,7 @@ const ZenvueWholesale = () => {
       <ZenvueFeatureShell>
         <ZenvueHero badge="Partner Application" title="Thank You!" subtitle="Your application has been received. Our team will contact you within 2 business days." />
         <section className="border-b border-border">
-          <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+          <div className="container mx-auto px-4 py-14 lg:px-8 lg:py-16">
             <div className="mx-auto max-w-2xl rounded-xl border border-border bg-card p-8 text-center shadow-sm md:p-10">
               <CheckCircle className="mx-auto h-14 w-14 text-accent" />
               <h2 className="mt-5 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
@@ -114,7 +114,7 @@ const ZenvueWholesale = () => {
 
       {/* Form */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+        <div className="container mx-auto px-4 py-14 lg:px-8 lg:py-16">
           <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
             {/* Honeypot — hidden from real users, bots fill it */}
             <div style={{ display: "none" }} aria-hidden="true">
@@ -238,14 +238,14 @@ const ZenvueWholesale = () => {
 
       {/* What Happens Next */}
       <section className="border-b border-border bg-muted/30">
-        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
-          <h2 className="mb-8 text-center text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
+        <div className="container mx-auto px-4 py-16 lg:px-8">
+          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             What Happens Next?
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
             {STEPS.map((step, i) => (
               <div key={step.title} className="text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center bg-primary text-primary-foreground text-lg font-bold">
                   {i + 1}
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
