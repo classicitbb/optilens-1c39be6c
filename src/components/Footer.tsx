@@ -4,66 +4,66 @@ import { Link } from "react-router-dom";
 import { useLegalPage } from "@/hooks/useContentArticles";
 
 const footerColumns = [
-  {
-    title: "Lenses",
-    links: [
-      { label: "ZenVue Brilliance™", to: "/zenvue/brilliance" },
-      { label: "ZenVue Single Vision", to: "/zenvue/single-vision" },
-      { label: "Office / Occupational", to: "/lenses/office-occupational" },
-      { label: "Anti-Fatigue", to: "/lenses/anti-fatigue" },
-      { label: "Blue Filter", to: "/lenses/blue-filter" },
-      { label: "Lens Design Guide", to: "/lenses/lens-types" },
-    ],
-  },
-  {
-    title: "Coatings & Sun",
-    links: [
-      { label: "Mirror & Finish Guide", to: "/mirror-finish-guide" },
-      { label: "ZenVue SunDun™", to: "/zenvue/sundun" },
-      { label: "ZenVue Darkun™", to: "/zenvue/darkun" },
-      { label: "ZenVue Compare", to: "/zenvue/compare" },
-      { label: "Knowledge Articles", to: "/knowledge" },
-    ],
-  },
-  {
-    title: "Professionals",
-    links: [
-      { label: "Overview", to: "/for-professionals" },
-      { label: "Lab Process", to: "/professionals/lab-process-overview" },
-      { label: "Lens Ordering Tips", to: "/professionals/lens-ordering-tips" },
-      { label: "Dispensing Tips", to: "/professionals/dispensing-tips" },
-      { label: "Wholesale Program", to: "/zenvue/wholesale" },
-    ],
-  },
-  {
-    title: "Patients",
-    links: [
-      { label: "Understanding Lenses", to: "/patients#understanding-lenses" },
-      { label: "Find Care", to: "/patients#find-care" },
-      { label: "Vision Tips", to: "/patients#vision-tips" },
-      { label: "Order Lenses", to: "/store" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { label: "Terms of Use", to: "/legal/terms" },
-      { label: "Privacy Policy", to: "/legal/privacy-policy" },
-      { label: "Cookie Policy", to: "/legal/cookie-policy" },
-      { label: "Return Policy", to: "/legal/return-policy" },
-      { label: "Accessibility", to: "/legal/accessibility" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "Our Story", to: "/#about" },
-      { label: "News & Articles", to: "/knowledge" },
-      { label: "Contact Us", to: "/#contact" },
-      { label: "ZenVue Hub", to: "/zenvue" },
-    ],
-  },
-] as const;
+{
+  title: "Lenses",
+  links: [
+  { label: "ZenVue Brilliance™", to: "/zenvue/brilliance" },
+  { label: "ZenVue Single Vision", to: "/zenvue/single-vision" },
+  { label: "Office / Occupational", to: "/lenses/office-occupational" },
+  { label: "Anti-Fatigue", to: "/lenses/anti-fatigue" },
+  { label: "Blue Filter", to: "/lenses/blue-filter" },
+  { label: "Lens Design Guide", to: "/lenses/lens-types" }]
+
+},
+{
+  title: "Coatings & Sun",
+  links: [
+  { label: "Mirror & Finish Guide", to: "/mirror-finish-guide" },
+  { label: "ZenVue SunDun™", to: "/zenvue/sundun" },
+  { label: "ZenVue Darkun™", to: "/zenvue/darkun" },
+  { label: "ZenVue Compare", to: "/zenvue/compare" },
+  { label: "Knowledge Articles", to: "/knowledge" }]
+
+},
+{
+  title: "Professionals",
+  links: [
+  { label: "Overview", to: "/for-professionals" },
+  { label: "Lab Process", to: "/professionals/lab-process-overview" },
+  { label: "Lens Ordering Tips", to: "/professionals/lens-ordering-tips" },
+  { label: "Dispensing Tips", to: "/professionals/dispensing-tips" },
+  { label: "Wholesale Program", to: "/zenvue/wholesale" }]
+
+},
+{
+  title: "Patients",
+  links: [
+  { label: "Understanding Lenses", to: "/patients#understanding-lenses" },
+  { label: "Find Care", to: "/patients#find-care" },
+  { label: "Vision Tips", to: "/patients#vision-tips" },
+  { label: "Order Lenses", to: "/store" }]
+
+},
+{
+  title: "Legal",
+  links: [
+  { label: "Terms of Use", to: "/legal/terms" },
+  { label: "Privacy Policy", to: "/legal/privacy-policy" },
+  { label: "Cookie Policy", to: "/legal/cookie-policy" },
+  { label: "Return Policy", to: "/legal/return-policy" },
+  { label: "Accessibility", to: "/legal/accessibility" }]
+
+},
+{
+  title: "Company",
+  links: [
+  { label: "Our Story", to: "/#about" },
+  { label: "News & Articles", to: "/knowledge" },
+  { label: "Contact Us", to: "/#contact" },
+  { label: "ZenVue Hub", to: "/zenvue" }]
+
+}] as
+const;
 
 const Footer = () => {
   const { data: copyrightArticle } = useLegalPage("copyright");
@@ -87,22 +87,22 @@ const Footer = () => {
 
         {/* Link columns — responsive grid */}
         <div className="grid gap-8 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-          {footerColumns.map((column) => (
-            <div key={column.title} className="space-y-3">
+          {footerColumns.map((column) =>
+          <div key={column.title} className="space-y-3">
               <h4 className="text-sm font-semibold uppercase tracking-wider">{column.title}</h4>
               <nav className="flex flex-col gap-2" aria-label={`${column.title} links`}>
-                {column.links.map((link) => (
-                  <Link
-                    key={link.label}
-                    to={link.to}
-                    className="text-sm leading-snug text-primary-foreground/70 transition-colors hover:text-primary-foreground"
-                  >
+                {column.links.map((link) =>
+              <Link
+                key={link.label}
+                to={link.to}
+                className="text-sm leading-snug text-primary-foreground/70 transition-colors hover:text-primary-foreground">
+                
                     {link.label}
                   </Link>
-                ))}
+              )}
               </nav>
             </div>
-          ))}
+          )}
 
           {/* Contact column */}
           <div className="col-span-2 space-y-3 sm:col-span-3 lg:col-span-full xl:col-span-1">
@@ -113,18 +113,18 @@ const Footer = () => {
                 <span>Regency Park, Christ Church, Barbados</span>
               </p>
               <a
-                href="https://maps.google.com/?q=Regency+Park+Christ+Church+Barbados"
+
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 transition-colors hover:text-primary-foreground"
-              >
+                className="flex items-center gap-2 transition-colors hover:text-primary-foreground" href="https://www.google.com/maps/dir//Classic+Visions,+Barbados/@13.1232918,-59.5772745,13z/data=!4m8!4m7!1m0!1m5!1m1!1s0x8c43f24ff1e738cb:0xc8d2dbeed2e8c9c8!2m2!1d-59.5306801!2d13.1653583">
+                
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Directions
               </a>
               <a
                 href="tel:+12464334928"
-                className="flex items-center gap-2 transition-colors hover:text-primary-foreground"
-              >
+                className="flex items-center gap-2 transition-colors hover:text-primary-foreground">
+                
                 <Phone className="h-4 w-4" aria-hidden="true" />
                 <span>Call +1 246 433-4928</span>
               </a>
@@ -138,8 +138,8 @@ const Footer = () => {
           <p className="mt-2 sm:mt-0">Powered by Classic Visions Digital</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>);
+
 };
 
 export default Footer;
