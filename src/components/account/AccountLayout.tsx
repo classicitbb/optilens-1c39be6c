@@ -1,13 +1,16 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
+  BookUser,
+  BadgeDollarSign,
   ChevronDown,
   CircleHelp,
+  FileSignature,
+  LifeBuoy,
   Search,
   ArrowLeft,
   User,
   Package,
-  Settings,
   LogOut,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,14 +26,23 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 const accountNav = [
-  { label: "Profile", to: "/profile", icon: User },
+  { label: "Account Home", to: "/profile", icon: User },
+  { label: "My Account", to: "/profile/account", icon: User },
   { label: "Orders", to: "/profile/orders", icon: Package },
-  { label: "Preferences", to: "/profile/preferences", icon: Settings, disabled: true },
+  { label: "Address Book", to: "/profile/address-book", icon: BookUser },
+  { label: "Quotes", to: "/profile/quotes", icon: FileSignature },
+  { label: "Helpdesk", to: "/profile/helpdesk", icon: LifeBuoy },
+  { label: "Pricelists", to: "/profile/pricelists", icon: BadgeDollarSign },
 ];
 
 const getPageTitle = (pathname: string) => {
-  if (pathname === "/profile") return "My Account";
+  if (pathname === "/profile") return "Customer Account";
+  if (pathname === "/profile/account") return "My Account";
   if (pathname === "/profile/orders") return "My Orders";
+  if (pathname === "/profile/address-book") return "Address Book";
+  if (pathname === "/profile/quotes") return "Quote Requests";
+  if (pathname === "/profile/helpdesk") return "Helpdesk Tickets";
+  if (pathname === "/profile/pricelists") return "Assigned Pricelists";
   if (pathname.startsWith("/profile/")) return "Account";
   return "Customer Account";
 };

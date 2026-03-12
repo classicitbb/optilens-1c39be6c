@@ -22,7 +22,12 @@ const Index = lazy(() => import("./pages/Index"));
 const Store = lazy(() => import("./pages/Store"));
 const Knowledge = lazy(() => import("./pages/Knowledge"));
 const Profile = lazy(() => import("./pages/Profile"));
-const Orders = lazy(() => import("./pages/Orders"));
+const MyAccountSection = lazy(() => import("./components/account/sections/MyAccountSection"));
+const MyOrdersSection = lazy(() => import("./components/account/sections/MyOrdersSection"));
+const AddressBookSection = lazy(() => import("./components/account/sections/AddressBookSection"));
+const QuoteFormSection = lazy(() => import("./components/account/sections/QuoteFormSection"));
+const HelpdeskTicketsSection = lazy(() => import("./components/account/sections/HelpdeskTicketsSection"));
+const AssignedPricelistsSection = lazy(() => import("./components/account/sections/AssignedPricelistsSection"));
 const LegalPage = lazy(() => import("./pages/LegalPage"));
 const LensDesignGuidePage = lazy(() => import("./pages/LensDesignGuidePage"));
 const MirrorFinishPage = lazy(() => import("./pages/MirrorFinishPage"));
@@ -165,7 +170,12 @@ const App = () => (
               <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
               <Route path="/profile/*" element={<ProtectedRoute><AccountLayout /></ProtectedRoute>}>
                 <Route index element={<Profile />} />
-                <Route path="orders" element={<Orders />} />
+                <Route path="account" element={<MyAccountSection />} />
+                <Route path="orders" element={<MyOrdersSection />} />
+                <Route path="address-book" element={<AddressBookSection />} />
+                <Route path="quotes" element={<QuoteFormSection />} />
+                <Route path="helpdesk" element={<HelpdeskTicketsSection />} />
+                <Route path="pricelists" element={<AssignedPricelistsSection />} />
               </Route>
               <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
               <Route path="/legal/:slug" element={<LegalPage />} />
