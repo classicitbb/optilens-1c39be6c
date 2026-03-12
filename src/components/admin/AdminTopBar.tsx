@@ -20,6 +20,7 @@ import GlobalSearch from "./GlobalSearch";
 import AppLauncher from "./AppLauncher";
 import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
 import NotificationBell from "./NotificationBell";
+import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -203,7 +204,9 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
         </div>
 
         {/* ── RIGHT GROUP ── */}
-        <div className="flex items-center gap-1 shrink-0">
+        <TopBarActionCluster
+          className="gap-1 shrink-0"
+          utilities={
           <TooltipProvider delayDuration={300}>
             {/* Revert impersonation */}
             {role !== realRole && isImpersonating &&
@@ -242,62 +245,63 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             </Tooltip>
 
           </TooltipProvider>
-
-          {/* User name */}
-          <span className="text-xs hidden sm:inline-block max-w-[120px] truncate text-[hsl(var(--admin-content-fg))]">
-            {displayName}
-          </span>
-
-          {/* Avatar dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1 rounded-full hover:ring-2 hover:ring-primary/20 transition-all focus:outline-none">
-                <Avatar className="h-7 w-7 text-[11px]">
-                  <AvatarFallback className="bg-primary/10 text-primary font-medium">{initials}</AvatarFallback>
-                </Avatar>
-                <ChevronDown className="h-3 w-3 text-[hsl(var(--admin-muted-fg))]" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => navigate("/admin/wiki")}>
-                <BookOpen className="mr-2 h-4 w-4" /> Helpdesk / Wiki
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/profile")}>
-                <User className="mr-2 h-4 w-4" /> My Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleInstall}>
-                <Download className="mr-2 h-4 w-4" /> Install App
-              </DropdownMenuItem>
-              {realRole === "admin" &&
-              <DropdownMenuItem asChild>
-                  <a
-                  href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
-                  target="_blank"
-                  rel="noopener noreferrer">
-
-                    <ExternalLink className="mr-2 h-4 w-4" /> Edit with Lovable
-                  </a>
+          }
+          identity={
+            <span className="text-xs hidden sm:inline-block max-w-[120px] truncate text-[hsl(var(--admin-content-fg))]">
+              {displayName}
+            </span>
+          }
+          menu={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 rounded-full hover:ring-2 hover:ring-primary/20 transition-all focus:outline-none">
+                  <Avatar className="h-7 w-7 text-[11px]">
+                    <AvatarFallback className="bg-primary/10 text-primary font-medium">{initials}</AvatarFallback>
+                  </Avatar>
+                  <ChevronDown className="h-3 w-3 text-[hsl(var(--admin-muted-fg))]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => navigate("/admin/wiki")}>
+                  <BookOpen className="mr-2 h-4 w-4" /> Helpdesk / Wiki
                 </DropdownMenuItem>
-              }
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
-                <DropdownMenuRadioItem value="light">
-                  <Sun className="mr-2 h-4 w-4" /> Theme · Light
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="dark">
-                  <Moon className="mr-2 h-4 w-4" /> Theme · Dark
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="system">
-                  <Monitor className="mr-2 h-4 w-4" /> Theme · System
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" /> Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <User className="mr-2 h-4 w-4" /> My Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleInstall}>
+                  <Download className="mr-2 h-4 w-4" /> Install App
+                </DropdownMenuItem>
+                {realRole === "admin" &&
+                <DropdownMenuItem asChild>
+                    <a
+                    href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
+                    target="_blank"
+                    rel="noopener noreferrer">
+
+                      <ExternalLink className="mr-2 h-4 w-4" /> Edit with Lovable
+                    </a>
+                  </DropdownMenuItem>
+                }
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
+                  <DropdownMenuRadioItem value="light">
+                    <Sun className="mr-2 h-4 w-4" /> Theme · Light
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dark">
+                    <Moon className="mr-2 h-4 w-4" /> Theme · Dark
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="system">
+                    <Monitor className="mr-2 h-4 w-4" /> Theme · System
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" /> Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
       </header>
 
       <AppLauncher open={launcherOpen} onClose={() => setLauncherOpen(false)} />
