@@ -4,6 +4,7 @@ import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueProductCard from "@/components/zenvue/ZenvueProductCard";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
 import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ZenvueHome = () => {
   return (
@@ -23,12 +24,12 @@ const ZenvueHome = () => {
 
       {/* Brand Story */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:py-20 lg:px-8">
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+            <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
               Caribbean Craftsmanship, Global Standards
             </h2>
-            <p className="mt-4 text-base text-muted-foreground leading-relaxed">
+            <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
               ZenVue was born from a simple belief: optical professionals in the Caribbean deserve
               access to premium lens technology without compromise. We partner with world-leading
               manufacturers to deliver lenses that meet the highest global standards — available
@@ -40,12 +41,12 @@ const ZenvueHome = () => {
 
       {/* Products */}
       <section id="products" className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:py-20 lg:px-8">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+          <div className="mb-12 text-center sm:mb-16">
+            <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
               Our Product Range
             </h2>
-            <p className="mt-3 text-muted-foreground">Three product lines designed for every patient need.</p>
+            <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">Three product lines designed for every patient need.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             <ZenvueProductCard
@@ -76,9 +77,9 @@ const ZenvueHome = () => {
 
       {/* Why ZenVue */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:py-20 lg:px-8">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+          <div className="mb-12 text-center sm:mb-16">
+            <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
               Why ZenVue?
             </h2>
           </div>
@@ -89,13 +90,17 @@ const ZenvueHome = () => {
               { icon: Palette, title: "Color-Coded System", desc: "Easy identification with our intuitive color-coding across all product lines." },
               { icon: ShieldCheck, title: "Quality Assured", desc: "Every lens undergoes rigorous quality checks before reaching your practice." },
             ].map((item) => (
-              <div key={item.title} className="border border-border bg-card p-6" style={{ boxShadow: "var(--shadow-zv)" }}>
-                <item.icon className="h-8 w-8 text-accent" />
-                <h3 className="mt-4 text-lg font-semibold text-foreground">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
-              </div>
+              <Card key={item.title} variant="feature" className="rounded-2xl">
+                <CardHeader className="space-y-0 p-6 pb-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10">
+                    <item.icon className="h-6 w-6 text-accent" />
+                  </div>
+                  <CardTitle className="mt-4 text-lg">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
