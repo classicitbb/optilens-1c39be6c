@@ -183,7 +183,7 @@ export default function ProfessionalsChemistriePage() {
       <Header />
 
       {/* ══════════════ HERO ══════════════ */}
-      <section className="relative min-h-[92vh] pt-16 overflow-hidden">
+      <section className="relative min-h-[92vh] overflow-hidden">
         {/* Background image fills the entire section */}
         <div className="absolute inset-0">
           <video
