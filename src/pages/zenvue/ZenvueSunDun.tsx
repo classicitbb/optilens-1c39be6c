@@ -37,8 +37,8 @@ const ZenvueSunDun = () => {
 
       {/* Use Cases */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:px-8 lg:py-20">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+          <h2 className="mb-8 text-center text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
             Built for Every Outdoor Moment
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
@@ -59,8 +59,8 @@ const ZenvueSunDun = () => {
 
       {/* Specs */}
       <section className="border-b border-border bg-muted/30">
-        <div className="container mx-auto px-4 py-16 lg:px-8 lg:py-20">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+          <h2 className="mb-8 text-center text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
             Features & Specifications
           </h2>
           <Card className="mx-auto max-w-xl overflow-hidden border-border">
@@ -78,9 +78,9 @@ const ZenvueSunDun = () => {
 
       {/* Why Gray? */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:px-8 lg:py-20">
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-foreground">
+            <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
               Why Gray?
             </h2>
             <p className="mt-4 text-muted-foreground">
