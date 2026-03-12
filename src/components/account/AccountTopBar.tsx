@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Bell, ChevronDown, CircleHelp, LogOut } from "lucide-react";
+import { ArrowLeft, Bell, ChevronDown, CircleHelp, LogOut, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,43 +11,56 @@ import {
 import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
 
 interface AccountTopBarProps {
-  pageTitle: string;
   displayName: string;
   onSignOut: () => void;
 }
 
-const AccountTopBar = ({ pageTitle, displayName, onSignOut }: AccountTopBarProps) => {
+const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
-      <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 md:px-6">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" asChild>
-            <Link to="/">Back to Website</Link>
+      <div className="grid h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-3 md:px-4">
+        <div className="min-w-0">
+          <Button variant="ghost" asChild className="h-7 max-w-full gap-1.5 px-2 text-xs sm:text-sm">
+            <Link to="/">
+              <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Website</span>
+            </Link>
           </Button>
         </div>
 
-        <h1 className="text-sm font-semibold tracking-wide text-foreground sm:text-base">{pageTitle}</h1>
+        <h1 className="px-2 text-sm font-semibold tracking-tight text-foreground">My Account</h1>
 
         <TopBarActionCluster
+          className="min-w-0 gap-1 justify-self-end"
           utilities={
             <>
-              <Button variant="ghost" size="icon" aria-label="Notifications">
-                <Bell className="h-4 w-4" />
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                tabIndex={-1}
+                className="inline-flex h-7 max-w-[8rem] items-center gap-1.5 rounded-md border border-border/60 px-2 text-xs text-muted-foreground opacity-60"
+              >
+                <Search className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">Search</span>
+              </button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Notifications">
+                <Bell className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" aria-label="Help">
-                <CircleHelp className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Help">
+                <CircleHelp className="h-3.5 w-3.5" />
               </Button>
             </>
           }
-          identity={<span className="hidden text-sm font-medium text-foreground md:inline">{displayName}</span>}
+          identity={<span className="max-w-28 truncate text-sm font-medium text-foreground">{displayName}</span>}
           menu={
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-9 px-1.5">
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="text-xs uppercase">{displayName.slice(0, 2)}</AvatarFallback>
+                <Button variant="ghost" className="h-7 shrink-0 gap-1 px-1.5">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-[10px] uppercase">{displayName.slice(0, 2)}</AvatarFallback>
                   </Avatar>
-                  <ChevronDown className="ml-1 h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
