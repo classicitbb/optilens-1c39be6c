@@ -39,9 +39,7 @@ const NightDrivingAidsPage = () => {
 
       <section className="relative overflow-hidden pt-24">
         <div className="absolute inset-0">
-          <video autoPlay muted loop playsInline className="h-full w-full object-cover">
-            <source src="https://www.forecps.com/wp-content/uploads/2025/06/chem-sun-short.mp4" type="video/mp4" />
-          </video>
+          <img src="https://www.forecps.com/wp-content/uploads/2025/12/A91ocokfo_1fphqiw_w2g-scaled.png" alt="Night driving aids" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/85 to-background/75" />
         </div>
         <div className="container relative mx-auto max-w-6xl px-4 py-20 lg:px-8">

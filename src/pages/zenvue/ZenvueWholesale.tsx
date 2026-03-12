@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Send, CheckCircle, FileText, PhoneCall, Package } from "lucide-react";
+import { Send, CheckCircle, FileText, PhoneCall, Package, AlertCircle } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
@@ -86,14 +88,16 @@ const ZenvueWholesale = () => {
       <ZenvueFeatureShell>
         <ZenvueHero badge="Partner Application" title="Thank You!" subtitle="Your application has been received. Our team will contact you within 2 business days." />
         <section className="border-b border-border">
-          <div className="container mx-auto px-4 py-16 lg:px-8 text-center">
-            <CheckCircle className="mx-auto h-16 w-16 text-accent" />
-            <h2 className="mt-6 text-2xl font-bold text-foreground">
-              Application Submitted Successfully
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              We appreciate your interest in partnering with ZenVue. Keep an eye on your inbox.
-            </p>
+          <div className="container mx-auto px-4 py-14 lg:px-8 lg:py-16">
+            <div className="mx-auto max-w-2xl rounded-xl border border-border bg-card p-8 text-center shadow-sm md:p-10">
+              <CheckCircle className="mx-auto h-14 w-14 text-accent" />
+              <h2 className="mt-5 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+                Application Submitted Successfully
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
+                We appreciate your interest in partnering with ZenVue. Keep an eye on your inbox.
+              </p>
+            </div>
           </div>
         </section>
       </ZenvueFeatureShell>
@@ -110,27 +114,40 @@ const ZenvueWholesale = () => {
 
       {/* Form */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:px-8">
-          <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-8">
+        <div className="container mx-auto px-4 py-14 lg:px-8 lg:py-16">
+          <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
             {/* Honeypot — hidden from real users, bots fill it */}
             <div style={{ display: "none" }} aria-hidden="true">
               <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
             </div>
+
+            {Object.keys(validationErrors).length > 0 && (
+              <Alert variant="destructive" className="border-destructive/40">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Please review your application details</AlertTitle>
+                <AlertDescription>
+                  Some fields require attention before you can submit.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Business Info */}
-            <div>
-              <h3 className="mb-4 text-lg font-semibold text-foreground">
+            <section className="rounded-xl border border-border bg-card p-6 shadow-sm md:p-8" aria-labelledby="business-information-heading">
+              <h2 id="business-information-heading" className="mb-5 text-xl font-semibold tracking-tight text-foreground">
                 Business Information
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-foreground">Business Name *</label>
-                  <Input value={form.business_name} onChange={(e) => update("business_name", e.target.value)} className={validationErrors.business_name ? "border-destructive" : ""} />
-                  {validationErrors.business_name && <p className="mt-1 text-xs text-destructive">{validationErrors.business_name}</p>}
+              </h2>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="business_name">Business Name *</Label>
+                  <Input id="business_name" value={form.business_name} onChange={(e) => update("business_name", e.target.value)} className={validationErrors.business_name ? "border-destructive focus-visible:ring-destructive" : ""} />
+                  {validationErrors.business_name && <p className="text-sm font-medium text-destructive">{validationErrors.business_name}</p>}
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Business Type</label>
+                <div className="space-y-2">
+                  <Label htmlFor="business_type">Business Type</Label>
                   <Select value={form.business_type} onValueChange={(v) => update("business_type", v)}>
-                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectTrigger id="business_type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="optical_shop">Optical Shop</SelectItem>
                       <SelectItem value="chain">Chain / Multi-location</SelectItem>
@@ -139,10 +156,12 @@ const ZenvueWholesale = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Monthly Volume</label>
+                <div className="space-y-2">
+                  <Label htmlFor="monthly_volume">Monthly Volume</Label>
                   <Select value={form.monthly_volume} onValueChange={(v) => update("monthly_volume", v)}>
-                    <SelectTrigger><SelectValue placeholder="Estimated volume" /></SelectTrigger>
+                    <SelectTrigger id="monthly_volume">
+                      <SelectValue placeholder="Estimated volume" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1-50">1–50 pairs</SelectItem>
                       <SelectItem value="51-200">51–200 pairs</SelectItem>
@@ -151,46 +170,48 @@ const ZenvueWholesale = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-foreground">Country / Location</label>
-                  <Input value={form.location} onChange={(e) => update("location", e.target.value)} placeholder="e.g. Trinidad & Tobago" />
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="location">Country / Location</Label>
+                  <Input id="location" value={form.location} onChange={(e) => update("location", e.target.value)} placeholder="e.g. Trinidad & Tobago" />
                 </div>
               </div>
-            </div>
+            </section>
 
             {/* Contact Info */}
-            <div>
-              <h3 className="mb-4 text-lg font-semibold text-foreground">
+            <section className="rounded-xl border border-border bg-card p-6 shadow-sm md:p-8" aria-labelledby="contact-information-heading">
+              <h2 id="contact-information-heading" className="mb-5 text-xl font-semibold tracking-tight text-foreground">
                 Contact Information
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-foreground">Contact Name *</label>
-                  <Input value={form.contact_name} onChange={(e) => update("contact_name", e.target.value)} className={validationErrors.contact_name ? "border-destructive" : ""} />
-                  {validationErrors.contact_name && <p className="mt-1 text-xs text-destructive">{validationErrors.contact_name}</p>}
+              </h2>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="contact_name">Contact Name *</Label>
+                  <Input id="contact_name" value={form.contact_name} onChange={(e) => update("contact_name", e.target.value)} className={validationErrors.contact_name ? "border-destructive focus-visible:ring-destructive" : ""} />
+                  {validationErrors.contact_name && <p className="text-sm font-medium text-destructive">{validationErrors.contact_name}</p>}
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Email *</label>
-                  <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} className={validationErrors.email ? "border-destructive" : ""} />
-                  {validationErrors.email && <p className="mt-1 text-xs text-destructive">{validationErrors.email}</p>}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input id="email" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} className={validationErrors.email ? "border-destructive focus-visible:ring-destructive" : ""} />
+                  {validationErrors.email && <p className="text-sm font-medium text-destructive">{validationErrors.email}</p>}
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Phone</label>
-                  <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="+1 (868) 555-0123" />
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input id="phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="+1 (868) 555-0123" />
                 </div>
               </div>
-            </div>
+            </section>
 
             {/* Additional */}
-            <div>
-              <h3 className="mb-4 text-lg font-semibold text-foreground">
+            <section className="rounded-xl border border-border bg-card p-6 shadow-sm md:p-8" aria-labelledby="additional-information-heading">
+              <h2 id="additional-information-heading" className="mb-5 text-xl font-semibold tracking-tight text-foreground">
                 Additional Information
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">How did you hear about us?</label>
+              </h2>
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="referral_source">How did you hear about us?</Label>
                   <Select value={form.referral_source} onValueChange={(v) => update("referral_source", v)}>
-                    <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
+                    <SelectTrigger id="referral_source">
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="trade_show">Trade Show / Event</SelectItem>
                       <SelectItem value="colleague">Colleague / Referral</SelectItem>
@@ -200,12 +221,12 @@ const ZenvueWholesale = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">Comments</label>
-                  <Textarea value={form.comments} onChange={(e) => update("comments", e.target.value)} placeholder="Tell us about your practice or any questions you have..." rows={4} />
+                <div className="space-y-2">
+                  <Label htmlFor="comments">Comments</Label>
+                  <Textarea id="comments" value={form.comments} onChange={(e) => update("comments", e.target.value)} placeholder="Tell us about your practice or any questions you have..." rows={4} />
                 </div>
               </div>
-            </div>
+            </section>
 
             <Button type="submit" size="lg" disabled={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               <Send className="mr-2 h-4 w-4" />
