@@ -219,6 +219,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "lens-ordering-tips": "Lens Ordering Tips",
 };
 
+
 const getBreadcrumbLabel = (segment: string) => {
   const normalized = segment.toLowerCase();
   if (BREADCRUMB_LABELS[normalized]) {
@@ -370,7 +371,8 @@ const Header = () => {
   const showBreadcrumbs = pathSegments.length >= 2;
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
+    <>
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
         <Link to="/" className="flex items-center gap-2" aria-label="Classic Visions home">
@@ -555,31 +557,6 @@ const Header = () => {
         </div>
       </div>
 
-      {showBreadcrumbs && (
-        <nav aria-label="Breadcrumb" className="bg-background/95">
-          <div className="container mx-auto max-w-5xl px-4 pt-4 lg:px-8">
-            <div className="mb-4 text-sm text-muted-foreground">
-              <Link to="/" className="hover:text-foreground">Home</Link>
-              {pathSegments.map((segment, index) => {
-                const isLast = index === pathSegments.length - 1;
-                const to = `/${pathSegments.slice(0, index + 1).join("/")}`;
-                const label = getBreadcrumbLabel(segment);
-
-                return (
-                  <span key={to}>
-                    <span className="mx-2">/</span>
-                    {isLast ? (
-                      <span className="text-foreground">{label}</span>
-                    ) : (
-                      <Link to={to} className="hover:text-foreground">{label}</Link>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        </nav>
-      )}
 
       {isSearchMode && showSearchMenu && (
         <div className="hidden border-t border-border/50 bg-background/95 lg:block">
@@ -602,7 +579,30 @@ const Header = () => {
           </div>
         </div>
       )}
-    </header>
+      </header>
+
+      {showBreadcrumbs && (
+        <nav aria-label="Breadcrumb" className="mt-16">
+          <div className="container mx-auto max-w-5xl px-4 pt-4 lg:px-8">
+            <div className="text-sm text-muted-foreground">
+              <span className="text-foreground">Home</span>
+              {pathSegments.map((segment, index) => {
+                const to = `/${pathSegments.slice(0, index + 1).join("/")}`;
+                const isLast = index === pathSegments.length - 1;
+                const label = getBreadcrumbLabel(segment);
+
+                return (
+                  <span key={to}>
+                    <span className="mx-2">/</span>
+                    <span className={isLast ? "text-foreground" : undefined}>{label}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
+      )}
+    </>
   );
 };
 
