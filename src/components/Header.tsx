@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, X } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PublicSearchPanel from "@/components/PublicSearchPanel";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
@@ -198,6 +198,40 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
   },
 ];
 
+const BREADCRUMB_LABELS: Record<string, string> = {
+  "for-professionals": "Professionals",
+  "lens-types": "Lens Types",
+  "office-occupational": "Office / Occupational",
+  "anti-fatigue": "Anti-Fatigue",
+  "single-vision": "Single Vision",
+  "blue-filter": "Blue Filter",
+  "tints-fashion-colors": "Tints & Fashion Colors",
+  "thickness-chart": "Thickness Chart",
+  "ultraclear-ar": "UltraClear AR",
+  "blueblock-ar": "BlueBlock AR",
+  "uv-shield": "UV Shield",
+  "hydrophobic-oleophobic": "Hydrophobic & Oleophobic",
+  "night-driving-aids": "Night Driving Aids",
+  "chemistrie-lens-system": "Chemistrie Lens System",
+  "dispensing-tips": "Dispensing Tips",
+  "tracing-cutting-guide": "Tracing & Cutting Guide",
+  "lab-process-overview": "Lab Process Overview",
+  "lens-ordering-tips": "Lens Ordering Tips",
+};
+
+
+const getBreadcrumbLabel = (segment: string) => {
+  const normalized = segment.toLowerCase();
+  if (BREADCRUMB_LABELS[normalized]) {
+    return BREADCRUMB_LABELS[normalized];
+  }
+
+  return segment
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
 const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
   const [open, setOpen] = useState(false);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
@@ -306,6 +340,7 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
 };
 
 const Header = () => {
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [showSearchMenu, setShowSearchMenu] = useState(false);
@@ -332,8 +367,12 @@ const Header = () => {
     });
   };
 
+  const pathSegments = location.pathname.split("/").filter(Boolean);
+  const showBreadcrumbs = pathSegments.length >= 2;
+
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
+    <>
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
         <Link to="/" className="flex items-center gap-2" aria-label="Classic Visions home">
@@ -518,6 +557,7 @@ const Header = () => {
         </div>
       </div>
 
+
       {isSearchMode && showSearchMenu && (
         <div className="hidden border-t border-border/50 bg-background/95 lg:block">
           <div className="container mx-auto flex items-center gap-2 px-4 py-2 lg:px-8">
@@ -539,7 +579,30 @@ const Header = () => {
           </div>
         </div>
       )}
-    </header>
+      </header>
+
+      {showBreadcrumbs && (
+        <nav aria-label="Breadcrumb" className="mt-16">
+          <div className="container mx-auto max-w-5xl px-4 pt-4 lg:px-8">
+            <div className="text-sm text-muted-foreground">
+              <span className="text-foreground">Home</span>
+              {pathSegments.map((segment, index) => {
+                const to = `/${pathSegments.slice(0, index + 1).join("/")}`;
+                const isLast = index === pathSegments.length - 1;
+                const label = getBreadcrumbLabel(segment);
+
+                return (
+                  <span key={to}>
+                    <span className="mx-2">/</span>
+                    <span className={isLast ? "text-foreground" : undefined}>{label}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
+      )}
+    </>
   );
 };
 

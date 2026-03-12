@@ -46,13 +46,6 @@ const TracingCuttingGuidePage = () => {
       <main id="main-content" className="pb-20 pt-24">
         {/* Hero */}
         <section className="container mx-auto max-w-5xl px-4 lg:px-8">
-          <nav className="mb-4 text-sm text-muted-foreground">
-            <Link to="/" className="hover:text-foreground">Home</Link>
-            <span className="mx-2">/</span>
-            <Link to="/for-professionals" className="hover:text-foreground">Professionals</Link>
-            <span className="mx-2">/</span>
-            <span className="text-foreground">Tracing & Cutting Guide</span>
-          </nav>
           <p className="text-sm font-semibold uppercase tracking-wider text-accent">Technical Resources</p>
           <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
             Tracing & Cutting Guide
