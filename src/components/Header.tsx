@@ -315,8 +315,10 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
       {open && (
         <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
           {/* Arrow pointing up at the trigger button */}
-          <div style={{ left: arrowLeft }} className="absolute -top-2 -translate-x-1/2 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-border" />
-          <div style={{ left: arrowLeft }} className="absolute -top-[7px] -translate-x-1/2 h-0 w-0 border-x-[7px] border-b-[7px] border-x-transparent border-b-background" />
+          <div
+            style={{ left: arrowLeft }}
+            className="absolute -top-1.5 z-10 h-3 w-3 -translate-x-1/2 rotate-45 rounded-[2px] border border-emerald-300 bg-emerald-400 shadow-[0_2px_10px_rgba(16,185,129,0.45)] dark:border-emerald-500 dark:bg-emerald-400"
+          />
           <div className="grid gap-4 md:grid-cols-3">
           {item.sections.map((section) => (
             <div key={section.title}>
