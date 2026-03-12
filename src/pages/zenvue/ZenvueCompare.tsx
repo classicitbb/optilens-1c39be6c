@@ -1,8 +1,9 @@
-import { Check, X, Minus } from "lucide-react";
+import { Check, X } from "lucide-react";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
 import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
 import { Link } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
 
 type CellValue = true | false | string;
 
@@ -30,9 +31,9 @@ const ROWS: CompareRow[] = [
 ];
 
 const renderCell = (val: CellValue) => {
-  if (val === true) return <div className="flex h-5 w-5 items-center justify-center bg-accent"><Check className="h-3 w-3 text-accent-foreground" /></div>;
+  if (val === true) return <div className="flex h-5 w-5 items-center justify-center rounded-sm bg-accent"><Check className="h-3 w-3 text-accent-foreground" /></div>;
   if (val === false) return <X className="h-4 w-4 text-muted-foreground/40" />;
-  return <span className="text-sm text-muted-foreground">{val}</span>;
+  return <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground sm:text-sm sm:normal-case sm:tracking-normal">{val}</span>;
 };
 
 const RECS = [
@@ -52,20 +53,26 @@ const ZenvueCompare = () => {
 
       {/* Table */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:px-8">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] text-sm">
+        <div className="container mx-auto px-4 py-14 lg:px-8 lg:py-16">
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-bold text-foreground md:text-3xl">Feature Matrix</h2>
+            <p className="mt-2 text-sm text-muted-foreground md:text-base">
+              Compare each product line at a glance while keeping the same recommendation flow.
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-border bg-card">
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className="border-b-2 border-border">
-                  <th className="px-4 py-3 text-left font-semibold text-foreground">Feature</th>
-                  <th className="px-4 py-3 text-center font-semibold text-foreground">Brilliance™</th>
-                  <th className="px-4 py-3 text-center font-semibold text-foreground">Single Vision</th>
-                  <th className="px-4 py-3 text-center font-semibold text-foreground">SunDun™</th>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-foreground sm:text-sm sm:normal-case sm:tracking-normal">Feature</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-foreground sm:text-sm sm:normal-case sm:tracking-normal">Brilliance™</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-foreground sm:text-sm sm:normal-case sm:tracking-normal">Single Vision</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-foreground sm:text-sm sm:normal-case sm:tracking-normal">SunDun™</th>
                 </tr>
               </thead>
               <tbody>
-                {ROWS.map((row) => (
-                  <tr key={row.feature} className="border-b border-border">
+                {ROWS.map((row, index) => (
+                  <tr key={row.feature} className={`border-b border-border last:border-0 ${index % 2 === 0 ? "bg-card" : "bg-muted/20"}`}>
                     <td className="px-4 py-3 font-medium text-foreground">{row.feature}</td>
                     <td className="px-4 py-3"><div className="flex justify-center">{renderCell(row.brilliance)}</div></td>
                     <td className="px-4 py-3"><div className="flex justify-center">{renderCell(row.singleVision)}</div></td>
@@ -80,18 +87,25 @@ const ZenvueCompare = () => {
 
       {/* Quick Recommendations */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
+        <div className="container mx-auto px-4 py-14 lg:px-8 lg:py-16">
+          <h2 className="mb-8 text-center text-2xl font-bold text-foreground md:text-3xl">
             Quick Recommendations
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
             {RECS.map((r) => (
-              <Link key={r.title} to={r.to} className="group border border-border bg-card p-6 transition-colors hover:border-accent/40">
-                <span className="text-xs font-medium uppercase tracking-wider text-accent">{r.title}</span>
-                <h3 className="mt-2 text-lg font-semibold text-foreground group-hover:text-accent transition-colors">
-                  {r.product}
-                </h3>
-                <p className="mt-2 text-sm text-muted-foreground">{r.desc}</p>
+              <Link key={r.title} to={r.to} className="group block">
+                <Card
+                  variant="feature"
+                  className="h-full border-border/60 hover:border-accent/40"
+                >
+                  <CardContent className="p-6">
+                    <span className="text-xs font-medium uppercase tracking-wider text-accent">{r.title}</span>
+                    <h3 className="mt-2 text-lg font-semibold text-foreground transition-colors group-hover:text-accent">
+                      {r.product}
+                    </h3>
+                    <p className="mt-2 text-sm text-muted-foreground">{r.desc}</p>
+                  </CardContent>
+                </Card>
               </Link>
             ))}
           </div>
