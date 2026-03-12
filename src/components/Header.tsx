@@ -108,10 +108,10 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
       {
         title: "For Optical Stores & Clinics",
         links: [
-          { label: "Apply for a Trade Account", description: "Lead form (Odoo)", to: "/professionals/trade-account" },
+          { label: "Apply for a Trade Account", description: "Lead form", to: "/professionals/trade-account" },
           { label: "Online Ordering Portal", description: "Login to LabLink", href: "https://lablink.opticalonline.com/", externalLabel: "External" },
           { label: "Order Tracking", description: "Track shipments and job status", href: "https://lablink.opticalonline.com/jobs#available", externalLabel: "External" },
-          { label: "Price List Request", description: "Form (Odoo)", to: "/professionals/price-list-request" },
+          { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" },
         ],
       },
       {

@@ -18,19 +18,19 @@ type PortalPage = {
 const portalPages: Record<string, PortalPage> = {
   "trade-account": {
     title: "Apply for a Trade Account",
-    description: "Odoo lead form for optical stores and clinics.",
+    description: "Lead form for optical stores and clinics.",
     body: [
       "Use this form to request wholesale access, account onboarding, and credit terms review.",
-      "Submissions are routed to the Odoo CRM lead queue for professional account follow-up.",
+      "Submissions are routed to the CRM lead queue for professional account follow-up.",
     ],
     isForm: true,
   },
   "price-list-request": {
     title: "Price List Request",
-    description: "Odoo lead form for current lens and coating price lists.",
+    description: "Lead form for current lens and coating price lists.",
     body: [
       "Request the latest wholesale pricing and optional product matrix by market segment.",
-      "Submissions are sent to the sales operations inbox and tagged in Odoo for response tracking.",
+      "Submissions are sent to the sales operations inbox and tagged for response tracking.",
     ],
     isForm: true,
   },
@@ -122,7 +122,7 @@ const ProfessionalsPortalPage = () => {
       <Header />
       <main className="container mx-auto max-w-3xl px-4 pb-16 pt-24 lg:px-8">
         <div className="rounded-2xl border border-border bg-card p-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Odoo Professionals Portal</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Professionals Portal</p>
           <h1 className="mt-2 text-3xl font-bold text-foreground">{page.title}</h1>
           <p className="mt-3 text-muted-foreground">{page.description}</p>
           <div className="mt-6 space-y-3 text-sm text-muted-foreground">
@@ -139,7 +139,7 @@ const ProfessionalsPortalPage = () => {
                 setLoading(true);
                 await new Promise((resolve) => setTimeout(resolve, 800));
                 toast({
-                  title: "Submitted to Odoo",
+                  title: "Request Submitted",
                   description: "Your request has been captured and queued for the professional support team.",
                 });
                 setLoading(false);

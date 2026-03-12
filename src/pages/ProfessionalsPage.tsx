@@ -42,7 +42,7 @@ const ProfessionalsPage = () => {
           <div className="rounded-2xl border border-border bg-card p-8">
             <h1 className="text-4xl font-bold text-foreground">Professionals Hub</h1>
             <p className="mt-4 max-w-3xl text-lg text-muted-foreground">
-              Odoo-backed portal pages and forms for trade onboarding, technical references, and service support.
+              Portal pages and forms for trade onboarding, technical references, and service support.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild>
