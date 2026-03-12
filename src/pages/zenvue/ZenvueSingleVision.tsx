@@ -58,8 +58,8 @@ const ZenvueSingleVision = () => {
 
       {/* Options */}
       <section className="border-b border-border">
-        <div className="container mx-auto max-w-6xl px-4 py-16 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground">
+        <div className="container mx-auto max-w-6xl px-4 py-16 sm:py-24 lg:px-8">
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
             Available Options
           </h2>
           <p className="mt-1 text-muted-foreground">
@@ -91,8 +91,8 @@ const ZenvueSingleVision = () => {
 
       {/* Specs */}
       <section className="border-b border-border">
-        <div className="container mx-auto max-w-6xl px-4 py-16 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground">
+        <div className="container mx-auto max-w-6xl px-4 py-16 sm:py-24 lg:px-8">
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
             Materials & Specifications
           </h2>
           <p className="mt-1 text-muted-foreground">
@@ -123,8 +123,8 @@ const ZenvueSingleVision = () => {
 
       {/* Ideal For */}
       <section className="border-b border-border">
-        <div className="container mx-auto max-w-6xl px-4 py-16 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground">
+        <div className="container mx-auto max-w-6xl px-4 py-16 sm:py-24 lg:px-8">
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
             Ideal For
           </h2>
           <p className="mt-1 text-muted-foreground">
