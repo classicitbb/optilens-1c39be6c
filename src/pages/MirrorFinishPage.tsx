@@ -46,6 +46,90 @@ const popularFinishes = [
   },
 ];
 
+const finishComparisonRows = [
+  {
+    finish: "Silver Flash",
+    intensity: "Medium",
+    condition: "Bright all-day sun",
+    baseTint: "Gray / smoke",
+    notes: "Balanced appearance with neutral color perception.",
+  },
+  {
+    finish: "Blue Ice",
+    intensity: "High",
+    condition: "Water, coastal, high-glare",
+    baseTint: "Gray / blue-gray",
+    notes: "Popular for sport styling and high reflective cosmetics.",
+  },
+  {
+    finish: "Rose Gold",
+    intensity: "Medium",
+    condition: "Lifestyle, city sun",
+    baseTint: "Brown / amber",
+    notes: "Warmer aesthetic with premium fashion positioning.",
+  },
+  {
+    finish: "Emerald Green",
+    intensity: "High",
+    condition: "Trail, variable terrain",
+    baseTint: "Brown / green",
+    notes: "Sport-led look with strong outdoor contrast perception.",
+  },
+];
+
+const bestForTags = ["Driving", "Beach", "Cycling", "Ski / Snow", "Outdoor sports"];
+
+const bestUseCases = [
+  "Sunglass dispensing where cosmetic appeal and glare reduction are priorities.",
+  "Outdoor and sport eyewear requiring high visible-light rejection.",
+  "Fashion-forward frames that benefit from a reflective, statement finish.",
+  "Ski, water, and driving applications where intense light management is needed.",
+];
+
+const compatibilityNotes = [
+  "Mirror coatings are applied on top of a base tint — they do not replace tinting.",
+  "Best paired with backside AR treatments for reduced ghost reflections.",
+  "Not all lens materials accept every mirror color; confirm with lab before ordering.",
+  "Flash mirrors (lighter reflection) are available for subtler cosmetic effects.",
+];
+
+const limitations = [
+  "Mirror coatings do not provide UV protection on their own — a UV-blocking substrate or treatment is still required.",
+  "They are not scratch-proof; a hard coat underneath is recommended.",
+  "Reflective layers can show fingerprints and smudges more readily than standard tints.",
+  "Mirror finishes may not be suitable for indoor or low-light use due to reduced light transmission.",
+];
+
+const careTips = [
+  "Clean with a microfiber cloth and lens-safe spray — avoid paper towels or rough fabrics.",
+  "Store lenses in a hard case to prevent surface abrasion.",
+  "Avoid placing lenses face-down on hard surfaces.",
+  "Periodic professional cleaning can extend the life of the mirror layer.",
+];
+
+const relatedGuides = [
+  {
+    title: "UltraClear AR coating",
+    description: "Pair mirror fronts with backside anti-reflective performance for cleaner optics.",
+    to: "/coatings/ultraclear-ar",
+  },
+  {
+    title: "BlueBlock AR coating",
+    description: "Compare reflective color behavior with blue-light management and AR stacks.",
+    to: "/coatings/blueblock-ar",
+  },
+  {
+    title: "Hydrophobic + oleophobic topcoat",
+    description: "Improve smudge resistance and cleanability on finished mirror lenses.",
+    to: "/coatings/hydrophobic-oleophobic",
+  },
+  {
+    title: "Knowledge: caring for coated lenses",
+    description: "Review cleaning and care best practices for long-lasting mirror coatings.",
+    to: "/knowledge#caring-for-coated-lenses",
+  },
+];
+
 const MirrorFinishPage = () => {
   return (
     <div className="min-h-screen bg-background">
@@ -54,8 +138,8 @@ const MirrorFinishPage = () => {
         <div className="container mx-auto max-w-4xl px-4 lg:px-8">
           <h1 className="text-4xl font-bold text-foreground">Mirror Coatings & Finish Guide</h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Mirror coatings apply a reflective top layer to tinted or sun lenses, improving style and bright-light comfort
-            for active wearers.
+            Mirror coatings apply a reflective top layer to tinted or sun lenses, supporting bright-light comfort with a
+            distinct cosmetic finish.
           </p>
 
           <section className="mt-8 space-y-6" aria-labelledby="mirror-finish-visuals-heading">
@@ -65,6 +149,17 @@ const MirrorFinishPage = () => {
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Compare lifestyle styling with close-up reflective detail to guide finish selection.
+              </p>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Best use scenarios for mirror coatings">
+                {bestForTags.map((tag) => (
+                  <span key={tag} className="rounded-full border border-border/80 bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+                    Best for: {tag}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Not ideal for mostly indoor wearers or low-light commuting due to reduced transmission.
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -109,36 +204,121 @@ const MirrorFinishPage = () => {
                 ))}
               </div>
             </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h3 className="text-lg font-semibold text-foreground">Finish comparison</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Use this quick matrix to match finish style, environment, and base tint recommendations.
+              </p>
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="px-3 py-2 font-semibold text-foreground">Finish</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Cosmetic intensity</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Best light condition</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Typical base tint</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {finishComparisonRows.map((row) => (
+                      <tr key={row.finish} className="border-b border-border/70 last:border-0">
+                        <td className="px-3 py-2 text-foreground">{row.finish}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.intensity}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.condition}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.baseTint}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </section>
 
-          <div className="mt-8 rounded-xl border border-border bg-card p-6">
-            <h2 className="text-xl font-semibold text-foreground">When to recommend mirror coatings</h2>
-            <ul className="mt-4 space-y-3">
-              {highlights.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-muted-foreground">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+          <section className="mt-8 space-y-6" aria-labelledby="mirror-finish-guidance-heading">
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-xl font-semibold text-foreground">When to recommend mirror coatings</h2>
+              <ul className="mt-4 space-y-3">
+                {highlights.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-muted-foreground">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg">
-                <Link to="/store?category=finished" data-cta="mirror-finish-shop-options">
-                  Shop Mirror Lens Options
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 id="mirror-finish-guidance-heading" className="text-xl font-semibold text-foreground">
+                  Best use-cases
+                </h2>
+                <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                  {bestUseCases.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+
+                <h3 className="mt-6 text-lg font-semibold text-foreground">Compatibility notes</h3>
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
+                  {compatibilityNotes.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h2 className="text-xl font-semibold text-foreground">What mirror coatings do not do</h2>
+                <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                  {limitations.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="text-xl font-semibold text-foreground">Care & durability tips</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {careTips.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section className="mt-8 rounded-xl border border-border bg-card p-6" aria-labelledby="related-guides-heading">
+            <h2 id="related-guides-heading" className="text-xl font-semibold text-foreground">
+              Related guides
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Continue with complementary coating references often reviewed alongside mirror finish options.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {relatedGuides.map((guide) => (
+                <Link
+                  key={guide.to}
+                  to={guide.to}
+                  className="rounded-lg border border-border/80 bg-background p-4 transition-colors hover:border-primary/40 hover:bg-muted/30"
+                >
+                  <h3 className="text-sm font-semibold text-foreground">{guide.title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{guide.description}</p>
                 </Link>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button asChild>
+                <Link to="/store">Shop mirror lens options</Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/professionals/lens-ordering-tips" data-cta="mirror-finish-professional-compatibility">
-                  Professional ordering &amp; compatibility
-                </Link>
+              <Button asChild variant="outline">
+                <Link to="/professionals/lens-ordering-tips">Professional ordering & compatibility</Link>
               </Button>
             </div>
-          </div>
+          </section>
 
-          <p className="mt-8 text-sm text-muted-foreground">
-            Canonical slug: <code>/coatings/mirror</code>. Legacy <code>/coatings/mirrors</code> requests are redirected.
-          </p>
         </div>
       </main>
       <Footer />

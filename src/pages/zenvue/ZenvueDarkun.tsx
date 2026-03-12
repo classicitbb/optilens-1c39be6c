@@ -4,6 +4,7 @@ import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
 import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const HOW_IT_WORKS = [
   { icon: Zap, title: "UV Activation", desc: "Darkun™ molecules respond to ultraviolet light, darkening the lens within seconds of sun exposure." },
@@ -34,19 +35,25 @@ const ZenvueDarkun = () => {
 
       {/* How It Works */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
-            How It Works
-          </h2>
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+          <div className="mb-12 text-center sm:mb-16">
+            <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
+              How It Works
+            </h2>
+          </div>
           <div className="grid gap-6 md:grid-cols-3">
             {HOW_IT_WORKS.map((item, i) => (
-              <div key={item.title} className="border border-border bg-card p-6">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center bg-primary text-primary-foreground text-sm font-bold">
-                  {i + 1}
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
-              </div>
+              <Card key={item.title} variant="feature" className="rounded-2xl">
+                <CardHeader className="space-y-0 p-6 pb-4">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
+                    {i + 1}
+                  </div>
+                  <CardTitle className="text-lg">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
@@ -54,17 +61,23 @@ const ZenvueDarkun = () => {
 
       {/* Benefits */}
       <section className="border-b border-border bg-muted/30">
-        <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
-            Benefits
-          </h2>
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+          <div className="mb-12 text-center sm:mb-16">
+            <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
+              Benefits
+            </h2>
+          </div>
           <div className="grid gap-6 md:grid-cols-3">
             {BENEFITS.map((item) => (
-              <div key={item.title} className="border border-border bg-card p-6">
-                <item.icon className="h-8 w-8 text-accent" />
-                <h3 className="mt-4 text-lg font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
-              </div>
+              <Card key={item.title} variant="feature" className="rounded-2xl">
+                <CardHeader className="space-y-0 p-6 pb-4">
+                  <item.icon className="h-8 w-8 text-accent" />
+                  <CardTitle className="mt-4 text-lg">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
@@ -72,24 +85,38 @@ const ZenvueDarkun = () => {
 
       {/* Available With */}
       <section className="border-b border-border">
-        <div className="container mx-auto px-4 py-16 lg:px-8">
-          <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
-            Available With
-          </h2>
+        <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
+          <div className="mb-12 text-center sm:mb-16">
+            <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
+              Available With
+            </h2>
+          </div>
           <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
-            <Link to="/zenvue/brilliance" className="group border border-border bg-card p-6 transition-colors hover:border-accent/40">
-              <Sparkles className="h-8 w-8 text-accent" />
-              <h3 className="mt-4 text-lg font-semibold text-foreground group-hover:text-accent transition-colors">
-                Brilliance™ Progressive
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground">Progressive lenses with photochromic capability for ultimate versatility.</p>
+            <Link to="/zenvue/brilliance" className="group block">
+              <Card variant="feature" className="h-full rounded-2xl">
+                <CardHeader className="space-y-0 p-6 pb-4">
+                  <Sparkles className="h-8 w-8 text-accent" />
+                  <CardTitle className="mt-4 text-lg transition-colors group-hover:text-accent">
+                    Brilliance™ Progressive
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <p className="text-sm text-muted-foreground">Progressive lenses with photochromic capability for ultimate versatility.</p>
+                </CardContent>
+              </Card>
             </Link>
-            <Link to="/zenvue/single-vision" className="group border border-border bg-card p-6 transition-colors hover:border-accent/40">
-              <Eye className="h-8 w-8 text-accent" />
-              <h3 className="mt-4 text-lg font-semibold text-foreground group-hover:text-accent transition-colors">
-                Single Vision
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground">Single focus lenses that darken in sunlight — perfect for one-pair patients.</p>
+            <Link to="/zenvue/single-vision" className="group block">
+              <Card variant="feature" className="h-full rounded-2xl">
+                <CardHeader className="space-y-0 p-6 pb-4">
+                  <Eye className="h-8 w-8 text-accent" />
+                  <CardTitle className="mt-4 text-lg transition-colors group-hover:text-accent">
+                    Single Vision
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <p className="text-sm text-muted-foreground">Single focus lenses that darken in sunlight — perfect for one-pair patients.</p>
+                </CardContent>
+              </Card>
             </Link>
           </div>
         </div>
