@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowLeft, User, Save, Shield, KeyRound } from "lucide-react";
+import { User, Save, Shield, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,7 +40,6 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 const Profile = () => {
   const { user } = useAuth();
   const { role, hasAccess } = useUserRole();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -117,14 +116,8 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-
-        <Card className="mx-auto max-w-2xl">
+    <div className="container mx-auto px-1 py-2 sm:px-2 sm:py-4">
+      <Card className="mx-auto max-w-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
               <User className="h-10 w-10 text-primary" />
@@ -204,8 +197,7 @@ const Profile = () => {
               </Button>
             </div>
           </CardContent>
-        </Card>
-      </div>
+      </Card>
     </div>
   );
 };
