@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
+import AccountLayout from "./components/account/AccountLayout";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 
@@ -162,8 +163,11 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
               <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+              <Route path="/profile/*" element={<ProtectedRoute><AccountLayout /></ProtectedRoute>}>
+                <Route index element={<Profile />} />
+                <Route path="orders" element={<Orders />} />
+              </Route>
+              <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
               <Route path="/legal/:slug" element={<LegalPage />} />
               <Route path="/privacy-policy" element={<Navigate to="/legal/privacy-policy" replace />} />
               <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
