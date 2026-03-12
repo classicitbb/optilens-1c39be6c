@@ -110,7 +110,7 @@ const Footer = () => {
             <div className="space-y-3 text-sm text-primary-foreground/70">
               <p className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>Regency Park, Christ Church, Barbados</span>
+                <span>Uplands Factory, Four Roads, Saint George BB20031 Barbados</span>
               </p>
               <a
 
