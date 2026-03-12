@@ -21,18 +21,18 @@ interface ZenvueHeroProps {
 const ZenvueHero = ({ title, subtitle, description, ctas = [], badge }: ZenvueHeroProps) => {
   return (
     <section className="relative overflow-hidden" style={{ background: "var(--gradient-zv-hero)" }}>
-      <div className="container mx-auto px-4 py-24 lg:py-32 lg:px-8">
+      <div className="container mx-auto px-4 py-20 sm:py-24 lg:px-8 lg:py-28">
         <div className="max-w-3xl">
           {badge && (
-            <span className="mb-4 inline-block border border-white/20 px-3 py-1 text-xs font-medium uppercase tracking-widest text-white/70">
+            <span className="mb-5 inline-block rounded-full border border-white/30 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-widest text-white/80 backdrop-blur-sm">
               {badge}
             </span>
           )}
-          <h1 className="text-4xl font-bold text-white md:text-5xl lg:text-6xl">
+          <h1 className="text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
             {title}
           </h1>
-          <p className="mt-4 text-lg text-white/70 md:text-xl">{subtitle}</p>
-          {description && <p className="mt-3 text-base text-white/50">{description}</p>}
+          <p className="mt-4 max-w-2xl text-base text-white/80 sm:text-lg md:text-xl">{subtitle}</p>
+          {description && <p className="mt-3 max-w-2xl text-sm text-white/60 sm:text-base">{description}</p>}
           {ctas.length > 0 && (
             <div className="mt-8 flex flex-wrap gap-3">
               {ctas.map((cta) => {
@@ -44,7 +44,7 @@ const ZenvueHero = ({ title, subtitle, description, ctas = [], badge }: ZenvueHe
                     size="lg"
                     className={
                       cta.variant === "outline"
-                        ? "border-white/30 text-white hover:bg-white/10"
+                        ? "border-white/40 bg-transparent text-white hover:bg-white/10"
                         : "bg-accent text-accent-foreground hover:bg-accent/90"
                     }
                   >
