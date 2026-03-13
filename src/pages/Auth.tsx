@@ -27,35 +27,6 @@ const authSchema = z.object({
 
 type AuthFormData = z.infer<typeof authSchema>;
 
-/* ── Floating math symbols ── */
-const MATH_SYMBOLS = ["∑", "∫", "π", "∞", "Δ", "√", "±", "≈", "θ", "λ", "Ω", "∂", "≠", "≤", "≥", "∝", "÷", "×", "φ", "σ"];
-
-const FloatingSymbols = () =>
-<div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-    {MATH_SYMBOLS.map((s, i) => {
-    const size = 14 + Math.random() * 28;
-    const left = Math.random() * 100;
-    const dur = 18 + Math.random() * 22;
-    const delay = Math.random() * -30;
-    const opacity = 0.08 + Math.random() * 0.12;
-    return (
-      <span
-        key={i}
-        className="absolute animate-float-up select-none"
-        style={{
-          left: `${left}%`,
-          fontSize: `${size}px`,
-          animationDuration: `${dur}s`,
-          animationDelay: `${delay}s`,
-          opacity,
-          color: "white"
-        }}>
-
-          {s}
-        </span>);
-
-  })}
-  </div>;
 
 
 const Auth = () => {
@@ -132,7 +103,7 @@ const Auth = () => {
       <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-[hsl(48_95%_50%/0.25)] blur-[120px] animate-pulse [animation-delay:2s]" />
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-[hsl(145_55%_35%/0.2)] blur-[100px] animate-pulse [animation-delay:4s]" />
 
-      <FloatingSymbols />
+      
 
       {/* ── Login card ── */}
       <div className="relative z-10 w-full max-w-md px-4">
