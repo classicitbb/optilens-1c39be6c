@@ -15,4 +15,16 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    sourcemap: mode === "development",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          charts: ["recharts"],
+          editors: ["@tiptap/react", "@tiptap/starter-kit", "@tiptap/extension-link"],
+          export: ["exceljs", "jspdf", "jspdf-autotable", "html2canvas"],
+        },
+      },
+    },
+  },
 }));
