@@ -27,35 +27,6 @@ const authSchema = z.object({
 
 type AuthFormData = z.infer<typeof authSchema>;
 
-/* ── Floating math symbols ── */
-const MATH_SYMBOLS = ["∑", "∫", "π", "∞", "Δ", "√", "±", "≈", "θ", "λ", "Ω", "∂", "≠", "≤", "≥", "∝", "÷", "×", "φ", "σ"];
-
-const FloatingSymbols = () =>
-<div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-    {MATH_SYMBOLS.map((s, i) => {
-    const size = 14 + Math.random() * 28;
-    const left = Math.random() * 100;
-    const dur = 18 + Math.random() * 22;
-    const delay = Math.random() * -30;
-    const opacity = 0.08 + Math.random() * 0.12;
-    return (
-      <span
-        key={i}
-        className="absolute animate-float-up select-none"
-        style={{
-          left: `${left}%`,
-          fontSize: `${size}px`,
-          animationDuration: `${dur}s`,
-          animationDelay: `${delay}s`,
-          opacity,
-          color: "white"
-        }}>
-
-          {s}
-        </span>);
-
-  })}
-  </div>;
 
 
 const Auth = () => {
