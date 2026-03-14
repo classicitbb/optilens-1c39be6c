@@ -73,7 +73,7 @@ const ProfessionalsPage = () => {
                     ) : (
                       <Link
                         key={link.label}
-                        to={link.to || "/for-professionals"}
+                        to={link.to || "/professionals"}
                         className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
                         {link.label}

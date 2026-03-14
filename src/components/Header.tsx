@@ -184,7 +184,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
         title: "For Careers & Partnerships",
         links: [
           { label: "Join Our Team", description: "Career opportunities and culture", to: "/#contact" },
-          { label: "Become a Partner", description: "Work with our wholesale network", to: "/for-professionals" },
+          { label: "Become a Partner", description: "Work with our wholesale network", to: "/professionals" },
           { label: "Media & Resources", description: "Press and informational materials", to: "/knowledge" },
         ],
       },
@@ -201,7 +201,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
 ];
 
 const BREADCRUMB_LABELS: Record<string, string> = {
-  "for-professionals": "Professionals",
+  "professionals": "Professionals",
   "lens-types": "Lens Types",
   "office-occupational": "Office / Occupational",
   "anti-fatigue": "Anti-Fatigue",
@@ -235,7 +235,7 @@ const BREADCRUMB_NAV_TARGETS = new Set<string>([
   "/orders",
   "/lenses",
   "/patients",
-  "/for-professionals",
+  "/professionals",
   "/zenvue",
 ]);
 

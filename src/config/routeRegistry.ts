@@ -22,6 +22,8 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.auth", path: "/auth", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-auth", status: "active" },
   { id: "public.reset-password", path: "/reset-password", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-auth", status: "active" },
   { id: "public.knowledge", path: "/knowledge", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
+  { id: "public.professionals", path: "/professionals", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
+  { id: "public.for-professionals-redirect", path: "/for-professionals", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "legacy-redirect", redirectTo: "/professionals" },
   { id: "public.legal", path: "/legal/:slug", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-legal", status: "active" },
   { id: "public.privacy-redirect", path: "/privacy-policy", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-legal", status: "legacy-redirect", redirectTo: "/legal/privacy-policy" },
   { id: "public.terms-redirect", path: "/terms", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-legal", status: "legacy-redirect", redirectTo: "/legal/terms" },

@@ -36,7 +36,7 @@ export const SITE_SEARCH_INDEX: SiteSearchEntry[] = [
     id: "page-professionals",
     title: "Professionals",
     description: "Resources and services for optical stores and clinics.",
-    path: "/for-professionals",
+    path: "/professionals",
     group: "Pages",
     keywords: ["wholesale", "partners", "trade"],
   },
