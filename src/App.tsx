@@ -49,6 +49,8 @@ const ProgressivePage = lazy(() => import("./pages/lenses/ProgressivePage"));
 const OfficeOccupationalPage = lazy(() => import("./pages/lenses/OfficeOccupationalPage"));
 const AntiFatiguePage = lazy(() => import("./pages/lenses/AntiFatiguePage"));
 const SingleVisionPage = lazy(() => import("./pages/lenses/SingleVisionPage"));
+const BifocalsPage = lazy(() => import("./pages/lenses/BifocalsPage"));
+const MyopiaControlPage = lazy(() => import("./pages/lenses/MyopiaControlPage"));
 const BlueFilterPage = lazy(() => import("./pages/lenses/BlueFilterPage"));
 const TintsFashionColorsPage = lazy(() => import("./pages/lenses/TintsFashionColorsPage"));
 const MaterialsPage = lazy(() => import("./pages/lenses/MaterialsPage"));
@@ -191,6 +193,8 @@ const App = () => (
               <Route path="/lenses/office-occupational" element={<OfficeOccupationalPage />} />
               <Route path="/lenses/anti-fatigue" element={<AntiFatiguePage />} />
               <Route path="/lenses/single-vision" element={<SingleVisionPage />} />
+              <Route path="/lenses/bifocals" element={<BifocalsPage />} />
+              <Route path="/lenses/myopia-control" element={<MyopiaControlPage />} />
               <Route path="/lenses/blue-filter" element={<BlueFilterPage />} />
               <Route path="/lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
               <Route path="/lenses/materials" element={<MaterialsPage />} />
