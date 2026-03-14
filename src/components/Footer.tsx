@@ -11,6 +11,8 @@ const footerColumns = [
   { label: "ZenVue Single Vision", to: "/zenvue/single-vision" },
   { label: "Office / Occupational", to: "/lenses/office-occupational" },
   { label: "Anti-Fatigue", to: "/lenses/anti-fatigue" },
+  { label: "Bifocals", to: "/lenses/bifocals" },
+  { label: "Myopia Control", to: "/lenses/myopia-control" },
   { label: "Blue Filter", to: "/lenses/blue-filter" },
   { label: "Lens Design Guide", to: "/lenses/lens-types" }]
 
