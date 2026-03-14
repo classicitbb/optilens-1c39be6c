@@ -6,6 +6,7 @@ import AdminTopBar from "./AdminTopBar";
 import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
 
+/* chunk-bust v1 */
 const AdminLayout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const location = useLocation();
