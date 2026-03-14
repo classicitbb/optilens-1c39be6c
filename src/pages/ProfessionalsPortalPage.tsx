@@ -109,7 +109,7 @@ const ProfessionalsPortalPage = () => {
           <h1 className="text-3xl font-bold">Professional resource not found</h1>
           <p className="mt-3 text-muted-foreground">The page you requested is unavailable.</p>
           <Button asChild className="mt-6">
-            <Link to="/for-professionals">Back to Professionals</Link>
+            <Link to="/professionals">Back to Professionals</Link>
           </Button>
         </main>
         <Footer />

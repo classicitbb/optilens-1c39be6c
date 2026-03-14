@@ -219,7 +219,8 @@ const App = () => (
               {LEGACY_REDIRECTS.filter((route) => route.path === "/coatings/caring-for-coated-lenses").map((route) => (
                 <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
               ))}
-              <Route path="/for-professionals" element={<ProfessionalsPage />} />
+              <Route path="/professionals" element={<ProfessionalsPage />} />
+              <Route path="/for-professionals" element={<Navigate to="/professionals" replace />} />
               <Route path="/patients" element={<PatientsPage />} />
               <Route path="/patients/night-driving-aids" element={<NightDrivingAidsPage />} />
               <Route path="/professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />

@@ -191,7 +191,7 @@ const PatientsPage = () => {
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" asChild>
-                  <Link to="/for-professionals">
+                  <Link to="/professionals">
                     <MapPin className="mr-2 h-4 w-4" />
                     Find Care Resources
                   </Link>
