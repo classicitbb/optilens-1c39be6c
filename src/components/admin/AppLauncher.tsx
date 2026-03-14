@@ -4,6 +4,7 @@ import { ArrowLeft, HelpCircle, LayoutDashboard, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
 
 // Color map per app key for icon tinting
 const APP_COLORS: Record<string, string> = {
@@ -38,10 +39,18 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
   const isMobile = useIsMobile();
   const { hasAppAccess } = useRolePermissions();
 
-  const visibleApps = Object.values(ADMIN_APPS).filter((app) =>
-  hasAppAccess(app.featurePrefix)
-  );
-  const launchableApps = [LAUNCH_PAD_APP, ...visibleApps];
+  const visibleApps = ACTIVE_NAVIGATION_REGISTRY
+    .filter((item) => item.group === "launcher")
+    .map((item) => {
+      if (!item.appKey) {
+        return LAUNCH_PAD_APP;
+      }
+      return ADMIN_APPS[item.appKey];
+    })
+    .filter((app, index, arr) => arr.findIndex((candidate) => candidate.key === app.key) === index)
+    .filter((app) => ("featurePrefix" in app ? hasAppAccess(app.featurePrefix) : true));
+
+  const launchableApps = visibleApps;
 
   useEffect(() => {
     if (!open) return;

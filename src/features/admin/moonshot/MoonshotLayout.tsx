@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  AlertCircle, BarChart3, Bell, Book, Calendar, CheckSquare,
-  ChevronLeft, ChevronRight, FileText, Grid, Home, Menu, Rocket, Settings, Target, Wrench,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  Rocket,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import AppLauncher from "@/components/admin/AppLauncher";
@@ -12,44 +15,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMoonshotStore } from "./lib/store";
+import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 
-type NavItem = {
-  label: string;
-  route?: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  children?: { label: string; route: string }[];
-};
+const moonshotApp = ADMIN_APPS.moonshot;
 
-const navItems: NavItem[] = [
-  { label: "Dashboard", route: "/admin/moonshot/dashboard", icon: Home },
-  { label: "My Workspace", route: "/admin/moonshot/workspace", icon: Grid },
-  {
-    label: "Meetings", route: "/admin/moonshot/meetings", icon: Calendar,
-    children: [
-      { label: "All Meetings", route: "/admin/moonshot/meetings" },
-      { label: "New Meeting", route: "/admin/moonshot/meetings/new" },
-    ],
-  },
-  { label: "Scorecards", route: "/admin/moonshot/scorecards", icon: BarChart3 },
-  { label: "Quarterly Rocks", route: "/admin/moonshot/rocks", icon: Target },
-  { label: "To-Dos", route: "/admin/moonshot/todos", icon: CheckSquare },
-  { label: "Issues", route: "/admin/moonshot/issues", icon: AlertCircle },
-  { label: "Business Plan", route: "/admin/moonshot/business-plan", icon: FileText },
-  {
-    label: "Tools", route: "/admin/moonshot/tools", icon: Wrench,
-    children: [
-      { label: "Org Chart", route: "/admin/moonshot/tools/org-chart" },
-      { label: "1:1s", route: "/admin/moonshot/tools/one-on-ones" },
-      { label: "Right Person Right Seat", route: "/admin/moonshot/tools/right-person-right-seat" },
-    ],
-  },
-];
-
-const footerItems = [
-  { label: "Resources", route: "/admin/moonshot/resources", icon: Book },
-  { label: "Settings", route: "/admin/moonshot/settings", icon: Settings },
-  { label: "Give Feedback", route: "/admin/moonshot/feedback" },
-];
+const navItems = moonshotApp.sidebarItems.filter((item) => item.route !== "/admin/moonshot/resources" && item.route !== "/admin/moonshot/settings");
+const footerItems = moonshotApp.sidebarItems.filter((item) => item.route === "/admin/moonshot/resources" || item.route === "/admin/moonshot/settings");
 
 const isActive = (pathname: string, route?: string) =>
   route ? pathname === route || pathname.startsWith(`${route}/`) : false;
@@ -109,7 +80,7 @@ export default function MoonshotLayout() {
     );
   }
 
-  const NavButton = ({ item, isFooter = false }: { item: NavItem | typeof footerItems[number]; isFooter?: boolean }) => {
+  const NavButton = ({ item }: { item: (typeof moonshotApp.sidebarItems)[number] }) => {
     const Icon = item.icon;
     const active = isActive(pathname, item.route);
 
@@ -168,19 +139,7 @@ export default function MoonshotLayout() {
             {navItems.map((item) => (
               <div key={item.label}>
                 <NavButton item={item} />
-                {!collapsed && item.children && (
-                  <div className="pl-8 mt-1 space-y-1">
-                    {item.children.map((child) => (
-                      <button
-                        key={child.route}
-                        onClick={() => { navigate(child.route); setOpen(false); }}
-                        className={`w-full text-left text-xs rounded-md px-2 py-1.5 transition ${isActive(pathname, child.route) ? "bg-[#14b8a6]" : "text-white/90 hover:bg-[#14b8a6]"}`}
-                      >
-                        {child.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+
               </div>
             ))}
           </nav>
@@ -188,7 +147,7 @@ export default function MoonshotLayout() {
           {/* Footer */}
           <div className={`border-t border-white/20 ${collapsed ? "p-1.5" : "p-3"} space-y-1`}>
             {footerItems.map((item) => (
-              <NavButton key={item.label} item={item} isFooter />
+              <NavButton key={item.label} item={item} />
             ))}
           </div>
 

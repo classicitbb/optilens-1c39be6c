@@ -16,6 +16,7 @@ import AdminOnlyRoute from "./components/admin/AdminOnlyRoute";
 import AccountLayout from "./components/account/AccountLayout";
 import GlobalErrorLogger from "./components/GlobalErrorLogger";
 import CookieConsentBanner from "./components/CookieConsentBanner";
+import { LEGACY_REDIRECTS } from "@/config/routeRegistry";
 
 // Lazy-loaded pages for code-splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -165,11 +166,11 @@ const App = () => (
           <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
           <Routes>
             <Route element={<CustomerShell />}>
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute>} />
-              <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+              <Route path="/knowledge" element={<Knowledge />} />
               <Route path="/profile/*" element={<ProtectedRoute><AccountLayout /></ProtectedRoute>}>
                 <Route index element={<Profile />} />
                 <Route path="account" element={<MyAccountSection />} />
@@ -179,15 +180,16 @@ const App = () => (
                 <Route path="helpdesk" element={<HelpdeskTicketsSection />} />
                 <Route path="pricelists" element={<AssignedPricelistsSection />} />
               </Route>
-              <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
+              {LEGACY_REDIRECTS.filter((route) => route.path === "/orders").map((route) => (
+                <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+              ))}
               <Route path="/legal/:slug" element={<LegalPage />} />
-              <Route path="/privacy-policy" element={<Navigate to="/legal/privacy-policy" replace />} />
-              <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
-              <Route path="/terms-of-use" element={<Navigate to="/legal/terms" replace />} />
-              <Route path="/cookie-policy" element={<Navigate to="/legal/cookie-policy" replace />} />
-              <Route path="/disclaimer" element={<Navigate to="/legal/disclaimer" replace />} />
-              <Route path="/accessibility" element={<Navigate to="/legal/accessibility" replace />} />
-              <Route path="/lenses" element={<Navigate to="/lenses/lens-types" replace />} />
+              {LEGACY_REDIRECTS.filter((route) => ["/privacy-policy", "/terms", "/terms-of-use", "/cookie-policy", "/disclaimer", "/accessibility"].includes(route.path)).map((route) => (
+                <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+              ))}
+              {LEGACY_REDIRECTS.filter((route) => route.path === "/lenses").map((route) => (
+                <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+              ))}
               <Route path="/lenses/lens-types" element={<LensDesignGuidePage />} />
               <Route path="/lenses/progressive" element={<ProgressivePage />} />
               <Route path="/lenses/office-occupational" element={<OfficeOccupationalPage />} />
@@ -200,15 +202,23 @@ const App = () => (
               <Route path="/lenses/materials" element={<MaterialsPage />} />
               <Route path="/lenses/thickness-chart" element={<ThicknessChartPage />} />
               <Route path="/coatings/mirror" element={<MirrorFinishPage />} />
-              <Route path="/coatings/mirrors" element={<Navigate to="/coatings/mirror" replace />} />
-              <Route path="/mirror-finish-guide" element={<Navigate to="/coatings/mirror" replace />} />
+              {LEGACY_REDIRECTS.filter((route) => route.path === "/coatings/mirrors").map((route) => (
+                <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+              ))}
+              {LEGACY_REDIRECTS.filter((route) => route.path === "/mirror-finish-guide").map((route) => (
+                <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+              ))}
               <Route path="/coatings/ultraclear-ar" element={<UltraClearARPage />} />
               <Route path="/coatings/blueblock-ar" element={<BlueBlockARPage />} />
               <Route path="/coatings/scratch-resistant" element={<ScratchResistantPage />} />
               <Route path="/coatings/uv-shield" element={<UVShieldPage />} />
               <Route path="/coatings/hydrophobic-oleophobic" element={<HydrophobicOleophobicPage />} />
-              <Route path="/coatings/how-ar-coating-works" element={<Navigate to="/knowledge#how-ar-coating-works" replace />} />
-              <Route path="/coatings/caring-for-coated-lenses" element={<Navigate to="/knowledge#caring-for-coated-lenses" replace />} />
+              {LEGACY_REDIRECTS.filter((route) => route.path === "/coatings/how-ar-coating-works").map((route) => (
+                <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+              ))}
+              {LEGACY_REDIRECTS.filter((route) => route.path === "/coatings/caring-for-coated-lenses").map((route) => (
+                <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+              ))}
               <Route path="/for-professionals" element={<ProfessionalsPage />} />
               <Route path="/patients" element={<PatientsPage />} />
               <Route path="/patients/night-driving-aids" element={<NightDrivingAidsPage />} />
@@ -222,14 +232,14 @@ const App = () => (
               <Route path="/return-policy" element={<LegalPage />} />
 
               {/* ZenVue integrated feature pages */}
-              <Route path="/zenvue" element={<ProtectedRoute><ZenvueHome /></ProtectedRoute>} />
-              <Route path="/zenvue/brilliance" element={<ProtectedRoute><ZenvueBrilliance /></ProtectedRoute>} />
-              <Route path="/zenvue/single-vision" element={<ProtectedRoute><ZenvueSingleVision /></ProtectedRoute>} />
-              <Route path="/zenvue/sundun" element={<ProtectedRoute><ZenvueSunDun /></ProtectedRoute>} />
-              <Route path="/zenvue/darkun" element={<ProtectedRoute><ZenvueDarkun /></ProtectedRoute>} />
+              <Route path="/zenvue" element={<ZenvueHome />} />
+              <Route path="/zenvue/brilliance" element={<ZenvueBrilliance />} />
+              <Route path="/zenvue/single-vision" element={<ZenvueSingleVision />} />
+              <Route path="/zenvue/sundun" element={<ZenvueSunDun />} />
+              <Route path="/zenvue/darkun" element={<ZenvueDarkun />} />
               <Route path="/photochromic" element={<PhotochromicGuidePage />} />
-              <Route path="/zenvue/compare" element={<ProtectedRoute><ZenvueCompare /></ProtectedRoute>} />
-              <Route path="/zenvue/wholesale" element={<ProtectedRoute><ZenvueWholesale /></ProtectedRoute>} />
+              <Route path="/zenvue/compare" element={<ZenvueCompare />} />
+              <Route path="/zenvue/wholesale" element={<ZenvueWholesale />} />
             </Route>
 
               {/* Admin — all apps share AdminLayout */}

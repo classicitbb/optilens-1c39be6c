@@ -1,7 +1,7 @@
 import {
   DollarSign, ShoppingCart, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
   Package, Eye, Layers, BoxSelect, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal,
-  FileEdit, ShoppingBag, ClipboardList,
+  FileEdit,
   Contact, Tags, Factory,
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
   Kanban, CalendarCheck,
@@ -53,8 +53,6 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Proposals', route: '/admin/sales/proposals', icon: FileEdit },
       { label: 'Quotations', route: '/admin/sales/quotations', icon: FileEdit },
-      { label: 'Web Orders', route: '/admin/sales/web-orders', icon: ShoppingBag },
-      { label: 'RX Orders', route: '/admin/sales/rx-orders', icon: ClipboardList },
     ] satisfies SidebarItem[],
   },
   contacts: {
