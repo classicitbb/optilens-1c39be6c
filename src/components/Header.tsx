@@ -44,7 +44,6 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Anti-Fatigue", description: "Digital comfort with near support boost", to: "/lenses/anti-fatigue" },
           { label: "Single Vision", description: "Everyday distance and near correction", to: "/lenses/single-vision" },
           { label: "Bifocals", description: "Classic bifocal options and freeform alternatives", to: "/lenses/bifocals" },
-          { label: "Myopia Control", description: "Evidence-based options for slowing myopia progression", to: "/lenses/myopia-control" },
         ],
       },
       {
@@ -54,6 +53,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
           { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
           { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
+          { label: "Myopia Control", description: "Evidence-based options for slowing myopia progression", to: "/lenses/myopia-control" },
         ],
       },
       {

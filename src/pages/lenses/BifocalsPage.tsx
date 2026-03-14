@@ -3,42 +3,49 @@ import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, CheckCircle2, Layers, SplitSquareHorizontal, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Layers,
+  SplitSquareHorizontal,
+  Sparkles,
+  Cpu,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 const WHY_PATIENTS_ASK = [
   "What exactly is a bifocal lens and who is it for?",
-  "Why do traditional flat-top bifocals feel abrupt for some wearers?",
-  "Is there a modern bifocal option before jumping to progressives?",
-  "Can I still get a visible segment if I prefer it?",
+  "Are conventional flat-top bifocals still a good option?",
+  "What has changed with modern digital/freeform bifocals?",
+  "Can we get better optics without losing bifocal simplicity?",
 ];
 
 const COMPARISON = [
   {
-    title: "Traditional Flat-Top Bifocals",
+    title: "Conventional Flat-Top Bifocals",
     icon: <SplitSquareHorizontal className="h-5 w-5" />,
     points: [
-      "Visible segment line with a clear distance zone and dedicated near segment.",
-      "Reliable and familiar for experienced bifocal users.",
-      "Can produce image jump at the segment edge and narrower transition comfort.",
+      "A trusted, practical, and cost-effective lens format with clear distance and near separation.",
+      "Many long-time wearers appreciate the familiar segment and straightforward visual behavior.",
+      "That said, this legacy geometry is less versatile than modern digital options and can feel abrupt at the segment edge.",
     ],
   },
   {
-    title: "Freeform Endless Bifocal",
+    title: "Endless Bifocal (Digital Freeform)",
     icon: <Sparkles className="h-5 w-5" />,
     points: [
-      "Built from modern freeform surfacing and digital optimization for smoother visual behavior.",
-      "Maintains bifocal functionality while improving balance, personalization, and overall comfort.",
-      "Designed as a fresh alternative when wearers want bifocal simplicity with better lens performance.",
+      "Entirely digital, point-by-point freeform optics provide dramatically improved lens performance.",
+      "Built to be more usable for real patients day to day, with smoother visual behavior and better functional comfort.",
+      "Available across materials, treatments, and wearing needs—making it a far more versatile modern bifocal platform.",
     ],
   },
 ];
 
 const FITTING_GUIDANCE = [
-  "Confirm visual priorities first: driving, reading, phone, paperwork, and work distance.",
-  "Measure fitting height carefully; segment placement still drives success.",
-  "Discuss adaptation expectations honestly, especially for patients coming from single-vision readers.",
-  "If a patient needs more intermediate support, compare progressive or office designs as alternatives.",
+  "Start with what the patient actually does all day (driving, reading, computer, phones, paperwork).",
+  "Present flat-top bifocals positively as proven and familiar—but frame them as the older generation of bifocal optics.",
+  "Position digital freeform bifocals as the modern standard when better optics and broader versatility are the goal.",
+  "If intermediate demands are high, compare office or progressive designs during the same conversation.",
 ];
 
 const BifocalsPage = () => {
@@ -49,20 +56,19 @@ const BifocalsPage = () => {
       <main className="pb-20 pt-24">
         <section className="container mx-auto max-w-6xl px-4 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-accent">They Ask, You Answer</p>
-          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">Bifocals: Classic Design, Modern Freeform Upgrade</h1>
+          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">Bifocals: Trusted Classic, Better Digital Future</h1>
           <p className="mt-4 max-w-3xl text-lg text-muted-foreground">
-            Bifocals remain a practical option for patients who want one lens with dedicated distance and near vision.
-            Today, freeform designs like Endless Bifocal offer a new way to think about bifocals beyond the old
-            flat-top-only conversation.
+            Conventional flat-top bifocals are still a valid, reliable option. But today’s fully digital freeform
+            bifocals give patients a major optical upgrade—without giving up the familiar bifocal concept.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant="outline">Bifocal Education</Badge>
-            <Badge variant="outline">Freeform Alternative</Badge>
+            <Badge variant="outline">Digital Freeform Optics</Badge>
           </div>
         </section>
 
         <section className="container mx-auto mt-14 max-w-6xl px-4 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground">What patients usually ask first</h2>
+          <h2 className="text-2xl font-bold text-foreground">What patients and dispensers ask first</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {WHY_PATIENTS_ASK.map((question) => (
               <Card key={question}>
@@ -77,10 +83,10 @@ const BifocalsPage = () => {
 
         <section className="mt-20 bg-muted/40 py-16">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
-            <h2 className="text-2xl font-bold text-foreground">Flat-top vs freeform bifocals</h2>
+            <h2 className="text-2xl font-bold text-foreground">Conventional flat-top vs digital freeform bifocals</h2>
             <p className="mt-2 max-w-3xl text-muted-foreground">
-              Traditional flat-top designs still work well for many wearers, but freeform bifocals are worth discussing
-              whenever comfort, smoother viewing behavior, or personalization is a priority.
+              The right conversation is not old vs bad. It is proven legacy design vs modern digital performance.
+              Flat-tops remain meaningful; digital freeform is simply the more advanced and adaptable bifocal path.
             </p>
             <div className="mt-8 grid gap-6 md:grid-cols-2">
               {COMPARISON.map((item) => (
@@ -106,6 +112,24 @@ const BifocalsPage = () => {
         </section>
 
         <section className="container mx-auto mt-20 max-w-6xl px-4 lg:px-8">
+          <Card className="border-border">
+            <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-start">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Cpu className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">Why Endless Bifocal changes the category</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Endless Bifocal is digitally surfaced from the start. That means the optics are computed and produced
+                  with higher precision than conventional molded legacy structures—delivering a clearer, more usable
+                  bifocal experience across modern materials and configurations.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="container mx-auto mt-20 max-w-6xl px-4 lg:px-8">
           <h2 className="text-2xl font-bold text-foreground">How to guide the conversation in practice</h2>
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {FITTING_GUIDANCE.map((item) => (
@@ -120,14 +144,14 @@ const BifocalsPage = () => {
         <section className="container mx-auto mt-16 max-w-6xl px-4 lg:px-8">
           <Card className="border-border">
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold text-foreground">Sources and transparency</h2>
+              <h2 className="text-xl font-semibold text-foreground">Source and transparency</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                This page was developed using guidance from the IOT Endless Bifocal overview and translated into a
-                patient-first, decision-support format.
+                This page uses guidance from IOT’s Endless Bifocal information and reframes it into a practical,
+                patient-first decision guide.
               </p>
               <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
                 <li>
-                  IOT Lenses — Endless Bifocal: {" "}
+                  IOT Lenses — Endless Bifocal:{" "}
                   <a
                     href="https://iotlenses.com/Discover-our-lenses/Bifocal-solutions/Endless-Bifocal.html"
                     target="_blank"
