@@ -3,69 +3,79 @@ import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link } from "react-router-dom";
 import { useLegalPage } from "@/hooks/useContentArticles";
 
+type FooterLink = {
+  label: string;
+  to?: string;
+  href?: string;
+};
+
 const footerColumns = [
-{
-  title: "Lenses",
-  links: [
-  { label: "ZenVue Brilliance™", to: "/zenvue/brilliance" },
-  { label: "ZenVue Single Vision", to: "/zenvue/single-vision" },
-  { label: "Office / Occupational", to: "/lenses/office-occupational" },
-  { label: "Anti-Fatigue", to: "/lenses/anti-fatigue" },
-  { label: "Bifocals", to: "/lenses/bifocals" },
-  { label: "Myopia Control", to: "/lenses/myopia-control" },
-  { label: "Blue Filter", to: "/lenses/blue-filter" },
-  { label: "Lens Design Guide", to: "/lenses/lens-types" }]
+  {
+    title: "Company",
+    links: [
+      { label: "About", to: "/#about" },
+      { label: "Professionals", to: "/for-professionals" },
+      { label: "Patients", to: "/patients" },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { label: "Contact", to: "/#contact" },
+      { label: "Tracking", href: "https://tracking.classicvisions.net" },
+      { label: "LabLink", href: "https://lablink.classicvisions.net" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy Policy", to: "/privacy-policy" },
+      { label: "Terms of Use", to: "/terms" },
+      { label: "Returns", to: "/professionals/returns-replacements" },
+    ],
+  },
+  {
+    title: "Social",
+    links: [
+      { label: "Facebook", href: "https://facebook.com/classicvisions" },
+      { label: "Instagram", href: "https://instagram.com/classicvisions" },
+    ],
+  },
+  {
+    title: "Utility",
+    links: [{ label: "Sitemap", href: "/sitemap.xml" }],
+  },
+] as const;
 
-},
-{
-  title: "Coatings & Sun",
-  links: [
-  { label: "Mirror & Finish Guide", to: "/mirror-finish-guide" },
-  { label: "ZenVue SunDun™", to: "/zenvue/sundun" },
-  { label: "ZenVue Darkun™", to: "/zenvue/darkun" },
-  { label: "ZenVue Compare", to: "/zenvue/compare" },
-  { label: "Knowledge Articles", to: "/knowledge" }]
+const FooterColumnLink = ({ link }: { link: FooterLink }) => {
+  if (link.href) {
+    const isExternal = link.href.startsWith("http");
+    return (
+      <a
+        key={link.label}
+        href={link.href}
+        className="text-sm leading-snug text-primary-foreground/70 transition-colors hover:text-primary-foreground"
+        {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      >
+        {link.label}
+      </a>
+    );
+  }
 
-},
-{
-  title: "Professionals",
-  links: [
-  { label: "Overview", to: "/for-professionals" },
-  { label: "Lab Process", to: "/professionals/lab-process-overview" },
-  { label: "Lens Ordering Tips", to: "/professionals/lens-ordering-tips" },
-  { label: "Dispensing Tips", to: "/professionals/dispensing-tips" },
-  { label: "Wholesale Program", to: "/zenvue/wholesale" }]
+  if (link.to) {
+    return (
+      <Link
+        key={link.label}
+        to={link.to}
+        className="text-sm leading-snug text-primary-foreground/70 transition-colors hover:text-primary-foreground"
+      >
+        {link.label}
+      </Link>
+    );
+  }
 
-},
-{
-  title: "Patients",
-  links: [
-  { label: "Understanding Lenses", to: "/patients#understanding-lenses" },
-  { label: "Find Care", to: "/patients#find-care" },
-  { label: "Vision Tips", to: "/patients#vision-tips" },
-  { label: "Order Lenses", to: "/store" }]
-
-},
-{
-  title: "Legal",
-  links: [
-  { label: "Terms of Use", to: "/legal/terms" },
-  { label: "Privacy Policy", to: "/legal/privacy-policy" },
-  { label: "Cookie Policy", to: "/legal/cookie-policy" },
-  { label: "Return Policy", to: "/legal/return-policy" },
-  { label: "Accessibility", to: "/legal/accessibility" }]
-
-},
-{
-  title: "Company",
-  links: [
-  { label: "Our Story", to: "/#about" },
-  { label: "News & Articles", to: "/knowledge" },
-  { label: "Contact Us", to: "/#contact" },
-  { label: "ZenVue Hub", to: "/zenvue" }]
-
-}] as
-const;
+  return null;
+};
 
 const Footer = () => {
   const { data: copyrightArticle } = useLegalPage("copyright");
@@ -88,20 +98,12 @@ const Footer = () => {
         </div>
 
         {/* Link columns — responsive grid */}
-        <div className="grid gap-8 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-6">
           {footerColumns.map((column) =>
-          <div key={column.title} className="space-y-3">
+            <div key={column.title} className="space-y-3">
               <h4 className="text-sm font-semibold uppercase tracking-wider">{column.title}</h4>
               <nav className="flex flex-col gap-2" aria-label={`${column.title} links`}>
-                {column.links.map((link) =>
-              <Link
-                key={link.label}
-                to={link.to}
-                className="text-sm leading-snug text-primary-foreground/70 transition-colors hover:text-primary-foreground">
-                
-                    {link.label}
-                  </Link>
-              )}
+                {column.links.map((link) => <FooterColumnLink key={link.label} link={link} />)}
               </nav>
             </div>
           )}
