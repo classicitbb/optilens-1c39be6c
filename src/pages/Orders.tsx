@@ -34,9 +34,13 @@ const Orders = () => {
       case "completed":
         return "bg-green-500/10 text-green-500 border-green-500/20";
       case "pending":
+      case "confirmed":
+      case "processing":
         return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
       case "cancelled":
         return "bg-red-500/10 text-red-500 border-red-500/20";
+      case "shipped":
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -91,7 +95,7 @@ const Orders = () => {
                         </CardTitle>
                         <CardDescription className="mt-1 flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {format(new Date(order.created_at), "PPP 'at' p")}
+                          {format(new Date(order.createdAt), "PPP 'at' p")}
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-3">
@@ -103,7 +107,7 @@ const Orders = () => {
                             order.status.slice(1)}
                         </Badge>
                         <span className="text-xl font-bold text-foreground">
-                          ${order.total_amount.toFixed(2)}
+                          ${order.totalAmount.toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -112,8 +116,8 @@ const Orders = () => {
                     <Accordion type="single" collapsible>
                       <AccordionItem value="items" className="border-none">
                         <AccordionTrigger className="py-2 text-sm hover:no-underline">
-                          View {order.items?.length || 0} item
-                          {(order.items?.length || 0) !== 1 ? "s" : ""}
+                          View {order.items.length} item
+                          {order.items.length !== 1 ? "s" : ""}
                         </AccordionTrigger>
                         <AccordionContent>
                           <Table>
@@ -132,13 +136,13 @@ const Orders = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {order.items?.map((item) => (
+                              {order.items.map((item) => (
                                 <TableRow key={item.id}>
                                   <TableCell className="font-medium">
-                                    {item.product_name}
+                                    {item.productName}
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    ${item.product_price.toFixed(2)}
+                                    ${item.unitPrice.toFixed(2)}
                                   </TableCell>
                                   <TableCell className="text-right">
                                     {item.quantity}
@@ -146,7 +150,7 @@ const Orders = () => {
                                   <TableCell className="text-right">
                                     $
                                     {(
-                                      item.product_price * item.quantity
+                                      item.unitPrice * item.quantity
                                     ).toFixed(2)}
                                   </TableCell>
                                 </TableRow>
