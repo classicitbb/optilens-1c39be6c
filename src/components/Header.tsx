@@ -43,6 +43,8 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
           { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
           { label: "Anti-Fatigue", description: "Digital comfort with near support boost", to: "/lenses/anti-fatigue" },
           { label: "Single Vision", description: "Everyday distance and near correction", to: "/lenses/single-vision" },
+          { label: "Bifocals", description: "Classic bifocal options and freeform alternatives", to: "/lenses/bifocals" },
+          { label: "Myopia Control", description: "Evidence-based options for slowing myopia progression", to: "/lenses/myopia-control" },
         ],
       },
       {
@@ -204,6 +206,8 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "office-occupational": "Office / Occupational",
   "anti-fatigue": "Anti-Fatigue",
   "single-vision": "Single Vision",
+  bifocals: "Bifocals",
+  "myopia-control": "Myopia Control",
   "blue-filter": "Blue Filter",
   "tints-fashion-colors": "Tints & Fashion Colors",
   "thickness-chart": "Thickness Chart",
