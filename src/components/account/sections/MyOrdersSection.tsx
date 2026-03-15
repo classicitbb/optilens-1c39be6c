@@ -66,7 +66,7 @@ const MyOrdersSection = () => {
                     <Badge variant="outline" className={getStatusColor(order.status)}>
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </Badge>
-                    <span className="text-xl font-bold text-foreground">${order.total_amount.toFixed(2)}</span>
+                    <span className="text-xl font-bold text-foreground">${order.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </CardHeader>
