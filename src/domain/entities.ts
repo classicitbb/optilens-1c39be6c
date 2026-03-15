@@ -63,9 +63,8 @@ export interface PriceListEntity extends CanonicalRecord {
   currencyCode: string;
 }
 
-export interface QuoteEntity extends CanonicalRecord {
+export interface QuoteEntity extends CanonicalRecord<QuoteStatus> {
   accountId: string;
-  status: QuoteStatus;
   totalAmount: number;
 }
 
