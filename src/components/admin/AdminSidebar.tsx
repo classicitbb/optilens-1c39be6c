@@ -52,27 +52,30 @@ const AdminSidebar = () => {
   const integrationStatusLabel =
     integrationStatus === "connected" ? "Connected" : integrationStatus === "error" ? "Error" : "Not configured";
 
-  const sidebarItems: SidebarNavItem[] =
-    activeApp?.sidebarItems.map((item) => ({
-      label: item.label,
-      to: item.route,
-      icon: item.icon,
-      badge:
-        item.route === "/admin/settings/integrations" ? (
-          <Badge
-            variant="outline"
-            className={`ml-auto text-[10px] py-0 h-4 ${
-              integrationStatus === "connected"
-                ? "text-green-400 border-green-400/50"
-                : integrationStatus === "error"
-                  ? "text-red-400 border-red-400/50"
-                  : ""
-            }`}
-          >
-            {integrationStatusLabel}
-          </Badge>
-        ) : null,
-    })) ?? [];
+  const sidebarItems: SidebarNavItem[] = useMemo(
+    () =>
+      activeApp?.sidebarItems.map((item) => ({
+        label: item.label,
+        to: item.route,
+        icon: item.icon,
+        badge:
+          item.route === "/admin/settings/integrations" ? (
+            <Badge
+              variant="outline"
+              className={`ml-auto text-[10px] py-0 h-4 ${
+                integrationStatus === "connected"
+                  ? "text-green-400 border-green-400/50"
+                  : integrationStatus === "error"
+                    ? "text-red-400 border-red-400/50"
+                    : ""
+              }`}
+            >
+              {integrationStatusLabel}
+            </Badge>
+          ) : null,
+      })) ?? [],
+    [activeApp, integrationStatus, integrationStatusLabel],
+  );
 
   return (
     <aside

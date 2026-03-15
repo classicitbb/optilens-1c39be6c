@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
@@ -159,13 +160,11 @@ export const useRolePermissions = () => {
   });
 
   /** Permissions for the current user's role */
-  const myPermissions = allPermissions.filter((p) => p.role === effectiveRole);
+  const myPermissions = useMemo(() => allPermissions.filter((p) => p.role === effectiveRole), [allPermissions, effectiveRole]);
 
-  const canView = (feature: Feature): boolean =>
-    myPermissions.some((p) => p.feature === feature && p.can_view);
+  const canView = useCallback((feature: Feature): boolean => myPermissions.some((p) => p.feature === feature && p.can_view), [myPermissions]);
 
-  const canEditFeature = (feature: Feature): boolean =>
-    myPermissions.some((p) => p.feature === feature && p.can_edit);
+  const canEditFeature = useCallback((feature: Feature): boolean => myPermissions.some((p) => p.feature === feature && p.can_edit), [myPermissions]);
 
   const updatePermission = useMutation({
     mutationFn: async ({
@@ -187,14 +186,12 @@ export const useRolePermissions = () => {
   });
 
   /** Check if user has access to at least one feature under an app's featurePrefix */
-  const hasAppAccess = (featurePrefix: string): boolean => {
-    // Admin always has access to everything
+  const hasAppAccess = useCallback((featurePrefix: string): boolean => {
     if (effectiveRole === "admin") return true;
-    // Check if any permission with a matching feature prefix grants view access
     return myPermissions.some(
-      (p) => (p.feature === featurePrefix || p.feature.startsWith(featurePrefix + "-")) && p.can_view
+      (p) => (p.feature === featurePrefix || p.feature.startsWith(featurePrefix + "-")) && p.can_view,
     );
-  };
+  }, [effectiveRole, myPermissions]);
 
   return {
     allPermissions,
