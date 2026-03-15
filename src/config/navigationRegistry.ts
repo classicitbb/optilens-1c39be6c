@@ -27,3 +27,11 @@ export const NAVIGATION_REGISTRY: NavigationDefinition[] = [
 ];
 
 export const ACTIVE_NAVIGATION_REGISTRY = NAVIGATION_REGISTRY.filter((item) => item.status === "active");
+
+
+export const NAVIGATION_REGISTRY_BY_CONTEXT = new Map(
+  ["public-site", "customer-portal", "operations-console", "admin-console", "moonshot"].map((context) => [
+    context,
+    ACTIVE_NAVIGATION_REGISTRY.filter((item) => item.context === context),
+  ]),
+);
