@@ -1,7 +1,6 @@
 import type { AssistantIntent, AssistantRequest, TicketDraft } from "../types";
 
 const resolveQueue = (request: AssistantRequest): TicketDraft["queue"] => {
-  if (request.role === "moonshot") return "moonshot";
   if (request.role === "public") return "public-support";
   if (request.role === "customer") return "customer-success";
   return "internal-ops";

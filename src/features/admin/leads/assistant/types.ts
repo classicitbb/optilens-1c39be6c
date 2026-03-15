@@ -1,4 +1,4 @@
-export type AssistantRole = "public" | "customer" | "staff" | "admin" | "moonshot";
+export type AssistantRole = "public" | "customer" | "staff" | "admin";
 
 export type AssistantIntent =
   | "product_lookup"
@@ -19,7 +19,7 @@ export type SourceTier = "approved_internal" | "site_knowledge" | "controlled_ex
 export interface AssistantRequest {
   message: string;
   role: AssistantRole;
-  routeGroup: "public" | "account" | "admin" | "moonshot";
+  routeGroup: "public" | "account" | "admin";
   userId?: string;
   sessionId?: string;
 }
@@ -69,7 +69,7 @@ export interface SourceAttribution {
 }
 
 export interface TicketDraft {
-  queue: "public-support" | "customer-success" | "internal-ops" | "moonshot";
+  queue: "public-support" | "customer-success" | "internal-ops";
   subtype: HelpdeskTicketSubtype;
   summary: string;
   context: string;
