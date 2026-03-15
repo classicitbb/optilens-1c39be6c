@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BuildCustomPackageButton from "@/features/admin/catalog-publisher-v2/components/BuildCustomPackageButton";
 import { buildInstagramPostPackPrompt } from "@/features/admin/leads/hooks/useInstagramPostPack";
+import { ASSISTANT_ROUTE_DOMAINS, KNOWLEDGE_ASSISTANT_ARCHITECTURE } from "@/features/assistant/knowledgeAssistantArchitecture";
 
 const CTA_TEMPLATES = {
   owner_ceo: [
@@ -19,6 +20,7 @@ const CTA_TEMPLATES = {
 
 const LeadsAiAssistantPage = () => {
   const prompt = buildInstagramPostPackPrompt("Sample Optical Store", "Barbados");
+  const { guardrails, moduleBoundaries, roleProfiles, sourcePrecedence } = KNOWLEDGE_ASSISTANT_ARCHITECTURE;
 
   return (
     <div className="space-y-4">
@@ -53,6 +55,56 @@ const LeadsAiAssistantPage = () => {
             {CTA_TEMPLATES.manager.map((template) => (
               <p key={template} className="border rounded p-2">{template}</p>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Role-aware knowledge assistant architecture</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-xs">
+          <div className="space-y-2">
+            <p className="font-medium">Roles + answer modes</p>
+            {roleProfiles.map((profile) => (
+              <div key={profile.role} className="border rounded p-2 space-y-1">
+                <p className="font-medium">{profile.label}</p>
+                <p>Domains: {profile.routeDomains.join(", ")}</p>
+                <p>Auth required: {profile.authRequired ? "Yes" : "No"}</p>
+                <p>Modes: {profile.allowedAnswerModes.join(", ")}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-medium">Composable module boundaries</p>
+            {moduleBoundaries.map((boundary) => (
+              <div key={boundary.id} className="border rounded p-2 space-y-1">
+                <p className="font-medium">{boundary.id}</p>
+                <p>Runtime: {boundary.owner}</p>
+                <p>{boundary.responsibility}</p>
+                <p>Inputs: {boundary.inputs.join(" • ")}</p>
+                <p>Outputs: {boundary.outputs.join(" • ")}</p>
+                {boundary.notes ? <p>Notes: {boundary.notes}</p> : null}
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-medium">Source precedence rules</p>
+            {sourcePrecedence.map((rule) => (
+              <p key={rule.tier} className="border rounded p-2">
+                {rule.priority}. {rule.tier}: {rule.rule}
+              </p>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-medium">Guardrails</p>
+            {guardrails.map((guardrail) => (
+              <p key={guardrail} className="border rounded p-2">{guardrail}</p>
+            ))}
+            <p className="text-[11px] text-muted-foreground">Known route domains preserved from shell registry: {ASSISTANT_ROUTE_DOMAINS.join(", ")}</p>
           </div>
         </CardContent>
       </Card>
