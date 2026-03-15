@@ -102,9 +102,8 @@ export interface PaymentEntity extends CanonicalRecord<PaymentStatus> {
   amount: number;
 }
 
-export interface TicketEntity extends CanonicalRecord {
+export interface TicketEntity extends CanonicalRecord<TicketStatus> {
   subject: string;
-  status: TicketStatus;
 }
 
 export interface DocumentEntity extends CanonicalRecord {
