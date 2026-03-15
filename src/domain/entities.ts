@@ -82,9 +82,8 @@ export interface OrderEntity extends CanonicalRecord<OrderStatus> {
   items: OrderLineEntity[];
 }
 
-export interface JobEntity extends CanonicalRecord {
+export interface JobEntity extends CanonicalRecord<JobStatus> {
   orderId?: string;
-  status: JobStatus;
   summary: string;
 }
 
