@@ -89,10 +89,10 @@ const MyOrdersSection = () => {
                         <TableBody>
                           {order.items?.map((item) => (
                             <TableRow key={item.id}>
-                              <TableCell className="font-medium">{item.product_name}</TableCell>
-                              <TableCell className="text-right">${item.product_price.toFixed(2)}</TableCell>
+                              <TableCell className="font-medium">{item.productName}</TableCell>
+                              <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
                               <TableCell className="text-right">{item.quantity}</TableCell>
-                              <TableCell className="text-right">${(item.product_price * item.quantity).toFixed(2)}</TableCell>
+                              <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
