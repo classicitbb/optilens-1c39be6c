@@ -250,52 +250,31 @@ const HelpdeskTicketsPage = () => {
               </PopoverTrigger>
               <PopoverContent
                 className="w-80 p-0"
-                align="end"
+                align="center"
                 sideOffset={8}
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <div className="p-4 space-y-3">
-                  <p className="text-sm font-medium text-foreground">Create Ticket</p>
+                  <p className="text-sm font-medium text-foreground text-center">Create Ticket</p>
 
-                  {/* 0: Title */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Title *</Label>
-                    <Input
-                      ref={setFieldRef(0) as any}
-                      value={form.title}
-                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                      placeholder="Ticket title"
-                      className="h-8 text-xs"
-                      onKeyDown={handleFieldKeyDown(0) as any}
-                    />
-                  </div>
-
-                  {/* 1: Description */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Description</Label>
-                    <Input
-                      ref={setFieldRef(1) as any}
-                      value={form.description}
-                      onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                      placeholder="Brief description"
-                      className="h-8 text-xs"
-                      onKeyDown={handleFieldKeyDown(1) as any}
-                    />
-                  </div>
-
-                  {/* 2: Ticket Type */}
+                  {/* 0: Type — selecting auto-fills title & description */}
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Type</Label>
                     <Select
                       value={form.ticketTypeId || "__none"}
                       onValueChange={(v) => {
                         const typeId = v === "__none" ? "" : v;
-                        const typeName = ticketTypes.find(t => t.id === typeId)?.name;
-                        setForm((p) => ({ ...p, ticketTypeId: typeId, description: !p.description.trim() && typeName ? typeName : p.description }));
-                        setTimeout(() => focusNext(2), 50);
+                        const typeName = ticketTypes.find(t => t.id === typeId)?.name ?? "";
+                        setForm((p) => ({
+                          ...p,
+                          ticketTypeId: typeId,
+                          title: !p.title.trim() && typeName ? typeName : p.title,
+                          description: !p.description.trim() && typeName ? typeName : p.description,
+                        }));
+                        setTimeout(() => focusNext(0), 50);
                       }}
                     >
-                      <SelectTrigger ref={setFieldRef(2) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(2) as any}>
+                      <SelectTrigger ref={setFieldRef(0) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(0) as any}>
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -305,12 +284,38 @@ const HelpdeskTicketsPage = () => {
                     </Select>
                   </div>
 
-                  {/* 3: Contact */}
+                  {/* 1: Title */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Title *</Label>
+                    <Input
+                      ref={setFieldRef(1) as any}
+                      value={form.title}
+                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                      placeholder="Ticket title"
+                      className="h-8 text-xs"
+                      onKeyDown={handleFieldKeyDown(1) as any}
+                    />
+                  </div>
+
+                  {/* 2: Contact */}
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Contact</Label>
-                    <div ref={setFieldRef(3)} tabIndex={-1} onKeyDown={handleFieldKeyDown(3) as any}>
-                      <ContactPickerSelect value={form.contactId} onValueChange={(v) => { setForm((p) => ({ ...p, contactId: v })); setTimeout(() => focusNext(3), 50); }} placeholder="Contact" />
+                    <div ref={setFieldRef(2)} tabIndex={-1} onKeyDown={handleFieldKeyDown(2) as any}>
+                      <ContactPickerSelect value={form.contactId} onValueChange={(v) => { setForm((p) => ({ ...p, contactId: v })); setTimeout(() => focusNext(2), 50); }} placeholder="Contact" />
                     </div>
+                  </div>
+
+                  {/* 3: Description */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Description</Label>
+                    <Input
+                      ref={setFieldRef(3) as any}
+                      value={form.description}
+                      onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                      placeholder="Brief description"
+                      className="h-8 text-xs"
+                      onKeyDown={handleFieldKeyDown(3) as any}
+                    />
                   </div>
 
                   {/* 4: Team */}
