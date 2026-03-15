@@ -133,9 +133,8 @@ export interface KnowledgeGapEntity extends CanonicalRecord {
   severity: "low" | "medium" | "high";
 }
 
-export interface AssistantSessionEntity extends CanonicalRecord {
+export interface AssistantSessionEntity extends CanonicalRecord<AssistantSessionStatus> {
   userId: string;
-  status: AssistantSessionStatus;
 }
 
 export interface MoonshotTeamEntity extends CanonicalRecord {
