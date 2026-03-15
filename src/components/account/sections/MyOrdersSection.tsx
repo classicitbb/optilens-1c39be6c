@@ -59,14 +59,14 @@ const MyOrdersSection = () => {
                     </CardTitle>
                     <CardDescription className="mt-1 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(new Date(order.created_at), "PPP 'at' p")}
+                      {format(new Date(order.createdAt), "PPP 'at' p")}
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className={getStatusColor(order.status)}>
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </Badge>
-                    <span className="text-xl font-bold text-foreground">${order.total_amount.toFixed(2)}</span>
+                    <span className="text-xl font-bold text-foreground">${order.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </CardHeader>
@@ -89,10 +89,10 @@ const MyOrdersSection = () => {
                         <TableBody>
                           {order.items?.map((item) => (
                             <TableRow key={item.id}>
-                              <TableCell className="font-medium">{item.product_name}</TableCell>
-                              <TableCell className="text-right">${item.product_price.toFixed(2)}</TableCell>
+                              <TableCell className="font-medium">{item.productName}</TableCell>
+                              <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
                               <TableCell className="text-right">{item.quantity}</TableCell>
-                              <TableCell className="text-right">${(item.product_price * item.quantity).toFixed(2)}</TableCell>
+                              <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

@@ -1,5 +1,6 @@
-import { Bot } from "lucide-react";
+import { Bot, Server, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BuildCustomPackageButton from "@/features/admin/catalog-publisher-v2/components/BuildCustomPackageButton";
 import { buildInstagramPostPackPrompt } from "@/features/admin/leads/hooks/useInstagramPostPack";
@@ -27,6 +28,48 @@ const LeadsAiAssistantPage = () => {
       <AdminPageHeader title="AI Assistant" icon={Bot}>
         <BuildCustomPackageButton source="leads_ai" className="h-8 text-xs" />
       </AdminPageHeader>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            Role-Aware Knowledge Assistant Architecture
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-xs">
+          <p>Composable modules preserve route groups while keeping model/external integrations on server-side services only.</p>
+          <div className="flex flex-wrap gap-2">
+            {SUPPORTED_ROLES.map((role) => (
+              <Badge variant="secondary" key={role}>{role}</Badge>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {SUPPORTED_ANSWER_MODES.map((mode) => (
+              <Badge variant="outline" key={mode}>{mode}</Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Server className="h-4 w-4" />
+            Internal Module Boundaries
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-xs">
+          {ASSISTANT_MODULE_MAP.map((module) => (
+            <div key={module.module} className="border rounded p-2 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium">{module.module}</p>
+                <Badge variant={module.ownership === "server-service" ? "default" : "secondary"}>{module.ownership}</Badge>
+              </div>
+              <p className="text-muted-foreground">{module.responsibility}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
