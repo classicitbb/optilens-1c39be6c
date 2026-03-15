@@ -56,6 +56,15 @@
 - `ticket_offer`: suggests support handoff when insufficient certainty.
 - `escalate_unknown`: unknown intent or no safe answer, route to human review.
 
+
+## Moonshot leadership coach isolation
+- Treat Moonshot as a separate product/workspace with its own bounded context, navigation, permissions, analytics, and coach policy layer.
+- Reuse shared assistant infrastructure patterns (intent, retrieval, policy, attribution, analytics modules) without sharing retrieval scope or data access policy with other assistant roles.
+- Moonshot coach retrieval scope is explicitly limited to Moonshot sources: meetings, issues, quarterly rocks, scorecards, business plan, and strategic notes.
+- Moonshot coach retrieval must block non-Moonshot domains (`customer`, `support`, `pricing`, `operations`) to prevent leadership coaching responses from mixing contexts.
+- Moonshot coach analytics must publish to a Moonshot-only namespace and remain isolated from customer/support/ops funnels.
+- Moonshot URLs and navigation hierarchy remain preserved under the existing Moonshot shell route structure.
+
 ## Security and deployment notes
 - Client only calls a server endpoint/function; no LLM/provider secret in browser code.
 - Use service-role/secret handling only in server runtime (`supabase/functions/*` or private backend).

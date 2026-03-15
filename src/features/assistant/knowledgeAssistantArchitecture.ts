@@ -50,6 +50,42 @@ export interface KnowledgeAssistantArchitecture {
   moduleBoundaries: AssistantModuleBoundary[];
   sourcePrecedence: AssistantSourcePrecedenceRule[];
   guardrails: string[];
+  moonshotCoach?: MoonshotCoachArchitecture;
+}
+
+export interface MoonshotCoachSourceScope {
+  allowed: string[];
+  blocked: string[];
+}
+
+export interface MoonshotCoachArchitecture {
+  workspace: {
+    product: "moonshot";
+    routeDomain: RouteDomain;
+    layout: "moonshot-shell";
+    boundedContext: string;
+  };
+  navigation: {
+    preserveMoonshotHierarchy: boolean;
+    preserveMoonshotUrls: boolean;
+  };
+  permissions: {
+    authRequired: true;
+    dataAccessPolicy: string;
+  };
+  retrieval: {
+    scope: MoonshotCoachSourceScope;
+    policy: string;
+  };
+  analytics: {
+    namespace: string;
+    isolationRule: string;
+  };
+  coachPolicy: {
+    objective: string;
+    sharedInfrastructurePattern: string;
+    isolationRequirement: string;
+  };
 }
 
 const ROLE_PROFILES: AssistantRoleProfile[] = [
@@ -175,15 +211,50 @@ const SOURCE_PRECEDENCE: AssistantSourcePrecedenceRule[] = [
   },
 ];
 
+const MOONSHOT_COACH_ARCHITECTURE: MoonshotCoachArchitecture = {
+  workspace: {
+    product: "moonshot",
+    routeDomain: "moonshot",
+    layout: "moonshot-shell",
+    boundedContext: "Leadership and management coaching inside Moonshot as a separate product workspace.",
+  },
+  navigation: {
+    preserveMoonshotHierarchy: true,
+    preserveMoonshotUrls: true,
+  },
+  permissions: {
+    authRequired: true,
+    dataAccessPolicy: "Moonshot coach requests must only resolve through Moonshot role access and Moonshot workspace entitlements.",
+  },
+  retrieval: {
+    scope: {
+      allowed: ["moonshot_meetings", "moonshot_issues", "moonshot_rocks", "moonshot_scorecards", "moonshot_business_plan", "moonshot_strategic_notes"],
+      blocked: ["customer_records", "support_tickets", "pricing_catalog", "operations_playbooks"],
+    },
+    policy: "Use Moonshot-only sources for leadership coaching; block retrieval when evidence includes non-Moonshot domains.",
+  },
+  analytics: {
+    namespace: "moonshot_coach",
+    isolationRule: "Track events and quality metrics in a Moonshot-only analytics stream with no joins into customer/support/ops assistant funnels.",
+  },
+  coachPolicy: {
+    objective: "Prepare a future leadership and management coach grounded in Moonshot meetings, issues, rocks, scorecards, business plan, and strategic notes.",
+    sharedInfrastructurePattern: "Reuse common assistant orchestration modules while applying Moonshot-specific retrieval filters, policy checks, and attribution boundaries.",
+    isolationRequirement: "Never mix Moonshot leadership context with customer, support, pricing, or operational knowledge.",
+  },
+};
+
 export const KNOWLEDGE_ASSISTANT_ARCHITECTURE: KnowledgeAssistantArchitecture = {
   roleProfiles: ROLE_PROFILES,
   moduleBoundaries: MODULE_BOUNDARIES,
   sourcePrecedence: SOURCE_PRECEDENCE,
+  moonshotCoach: MOONSHOT_COACH_ARCHITECTURE,
   guardrails: [
     "All model calls and external API traffic run in server-side modules only.",
     "Assistant UI shell only receives redacted response DTOs and action links.",
     "Preview and production behavior share one orchestration contract per route group.",
     "Policy validation failure blocks publishing answers and forces escalation flow.",
+    "Moonshot coaching uses a separate retrieval scope, permission checks, and analytics namespace from customer/support/pricing/ops contexts.",
   ],
 };
 
