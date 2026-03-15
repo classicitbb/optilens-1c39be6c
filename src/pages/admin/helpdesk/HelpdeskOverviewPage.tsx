@@ -669,7 +669,7 @@ const KanbanView = ({
               key={col.id}
               className={cn(
                 "flex flex-col shrink-0 rounded-lg transition-colors",
-                isCollapsed ? "min-w-[56px] max-w-[56px]" : "min-w-[280px] max-w-[320px]",
+                isCollapsed ? "min-w-[56px] max-w-[56px]" : "min-w-[320px] max-w-[420px] flex-1",
                 dragOverCol === col.id && "bg-primary/5 ring-2 ring-primary/30"
               )}
               onDragOver={onDrop ? (e) => handleDragOver(e, col.id) : undefined}
