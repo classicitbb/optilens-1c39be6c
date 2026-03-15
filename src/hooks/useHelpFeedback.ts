@@ -64,6 +64,52 @@ const ensureArticleId = async ({
 export const useHelpFeedback = () => {
   const { user } = useAuth();
 
+  const enqueueArticleIssueTicket = async ({
+    resolvedArticleId,
+    articleId,
+    articleTitle,
+    feedbackType,
+    suggestionText,
+    pageSlug,
+  }: {
+    resolvedArticleId: string;
+    articleId: string;
+    articleTitle?: string;
+    feedbackType: "helpful" | "not_helpful" | "suggestion";
+    suggestionText?: string;
+    pageSlug?: string;
+  }) => {
+    if (!user) return;
+
+    const { data: hasEditRole, error: roleCheckError } = await supabase.rpc("has_edit_role", { _user_id: user.id });
+    if (roleCheckError) {
+      console.warn("Unable to verify edit role for structured feedback ticket", roleCheckError);
+      return;
+    }
+
+    if (!hasEditRole) return;
+
+    await createStructuredHelpdeskTicket({
+      title: `Article issue: ${articleTitle ?? articleId}`,
+      description: [
+        `Feedback type: ${feedbackType}`,
+        suggestionText?.trim() ? `Suggestion: ${suggestionText.trim()}` : null,
+        pageSlug ? `Context page: ${pageSlug}` : null,
+      ].filter(Boolean).join("\n"),
+      subtype: "article_issue",
+      sourceChannel: "portal",
+      sourceRoleMode: "customer",
+      sourceRouteContext: "account",
+      sourceAuthenticationRequired: true,
+      sourceMetadata: {
+        article_id: resolvedArticleId,
+        feedback_type: feedbackType,
+        page_slug: pageSlug ?? null,
+        feedback_user_id: user.id,
+      },
+    });
+  };
+
   const submitFeedback = useMutation({
     mutationFn: async ({
       articleId,
@@ -103,24 +149,13 @@ export const useHelpFeedback = () => {
 
       const isPoorArticleFeedback = feedbackType === "not_helpful" || (feedbackType === "suggestion" && !!suggestionText?.trim());
       if (isPoorArticleFeedback) {
-        void createStructuredHelpdeskTicket({
-          title: `Article issue: ${articleTitle ?? articleId}`,
-          description: [
-            `Feedback type: ${feedbackType}`,
-            suggestionText?.trim() ? `Suggestion: ${suggestionText.trim()}` : null,
-            pageSlug ? `Context page: ${pageSlug}` : null,
-          ].filter(Boolean).join("\n"),
-          subtype: "article_issue",
-          sourceChannel: "portal",
-          sourceRoleMode: "customer",
-          sourceRouteContext: "account",
-          sourceAuthenticationRequired: true,
-          sourceMetadata: {
-            article_id: resolvedArticleId,
-            feedback_type: feedbackType,
-            page_slug: pageSlug ?? null,
-            feedback_user_id: user.id,
-          },
+        void enqueueArticleIssueTicket({
+          resolvedArticleId,
+          articleId,
+          articleTitle,
+          feedbackType,
+          suggestionText,
+          pageSlug,
         }).catch((ticketError) => {
           console.warn("Structured ticket creation failed for help feedback", ticketError);
         });
