@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { createStructuredHelpdeskTicket } from "@/features/admin/helpdesk/utils/structuredTicketing";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isUuid = (value?: string) => !!value && UUID_RE.test(value);
@@ -99,6 +100,29 @@ export const useHelpFeedback = () => {
         page_slug: pageSlug || null,
       });
       if (error) throw error;
+
+      const isPoorArticleFeedback = feedbackType === "not_helpful" || (feedbackType === "suggestion" && !!suggestionText?.trim());
+      if (isPoorArticleFeedback) {
+        await createStructuredHelpdeskTicket({
+          title: `Article issue: ${articleTitle ?? articleId}`,
+          description: [
+            `Feedback type: ${feedbackType}`,
+            suggestionText?.trim() ? `Suggestion: ${suggestionText.trim()}` : null,
+            pageSlug ? `Context page: ${pageSlug}` : null,
+          ].filter(Boolean).join("\n"),
+          subtype: "article_issue",
+          sourceChannel: "portal",
+          sourceRoleMode: "customer",
+          sourceRouteContext: "account",
+          sourceAuthenticationRequired: true,
+          sourceMetadata: {
+            article_id: resolvedArticleId,
+            feedback_type: feedbackType,
+            page_slug: pageSlug ?? null,
+            feedback_user_id: user.id,
+          },
+        });
+      }
     },
   });
 

@@ -21,7 +21,17 @@ export interface AssistantRequest {
   role: AssistantRole;
   routeGroup: "public" | "account" | "admin" | "moonshot";
   userId?: string;
+  sessionId?: string;
 }
+
+export type HelpdeskTicketSubtype =
+  | "knowledge_gap"
+  | "article_issue"
+  | "account_specific_request"
+  | "order_job_status_request"
+  | "invoice_statement_request"
+  | "returns_warranty_support"
+  | "general_escalation";
 
 export interface RetrievalDocument {
   id: string;
@@ -60,6 +70,12 @@ export interface SourceAttribution {
 
 export interface TicketDraft {
   queue: "public-support" | "customer-success" | "internal-ops" | "moonshot";
+  subtype: HelpdeskTicketSubtype;
   summary: string;
   context: string;
+  sourceChannel: "ai_assistant";
+  sourceSessionId?: string;
+  sourceRoleMode: AssistantRole;
+  sourceRouteContext: AssistantRequest["routeGroup"];
+  sourceAuthenticationRequired: boolean;
 }
