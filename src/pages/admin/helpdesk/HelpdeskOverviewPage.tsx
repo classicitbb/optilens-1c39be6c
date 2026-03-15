@@ -561,7 +561,6 @@ const HelpdeskOverviewPage = () => {
       <div className="px-4 py-2 border-b border-border/60 bg-muted/20 flex items-center gap-2 shrink-0">
         <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">{activeNow.toLocaleString()}</span>
-        <Badge variant="secondary" className="text-[10px]">Active</Badge>
       </div>
 
       {/* Content */}
