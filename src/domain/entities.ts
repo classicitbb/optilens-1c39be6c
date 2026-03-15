@@ -76,9 +76,8 @@ export interface OrderLineEntity {
   quantity: number;
 }
 
-export interface OrderEntity extends CanonicalRecord {
+export interface OrderEntity extends CanonicalRecord<OrderStatus> {
   accountId?: string;
-  status: OrderStatus;
   totalAmount: number;
   items: OrderLineEntity[];
 }
