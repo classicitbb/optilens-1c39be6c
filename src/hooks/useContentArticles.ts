@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { VISIBILITY_SCOPES } from "@/domain/statuses";
+import { toKnowledgeDocumentEntity } from "@/domain/services/recordMappers";
 
-export type ContentVisibility = "draft" | "internal" | "customer" | "public";
+export type ContentVisibility = Extract<(typeof VISIBILITY_SCOPES)[number], "internal" | "customer" | "public"> | "draft";
 export type ContentType = "wiki" | "knowledge" | "faq" | "legal";
 
 export interface ContentArticle {
@@ -131,6 +133,22 @@ export const usePublicKnowledge = () => {
       });
 
       return visible;
+    },
+  });
+};
+
+
+export const useKnowledgeDocumentEntities = () => {
+  return useQuery({
+    queryKey: ["knowledge_document_entities"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("help_articles")
+        .select("*")
+        .in("content_type", ["knowledge", "faq", "wiki"]);
+
+      if (error) throw error;
+      return ((data || []) as ContentArticle[]).map(toKnowledgeDocumentEntity);
     },
   });
 };

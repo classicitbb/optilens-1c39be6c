@@ -2,25 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-export interface OrderItem {
-  id: string;
-  product_id: number;
-  product_name: string;
-  product_price: number;
-  quantity: number;
-}
-
-export interface Order {
-  id: string;
-  total_amount: number;
-  status: string;
-  created_at: string;
-  items?: OrderItem[];
-}
+import type { OrderEntity } from "@/domain/entities";
+import { toOrderEntity } from "@/domain/services/recordMappers";
 
 export const useOrders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -57,7 +43,7 @@ export const useOrders = () => {
         })
       );
 
-      setOrders(ordersWithItems);
+      setOrders(ordersWithItems.map(toOrderEntity));
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {
@@ -78,7 +64,7 @@ export const useOrders = () => {
       quantity: number;
     }[],
     totalAmount: number
-  ): Promise<Order | null> => {
+  ): Promise<OrderEntity | null> => {
     if (!user || cartItems.length === 0) return null;
 
     try {
@@ -110,10 +96,10 @@ export const useOrders = () => {
 
       if (itemsError) throw itemsError;
 
-      const newOrder: Order = {
+      const newOrder = toOrderEntity({
         ...order,
         items: items || [],
-      };
+      });
 
       setOrders((prev) => [newOrder, ...prev]);
 
