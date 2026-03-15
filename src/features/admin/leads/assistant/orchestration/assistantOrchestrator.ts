@@ -28,7 +28,9 @@ export const orchestrateAssistantRequest = (request: AssistantRequest): Assistan
   const analytics = buildAssistantAnalyticsEvent(response);
 
   const shouldTicket = answer.mode === "ticket_offer" || answer.mode === "escalate_unknown";
-  const ticketDraft = shouldTicket ? createTicketDraft(request, answer.message) : undefined;
+  const ticketDraft = shouldTicket
+    ? createTicketDraft(request, answer.message, intent, answer.requiresAuth)
+    : undefined;
   const gapEvent = answer.mode === "escalate_unknown" ? buildKnowledgeGapEvent(request, intent, attribution) : undefined;
 
   return { response, ticketDraft, gapEvent, analytics };
