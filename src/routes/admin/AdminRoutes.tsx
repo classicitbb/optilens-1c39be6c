@@ -51,10 +51,10 @@ const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskO
 
 const AdminRoutes = () => (
   <Routes>
-    <Route path="/admin" element={<AdminLayout />}>
+    <Route element={<AdminLayout />}>
       <Route index element={<AdminHomeRedirect />} />
       <Route path="dashboard" element={<AdminDashboardHomePage />} />
-      <Route path="pricing" element={<Navigate to="/admin/pricing/catalog" replace />} />
+      <Route path="pricing" element={<Navigate to="pricing/catalog" replace />} />
       <Route path="pricing/catalog" element={<ProductCatalogPage />} />
       <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
       <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
@@ -154,6 +154,7 @@ const AdminRoutes = () => (
       <Route path="erp/rx-orders" element={<Navigate to="/admin/sales/rx-orders" replace />} />
       <Route path="erp/website" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
+      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
     </Route>
   </Routes>
 );

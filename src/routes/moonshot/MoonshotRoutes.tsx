@@ -23,8 +23,8 @@ const MoonshotRightPersonRightSeatPage = lazy(() => import("@/pages/admin/moonsh
 
 const MoonshotRoutes = () => (
   <Routes>
-    <Route path="/admin/moonshot" element={<MoonshotLayout />}>
-      <Route index element={<Navigate to="/admin/moonshot/dashboard" replace />} />
+    <Route element={<MoonshotLayout />}>
+      <Route index element={<Navigate to="dashboard" replace />} />
       <Route path="dashboard" element={<MoonshotDashboardPage />} />
       <Route path="workspace" element={<MoonshotWorkspacePage />} />
       <Route path="meetings" element={<MoonshotMeetingsPage />} />
@@ -43,6 +43,7 @@ const MoonshotRoutes = () => (
       <Route path="resources" element={<MoonshotResourcesPage />} />
       <Route path="settings" element={<MoonshotSettingsPage />} />
       <Route path="feedback" element={<MoonshotPlaceholderPage title="Thanks! Feedback form coming soon" />} />
+      <Route path="*" element={<Navigate to="dashboard" replace />} />
     </Route>
   </Routes>
 );

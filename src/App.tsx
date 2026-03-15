@@ -76,22 +76,20 @@ const App = () => (
             <DeferredGlobalWidgets />
             <Suspense fallback={<RouteLoadingFallback />}>
               <Routes>
-                <Route element={<CustomerShell />}>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-
-                  <Route path="/store" element={<PortalRoutes />} />
-                  <Route path="/profile/*" element={<PortalRoutes />} />
-                  <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
-
-                  <Route path="/*" element={<PublicRoutes />} />
-                </Route>
-
                 <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />
                 <Route path="/admin/moonshot/*" element={<AdminProtectedRoute><MoonshotRoutes /></AdminProtectedRoute>} />
                 <Route path="/admin/*" element={<AdminProtectedRoute><AdminRoutes /></AdminProtectedRoute>} />
 
-                <Route path="/portal" element={<Navigate to="/profile" replace />} />
+                <Route element={<CustomerShell />}>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/store/*" element={<PortalRoutes section="store" />} />
+                  <Route path="/profile/*" element={<PortalRoutes section="profile" />} />
+                  <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
+                  <Route path="/portal" element={<Navigate to="/profile" replace />} />
+                  <Route path="/*" element={<PublicRoutes />} />
+                </Route>
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

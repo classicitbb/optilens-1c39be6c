@@ -1,8 +1,7 @@
 import { lazy } from "react";
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AccountLayout from "@/components/account/AccountLayout";
-import { PORTAL_LEGACY_REDIRECTS } from "@/config/routeRegistry";
 
 const Store = lazy(() => import("@/pages/Store"));
 const Profile = lazy(() => import("@/pages/Profile"));
@@ -13,39 +12,47 @@ const QuoteFormSection = lazy(() => import("@/components/account/sections/QuoteF
 const HelpdeskTicketsSection = lazy(() => import("@/components/account/sections/HelpdeskTicketsSection"));
 const AssignedPricelistsSection = lazy(() => import("@/components/account/sections/AssignedPricelistsSection"));
 
-const PortalRoutes = () => (
-  <Routes>
-    <Route
-      path="/store"
-      element={(
-        <ProtectedRoute>
-          <Store />
-        </ProtectedRoute>
-      )}
-    />
-    <Route
-      path="/profile/*"
-      element={(
-        <ProtectedRoute>
-          <AccountLayout />
-        </ProtectedRoute>
-      )}
-    >
-      <Route index element={<Profile />} />
-      <Route path="account" element={<MyAccountSection />} />
-      <Route path="orders" element={<MyOrdersSection />} />
-      <Route path="address-book" element={<AddressBookSection />} />
-      <Route path="quotes" element={<QuoteFormSection />} />
-      <Route path="helpdesk" element={<HelpdeskTicketsSection />} />
-      <Route path="pricelists" element={<AssignedPricelistsSection />} />
-    </Route>
+interface PortalRoutesProps {
+  section: "store" | "profile";
+}
 
-    {PORTAL_LEGACY_REDIRECTS.map((route) => (
-      <Route key={route.id} path={route.path} element={<Navigate to={route.redirectTo ?? "/profile/orders"} replace />} />
-    ))}
+const PortalRoutes = ({ section }: PortalRoutesProps) => {
+  if (section === "store") {
+    return (
+      <Routes>
+        <Route
+          index
+          element={(
+            <ProtectedRoute>
+              <Store />
+            </ProtectedRoute>
+          )}
+        />
+        <Route path="*" element={<Navigate to="/store" replace />} />
+      </Routes>
+    );
+  }
 
-    <Route path="*" element={<Outlet />} />
-  </Routes>
-);
+  return (
+    <Routes>
+      <Route
+        element={(
+          <ProtectedRoute>
+            <AccountLayout />
+          </ProtectedRoute>
+        )}
+      >
+        <Route index element={<Profile />} />
+        <Route path="account" element={<MyAccountSection />} />
+        <Route path="orders" element={<MyOrdersSection />} />
+        <Route path="address-book" element={<AddressBookSection />} />
+        <Route path="quotes" element={<QuoteFormSection />} />
+        <Route path="helpdesk" element={<HelpdeskTicketsSection />} />
+        <Route path="pricelists" element={<AssignedPricelistsSection />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/profile" replace />} />
+    </Routes>
+  );
+};
 
 export default PortalRoutes;
