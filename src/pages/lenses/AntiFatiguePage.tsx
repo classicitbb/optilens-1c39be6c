@@ -278,3 +278,4 @@ const AntiFatiguePage = () => {
 };
 
 export default AntiFatiguePage;
+
