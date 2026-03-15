@@ -193,38 +193,50 @@ const TicketEditDialog = ({
 };
 
 const StageCreateTicketPopover = ({
-  stageId,
   stageName,
   teams,
   priorities,
+  ticketTypes,
   canCreate,
+  isCreating,
   onCreate,
 }: {
-  stageId: string;
   stageName: string;
   teams: { id: string; name: string }[];
   priorities: PriorityOption[];
+  ticketTypes: { id: string; name: string }[];
   canCreate: boolean;
-  onCreate: (payload: { title: string; description: string; teamId?: string | null; priority: number }) => Promise<void>;
+  isCreating: boolean;
+  onCreate: (payload: { title: string; description: string; teamId?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null }) => Promise<void>;
 }) => {
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [teamId, setTeamId] = useState("__none");
-  const [priority, setPriority] = useState("1");
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    teamId: "",
+    priority: "1",
+    contactId: "",
+    ticketTypeId: "",
+  });
 
   const handleCreate = async () => {
-    if (!title.trim()) return;
+    if (!form.title.trim()) return;
     await onCreate({
-      title,
-      description,
-      teamId: teamId === "__none" ? null : teamId,
-      priority: Number(priority),
+      title: form.title,
+      description: form.description,
+      teamId: form.teamId || null,
+      priority: Number(form.priority),
+      contactId: form.contactId || null,
+      ticketTypeId: form.ticketTypeId || null,
     });
-    setTitle("");
-    setDescription("");
-    setTeamId("__none");
-    setPriority("1");
+    setForm({
+      title: "",
+      description: "",
+      teamId: "",
+      priority: "1",
+      contactId: "",
+      ticketTypeId: "",
+    });
     setOpen(false);
   };
 
@@ -241,29 +253,67 @@ const StageCreateTicketPopover = ({
           <Plus className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} className="w-80 p-3">
-        <div className="space-y-2">
-          <p className="text-xs font-semibold">Create ticket in {stageName}</p>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ticket title" className="h-8 text-xs" />
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" className="min-h-[70px] text-xs" />
-          <div className="grid grid-cols-2 gap-2">
-            <Select value={teamId} onValueChange={setTeamId}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
+      <PopoverContent align="start" sideOffset={8} className="w-[560px] p-3">
+        <div className="space-y-2" onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            void handleCreate();
+          }
+        }} role="form">
+          <p className="text-xs font-semibold">Create ticket</p>
+          <div className="grid grid-cols-1 md:grid-cols-8 gap-2 items-end">
+            <Select
+              value={form.ticketTypeId || "__none"}
+              onValueChange={(v) => {
+                const typeId = v === "__none" ? "" : v;
+                const typeName = ticketTypes.find((type) => type.id === typeId)?.name;
+                setForm((prev) => ({
+                  ...prev,
+                  ticketTypeId: typeId,
+                  description: !prev.description.trim() && typeName ? typeName : prev.description,
+                }));
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                {ticketTypes.map((type) => <SelectItem key={type.id} value={type.id} className="text-xs">{type.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Input
+              value={form.title}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              placeholder="Title"
+              className="h-8 text-xs md:col-span-2 focus:ring-2 focus:ring-primary"
+            />
+            <Input
+              value={form.description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Description"
+              className="h-8 text-xs md:col-span-2 focus:ring-2 focus:ring-primary"
+            />
+            <ContactPickerSelect
+              value={form.contactId || null}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, contactId: value || "" }))}
+              placeholder="Contact"
+            />
+            <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, teamId: v === "__none" ? "" : v }))}>
+              <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none" className="text-xs">No team</SelectItem>
                 {teams.map((team) => <SelectItem key={team.id} value={team.id} className="text-xs">{team.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Priority" /></SelectTrigger>
+            <Select value={form.priority} onValueChange={(v) => setForm((prev) => ({ ...prev, priority: v }))}>
+              <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
               <SelectContent>
-                {priorities.map((item) => <SelectItem key={item.level} value={String(item.level)} className="text-xs">{item.label}</SelectItem>)}
+                {priorities.map((priority) => <SelectItem key={priority.level} value={String(priority.level)} className="text-xs">{priority.label}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Button size="sm" className="h-8 text-xs" onClick={() => void handleCreate()} disabled={isCreating || !form.title.trim()}>
+              Create
+            </Button>
           </div>
-          <Button size="sm" className="h-8 w-full text-xs" onClick={handleCreate} disabled={!title.trim()}>
-            Create ticket
-          </Button>
         </div>
       </PopoverContent>
     </Popover>
@@ -384,6 +434,16 @@ const HelpdeskOverviewPage = () => {
     }
   });
 
+  const { data: ticketTypes = [] } = useQuery({
+    queryKey: ["helpdesk-overview-ticket-types"],
+    enabled: canViewHelpdesk,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("helpdesk_ticket_types").select("id,name").order("name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string }[];
+    }
+  });
+
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     return tickets.filter((t) => {
@@ -420,7 +480,7 @@ const HelpdeskOverviewPage = () => {
     return () => window.clearInterval(interval);
   }, []);
 
-  const handleCreateInStage = useCallback(async (stageId: string, payload: { title: string; description: string; teamId?: string | null; priority: number; }) => {
+  const handleCreateInStage = useCallback(async (stageId: string, payload: { title: string; description: string; teamId?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => {
     try {
       await createTicket.mutateAsync({
         title: payload.title,
@@ -429,6 +489,8 @@ const HelpdeskOverviewPage = () => {
         stageId,
         priority: payload.priority,
         ownerUserId: user?.id,
+        partnerContactId: payload.contactId ?? null,
+        ticketTypeId: payload.ticketTypeId ?? null,
         sourceChannel: "manual",
       });
       qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
@@ -508,7 +570,7 @@ const HelpdeskOverviewPage = () => {
           <p className="text-sm text-muted-foreground">Loading tickets…</p>
         </div> :
       viewMode === "kanban" ?
-      <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCreatorName={getCreatorName} onDrop={canEdit ? handleDrop : undefined} onEdit={canEdit ? setEditTicket : undefined} canCreate={canEdit} onCreateInStage={handleCreateInStage} teams={teams} priorities={priorities} /> :
+      <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCreatorName={getCreatorName} onDrop={canEdit ? handleDrop : undefined} onEdit={canEdit ? setEditTicket : undefined} canCreate={canEdit} isCreating={createTicket.isPending} onCreateInStage={handleCreateInStage} teams={teams} priorities={priorities} ticketTypes={ticketTypes} /> :
 
       <ListView columns={stageColumns} getOwnerName={getOwnerName} stages={stages} canEdit={canEdit} onStageChange={handleListStageChange} onEdit={canEdit ? setEditTicket : undefined} />
       }
@@ -527,9 +589,11 @@ const KanbanView = ({
   onDrop,
   onEdit,
   canCreate,
+  isCreating,
   onCreateInStage,
   teams,
   priorities,
+  ticketTypes,
 }: {
   columns: StageColumn[];
   getOwnerName: (t: OverviewTicket) => string | null;
@@ -537,9 +601,11 @@ const KanbanView = ({
   onDrop?: (ticketId: string, stageId: string) => void;
   onEdit?: (t: OverviewTicket) => void;
   canCreate: boolean;
-  onCreateInStage: (stageId: string, payload: { title: string; description: string; teamId?: string | null; priority: number }) => Promise<void>;
+  isCreating: boolean;
+  onCreateInStage: (stageId: string, payload: { title: string; description: string; teamId?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => Promise<void>;
   teams: { id: string; name: string }[];
   priorities: PriorityOption[];
+  ticketTypes: { id: string; name: string }[];
 }) => {
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
@@ -648,11 +714,12 @@ const KanbanView = ({
                     <div className="flex items-center gap-1">
                       {canCreate && col.name.toLowerCase() === "new" && col.id !== "__unstaged" && (
                         <StageCreateTicketPopover
-                          stageId={col.id}
                           stageName={col.name}
                           teams={teams}
                           priorities={priorities}
+                          ticketTypes={ticketTypes}
                           canCreate={canCreate}
+                          isCreating={isCreating}
                           onCreate={(payload) => onCreateInStage(col.id, payload)}
                         />
                       )}
