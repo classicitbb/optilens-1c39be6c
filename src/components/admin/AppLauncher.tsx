@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, HelpCircle, LayoutDashboard, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -39,18 +39,20 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
   const isMobile = useIsMobile();
   const { hasAppAccess } = useRolePermissions();
 
-  const visibleApps = ACTIVE_NAVIGATION_REGISTRY
-    .filter((item) => item.group === "launcher")
-    .map((item) => {
-      if (!item.appKey) {
-        return LAUNCH_PAD_APP;
-      }
-      return ADMIN_APPS[item.appKey];
-    })
-    .filter((app, index, arr) => arr.findIndex((candidate) => candidate.key === app.key) === index)
-    .filter((app) => ("featurePrefix" in app ? hasAppAccess(app.featurePrefix) : true));
-
-  const launchableApps = visibleApps;
+  const launchableApps = useMemo(
+    () =>
+      ACTIVE_NAVIGATION_REGISTRY
+        .filter((item) => item.group === "launcher")
+        .map((item) => {
+          if (!item.appKey) {
+            return LAUNCH_PAD_APP;
+          }
+          return ADMIN_APPS[item.appKey];
+        })
+        .filter((app, index, arr) => arr.findIndex((candidate) => candidate.key === app.key) === index)
+        .filter((app) => ("featurePrefix" in app ? hasAppAccess(app.featurePrefix) : true)),
+    [hasAppAccess],
+  );
 
   useEffect(() => {
     if (!open) return;

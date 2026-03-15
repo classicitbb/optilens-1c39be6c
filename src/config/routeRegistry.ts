@@ -53,3 +53,29 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
 ];
 
 export const LEGACY_REDIRECTS = APP_ROUTE_REGISTRY.filter((route) => route.status === "legacy-redirect");
+
+
+const legacyRedirectsByPath = new Map(LEGACY_REDIRECTS.map((route) => [route.path, route]));
+
+const pickLegacyRedirects = (paths: string[]) =>
+  paths
+    .map((path) => legacyRedirectsByPath.get(path))
+    .filter((route): route is RouteDefinition => Boolean(route));
+
+export const PORTAL_LEGACY_REDIRECTS = pickLegacyRedirects(["/orders"]);
+export const PUBLIC_MISC_REDIRECTS = pickLegacyRedirects(["/for-professionals"]);
+export const PUBLIC_LEGAL_REDIRECTS = pickLegacyRedirects([
+  "/privacy-policy",
+  "/terms",
+  "/terms-of-use",
+  "/cookie-policy",
+  "/disclaimer",
+  "/accessibility",
+]);
+export const PUBLIC_LENSES_REDIRECTS = pickLegacyRedirects(["/lenses"]);
+export const PUBLIC_COATINGS_REDIRECTS = pickLegacyRedirects([
+  "/coatings/mirrors",
+  "/mirror-finish-guide",
+  "/coatings/how-ar-coating-works",
+  "/coatings/caring-for-coated-lenses",
+]);
