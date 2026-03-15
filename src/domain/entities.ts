@@ -92,9 +92,8 @@ export interface ShipmentEntity extends CanonicalRecord<ShipmentStatus> {
   trackingNumber?: string;
 }
 
-export interface InvoiceEntity extends CanonicalRecord {
+export interface InvoiceEntity extends CanonicalRecord<InvoiceStatus> {
   orderId?: string;
-  status: InvoiceStatus;
   amountDue: number;
 }
 
