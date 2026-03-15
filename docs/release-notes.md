@@ -2,14 +2,6 @@
 
 Summarized release outcomes for each major date-stamped update.
 
-## 2026-03-08 — Moonshot Tool Parity (Org Chart + One-on-Ones + Right Person Right Seat)
-
-### Release Notes
-- Org Chart now supports deep hierarchy management with zoom, orientation switching, collapse controls, vacancy states, seat assignment, and print/export view.
-- One-on-Ones now includes richer recurring schedule metadata, talking points, private/shared notes, and follow-up todos.
-- Right Person Right Seat now captures role expectations, competency rubric, fit scoring context, review cadence, and historical snapshots.
-- Added cross-links between all three tools and direct in-app entry points to Moonshot Resources help.
-
 ## 2026-02-28 — Admin E2E Runtime Hardening (Lead Finder graceful fallback)
 
 ### Release Notes
