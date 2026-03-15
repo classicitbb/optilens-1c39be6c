@@ -1,6 +1,6 @@
-import { useMemo, useState, useRef, KeyboardEvent } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect, KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Ticket, ChevronDown, ChevronUp } from "lucide-react";
+import { Ticket, Plus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 import { useHelpdeskTickets } from "@/features/admin/helpdesk/hooks/useHelpdeskTickets";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
 import { useAssignHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useAssignHelpdeskTicket";
@@ -31,6 +33,36 @@ interface StageOption { id: string; name: string; is_closed: boolean; }
 interface TicketTypeOption { id: string; name: string; }
 interface PriorityOption { level: number; label: string; color: string; }
 
+// ── localStorage helpers for "last two consistent creations" ──
+const STORAGE_KEY = "helpdesk_create_history";
+
+interface CreateSnapshot {
+  teamId: string;
+  stageId: string;
+  priority: string;
+  ticketTypeId: string;
+}
+
+function loadHistory(): CreateSnapshot[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as CreateSnapshot[]).slice(0, 2) : [];
+  } catch { return []; }
+}
+
+function pushHistory(snapshot: CreateSnapshot) {
+  const hist = loadHistory();
+  hist.unshift(snapshot);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(hist.slice(0, 2)));
+}
+
+/** If the last two creations share the same value for a field, return it. */
+function consistentDefault(field: keyof CreateSnapshot): string | undefined {
+  const hist = loadHistory();
+  if (hist.length < 2) return hist[0]?.[field] || undefined;
+  return hist[0][field] === hist[1][field] ? hist[0][field] || undefined : undefined;
+}
+
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -43,14 +75,40 @@ const HelpdeskTicketsPage = () => {
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState<string>("all");
   const [onlyOpen, setOnlyOpen] = useState(true);
+
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "" });
-  const [showCreateForm, setShowCreateForm] = useState(false);
 
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "", contactId: "", ticket_type_id: "" });
 
-  const formRef = useRef<HTMLFormElement>(null);
+  // Refs for sequential keyboard navigation inside popover
+  const fieldRefs = useRef<(HTMLElement | null)[]>([]);
+  const FIELD_COUNT = 8; // title, description, type, contact, team, priority, stage, submit
+
+  const setFieldRef = useCallback((index: number) => (el: HTMLElement | null) => { fieldRefs.current[index] = el; }, []);
+
+  const focusNext = useCallback((currentIndex: number) => {
+    for (let i = currentIndex + 1; i < FIELD_COUNT; i++) {
+      const el = fieldRefs.current[i];
+      if (el) { el.focus(); return; }
+    }
+    // If at the end, focus submit
+    fieldRefs.current[FIELD_COUNT - 1]?.focus();
+  }, []);
+
+  const handleFieldKeyDown = useCallback((index: number) => (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (index === FIELD_COUNT - 1) {
+        // On submit button, trigger create
+        handleCreate();
+      } else {
+        focusNext(index);
+      }
+    }
+  }, []);
 
   const { data: teams = [] } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
@@ -105,22 +163,50 @@ const HelpdeskTicketsPage = () => {
   const getPrioLabel = (level: number) => priorities.find(p => p.level === level)?.label ?? "Normal";
   const getPrioColor = (level: number) => priorities.find(p => p.level === level)?.color ?? "#6b7280";
 
+  // ── Auto-fill defaults when popover opens ──
+  const initFormDefaults = useCallback(() => {
+    const defaultStage = stages.find(s => !s.is_closed)?.id ?? "";
+    const defaultPriority = priorities.length > 0 ? String(priorities[0].level) : "1";
+
+    setForm({
+      title: "",
+      description: "",
+      teamId: consistentDefault("teamId") ?? "",
+      stageId: consistentDefault("stageId") ?? defaultStage,
+      priority: consistentDefault("priority") ?? defaultPriority,
+      contactId: "",
+      ticketTypeId: consistentDefault("ticketTypeId") ?? "",
+    });
+  }, [stages, priorities]);
+
+  useEffect(() => {
+    if (popoverOpen) {
+      initFormDefaults();
+      // Focus title field after popover animation
+      setTimeout(() => fieldRefs.current[0]?.focus(), 80);
+    }
+  }, [popoverOpen, initFormDefaults]);
+
   const handleCreate = async () => {
     if (!form.title.trim()) { toast({ title: "Ticket title is required", variant: "destructive" }); return; }
     try {
-      await createTicket.mutateAsync({ title: form.title, description: form.description, teamId: form.teamId || null, stageId: form.stageId || null, priority: Number(form.priority), ownerUserId: user?.id ?? null, partnerContactId: form.contactId || null, ticketTypeId: form.ticketTypeId || null, sourceChannel: "manual" });
-      setForm({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "" });
+      await createTicket.mutateAsync({
+        title: form.title,
+        description: form.description,
+        teamId: form.teamId || null,
+        stageId: form.stageId || null,
+        priority: Number(form.priority),
+        ownerUserId: user?.id ?? null,
+        partnerContactId: form.contactId || null,
+        ticketTypeId: form.ticketTypeId || null,
+        sourceChannel: "manual",
+      });
+      // Save to history for smart defaults
+      pushHistory({ teamId: form.teamId, stageId: form.stageId, priority: form.priority, ticketTypeId: form.ticketTypeId });
       toast({ title: "Ticket created" });
-      if (isMobile) setShowCreateForm(false);
+      setPopoverOpen(false);
     } catch (error) {
       toast({ title: "Unable to create ticket", description: (error as Error).message, variant: "destructive" });
-    }
-  };
-
-  const handleFormKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleCreate();
     }
   };
 
@@ -154,64 +240,137 @@ const HelpdeskTicketsPage = () => {
           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setOnlyOpen((p) => !p)}>
             {onlyOpen ? "Showing Open" : "Showing All"}
           </Button>
+          {canEditTickets && (
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button size="sm" className="h-8 text-xs gap-1.5">
+                  <Plus className="h-3.5 w-3.5" />
+                  New Ticket
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-80 p-0"
+                align="end"
+                sideOffset={8}
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <div className="p-4 space-y-3">
+                  <p className="text-sm font-medium text-foreground">Create Ticket</p>
+
+                  {/* 0: Title */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Title *</Label>
+                    <Input
+                      ref={setFieldRef(0) as any}
+                      value={form.title}
+                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                      placeholder="Ticket title"
+                      className="h-8 text-xs"
+                      onKeyDown={handleFieldKeyDown(0) as any}
+                    />
+                  </div>
+
+                  {/* 1: Description */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Description</Label>
+                    <Input
+                      ref={setFieldRef(1) as any}
+                      value={form.description}
+                      onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                      placeholder="Brief description"
+                      className="h-8 text-xs"
+                      onKeyDown={handleFieldKeyDown(1) as any}
+                    />
+                  </div>
+
+                  {/* 2: Ticket Type */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Type</Label>
+                    <Select
+                      value={form.ticketTypeId || "__none"}
+                      onValueChange={(v) => {
+                        const typeId = v === "__none" ? "" : v;
+                        const typeName = ticketTypes.find(t => t.id === typeId)?.name;
+                        setForm((p) => ({ ...p, ticketTypeId: typeId, description: !p.description.trim() && typeName ? typeName : p.description }));
+                        setTimeout(() => focusNext(2), 50);
+                      }}
+                    >
+                      <SelectTrigger ref={setFieldRef(2) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(2) as any}>
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                        {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 3: Contact */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Contact</Label>
+                    <div ref={setFieldRef(3)} tabIndex={-1} onKeyDown={handleFieldKeyDown(3) as any}>
+                      <ContactPickerSelect value={form.contactId} onValueChange={(v) => { setForm((p) => ({ ...p, contactId: v })); setTimeout(() => focusNext(3), 50); }} placeholder="Contact" />
+                    </div>
+                  </div>
+
+                  {/* 4: Team */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Team</Label>
+                    <Select value={form.teamId || "__none"} onValueChange={(v) => { setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v })); setTimeout(() => focusNext(4), 50); }}>
+                      <SelectTrigger ref={setFieldRef(4) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(4) as any}>
+                        <SelectValue placeholder="Team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none" className="text-xs">No team</SelectItem>
+                        {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 5: Priority */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Priority</Label>
+                    <Select value={form.priority} onValueChange={(v) => { setForm((p) => ({ ...p, priority: v })); setTimeout(() => focusNext(5), 50); }}>
+                      <SelectTrigger ref={setFieldRef(5) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(5) as any}>
+                        <SelectValue placeholder="Priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {priorities.map((p) => <SelectItem key={p.level} value={String(p.level)} className="text-xs">{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 6: Stage */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Initial Stage</Label>
+                    <Select value={form.stageId || "__none"} onValueChange={(v) => { setForm((p) => ({ ...p, stageId: v === "__none" ? "" : v })); setTimeout(() => focusNext(6), 50); }}>
+                      <SelectTrigger ref={setFieldRef(6) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(6) as any}>
+                        <SelectValue placeholder="Stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none" className="text-xs">No stage</SelectItem>
+                        {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 7: Submit */}
+                  <Button
+                    ref={setFieldRef(7) as any}
+                    size="sm"
+                    className="w-full h-9 text-xs"
+                    onClick={handleCreate}
+                    onKeyDown={handleFieldKeyDown(7) as any}
+                    disabled={createTicket.isPending}
+                  >
+                    {createTicket.isPending ? "Creating…" : "Create Ticket"}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </AdminPageHeader>
-
-      {/* Create form — mobile collapsible */}
-      {canEditTickets && (
-        <>
-          {isMobile && (
-            <Button className="w-full h-10 text-sm gap-2" onClick={() => setShowCreateForm(p => !p)}>
-              {showCreateForm ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              {showCreateForm ? "Hide Create Form" : "Create Ticket"}
-            </Button>
-          )}
-          {(!isMobile || showCreateForm) && (
-            <Card>
-              <CardHeader className="py-3"><CardTitle className="text-sm">Create Ticket</CardTitle></CardHeader>
-              <CardContent>
-                <div
-                  className={cn("gap-2 items-end", isMobile ? "flex flex-col" : "grid grid-cols-1 md:grid-cols-8")}
-                  onKeyDown={handleFormKeyDown}
-                  role="form"
-                >
-                  <Select value={form.ticketTypeId || "__none"} onValueChange={(v) => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setForm((p) => ({ ...p, ticketTypeId: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
-                    <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none" className="text-xs">No type</SelectItem>
-                      {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="h-8 text-xs md:col-span-2 focus:ring-2 focus:ring-primary" />
-                  <Input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" className="h-8 text-xs md:col-span-2 focus:ring-2 focus:ring-primary" />
-                  <ContactPickerSelect value={form.contactId} onValueChange={(v) => setForm((p) => ({ ...p, contactId: v }))} placeholder="Contact" />
-                  <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
-                    <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none" className="text-xs">No team</SelectItem>
-                      {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={form.priority} onValueChange={(v) => setForm((p) => ({ ...p, priority: v }))}>
-                    <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
-                    <SelectContent>
-                      {priorities.map((p) => <SelectItem key={p.level} value={String(p.level)} className="text-xs">{p.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={form.stageId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, stageId: v === "__none" ? "" : v }))}>
-                    <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Initial stage" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none" className="text-xs">No stage</SelectItem>
-                      {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" className={cn("h-8 text-xs", isMobile && "w-full h-10")} onClick={handleCreate} disabled={createTicket.isPending}>Create</Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
 
       <Card>
         <CardHeader className="py-3">
@@ -324,7 +483,6 @@ const HelpdeskTicketsPage = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Edit Ticket</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            {/* Type above title */}
             <Select value={editForm.ticket_type_id || "__none"} onValueChange={(v) => { const typeId = v === "__none" ? "" : v; const typeName = ticketTypes.find(t => t.id === typeId)?.name; setEditForm((p) => ({ ...p, ticket_type_id: typeId, description: !p.description.trim() && typeName ? typeName : p.description })); }}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Ticket Type" /></SelectTrigger>
               <SelectContent>
