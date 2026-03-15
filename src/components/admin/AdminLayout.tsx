@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";
-import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
+
+const HelpPanel = lazy(() => import("./HelpPanel"));
 
 const AdminLayout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
@@ -22,7 +23,11 @@ const AdminLayout = () => {
             <main className="admin-content flex-1 overflow-auto p-4 min-w-0">
               <Outlet />
             </main>
-            <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug={contextSlug} />
+            {helpOpen && (
+              <Suspense fallback={null}>
+                <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug={contextSlug} />
+              </Suspense>
+            )}
           </div>
         </div>
       </div>
