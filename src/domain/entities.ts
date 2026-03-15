@@ -87,9 +87,8 @@ export interface JobEntity extends CanonicalRecord<JobStatus> {
   summary: string;
 }
 
-export interface ShipmentEntity extends CanonicalRecord {
+export interface ShipmentEntity extends CanonicalRecord<ShipmentStatus> {
   orderId: string;
-  status: ShipmentStatus;
   trackingNumber?: string;
 }
 
