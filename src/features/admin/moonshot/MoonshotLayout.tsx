@@ -45,7 +45,7 @@ export default function MoonshotLayout() {
 
     if (currentUser?.email?.toLowerCase() === normalizedEmail) return;
 
-    const matched = users.find((u) => u.email.toLowerCase() === normalizedEmail);
+    const matched = users.find((u) => u.email?.toLowerCase() === normalizedEmail);
     if (matched) {
       useMoonshotStore.setState({ currentUser: matched });
       return;
