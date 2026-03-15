@@ -59,7 +59,7 @@ const MyOrdersSection = () => {
                     </CardTitle>
                     <CardDescription className="mt-1 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(new Date(order.created_at), "PPP 'at' p")}
+                      {format(new Date(order.createdAt), "PPP 'at' p")}
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-3">
