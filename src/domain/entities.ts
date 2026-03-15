@@ -142,10 +142,9 @@ export interface MoonshotTeamEntity extends CanonicalRecord {
   purpose: string;
 }
 
-export interface MoonshotMeetingEntity extends CanonicalRecord {
+export interface MoonshotMeetingEntity extends CanonicalRecord<MoonshotMeetingStatus> {
   title: string;
   date: string;
-  status: MoonshotMeetingStatus;
 }
 
 export interface MoonshotRockEntity extends CanonicalRecord {
