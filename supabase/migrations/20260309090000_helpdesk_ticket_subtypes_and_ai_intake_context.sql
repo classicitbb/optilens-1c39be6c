@@ -2,6 +2,7 @@
 
 ALTER TABLE public.helpdesk_ticket_types
   ADD COLUMN IF NOT EXISTS code text,
+  ADD COLUMN IF NOT EXISTS description text,
   ADD COLUMN IF NOT EXISTS operations_lane text NOT NULL DEFAULT 'support';
 
 DO $$
