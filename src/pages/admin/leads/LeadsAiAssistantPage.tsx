@@ -5,6 +5,7 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BuildCustomPackageButton from "@/features/admin/catalog-publisher-v2/components/BuildCustomPackageButton";
 import { buildInstagramPostPackPrompt } from "@/features/admin/leads/hooks/useInstagramPostPack";
 import { ASSISTANT_ROUTE_DOMAINS, KNOWLEDGE_ASSISTANT_ARCHITECTURE } from "@/features/assistant/knowledgeAssistantArchitecture";
+import { SUPPORTED_ROLES, SUPPORTED_ANSWER_MODES, ASSISTANT_MODULE_MAP } from "@/features/admin/leads/assistant/ui/assistantModuleMap";
 
 const CTA_TEMPLATES = {
   owner_ceo: [
