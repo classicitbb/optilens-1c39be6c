@@ -15,9 +15,9 @@ import type {
   VisibilityScope,
 } from "@/domain/statuses";
 
-export interface CanonicalRecord {
+export interface CanonicalRecord<S extends string = RecordLifecycleStatus> {
   id: string;
-  status: RecordLifecycleStatus;
+  status: S;
   visibility: VisibilityScope;
   ownerId: string;
   createdAt: string;
@@ -63,9 +63,8 @@ export interface PriceListEntity extends CanonicalRecord {
   currencyCode: string;
 }
 
-export interface QuoteEntity extends CanonicalRecord {
+export interface QuoteEntity extends CanonicalRecord<QuoteStatus> {
   accountId: string;
-  status: QuoteStatus;
   totalAmount: number;
 }
 
@@ -77,40 +76,34 @@ export interface OrderLineEntity {
   quantity: number;
 }
 
-export interface OrderEntity extends CanonicalRecord {
+export interface OrderEntity extends CanonicalRecord<OrderStatus> {
   accountId?: string;
-  status: OrderStatus;
   totalAmount: number;
   items: OrderLineEntity[];
 }
 
-export interface JobEntity extends CanonicalRecord {
+export interface JobEntity extends CanonicalRecord<JobStatus> {
   orderId?: string;
-  status: JobStatus;
   summary: string;
 }
 
-export interface ShipmentEntity extends CanonicalRecord {
+export interface ShipmentEntity extends CanonicalRecord<ShipmentStatus> {
   orderId: string;
-  status: ShipmentStatus;
   trackingNumber?: string;
 }
 
-export interface InvoiceEntity extends CanonicalRecord {
+export interface InvoiceEntity extends CanonicalRecord<InvoiceStatus> {
   orderId?: string;
-  status: InvoiceStatus;
   amountDue: number;
 }
 
-export interface PaymentEntity extends CanonicalRecord {
+export interface PaymentEntity extends CanonicalRecord<PaymentStatus> {
   invoiceId?: string;
-  status: PaymentStatus;
   amount: number;
 }
 
-export interface TicketEntity extends CanonicalRecord {
+export interface TicketEntity extends CanonicalRecord<TicketStatus> {
   subject: string;
-  status: TicketStatus;
 }
 
 export interface DocumentEntity extends CanonicalRecord {
@@ -140,9 +133,8 @@ export interface KnowledgeGapEntity extends CanonicalRecord {
   severity: "low" | "medium" | "high";
 }
 
-export interface AssistantSessionEntity extends CanonicalRecord {
+export interface AssistantSessionEntity extends CanonicalRecord<AssistantSessionStatus> {
   userId: string;
-  status: AssistantSessionStatus;
 }
 
 export interface MoonshotTeamEntity extends CanonicalRecord {
@@ -150,19 +142,16 @@ export interface MoonshotTeamEntity extends CanonicalRecord {
   purpose: string;
 }
 
-export interface MoonshotMeetingEntity extends CanonicalRecord {
+export interface MoonshotMeetingEntity extends CanonicalRecord<MoonshotMeetingStatus> {
   title: string;
   date: string;
-  status: MoonshotMeetingStatus;
 }
 
-export interface MoonshotRockEntity extends CanonicalRecord {
+export interface MoonshotRockEntity extends CanonicalRecord<MoonshotRockStatus> {
   title: string;
   dueDate: string;
-  status: MoonshotRockStatus;
 }
 
-export interface MoonshotIssueEntity extends CanonicalRecord {
+export interface MoonshotIssueEntity extends CanonicalRecord<MoonshotIssueStatus> {
   title: string;
-  status: MoonshotIssueStatus;
 }
