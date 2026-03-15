@@ -250,8 +250,9 @@ const HelpdeskTicketsPage = () => {
               </PopoverTrigger>
               <PopoverContent
                 className="w-80 p-0"
-                align="center"
+                align="end"
                 sideOffset={8}
+                collisionPadding={12}
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <div className="p-4 space-y-3">
@@ -308,12 +309,12 @@ const HelpdeskTicketsPage = () => {
                   {/* 3: Description */}
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Description</Label>
-                    <Input
+                    <Textarea
                       ref={setFieldRef(3) as any}
                       value={form.description}
                       onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                       placeholder="Brief description"
-                      className="h-8 text-xs"
+                      className="text-xs min-h-[96px]"
                       onKeyDown={handleFieldKeyDown(3) as any}
                     />
                   </div>

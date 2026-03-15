@@ -253,15 +253,15 @@ const StageCreateTicketPopover = ({
           <Plus className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} className="w-[560px] p-3">
+      <PopoverContent align="start" sideOffset={8} collisionPadding={12} className="w-[520px] max-w-[calc(100vw-1rem)] p-4">
         <div className="space-y-2" onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             void handleCreate();
           }
         }} role="form">
-          <p className="text-xs font-semibold">Create ticket</p>
-          <div className="grid grid-cols-1 md:grid-cols-8 gap-2 items-end">
+          <p className="text-sm font-semibold text-center">Create Ticket</p>
+          <div className="space-y-2">
             <Select
               value={form.ticketTypeId || "__none"}
               onValueChange={(v) => {
@@ -284,34 +284,36 @@ const StageCreateTicketPopover = ({
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
               placeholder="Title"
-              className="h-8 text-xs md:col-span-2 focus:ring-2 focus:ring-primary"
+              className="h-8 text-xs focus:ring-2 focus:ring-primary"
             />
-            <Input
+            <Textarea
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Description"
-              className="h-8 text-xs md:col-span-2 focus:ring-2 focus:ring-primary"
+              placeholder="Brief description"
+              className="text-xs min-h-[96px] focus:ring-2 focus:ring-primary"
             />
             <ContactPickerSelect
               value={form.contactId || null}
               onValueChange={(value) => setForm((prev) => ({ ...prev, contactId: value || "" }))}
               placeholder="Contact"
             />
-            <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, teamId: v === "__none" ? "" : v }))}>
-              <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none" className="text-xs">No team</SelectItem>
-                {teams.map((team) => <SelectItem key={team.id} value={team.id} className="text-xs">{team.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={form.priority} onValueChange={(v) => setForm((prev) => ({ ...prev, priority: v }))}>
-              <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
-              <SelectContent>
-                {priorities.map((priority) => <SelectItem key={priority.level} value={String(priority.level)} className="text-xs">{priority.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button size="sm" className="h-8 text-xs" onClick={() => void handleCreate()} disabled={isCreating || !form.title.trim()}>
-              Create
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, teamId: v === "__none" ? "" : v }))}>
+                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none" className="text-xs">No team</SelectItem>
+                  {teams.map((team) => <SelectItem key={team.id} value={team.id} className="text-xs">{team.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={form.priority} onValueChange={(v) => setForm((prev) => ({ ...prev, priority: v }))}>
+                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectContent>
+                  {priorities.map((priority) => <SelectItem key={priority.level} value={String(priority.level)} className="text-xs">{priority.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button size="sm" className="h-9 w-full text-xs" onClick={() => void handleCreate()} disabled={isCreating || !form.title.trim()}>
+              Create Ticket
             </Button>
           </div>
         </div>
