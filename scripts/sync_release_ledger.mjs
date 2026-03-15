@@ -150,11 +150,11 @@ const escapedWikiLedgerMarkdown = wikiLedgerMarkdown
   .replace(/\$\{/g, "\\${");
 
 const wikiRegex = /(id:\s*"major-update-ledger",[\s\S]*?content:\s*`)\s*[\s\S]*?(`,\n\s*\},)/;
-if (!wikiRegex.test(wikiRaw)) {
-  throw new Error("Could not find major-update-ledger content block in src/data/wikiContent.ts.");
-}
+const hasInlineWikiLedger = wikiRegex.test(wikiRaw);
 
-const generatedWiki = wikiRaw.replace(wikiRegex, `$1${escapedWikiLedgerMarkdown}$2`);
+const generatedWiki = hasInlineWikiLedger
+  ? wikiRaw.replace(wikiRegex, `$1${escapedWikiLedgerMarkdown}$2`)
+  : wikiRaw;
 
 function writeIfNeeded(filePath, nextContent) {
   const current = fs.readFileSync(filePath, "utf8");
@@ -177,7 +177,7 @@ const releaseChanged = fs.existsSync(RELEASE_NOTES_PATH)
       return true;
     })();
 
-const wikiChanged = writeIfNeeded(WIKI_CONTENT_PATH, generatedWiki);
+const wikiChanged = hasInlineWikiLedger ? writeIfNeeded(WIKI_CONTENT_PATH, generatedWiki) : false;
 
 if (mode === "check" && (releaseChanged || wikiChanged)) {
   const outOfSyncTargets = [
