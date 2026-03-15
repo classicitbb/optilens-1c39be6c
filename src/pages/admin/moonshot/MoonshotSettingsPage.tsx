@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useMoonshotStore } from "@/features/admin/moonshot/lib/store";
+import { MOONSHOT_COACH_ARCHITECTURE } from "@/features/admin/moonshot/coach/moonshotCoachArchitecture";
 import type { MoonshotSettings, PermissionLevel } from "@/features/admin/moonshot/lib/types";
 
 const permissionOptions: { value: PermissionLevel; label: string }[] = [
@@ -54,6 +55,8 @@ export default function MoonshotSettingsPage() {
   const { settings, updateSettings, theme, setTheme, importDemoData, resetDemoData } = useMoonshotStore();
   const navigate = useNavigate();
   const [rawJson, setRawJson] = useState("");
+
+  const coach = MOONSHOT_COACH_ARCHITECTURE;
 
   const patch = <K extends keyof MoonshotSettings>(key: K, value: MoonshotSettings[K]) => updateSettings({ [key]: value } as Partial<MoonshotSettings>);
 
@@ -134,6 +137,77 @@ export default function MoonshotSettingsPage() {
           <SettingSelect label="Number Format" value={settings.numberFormat} options={[{ value: "1,234,567.90", label: "1,234,567.90" }, { value: "1.234.567,90", label: "1.234.567,90" }]} onValueChange={(v) => patch("numberFormat", v as MoonshotSettings["numberFormat"])} />
           <SettingSelect label="Default time to send action Email" value={settings.defaultActionEmailTime} options={[{ value: "2 PM (GMT)", label: "2 PM (GMT)" }, { value: "9 AM (GMT)", label: "9 AM (GMT)" }, { value: "6 PM (GMT)", label: "6 PM (GMT)" }]} onValueChange={(v) => patch("defaultActionEmailTime", v)} />
           <SettingSelect label="Scorecard Period" value={settings.scorecardPeriod} options={[{ value: "Daily", label: "Daily" }, { value: "Weekly", label: "Weekly" }, { value: "Monthly", label: "Monthly" }, { value: "Quarterly", label: "Quarterly" }]} onValueChange={(v) => patch("scorecardPeriod", v as MoonshotSettings["scorecardPeriod"])} />
+        </CardContent>
+      </Card>
+
+
+      <Card className="rounded-xl border bg-card shadow-sm">
+        <CardHeader className="border-b pb-4">
+          <CardTitle className="text-2xl">Moonshot Coach Architecture</CardTitle>
+          <CardDescription>Moonshot coach is scoped as a separate leadership workspace with dedicated retrieval, permissions, policies, and analytics boundaries.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-5">
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Product boundary</p>
+            <p className="text-sm text-muted-foreground">{coach.productBoundary}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Workspace boundary</p>
+            <p className="text-sm text-muted-foreground">{coach.workspaceBoundary}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Navigation scope</p>
+            <div className="flex flex-wrap gap-2">
+              {coach.navigationScope.map((route) => (
+                <span key={route} className="rounded border px-2 py-1 text-xs">{route}</span>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Permission scope</p>
+              {coach.permissionScope.map((rule) => (
+                <p key={rule} className="rounded border p-2 text-xs text-muted-foreground">{rule}</p>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Retrieval policies</p>
+              {coach.retrievalPolicies.map((rule) => (
+                <p key={rule} className="rounded border p-2 text-xs text-muted-foreground">{rule}</p>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Moonshot-only retrieval sources</p>
+            <div className="flex flex-wrap gap-2">
+              {coach.retrievalSources.map((source) => (
+                <span key={source} className="rounded border px-2 py-1 text-xs">{source}</span>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Analytics boundaries</p>
+            {coach.analyticsBoundaries.map((rule) => (
+              <p key={rule} className="rounded border p-2 text-xs text-muted-foreground">{rule}</p>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Guardrails</p>
+            {coach.guardrails.map((rule) => (
+              <p key={rule} className="rounded border p-2 text-xs text-muted-foreground">{rule}</p>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Shared infrastructure with separate Moonshot modules</p>
+            {coach.moduleBoundaries.map((module) => (
+              <div key={module.id} className="rounded border p-2 text-xs space-y-1">
+                <p className="font-medium">{module.id} · {module.owner}</p>
+                <p className="text-muted-foreground">{module.responsibility}</p>
+                <p className="text-muted-foreground">Inputs: {module.inputs.join(" • ")}</p>
+                <p className="text-muted-foreground">Outputs: {module.outputs.join(" • ")}</p>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 

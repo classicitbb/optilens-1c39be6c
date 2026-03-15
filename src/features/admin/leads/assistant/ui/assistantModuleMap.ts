@@ -54,7 +54,7 @@ export const ASSISTANT_MODULE_MAP: AssistantModuleCard[] = [
   },
 ];
 
-export const SUPPORTED_ROLES: AssistantRole[] = ["public", "customer", "staff", "admin", "moonshot"];
+export const SUPPORTED_ROLES: AssistantRole[] = ["public", "customer", "staff", "admin"];
 
 export const SUPPORTED_ANSWER_MODES: AnswerMode[] = [
   "direct_answer",

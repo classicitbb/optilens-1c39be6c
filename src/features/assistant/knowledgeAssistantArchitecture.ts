@@ -1,6 +1,6 @@
 import { APP_ROUTE_REGISTRY, type RouteDomain } from "@/config/routeRegistry";
 
-export type AssistantRole = "public" | "customer" | "staff" | "admin" | "moonshot";
+export type AssistantRole = "public" | "customer" | "staff" | "admin";
 
 export type AssistantAnswerMode =
   | "direct_answer"
@@ -114,13 +114,6 @@ const ROLE_PROFILES: AssistantRoleProfile[] = [
     role: "admin",
     label: "Admin",
     routeDomains: ["admin-console"],
-    authRequired: true,
-    allowedAnswerModes: ["direct_answer", "guided_navigation", "ticket_offer", "escalate_unknown"],
-  },
-  {
-    role: "moonshot",
-    label: "Moonshot",
-    routeDomains: ["moonshot"],
     authRequired: true,
     allowedAnswerModes: ["direct_answer", "guided_navigation", "ticket_offer", "escalate_unknown"],
   },
