@@ -270,6 +270,7 @@ const StageCreateTicketPopover = ({
                 setForm((prev) => ({
                   ...prev,
                   ticketTypeId: typeId,
+                  title: !prev.title.trim() && typeName ? typeName : prev.title,
                   description: !prev.description.trim() && typeName ? typeName : prev.description,
                 }));
               }}
