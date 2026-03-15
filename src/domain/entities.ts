@@ -15,9 +15,9 @@ import type {
   VisibilityScope,
 } from "@/domain/statuses";
 
-export interface CanonicalRecord {
+export interface CanonicalRecord<S extends string = RecordLifecycleStatus> {
   id: string;
-  status: RecordLifecycleStatus;
+  status: S;
   visibility: VisibilityScope;
   ownerId: string;
   createdAt: string;
