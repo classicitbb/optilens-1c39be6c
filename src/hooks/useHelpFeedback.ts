@@ -103,7 +103,7 @@ export const useHelpFeedback = () => {
 
       const isPoorArticleFeedback = feedbackType === "not_helpful" || (feedbackType === "suggestion" && !!suggestionText?.trim());
       if (isPoorArticleFeedback) {
-        await createStructuredHelpdeskTicket({
+        void createStructuredHelpdeskTicket({
           title: `Article issue: ${articleTitle ?? articleId}`,
           description: [
             `Feedback type: ${feedbackType}`,
@@ -121,6 +121,8 @@ export const useHelpFeedback = () => {
             page_slug: pageSlug ?? null,
             feedback_user_id: user.id,
           },
+        }).catch((ticketError) => {
+          console.warn("Structured ticket creation failed for help feedback", ticketError);
         });
       }
     },

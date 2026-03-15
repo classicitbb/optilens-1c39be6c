@@ -7,6 +7,7 @@ export interface StructuredTicketInput {
   title: string;
   description: string;
   subtype: HelpdeskTicketSubtype;
+  tenantKey?: string;
   sourceChannel?: "manual" | "email" | "phone" | "chat" | "portal" | "api" | "odoo_sync" | "ai_assistant";
   sourceSessionId?: string;
   sourceRoleMode?: string;
@@ -24,10 +25,17 @@ const SUBTYPE_REVIEW_QUEUES: Partial<Record<HelpdeskTicketSubtype, Array<"knowle
   article_issue: ["knowledge_operations", "article_improvement"],
 };
 
-const resolveTicketTypeId = async (subtype: HelpdeskTicketSubtype): Promise<string | null> => {
+const resolveTicketTypeId = async ({
+  subtype,
+  tenantKey,
+}: {
+  subtype: HelpdeskTicketSubtype;
+  tenantKey: string;
+}): Promise<string | null> => {
   const { data, error } = await db()
     .from("helpdesk_ticket_types")
     .select("id")
+    .eq("tenant_key", tenantKey)
     .eq("code", subtype)
     .eq("is_active", true)
     .maybeSingle();
@@ -37,12 +45,14 @@ const resolveTicketTypeId = async (subtype: HelpdeskTicketSubtype): Promise<stri
 };
 
 export const createStructuredHelpdeskTicket = async (input: StructuredTicketInput) => {
-  const ticketTypeId = await resolveTicketTypeId(input.subtype);
+  const tenantKey = input.tenantKey ?? "default";
+  const ticketTypeId = await resolveTicketTypeId({ subtype: input.subtype, tenantKey });
   const now = new Date().toISOString();
 
   const { data, error } = await db()
     .from("helpdesk_tickets")
     .insert({
+      tenant_key: tenantKey,
       ticket_number: generateTicketNumber(),
       title: input.title.trim(),
       description: input.description.trim(),
@@ -72,6 +82,7 @@ export const createStructuredHelpdeskTicket = async (input: StructuredTicketInpu
   if (reviewQueues.length > 0) {
     const { error: queueError } = await db().from("helpdesk_ticket_review_queue_items").insert(
       reviewQueues.map((queueName) => ({
+        tenant_key: tenantKey,
         ticket_id: ticketId,
         queue_name: queueName,
         source_signal: input.subtype,
