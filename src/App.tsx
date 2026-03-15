@@ -10,7 +10,6 @@ import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
 import RouteLoadingFallback from "@/routes/shared/RouteLoadingFallback";
-import RoutePerformanceTracker from "@/components/RoutePerformanceTracker";
 
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
@@ -69,7 +68,6 @@ const App = () => (
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>
-            {import.meta.env.DEV && <RoutePerformanceTracker />}
             <DeferredGlobalWidgets />
             <Suspense fallback={<RouteLoadingFallback />}>
               <Routes>
