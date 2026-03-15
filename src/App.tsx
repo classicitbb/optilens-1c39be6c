@@ -41,18 +41,13 @@ const DeferredGlobalWidgets = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const idleScheduler =
-      "requestIdleCallback" in window
-        ? window.requestIdleCallback(() => setMounted(true), { timeout: 1200 })
-        : window.setTimeout(() => setMounted(true), 300);
-
-    return () => {
-      if (typeof idleScheduler === "number") {
-        window.clearTimeout(idleScheduler);
-        return;
-      }
-      window.cancelIdleCallback(idleScheduler);
-    };
+    let handle: number;
+    if ("requestIdleCallback" in window) {
+      handle = (window as Window).requestIdleCallback(() => setMounted(true), { timeout: 1200 });
+      return () => (window as Window).cancelIdleCallback(handle);
+    }
+    handle = window.setTimeout(() => setMounted(true), 300) as unknown as number;
+    return () => window.clearTimeout(handle);
   }, []);
 
   if (!mounted) return null;
