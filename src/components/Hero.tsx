@@ -63,12 +63,14 @@ const Hero = () => {
           <div className="relative">
             <div className="absolute inset-0 rounded-3xl bg-gradient-accent opacity-20 blur-3xl" aria-hidden="true" />
             <img
-              src={heroImage}
+              src={heroImageSm}
+              srcSet={`${heroImageSm} 768w, ${heroImage} 1920w`}
+              sizes="(max-width: 1024px) 100vw, 50vw"
               alt="Premium optical lenses with beautiful light refraction"
               className="relative z-10 w-full rounded-3xl shadow-medium animate-float"
               loading="eager"
               width={640}
-              height={480}
+              height={360}
             />
           </div>
         </div>
