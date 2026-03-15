@@ -97,9 +97,8 @@ export interface InvoiceEntity extends CanonicalRecord<InvoiceStatus> {
   amountDue: number;
 }
 
-export interface PaymentEntity extends CanonicalRecord {
+export interface PaymentEntity extends CanonicalRecord<PaymentStatus> {
   invoiceId?: string;
-  status: PaymentStatus;
   amount: number;
 }
 
