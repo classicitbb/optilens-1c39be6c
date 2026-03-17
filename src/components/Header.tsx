@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, X } from "lucide-react";
+import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import PublicSearchPanel from "@/components/PublicSearchPanel";
+
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -367,8 +367,6 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
 const Header = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const [isSearchMode, setIsSearchMode] = useState(false);
-  const [showSearchMenu, setShowSearchMenu] = useState(false);
   const { toast } = useToast();
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
   const bannerDismissed = useAccountRequestDismissed();
@@ -407,13 +405,13 @@ const Header = () => {
           <span className="text-xl font-bold text-foreground">Classic Visions</span>
         </Link>
 
-        <nav className={`hidden items-center gap-7 lg:flex ${isSearchMode ? "opacity-0 pointer-events-none" : ""}`} aria-label="Main navigation">
+        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
           {PRIMARY_MENU.map((item) => (
             <MegaMenu key={item.label} item={item} />
           ))}
         </nav>
 
-        <div className={`flex items-center gap-2 ${isSearchMode ? "flex-1 justify-end" : ""}`}>
+        <div className="flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">
@@ -469,24 +467,21 @@ const Header = () => {
             </SheetContent>
           </Sheet>
 
-          {isSearchMode ? (
-            <>
-              <div className="hidden lg:block lg:flex-1 lg:max-w-3xl">
-                <PublicSearchPanel />
-              </div>
-              <Button variant="ghost" size="sm" className="hidden lg:inline-flex" onClick={() => setShowSearchMenu((current) => !current)}>
-                <Menu className="mr-2 h-4 w-4" />
-                Menu
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => { setIsSearchMode(false); setShowSearchMenu(false); }}>
-                <X className="mr-2 h-4 w-4" />
-                Close
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => setIsSearchMode(true)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+                onClick={() => {
+                  const el = document.getElementById("site-search");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    const input = el.querySelector("input");
+                    if (input) setTimeout(() => input.focus(), 600);
+                  }
+                }}
+              >
                 <Search className="mr-2 h-4 w-4" />
+                <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
                 Search
               </Button>
 
@@ -577,33 +572,10 @@ const Header = () => {
                   <span className="sm:hidden">Order</span>
                 </Link>
               </Button>
-            </>
-          )}
         </div>
       </div>
 
 
-      {isSearchMode && showSearchMenu && (
-        <div className="hidden border-t border-border/50 bg-background/95 lg:block">
-          <div className="container mx-auto flex items-center gap-2 px-4 py-2 lg:px-8">
-            <Button variant="ghost" size="sm" asChild>
-              <a href="tel:+12464334928">
-                <Phone className="mr-2 h-4 w-4" />
-                +1 246 433-4928
-              </a>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to={user ? "/profile" : "/auth"}>
-                <User className="mr-2 h-4 w-4" />
-                {user ? "Account" : "Sign in"}
-              </Link>
-            </Button>
-            <Button variant="hero" size="sm" asChild>
-              <Link to="/store">Order Lenses</Link>
-            </Button>
-          </div>
-        </div>
-      )}
       </header>
 
       {showBreadcrumbs && (
