@@ -343,6 +343,17 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
                       {link.externalLabel && <p className="text-[11px] font-semibold text-primary">{link.externalLabel}</p>}
                     </a>
                   ) : (
+                    link.to?.includes("#") && !link.to.startsWith("#") ? (
+                      <a
+                        key={link.label}
+                        href={link.to}
+                        onClick={handleLinkClick}
+                        className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}
+                      >
+                        <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
+                        <p className="text-xs text-muted-foreground">{link.description}</p>
+                      </a>
+                    ) : (
                     <Link
                       key={link.label}
                       to={link.to || "/"}
@@ -352,6 +363,7 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
                       <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                       <p className="text-xs text-muted-foreground">{link.description}</p>
                     </Link>
+                    )
                   )
                 ))}
               </div>
@@ -472,6 +484,10 @@ const Header = () => {
                 size="sm"
                 className="hidden sm:inline-flex"
                 onClick={() => {
+                  if (location.pathname !== "/") {
+                    window.location.href = "/#site-search";
+                    return;
+                  }
                   const el = document.getElementById("site-search");
                   if (el) {
                     el.scrollIntoView({ behavior: "smooth", block: "center" });

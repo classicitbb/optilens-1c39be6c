@@ -1439,6 +1439,53 @@ export type Database = {
           },
         ]
       }
+      helpdesk_ticket_review_queue_items: {
+        Row: {
+          created_at: string
+          id: string
+          queue_name: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_reference: string | null
+          source_signal: string | null
+          status: string
+          tenant_key: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          queue_name: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_reference?: string | null
+          source_signal?: string | null
+          status?: string
+          tenant_key?: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          queue_name?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_reference?: string | null
+          source_signal?: string | null
+          status?: string
+          tenant_key?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ticket_review_queue_items_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_ticket_sla_status: {
         Row: {
           created_at: string
@@ -1579,6 +1626,7 @@ export type Database = {
       }
       helpdesk_ticket_types: {
         Row: {
+          code: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -1587,6 +1635,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          code?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1595,6 +1644,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          code?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1616,7 +1666,12 @@ export type Database = {
           owner_user_id: string | null
           partner_contact_id: string | null
           priority: number
+          source_authentication_required: boolean | null
           source_channel: string
+          source_metadata: Json | null
+          source_role_mode: string | null
+          source_route_context: string | null
+          source_session_id: string | null
           stage_id: string | null
           team_id: string | null
           tenant_key: string
@@ -1636,7 +1691,12 @@ export type Database = {
           owner_user_id?: string | null
           partner_contact_id?: string | null
           priority?: number
+          source_authentication_required?: boolean | null
           source_channel?: string
+          source_metadata?: Json | null
+          source_role_mode?: string | null
+          source_route_context?: string | null
+          source_session_id?: string | null
           stage_id?: string | null
           team_id?: string | null
           tenant_key?: string
@@ -1656,7 +1716,12 @@ export type Database = {
           owner_user_id?: string | null
           partner_contact_id?: string | null
           priority?: number
+          source_authentication_required?: boolean | null
           source_channel?: string
+          source_metadata?: Json | null
+          source_role_mode?: string | null
+          source_route_context?: string | null
+          source_session_id?: string | null
           stage_id?: string | null
           team_id?: string | null
           tenant_key?: string
@@ -3444,6 +3509,54 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      public_inquiries: {
+        Row: {
+          business_name: string | null
+          created_at: string
+          email: string
+          honeypot: string | null
+          id: string
+          inquiry_type: string
+          ip_hint: string | null
+          message: string | null
+          name: string
+          notes: string | null
+          page_slug: string | null
+          phone: string | null
+          source_channel: string
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string
+          email: string
+          honeypot?: string | null
+          id?: string
+          inquiry_type?: string
+          ip_hint?: string | null
+          message?: string | null
+          name: string
+          notes?: string | null
+          page_slug?: string | null
+          phone?: string | null
+          source_channel?: string
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string
+          email?: string
+          honeypot?: string | null
+          id?: string
+          inquiry_type?: string
+          ip_hint?: string | null
+          message?: string | null
+          name?: string
+          notes?: string | null
+          page_slug?: string | null
+          phone?: string | null
+          source_channel?: string
         }
         Relationships: []
       }
