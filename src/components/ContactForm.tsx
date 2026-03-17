@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, User, MessageSquare, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const contactSchema = z.object({
   name: z
@@ -44,6 +45,7 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 const ContactForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
   const { toast } = useToast();
 
   const form = useForm<ContactFormData>({
@@ -57,18 +59,36 @@ const ContactForm = () => {
   });
 
   const onSubmit = async (data: ContactFormData) => {
+    if (honeypot) return; // spam bot filled hidden field
+
     setIsSubmitting(true);
-    
-    // Simulate form submission (replace with actual API call when backend is ready)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Message Sent!",
-      description: "Thank you for your inquiry. We'll get back to you shortly.",
-    });
-    
-    form.reset();
-    setIsSubmitting(false);
+    try {
+      const { error } = await (supabase as any).from("public_inquiries").insert({
+        inquiry_type: "contact",
+        name: data.name,
+        email: data.email,
+        phone: data.phone || null,
+        message: data.message,
+        page_slug: "/",
+        source_channel: "website",
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for your inquiry. We'll get back to you shortly.",
+      });
+      form.reset();
+    } catch {
+      toast({
+        title: "Submission failed",
+        description: "Please try again or contact us directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,6 +108,20 @@ const ContactForm = () => {
           <div className="bg-card rounded-2xl shadow-elegant p-8 border border-border">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Honeypot - hidden from real users */}
+                <div className="absolute opacity-0 h-0 overflow-hidden" aria-hidden="true" tabIndex={-1}>
+                  <label htmlFor="website_url">Website</label>
+                  <input
+                    id="website_url"
+                    name="website_url"
+                    type="text"
+                    autoComplete="off"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="name"
@@ -98,11 +132,7 @@ const ContactForm = () => {
                         Full Name
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="John Smith"
-                          {...field}
-                          className="bg-background"
-                        />
+                        <Input placeholder="John Smith" {...field} className="bg-background" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -120,12 +150,7 @@ const ContactForm = () => {
                           Email Address
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="john@example.com"
-                            {...field}
-                            className="bg-background"
-                          />
+                          <Input type="email" placeholder="john@example.com" {...field} className="bg-background" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -142,12 +167,7 @@ const ContactForm = () => {
                           Phone (Optional)
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="tel"
-                            placeholder="(555) 123-4567"
-                            {...field}
-                            className="bg-background"
-                          />
+                          <Input type="tel" placeholder="(555) 123-4567" {...field} className="bg-background" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -177,12 +197,7 @@ const ContactForm = () => {
                   )}
                 />
 
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
+                <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? (
                     "Sending..."
                   ) : (

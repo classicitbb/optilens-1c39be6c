@@ -1,9 +1,10 @@
+import { lazy, Suspense } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useParams } from "react-router-dom";
 import { useLegalPage } from "@/hooks/useContentArticles";
 import { Skeleton } from "@/components/ui/skeleton";
-import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
+import ReactMarkdown from "react-markdown";
 
 const LEGAL_FALLBACKS: Record<string, { title: string; content: string }> = {
   "privacy-policy": {
@@ -247,43 +248,33 @@ For questions about our use of cookies, contact us at info@classicvisions.net.`,
     content: `Last updated: March 2026
 
 ## General Disclaimer
-
 The information provided on Classic Visions website and services is for general informational purposes only. While we strive to provide accurate and up-to-date information, we make no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, suitability, or availability of the information, products, services, or related graphics.
 
 ## Professional Advice
-
 Our website provides information about optical lenses and related products. This information is not intended to replace professional medical advice, diagnosis, or treatment. Always seek the advice of your eye care professional or other qualified health provider with any questions you may have regarding eye care or vision correction.
 
 ## Product Information
-
 Product descriptions, specifications, and images are provided for reference purposes. Actual products may vary slightly from images shown. We reserve the right to modify product specifications without prior notice.
 
 ## Pricing
-
 While we make every effort to ensure pricing accuracy, errors may occur. We reserve the right to correct pricing errors and cancel orders placed at incorrect prices. Prices are subject to change without notice.
 
 ## External Links
-
 Our website may contain links to external websites. We have no control over the content, privacy policies, or practices of third-party websites and accept no responsibility for them.
 
 ## Limitation of Liability
-
 To the fullest extent permitted by applicable law, Classic Visions shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your access to or use of our website or services.
 
 ## Indemnification
-
 You agree to defend, indemnify, and hold harmless Classic Visions, its affiliates, officers, directors, employees, and agents from any claims, liabilities, damages, losses, or expenses arising from your use of our website or violation of these terms.
 
 ## Jurisdiction
-
 This disclaimer shall be governed by and construed in accordance with the laws of Barbados, without regard to its conflict of law provisions.
 
 ## Changes
-
 We reserve the right to modify this disclaimer at any time. Changes will be effective immediately upon posting to the website.
 
 ## Contact
-
 For questions regarding this disclaimer, contact us at info@classicvisions.net.`,
   },
   "accessibility": {
@@ -291,11 +282,9 @@ For questions regarding this disclaimer, contact us at info@classicvisions.net.`
     content: `Last updated: March 2026
 
 ## Our Commitment
-
 Classic Visions is committed to ensuring digital accessibility for people with disabilities. We continually improve the user experience for everyone and apply relevant accessibility standards to make our website accessible to all users.
 
 ## Accessibility Standards
-
 We aim to conform to the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA standards. These guidelines explain how to make web content more accessible for people with disabilities, including:
 - Visual impairments
 - Hearing impairments
@@ -303,7 +292,6 @@ We aim to conform to the Web Content Accessibility Guidelines (WCAG) 2.1 Level A
 - Cognitive disabilities
 
 ## Accessibility Features
-
 Our website includes the following accessibility features:
 
 ### Navigation
@@ -329,7 +317,6 @@ Our website includes the following accessibility features:
 - Compatible with assistive technologies
 
 ## Ongoing Efforts
-
 We are continuously working to improve accessibility by:
 - Conducting regular accessibility audits
 - Training our staff on accessibility best practices
@@ -337,16 +324,13 @@ We are continuously working to improve accessibility by:
 - Responding to user feedback
 
 ## Known Limitations
-
 While we strive for full accessibility, some content may have limitations:
 - Some PDF documents may not be fully accessible
 - Third-party content may not meet our accessibility standards
 - Complex interactive features may require alternative methods
 
 ## Feedback and Assistance
-
 We welcome your feedback on the accessibility of our website. If you encounter any barriers or need assistance, please contact us:
-
 - **Email**: info@classicvisions.net
 - **Phone**: +1 246 433-4928
 - **Address**: Regency Park, Christ Church, Barbados
@@ -354,7 +338,6 @@ We welcome your feedback on the accessibility of our website. If you encounter a
 We aim to respond to accessibility feedback within 5 business days.
 
 ## Enforcement Procedure
-
 If you are not satisfied with our response, you may file a complaint with the relevant accessibility enforcement body in your jurisdiction.`,
   },
   "return-policy": {
@@ -362,7 +345,6 @@ If you are not satisfied with our response, you may file a complaint with the re
     content: `Last updated: March 2026
 
 ## Overview
-
 Classic Visions is committed to your satisfaction. This Return Policy outlines the conditions under which products may be returned or exchanged.
 
 ## Standard Returns
@@ -396,7 +378,6 @@ Custom orders may be accepted for return only in cases of:
 - Damage during shipping (must be reported within 48 hours)
 
 ## Damaged or Defective Products
-
 If you receive a damaged or defective product:
 1. Report the issue within 48 hours of delivery
 2. Provide photos of the damage or defect
@@ -413,19 +394,16 @@ If you receive a damaged or defective product:
 - Defective products and our errors are exempt from restocking fees
 
 ## Exchanges
-
 For exchanges:
 - Contact us to arrange the exchange before shipping
 - Include the original order number and desired replacement specifications
 - Price differences will be adjusted accordingly
 
 ## Shipping Costs
-
 - Original shipping costs are non-refundable unless the return is due to our error
 - Customer is responsible for return shipping costs unless the product is defective
 
 ## Contact
-
 For return inquiries, contact us at:
 - Email: info@classicvisions.net
 - Phone: +1 246 433-4928`,
@@ -461,8 +439,10 @@ const LegalPage = () => {
             </div>
           ) : title ? (
             <>
-              <h1 className="text-3xl font-bold text-foreground mb-6">{title}</h1>
-              <BlogPostRenderer content={content} className="text-sm" />
+              <h1 className="text-3xl font-bold text-foreground mb-8">{title}</h1>
+              <article className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-headings:font-semibold prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3 prose-p:text-muted-foreground prose-p:leading-relaxed prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary">
+                <ReactMarkdown>{content}</ReactMarkdown>
+              </article>
             </>
           ) : (
             <div className="text-center py-20">

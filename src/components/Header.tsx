@@ -472,6 +472,10 @@ const Header = () => {
                 size="sm"
                 className="hidden sm:inline-flex"
                 onClick={() => {
+                  if (location.pathname !== "/") {
+                    window.location.href = "/#site-search";
+                    return;
+                  }
                   const el = document.getElementById("site-search");
                   if (el) {
                     el.scrollIntoView({ behavior: "smooth", block: "center" });
