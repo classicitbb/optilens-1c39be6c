@@ -6,6 +6,8 @@ import { useHelpFeedback } from "@/hooks/useHelpFeedback";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminRoleSafe } from "@/contexts/AdminRoleContext";
 
+type FeedbackComposerMode = "suggestion" | "not_helpful" | null;
+
 interface Props {
   articleId: string;
   pageSlug?: string;
@@ -16,31 +18,35 @@ interface Props {
 }
 
 const HelpFeedbackButtons = ({ articleId, pageSlug, articleTitle, articleContent, articleContextSlugs, onEdit }: Props) => {
-  const [showSuggestion, setShowSuggestion] = useState(false);
-  const [suggestion, setSuggestion] = useState("");
+  const [composerMode, setComposerMode] = useState<FeedbackComposerMode>(null);
+  const [feedbackText, setFeedbackText] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
   const { submitFeedback, isSubmitting } = useHelpFeedback();
   const { toast } = useToast();
   const { canEdit } = useAdminRoleSafe();
+
+  const clearComposer = () => {
+    setComposerMode(null);
+    setFeedbackText("");
+  };
 
   const handleFeedback = async (type: "helpful" | "not_helpful" | "suggestion") => {
     try {
       await submitFeedback({
         articleId,
         feedbackType: type,
-        suggestionText: type === "suggestion" ? suggestion : undefined,
+        suggestionText: type === "helpful" ? undefined : feedbackText,
         pageSlug,
         articleTitle,
         articleContent,
         articleContextSlugs,
       });
       setSubmitted(type);
-      setShowSuggestion(false);
-      setSuggestion("");
+      clearComposer();
       toast({ title: "Thanks for your feedback!" });
     } catch (err: any) {
-      const msg = err?.message?.includes("only supported for database") 
-        ? "Feedback not available for built-in articles" 
+      const msg = err?.message?.includes("only supported for database")
+        ? "Feedback not available for built-in articles"
         : "Error submitting feedback";
       toast({ title: msg, variant: "destructive" });
     }
@@ -85,7 +91,10 @@ const HelpFeedbackButtons = ({ articleId, pageSlug, articleTitle, articleContent
           variant="outline"
           size="sm"
           className="h-7 text-xs gap-1 px-2"
-          onClick={() => handleFeedback("not_helpful")}
+          onClick={() => {
+            setComposerMode(composerMode === "not_helpful" ? null : "not_helpful");
+            setFeedbackText("");
+          }}
           disabled={isSubmitting}
         >
           <ThumbsDown className="h-3 w-3 shrink-0" /> Not Helpful
@@ -94,28 +103,42 @@ const HelpFeedbackButtons = ({ articleId, pageSlug, articleTitle, articleContent
           variant="outline"
           size="sm"
           className="h-7 text-xs gap-1 px-2"
-          onClick={() => setShowSuggestion(!showSuggestion)}
+          onClick={() => {
+            setComposerMode(composerMode === "suggestion" ? null : "suggestion");
+            setFeedbackText("");
+          }}
           disabled={isSubmitting}
         >
           <MessageSquare className="h-3 w-3 shrink-0" /> Suggest
         </Button>
       </div>
-      {showSuggestion && (
+      {composerMode && (
         <div className="space-y-2">
           <Textarea
-            placeholder="How can we improve this article?"
-            value={suggestion}
-            onChange={(e) => setSuggestion(e.target.value)}
+            placeholder={composerMode === "not_helpful" ? "What was missing or unclear?" : "How can we improve this article?"}
+            value={feedbackText}
+            onChange={(e) => setFeedbackText(e.target.value)}
             className="text-xs min-h-[60px]"
           />
-          <Button
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => handleFeedback("suggestion")}
-            disabled={isSubmitting || !suggestion.trim()}
-          >
-            Submit Suggestion
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => handleFeedback(composerMode)}
+              disabled={isSubmitting || !feedbackText.trim()}
+            >
+              {composerMode === "not_helpful" ? "Submit for Review" : "Submit Suggestion"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs"
+              onClick={clearComposer}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
       )}
     </div>
