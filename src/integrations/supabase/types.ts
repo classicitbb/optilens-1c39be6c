@@ -3447,6 +3447,54 @@ export type Database = {
         }
         Relationships: []
       }
+      public_inquiries: {
+        Row: {
+          business_name: string | null
+          created_at: string
+          email: string
+          honeypot: string | null
+          id: string
+          inquiry_type: string
+          ip_hint: string | null
+          message: string | null
+          name: string
+          notes: string | null
+          page_slug: string | null
+          phone: string | null
+          source_channel: string
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string
+          email: string
+          honeypot?: string | null
+          id?: string
+          inquiry_type?: string
+          ip_hint?: string | null
+          message?: string | null
+          name: string
+          notes?: string | null
+          page_slug?: string | null
+          phone?: string | null
+          source_channel?: string
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string
+          email?: string
+          honeypot?: string | null
+          id?: string
+          inquiry_type?: string
+          ip_hint?: string | null
+          message?: string | null
+          name?: string
+          notes?: string | null
+          page_slug?: string | null
+          phone?: string | null
+          source_channel?: string
+        }
+        Relationships: []
+      }
       quote_lines: {
         Row: {
           created_at: string
