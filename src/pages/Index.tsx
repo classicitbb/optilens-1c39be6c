@@ -17,7 +17,7 @@ const Index = () => {
       <AccountRequestBanner />
       <main id="main-content">
         <Hero />
-        <section className="-mt-12 px-4 lg:px-8">
+        <section id="site-search" className="-mt-12 px-4 lg:px-8 scroll-mt-24">
           <div className="container mx-auto rounded-2xl border bg-card/90 p-6 shadow-soft backdrop-blur">
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-primary">Intelligent Site Search</p>
             <h2 className="mb-2 text-2xl font-bold">Find anything instantly</h2>

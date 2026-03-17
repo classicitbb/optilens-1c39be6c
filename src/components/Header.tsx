@@ -578,27 +578,6 @@ const Header = () => {
       </div>
 
 
-      {isSearchMode && showSearchMenu && (
-        <div className="hidden border-t border-border/50 bg-background/95 lg:block">
-          <div className="container mx-auto flex items-center gap-2 px-4 py-2 lg:px-8">
-            <Button variant="ghost" size="sm" asChild>
-              <a href="tel:+12464334928">
-                <Phone className="mr-2 h-4 w-4" />
-                +1 246 433-4928
-              </a>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to={user ? "/profile" : "/auth"}>
-                <User className="mr-2 h-4 w-4" />
-                {user ? "Account" : "Sign in"}
-              </Link>
-            </Button>
-            <Button variant="hero" size="sm" asChild>
-              <Link to="/store">Order Lenses</Link>
-            </Button>
-          </div>
-        </div>
-      )}
       </header>
 
       {showBreadcrumbs && (
