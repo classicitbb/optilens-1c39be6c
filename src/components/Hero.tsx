@@ -39,7 +39,7 @@ const Hero = () => {
               </Link>
             </Button>
             <Button variant="hero-outline" size="lg" asChild>
-              <Link to="/knowledge">Learn More</Link>
+              <Link to="/knowledge">Explore Our Knowledge Base</Link>
             </Button>
           </div>
 

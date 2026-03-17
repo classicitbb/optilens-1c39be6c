@@ -68,7 +68,7 @@ const KnowledgePreview = () => {
                   to="/knowledge" 
                   className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
                 >
-                  Read More
+                  Read about {article.title}
                   <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </Link>
               </CardContent>

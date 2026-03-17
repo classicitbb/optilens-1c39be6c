@@ -55,7 +55,7 @@ const useHelpArticlesForCatalog = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("help_articles")
-        .select("id, title, category, visibility, content, body_json, description")
+        .select("id, title, category, visibility, content, description")
         .eq("is_active", true)
         .in("content_type", ["knowledge", "faq"])
         .in("visibility", ["public", "customer"])
