@@ -572,8 +572,6 @@ const Header = () => {
                   <span className="sm:hidden">Order</span>
                 </Link>
               </Button>
-            </>
-          )}
         </div>
       </div>
 
