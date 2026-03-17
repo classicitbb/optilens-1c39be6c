@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import ComingSoonGate from "@/components/ComingSoonGate";
 import {
   PUBLIC_COATINGS_REDIRECTS,
   PUBLIC_LENSES_REDIRECTS,
@@ -49,65 +50,67 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const toRelativePath = (path: string) => path.replace(/^\//, "");
 
 const PublicRoutes = () => (
-  <Routes>
-    <Route index element={<Index />} />
-    <Route path="knowledge" element={<Knowledge />} />
-    <Route path="legal/:slug" element={<LegalPage />} />
+  <ComingSoonGate>
+    <Routes>
+      <Route index element={<Index />} />
+      <Route path="knowledge" element={<Knowledge />} />
+      <Route path="legal/:slug" element={<LegalPage />} />
 
-    {PUBLIC_MISC_REDIRECTS.map((route) => (
-      <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
-    ))}
-    {PUBLIC_LEGAL_REDIRECTS.map((route) => (
-      <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
-    ))}
-    {PUBLIC_LENSES_REDIRECTS.map((route) => (
-      <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
-    ))}
+      {PUBLIC_MISC_REDIRECTS.map((route) => (
+        <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+      ))}
+      {PUBLIC_LEGAL_REDIRECTS.map((route) => (
+        <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+      ))}
+      {PUBLIC_LENSES_REDIRECTS.map((route) => (
+        <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+      ))}
 
-    <Route path="lenses/lens-types" element={<LensDesignGuidePage />} />
-    <Route path="lenses/progressive" element={<ProgressivePage />} />
-    <Route path="lenses/office-occupational" element={<OfficeOccupationalPage />} />
-    <Route path="lenses/anti-fatigue" element={<AntiFatiguePage />} />
-    <Route path="lenses/single-vision" element={<SingleVisionPage />} />
-    <Route path="lenses/bifocals" element={<BifocalsPage />} />
-    <Route path="lenses/myopia-control" element={<MyopiaControlPage />} />
-    <Route path="lenses/blue-filter" element={<BlueFilterPage />} />
-    <Route path="lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
-    <Route path="lenses/materials" element={<MaterialsPage />} />
-    <Route path="lenses/thickness-chart" element={<ThicknessChartPage />} />
+      <Route path="lenses/lens-types" element={<LensDesignGuidePage />} />
+      <Route path="lenses/progressive" element={<ProgressivePage />} />
+      <Route path="lenses/office-occupational" element={<OfficeOccupationalPage />} />
+      <Route path="lenses/anti-fatigue" element={<AntiFatiguePage />} />
+      <Route path="lenses/single-vision" element={<SingleVisionPage />} />
+      <Route path="lenses/bifocals" element={<BifocalsPage />} />
+      <Route path="lenses/myopia-control" element={<MyopiaControlPage />} />
+      <Route path="lenses/blue-filter" element={<BlueFilterPage />} />
+      <Route path="lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
+      <Route path="lenses/materials" element={<MaterialsPage />} />
+      <Route path="lenses/thickness-chart" element={<ThicknessChartPage />} />
 
-    <Route path="coatings/mirror" element={<MirrorFinishPage />} />
-    <Route path="coatings/ultraclear-ar" element={<UltraClearARPage />} />
-    <Route path="coatings/blueblock-ar" element={<BlueBlockARPage />} />
-    <Route path="coatings/scratch-resistant" element={<ScratchResistantPage />} />
-    <Route path="coatings/uv-shield" element={<UVShieldPage />} />
-    <Route path="coatings/hydrophobic-oleophobic" element={<HydrophobicOleophobicPage />} />
-    {PUBLIC_COATINGS_REDIRECTS.map((route) => (
-      <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
-    ))}
+      <Route path="coatings/mirror" element={<MirrorFinishPage />} />
+      <Route path="coatings/ultraclear-ar" element={<UltraClearARPage />} />
+      <Route path="coatings/blueblock-ar" element={<BlueBlockARPage />} />
+      <Route path="coatings/scratch-resistant" element={<ScratchResistantPage />} />
+      <Route path="coatings/uv-shield" element={<UVShieldPage />} />
+      <Route path="coatings/hydrophobic-oleophobic" element={<HydrophobicOleophobicPage />} />
+      {PUBLIC_COATINGS_REDIRECTS.map((route) => (
+        <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
+      ))}
 
-    <Route path="professionals" element={<ProfessionalsPage />} />
-    <Route path="patients" element={<PatientsPage />} />
-    <Route path="patients/night-driving-aids" element={<NightDrivingAidsPage />} />
-    <Route path="professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
-    <Route path="professionals/dispensing-tips" element={<DispensingTipsPage />} />
-    <Route path="professionals/tracing-cutting-guide" element={<TracingCuttingGuidePage />} />
-    <Route path="professionals/lab-process-overview" element={<LabProcessOverviewPage />} />
-    <Route path="professionals/lens-ordering-tips" element={<LensOrderingTipsPage />} />
-    <Route path="professionals/:slug" element={<ProfessionalsPortalPage />} />
-    <Route path="return-policy" element={<LegalPage />} />
+      <Route path="professionals" element={<ProfessionalsPage />} />
+      <Route path="patients" element={<PatientsPage />} />
+      <Route path="patients/night-driving-aids" element={<NightDrivingAidsPage />} />
+      <Route path="professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
+      <Route path="professionals/dispensing-tips" element={<DispensingTipsPage />} />
+      <Route path="professionals/tracing-cutting-guide" element={<TracingCuttingGuidePage />} />
+      <Route path="professionals/lab-process-overview" element={<LabProcessOverviewPage />} />
+      <Route path="professionals/lens-ordering-tips" element={<LensOrderingTipsPage />} />
+      <Route path="professionals/:slug" element={<ProfessionalsPortalPage />} />
+      <Route path="return-policy" element={<LegalPage />} />
 
-    <Route path="zenvue" element={<ZenvueHome />} />
-    <Route path="zenvue/brilliance" element={<ZenvueBrilliance />} />
-    <Route path="zenvue/single-vision" element={<ZenvueSingleVision />} />
-    <Route path="zenvue/sundun" element={<ZenvueSunDun />} />
-    <Route path="zenvue/darkun" element={<ZenvueDarkun />} />
-    <Route path="photochromic" element={<PhotochromicGuidePage />} />
-    <Route path="zenvue/compare" element={<ZenvueCompare />} />
-    <Route path="zenvue/wholesale" element={<ZenvueWholesale />} />
+      <Route path="zenvue" element={<ZenvueHome />} />
+      <Route path="zenvue/brilliance" element={<ZenvueBrilliance />} />
+      <Route path="zenvue/single-vision" element={<ZenvueSingleVision />} />
+      <Route path="zenvue/sundun" element={<ZenvueSunDun />} />
+      <Route path="zenvue/darkun" element={<ZenvueDarkun />} />
+      <Route path="photochromic" element={<PhotochromicGuidePage />} />
+      <Route path="zenvue/compare" element={<ZenvueCompare />} />
+      <Route path="zenvue/wholesale" element={<ZenvueWholesale />} />
 
-    <Route path="*" element={<NotFound />} />
-  </Routes>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </ComingSoonGate>
 );
 
 export default PublicRoutes;
