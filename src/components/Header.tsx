@@ -405,7 +405,7 @@ const Header = () => {
           <span className="text-xl font-bold text-foreground">Classic Visions</span>
         </Link>
 
-        <nav className={`hidden items-center gap-7 lg:flex ${isSearchMode ? "opacity-0 pointer-events-none" : ""}`} aria-label="Main navigation">
+        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
           {PRIMARY_MENU.map((item) => (
             <MegaMenu key={item.label} item={item} />
           ))}
