@@ -4,7 +4,7 @@ import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Mon
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import PublicSearchPanel from "@/components/PublicSearchPanel";
+
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
