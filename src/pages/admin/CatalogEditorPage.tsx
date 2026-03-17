@@ -16,6 +16,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil } from "lucide-react";
 import SectionContentDialog from "@/components/admin/SectionContentDialog";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
+import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
@@ -54,7 +55,7 @@ const useHelpArticlesForCatalog = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("help_articles")
-        .select("id, title, category, visibility, content, description")
+        .select("id, title, category, visibility, content, body_json, description")
         .eq("is_active", true)
         .in("content_type", ["knowledge", "faq"])
         .in("visibility", ["public", "customer"])
@@ -164,7 +165,7 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
   index: number;
   total: number;
   versions: { id: number; name: string; format_type: string | null }[];
-  articles: { id: string; title: string; category: string; content?: string; description?: string }[];
+  articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string }[];
   onUpdate: (id: number, updates: Partial<CatalogSection>) => void;
   onRemove: (id: number) => void;
   onMoveUp: () => void;
@@ -322,19 +323,17 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
   template: CatalogTemplate;
   sections: CatalogSection[];
   versions: PricelistVersion[];
-  articles: { id: string; title: string; category: string; content?: string; description?: string }[];
+  articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string }[];
   settings: any;
 }) => {
   const includedSections = sections.filter((s) => s.is_included !== false);
 
-  const isHtml = (text: string) => /<[a-z][\s\S]*>/i.test(text);
-
-  const getKnowledgePreviewCopy = (article: { content?: string | null; description?: string | null } | null | undefined, mode: string | null) => {
+  const getKnowledgePreviewCopy = (article: { content?: string | null; body_json?: unknown; description?: string | null } | null | undefined, mode: string | null) => {
     const description = article?.description ?? "";
     const content = article?.content ?? "";
-    if (mode === "full") return { description, content };
-    if (mode === "excerpt") return { description, content: content.slice(0, 1800) + (content.length > 1800 ? "…" : "") };
-    return { description, content: content.slice(0, 700) + (content.length > 700 ? "…" : "") };
+    if (mode === "full") return { description, content, bodyJson: article?.body_json ?? null };
+    if (mode === "excerpt") return { description, content: content.slice(0, 1800) + (content.length > 1800 ? "…" : ""), bodyJson: null };
+    return { description, content: content.slice(0, 700) + (content.length > 700 ? "…" : ""), bodyJson: null };
   };
 
   const docStyles: React.CSSProperties = {
@@ -460,17 +459,11 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                         {previewCopy.description && (
                           <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{previewCopy.description}</p>
                         )}
-                        {previewCopy.content && isHtml(previewCopy.content) ? (
-                          <div
-                            className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
-                            style={{ color: "#2d3748", lineHeight: 1.6 }}
-                            dangerouslySetInnerHTML={{ __html: previewCopy.content }}
-                          />
-                        ) : (
-                          <div style={{ fontSize: "9px", color: "#2d3748", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                            {previewCopy.content}
-                          </div>
-                        )}
+                        <WikiArticleRenderer
+                          bodyJson={previewCopy.bodyJson as any}
+                          legacyContent={previewCopy.content}
+                          className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
+                        />
                       </div>
                     );
                   })()}

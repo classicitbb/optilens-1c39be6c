@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import RichTextEditor from "./RichTextEditor";
-import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
+import WikiArticleRenderer from "./WikiArticleRenderer";
 
 interface WikiArticleEditDialogProps {
   open: boolean;
@@ -173,7 +173,7 @@ const WikiArticleEditDialog = ({
             <div>
               <Label className="text-xs font-medium mb-1 block">Preview</Label>
               <div className="border border-border rounded-lg p-3 min-h-[320px] max-h-[420px] overflow-y-auto">
-                <BlogPostRenderer content={form.content} className="text-sm" emptyMessage="Nothing to preview yet." />
+                <WikiArticleRenderer legacyContent={form.content} className="text-sm" emptyMessage="Nothing to preview yet." />
               </div>
             </div>
           </div>
