@@ -467,24 +467,21 @@ const Header = () => {
             </SheetContent>
           </Sheet>
 
-          {isSearchMode ? (
-            <>
-              <div className="hidden lg:block lg:flex-1 lg:max-w-3xl">
-                <PublicSearchPanel />
-              </div>
-              <Button variant="ghost" size="sm" className="hidden lg:inline-flex" onClick={() => setShowSearchMenu((current) => !current)}>
-                <Menu className="mr-2 h-4 w-4" />
-                Menu
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => { setIsSearchMode(false); setShowSearchMenu(false); }}>
-                <X className="mr-2 h-4 w-4" />
-                Close
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => setIsSearchMode(true)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+                onClick={() => {
+                  const el = document.getElementById("site-search");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    const input = el.querySelector("input");
+                    if (input) setTimeout(() => input.focus(), 600);
+                  }
+                }}
+              >
                 <Search className="mr-2 h-4 w-4" />
+                <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
                 Search
               </Button>
 
