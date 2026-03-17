@@ -10,6 +10,7 @@ export interface ContentArticle {
   id: string;
   title: string;
   content: string;
+  body_json?: unknown;
   description: string;
   page_slug: string;
   category: string;

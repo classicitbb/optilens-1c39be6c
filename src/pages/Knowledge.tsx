@@ -8,7 +8,7 @@ import { useState, useMemo } from "react";
 import { usePublicKnowledge, ContentArticle } from "@/hooks/useContentArticles";
 import { Skeleton } from "@/components/ui/skeleton";
 import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
-import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
+import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import { Button } from "@/components/ui/button";
 
 const toSentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
@@ -175,7 +175,7 @@ const Knowledge = () => {
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-5 pt-1">
                                   <div className="rounded-lg bg-muted/30 p-4">
-                                    <BlogPostRenderer content={article.content} className="text-sm" />
+                                    <WikiArticleRenderer bodyJson={article.body_json as any} legacyContent={article.content} className="text-sm" />
                                   </div>
                                   <div className="mt-3">
                                     <HelpFeedbackButtons articleId={article.id} pageSlug="knowledge" />
@@ -208,7 +208,7 @@ const Knowledge = () => {
                           </AccordionTrigger>
                           <AccordionContent className="pb-5 pt-1">
                             <div className="rounded-lg bg-muted/30 p-4">
-                              <BlogPostRenderer content={faq.content} className="text-sm" />
+                              <WikiArticleRenderer bodyJson={faq.body_json as any} legacyContent={faq.content} className="text-sm" />
                             </div>
                             <div className="mt-3">
                               <HelpFeedbackButtons articleId={faq.id} pageSlug="knowledge" />
