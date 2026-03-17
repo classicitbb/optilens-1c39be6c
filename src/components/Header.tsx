@@ -411,7 +411,7 @@ const Header = () => {
           ))}
         </nav>
 
-        <div className={`flex items-center gap-2 ${isSearchMode ? "flex-1 justify-end" : ""}`}>
+        <div className="flex items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">
