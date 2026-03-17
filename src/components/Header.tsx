@@ -367,8 +367,6 @@ const MegaMenu = ({ item }: { item: PrimaryMenuItem }) => {
 const Header = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const [isSearchMode, setIsSearchMode] = useState(false);
-  const [showSearchMenu, setShowSearchMenu] = useState(false);
   const { toast } = useToast();
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
   const bannerDismissed = useAccountRequestDismissed();
