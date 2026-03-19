@@ -16,31 +16,31 @@ const BarbadosRetailersPage = () => {
   }
 
   const jsonLd = [
-    {
-      "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      name: "Barbados optical retailers and eye clinics",
-      description: barbadosMarket.seoDescription,
-      url: "https://www.classicvisions.net/find-a-retailer/barbados",
-      isPartOf: {
-        "@type": "WebSite",
-        name: "Classic Visions",
-        url: "https://www.classicvisions.net/",
-      },
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: barbadosFaqs.map((faq) => ({
-        "@type": "Question",
-        name: faq.question,
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: faq.answer,
-        },
-      })),
-    },
-  ];
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Barbados optical retailers and eye clinics",
+    description: barbadosMarket.seoDescription,
+    url: "https://www.classicvisions.net/find-a-retailer/barbados",
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Classic Visions",
+      url: "https://www.classicvisions.net/"
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: barbadosFaqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer
+      }
+    }))
+  }];
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -48,8 +48,8 @@ const BarbadosRetailersPage = () => {
         title="Find an optical in Barbados | Classic Visions retailer guide"
         description={barbadosMarket.seoDescription}
         canonicalPath="/find-a-retailer/barbados"
-        jsonLd={jsonLd}
-      />
+        jsonLd={jsonLd} />
+      
       <Header />
       <main className="pb-16 pt-24">
         <div className="container mx-auto max-w-6xl px-4 lg:px-8">
@@ -59,7 +59,7 @@ const BarbadosRetailersPage = () => {
               <div>
                 <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">Find an optical in Barbados</h1>
                 <p className="mt-4 max-w-3xl text-lg text-muted-foreground">
-                  Find trusted Barbados optical stores and eye clinics faster. This dedicated Barbados page is built for patients who want a clear shortlist, fast filtering, and local-intent search content that works for both people and AI search assistants.
+                  Find trusted Barbados optical stores and eye clinics faster. 
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button asChild>
@@ -70,17 +70,17 @@ const BarbadosRetailersPage = () => {
                   </Button>
                 </div>
               </div>
-              <div className="rounded-3xl bg-primary p-6 text-primary-foreground">
-                <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary-foreground/80">
-                  <Sparkles className="h-4 w-4" />
-                  SEO + AI search ready
-                </div>
-                <ul className="mt-5 space-y-3 text-sm text-primary-foreground/85">
-                  <li>• Barbados-specific search intent and internal linking.</li>
-                  <li>• Structured FAQ content for search engines and AI assistants.</li>
-                  <li>• Clear next actions for patients: call, visit, or request help.</li>
-                </ul>
-              </div>
+              
+
+
+
+
+
+
+
+
+
+              
             </div>
           </section>
 
@@ -129,8 +129,8 @@ const BarbadosRetailersPage = () => {
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {barbadosMarket.entries.map((entry) => (
-                <Card key={`${entry.name}-${entry.location}`} className="h-full rounded-3xl border-border shadow-sm">
+              {barbadosMarket.entries.map((entry) =>
+              <Card key={`${entry.name}-${entry.location}`} className="h-full rounded-3xl border-border shadow-sm">
                   <CardHeader className="space-y-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -147,25 +147,25 @@ const BarbadosRetailersPage = () => {
                       <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <span>{entry.location}</span>
                     </div>
-                    {entry.phone ? (
-                      <a href={`tel:${entry.phone.replace(/[^+\d]/g, "")}`} className="flex items-start gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    {entry.phone ?
+                  <a href={`tel:${entry.phone.replace(/[^+\d]/g, "")}`} className="flex items-start gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground">
                         <Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <span>{entry.phone}</span>
-                      </a>
-                    ) : null}
+                      </a> :
+                  null}
                     <div className="flex flex-wrap gap-2 pt-2">
-                      {entry.website ? (
-                        <Button size="sm" asChild>
+                      {entry.website ?
+                    <Button size="sm" asChild>
                           <a href={entry.website} target="_blank" rel="noopener noreferrer">Visit website</a>
-                        </Button>
-                      ) : null}
+                        </Button> :
+                    null}
                       <Button size="sm" variant="outline" asChild>
                         <Link to="/#contact">Request help</Link>
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )}
             </div>
           </section>
 
@@ -192,20 +192,20 @@ const BarbadosRetailersPage = () => {
                 <CardTitle className="text-2xl">Barbados FAQ</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                {barbadosFaqs.map((faq) => (
-                  <div key={faq.question}>
+                {barbadosFaqs.map((faq) =>
+                <div key={faq.question}>
                     <h3 className="text-base font-semibold text-foreground">{faq.question}</h3>
                     <p className="mt-2 text-sm text-muted-foreground sm:text-base">{faq.answer}</p>
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
           </section>
         </div>
       </main>
       <Footer />
-    </div>
-  );
+    </div>);
+
 };
 
 export default BarbadosRetailersPage;
