@@ -112,11 +112,27 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
         </div>
       </section>
 
-      {featuredMarket
-
-
-
-
+      {featuredMarket && (
+        <section className="rounded-3xl border border-primary/20 bg-primary/5 p-6 shadow-sm sm:p-8">
+          <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+            <Sparkles className="h-4 w-4" />
+            Featured market
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold text-foreground">{featuredMarket.name}</h2>
+          <p className="mt-2 max-w-3xl text-sm text-muted-foreground sm:text-base">{featuredMarket.intro}</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button asChild>
+              <Link to={`/find-a-retailer/${featuredMarket.slug}`}>
+                View {featuredMarket.name} page
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={() => setActiveMarketSlug(featuredMarket.slug)}>
+              Filter to {featuredMarket.name}
+            </Button>
+          </div>
+        </section>
+      )
 
 
 
