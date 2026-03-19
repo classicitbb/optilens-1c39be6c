@@ -89,30 +89,30 @@ const DispensingTipsPage = () => {
                   </Button>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                <Card className="rounded-3xl border-border shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <GraduationCap className="h-5 w-5 text-primary" />
-                      Who it is for
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground">
-                    Optical stores, dispensers, clinic teams, and trainers building more confident progressive-lens handoff workflows.
-                  </CardContent>
-                </Card>
-                <Card className="rounded-3xl border-border shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Users className="h-5 w-5 text-primary" />
-                      Why this format works
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground">
-                    Short, playable video modules lower friction for busy teams and make repeat training easier across branches or new staff onboarding.
-                  </CardContent>
-                </Card>
-              </div>
+              
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              
             </div>
           </section>
 
