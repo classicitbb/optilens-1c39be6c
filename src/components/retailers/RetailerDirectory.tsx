@@ -135,14 +135,6 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
       )}
 
 
-
-
-
-
-
-
-
-
       }
 
       {!hasResults ?
