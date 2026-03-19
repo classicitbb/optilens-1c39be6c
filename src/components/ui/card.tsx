@@ -25,8 +25,8 @@ export interface CardProps extends
   VariantProps<typeof cardVariants> {}
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, ...props }, ref) =>
-  <div ref={ref} className={cn("", cardVariants({ variant, className }))} {...props} />
+  ({ className, variant, ...props }, ref) => {}
+
 
 );
 Card.displayName = "Card";
