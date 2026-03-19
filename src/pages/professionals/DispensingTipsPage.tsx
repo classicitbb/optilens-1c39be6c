@@ -8,39 +8,39 @@ import { BookOpen, CirclePlay, GraduationCap, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const videos = [
-  {
-    title: "Fitting and Dispensing Progressive Lenses: Dispensing Progressive Lenses for First Time Wearers",
-    description:
-      "A practical guide for helping first-time progressive wearers understand adaptation, expectations, and the confidence-building handoff conversation.",
-    youtubeUrl: "https://youtu.be/9lKKj9sDz-w",
-    embedUrl: "https://www.youtube-nocookie.com/embed/9lKKj9sDz-w",
-    focus: ["First-time PAL wearers", "Expectation setting", "Adaptation coaching"],
-  },
-  {
-    title: "Fitting and Dispensing Progressive Lenses: Handling Customer Reactions to New Eyeglasses",
-    description:
-      "Use this video to coach teams on handling patient concerns, objections, and early reactions after dispense with empathy and technical clarity.",
-    youtubeUrl: "https://youtu.be/F1VsVs3ZIgs",
-    embedUrl: "https://www.youtube-nocookie.com/embed/F1VsVs3ZIgs",
-    focus: ["Customer reactions", "Dispense conversations", "Confidence recovery"],
-  },
-  {
-    title: "Fitting and Dispensing Progressive Lenses: Measure Pupillary Distance",
-    description:
-      "A fast refresher on measuring pupillary distance accurately so teams can reduce remakes and improve first-pair success.",
-    youtubeUrl: "https://www.youtube.com/watch?v=sz1gNPBMkXE",
-    embedUrl: "https://www.youtube-nocookie.com/embed/sz1gNPBMkXE",
-    focus: ["Monocular PD", "Measurement accuracy", "Remake prevention"],
-  },
-  {
-    title: "Fitting and Dispensing Progressive Lenses: Measure Fitting Height",
-    description:
-      "A focused lesson on fitting-height measurement with frame-adjustment awareness, helping teams improve alignment and wearer comfort.",
-    youtubeUrl: "https://www.youtube.com/watch?v=-PIDGBn8RY4&pp=ygVBRml0dGluZyBhbmQgRGlzcGVuc2luZyBQcm9ncmVzc2l2ZSBMZW5zZXM6IE1lYXN1cmUgRml0dGluZyBIZWlnaHQ%3D",
-    embedUrl: "https://www.youtube-nocookie.com/embed/-PIDGBn8RY4",
-    focus: ["Fitting height", "Frame preparation", "Dispensing consistency"],
-  },
-];
+{
+  title: "Fitting and Dispensing Progressive Lenses: Dispensing Progressive Lenses for First Time Wearers",
+  description:
+  "A practical guide for helping first-time progressive wearers understand adaptation, expectations, and the confidence-building handoff conversation.",
+  youtubeUrl: "https://youtu.be/9lKKj9sDz-w",
+  embedUrl: "https://www.youtube-nocookie.com/embed/9lKKj9sDz-w",
+  focus: ["First-time PAL wearers", "Expectation setting", "Adaptation coaching"]
+},
+{
+  title: "Fitting and Dispensing Progressive Lenses: Handling Customer Reactions to New Eyeglasses",
+  description:
+  "Use this video to coach teams on handling patient concerns, objections, and early reactions after dispense with empathy and technical clarity.",
+  youtubeUrl: "https://youtu.be/F1VsVs3ZIgs",
+  embedUrl: "https://www.youtube-nocookie.com/embed/F1VsVs3ZIgs",
+  focus: ["Customer reactions", "Dispense conversations", "Confidence recovery"]
+},
+{
+  title: "Fitting and Dispensing Progressive Lenses: Measure Pupillary Distance",
+  description:
+  "A fast refresher on measuring pupillary distance accurately so teams can reduce remakes and improve first-pair success.",
+  youtubeUrl: "https://www.youtube.com/watch?v=sz1gNPBMkXE",
+  embedUrl: "https://www.youtube-nocookie.com/embed/sz1gNPBMkXE",
+  focus: ["Monocular PD", "Measurement accuracy", "Remake prevention"]
+},
+{
+  title: "Fitting and Dispensing Progressive Lenses: Measure Fitting Height",
+  description:
+  "A focused lesson on fitting-height measurement with frame-adjustment awareness, helping teams improve alignment and wearer comfort.",
+  youtubeUrl: "https://www.youtube.com/watch?v=-PIDGBn8RY4&pp=ygVBRml0dGluZyBhbmQgRGlzcGVuc2luZyBQcm9ncmVzc2l2ZSBMZW5zZXM6IE1lYXN1cmUgRml0dGluZyBIZWlnaHQ%3D",
+  embedUrl: "https://www.youtube-nocookie.com/embed/-PIDGBn8RY4",
+  focus: ["Fitting height", "Frame preparation", "Dispensing consistency"]
+}];
+
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -55,9 +55,9 @@ const jsonLd = {
     contentUrl: video.youtubeUrl,
     publisher: {
       "@type": "Organization",
-      name: "Classic Visions",
-    },
-  })),
+      name: "Classic Visions"
+    }
+  }))
 };
 
 const DispensingTipsPage = () => {
@@ -67,8 +67,8 @@ const DispensingTipsPage = () => {
         title="Dispensing tips videos for optical professionals | Classic Visions"
         description="Watch playable dispensing tips videos for optical professionals, including first-time progressive wearers, customer reactions, PD measurement, and fitting height."
         canonicalPath="/dispensing-tips"
-        jsonLd={jsonLd}
-      />
+        jsonLd={jsonLd} />
+      
       <Header />
       <main className="pb-16 pt-24">
         <div className="container mx-auto max-w-6xl px-4 lg:px-8">
@@ -116,33 +116,33 @@ const DispensingTipsPage = () => {
             </div>
           </section>
 
-          <section className="mt-8 grid gap-4 md:grid-cols-3">
-            <Card className="rounded-3xl border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Video modules</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-4xl font-semibold text-foreground">{videos.length}</p>
-                <p className="mt-2 text-sm text-muted-foreground">Focused on progressive lens fitting and handoff execution.</p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-3xl border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Core outcomes</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Better measurement consistency, stronger confidence with first-time wearers, and fewer avoidable remakes.
-              </CardContent>
-            </Card>
-            <Card className="rounded-3xl border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-sm uppercase tracking-[0.18em] text-muted-foreground">Best use</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Team huddles, onboarding refreshers, or quick coaching before a patient consult or dispense appointment.
-              </CardContent>
-            </Card>
-          </section>
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          
 
           <section className="mt-10">
             <div className="flex items-center gap-3">
@@ -150,18 +150,18 @@ const DispensingTipsPage = () => {
               <h2 className="text-3xl font-semibold text-foreground">Watch the dispensing tips series</h2>
             </div>
             <div className="mt-6 grid gap-6 xl:grid-cols-2">
-              {videos.map((video) => (
-                <Card key={video.title} className="overflow-hidden rounded-3xl border-border shadow-sm">
+              {videos.map((video) =>
+              <Card key={video.title} className="overflow-hidden rounded-3xl border-border shadow-sm">
                   <div className="aspect-video w-full bg-muted">
                     <iframe
-                      className="h-full w-full"
-                      src={video.embedUrl}
-                      title={video.title}
-                      loading="lazy"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      allowFullScreen
-                    />
+                    className="h-full w-full"
+                    src={video.embedUrl}
+                    title={video.title}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen />
+                  
                   </div>
                   <CardHeader>
                     <CardTitle className="text-xl leading-snug">{video.title}</CardTitle>
@@ -169,9 +169,9 @@ const DispensingTipsPage = () => {
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground sm:text-base">{video.description}</p>
                     <div className="flex flex-wrap gap-2">
-                      {video.focus.map((item) => (
-                        <Badge key={item} variant="outline">{item}</Badge>
-                      ))}
+                      {video.focus.map((item) =>
+                    <Badge key={item} variant="outline">{item}</Badge>
+                    )}
                     </div>
                     <div className="flex flex-wrap gap-3 pt-2">
                       <Button size="sm" asChild>
@@ -180,7 +180,7 @@ const DispensingTipsPage = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )}
             </div>
           </section>
 
@@ -213,8 +213,8 @@ const DispensingTipsPage = () => {
         </div>
       </main>
       <Footer />
-    </div>
-  );
+    </div>);
+
 };
 
 export default DispensingTipsPage;
