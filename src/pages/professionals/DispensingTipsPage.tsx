@@ -76,7 +76,7 @@ const DispensingTipsPage = () => {
             <Badge variant="secondary">Professionals resource page</Badge>
             <div className="mt-5 grid gap-8 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
               <div>
-                <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">Dispensing tips with playable training videos</h1>
+                <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">Dispensing tips </h1>
                 <p className="mt-4 max-w-3xl text-lg text-muted-foreground">
                   Built for optical dispensers, retail teams, and clinic staff who need quick, practical refreshers on progressive lens fitting, patient conversations, and measurement consistency.
                 </p>
