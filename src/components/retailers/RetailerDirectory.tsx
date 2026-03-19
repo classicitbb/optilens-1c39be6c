@@ -135,8 +135,6 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
       )}
 
 
-      }
-
       {!hasResults ?
       <section className="rounded-3xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">No matches found</p>
