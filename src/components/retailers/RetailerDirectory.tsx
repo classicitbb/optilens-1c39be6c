@@ -132,11 +132,7 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
             </Button>
           </div>
         </section>
-      )
-
-
-
-
+      )}
 
 
 
