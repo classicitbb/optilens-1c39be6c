@@ -32,14 +32,14 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
       return entry.searchValue.includes(normalizedQuery);
     });
 
-    return retailerMarkets
-      .map((market) => ({
-        ...market,
-        entries: matches
-          .filter((entry) => entry.marketSlug === market.slug)
-          .map(({ searchValue: _searchValue, marketName: _marketName, marketSlug: _marketSlug, ...entry }) => entry),
-      }))
-      .filter((market) => market.entries.length > 0 || (!normalizedQuery && (!shouldFilterByMarket || market.slug === activeMarketSlug)));
+    return retailerMarkets.
+    map((market) => ({
+      ...market,
+      entries: matches.
+      filter((entry) => entry.marketSlug === market.slug).
+      map(({ searchValue: _searchValue, marketName: _marketName, marketSlug: _marketSlug, ...entry }) => entry)
+    })).
+    filter((market) => market.entries.length > 0 || !normalizedQuery && (!shouldFilterByMarket || market.slug === activeMarketSlug));
   }, [activeMarketSlug, normalizedQuery]);
 
   const featuredMarket = retailerMarkets.find((market) => market.slug === featuredMarketSlug);
@@ -84,8 +84,8 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Try Barbados, eye clinic, Harcourt Carter, or Bridgetown"
-              className="h-12 pl-10"
-            />
+              className="h-12 pl-10" />
+            
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -93,78 +93,78 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
               type="button"
               variant={activeMarketSlug === "all" ? "default" : "outline"}
               size="sm"
-              onClick={() => setActiveMarketSlug("all")}
-            >
+              onClick={() => setActiveMarketSlug("all")}>
+              
               All islands
             </Button>
-            {retailerCountries.map((market) => (
-              <Button
-                key={market.slug}
-                type="button"
-                variant={activeMarketSlug === market.slug ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveMarketSlug(market.slug)}
-              >
+            {retailerCountries.map((market) =>
+            <Button
+              key={market.slug}
+              type="button"
+              variant={activeMarketSlug === market.slug ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveMarketSlug(market.slug)}>
+              
                 {market.name}
               </Button>
-            ))}
+            )}
           </div>
         </div>
       </section>
 
-      {featuredMarket && (
-        <section className="grid gap-4 rounded-3xl bg-primary px-6 py-6 text-primary-foreground shadow-sm md:grid-cols-[1.4fr_0.8fr] md:items-center md:px-8">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary-foreground/75">
-              <Sparkles className="h-4 w-4" />
-              Barbados SEO landing page
-            </div>
-            <h2 className="mt-3 text-3xl font-semibold">Need a Barbados-first page for search and AI discovery?</h2>
-            <p className="mt-3 max-w-2xl text-sm text-primary-foreground/80 sm:text-base">
-              We built a dedicated Barbados retailer page with local-intent copy, a focused FAQ, and structured content for search engines and AI assistants.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 md:items-start">
-            <Button asChild size="lg" variant="secondary">
-              <Link to="/find-a-retailer/barbados">Open Barbados page</Link>
-            </Button>
-            <p className="text-sm text-primary-foreground/75">Ideal for Barbados-related searches, local discovery, and direct patient routing.</p>
-          </div>
-        </section>
-      )}
+      {featuredMarket
 
-      {!hasResults ? (
-        <section className="rounded-3xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      }
+
+      {!hasResults ?
+      <section className="rounded-3xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">No matches found</p>
           <h2 className="mt-3 text-2xl font-semibold text-foreground">We couldn&apos;t find a listing for that search yet.</h2>
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
             Try another island, search for a provider name, or contact Classic Visions so we can help route you to the best nearby retailer.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Button variant="outline" onClick={() => { setQuery(""); setActiveMarketSlug("all"); }}>
+            <Button variant="outline" onClick={() => {setQuery("");setActiveMarketSlug("all");}}>
               Reset search
             </Button>
             <Button asChild>
               <Link to="/#contact">Contact Classic Visions</Link>
             </Button>
           </div>
-        </section>
-      ) : null}
+        </section> :
+      null}
 
       <div className="space-y-8">
-        {filteredMarkets.map((market) => (
-          <MarketSection
-            key={market.slug}
-            market={market}
-            isFiltered={Boolean(normalizedQuery) || activeMarketSlug !== "all"}
-          />
-        ))}
+        {filteredMarkets.map((market) =>
+        <MarketSection
+          key={market.slug}
+          market={market}
+          isFiltered={Boolean(normalizedQuery) || activeMarketSlug !== "all"} />
+
+        )}
       </div>
-    </div>
-  );
+    </div>);
+
 };
 
-const MarketSection = ({ market, isFiltered }: { market: RetailerMarket; isFiltered: boolean }) => {
+const MarketSection = ({ market, isFiltered }: {market: RetailerMarket;isFiltered: boolean;}) => {
   const hasEntries = market.entries.length > 0;
 
   return (
@@ -175,17 +175,17 @@ const MarketSection = ({ market, isFiltered }: { market: RetailerMarket; isFilte
           <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl">{market.name}</h2>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground sm:text-base">{market.intro}</p>
         </div>
-        {market.slug === "barbados" ? (
-          <Button variant="outline" asChild>
+        {market.slug === "barbados" ?
+        <Button variant="outline" asChild>
             <Link to="/find-a-retailer/barbados">View Barbados SEO page</Link>
-          </Button>
-        ) : null}
+          </Button> :
+        null}
       </div>
 
-      {hasEntries ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {market.entries.map((entry) => (
-            <Card key={`${market.slug}-${entry.name}-${entry.location}`} className="h-full rounded-2xl border-border shadow-sm">
+      {hasEntries ?
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {market.entries.map((entry) =>
+        <Card key={`${market.slug}-${entry.name}-${entry.location}`} className="h-full rounded-2xl border-border shadow-sm">
               <CardHeader className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -202,38 +202,38 @@ const MarketSection = ({ market, isFiltered }: { market: RetailerMarket; isFilte
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   <span>{entry.location}</span>
                 </div>
-                {entry.phone ? (
-                  <a href={`tel:${entry.phone.replace(/[^+\d]/g, "")}`} className="flex items-start gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                {entry.phone ?
+            <a href={`tel:${entry.phone.replace(/[^+\d]/g, "")}`} className="flex items-start gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground">
                     <Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <span>{entry.phone}</span>
-                  </a>
-                ) : null}
-                {entry.notes ? (
-                  <p className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">{entry.notes}</p>
-                ) : null}
+                  </a> :
+            null}
+                {entry.notes ?
+            <p className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">{entry.notes}</p> :
+            null}
                 <div className="flex flex-wrap gap-2 pt-2">
-                  {entry.website ? (
-                    <Button size="sm" asChild>
+                  {entry.website ?
+              <Button size="sm" asChild>
                       <a href={entry.website} target={entry.website.startsWith("http") ? "_blank" : undefined} rel={entry.website.startsWith("http") ? "noopener noreferrer" : undefined}>
                         Visit website
                         <ExternalLink className="ml-2 h-4 w-4" />
                       </a>
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" asChild>
+                    </Button> :
+
+              <Button size="sm" variant="outline" asChild>
                       <Link to="/#contact">Request help</Link>
                     </Button>
-                  )}
+              }
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : (
-        <div className={cn(
-          "rounded-3xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground shadow-sm",
-          isFiltered && "border-primary/40",
-        )}>
+        )}
+        </div> :
+
+      <div className={cn(
+        "rounded-3xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground shadow-sm",
+        isFiltered && "border-primary/40"
+      )}>
           <p className="font-medium text-foreground">We&apos;re expanding in {market.name}.</p>
           <p className="mt-2 max-w-3xl">
             If you don&apos;t see the retailer you need, contact Classic Visions and we&apos;ll help route you to the closest partner, specialist clinic, or suitable alternative.
@@ -242,9 +242,9 @@ const MarketSection = ({ market, isFiltered }: { market: RetailerMarket; isFilte
             <Link to="/#contact">Contact Classic Visions</Link>
           </Button>
         </div>
-      )}
-    </section>
-  );
+      }
+    </section>);
+
 };
 
 export default RetailerDirectory;
