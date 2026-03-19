@@ -184,32 +184,32 @@ const DispensingTipsPage = () => {
             </div>
           </section>
 
-          <section className="mt-10 grid gap-6 lg:grid-cols-2">
-            <Card className="rounded-3xl border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  Recommended team workflow
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground sm:text-base">
-                <p>1. Start with first-time wearer coaching to improve expectation setting before dispense.</p>
-                <p>2. Review reaction-handling techniques so staff respond calmly and consistently after fitting.</p>
-                <p>3. Refresh PD and fitting-height measurement technique to reduce avoidable remakes.</p>
-                <p>4. Repeat these short modules during onboarding and branch-level coaching huddles.</p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-3xl border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-2xl">Why this page is stronger than a raw embed list</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground sm:text-base">
-                <p>The page is structured for clarity, with descriptive titles, summaries, and role-specific positioning for optical teams.</p>
-                <p>It is also search-friendly and AI-search-ready thanks to semantic headings, video metadata, and clear topic framing.</p>
-                <p>If you want next, this page can evolve into a full professional resource hub with guides, PDFs, and role-based learning tracks.</p>
-              </CardContent>
-            </Card>
-          </section>
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          
         </div>
       </main>
       <Footer />
