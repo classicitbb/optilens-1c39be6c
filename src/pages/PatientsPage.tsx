@@ -130,6 +130,9 @@ const PatientsPage = () => {
                 <p className="mt-1 text-sm text-muted-foreground">
                   Bring your daily routine details (screen time, driving at night, outdoor exposure) so your optician can personalize lens recommendations.
                 </p>
+                <Button variant="outline" size="sm" className="mt-4" asChild>
+                  <Link to="/find-a-retailer">Find a retailer by island</Link>
+                </Button>
               </div>
             </article>
 
@@ -191,9 +194,9 @@ const PatientsPage = () => {
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" asChild>
-                  <Link to="/professionals">
+                  <Link to="/find-a-retailer">
                     <MapPin className="mr-2 h-4 w-4" />
-                    Find Care Resources
+                    Find a Retailer
                   </Link>
                 </Button>
                 <Button asChild>

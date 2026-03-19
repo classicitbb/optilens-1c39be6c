@@ -16,7 +16,7 @@ const sections = [
   {
     title: "Technical Resources",
     links: [
-      { label: "Dispensing Tips & Guide", to: "/professionals/dispensing-tips" },
+      { label: "Dispensing Tips & Guide", to: "/dispensing-tips" },
       { label: "Lab Process Overview", to: "/professionals/lab-process-overview" },
       { label: "Tracing & Cutting Guide", to: "/professionals/tracing-cutting-guide" },
       { label: "Lens Ordering Tips", to: "/professionals/lens-ordering-tips" },

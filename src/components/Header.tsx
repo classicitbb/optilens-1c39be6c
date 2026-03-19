@@ -119,7 +119,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
       {
         title: "Technical Resources",
         links: [
-          { label: "Dispensing Tips & Guide", description: "Professional dispensing and patient care", to: "/professionals/dispensing-tips" },
+          { label: "Dispensing Tips & Guide", description: "Professional dispensing videos and patient-care coaching", to: "/dispensing-tips" },
           { label: "Lab Process Overview", description: "Production flow and checkpoints", to: "/professionals/lab-process-overview" },
           { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
           { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
@@ -153,7 +153,8 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
       {
         title: "Find Care",
         links: [
-          { label: "Find a Vision Expert Near You", description: "Connect with a licensed eye care professional", to: "/patients#find-care" },
+          { label: "Find a Vision Expert Near You", description: "Search by island, retailer, or clinic type", to: "/find-a-retailer" },
+          { label: "Barbados Retailers", description: "Explore the Barbados-focused retailer guide", to: "/find-a-retailer/barbados" },
           { label: "Ask Your Optician About Classic Visions", description: "Discuss lens options for your routine", to: "/patients#find-care" },
         ],
       },
@@ -218,6 +219,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "night-driving-aids": "Night Driving Aids",
   "chemistrie-lens-system": "Chemistrie Lens System",
   "dispensing-tips": "Dispensing Tips",
+  "find-a-retailer": "Find a Retailer",
   "tracing-cutting-guide": "Tracing & Cutting Guide",
   "lab-process-overview": "Lab Process Overview",
   "lens-ordering-tips": "Lens Ordering Tips",
@@ -236,6 +238,8 @@ const BREADCRUMB_NAV_TARGETS = new Set<string>([
   "/lenses",
   "/patients",
   "/professionals",
+  "/find-a-retailer",
+  "/dispensing-tips",
   "/zenvue",
 ]);
 
