@@ -16,6 +16,7 @@ const footerColumns = [
       { label: "About", to: "/#about" },
       { label: "Professionals", to: "/professionals" },
       { label: "Patients", to: "/patients" },
+      { label: "Find a Retailer", to: "/find-a-retailer" },
     ],
   },
   {

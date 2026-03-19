@@ -24,6 +24,8 @@ const NightDrivingAidsPage = lazy(() => import("@/pages/patients/NightDrivingAid
 const ProfessionalsPortalPage = lazy(() => import("@/pages/ProfessionalsPortalPage"));
 const ProfessionalsChemistriePage = lazy(() => import("@/pages/ProfessionalsChemistriePage"));
 const DispensingTipsPage = lazy(() => import("@/pages/professionals/DispensingTipsPage"));
+const FindARetailerPage = lazy(() => import("@/pages/find-a-retailer/FindARetailerPage"));
+const BarbadosRetailersPage = lazy(() => import("@/pages/find-a-retailer/BarbadosRetailersPage"));
 const TracingCuttingGuidePage = lazy(() => import("@/pages/professionals/TracingCuttingGuidePage"));
 const LabProcessOverviewPage = lazy(() => import("@/pages/professionals/LabProcessOverviewPage"));
 const LensOrderingTipsPage = lazy(() => import("@/pages/professionals/LensOrderingTipsPage"));
@@ -90,9 +92,13 @@ const PublicRoutes = () => (
 
       <Route path="professionals" element={<ProfessionalsPage />} />
       <Route path="patients" element={<PatientsPage />} />
+      <Route path="find-a-retailer" element={<FindARetailerPage />} />
+      <Route path="find-a-retailer/barbados" element={<BarbadosRetailersPage />} />
+      <Route path="patients/find-a-retailer" element={<Navigate to="/find-a-retailer" replace />} />
       <Route path="patients/night-driving-aids" element={<NightDrivingAidsPage />} />
+      <Route path="dispensing-tips" element={<DispensingTipsPage />} />
       <Route path="professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
-      <Route path="professionals/dispensing-tips" element={<DispensingTipsPage />} />
+      <Route path="professionals/dispensing-tips" element={<Navigate to="/dispensing-tips" replace />} />
       <Route path="professionals/tracing-cutting-guide" element={<TracingCuttingGuidePage />} />
       <Route path="professionals/lab-process-overview" element={<LabProcessOverviewPage />} />
       <Route path="professionals/lens-ordering-tips" element={<LensOrderingTipsPage />} />
