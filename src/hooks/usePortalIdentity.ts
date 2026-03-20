@@ -91,9 +91,9 @@ export const usePortalIdentity = () => {
     enabled: !!user,
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await (supabase.rpc("sync_customer_portal_identity", {
+      const { data, error } = await (supabase.rpc as any)("sync_customer_portal_identity", {
         p_user_id: user.id,
-      }) as any);
+      });
 
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
