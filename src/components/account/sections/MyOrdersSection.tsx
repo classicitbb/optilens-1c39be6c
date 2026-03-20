@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { Clock, Package, ShoppingBag } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -26,12 +27,16 @@ const getStatusColor = (status: string) => {
 
 const MyOrdersSection = () => {
   const { orders, loading } = useOrders();
+  const { canAccessFeature } = usePortalIdentity();
 
   return (
     <section className="space-y-6">
       <header className="space-y-1">
         <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
         <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
+        {!canAccessFeature("private-orders") ? (
+          <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
+        ) : null}
       </header>
 
       {loading ? (

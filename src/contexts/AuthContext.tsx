@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       await supabase.from("profiles").upsert(payload as never, { onConflict: "user_id" });
+      await (supabase.rpc("sync_customer_portal_identity", { p_user_id: user.id }) as any);
     };
 
     syncProfileFromUser();

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
 const profileSchema = z.object({
@@ -29,6 +31,7 @@ const profileSchema = z.object({
   display_name: z.string().max(100, "Display name must be less than 100 characters").optional(),
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
   avatar_url: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  organization_name: z.string().max(160, "Organization must be less than 160 characters").optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -43,14 +46,16 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 const MyAccountSection = () => {
   const { user } = useAuth();
   const { role, hasAccess } = useUserRole();
+  const { identity } = usePortalIdentity();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resettingPw, setResettingPw] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { full_name: "", phone: "", display_name: "", bio: "", avatar_url: "" },
+    defaultValues: { full_name: "", phone: "", display_name: "", bio: "", avatar_url: "", organization_name: "" },
   });
 
   useEffect(() => {
@@ -71,6 +76,7 @@ const MyAccountSection = () => {
           display_name: data.display_name || "",
           bio: data.bio || "",
           avatar_url: data.avatar_url || resolveUserAvatar(user),
+          organization_name: data.organization_name || "",
         });
       } else {
         form.reset({
@@ -79,6 +85,7 @@ const MyAccountSection = () => {
           display_name: "",
           bio: "",
           avatar_url: resolveUserAvatar(user),
+          organization_name: "",
         });
       }
       setLoading(false);
@@ -99,6 +106,7 @@ const MyAccountSection = () => {
         display_name: values.display_name || null,
         bio: values.bio || null,
         avatar_url: values.avatar_url || null,
+        organization_name: values.organization_name?.trim() || null,
       })
       .eq("user_id", user.id);
 
@@ -109,6 +117,7 @@ const MyAccountSection = () => {
       return;
     }
 
+    await queryClient.invalidateQueries({ queryKey: ["portal-identity", user.id] });
     toast({ title: "Success", description: "Profile updated successfully" });
   };
 
@@ -157,6 +166,9 @@ const MyAccountSection = () => {
           <p className="text-sm text-muted-foreground">
             <span className="font-medium">Phone:</span> {form.watch("phone") || "—"}
           </p>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium">Organization:</span> {form.watch("organization_name") || "—"}
+          </p>
           {role && (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">Role:</span>
@@ -168,6 +180,18 @@ const MyAccountSection = () => {
               </Badge>
             </div>
           )}
+        </div>
+
+        <div className="space-y-2 rounded-lg border bg-background p-4">
+          <p className="text-sm font-medium text-foreground">Customer workflow status</p>
+          <p className="text-sm text-muted-foreground">{identity?.portalAccessNote || "Complete setup to create your CRM contact and customer workflow."}</p>
+          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <Badge variant="outline">Email {identity?.emailVerified ? "verified" : "pending"}</Badge>
+            <Badge variant="outline">Profile {identity?.profileCompleted ? "complete" : "incomplete"}</Badge>
+            <Badge variant="outline">Access {identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}</Badge>
+            {identity?.crmContactId ? <Badge variant="outline">CRM contact linked</Badge> : null}
+            {identity?.crmCustomerId ? <Badge variant="outline">Customer approved</Badge> : null}
+          </div>
         </div>
 
         {hasAccess && (
@@ -235,6 +259,19 @@ const MyAccountSection = () => {
                       className="min-h-[100px] resize-none"
                       {...field}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="organization_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Organization / Company</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Classic Visions" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

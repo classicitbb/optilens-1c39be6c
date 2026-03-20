@@ -29,6 +29,6 @@ export const useUserRole = () => {
     canEdit: role === "admin" || role === "operator",
     isAdmin: role === "admin",
     isCustomer: role === "customer",
-    hasAccess: !!role,
+    hasAccess: role === "admin" || role === "operator" || role === "viewer",
   };
 };
