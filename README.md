@@ -2,9 +2,10 @@
 
 ## Canonical environment (Lovable + CI)
 
-To reduce non-deterministic dependency and build behavior, this repository standardizes on **Node 20 + npm** with the **npm lockfile**.
+To reduce non-deterministic dependency and build behavior, this repository standardizes on **npm** with the **npm lockfile** and uses **Node 20** as the canonical CI runtime.
 
-- Node: `20.x` (pinned in `.nvmrc`)
+- Canonical CI Node: `20.x` (pinned in `.nvmrc`)
+- Supported local/runtime Node majors: `20.x` and `22.x`
 - npm: `10.x`
 - Canonical lockfile for automation: `package-lock.json`
 - Canonical install command: `npm ci`
@@ -18,6 +19,8 @@ nvm use
 npm ci
 npm run build
 ```
+
+If you are running in a Lovable/container environment that already provides Node 22, keep npm on `10.x`. CI still validates the repository on Node 20.
 
 
 ## Proxy-safe npm wrapper
