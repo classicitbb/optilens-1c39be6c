@@ -325,7 +325,7 @@ const MegaMenu = ({ item }: {item: PrimaryMenuItem;}) => {
           {/* Arrow pointing up at the trigger button */}
           <div
           style={{ left: arrowLeft }}
-          className="absolute -top-1.5 z-10 h-3 w-3 -translate-x-1/2 rotate-45 rounded-[2px] border border-emerald-300 bg-emerald-400 dark:border-emerald-500 dark:bg-emerald-400 shadow-none" />
+          className="absolute -top-1.5 z-10 h-3 w-3 -translate-x-1/2 rotate-45 rounded-[2px] border border-emerald-300 dark:border-emerald-500 shadow-none bg-accent" />
         
           <div className="grid gap-4 md:grid-cols-3">
           {item.sections.map((section) =>
