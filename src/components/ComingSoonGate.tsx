@@ -33,7 +33,7 @@ const ComingSoonGate = ({ children }: { children: React.ReactNode }) => {
   if (bypassed) return <>{children}</>;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-center">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-center">
       <img src={cleanLogoSmooth} alt="OptiLens logo" className="mb-8 h-14 w-auto" />
 
       <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
