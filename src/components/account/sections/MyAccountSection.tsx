@@ -57,10 +57,10 @@ const MyAccountSection = () => {
     const fetchProfile = async () => {
       if (!user) return;
       const { data, error } = await supabase
-        .from("profiles")
+        .from("profiles") as any)
         .select("*")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .maybeSingle() as { data: Record<string, any> | null; error: any };
 
       if (error) {
         toast({ title: "Error", description: "Failed to load profile", variant: "destructive" });

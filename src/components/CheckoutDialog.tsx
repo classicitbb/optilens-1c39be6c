@@ -191,7 +191,7 @@ export const CheckoutDialog = ({
         checkoutMethod: "manual",
       });
       setSameAsShipping(
-        JSON.stringify(shippingAddress) === JSON.stringify(billingAddress) || !data?.billing_address
+        JSON.stringify(shippingAddress) === JSON.stringify(billingAddress) || !(data as any)?.billing_address
       );
       setIsLoadingProfile(false);
     };
