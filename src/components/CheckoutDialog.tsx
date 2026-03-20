@@ -171,11 +171,11 @@ export const CheckoutDialog = ({
 
     const loadProfile = async () => {
       setIsLoadingProfile(true);
-      const { data } = await supabase
-        .from("profiles")
+      const { data } = await (supabase
+        .from("profiles") as any)
         .select("full_name,phone,shipping_address,billing_address")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .maybeSingle() as { data: Record<string, any> | null };
 
       const shippingAddress = coerceProfileAddress(data?.shipping_address);
       const billingAddress = coerceProfileAddress(data?.billing_address);
@@ -191,7 +191,7 @@ export const CheckoutDialog = ({
         checkoutMethod: "manual",
       });
       setSameAsShipping(
-        JSON.stringify(shippingAddress) === JSON.stringify(billingAddress) || !data?.billing_address
+        JSON.stringify(shippingAddress) === JSON.stringify(billingAddress) || !(data as any)?.billing_address
       );
       setIsLoadingProfile(false);
     };

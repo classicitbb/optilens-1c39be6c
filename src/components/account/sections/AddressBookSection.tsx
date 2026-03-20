@@ -104,11 +104,11 @@ const AddressBookSection = () => {
     const fetchAddresses = async () => {
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from("profiles")
+      const { data, error } = await (supabase
+        .from("profiles") as any)
         .select("shipping_address,billing_address")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .maybeSingle() as { data: Record<string, any> | null; error: any };
 
       if (error) {
         toast({ title: "Error", description: "Failed to load saved addresses.", variant: "destructive" });
