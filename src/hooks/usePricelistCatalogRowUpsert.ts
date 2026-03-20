@@ -42,7 +42,7 @@ export const usePricelistCatalogRowUpsert = (
             item_id: row.item_id,
             sort_order: row.sort_order ?? 0,
           } as any,
-          { onConflict: "row_key" }
+          { onConflict: "pricelist_version_id,catalog_type,row_key" }
         );
       if (error) throw error;
       return row;
