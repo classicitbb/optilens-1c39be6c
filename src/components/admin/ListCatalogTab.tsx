@@ -14,11 +14,13 @@ import { SupplyPickerPopover, PickedSupply } from "@/components/admin/SupplyPick
 import MarginBadge from "@/components/admin/MarginBadge";
 import LineOverrideDialog from "@/components/admin/LineOverrideDialog";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
+import { useMatrixAllocations } from "@/hooks/useMatrixAllocations";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { compareCategoryOrder } from "@/lib/sortOrder";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
+import { usePricelistCatalogRowUpsert } from "@/hooks/usePricelistCatalogRowUpsert";
 
 const BLUE_BG = "#1e4db7";
 const BLUE_TEXT = "#fff";
@@ -73,6 +75,7 @@ const ListCatalogTab = ({
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: allSupplies, isLoading: sLoading } = useSupplies();
   const { data: priceMatrixData } = usePriceMatrix();
+  const { upsertMutation: upsertMatrixAllocation } = useMatrixAllocations(versionId ?? null);
   const { data: mftypeRef = [] } = useReferenceData("mftypes");
   const matrixCategories = useMemo(() => (priceMatrixData ?? []).map((r) => r.category), [priceMatrixData]);
   const { data: savedRows, isLoading: rowsLoading, saveRows } = usePricelistCatalogRows(
@@ -83,6 +86,7 @@ const ListCatalogTab = ({
   const { data: companySettings } = useCompanySettings();
   const { hasOverride, lineOverrides } = usePriceHierarchy(versionId);
   const { versions: pricingVersions } = usePricingSettings();
+  const { upsertRow: upsertCatalogRow } = usePricelistCatalogRowUpsert(versionId ?? null, catalogType);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Determine the margin floor based on catalog type
@@ -100,6 +104,7 @@ const ListCatalogTab = ({
   const [supplyRows, setSupplyRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [isDirty, setIsDirty] = useState(false);
   const [editingDesc, setEditingDesc] = useState<{key: string;value: string;} | null>(null);
+  const [editingPrice, setEditingPrice] = useState<{key: string;value: string;} | null>(null);
   const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
   const [hasViewed, setHasViewed] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
@@ -278,6 +283,90 @@ const ListCatalogTab = ({
     setEditingDesc(null);setIsDirty(true);
   };
 
+  const parseMatrixRowKey = (rowKey: string) => {
+    if (!rowKey.startsWith("matrix::")) return null;
+    const [, treatment_type, category, material_index] = rowKey.split("::");
+    if (!treatment_type || !category || !material_index) return null;
+    return { treatment_type, category, material_index };
+  };
+
+  const syncMatrixLinkedRowPrice = async (
+    row: CatalogRow,
+    section: string,
+    nextPrice: number | null,
+    rowType: "lens" | "addon" | "supply"
+  ) => {
+    const currentSortOrder = savedRows?.find((saved) => saved.row_key === row.key)?.sort_order ?? 0;
+    await upsertCatalogRow.mutateAsync({
+      row_key: row.key,
+      row_type: rowType,
+      section,
+      display_description: row.description,
+      bbd_price: nextPrice,
+      item_id: row.lensId ?? row.addonId ?? row.supplyId ?? null,
+      sort_order: currentSortOrder,
+    });
+
+    const matrixCell = parseMatrixRowKey(row.key);
+    if (matrixCell && row.lensId) {
+      await upsertMatrixAllocation.mutateAsync({
+        category: matrixCell.category,
+        material_index: matrixCell.material_index,
+        treatment_type: matrixCell.treatment_type,
+        lens_id: row.lensId,
+        allocated_price_bbd: nextPrice,
+      });
+    }
+  };
+
+  const commitPrice = async (
+    row: CatalogRow,
+    section: string,
+    rowType: "lens" | "addon" | "supply",
+    rawValue: string
+  ) => {
+    const trimmed = rawValue.trim();
+    const nextPrice = trimmed === "" ? null : Number(trimmed);
+    if (trimmed !== "" && Number.isNaN(nextPrice)) {
+      toast({ title: "Invalid price", description: "Enter a valid numeric price.", variant: "destructive" });
+      return;
+    }
+
+    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
+    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+
+    setter((prev) => {
+      const next = new Map(prev);
+      const rows = [...(effectiveMap.get(section) ?? [])];
+      const idx = rows.findIndex((candidate) => candidate.key === row.key);
+      if (idx !== -1) {
+        rows[idx] = {
+          ...rows[idx],
+          bbd: nextPrice,
+          usd: nextPrice != null ? nextPrice * fxRate : null,
+        };
+        next.set(section, rows);
+      }
+      return next;
+    });
+
+    setEditingPrice(null);
+    setIsDirty(true);
+
+    if (row.key.startsWith("matrix::")) {
+      try {
+        await syncMatrixLinkedRowPrice(row, section, nextPrice, rowType);
+        setIsDirty(false);
+      } catch (error: any) {
+        toast({
+          title: "Live sync failed",
+          description: error?.message || "The list price changed locally but did not sync to the matrix.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   /* ── Picker handlers ── */
   const handleLensPick = (item: PickedItem) => {
     if (!pickerTarget) return;
@@ -421,6 +510,7 @@ const ListCatalogTab = ({
 
   const renderRow = (row: CatalogRow, i: number, rowType: "lens" | "addon" | "supply", section: string, totalRows?: number) => {
     const isEditingThisDesc = editingDesc?.key === row.key;
+    const isEditingThisPrice = editingPrice?.key === row.key;
     const isPending = pendingMatrixRowKeys?.has(row.key);
     const showReorder = true;
     const rowCost = getRowCost(row);
@@ -491,7 +581,27 @@ const ListCatalogTab = ({
                 <Link2Off className="h-3 w-3 inline-block" style={{ color: "hsl(var(--admin-table-col-override-fg))" }} />
               </span>
             )}
-            {displayBbd !== null ? `$${displayBbd.toFixed(2)}` : "—"}
+            {isEditingThisPrice ?
+            <input
+              autoFocus
+              className="w-24 rounded border px-1 py-0.5 text-right text-xs text-foreground outline-none focus:ring-1 focus:ring-primary/30"
+              value={editingPrice.value}
+              onChange={(e) => setEditingPrice({ key: row.key, value: e.target.value })}
+              onBlur={() => commitPrice(row, section, rowType, editingPrice.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitPrice(row, section, rowType, editingPrice.value);
+                if (e.key === "Escape") setEditingPrice(null);
+              }}
+            /> :
+            <button
+              type="button"
+              className="rounded px-1 py-0.5 transition-colors hover:bg-primary/10"
+              title={row.key.startsWith("matrix::") ? "Edit price and sync to the matrix immediately" : "Edit price"}
+              onClick={() => setEditingPrice({ key: row.key, value: displayBbd != null ? displayBbd.toFixed(2) : "" })}
+            >
+              {displayBbd !== null ? `$${displayBbd.toFixed(2)}` : "—"}
+            </button>
+            }
           </div>
         </td>
         <td className="px-3 py-1.5 text-right border border-border font-medium" style={{ background: "hsl(var(--admin-table-col-usd))", color: "hsl(var(--admin-table-col-usd-fg))" }}>

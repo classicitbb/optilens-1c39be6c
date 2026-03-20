@@ -2984,24 +2984,42 @@ export type Database = {
       }
       orders: {
         Row: {
+          billing_address: Json | null
+          checkout_method: string
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
+          customer_name: string | null
           id: string
+          shipping_address: Json | null
           status: string
           total_amount: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_address?: Json | null
+          checkout_method?: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          customer_name?: string | null
           id?: string
+          shipping_address?: Json | null
           status?: string
           total_amount: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_address?: Json | null
+          checkout_method?: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          customer_name?: string | null
           id?: string
+          shipping_address?: Json | null
           status?: string
           total_amount?: number
           updated_at?: string
@@ -3485,28 +3503,40 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          billing_address: Json | null
           bio: string | null
           created_at: string
           display_name: string | null
+          full_name: string | null
           id: string
+          phone: string | null
+          shipping_address: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          billing_address?: Json | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          full_name?: string | null
           id?: string
+          phone?: string | null
+          shipping_address?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          billing_address?: Json | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          full_name?: string | null
           id?: string
+          phone?: string | null
+          shipping_address?: Json | null
           updated_at?: string
           user_id?: string
         }

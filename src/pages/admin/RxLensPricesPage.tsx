@@ -36,6 +36,7 @@ const RxLensPricesPage = () => {
 
   // Live Preview
   const [previewFormat, setPreviewFormat] = useState<"matrix" | "list">("list");
+  const [showSummaryRows, setShowSummaryRows] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Save bar from ListCatalogTab (catalog tab)
@@ -171,18 +172,33 @@ const RxLensPricesPage = () => {
               title={`${activeVersion.name} — Preview`}
               formatLabel={previewFormat === "matrix" ? "Matrix" : "List"}
               headerRight={
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-medium transition-colors ${previewFormat === "matrix" ? "text-primary" : "text-muted-foreground"}`}>
-                    Matrix
-                  </span>
-                  <Switch
-                    checked={previewFormat === "list"}
-                    onCheckedChange={(v) => setPreviewFormat(v ? "list" : "matrix")}
-                    aria-label="Toggle preview format"
-                  />
-                  <span className={`text-xs font-medium transition-colors ${previewFormat === "list" ? "text-primary" : "text-muted-foreground"}`}>
-                    List
-                  </span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-medium transition-colors ${previewFormat === "matrix" ? "text-primary" : "text-muted-foreground"}`}>
+                      Matrix
+                    </span>
+                    <Switch
+                      checked={previewFormat === "list"}
+                      onCheckedChange={(v) => setPreviewFormat(v ? "list" : "matrix")}
+                      aria-label="Toggle preview format"
+                    />
+                    <span className={`text-xs font-medium transition-colors ${previewFormat === "list" ? "text-primary" : "text-muted-foreground"}`}>
+                      List
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-medium transition-colors ${showSummaryRows ? "text-primary" : "text-muted-foreground"}`}>
+                      Summary rows on
+                    </span>
+                    <Switch
+                      checked={showSummaryRows}
+                      onCheckedChange={setShowSummaryRows}
+                      aria-label="Toggle preview summary rows"
+                    />
+                    <span className={`text-xs font-medium transition-colors ${!showSummaryRows ? "text-primary" : "text-muted-foreground"}`}>
+                      Summary rows off
+                    </span>
+                  </div>
                 </div>
               }
             >
@@ -192,6 +208,7 @@ const RxLensPricesPage = () => {
                 showUSD={showUSD}
                 fxRate={fxRate}
                 catalogType="rx"
+                showSummaryRows={showSummaryRows}
               />
             </PdfPreviewShell>
           </div>

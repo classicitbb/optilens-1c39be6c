@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, details?: { fullName?: string; phone?: string }) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -50,14 +51,46 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
+  useEffect(() => {
+    const syncProfileFromUser = async () => {
+      if (!user) return;
+
+      const fullName = resolveUserFullName(user);
+      const avatarUrl = resolveUserAvatar(user);
+      const phone =
+        typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone.trim() :
+        typeof user.user_metadata?.phone_number === "string" ? user.user_metadata.phone_number.trim() :
+        "";
+
+      const payload: Record<string, unknown> = {
+        user_id: user.id,
+        display_name: fullName || null,
+        full_name: fullName || null,
+        avatar_url: avatarUrl || null,
+      };
+
+      if (phone) {
+        payload.phone = phone;
+      }
+
+      await supabase.from("profiles").upsert(payload as never, { onConflict: "user_id" });
+    };
+
+    syncProfileFromUser();
+  }, [user]);
+
+  const signUp = useCallback(async (email: string, password: string, details?: { fullName?: string; phone?: string }) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: details?.fullName?.trim() || "",
+          phone: details?.phone?.trim() || "",
+        }
       }
     });
     return { error };

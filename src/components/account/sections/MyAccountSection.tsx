@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { KeyRound, Save, Shield, User } from "lucide-react";
+import { KeyRound, Phone, Save, Shield, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +21,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
 const profileSchema = z.object({
+  full_name: z.string().trim().min(1, "Full name is required").max(120, "Name must be less than 120 characters"),
+  phone: z.string().trim().min(1, "Phone number is required").max(50, "Phone number must be less than 50 characters"),
   display_name: z.string().max(100, "Display name must be less than 100 characters").optional(),
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
   avatar_url: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
@@ -47,7 +50,7 @@ const MyAccountSection = () => {
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { display_name: "", bio: "", avatar_url: "" },
+    defaultValues: { full_name: "", phone: "", display_name: "", bio: "", avatar_url: "" },
   });
 
   useEffect(() => {
@@ -63,9 +66,19 @@ const MyAccountSection = () => {
         toast({ title: "Error", description: "Failed to load profile", variant: "destructive" });
       } else if (data) {
         form.reset({
+          full_name: data.full_name || resolveUserFullName(user),
+          phone: data.phone || "",
           display_name: data.display_name || "",
           bio: data.bio || "",
-          avatar_url: data.avatar_url || "",
+          avatar_url: data.avatar_url || resolveUserAvatar(user),
+        });
+      } else {
+        form.reset({
+          full_name: resolveUserFullName(user),
+          phone: "",
+          display_name: "",
+          bio: "",
+          avatar_url: resolveUserAvatar(user),
         });
       }
       setLoading(false);
@@ -81,6 +94,8 @@ const MyAccountSection = () => {
     const { error } = await supabase
       .from("profiles")
       .update({
+        full_name: values.full_name.trim(),
+        phone: values.phone.trim(),
         display_name: values.display_name || null,
         bio: values.bio || null,
         avatar_url: values.avatar_url || null,
@@ -134,7 +149,13 @@ const MyAccountSection = () => {
       <CardContent className="space-y-6">
         <div className="space-y-2 rounded-lg bg-muted p-4">
           <p className="text-sm text-muted-foreground">
+            <span className="font-medium">Full name:</span> {form.watch("full_name") || "—"}
+          </p>
+          <p className="text-sm text-muted-foreground">
             <span className="font-medium">Email:</span> {user?.email}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium">Phone:</span> {form.watch("phone") || "—"}
           </p>
           {role && (
             <div className="flex items-center gap-2">
@@ -160,6 +181,35 @@ const MyAccountSection = () => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="full_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your full name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input className="pl-9" placeholder="+1 (246) 555-0101" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="display_name"
