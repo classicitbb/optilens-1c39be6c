@@ -34,7 +34,7 @@ const SidebarNavList = ({
   inactiveItemClassName,
   disabledItemClassName,
   iconClassName,
-  labelClassName
+  labelClassName,
 }: SidebarNavListProps) => {
   return (
     <nav className={className}>
@@ -48,13 +48,14 @@ const SidebarNavList = ({
               className={cn(
                 "flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground opacity-60",
                 itemClassName,
-                disabledItemClassName
-              )}>
-              
+                disabledItemClassName,
+              )}
+            >
               {Icon ? <Icon className={cn("h-4 w-4", iconClassName)} /> : null}
               {!collapsed ? <span className={labelClassName}>{label}</span> : null}
-            </span>);
-
+              {!collapsed ? badge : null}
+            </span>
+          );
         }
 
         return (
@@ -65,17 +66,17 @@ const SidebarNavList = ({
             className={cn(
               "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
               itemClassName,
-              active ? activeItemClassName : inactiveItemClassName
-            )}>
-            
+              active ? activeItemClassName : inactiveItemClassName,
+            )}
+          >
             {Icon ? <Icon className={cn("h-4 w-4", iconClassName)} /> : null}
             {!collapsed ? <span className={cn("truncate text-sidebar-foreground", labelClassName)}>{label}</span> : null}
             {!collapsed ? badge : null}
-          </Link>);
-
+          </Link>
+        );
       })}
-    </nav>);
-
+    </nav>
+  );
 };
 
 export default SidebarNavList;

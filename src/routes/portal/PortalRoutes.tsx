@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AccountLayout from "@/components/account/AccountLayout";
+import PortalFeatureGate from "@/components/account/PortalFeatureGate";
 
 const Store = lazy(() => import("@/pages/Store"));
 const Profile = lazy(() => import("@/pages/Profile"));
@@ -46,9 +47,9 @@ const PortalRoutes = ({ section }: PortalRoutesProps) => {
         <Route path="account" element={<MyAccountSection />} />
         <Route path="orders" element={<MyOrdersSection />} />
         <Route path="address-book" element={<AddressBookSection />} />
-        <Route path="quotes" element={<QuoteFormSection />} />
-        <Route path="helpdesk" element={<HelpdeskTicketsSection />} />
-        <Route path="pricelists" element={<AssignedPricelistsSection />} />
+        <Route path="quotes" element={<PortalFeatureGate feature="quotes"><QuoteFormSection /></PortalFeatureGate>} />
+        <Route path="helpdesk" element={<PortalFeatureGate feature="helpdesk"><HelpdeskTicketsSection /></PortalFeatureGate>} />
+        <Route path="pricelists" element={<PortalFeatureGate feature="pricelists"><AssignedPricelistsSection /></PortalFeatureGate>} />
       </Route>
       <Route path="*" element={<Navigate to="/profile" replace />} />
     </Routes>
