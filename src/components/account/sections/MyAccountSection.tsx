@@ -56,7 +56,7 @@ const MyAccountSection = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("profiles") as any)
         .select("*")
         .eq("user_id", user.id)
