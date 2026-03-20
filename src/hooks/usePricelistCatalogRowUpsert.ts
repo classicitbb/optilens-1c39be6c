@@ -10,10 +10,11 @@ export const usePricelistCatalogRowUpsert = (
   catalogType: "rx" | "stock" | "buysell" = "rx"
 ) => {
   const queryClient = useQueryClient();
+  const queryKey = ["pricelist-catalog-rows", versionId, catalogType];
 
   const invalidate = () =>
     queryClient.invalidateQueries({
-      queryKey: ["pricelist-catalog-rows", versionId, catalogType],
+      queryKey,
     });
 
   const upsertRow = useMutation({
@@ -44,6 +45,41 @@ export const usePricelistCatalogRowUpsert = (
           { onConflict: "row_key" }
         );
       if (error) throw error;
+      return row;
+    },
+    onMutate: async (incomingRow) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousRows = queryClient.getQueryData<any[]>(queryKey) ?? [];
+      const nextRows = [...previousRows];
+      const existingIndex = nextRows.findIndex((row) => row.row_key === incomingRow.row_key);
+      const optimisticRow = {
+        ...(existingIndex >= 0 ? nextRows[existingIndex] : {}),
+        pricelist_version_id: versionId ?? 0,
+        catalog_type: catalogType,
+        row_key: incomingRow.row_key,
+        row_type: incomingRow.row_type,
+        section: incomingRow.section,
+        display_description: incomingRow.display_description,
+        bbd_price: incomingRow.bbd_price,
+        item_id: incomingRow.item_id,
+        sort_order: incomingRow.sort_order ?? 0,
+      };
+
+      if (existingIndex >= 0) {
+        nextRows[existingIndex] = optimisticRow;
+      } else {
+        nextRows.push(optimisticRow);
+      }
+
+      nextRows.sort((a, b) => a.sort_order - b.sort_order);
+      queryClient.setQueryData(queryKey, nextRows);
+
+      return { previousRows };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousRows) {
+        queryClient.setQueryData(queryKey, context.previousRows);
+      }
     },
     onSuccess: invalidate,
   });
@@ -57,6 +93,20 @@ export const usePricelistCatalogRowUpsert = (
         .eq("row_key", rowKey)
         .eq("pricelist_version_id", versionId);
       if (error) throw error;
+    },
+    onMutate: async (rowKey) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousRows = queryClient.getQueryData<any[]>(queryKey) ?? [];
+      queryClient.setQueryData(
+        queryKey,
+        previousRows.filter((row) => row.row_key !== rowKey)
+      );
+      return { previousRows };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousRows) {
+        queryClient.setQueryData(queryKey, context.previousRows);
+      }
     },
     onSuccess: invalidate,
   });

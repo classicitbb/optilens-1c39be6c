@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { OrderEntity } from "@/domain/entities";
 import { toOrderEntity } from "@/domain/services/recordMappers";
+import type { CheckoutFormData } from "@/components/CheckoutDialog";
+import { sanitizeProfileAddress } from "@/lib/profileData";
 
 export const useOrders = () => {
   const [orders, setOrders] = useState<OrderEntity[]>([]);
@@ -63,17 +65,37 @@ export const useOrders = () => {
       product_price: number;
       quantity: number;
     }[],
-    totalAmount: number
+    totalAmount: number,
+    checkout?: CheckoutFormData
   ): Promise<OrderEntity | null> => {
     if (!user || cartItems.length === 0) return null;
 
     try {
+      if (checkout) {
+        await supabase
+          .from("profiles")
+          .update({
+            full_name: checkout.fullName,
+            display_name: checkout.fullName,
+            phone: checkout.phone,
+            shipping_address: sanitizeProfileAddress(checkout.shippingAddress),
+            billing_address: sanitizeProfileAddress(checkout.billingAddress),
+          } as never)
+          .eq("user_id", user.id);
+      }
+
       // Create the order
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
           user_id: user.id,
           total_amount: totalAmount,
+          customer_name: checkout?.fullName ?? null,
+          contact_email: checkout?.email ?? user.email ?? null,
+          contact_phone: checkout?.phone ?? null,
+          shipping_address: checkout ? sanitizeProfileAddress(checkout.shippingAddress) : null,
+          billing_address: checkout ? sanitizeProfileAddress(checkout.billingAddress) : null,
+          checkout_method: checkout?.checkoutMethod ?? "manual",
         })
         .select()
         .single();

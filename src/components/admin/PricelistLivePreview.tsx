@@ -31,6 +31,7 @@ interface Props {
   showUSD: boolean;
   fxRate: number;
   catalogType?: "rx" | "stock" | "buysell";
+  showSummaryRows?: boolean;
 }
 
 const fmtDisplay = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
@@ -39,7 +40,7 @@ const fmtDisplay = (val: number | null | undefined, showUSD: boolean, fxRate: nu
   return `$${v.toFixed(2)}`;
 };
 
-const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalogType = "rx" }: Props) => {
+const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalogType = "rx", showSummaryRows = true }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: matrixRows = [] } = usePriceMatrix();
   const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
@@ -192,18 +193,20 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                       })}
                     </tr>
                   ))}
-                  <tr style={{ borderTop: "2px solid #cbd5e0", background: "#f7fafc" }}>
-                    <td className="px-4 py-2 italic text-xs" style={{ color: "#718096" }}>Col. Averages</td>
-                    {visibleCols.map((col) => {
-                      const avg = getColAvg(col.key, tt);
-                      return (
-                        <td key={col.key} className="px-3 py-2 text-right italic" style={{ color: "#4a5568" }}>
-                          {avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  {tt !== "clear" && (
+                  {showSummaryRows && (
+                    <tr style={{ borderTop: "2px solid #cbd5e0", background: "#f7fafc" }}>
+                      <td className="px-4 py-2 italic text-xs" style={{ color: "#718096" }}>Col. Averages</td>
+                      {visibleCols.map((col) => {
+                        const avg = getColAvg(col.key, tt);
+                        return (
+                          <td key={col.key} className="px-3 py-2 text-right italic" style={{ color: "#4a5568" }}>
+                            {avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )}
+                  {showSummaryRows && tt !== "clear" && (
                     <tr style={{ background: "#fffbeb", borderTop: "1px solid #e2e8f0" }}>
                       <td className="px-4 py-2 italic text-xs" style={{ color: "#b7791f" }}>Δ vs Clear</td>
                       {visibleCols.map((col) => {

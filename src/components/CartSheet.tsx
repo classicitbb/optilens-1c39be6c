@@ -11,7 +11,7 @@ import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useOrders } from "@/hooks/useOrders";
 import { Separator } from "@/components/ui/separator";
-import { CheckoutDialog } from "@/components/CheckoutDialog";
+import { CheckoutDialog, CheckoutFormData } from "@/components/CheckoutDialog";
 
 export const CartSheet = () => {
   const { items, loading, totalItems, totalPrice, updateQuantity, removeFromCart, clearCart } =
@@ -20,8 +20,8 @@ export const CartSheet = () => {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const handleCheckout = async (): Promise<boolean> => {
-    const order = await createOrder(items, totalPrice);
+  const handleCheckout = async (details: CheckoutFormData): Promise<boolean> => {
+    const order = await createOrder(items, totalPrice, details);
     if (order) {
       await clearCart();
       return true;

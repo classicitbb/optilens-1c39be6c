@@ -22,7 +22,9 @@ const authSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.
   string().
-  min(6, { message: "Password must be at least 6 characters" })
+  min(6, { message: "Password must be at least 6 characters" }),
+  fullName: z.string().optional(),
+  phone: z.string().optional()
 });
 
 type AuthFormData = z.infer<typeof authSchema>;
@@ -48,7 +50,7 @@ const Auth = () => {
 
   const form = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
-    defaultValues: { email: "", password: "" }
+    defaultValues: { email: "", password: "", fullName: "", phone: "" }
   });
 
   const onSubmit = async (data: AuthFormData) => {
@@ -68,7 +70,19 @@ const Auth = () => {
         }
         toast({ title: "Welcome back!", description: "You have successfully logged in." });
       } else {
-        const { error } = await signUp(data.email, data.password);
+        if (!data.fullName?.trim()) {
+          form.setError("fullName", { message: "Name is required" });
+          return;
+        }
+        if (!data.phone?.trim()) {
+          form.setError("phone", { message: "Phone number is required" });
+          return;
+        }
+
+        const { error } = await signUp(data.email, data.password, {
+          fullName: data.fullName,
+          phone: data.phone,
+        });
         if (error) {
           toast({
             title: error.message.includes("User already registered") ? "Account Exists" : "Sign Up Failed",
@@ -81,7 +95,7 @@ const Auth = () => {
         }
         toast({ title: "Account created!", description: "You have successfully signed up and logged in." });
       }
-    } catch {
+      } catch {
       toast({ title: "Error", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
@@ -122,6 +136,53 @@ const Auth = () => {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <FormField
+                control={form.control}
+                name="fullName"
+                render={({ field }) =>
+                !isLogin ?
+                <FormItem>
+                    <FormLabel className="text-white/80">Full Name</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Input
+                        placeholder="Jane Smith"
+                        className="border-white/20 bg-white/10 pl-10 text-white placeholder:text-white/40 focus-visible:ring-white/40"
+                        {...field} />
+
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem> :
+                <></>
+                } />
+
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) =>
+                !isLogin ?
+                <FormItem>
+                    <FormLabel className="text-white/80">Phone Number</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                        <Input
+                        type="tel"
+                        placeholder="+1 (246) 555-0101"
+                        className="border-white/20 bg-white/10 pl-10 text-white placeholder:text-white/40 focus-visible:ring-white/40"
+                        {...field} />
+
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem> :
+                <></>
+                } />
+
+
               <FormField
                 control={form.control}
                 name="email"
@@ -187,7 +248,12 @@ const Auth = () => {
             className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20"
             onClick={async () => {
               const redirectUri = from !== "/" ? `${window.location.origin}${from}` : window.location.origin;
-              const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: redirectUri });
+              const { error } = await lovable.auth.signInWithOAuth("google", {
+                redirect_uri: redirectUri,
+                extraParams: {
+                  scope: "openid email profile",
+                },
+              });
               if (error) {
                 toast({ title: "Google Sign-In Failed", description: error.message, variant: "destructive" });
               }
