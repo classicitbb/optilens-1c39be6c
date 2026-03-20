@@ -334,7 +334,7 @@ export const CheckoutDialog = ({
 
     try {
       const response = await request.show();
-      const shippingAddress = buildPaymentAddress(response.shippingAddress as PaymentAddressLike | undefined);
+      const shippingAddress = buildPaymentAddress(response.shippingAddress as unknown as PaymentAddressLike | undefined);
       const payerName = response.payerName ?? formData.fullName;
       const payerPhone = response.payerPhone ?? formData.phone;
       const payerEmail = response.payerEmail ?? formData.email;
