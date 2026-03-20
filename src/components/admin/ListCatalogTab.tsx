@@ -672,36 +672,41 @@ const ListCatalogTab = ({
     });
   };
 
-  const saveBarContent =
-  <div className="space-y-2 no-print">
+  const pendingCount = pendingMatrixRowKeys?.size ?? 0;
+  const isSavingRows = saveRows.isPending;
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  const saveBarContent = useMemo(() => (
+    <div className="space-y-2 no-print">
       <div className="flex items-center gap-2 flex-wrap justify-between">
         <div className="flex items-center gap-1">
           {isDirty && !hasPending && <span className="text-xs" style={{ color: "hsl(38 92% 40%)" }}>⚠ Unsaved changes</span>}
-          {hasPending &&
-        <span className="flex items-center gap-1 text-xs text-red-600">
+          {hasPending && (
+            <span className="flex items-center gap-1 text-xs text-red-600">
               <span className="h-2 w-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
-              {pendingMatrixRowKeys!.size} pending sync{pendingMatrixRowKeys!.size > 1 ? "s" : ""}
+              {pendingCount} pending sync{pendingCount > 1 ? "s" : ""}
             </span>
-        }
+          )}
         </div>
         <Button
-        size="sm"
-        className="h-8 text-xs gap-1.5"
-        style={{ background: isDirty || hasPending ? "hsl(215 65% 50%)" : undefined }}
-        variant={isDirty || hasPending ? "default" : "outline"}
-        onClick={handleSave}
-        disabled={saveRows.isPending}>
-
-          {saveRows.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          size="sm"
+          className="h-8 text-xs gap-1.5"
+          style={{ background: isDirty || hasPending ? "hsl(215 65% 50%)" : undefined }}
+          variant={isDirty || hasPending ? "default" : "outline"}
+          onClick={() => handleSaveRef.current()}
+          disabled={isSavingRows}
+        >
+          {isSavingRows ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Save All Changes
         </Button>
       </div>
-    </div>;
-
+    </div>
+  ), [hasPending, isDirty, isSavingRows, pendingCount]);
 
   useEffect(() => {
     if (renderSaveBar) renderSaveBar(saveBarContent);
-  });
+  }, [renderSaveBar, saveBarContent]);
 
   if (isLoading) return <div className="flex items-center justify-center h-40"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
