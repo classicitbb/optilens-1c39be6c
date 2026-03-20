@@ -67,7 +67,7 @@ const ComingSoonGate = ({ children }: { children: React.ReactNode }) => {
       <p className="mt-12 text-xs text-muted-foreground/60">
         &copy; {new Date().getFullYear()} OptiLens. All rights reserved.
       </p>
-    </div>
+    </main>
   );
 };
 
