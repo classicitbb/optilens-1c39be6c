@@ -67,7 +67,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setItems(data || []);
+      setItems((data || []).map((d) => ({ ...d, product_type: d.product_type as "lens" | "supply" })));
     } catch (error) {
       if (!isExpectedCartError(error)) {
         console.error("Error fetching cart:", error);
