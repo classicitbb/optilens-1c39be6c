@@ -4,7 +4,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AccountLayout from "@/components/account/AccountLayout";
 import PortalFeatureGate from "@/components/account/PortalFeatureGate";
 
-const Store = lazy(() => import("@/pages/Store"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const MyAccountSection = lazy(() => import("@/components/account/sections/MyAccountSection"));
 const MyOrdersSection = lazy(() => import("@/components/account/sections/MyOrdersSection"));
@@ -13,27 +12,7 @@ const QuoteFormSection = lazy(() => import("@/components/account/sections/QuoteF
 const HelpdeskTicketsSection = lazy(() => import("@/components/account/sections/HelpdeskTicketsSection"));
 const AssignedPricelistsSection = lazy(() => import("@/components/account/sections/AssignedPricelistsSection"));
 
-interface PortalRoutesProps {
-  section: "store" | "profile";
-}
-
-const PortalRoutes = ({ section }: PortalRoutesProps) => {
-  if (section === "store") {
-    return (
-      <Routes>
-        <Route
-          index
-          element={(
-            <ProtectedRoute>
-              <Store />
-            </ProtectedRoute>
-          )}
-        />
-        <Route path="*" element={<Navigate to="/store" replace />} />
-      </Routes>
-    );
-  }
-
+const PortalRoutes = () => {
   return (
     <Routes>
       <Route

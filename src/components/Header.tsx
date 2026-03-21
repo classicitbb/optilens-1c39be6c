@@ -12,6 +12,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAccountRequestDismissed } from "@/components/AccountRequestBanner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useTheme } from "next-themes";
+import { CartSheet } from "@/components/CartSheet";
 
 type MegaMenuLink = {
   label: string;
@@ -579,19 +580,23 @@ const Header = () => {
                 </DropdownMenu> :
 
             <Button variant="ghost" size="sm" asChild>
-                  <Link to="/auth">
+                  <Link to={`/auth?redirect=${encodeURIComponent(`${location.pathname}${location.search}${location.hash}` || "/")}`}>
                     <User className="mr-2 h-4 w-4" />
                     Sign in
                   </Link>
                 </Button>
             }
 
-              <Button variant="hero" size="sm" asChild>
-                <Link to="/store">
-                  <span className="hidden sm:inline">Order Lenses</span>
-                  <span className="sm:hidden">Order</span>
-                </Link>
-              </Button>
+              {user ? (
+                <CartSheet triggerVariant="hero" triggerSize="sm" showLabel className="min-w-[7.5rem] justify-center" />
+              ) : (
+                <Button variant="hero" size="sm" asChild>
+                  <Link to="/store">
+                    <span className="hidden sm:inline">Order Now</span>
+                    <span className="sm:hidden">Order</span>
+                  </Link>
+                </Button>
+              )}
         </div>
       </div>
 
