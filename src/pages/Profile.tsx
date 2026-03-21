@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookUser, BadgeDollarSign, FileSignature, LifeBuoy, LockKeyhole, Package, User } from "lucide-react";
+import { BookUser, BadgeDollarSign, FileSignature, LifeBuoy, LockKeyhole, Package, User, WalletCards } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +20,15 @@ const quickSections = [
   },
   {
     title: "Address Book",
-    description: "Manage saved shipping addresses.",
+    description: "Manage up to 2 saved checkout addresses.",
     to: "/profile/address-book",
     icon: BookUser,
+  },
+  {
+    title: "Payment Methods",
+    description: "Store tokenized demo cards for one-click ordering.",
+    to: "/profile/payment-methods",
+    icon: WalletCards,
   },
   {
     title: "Quotes",
