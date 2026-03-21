@@ -29,7 +29,19 @@ import { format } from "date-fns";
 const Orders = () => {
   const { orders, loading } = useOrders();
 
-  const getStatusColor = (status: string) => {
+  
+const formatAddress = (address?: Record<string, unknown> | null) => {
+  if (!address) return "—";
+  const values = [
+    typeof address.recipient === "string" ? address.recipient : "",
+    typeof address.line1 === "string" ? address.line1 : "",
+    typeof address.city === "string" ? address.city : "",
+    typeof address.country === "string" ? address.country : "",
+  ].filter(Boolean);
+  return values.length ? values.join(", ") : "—";
+};
+
+const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
         return "bg-green-500/10 text-green-500 border-green-500/20";

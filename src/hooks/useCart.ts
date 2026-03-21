@@ -8,6 +8,7 @@ export interface CartItem {
   product_id: number;
   product_name: string;
   product_price: number;
+  product_type: "lens" | "supply";
   quantity: number;
 }
 
@@ -91,6 +92,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     id: number;
     name: string;
     price: number;
+    productType: "lens" | "supply";
   }) => {
     if (!user) return;
 
@@ -123,6 +125,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
             product_id: product.id,
             product_name: product.name,
             product_price: product.price,
+            product_type: product.productType,
           })
           .select()
           .single();
