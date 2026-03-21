@@ -131,7 +131,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
           .single();
 
         if (error) throw error;
-        setItems((prev) => [...prev, data]);
+        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" }]);
       }
 
       toast({
