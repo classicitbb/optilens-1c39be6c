@@ -63,6 +63,7 @@ export const useOrders = () => {
       product_id: number;
       product_name: string;
       product_price: number;
+      product_type: "lens" | "supply";
       quantity: number;
     }[],
     totalAmount: number,
@@ -108,6 +109,7 @@ export const useOrders = () => {
         product_id: item.product_id,
         product_name: item.product_name,
         product_price: item.product_price,
+        product_type: item.product_type,
         quantity: item.quantity,
       }));
 

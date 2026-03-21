@@ -19,15 +19,28 @@ const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   accessories: "Eyewear Accessories",
 };
 
+const getStableProductId = (product: Pick<StoreProduct, "id" | "product_type">) => {
+  let hash = 2166136261;
+  const input = `${product.product_type}:${product.id}`;
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return Math.abs(hash >>> 0);
+};
+
 const ProductCard = ({ product, index }: { product: StoreProduct; index: number }) => {
   const { addToCart } = useCartContext();
   const { user } = useAuth();
 
   const handleAdd = () => {
     addToCart({
-      id: Math.abs(product.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0)), // stable numeric id from uuid
+      id: getStableProductId(product),
       name: product.name,
       price: product.sell_price,
+      productType: product.product_type,
     });
   };
 
@@ -84,7 +97,7 @@ const ProductCard = ({ product, index }: { product: StoreProduct; index: number 
               <span className="text-sm font-medium">Sign up to see prices</span>
             </div>
             <Button variant="hero" size="sm" asChild>
-              <Link to="/auth">Sign Up</Link>
+              <Link to="/auth?redirect=%2Fstore">Sign Up</Link>
             </Button>
           </div>
         )}
