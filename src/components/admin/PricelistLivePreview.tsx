@@ -1,23 +1,15 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
-import { useMatrixAllocations, MATERIAL_COLUMNS, TREATMENT_TYPES, TreatmentType } from "@/hooks/useMatrixAllocations";
-import { usePriceMatrix } from "@/hooks/usePriceMatrix";
+import { useMatrixAllocations, MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useLenses } from "@/hooks/useLenses";
 import { PricelistVersion } from "@/hooks/usePricelistVersions";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
-import { cn } from "@/lib/utils";
-import { CATEGORY_ORDER, compareCategoryOrder, compareMaterialOrder } from "@/lib/sortOrder";
+import { compareCategoryOrder, compareMaterialOrder } from "@/lib/sortOrder";
 import { preparePrintListChunks, type PrintListSection } from "@/features/admin/print/printLayout";
-
-const TREATMENT_LABELS: Record<TreatmentType, string> = {
-  clear: "Clear Lenses",
-  transitions: "Transitions",
-  photochromic: "Photochromic",
-  polarized: "Polarized",
-  bluefilter: "Bluefilter",
-};
+import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
+import { buildMatrixSectionLabel, parseMatrixRowKey } from "@/features/admin/rx-pricing/structure";
 
 const CATALOG_TITLES: Record<string, string> = {
   rx: "RX LENS PRICES",
@@ -34,260 +26,211 @@ interface Props {
   showSummaryRows?: boolean;
 }
 
-const fmtDisplay = (val: number | null | undefined, showUSD: boolean, fxRate: number) => {
-  if (val == null) return "—";
-  const v = showUSD ? val * fxRate : val;
-  return `$${v.toFixed(2)}`;
+const fmtDisplay = (value: number | null | undefined, showUSD: boolean, fxRate: number) => {
+  if (value == null) return "—";
+  const converted = showUSD ? value * fxRate : value;
+  return `$${converted.toFixed(2)}`;
 };
 
 const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalogType = "rx", showSummaryRows = true }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
-  const { data: matrixRows = [] } = usePriceMatrix();
   const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
   const { calcFinalPrice } = usePriceHierarchy(version.id);
+  const { structure: rxStructure } = useRxPricingStructure(version.id);
 
   const catalogRows = useMemo(() => {
-    if (catalogType === "buysell") return allCatalogRows.filter((r) => r.row_type === "supply");
-    return allCatalogRows.filter((r) => r.row_type === "lens");
+    if (catalogType === "buysell") return allCatalogRows.filter((row) => row.row_type === "supply");
+    return allCatalogRows.filter((row) => row.row_type === "lens");
   }, [allCatalogRows, catalogType]);
 
   const addonRows = useMemo(() => {
-    if (catalogType === "buysell")
-      return allCatalogRows.filter((r) => ["addon", "treatment"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order);
-    return allCatalogRows.filter((r) => ["addon", "treatment", "supply"].includes(r.row_type)).sort((a, b) => a.sort_order - b.sort_order);
+    if (catalogType === "buysell") return allCatalogRows.filter((row) => ["addon", "treatment"].includes(row.row_type)).sort((a, b) => a.sort_order - b.sort_order);
+    return allCatalogRows.filter((row) => ["addon", "treatment", "supply"].includes(row.row_type)).sort((a, b) => a.sort_order - b.sort_order);
   }, [allCatalogRows, catalogType]);
 
   const addonsBySection = useMemo(() => {
     const map = new Map<string, typeof addonRows>();
-    for (const r of addonRows) {
-      const sec = r.section || "Other";
-      if (!map.has(sec)) map.set(sec, []);
-      map.get(sec)!.push(r);
-    }
+    addonRows.forEach((row) => {
+      const section = row.section || "Other";
+      if (!map.has(section)) map.set(section, []);
+      map.get(section)!.push(row);
+    });
     return map;
   }, [addonRows]);
 
   const lensIndexMap = useMemo(() => {
-    const m = new Map<string, number>();
-    allLenses.forEach((l) => m.set(l.id, l.index_value));
-    return m;
+    const map = new Map<string, number>();
+    allLenses.forEach((lens) => map.set(lens.id, lens.index_value));
+    return map;
   }, [allLenses]);
 
-  // Use canonical category order, falling back to price_matrix categories
-  const categories = useMemo(() => {
-    const rawCats = [...new Set(matrixRows.map((r) => r.category))];
-    return rawCats.sort(compareCategoryOrder);
-  }, [matrixRows]);
-
-  const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
-  const lensSections = useMemo(() => {
-    const map = new Map<string, typeof catalogRows>();
-    for (const r of catalogRows) {
-      const sec = r.section || "Lenses";
-      const parts = sec.split(" — ");
-      const isMatrixSection = TREATMENT_PREFIXES.some((tp) => parts[0].trim() === tp);
-      const category = isMatrixSection ? (parts.slice(1).join(" — ") || sec) : sec;
-      if (!map.has(category)) map.set(category, []);
-      map.get(category)!.push(r);
-    }
-    return map;
-  }, [catalogRows]);
+  const categoryMetaMap = useMemo(
+    () => new Map(rxStructure.flatMap((grouping) => grouping.categories.map((category) => [`${grouping.key}::${category.key}`, { grouping, category }] as const))),
+    [rxStructure]
+  );
 
   const today = format(new Date(), "dd MMMM yyyy");
   const currency = showUSD ? "USD" : "BBD";
 
-  /** Apply hierarchy to a matrix allocation price */
   const hierarchyMatrixPrice = (allocPrice: number | null, allocId?: string) => {
     const finalBbd = calcFinalPrice(allocPrice, version, catalogType, allocId, "matrix_allocation");
     return fmtDisplay(finalBbd, showUSD, fxRate);
   };
 
-  /** Apply hierarchy to a catalog row price */
   const hierarchyCatalogPrice = (row: { bbd_price: number | null; row_key: string; row_type: string }) => {
     const finalBbd = calcFinalPrice(row.bbd_price, version, catalogType, row.row_key, row.row_type);
     return fmtDisplay(finalBbd, showUSD, fxRate);
   };
 
-  /** Raw number for average calculations */
-  const hierarchyMatrixNum = (allocPrice: number | null, allocId?: string): number | null => {
-    return calcFinalPrice(allocPrice, version, catalogType, allocId, "matrix_allocation");
-  };
+  const hierarchyMatrixNum = (allocPrice: number | null, allocId?: string): number | null => calcFinalPrice(allocPrice, version, catalogType, allocId, "matrix_allocation");
 
-  // ── Matrix preview ───────────────────────────────────────────────────────────
-  const MatrixPreview = () => {
-    // Get active material columns sorted by canonical order
-    const getActiveCols = (tt: TreatmentType) => {
-      const active = MATERIAL_COLUMNS.filter((col) =>
-        allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
-      );
-      return active.length > 0 ? [...active].sort((a, b) => compareMaterialOrder(a.key, b.key)) : [...MATERIAL_COLUMNS].sort((a, b) => compareMaterialOrder(a.key, b.key));
-    };
+  const matrixGroups = rxStructure;
 
-    return (
-      <div className="space-y-6">
-        {TREATMENT_TYPES.map((tt) => {
-          const ttAllocs = allocations.filter((a) => a.treatment_type === tt);
-          if (tt !== "clear" && ttAllocs.length === 0) return null;
+  const listSections = useMemo(() => {
+    const grouped = new Map<string, typeof catalogRows>();
+    rxStructure.forEach((grouping) => {
+      grouping.categories.forEach((category) => {
+        if (!grouped.has(category.name)) grouped.set(category.name, []);
+      });
+    });
 
-          const visibleCols = getActiveCols(tt);
+    catalogRows.forEach((row) => {
+      const parsed = parseMatrixRowKey(row.row_key);
+      const meta = parsed ? categoryMetaMap.get(`${parsed.groupKey}::${parsed.categoryKey}`) : null;
+      const categoryName = meta?.category.name ?? row.section.split(" — ").slice(1).join(" — ") ?? row.section;
+      if (!grouped.has(categoryName)) grouped.set(categoryName, []);
+      grouped.get(categoryName)!.push({ ...row, section: meta ? buildMatrixSectionLabel(meta.grouping.name, meta.category.name) : row.section });
+    });
 
-          // Get active categories for this treatment, sorted canonically
-          const activeCats = categories.filter((cat) =>
-            visibleCols.some((col) =>
-              allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
-            )
-          );
-          if (activeCats.length === 0 && tt !== "clear") return null;
+    return [...grouped.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
+  }, [catalogRows, categoryMetaMap, rxStructure]);
 
-          const getColAvg = (mat: string, treatType: TreatmentType) => {
-            const vals = activeCats
-              .map((cat) => {
-                const a = allocations.find((al) => al.category === cat && al.material_index === mat && al.treatment_type === treatType);
-                return hierarchyMatrixNum(a?.allocated_price_bbd ?? null, a?.id ? String(a.id) : undefined);
-              })
-              .filter((v): v is number => v !== null);
-            if (!vals.length) return null;
-            return vals.reduce((s, v) => s + v, 0) / vals.length;
-          };
+  const MatrixPreview = () => (
+    <div className="space-y-6">
+      {matrixGroups.map((grouping) => {
+        const visibleCols = MATERIAL_COLUMNS.filter((column) =>
+          allocations.some((allocation) => allocation.treatment_type === grouping.key && allocation.material_index === column.key && allocation.allocated_price_bbd != null)
+        );
+        const sortedCols = (visibleCols.length ? visibleCols : MATERIAL_COLUMNS).slice().sort((a, b) => compareMaterialOrder(a.key, b.key));
+        const activeCategories = grouping.categories.filter((category) =>
+          sortedCols.some((column) => allocations.some((allocation) => allocation.treatment_type === grouping.key && allocation.category === category.key && allocation.material_index === column.key && allocation.allocated_price_bbd != null)) || grouping.key === "clear"
+        );
+        if (!activeCategories.length && grouping.key !== "clear") return null;
 
-          return (
-            <div key={tt} className="print-grid-keep">
-              <table className="w-full text-xs border-collapse" style={{ tableLayout: "auto" }}>
+        const getColAvg = (material: string, groupKey: string) => {
+          const values = activeCategories
+            .map((category) => {
+              const allocation = allocations.find((entry) => entry.treatment_type === groupKey && entry.category === category.key && entry.material_index === material);
+              return hierarchyMatrixNum(allocation?.allocated_price_bbd ?? null, allocation?.id ? String(allocation.id) : undefined);
+            })
+            .filter((value): value is number => value !== null);
+          if (!values.length) return null;
+          return values.reduce((sum, value) => sum + value, 0) / values.length;
+        };
+
+        return (
+          <div key={grouping.id} className="print-grid-keep">
+            <table className="w-full text-xs border-collapse" style={{ tableLayout: "auto" }}>
+              <thead>
+                <tr>
+                  <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white", borderBottom: "none" }}>
+                    {grouping.name}
+                  </th>
+                  {sortedCols.map((column) => (
+                    <th key={column.key} className="px-3 py-2.5 text-center font-bold uppercase tracking-wider" style={{ background: "#1e4db7", color: "white", minWidth: "90px", borderBottom: "none" }}>
+                      {column.key}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {activeCategories.map((category) => (
+                  <tr key={category.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td className="px-4 py-2 font-medium" style={{ color: "#1a202c" }}>{category.name}</td>
+                    {sortedCols.map((column) => {
+                      const allocation = allocations.find((entry) => entry.treatment_type === grouping.key && entry.category === category.key && entry.material_index === column.key);
+                      return (
+                        <td key={column.key} className="px-3 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
+                          {allocation?.allocated_price_bbd != null ? hierarchyMatrixPrice(allocation.allocated_price_bbd, allocation.id ? String(allocation.id) : undefined) : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+                {showSummaryRows && (
+                  <tr style={{ borderTop: "2px solid #cbd5e0", background: "#f7fafc" }}>
+                    <td className="px-4 py-2 italic text-xs" style={{ color: "#718096" }}>Col. Averages</td>
+                    {sortedCols.map((column) => {
+                      const avg = getColAvg(column.key, grouping.key);
+                      return <td key={column.key} className="px-3 py-2 text-right italic" style={{ color: "#4a5568" }}>{avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}</td>;
+                    })}
+                  </tr>
+                )}
+                {showSummaryRows && grouping.key !== "clear" && (
+                  <tr style={{ background: "#fffbeb", borderTop: "1px solid #e2e8f0" }}>
+                    <td className="px-4 py-2 italic text-xs" style={{ color: "#b7791f" }}>Δ vs Clear</td>
+                    {sortedCols.map((column) => {
+                      const treatAvg = getColAvg(column.key, grouping.key);
+                      const clearAvg = getColAvg(column.key, "clear");
+                      const delta = treatAvg != null && clearAvg != null ? treatAvg - clearAvg : null;
+                      return <td key={column.key} className="px-3 py-2 text-right font-semibold text-xs" style={{ color: delta == null ? "#a0aec0" : delta > 0 ? "#38a169" : "#e53e3e" }}>{delta != null ? `${delta > 0 ? "+" : ""}${fmtDisplay(delta, showUSD, fxRate)}` : "—"}</td>;
+                    })}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+
+      {addonsBySection.size > 0 && (
+        <div className="space-y-4 print-grid-keep">
+          {[...addonsBySection.entries()].map(([section, rows]) => (
+            <div key={section} className="print-avoid-break print-grid-keep">
+              <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr>
-                    <th
-                      className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm"
-                      style={{ background: "#1e4db7", color: "white", borderBottom: "none" }}
-                      colSpan={1}
-                    >
-                      {TREATMENT_LABELS[tt]}
-                    </th>
-                    {visibleCols.map((col) => (
-                      <th
-                        key={col.key}
-                        className="px-3 py-2.5 text-center font-bold uppercase tracking-wider"
-                        style={{ background: "#1e4db7", color: "white", minWidth: "90px", borderBottom: "none" }}
-                      >
-                        {col.key}
-                      </th>
-                    ))}
+                    <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white" }}>{section}</th>
+                    <th className="px-4 py-2.5 text-right font-bold uppercase tracking-wider w-32" style={{ background: "#1e4db7", color: "white" }}>{currency} PRICE</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {activeCats.map((cat, i) => (
-                    <tr key={cat} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                      <td className="px-4 py-2 font-medium" style={{ color: "#1a202c" }}>{cat}</td>
-                      {visibleCols.map((col) => {
-                        const alloc = allocations.find(
-                          (a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt
-                        );
-                        return (
-                          <td key={col.key} className="px-3 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
-                            {alloc?.allocated_price_bbd != null
-                              ? hierarchyMatrixPrice(alloc.allocated_price_bbd, alloc.id ? String(alloc.id) : undefined)
-                              : "—"}
-                          </td>
-                        );
-                      })}
+                  {rows.map((row) => (
+                    <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                      <td className="px-4 py-2" style={{ color: "#1a202c" }}>{row.display_description}</td>
+                      <td className="px-4 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>{hierarchyCatalogPrice(row)}</td>
                     </tr>
                   ))}
-                  {showSummaryRows && (
-                    <tr style={{ borderTop: "2px solid #cbd5e0", background: "#f7fafc" }}>
-                      <td className="px-4 py-2 italic text-xs" style={{ color: "#718096" }}>Col. Averages</td>
-                      {visibleCols.map((col) => {
-                        const avg = getColAvg(col.key, tt);
-                        return (
-                          <td key={col.key} className="px-3 py-2 text-right italic" style={{ color: "#4a5568" }}>
-                            {avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  )}
-                  {showSummaryRows && tt !== "clear" && (
-                    <tr style={{ background: "#fffbeb", borderTop: "1px solid #e2e8f0" }}>
-                      <td className="px-4 py-2 italic text-xs" style={{ color: "#b7791f" }}>Δ vs Clear</td>
-                      {visibleCols.map((col) => {
-                        const treatAvg = getColAvg(col.key, tt);
-                        const clearAvg = getColAvg(col.key, "clear");
-                        const delta = treatAvg != null && clearAvg != null ? treatAvg - clearAvg : null;
-                        return (
-                          <td
-                            key={col.key}
-                            className="px-3 py-2 text-right font-semibold text-xs"
-                            style={{ color: delta == null ? "#a0aec0" : delta > 0 ? "#38a169" : "#e53e3e" }}
-                          >
-                            {delta != null ? `${delta > 0 ? "+" : ""}${fmtDisplay(delta, showUSD, fxRate)}` : "—"}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
-          );
-        })}
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
-        {/* Treatments & Add-ons grouped by category */}
-        {addonsBySection.size > 0 && (
-          <div className="space-y-4 print-grid-keep">
-            {[...addonsBySection.entries()].map(([sec, rows]) => (
-              <div key={sec} className="print-avoid-break print-grid-keep">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white" }}>{sec}</th>
-                      <th className="px-4 py-2.5 text-right font-bold uppercase tracking-wider w-32" style={{ background: "#1e4db7", color: "white" }}>{currency} PRICE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, i) => (
-                      <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                        <td className="px-4 py-2" style={{ color: "#1a202c" }}>{row.display_description}</td>
-                        <td className="px-4 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
-                          {hierarchyCatalogPrice(row)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ── List preview ─────────────────────────────────────────────────────────────
   const ListPreview = () => {
-    const hasContent = lensSections.size > 0 || addonsBySection.size > 0;
+    const hasContent = listSections.some(([, rows]) => rows.length > 0) || addonsBySection.size > 0;
 
     const SectionTable = ({ label, rows, pageBreakBefore, isContinuation }: { label: string; rows: typeof catalogRows; pageBreakBefore?: boolean; isContinuation?: boolean }) => (
       <div className={`print-avoid-break print-grid-keep${pageBreakBefore ? " print-page-break-before" : ""}`}>
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr>
-              <th
-                colSpan={2}
-                className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm"
-                style={{ background: "#1e4db7", color: "white" }}
-              >
+              <th colSpan={2} className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white" }}>
                 {label}
                 {isContinuation ? " (cont.)" : ""}
               </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {rows.map((row) => (
               <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
                 <td className="px-4 py-2.5" style={{ color: "#1a202c" }}>{row.display_description}</td>
-                <td className="px-4 py-2.5 text-right font-semibold w-32" style={{ color: "#1a202c" }}>
-                  {hierarchyCatalogPrice(row)}
-                </td>
+                <td className="px-4 py-2.5 text-right font-semibold w-32" style={{ color: "#1a202c" }}>{hierarchyCatalogPrice(row)}</td>
               </tr>
             ))}
           </tbody>
@@ -295,53 +238,28 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
       </div>
     );
 
-    const sortedLensSections = [...lensSections.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
-    const lensListSections: PrintListSection<(typeof catalogRows)[number]>[] = sortedLensSections.map(([sec, rows]) => ({
-      key: `lens-${sec}`,
-      label: sec,
+    const lensListSections: PrintListSection<(typeof catalogRows)[number]>[] = listSections.map(([section, rows]) => ({
+      key: `lens-${section}`,
+      label: section,
       rows: [...rows].sort((a, b) => {
-        const aIdx = a.item_id ? (lensIndexMap.get(a.item_id) ?? 999) : 999;
-        const bIdx = b.item_id ? (lensIndexMap.get(b.item_id) ?? 999) : 999;
-        if (aIdx !== bIdx) return aIdx - bIdx;
+        const aIndex = a.item_id ? (lensIndexMap.get(a.item_id) ?? 999) : 999;
+        const bIndex = b.item_id ? (lensIndexMap.get(b.item_id) ?? 999) : 999;
+        if (aIndex !== bIndex) return aIndex - bIndex;
         return a.sort_order - b.sort_order;
       }),
     }));
-    const addonListSections: PrintListSection<(typeof catalogRows)[number]>[] = [...addonsBySection.entries()].map(([sec, rows]) => ({
-      key: `addon-${sec}`,
-      label: sec,
-      rows,
-    }));
-    const listChunks = preparePrintListChunks([...lensListSections, ...addonListSections], {
-      rowsPerPage: 20,
-      minSplitThreshold: 5,
-    });
+    const addonListSections: PrintListSection<(typeof catalogRows)[number]>[] = [...addonsBySection.entries()].map(([section, rows]) => ({ key: `addon-${section}`, label: section, rows }));
+    const listChunks = preparePrintListChunks([...lensListSections, ...addonListSections], { rowsPerPage: 20, minSplitThreshold: 5 });
 
     return (
       <div className="space-y-5">
-        {!hasContent ? (
-          <p className="text-xs text-muted-foreground text-center py-6">
-            No price list rows yet. Add lenses in the Price Matrix Editor tab.
-          </p>
-        ) : (
-          <>
-            {listChunks.map((chunk) => (
-              <SectionTable
-                key={chunk.key}
-                label={chunk.label}
-                rows={chunk.rows}
-                pageBreakBefore={chunk.pageBreakBefore}
-                isContinuation={chunk.isContinuation}
-              />
-            ))}
-          </>
-        )}
+        {!hasContent ? <p className="text-xs text-muted-foreground text-center py-6">No price list rows yet. Add lenses in the Price Matrix Editor tab.</p> : listChunks.map((chunk) => <SectionTable key={chunk.key} label={chunk.label} rows={chunk.rows} pageBreakBefore={chunk.pageBreakBefore} isContinuation={chunk.isContinuation} />)}
       </div>
     );
   };
 
   return (
     <div className="print-preview-container space-y-4 p-6" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", background: "#ffffff" }}>
-      {/* Header — matching reference screenshot */}
       <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
         <div className="flex-1 text-center">
           <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "#1a202c" }}>
@@ -349,9 +267,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
           </h1>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="text-xs" style={{ color: "#4a5568" }}>
-            {previewFormat === "matrix" ? "Matrix Format" : "List Format"} · {today}
-          </p>
+          <p className="text-xs" style={{ color: "#4a5568" }}>{previewFormat === "matrix" ? "Matrix Format" : "List Format"} · {today}</p>
           <p className="text-xs font-semibold" style={{ color: "#2d3748" }}>{currency}</p>
         </div>
       </div>
