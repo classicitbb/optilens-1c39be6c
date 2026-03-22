@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { useMatrixAllocations, MATERIAL_COLUMNS, TREATMENT_TYPES, TreatmentType } from "@/hooks/useMatrixAllocations";
-import { usePriceMatrix } from "@/hooks/usePriceMatrix";
+import { useMemo, useState } from "react";
+import { useMatrixAllocations, MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useLenses } from "@/hooks/useLenses";
@@ -16,15 +15,9 @@ import { format } from "date-fns";
 import { writeAoaWorkbook } from "@/lib/excelExport";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { compareCategoryOrder, compareMaterialOrder, sortCategories } from "@/lib/sortOrder";
-
-const TREATMENT_LABELS: Record<TreatmentType, string> = {
-  clear: "Clear Lenses",
-  transitions: "Transitions",
-  photochromic: "Photochromic",
-  polarized: "Polarized",
-  bluefilter: "Bluefilter",
-};
+import { compareCategoryOrder, compareMaterialOrder } from "@/lib/sortOrder";
+import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
+import { buildMatrixSectionLabel, parseMatrixRowKey } from "@/features/admin/rx-pricing/structure";
 
 interface Props {
   version: PricelistVersion;
@@ -37,8 +30,8 @@ const STANDARD_FOOTER = "Prices subject to change without notice. All prices in 
 
 const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
-  const { data: matrixRows = [] } = usePriceMatrix();
   const { data: catalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
+  const { structure: rxStructure } = useRxPricingStructure(version.id);
   const { data: company } = useCompanySettings();
   const { data: allLenses = [] } = useLenses();
   const { calcFinalPrice, getOverrideReason } = usePriceHierarchy(version.id);
@@ -59,7 +52,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
 
   const currency = showUSD ? "USD" : (version.base_currency ?? "BBD");
   const today = format(new Date(), "dd MMMM yyyy");
-  const categories = sortCategories([...new Set(matrixRows.map((r) => r.category))]);
+  const categoryMetaMap = useMemo(() => new Map(rxStructure.flatMap((grouping) => grouping.categories.map((category) => [`${grouping.key}::${category.key}`, { grouping, category }] as const))), [rxStructure]);
 
   // ── Standardised branding ─────────────────────────────────────────────────
   const companyName = company?.company_name ?? "Classic Visions";
@@ -120,22 +113,31 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
 
   const getPrimaryRows = () => {
     const primaryType = catalogType === "buysell" ? "supply" : "lens";
-    return catalogRows.filter((r) => r.row_type === primaryType);
+    return catalogRows
+      .filter((row) => row.row_type === primaryType)
+      .map((row) => {
+        const parsed = parseMatrixRowKey(row.row_key);
+        const meta = parsed ? categoryMetaMap.get(`${parsed.groupKey}::${parsed.categoryKey}`) : null;
+        return {
+          ...row,
+          section: meta ? buildMatrixSectionLabel(meta.grouping.name, meta.category.name) : row.section,
+        };
+      });
   };
 
-  const getActiveCols = (tt: TreatmentType) => {
+  const matrixGroups = rxStructure;
+
+  const getActiveCols = (groupKey: string) => {
     const cols = MATERIAL_COLUMNS.filter((col) =>
-      allocations.some((a) => a.treatment_type === tt && a.material_index === col.key && a.allocated_price_bbd != null)
+      allocations.some((a) => a.treatment_type === groupKey && a.material_index === col.key && a.allocated_price_bbd != null)
     );
-    return [...cols].sort((a, b) => compareMaterialOrder(a.key, b.key));
+    return [...(cols.length ? cols : MATERIAL_COLUMNS)].sort((a, b) => compareMaterialOrder(a.key, b.key));
   };
 
-  const getActiveCats = (tt: TreatmentType, cols: readonly { key: string; label: string }[]) =>
-    sortCategories(categories.filter((cat) =>
-      cols.some((col) =>
-        allocations.some((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt && a.allocated_price_bbd != null)
-      )
-    ));
+  const getActiveCats = (grouping: (typeof matrixGroups)[number], cols: readonly { key: string; label: string }[]) =>
+    grouping.categories.filter((category) =>
+      cols.some((col) => allocations.some((a) => a.category === category.key && a.material_index === col.key && a.treatment_type === grouping.key && a.allocated_price_bbd != null)) || grouping.key === "clear"
+    );
 
   const isCustomerExport = !canEdit;
 
@@ -183,20 +185,18 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
     companyHeader.forEach((h) => aoa.push([h]));
     aoa.push([]);
 
-    TREATMENT_TYPES.forEach((tt) => {
-      const activeCols = getActiveCols(tt);
-      if (activeCols.length === 0 && tt !== "clear") return;
-      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
-      const activeCats = getActiveCats(tt, visibleCols);
+    matrixGroups.forEach((grouping) => {
+      const visibleCols = getActiveCols(grouping.key);
+      const activeCats = getActiveCats(grouping, visibleCols);
+      if (activeCats.length === 0 && grouping.key !== "clear") return;
 
-      const groupTitle = TREATMENT_LABELS[tt];
-      aoa.push([groupTitle]);
-      aoa.push([groupTitle, ...visibleCols.map((c) => c.key)]);
+      aoa.push([grouping.name]);
+      aoa.push([grouping.name, ...visibleCols.map((c) => c.key)]);
 
-      activeCats.forEach((cat) => {
-        const row = [cat];
+      activeCats.forEach((category) => {
+        const row = [category.name];
         visibleCols.forEach((col) => {
-          const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
+          const alloc = allocations.find((a) => a.category === category.key && a.material_index === col.key && a.treatment_type === grouping.key);
           row.push(hpNum(alloc?.allocated_price_bbd ?? null, alloc?.id ? String(alloc.id) : undefined, "matrix_allocation"));
         });
         aoa.push(row);
@@ -229,21 +229,19 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
     companyHeader.forEach((h) => lines.push(h));
     lines.push("");
 
-    TREATMENT_TYPES.forEach((tt) => {
-      const activeCols = getActiveCols(tt);
-      if (activeCols.length === 0 && tt !== "clear") return;
-      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
-      const activeCats = getActiveCats(tt, visibleCols);
+    matrixGroups.forEach((grouping) => {
+      const visibleCols = getActiveCols(grouping.key);
+      const activeCats = getActiveCats(grouping, visibleCols);
+      if (activeCats.length === 0 && grouping.key !== "clear") return;
 
-      const groupTitle = TREATMENT_LABELS[tt];
-      lines.push(groupTitle);
-      lines.push([groupTitle, ...visibleCols.map((c) => c.key)].join(","));
-      activeCats.forEach((cat) => {
+      lines.push(grouping.name);
+      lines.push([grouping.name, ...visibleCols.map((c) => c.key)].join(","));
+      activeCats.forEach((category) => {
         const vals = visibleCols.map((col) => {
-          const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
+          const alloc = allocations.find((a) => a.category === category.key && a.material_index === col.key && a.treatment_type === grouping.key);
           return hpNum(alloc?.allocated_price_bbd ?? null, alloc?.id ? String(alloc.id) : undefined, "matrix_allocation");
         });
-        lines.push([cat, ...vals].join(","));
+        lines.push([category.name, ...vals].join(","));
       });
       lines.push("");
     });
@@ -273,28 +271,25 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
 
   // ── Matrix HTML ──────────────────────────────────────────────────────────────
   const exportMatrixHTML = () => {
-    const sectionsHtml = TREATMENT_TYPES.map((tt) => {
-      const activeCols = getActiveCols(tt);
-      if (activeCols.length === 0 && tt !== "clear") return "";
-      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
-      const activeCats = getActiveCats(tt, visibleCols);
-      if (activeCats.length === 0 && tt !== "clear") return "";
+    const sectionsHtml = matrixGroups.map((grouping) => {
+      const visibleCols = getActiveCols(grouping.key);
+      const activeCats = getActiveCats(grouping, visibleCols);
+      if (activeCats.length === 0 && grouping.key !== "clear") return "";
 
-      const groupTitle = TREATMENT_LABELS[tt];
       const colHeaders = visibleCols.map((c) => `<th>${c.key}</th>`).join("");
       const rowsHtml = activeCats
-        .map((cat) => {
+        .map((category) => {
           const cells = visibleCols
             .map((col) => {
-              const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
+              const alloc = allocations.find((a) => a.category === category.key && a.material_index === col.key && a.treatment_type === grouping.key);
               return `<td style="text-align:right">${hpStr(alloc?.allocated_price_bbd ?? null, alloc?.id ? String(alloc.id) : undefined, "matrix_allocation")}</td>`;
             })
             .join("");
-          return `<tr><td>${cat}</td>${cells}</tr>`;
+          return `<tr><td>${category.name}</td>${cells}</tr>`;
         })
         .join("");
-      return `<h3 style="color:#1e4db7;margin:20px 0 8px">${groupTitle}</h3>
-      <table><thead><tr><th>${groupTitle}</th>${colHeaders}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
+      return `<h3 style="color:#1e4db7;margin:20px 0 8px">${grouping.name}</h3>
+      <table><thead><tr><th>${grouping.name}</th>${colHeaders}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
     }).join("");
 
     const addonsBySection = getAddonsBySection();
@@ -344,11 +339,10 @@ ${addonsHtml}
       }
     }
 
-    // Helper: get the average price for a column in a treatment type
-    const getColAvg = (mat: string, treatType: TreatmentType): number | null => {
-      const vals = categories
-        .map((cat) => {
-          const a = allocations.find((al) => al.category === cat && al.material_index === mat && al.treatment_type === treatType);
+    const getColAvg = (mat: string, grouping: (typeof matrixGroups)[number]): number | null => {
+      const vals = grouping.categories
+        .map((category) => {
+          const a = allocations.find((al) => al.category === category.key && al.material_index === mat && al.treatment_type === grouping.key);
           if (!a?.allocated_price_bbd) return null;
           return hp(a.allocated_price_bbd, String(a.id), "matrix_allocation");
         })
@@ -357,69 +351,54 @@ ${addonsHtml}
       return vals.reduce((s, v) => s + v, 0) / vals.length;
     };
 
-    // Render each treatment grid
-    const treatmentsToPrint = TREATMENT_TYPES.filter((tt) => {
-      const activeCols = getActiveCols(tt);
-      if (activeCols.length === 0 && tt !== "clear") return false;
-      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
-      const activeCats = getActiveCats(tt, visibleCols);
-      return activeCats.length > 0 || tt === "clear";
+    const treatmentsToPrint = matrixGroups.filter((grouping) => {
+      const visibleCols = getActiveCols(grouping.key);
+      const activeCats = getActiveCats(grouping, visibleCols);
+      return activeCats.length > 0 || grouping.key === "clear";
     });
 
-    // We'll collect delta rows for non-clear treatments to append after Clear
-    const clearVisibleCols = (() => {
-      const activeCols = getActiveCols("clear");
-      return activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
-    })();
+    treatmentsToPrint.forEach((grouping) => {
+      const visibleCols = getActiveCols(grouping.key);
+      const activeCats = getActiveCats(grouping, visibleCols);
+      if (activeCats.length === 0 && grouping.key !== "clear") return;
 
-    treatmentsToPrint.forEach((tt, ttIdx) => {
-      const activeCols = getActiveCols(tt);
-      const visibleCols = activeCols.length > 0 ? activeCols : MATERIAL_COLUMNS;
-      const activeCats = getActiveCats(tt, visibleCols);
-      if (activeCats.length === 0 && tt !== "clear") return;
-
-      // Page break if not enough room
       if (y > pageH - 40) { doc.addPage(); y = margin; }
 
-      const groupTitle = TREATMENT_LABELS[tt];
       doc.setFontSize(8);
       doc.setTextColor(30, 77, 183);
-      doc.text(groupTitle, margin, y);
+      doc.text(grouping.name, margin, y);
       y += 1.5;
 
-      // Build body: each category row shows price + lens name underneath
-      const body: any[][] = activeCats.map((cat) => {
-        return [
-          cat,
-          ...visibleCols.map((col) => {
-            const alloc = allocations.find((a) => a.category === cat && a.material_index === col.key && a.treatment_type === tt);
-            if (!alloc?.allocated_price_bbd) return "—";
-            const price = hpStr(alloc.allocated_price_bbd, String(alloc.id), "matrix_allocation");
-            const lensName = lensNameMap.get(String(alloc.id));
-            return lensName ? `${price}\n${lensName}` : price;
-          }),
-        ];
-      });
+      const body: any[][] = activeCats.map((category) => ([
+        category.name,
+        ...visibleCols.map((col) => {
+          const alloc = allocations.find((a) => a.category === category.key && a.material_index === col.key && a.treatment_type === grouping.key);
+          if (!alloc?.allocated_price_bbd) return "—";
+          const price = hpStr(alloc.allocated_price_bbd, String(alloc.id), "matrix_allocation");
+          const lensName = lensNameMap.get(String(alloc.id));
+          return lensName ? `${price}
+${lensName}` : price;
+        }),
+      ]));
 
-      // Add delta row for non-clear treatments
-      if (tt !== "clear") {
-        const deltaRow = [
+      if (grouping.key !== "clear") {
+        const clearGrouping = matrixGroups.find((entry) => entry.key === "clear");
+        body.push([
           "Δ vs Clear",
           ...visibleCols.map((col) => {
-            const treatAvg = getColAvg(col.key, tt);
-            const clearAvg = getColAvg(col.key, "clear");
+            const treatAvg = getColAvg(col.key, grouping);
+            const clearAvg = clearGrouping ? getColAvg(col.key, clearGrouping) : null;
             if (treatAvg == null || clearAvg == null) return "—";
             const delta = treatAvg - clearAvg;
             return `${delta >= 0 ? "+" : ""}${delta.toFixed(2)}`;
           }),
-        ];
-        body.push(deltaRow);
+        ]);
       }
 
       autoTable(doc, {
         startY: y,
         margin: { left: margin, right: margin },
-        head: [[groupTitle, ...visibleCols.map((c) => c.key)]],
+        head: [[grouping.name, ...visibleCols.map((c) => c.key)]],
         body,
         styles: { fontSize: 5.5, cellPadding: 1.2, overflow: "linebreak" },
         headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold", fontSize: 6 },
@@ -427,8 +406,7 @@ ${addonsHtml}
         columnStyles: { 0: { cellWidth: 32, fontStyle: "bold" } },
         tableWidth: "auto",
         didParseCell: (data: any) => {
-          // Style delta row
-          if (data.section === "body" && data.row.index === body.length - 1 && tt !== "clear") {
+          if (data.section === "body" && data.row.index === body.length - 1 && grouping.key !== "clear") {
             data.cell.styles.fillColor = [255, 248, 230];
             data.cell.styles.textColor = [160, 120, 0];
             data.cell.styles.fontStyle = "italic";
@@ -624,15 +602,11 @@ ${addonsHtml}
 
     const lensRows = getPrimaryRows();
 
-    const TREATMENT_PREFIXES = ["Clear Lenses", "Transitions", "Photochromic", "Polarized", "Bluefilter"];
     const lensSectionMap = new Map<string, typeof lensRows>();
-    for (const r of lensRows) {
-      const sec = r.section || "Lenses";
-      const parts = sec.split(" — ");
-      const isMatrixSection = TREATMENT_PREFIXES.some((tp) => parts[0].trim() === tp);
-      const category = isMatrixSection ? (parts.slice(1).join(" — ") || sec) : sec;
-      if (!lensSectionMap.has(category)) lensSectionMap.set(category, []);
-      lensSectionMap.get(category)!.push(r);
+    for (const row of lensRows) {
+      const section = row.section || "Lenses";
+      if (!lensSectionMap.has(section)) lensSectionMap.set(section, []);
+      lensSectionMap.get(section)!.push(row);
     }
 
     const sortedSections = [...lensSectionMap.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));

@@ -21,7 +21,7 @@ export const TREATMENT_TYPES = [
   "bluefilter",
 ] as const;
 
-export type TreatmentType = typeof TREATMENT_TYPES[number];
+export type TreatmentType = string;
 
 // Material columns for Spec 1.2
 export const MATERIAL_COLUMNS = [
