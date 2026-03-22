@@ -109,8 +109,7 @@ const UsersPage = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ display_name: nameValue || null })
-        .eq("user_id", userId);
+        .upsert({ user_id: userId, display_name: nameValue || null }, { onConflict: "user_id" });
       if (error) throw error;
       toast({ title: "Name updated" });
       setEditingName(null);

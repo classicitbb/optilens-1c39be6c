@@ -8,12 +8,25 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useCartContext } from "@/contexts/CartContext";
 import { useOrders } from "@/hooks/useOrders";
 import { Separator } from "@/components/ui/separator";
 import { CheckoutDialog, CheckoutFormData } from "@/components/CheckoutDialog";
 
-export const CartSheet = () => {
+interface CartSheetProps {
+  className?: string;
+  triggerVariant?: "outline" | "hero" | "ghost";
+  triggerSize?: "default" | "sm" | "lg" | "icon";
+  showLabel?: boolean;
+}
+
+export const CartSheet = ({
+  className,
+  triggerVariant = "outline",
+  triggerSize = "icon",
+  showLabel = false,
+}: CartSheetProps) => {
   const { items, loading, totalItems, totalPrice, updateQuantity, removeFromCart, clearCart } =
     useCartContext();
   const { createOrder } = useOrders();
@@ -38,8 +51,14 @@ export const CartSheet = () => {
     <>
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="relative">
+        <Button
+          variant={triggerVariant}
+          size={triggerSize}
+          className={cn("relative", showLabel && "gap-2 px-4", className)}
+          aria-label={totalItems > 0 ? `Open cart with ${totalItems} item${totalItems === 1 ? "" : "s"}` : "Open cart"}
+        >
           <ShoppingCart className="h-5 w-5" />
+          {showLabel ? <span className="hidden sm:inline">Cart</span> : null}
           {totalItems > 0 && (
             <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-medium text-accent-foreground">
               {totalItems}
@@ -78,7 +97,7 @@ export const CartSheet = () => {
                         {item.product_name}
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        ${item.product_price.toFixed(2)}/lens
+                        ${item.product_price.toFixed(2)}${item.product_type === "supply" ? "/unit" : "/lens"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

@@ -4,6 +4,7 @@ import type { AdminNotificationEvent } from "@/features/admin/notifications/type
 import { getRuntimeErrorNotifications } from "@/features/admin/notifications/sources/runtimeErrorSource";
 import { getSyncProgressNotifications } from "@/features/admin/notifications/sources/syncProgressSource";
 import { getTaskReminderNotifications } from "@/features/admin/notifications/sources/taskReminderSource";
+import { getDatabaseNotifications } from "@/features/admin/notifications/sources/databaseNotificationSource";
 import { RUNTIME_ERROR_LOG_EVENT } from "@/lib/runtimeErrorLog";
 
 const READ_STORAGE_KEY = "optilens.admin.notifications.read";
@@ -41,11 +42,12 @@ export function useAdminNotifications() {
     queryKey: ["admin-notifications"],
     queryFn: async () => {
       const runtimeErrors = getRuntimeErrorNotifications(8);
-      const [syncProgress, taskReminders] = await Promise.all([
+      const [syncProgress, taskReminders, databaseNotifications] = await Promise.all([
         getSyncProgressNotifications(),
         getTaskReminderNotifications(),
+        getDatabaseNotifications(),
       ]);
-      return [...runtimeErrors, ...syncProgress, ...taskReminders]
+      return [...runtimeErrors, ...syncProgress, ...taskReminders, ...databaseNotifications]
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 20);
     },

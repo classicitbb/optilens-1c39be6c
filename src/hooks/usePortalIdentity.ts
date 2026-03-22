@@ -16,6 +16,7 @@ export interface PortalIdentity {
   assignedPricelistId: number | null;
   organizationName: string | null;
   customerName: string | null;
+  featureOverrides: Partial<Record<PortalFeature, boolean>>;
 }
 
 const featureTitles: Record<PortalFeature, string> = {
@@ -25,7 +26,10 @@ const featureTitles: Record<PortalFeature, string> = {
   "private-orders": "Private orders",
 };
 
-const normalizeIdentity = (row: Record<string, unknown>): PortalIdentity => ({
+const normalizeIdentity = (
+  row: Record<string, unknown>,
+  featureOverrides: Partial<Record<PortalFeature, boolean>>,
+): PortalIdentity => ({
   profileId: String(row.profile_id ?? ""),
   portalAccessStatus: (row.portal_access_status ?? "pending_profile") as PortalAccessStatus,
   portalAccessNote: typeof row.portal_access_note === "string" ? row.portal_access_note : "",
@@ -36,10 +40,13 @@ const normalizeIdentity = (row: Record<string, unknown>): PortalIdentity => ({
   assignedPricelistId: typeof row.assigned_pricelist_id === "number" ? row.assigned_pricelist_id : null,
   organizationName: typeof row.organization_name === "string" ? row.organization_name : null,
   customerName: typeof row.customer_name === "string" ? row.customer_name : null,
+  featureOverrides,
 });
 
 export const canAccessPortalFeature = (identity: PortalIdentity | null, feature: PortalFeature) => {
   if (!identity) return false;
+  const override = identity.featureOverrides?.[feature];
+  if (typeof override === "boolean") return override;
   if (feature === "private-orders") return identity.portalAccessStatus === "approved_customer";
   return identity.portalAccessStatus === "approved_customer";
 };
@@ -51,6 +58,21 @@ export const getPortalFeatureBlockedReason = (identity: PortalIdentity | null, f
     return {
       title: `${title} will unlock after sign-in`,
       description: `Sign in, verify your email, and complete your profile to start the ${title.toLowerCase()} approval flow.`,
+    };
+  }
+
+  const override = identity.featureOverrides?.[feature];
+  if (override === false) {
+    return {
+      title: `${title} is currently disabled`,
+      description: "Your account team has temporarily disabled this workflow for your portal.",
+    };
+  }
+
+  if (override === true) {
+    return {
+      title: `${title} is enabled`,
+      description: `Your account has an explicit access override for ${title.toLowerCase()}.`,
     };
   }
 
@@ -91,13 +113,26 @@ export const usePortalIdentity = () => {
     enabled: !!user,
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await (supabase.rpc as any)("sync_customer_portal_identity", {
-        p_user_id: user.id,
-      });
+      const [{ data, error }, { data: overrides, error: overridesError }] = await Promise.all([
+        (supabase.rpc as any)("sync_customer_portal_identity", {
+          p_user_id: user.id,
+        }),
+        (supabase as any)
+          .from("customer_portal_feature_overrides")
+          .select("feature_key,enabled")
+          .eq("user_id", user.id),
+      ]);
 
       if (error) throw error;
+      if (overridesError) throw overridesError;
+
+      const overrideMap = ((overrides ?? []) as Array<{ feature_key: PortalFeature; enabled: boolean }>).reduce(
+        (accumulator, row) => ({ ...accumulator, [row.feature_key]: row.enabled }),
+        {} as Partial<Record<PortalFeature, boolean>>,
+      );
+
       const row = Array.isArray(data) ? data[0] : data;
-      return row ? normalizeIdentity(row) : null;
+      return row ? normalizeIdentity(row, overrideMap) : null;
     },
   });
 
