@@ -156,7 +156,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         const allocationRows = ((versions ?? []) as unknown as { id: number }[]).flatMap((version) =>
           MATERIAL_COLUMNS.map((material) => ({
             pricelist_version_id: version.id,
-            category: category.key,
+            category: (category as any).key,
             material_index: material.key,
             treatment_type: groupingKey,
             lens_id: null,
