@@ -153,7 +153,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         const { error: categoryVersionError } = await supabase.from("rx_price_category_versions" as any).insert(versionRows);
         if (categoryVersionError) throw categoryVersionError;
 
-        const allocationRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const allocationRows = ((versions ?? []) as unknown as { id: number }[]).flatMap((version) =>
           MATERIAL_COLUMNS.map((material) => ({
             pricelist_version_id: version.id,
             category: category.key,
