@@ -99,7 +99,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if ((versions ?? []).length > 0) {
         const versionRows = ((versions ?? []) as unknown as { id: number }[]).map((version, index) => ({
           pricelist_version_id: version.id,
-          grouping_id: grouping.id,
+          grouping_id: (grouping as any).id,
           sort_order: query.data?.structure.length ?? index,
           is_enabled: true,
         }));
