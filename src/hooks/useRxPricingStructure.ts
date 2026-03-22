@@ -97,7 +97,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if (versionsError) throw versionsError;
 
       if ((versions ?? []).length > 0) {
-        const versionRows = (versions ?? []).map((version: { id: number }, index: number) => ({
+        const versionRows = ((versions ?? []) as unknown as { id: number }[]).map((version, index) => ({
           pricelist_version_id: version.id,
           grouping_id: grouping.id,
           sort_order: query.data?.structure.length ?? index,
