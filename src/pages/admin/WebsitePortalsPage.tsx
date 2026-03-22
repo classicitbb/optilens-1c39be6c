@@ -32,6 +32,7 @@ import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
 import { Separator } from "@/components/ui/separator";
+import type { CheckoutFormData } from "@/components/CheckoutDialog";
 
 interface PortalCustomerListItem {
   userId: string;
@@ -111,28 +112,42 @@ const WebsitePortalsPage = () => {
   const customersQuery = useQuery({
     queryKey: ["website-portals-customers"],
     queryFn: async () => {
+      const portalUsers = users.filter((entry) => !["admin", "operator", "viewer"].includes(entry.role ?? ""));
+      const portalUserIds = portalUsers.map((entry) => entry.user_id);
+
+      if (portalUserIds.length === 0) return [];
+
       const { data, error } = await (supabase as any)
         .from("profiles")
         .select("id,user_id,full_name,phone,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
+        .in("user_id", portalUserIds)
         .order("updated_at", { ascending: false });
       if (error) throw error;
 
-      const emailMap = new Map(users.map((entry) => [entry.user_id, entry.email]));
+      const profileMap = new Map(
+        ((data ?? []) as Record<string, any>[]).map((row) => [
+          String(row.user_id),
+          row,
+        ]),
+      );
 
-      return ((data ?? []) as Record<string, any>[])
-        .map((row) => ({
-          userId: String(row.user_id),
-          profileId: String(row.id),
-          email: emailMap.get(String(row.user_id)) ?? "",
-          fullName: String(row.full_name ?? ""),
-          phone: String(row.phone ?? ""),
-          organizationName: String(row.organization_name ?? ""),
-          portalAccessStatus: String(row.portal_access_status ?? "pending_profile"),
-          portalAccessNote: String(row.portal_access_note ?? ""),
-          crmContactId: typeof row.crm_contact_id === "string" ? row.crm_contact_id : null,
-          crmCustomerId: typeof row.crm_customer_id === "number" ? row.crm_customer_id : null,
-          assignedPricelistId: null,
-        }))
+      return portalUsers
+        .map((entry) => {
+          const profile = profileMap.get(entry.user_id);
+          return {
+            userId: entry.user_id,
+            profileId: profile?.id ? String(profile.id) : `pending:${entry.user_id}`,
+            email: entry.email ?? "",
+            fullName: String(profile?.full_name ?? entry.display_name ?? ""),
+            phone: String(profile?.phone ?? ""),
+            organizationName: String(profile?.organization_name ?? ""),
+            portalAccessStatus: String(profile?.portal_access_status ?? "pending_profile"),
+            portalAccessNote: String(profile?.portal_access_note ?? "Profile not completed yet."),
+            crmContactId: typeof profile?.crm_contact_id === "string" ? profile.crm_contact_id : null,
+            crmCustomerId: typeof profile?.crm_customer_id === "number" ? profile.crm_customer_id : null,
+            assignedPricelistId: null,
+          } satisfies PortalCustomerListItem;
+        })
         .sort((a, b) => (b.fullName || b.email).localeCompare(a.fullName || a.email));
     },
     enabled: !usersLoading,
@@ -165,6 +180,10 @@ const WebsitePortalsPage = () => {
     enabled: !!selectedCustomer,
     queryFn: async () => {
       if (!selectedCustomer) return null;
+
+      await (supabase.rpc as any)("sync_customer_portal_identity", {
+        p_user_id: selectedCustomer.userId,
+      });
 
       const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }] = await Promise.all([
         (supabase as any)
@@ -307,9 +326,8 @@ const WebsitePortalsPage = () => {
       if (!selectedCustomer || !detailQuery.data) throw new Error("Select a customer first.");
       if (!detailQuery.data.cartItems.length) throw new Error("This customer has no cart items to convert.");
       if (!defaultShipping) throw new Error("Add a saved address before placing an order on behalf.");
-      if (!defaultPaymentMethod) throw new Error("Add a saved demo card before placing an order on behalf.");
 
-      const checkout = {
+      const checkout: CheckoutFormData = {
         fullName: selectedCustomer.fullName || selectedCustomer.email,
         email: selectedCustomer.email,
         phone: selectedCustomer.phone,
@@ -333,14 +351,14 @@ const WebsitePortalsPage = () => {
           postalCode: (defaultBilling ?? defaultShipping).postalCode,
           country: (defaultBilling ?? defaultShipping).country,
         },
-        checkoutMethod: "saved_demo_card" as const,
-        paymentMethodId: defaultPaymentMethod.id,
+        checkoutMethod: defaultPaymentMethod ? "saved_demo_card" : "manual_review",
+        paymentMethodId: defaultPaymentMethod?.id ?? null,
         savePaymentMethod: false,
-        cardholderName: defaultPaymentMethod.cardholderName,
-        cardBrand: defaultPaymentMethod.brand,
-        cardLast4: defaultPaymentMethod.last4,
-        expiryMonth: defaultPaymentMethod.expiryMonth,
-        expiryYear: defaultPaymentMethod.expiryYear,
+        cardholderName: defaultPaymentMethod?.cardholderName ?? selectedCustomer.fullName ?? selectedCustomer.email,
+        cardBrand: defaultPaymentMethod?.brand ?? "Manual review",
+        cardLast4: defaultPaymentMethod?.last4 ?? "",
+        expiryMonth: defaultPaymentMethod?.expiryMonth ?? new Date().getMonth() + 1,
+        expiryYear: defaultPaymentMethod?.expiryYear ?? new Date().getFullYear(),
       };
 
       const total = detailQuery.data.cartItems.reduce((sum, item) => sum + item.product_price * item.quantity, 0);
@@ -528,7 +546,7 @@ const WebsitePortalsPage = () => {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-semibold text-foreground">Current cart</p>
-                              <p className="text-xs text-muted-foreground">Use saved address + saved card to convert the cart into a confirmed order.</p>
+                              <p className="text-xs text-muted-foreground">Use a saved card to capture payment immediately, or create a pending manual-review order if no card is on file.</p>
                             </div>
                             <Badge variant="outline">{detailQuery.data.cartItems.length} item(s)</Badge>
                           </div>
@@ -543,7 +561,7 @@ const WebsitePortalsPage = () => {
                           <Separator />
                           <div className="flex items-center justify-between text-sm">
                             <span>Default saved card</span>
-                            <span className="font-medium">{defaultPaymentMethod ? `${defaultPaymentMethod.brand} •••• ${defaultPaymentMethod.last4}` : "Missing"}</span>
+                            <span className="font-medium">{defaultPaymentMethod ? `${defaultPaymentMethod.brand} •••• ${defaultPaymentMethod.last4}` : "Manual review"}</span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span>Default shipping</span>
@@ -551,7 +569,7 @@ const WebsitePortalsPage = () => {
                           </div>
                           <Button className="w-full" onClick={() => placeOnBehalfOrder.mutate()} disabled={placeOnBehalfOrder.isPending || !detailQuery.data.cartItems.length}>
                             <ShoppingCart className="mr-2 h-4 w-4" />
-                            {placeOnBehalfOrder.isPending ? "Placing order…" : "Place order & capture payment on behalf"}
+                            {placeOnBehalfOrder.isPending ? "Placing order…" : defaultPaymentMethod ? "Place order & capture payment on behalf" : "Create pending order for manual payment review"}
                           </Button>
                         </div>
 

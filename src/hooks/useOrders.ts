@@ -6,6 +6,17 @@ import type { OrderEntity } from "@/domain/entities";
 import { toOrderEntity } from "@/domain/services/recordMappers";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string" && error) return error;
+  if (typeof error === "object" && error !== null) {
+    const message = "message" in error ? String(error.message ?? "") : "";
+    const details = "details" in error ? String(error.details ?? "") : "";
+    return message || details || "Failed to create order.";
+  }
+  return "Failed to create order.";
+};
+
 export const useOrders = (targetUserId?: string) => {
   const [orders, setOrders] = useState<OrderEntity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,7 +152,7 @@ export const useOrders = (targetUserId?: string) => {
       console.error("Error creating order:", error);
       toast({
         title: "Error",
-        description: "Failed to create order.",
+        description: getErrorMessage(error),
         variant: "destructive",
       });
       return null;

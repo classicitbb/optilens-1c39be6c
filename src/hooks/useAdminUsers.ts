@@ -17,18 +17,17 @@ export const useAdminUsers = () => {
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      // Fetch profiles + roles
-      const { data: profiles, error: pErr } = await supabase
-        .from("profiles")
-        .select("user_id, display_name");
+      const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, display_name"),
+        supabase
+          .from("user_roles")
+          .select("id, user_id, role"),
+      ]);
       if (pErr) throw pErr;
-
-      const { data: roles, error: rErr } = await supabase
-        .from("user_roles")
-        .select("id, user_id, role");
       if (rErr) throw rErr;
 
-      // Fetch auth user emails via edge function
       let authUsers: { id: string; email: string; created_at: string }[] = [];
       try {
         const { data, error: fnErr } = await supabase.functions.invoke(
@@ -40,20 +39,31 @@ export const useAdminUsers = () => {
         // Edge function may not be deployed yet; continue without emails
       }
 
+      const profileMap = new Map((profiles ?? []).map((profile) => [profile.user_id, profile]));
       const roleMap = new Map(roles?.map((r) => [r.user_id, r]) ?? []);
-      const authMap = new Map(authUsers.map((u) => [u.id, u]));
+      const authMap = new Map(authUsers.map((user) => [user.id, user]));
+      const userIds = new Set<string>([
+        ...Array.from(profileMap.keys()),
+        ...Array.from(roleMap.keys()),
+        ...Array.from(authMap.keys()),
+      ]);
 
-      return (profiles ?? []).map((p) => {
-        const r = roleMap.get(p.user_id);
-        const auth = authMap.get(p.user_id);
+      return Array.from(userIds).map((userId) => {
+        const profile = profileMap.get(userId);
+        const role = roleMap.get(userId);
+        const auth = authMap.get(userId);
         return {
-          user_id: p.user_id,
+          user_id: userId,
           email: auth?.email ?? "",
-          display_name: p.display_name,
-          role: (r?.role as AppRole) ?? null,
-          role_id: r?.id ?? null,
+          display_name: profile?.display_name ?? null,
+          role: (role?.role as AppRole) ?? null,
+          role_id: role?.id ?? null,
           created_at: auth?.created_at ?? null,
         } satisfies AdminUser;
+      }).sort((left, right) => {
+        const leftLabel = (left.display_name || left.email || left.user_id).toLowerCase();
+        const rightLabel = (right.display_name || right.email || right.user_id).toLowerCase();
+        return leftLabel.localeCompare(rightLabel);
       });
     },
   });

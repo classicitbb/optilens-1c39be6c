@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Separator } from "@/components/ui/separator";
 import { BookUser, Plus, Save, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

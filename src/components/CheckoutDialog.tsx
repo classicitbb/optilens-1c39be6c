@@ -27,7 +27,7 @@ export interface CheckoutFormData {
   billingAddressId: string | null;
   shippingAddress: ProfileAddress;
   billingAddress: ProfileAddress;
-  checkoutMethod: "saved_demo_card" | "new_demo_card" | "google_pay";
+  checkoutMethod: "saved_demo_card" | "new_demo_card" | "google_pay" | "manual_review";
   paymentMethodId: string | null;
   savePaymentMethod: boolean;
   cardholderName: string;
