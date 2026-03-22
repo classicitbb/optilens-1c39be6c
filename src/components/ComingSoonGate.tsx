@@ -64,7 +64,7 @@ const ComingSoonGate = ({ children }: { children: React.ReactNode }) => {
         </Button>
       </form>
 
-      <p className="mt-12 text-xs text-muted-foreground/60">
+      <p className="mt-12 text-xs text-muted-foreground">
         &copy; {new Date().getFullYear()} OptiLens. All rights reserved.
       </p>
     </main>
