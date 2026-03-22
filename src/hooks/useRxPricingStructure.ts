@@ -51,8 +51,8 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if ((groupingVersionsResult as any).error) throw (groupingVersionsResult as any).error;
       if ((categoryVersionsResult as any).error) throw (categoryVersionsResult as any).error;
 
-      const groupings = (groupingsResult.data ?? []) as RxPricingGroupingRecord[];
-      const categories = (categoriesResult.data ?? []) as RxPricingCategoryRecord[];
+      const groupings = (groupingsResult.data ?? []) as unknown as RxPricingGroupingRecord[];
+      const categories = (categoriesResult.data ?? []) as unknown as RxPricingCategoryRecord[];
       const groupingVersions = ((groupingVersionsResult as any).data ?? []) as RxPricingGroupingVersionRecord[];
       const categoryVersions = ((categoryVersionsResult as any).data ?? []) as RxPricingCategoryVersionRecord[];
 
@@ -97,9 +97,9 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if (versionsError) throw versionsError;
 
       if ((versions ?? []).length > 0) {
-        const versionRows = (versions ?? []).map((version: { id: number }, index: number) => ({
+        const versionRows = ((versions ?? []) as unknown as { id: number }[]).map((version, index) => ({
           pricelist_version_id: version.id,
-          grouping_id: grouping.id,
+          grouping_id: (grouping as any).id,
           sort_order: query.data?.structure.length ?? index,
           is_enabled: true,
         }));
@@ -143,9 +143,9 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if (versionsError) throw versionsError;
 
       if ((versions ?? []).length > 0) {
-        const versionRows = (versions ?? []).map((version: { id: number }) => ({
+        const versionRows = ((versions ?? []) as unknown as { id: number }[]).map((version) => ({
           pricelist_version_id: version.id,
-          category_id: category.id,
+          category_id: (category as any).id,
           sort_order: groupingCategories.length,
           is_enabled: true,
         }));
@@ -153,10 +153,10 @@ export const useRxPricingStructure = (versionId: number | null) => {
         const { error: categoryVersionError } = await supabase.from("rx_price_category_versions" as any).insert(versionRows);
         if (categoryVersionError) throw categoryVersionError;
 
-        const allocationRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const allocationRows = ((versions ?? []) as unknown as { id: number }[]).flatMap((version) =>
           MATERIAL_COLUMNS.map((material) => ({
             pricelist_version_id: version.id,
-            category: category.key,
+            category: (category as any).key,
             material_index: material.key,
             treatment_type: groupingKey,
             lens_id: null,
