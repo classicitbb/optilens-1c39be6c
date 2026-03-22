@@ -51,8 +51,8 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if ((groupingVersionsResult as any).error) throw (groupingVersionsResult as any).error;
       if ((categoryVersionsResult as any).error) throw (categoryVersionsResult as any).error;
 
-      const groupings = (groupingsResult.data ?? []) as RxPricingGroupingRecord[];
-      const categories = (categoriesResult.data ?? []) as RxPricingCategoryRecord[];
+      const groupings = (groupingsResult.data ?? []) as unknown as RxPricingGroupingRecord[];
+      const categories = (categoriesResult.data ?? []) as unknown as RxPricingCategoryRecord[];
       const groupingVersions = ((groupingVersionsResult as any).data ?? []) as RxPricingGroupingVersionRecord[];
       const categoryVersions = ((categoryVersionsResult as any).data ?? []) as RxPricingCategoryVersionRecord[];
 
