@@ -165,13 +165,13 @@ export const useRxPricingStructure = (versionId: number | null) => {
           .insert(categoryVersionRows);
         if (categoryVersionInsertError) throw categoryVersionInsertError;
 
-        const allocationRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const allocationRows = versions.flatMap((version) =>
           insertedCategories.flatMap((category) =>
             MATERIAL_COLUMNS.map((material) => ({
               pricelist_version_id: version.id,
               category: category.key,
               material_index: material.key,
-              treatment_type: grouping.key,
+              treatment_type: (grouping as any).key,
               lens_id: null,
               allocated_price_bbd: null,
               is_active: true,
