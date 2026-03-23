@@ -1,8 +1,5 @@
-/* Fonts loaded via index.html to avoid render-blocking @import chain */
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.ts";
 
 @layer base {
   :root {
@@ -129,7 +126,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   html {
@@ -152,26 +149,47 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
   }
 
   /* Skip-to-content link (screen-reader first, visible on focus) */
   .skip-to-content {
-    @apply fixed left-2 top-2 z-[100] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0;
+    position: fixed;
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 100;
+    transform: translateY(-5rem);
+    border-radius: 0.5rem;
+    background-color: hsl(var(--primary));
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    transition: transform 0.15s;
+  }
+  .skip-to-content:focus {
+    transform: translateY(0);
   }
 
   /* Ensure visible focus rings across all interactive elements */
   :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
   }
 }
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent;
     background-image: var(--gradient-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .bg-gradient-primary {
@@ -199,7 +217,8 @@
   }
 
   .glass-effect {
-    @apply backdrop-blur-md;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     background: var(--gradient-glass);
   }
 

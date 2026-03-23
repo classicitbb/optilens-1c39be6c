@@ -72,12 +72,6 @@ export const parseMatrixRowKey = (rowKey: string) => {
 export const buildMatrixSectionLabel = (groupName: string, categoryName: string) =>
   `${groupName} — ${categoryName}`;
 
-export const normalizeSortOrder = <T extends { sortOrder: number }>(items: T[]) =>
-  items
-    .slice()
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((item, index) => ({ ...item, sortOrder: index }));
-
 export const buildRxPricingStructure = ({
   groupings,
   categories,
@@ -89,27 +83,62 @@ export const buildRxPricingStructure = ({
   groupingVersions: RxPricingGroupingVersionRecord[];
   categoryVersions: RxPricingCategoryVersionRecord[];
 }): RxPricingGroupingView[] => {
-  const groupingVersionMap = new Map(groupingVersions.map((record) => [record.grouping_id, record]));
-  const categoryVersionMap = new Map(categoryVersions.map((record) => [record.category_id, record]));
+  const _groupingVersions = groupingVersions;
+  void _groupingVersions;
+
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
+  const sharedCategoryMeta = new Map<
+    string,
+    {
+      defaultName: string;
+      sortOrder: number;
+      isEnabled: boolean;
+      displayName: string | null;
+    }
+  >();
+
+  categories
+    .filter((category) => category.is_active)
+    .forEach((category) => {
+      const current = sharedCategoryMeta.get(category.key);
+      if (!current || category.sort_order < current.sortOrder) {
+        sharedCategoryMeta.set(category.key, {
+          defaultName: category.default_name,
+          sortOrder: category.sort_order,
+          isEnabled: true,
+          displayName: current?.displayName ?? null,
+        });
+      }
+    });
+
+  categoryVersions.forEach((categoryVersion) => {
+    const category = categoryById.get(categoryVersion.category_id);
+    if (!category || !category.is_active) return;
+    const current = sharedCategoryMeta.get(category.key);
+    if (!current) return;
+    sharedCategoryMeta.set(category.key, {
+      defaultName: current.defaultName,
+      displayName: categoryVersion.display_name?.trim() || current.displayName,
+      sortOrder: categoryVersion.sort_order != null ? Math.min(current.sortOrder, categoryVersion.sort_order) : current.sortOrder,
+      isEnabled: current.isEnabled && categoryVersion.is_enabled,
+    });
+  });
 
   return groupings
     .filter((grouping) => grouping.is_active)
     .map((grouping) => {
-      const groupingVersion = groupingVersionMap.get(grouping.id);
-      const groupingName = groupingVersion?.display_name?.trim() || grouping.default_name;
-
       const mergedCategories = categories
         .filter((category) => category.grouping_id === grouping.id && category.is_active)
         .map((category) => {
-          const categoryVersion = categoryVersionMap.get(category.id);
+          const sharedMeta = sharedCategoryMeta.get(category.key);
           return {
             id: category.id,
             groupingId: category.grouping_id,
             key: category.key,
-            name: categoryVersion?.display_name?.trim() || category.default_name,
+            name: sharedMeta?.displayName?.trim() || category.default_name,
             defaultName: category.default_name,
-            sortOrder: categoryVersion?.sort_order ?? category.sort_order,
-            isEnabled: categoryVersion?.is_enabled ?? true,
+            sortOrder: sharedMeta?.sortOrder ?? category.sort_order,
+            isEnabled: sharedMeta?.isEnabled ?? true,
             isActive: category.is_active,
           } satisfies RxPricingCategoryView;
         })
@@ -119,14 +148,13 @@ export const buildRxPricingStructure = ({
       return {
         id: grouping.id,
         key: grouping.key,
-        name: groupingName,
+        name: grouping.default_name,
         defaultName: grouping.default_name,
-        sortOrder: groupingVersion?.sort_order ?? grouping.sort_order,
-        isEnabled: groupingVersion?.is_enabled ?? true,
+        sortOrder: grouping.sort_order,
+        isEnabled: true,
         isActive: grouping.is_active,
         categories: mergedCategories,
       } satisfies RxPricingGroupingView;
     })
-    .filter((grouping) => grouping.isEnabled)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 };

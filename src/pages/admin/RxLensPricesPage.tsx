@@ -6,6 +6,7 @@ import TreatmentMatricesAccordion from "@/components/admin/TreatmentMatricesAcco
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import RxExportBar from "@/components/admin/RxExportBar";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
+// RxAddonsExtrasEditor removed — addons are managed inside ListCatalogTab
 import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
@@ -165,6 +166,8 @@ const RxLensPricesPage = () => {
               />
             </TabsContent>
           </Tabs>
+
+          {/* Add-ons & Extras are managed inside ListCatalogTab's catalog tab */}
 
           {/* ── Live Preview Section ──────────────────────────────────────────── */}
           <div ref={previewRef} className="mt-6">

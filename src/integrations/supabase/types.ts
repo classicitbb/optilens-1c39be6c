@@ -4311,6 +4311,173 @@ export type Database = {
           },
         ]
       }
+      rx_price_categories: {
+        Row: {
+          created_at: string
+          default_name: string
+          grouping_id: number
+          id: number
+          is_active: boolean
+          key: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_name: string
+          grouping_id: number
+          id?: number
+          is_active?: boolean
+          key: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_name?: string
+          grouping_id?: number
+          id?: number
+          is_active?: boolean
+          key?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_price_categories_grouping_id_fkey"
+            columns: ["grouping_id"]
+            isOneToOne: false
+            referencedRelation: "rx_price_groupings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_price_category_versions: {
+        Row: {
+          category_id: number
+          created_at: string
+          display_name: string | null
+          id: number
+          is_enabled: boolean
+          pricelist_version_id: number
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: number
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          is_enabled?: boolean
+          pricelist_version_id: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: number
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          is_enabled?: boolean
+          pricelist_version_id?: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_price_category_versions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "rx_price_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_price_category_versions_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_price_grouping_versions: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          grouping_id: number
+          id: number
+          is_enabled: boolean
+          pricelist_version_id: number
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          grouping_id: number
+          id?: number
+          is_enabled?: boolean
+          pricelist_version_id: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          grouping_id?: number
+          id?: number
+          is_enabled?: boolean
+          pricelist_version_id?: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_price_grouping_versions_grouping_id_fkey"
+            columns: ["grouping_id"]
+            isOneToOne: false
+            referencedRelation: "rx_price_groupings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_price_grouping_versions_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_price_groupings: {
+        Row: {
+          created_at: string
+          default_name: string
+          id: number
+          is_active: boolean
+          key: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_name: string
+          id?: number
+          is_active?: boolean
+          key: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_name?: string
+          id?: number
+          is_active?: boolean
+          key?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shipment_charges: {
         Row: {
           amount_bbd: number

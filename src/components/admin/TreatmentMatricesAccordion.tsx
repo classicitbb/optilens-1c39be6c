@@ -386,11 +386,11 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
         toast({ title: "Grouping created", description: `Added ${nameDialog.value.trim()} to every price list version.` });
       } else if (nameDialog.mode === "rename-group") {
         await renameGrouping.mutateAsync({ groupingId: nameDialog.groupingId, name: nameDialog.value });
-        toast({ title: "Grouping renamed", description: "Saved for this price list version." });
+        toast({ title: "Grouping renamed", description: "Saved across all price list versions." });
       } else if (nameDialog.mode === "create-category") {
-        await createCategory.mutateAsync({ groupingId: nameDialog.groupingId, groupingKey: nameDialog.groupingKey, name: nameDialog.value });
+        await createCategory.mutateAsync({ name: nameDialog.value });
         setExpanded((previous) => new Set(previous).add(nameDialog.groupingKey));
-        toast({ title: "Category created", description: `Added ${nameDialog.value.trim()} across all matrix materials.` });
+        toast({ title: "Category created", description: `Added ${nameDialog.value.trim()} across all groupings and materials.` });
       } else if (nameDialog.mode === "rename-category") {
         await renameCategory.mutateAsync({ categoryId: nameDialog.categoryId, name: nameDialog.value });
         toast({ title: "Category renamed", description: "Saved for this price list version." });
@@ -417,7 +417,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
       }
     } else {
       try {
-        await archiveCategory.mutateAsync({ categoryId: archiveDialog.id, groupingKey: archiveDialog.groupingKey, categoryKey: archiveDialog.key });
+        await archiveCategory.mutateAsync({ categoryId: archiveDialog.id });
         toast({ title: "Category removed", description: `${archiveDialog.name} was removed or archived safely.` });
       } catch (error: any) {
         toast({ title: "Unable to remove category", description: error.message, variant: "destructive" });
@@ -494,7 +494,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
             {isOpen && (
               <div className="p-3 space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="text-[11px] text-muted-foreground">Manage grouping name and order for this price list version.</div>
+                  <div className="text-[11px] text-muted-foreground">Grouping names and order are global across all price list versions.</div>
                   <div className="flex items-center gap-1.5">
                     <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => bumpGrouping.mutate({ groupingId: grouping.id, direction: -1 })} disabled={groupingIndex === 0 || bumpGrouping.isPending} title="Move grouping up">
                       <ArrowUp className="h-3.5 w-3.5" />
@@ -505,9 +505,9 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                     <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setNameDialog({ mode: "rename-group", title: "Rename Grouping", value: grouping.name, groupingId: grouping.id })} title="Rename grouping">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setNameDialog({ mode: "create-category", title: `Add Category to ${grouping.name}`, value: "", groupingId: grouping.id, groupingKey: grouping.key })}>
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setNameDialog({ mode: "create-category", title: `Add Category (All Groups) to ${grouping.name}`, value: "", groupingId: grouping.id, groupingKey: grouping.key })}>
                       <Plus className="h-3.5 w-3.5" />
-                      Add Category
+                      Add Category (All Groups)
                     </Button>
                     <Button size="icon" variant="outline" className="h-7 w-7 text-destructive" onClick={() => setArchiveDialog({ type: "group", id: grouping.id, key: grouping.key, name: grouping.name, protected: grouping.key === "clear" })} title="Remove grouping">
                       <Trash2 className="h-3.5 w-3.5" />
@@ -534,10 +534,10 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                             <div className="flex items-start justify-between gap-2">
                               <div className="font-semibold text-foreground whitespace-nowrap">{category.name}</div>
                               <div className="flex items-center gap-1 no-print">
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => bumpCategory.mutate({ groupingId: grouping.id, categoryId: category.id, direction: -1 })} disabled={categoryIndex === 0 || bumpCategory.isPending} title="Move category up">
+                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => bumpCategory.mutate({ categoryId: category.id, direction: -1 })} disabled={categoryIndex === 0 || bumpCategory.isPending} title="Move category up">
                                   <ArrowUp className="h-3 w-3" />
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => bumpCategory.mutate({ groupingId: grouping.id, categoryId: category.id, direction: 1 })} disabled={categoryIndex === grouping.categories.length - 1 || bumpCategory.isPending} title="Move category down">
+                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => bumpCategory.mutate({ categoryId: category.id, direction: 1 })} disabled={categoryIndex === grouping.categories.length - 1 || bumpCategory.isPending} title="Move category down">
                                   <ArrowDown className="h-3 w-3" />
                                 </Button>
                                 <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setNameDialog({ mode: "rename-category", title: "Rename Category", value: category.name, categoryId: category.id })} title="Rename category">
@@ -647,7 +647,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
               onChange={(event) => setNameDialog((current) => (current ? { ...current, value: event.target.value } : current))}
               placeholder="Enter a name"
             />
-            <p className="text-[11px] text-muted-foreground">This name is required and saves against the active price list version.</p>
+            <p className="text-[11px] text-muted-foreground">This name is required. Grouping names save globally; category renames save for the active version.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNameDialog(null)}>Cancel</Button>

@@ -3,7 +3,7 @@ import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 
 const stats = [
   { value: "25+", label: "Years in Business" },
-  { value: "5,000+", label: "Optical Partners" },
+  { value: "500+", label: "Optical Partners" },
   { value: "1M+", label: "Lenses Delivered" },
   { value: "99.8%", label: "Quality Rate" },
 ];
@@ -22,7 +22,7 @@ const values = [
   {
     icon: Award,
     title: "Innovation",
-    description: "Continuously investing in the latest lens technology and manufacturing processes to stay ahead of industry trends.",
+    description: "Continuously investing in lens technology and production processes to stay ahead of industry trends.",
   },
 ];
 
@@ -39,15 +39,15 @@ const About = () => {
             About Classic Visions
           </h2>
           <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Classic Visions is a trusted wholesale supplier of premium prescription lenses, 
-            serving independent opticians, optical chains, and eye care professionals. 
-            We combine decades of optical expertise with modern technology to deliver 
+            Classic Visions is a trusted wholesale supplier of premium prescription lenses,
+            serving independent opticians, optical chains, and eye care professionals.
+            We combine decades of optical expertise with modern technology to deliver
             lenses that meet the highest standards of clarity, durability, and value.
           </p>
         </div>
 
         {/* Stats */}
-        <div className="mb-16 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4 sm:mb-20">
+        <div className="mb-16 grid grid-cols-2 gap-4 sm:mb-20 sm:gap-6 md:grid-cols-4">
           {stats.map((stat, index) => (
             <div
               key={stat.label}
@@ -64,15 +64,15 @@ const About = () => {
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
           <div>
             <h3 className="mb-4 text-xl font-bold text-foreground sm:text-2xl">Our Mission</h3>
-            <p className="mb-4 text-sm text-muted-foreground leading-relaxed sm:text-base">
-              We exist to empower optical professionals with access to high-quality lenses 
-              at competitive wholesale prices — without compromising on service, speed, or 
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+              We exist to empower optical professionals with access to high-quality lenses
+              at competitive wholesale prices — without compromising on service, speed, or
               technical support.
             </p>
-            <p className="text-sm text-muted-foreground leading-relaxed sm:text-base">
-              From single vision to complex free-form progressives, our extensive catalog 
-              and expert team ensure you always have the right lens for every patient. 
-              Whether you're a single-location practice or a growing chain, Classic Visions 
+            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+              From single vision to complex free-form progressives, our extensive catalog
+              and expert team ensure you always have the right lens for every patient.
+              Whether you're a single-location practice or a growing chain, Classic Visions
               is your partner in delivering exceptional vision care.
             </p>
           </div>
@@ -102,20 +102,16 @@ const About = () => {
             <Users className="h-6 w-6 text-accent" aria-hidden="true" />
           </div>
           <h3 className="mb-3 text-xl font-bold text-foreground sm:text-2xl">Trusted by Professionals</h3>
-          <p className="mx-auto max-w-2xl text-sm text-muted-foreground leading-relaxed sm:text-base">
-            Thousands of optical professionals across the country rely on Classic Visions 
-            for their daily lens needs. Our dedicated account managers, fast turnaround times, 
-            and industry-leading quality control make us the wholesale partner of choice 
+          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Hundreds of optical professionals across the region rely on Classic Visions
+            for their daily lens needs. Our dedicated account managers, fast turnaround times,
+            and industry-leading quality control make us the wholesale partner of choice
             for practices that demand the best.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-muted-foreground sm:gap-6">
             <div className="flex items-center gap-2 text-xs sm:text-sm">
               <Globe className="h-4 w-4 text-accent" aria-hidden="true" />
-              Nationwide Delivery
-            </div>
-            <div className="flex items-center gap-2 text-xs sm:text-sm">
-              <Award className="h-4 w-4 text-accent" aria-hidden="true" />
-              ISO Certified
+              Regional Delivery
             </div>
           </div>
         </div>
