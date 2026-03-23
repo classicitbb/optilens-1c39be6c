@@ -114,8 +114,9 @@ export const useRxPricingStructure = (versionId: number | null) => {
         insertedCategories = (newCategoryRows ?? []) as unknown as Array<{ id: number; key: string }>;
       }
 
-      const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
+      const { data: versionsRaw, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
       if (versionsError) throw versionsError;
+      const versions = (versionsRaw ?? []) as unknown as { id: number }[];
 
       if ((versions ?? []).length > 0) {
         const groupingVersionRows = (versions ?? []).map((version: { id: number }) => ({
