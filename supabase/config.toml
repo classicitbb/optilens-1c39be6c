@@ -5,5 +5,7 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = false
   [functions.auth-email-hook]
     verify_jwt = false
+  [functions.contact-inquiry]
+    verify_jwt = false
   [functions.lens-assistant]
     verify_jwt = false
