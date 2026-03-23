@@ -934,9 +934,19 @@ const ListCatalogTab = ({
         </div>
 
         {catalogType === "buysell" && (
-          <Accordion type="multiple" defaultValue={[...effectiveSupplyRows.keys()]} className="space-y-0">
-            {[...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
-          </Accordion>
+          <>
+            <div className="flex items-center justify-end px-6 py-2 no-print">
+              <button
+                className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded border border-border hover:bg-muted/50 transition-colors"
+                onClick={() => addNewGroup("supply")}
+              >
+                <Plus className="h-3 w-3" /> Add Group
+              </button>
+            </div>
+            <Accordion type="multiple" defaultValue={[...effectiveSupplyRows.keys()]} className="space-y-0">
+              {[...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
+            </Accordion>
+          </>
         )}
         {catalogType === "stock" && (() => {
           const activeMfTypes = mftypeRef.filter((m: any) => m.is_active).map((m: any) => m.name as string);
