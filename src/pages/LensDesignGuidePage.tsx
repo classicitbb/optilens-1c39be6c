@@ -61,7 +61,7 @@ const lensSections: LensGuideSection[] = [
       {
         title: "Polarized",
         description: "Outdoor glare-cutting solutions for sun, driving, and high-reflection environments.",
-        to: "/zenvue/sundun",
+        to: "/lenses/polarized",
       },
       {
         title: "Tints & Fashion Colors",

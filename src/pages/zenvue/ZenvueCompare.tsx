@@ -11,23 +11,22 @@ interface CompareRow {
   feature: string;
   brilliance: CellValue;
   singleVision: CellValue;
-  sundun: CellValue;
 }
 
 const ROWS: CompareRow[] = [
-  { feature: "Lens Type", brilliance: "Progressive", singleVision: "Single Vision", sundun: "Single Vision" },
-  { feature: "CR-39 (1.50)", brilliance: true, singleVision: true, sundun: true },
-  { feature: "Polycarbonate (1.59)", brilliance: true, singleVision: true, sundun: true },
-  { feature: "Hi-Index (1.67)", brilliance: true, singleVision: true, sundun: false },
-  { feature: "Clear Option", brilliance: true, singleVision: true, sundun: false },
-  { feature: "Darkun™ Photochromic", brilliance: true, singleVision: true, sundun: false },
-  { feature: "Polarized", brilliance: false, singleVision: false, sundun: true },
-  { feature: "Multi-coat AR", brilliance: true, singleVision: true, sundun: "Optional" },
-  { feature: "Hard Coat", brilliance: true, singleVision: true, sundun: true },
-  { feature: "UV400 Protection", brilliance: true, singleVision: true, sundun: true },
-  { feature: "Hydrophobic", brilliance: true, singleVision: true, sundun: false },
-  { feature: "Distance Vision", brilliance: true, singleVision: true, sundun: true },
-  { feature: "Near Vision", brilliance: true, singleVision: "Dedicated", sundun: false },
+  { feature: "Lens Type", brilliance: "Progressive", singleVision: "Single Vision" },
+  { feature: "CR-39 (1.50)", brilliance: true, singleVision: true },
+  { feature: "Polycarbonate (1.59)", brilliance: true, singleVision: true },
+  { feature: "Hi-Index (1.67)", brilliance: true, singleVision: true },
+  { feature: "Clear Option", brilliance: true, singleVision: true },
+  { feature: "Darkun™ Photochromic", brilliance: true, singleVision: true },
+  { feature: "Polarized options", brilliance: false, singleVision: false },
+  { feature: "Multi-coat AR", brilliance: true, singleVision: true },
+  { feature: "Hard Coat", brilliance: true, singleVision: true },
+  { feature: "UV400 Protection", brilliance: true, singleVision: true },
+  { feature: "Hydrophobic", brilliance: true, singleVision: true },
+  { feature: "Distance Vision", brilliance: true, singleVision: true },
+  { feature: "Near Vision", brilliance: true, singleVision: "Dedicated" },
 ];
 
 const renderCell = (val: CellValue) => {
@@ -39,7 +38,7 @@ const renderCell = (val: CellValue) => {
 const RECS = [
   { title: "Best for Presbyopia", product: "Brilliance™ Progressive", desc: "Patients over 40 who need distance, intermediate, and near vision in one lens.", to: "/zenvue/brilliance" },
   { title: "Best All-Rounder", product: "Single Vision + Darkun™", desc: "Young patients who want one pair for indoors and outdoors.", to: "/zenvue/single-vision" },
-  { title: "Best for Outdoor", product: "SunDun™ Polarized", desc: "Patients who spend significant time outdoors, driving, or near water.", to: "/zenvue/sundun" },
+  { title: "Best for Outdoor", product: "Polarized Lenses", desc: "Patients who spend significant time outdoors, driving, or near water.", to: "/lenses/polarized" },
 ];
 
 const ZenvueCompare = () => {
@@ -67,7 +66,6 @@ const ZenvueCompare = () => {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-foreground sm:text-sm sm:normal-case sm:tracking-normal">Feature</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-foreground sm:text-sm sm:normal-case sm:tracking-normal">Brilliance™</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-foreground sm:text-sm sm:normal-case sm:tracking-normal">Single Vision</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-foreground sm:text-sm sm:normal-case sm:tracking-normal">SunDun™</th>
                 </tr>
               </thead>
               <tbody>
@@ -76,7 +74,6 @@ const ZenvueCompare = () => {
                     <td className="px-4 py-3 font-medium text-foreground">{row.feature}</td>
                     <td className="px-4 py-3"><div className="flex justify-center">{renderCell(row.brilliance)}</div></td>
                     <td className="px-4 py-3"><div className="flex justify-center">{renderCell(row.singleVision)}</div></td>
-                    <td className="px-4 py-3"><div className="flex justify-center">{renderCell(row.sundun)}</div></td>
                   </tr>
                 ))}
               </tbody>

@@ -36,13 +36,13 @@ const SingleVisionPage = lazy(() => import("@/pages/lenses/SingleVisionPage"));
 const BifocalsPage = lazy(() => import("@/pages/lenses/BifocalsPage"));
 const MyopiaControlPage = lazy(() => import("@/pages/lenses/MyopiaControlPage"));
 const BlueFilterPage = lazy(() => import("@/pages/lenses/BlueFilterPage"));
+const PolarizedPage = lazy(() => import("@/pages/lenses/PolarizedPage"));
 const TintsFashionColorsPage = lazy(() => import("@/pages/lenses/TintsFashionColorsPage"));
 const MaterialsPage = lazy(() => import("@/pages/lenses/MaterialsPage"));
 const ThicknessChartPage = lazy(() => import("@/pages/lenses/ThicknessChartPage"));
 const ZenvueHome = lazy(() => import("@/pages/zenvue/ZenvueHome"));
 const ZenvueBrilliance = lazy(() => import("@/pages/zenvue/ZenvueBrilliance"));
 const ZenvueSingleVision = lazy(() => import("@/pages/zenvue/ZenvueSingleVision"));
-const ZenvueSunDun = lazy(() => import("@/pages/zenvue/ZenvueSunDun"));
 const ZenvueDarkun = lazy(() => import("@/pages/zenvue/ZenvueDarkun"));
 const ZenvueCompare = lazy(() => import("@/pages/zenvue/ZenvueCompare"));
 const ZenvueWholesale = lazy(() => import("@/pages/zenvue/ZenvueWholesale"));
@@ -76,6 +76,7 @@ const PublicRoutes = () => (
       <Route path="lenses/bifocals" element={<BifocalsPage />} />
       <Route path="lenses/myopia-control" element={<MyopiaControlPage />} />
       <Route path="lenses/blue-filter" element={<BlueFilterPage />} />
+      <Route path="lenses/polarized" element={<PolarizedPage />} />
       <Route path="lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
       <Route path="lenses/materials" element={<MaterialsPage />} />
       <Route path="lenses/thickness-chart" element={<ThicknessChartPage />} />
@@ -108,7 +109,7 @@ const PublicRoutes = () => (
       <Route path="zenvue" element={<ZenvueHome />} />
       <Route path="zenvue/brilliance" element={<ZenvueBrilliance />} />
       <Route path="zenvue/single-vision" element={<ZenvueSingleVision />} />
-      <Route path="zenvue/sundun" element={<ZenvueSunDun />} />
+      <Route path="zenvue/sundun" element={<Navigate to="/lenses/polarized" replace />} />
       <Route path="zenvue/darkun" element={<ZenvueDarkun />} />
       <Route path="photochromic" element={<PhotochromicGuidePage />} />
       <Route path="zenvue/compare" element={<ZenvueCompare />} />
