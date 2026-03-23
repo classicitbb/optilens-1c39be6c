@@ -528,6 +528,12 @@ const Header = () => {
                 Search
               </Button>
 
+              <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
+                <a href="tel:+12464334928">
+                  <Phone className="mr-2 h-4 w-4" />
+                  +1 246 433-4928
+                </a>
+              </Button>
 
               {user ?
             <DropdownMenu>
