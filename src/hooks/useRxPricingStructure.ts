@@ -51,8 +51,8 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if ((groupingVersionsResult as any).error) throw (groupingVersionsResult as any).error;
       if ((categoryVersionsResult as any).error) throw (categoryVersionsResult as any).error;
 
-      const groupings = (groupingsResult.data ?? []) as RxPricingGroupingRecord[];
-      const categories = (categoriesResult.data ?? []) as RxPricingCategoryRecord[];
+      const groupings = (groupingsResult.data ?? []) as unknown as RxPricingGroupingRecord[];
+      const categories = (categoriesResult.data ?? []) as unknown as RxPricingCategoryRecord[];
       const groupingVersions = ((groupingVersionsResult as any).data ?? []) as RxPricingGroupingVersionRecord[];
       const categoryVersions = ((categoryVersionsResult as any).data ?? []) as RxPricingCategoryVersionRecord[];
 
@@ -82,7 +82,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
       const uniqueKey = await ensureUniqueKey("rx_price_groupings", baseKey);
 
       const activeGroupings = query.data?.groupings.filter((grouping) => grouping.is_active) ?? [];
-      const { data: grouping, error: groupingError } = await supabase
+      const { data: groupingRaw, error: groupingError } = await supabase
         .from("rx_price_groupings" as any)
         .insert({
           key: uniqueKey,
@@ -93,6 +93,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         .select("*")
         .single();
       if (groupingError) throw groupingError;
+      const grouping = groupingRaw as unknown as { id: number; key: string; sort_order: number };
 
       const activeCategories = (query.data?.categories ?? []).filter((category) => category.is_active);
       const sharedCategoryDefaults = [...new Map(activeCategories.map((category) => [category.key, category])).values()]
@@ -103,7 +104,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         const { data: newCategoryRows, error: categoryInsertError } = await supabase
           .from("rx_price_categories" as any)
           .insert(sharedCategoryDefaults.map((category, index) => ({
-            grouping_id: grouping.id,
+          grouping_id: (grouping as any).id,
             key: category.key,
             default_name: category.default_name,
             sort_order: index,
@@ -111,14 +112,15 @@ export const useRxPricingStructure = (versionId: number | null) => {
           })))
           .select("id, key");
         if (categoryInsertError) throw categoryInsertError;
-        insertedCategories = (newCategoryRows ?? []) as Array<{ id: number; key: string }>;
+        insertedCategories = (newCategoryRows ?? []) as unknown as Array<{ id: number; key: string }>;
       }
 
       const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
       if (versionsError) throw versionsError;
+      const versionsList = (versions ?? []) as unknown as Array<{ id: number }>;
 
-      if ((versions ?? []).length > 0) {
-        const groupingVersionRows = (versions ?? []).map((version: { id: number }) => ({
+      if (versionsList.length > 0) {
+        const groupingVersionRows = versionsList.map((version) => ({
           pricelist_version_id: version.id,
           grouping_id: grouping.id,
           sort_order: grouping.sort_order,
@@ -128,7 +130,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         if (groupingVersionError) throw groupingVersionError;
       }
 
-      if (insertedCategories.length > 0 && (versions ?? []).length > 0) {
+      if (insertedCategories.length > 0 && versionsList.length > 0) {
         const categoryById = new Map((query.data?.categories ?? []).map((category) => [category.id, category]));
         const { data: allExistingCategoryVersions, error: allCategoryVersionsError } = await supabase
           .from("rx_price_category_versions" as any)
@@ -146,7 +148,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
           });
         });
 
-        const categoryVersionRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const categoryVersionRows = versionsList.flatMap((version) =>
           insertedCategories.map((category, index) => {
             const existing = versionCategoryOverrideMap.get(`${version.id}::${category.key}`);
             return {
@@ -164,13 +166,13 @@ export const useRxPricingStructure = (versionId: number | null) => {
           .insert(categoryVersionRows);
         if (categoryVersionInsertError) throw categoryVersionInsertError;
 
-        const allocationRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const allocationRows = versionsList.flatMap((version) =>
           insertedCategories.flatMap((category) =>
             MATERIAL_COLUMNS.map((material) => ({
               pricelist_version_id: version.id,
               category: category.key,
               material_index: material.key,
-              treatment_type: grouping.key,
+              treatment_type: (grouping as any).key,
               lens_id: null,
               allocated_price_bbd: null,
               is_active: true,
@@ -214,11 +216,12 @@ export const useRxPricingStructure = (versionId: number | null) => {
         .select("id, grouping_id, key");
       if (categoryInsertError) throw categoryInsertError;
 
-      const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
+      const { data: versions2, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
       if (versionsError) throw versionsError;
+      const versionsList2 = (versions2 ?? []) as unknown as Array<{ id: number }>;
 
-      if ((versions ?? []).length > 0) {
-        const categoryVersionRows = (versions ?? []).flatMap((version: { id: number }) =>
+      if (versionsList2.length > 0) {
+        const categoryVersionRows = versionsList2.flatMap((version) =>
           (insertedCategories ?? []).map((category: any) => ({
             pricelist_version_id: version.id,
             category_id: category.id,
@@ -232,7 +235,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         if (categoryVersionError) throw categoryVersionError;
 
         const groupingKeyMap = new Map(activeGroupings.map((grouping) => [grouping.id, grouping.key]));
-        const allocationRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const allocationRows = versionsList2.flatMap((version) =>
           (insertedCategories ?? []).flatMap((category: any) =>
             MATERIAL_COLUMNS.map((material) => ({
               pricelist_version_id: version.id,
