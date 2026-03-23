@@ -705,17 +705,52 @@ const ListCatalogTab = ({
 
   const renderSection = (title: string, rows: CatalogRow[], rowType: "lens" | "addon" | "supply") => {
     const displayRows = sortedRows(title, rows);
+    const isEditingThisSection = editingSectionName?.oldName === title;
+    const isUnnamed = !title.trim() || title.startsWith("New Group");
     return (
       <AccordionItem key={title} value={title} className="mt-3 px-2 border-none">
-        <div className="flex items-center justify-between px-4 py-2 mb-0.5" style={{ background: BLUE_BG, color: "white" }}>
+        <div className={`flex items-center justify-between px-4 py-2 mb-0.5 ${isUnnamed ? 'ring-2 ring-destructive/50 ring-inset' : ''}`} style={{ background: BLUE_BG, color: "white" }}>
           <AccordionTrigger className="p-0 hover:no-underline gap-2 font-bold text-sm uppercase tracking-wide [&>svg]:text-white flex-1 justify-start">
-            <span>{title}</span>
+            {isEditingThisSection ? (
+              <input
+                autoFocus
+                className="bg-white/20 text-white placeholder:text-white/50 border border-white/30 rounded px-2 py-0.5 text-sm font-bold uppercase w-48 outline-none"
+                value={editingSectionName.value}
+                placeholder="Enter group name..."
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => setEditingSectionName({...editingSectionName, value: e.target.value})}
+                onBlur={() => renameSection(title, editingSectionName.value, rowType)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") renameSection(title, editingSectionName.value, rowType);
+                  if (e.key === "Escape") setEditingSectionName(null);
+                }}
+              />
+            ) : (
+              <span
+                className="cursor-text hover:bg-white/10 rounded px-1 -mx-1 transition-colors"
+                title="Click to rename group"
+                onClick={(e) => { e.stopPropagation(); setEditingSectionName({oldName: title, value: title, rowType}); }}
+              >
+                {title}
+                {isUnnamed && <span className="ml-2 text-[10px] font-normal normal-case text-red-200">⚠ Name required</span>}
+              </span>
+            )}
             <span className="text-[10px] font-normal normal-case tracking-normal opacity-70 ml-2">({displayRows.length})</span>
           </AccordionTrigger>
-          <button className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
-          onClick={(e) => {e.stopPropagation();setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined });if (rowType === "supply") setSupplyPickerOpen(true);else setLensPickerOpen(true);}}>
-            <Plus className="h-3 w-3" /> Add Line
-          </button>
+          <div className="flex items-center gap-1.5">
+            {displayRows.length === 0 && (
+              <button
+                className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-red-500/30 hover:bg-red-500/50 transition-colors no-print"
+                onClick={(e) => { e.stopPropagation(); removeEmptySection(title, rowType); }}
+              >
+                <X className="h-3 w-3" /> Remove
+              </button>
+            )}
+            <button className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
+            onClick={(e) => {e.stopPropagation();setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined });if (rowType === "supply") setSupplyPickerOpen(true);else setLensPickerOpen(true);}}>
+              <Plus className="h-3 w-3" /> Add Line
+            </button>
+          </div>
         </div>
         <AccordionContent className="pb-0 pt-0">
           {displayRows.length === 0 ?
@@ -727,7 +762,6 @@ const ListCatalogTab = ({
                   <th className="w-8 no-print border border-border" style={{ background: "hsl(var(--admin-table-subheader))" }} />
                   <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
                   <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-fg))" }}>Description <SortIcon section={title} col="description" /></th>
-                  {/* Matrix Cell header — screen only, before BBD */}
                   <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>
                     Matrix Cell
                   </th>
