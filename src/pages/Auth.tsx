@@ -40,7 +40,9 @@ const Auth = () => {
   const { toast } = useToast();
 
   const searchParams = new URLSearchParams(location.search);
-  const from = searchParams.get("redirect") || location.state?.from?.pathname || "/";
+  const rawRedirect = searchParams.get("redirect");
+  const isSafeRedirect = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//");
+  const from = isSafeRedirect ? rawRedirect : (location.state?.from?.pathname ?? "/");
 
   useEffect(() => {
     if (user) {
@@ -247,7 +249,8 @@ const Auth = () => {
             variant="outline"
             className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20"
             onClick={async () => {
-              const redirectUri = from !== "/" ? `${window.location.origin}${from}` : window.location.origin;
+              const safeFrom = from.startsWith("/") && !from.startsWith("//") ? from : "/";
+              const redirectUri = safeFrom !== "/" ? `${window.location.origin}${safeFrom}` : window.location.origin;
               const { error } = await lovable.auth.signInWithOAuth("google", {
                 redirect_uri: redirectUri,
                 extraParams: {

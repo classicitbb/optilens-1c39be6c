@@ -18,8 +18,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!user) {
-    const redirect = location.pathname + location.search + location.hash;
-    return <Navigate to={`/auth?redirect=${encodeURIComponent(redirect)}`} replace />;
+    const rawRedirect = location.pathname + location.search + location.hash;
+    const safeRedirect = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/";
+    return <Navigate to={`/auth?redirect=${encodeURIComponent(safeRedirect)}`} replace />;
   }
 
   return <>{children}</>;
