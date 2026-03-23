@@ -167,12 +167,7 @@ const RxLensPricesPage = () => {
             </TabsContent>
           </Tabs>
 
-          {/* ── Add-ons & Extras Editor ───────────────────────────────────── */}
-          <RxAddonsExtrasEditor
-            versionId={resolvedId}
-            showUSD={showUSD}
-            fxRate={fxRate}
-          />
+          {/* Add-ons & Extras are managed inside ListCatalogTab's catalog tab */}
 
           {/* ── Live Preview Section ──────────────────────────────────────────── */}
           <div ref={previewRef} className="mt-6">

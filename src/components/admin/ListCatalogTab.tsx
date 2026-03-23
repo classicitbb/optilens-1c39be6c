@@ -896,20 +896,27 @@ const ListCatalogTab = ({
             </span>
           )}
         </div>
-        <Button
-          size="sm"
-          className="h-8 text-xs gap-1.5"
-          style={{ background: isDirty || hasPending ? "hsl(215 65% 50%)" : undefined }}
-          variant={isDirty || hasPending ? "default" : "outline"}
-          onClick={() => handleSaveRef.current()}
-          disabled={isSavingRows}
-        >
-          {isSavingRows ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save All Changes
-        </Button>
+        <div className="flex items-center gap-2">
+          {isDirty && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={handleRestore}>
+              Restore
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            style={{ background: isDirty || hasPending ? "hsl(215 65% 50%)" : undefined }}
+            variant={isDirty || hasPending ? "default" : "outline"}
+            onClick={() => handleSaveRef.current()}
+            disabled={isSavingRows}
+          >
+            {isSavingRows ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Save All Changes
+          </Button>
+        </div>
       </div>
     </div>
-  ), [hasPending, isDirty, isSavingRows, pendingCount]);
+  ), [hasPending, isDirty, isSavingRows, pendingCount, handleRestore]);
 
   useEffect(() => {
     if (renderSaveBar) renderSaveBar(saveBarContent);
