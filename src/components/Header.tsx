@@ -523,9 +523,9 @@ const Header = () => {
                 }
               }}>
               
-                <Search className="h-4 w-4" />
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span className="sr-only">Search</span>
+                <Search className="mr-2 h-4 w-4" />
+                <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
+                Search
               </Button>
 
               <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
