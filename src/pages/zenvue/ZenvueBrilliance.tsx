@@ -60,21 +60,19 @@ const ZenvueBrilliance = () => {
       {/* Options: Clear & Darkun */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
-            Available Options
-          </h2>
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">Available Options</h2>
           <div className="mt-8 mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
             <Card className="border-border bg-card transition-colors hover:bg-muted/20">
               <CardHeader className="space-y-3 pb-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
                   <Sparkles className="h-5 w-5 text-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Clear</h3>
+                <h3 className="text-lg font-semibold text-foreground">Clear Bluefilter</h3>
               </CardHeader>
               <CardContent>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Classic transparent progressive lenses. Ideal for everyday
-                  indoor and outdoor use.
+                  Classic transparent progressive lenses. Ideal for everyday indoor and outdoor use. Bluefilter
+                  included.
                 </p>
               </CardContent>
             </Card>
@@ -83,13 +81,31 @@ const ZenvueBrilliance = () => {
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
                   <Sparkles className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  Darkun™ Photochromic
-                </h3>
+                <h3 className="text-lg font-semibold text-foreground">Darkun™ Photochromic Bluefilter</h3>
               </CardHeader>
               <CardContent>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Transitions from clear indoors to tinted outdoors.{" "}
+                  Transitions from clear indoors to tinted outdoors, comes with blue filter built in.{" "}
+                  <Link
+                    to="/zenvue/darkun"
+                    className="text-accent transition-colors hover:text-accent/80 hover:underline"
+                  >
+                    Learn about Darkun™ →
+                  </Link>
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card transition-colors hover:bg-muted/20">
+              <CardHeader className="space-y-3 pb-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
+                  <Sparkles className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Darkun™ Photochromic Bluefilter Finished</h3>
+              </CardHeader>
+              <CardContent>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Finished Progressive lens that Transitions from clear indoors to tinted outdoors, comes with blue
+                  filter built in. Available in Spheres from +1 to -1.{" "}
                   <Link
                     to="/zenvue/darkun"
                     className="text-accent transition-colors hover:text-accent/80 hover:underline"
@@ -106,39 +122,22 @@ const ZenvueBrilliance = () => {
       {/* Materials & Specs */}
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
-            Materials & Specifications
-          </h2>
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">Materials & Specifications</h2>
           <div className="mt-8 mx-auto max-w-2xl overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted/60">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-foreground">
-                    Material
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold text-foreground">
-                    Index
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold text-foreground">
-                    Benefits
-                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-foreground">Material</th>
+                  <th className="px-4 py-3 text-left font-semibold text-foreground">Index</th>
+                  <th className="px-4 py-3 text-left font-semibold text-foreground">Benefits</th>
                 </tr>
               </thead>
               <tbody>
                 {MATERIALS.map((m) => (
-                  <tr
-                    key={m.name}
-                    className="border-t border-border transition-colors hover:bg-muted/30"
-                  >
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      {m.name}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {m.index}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {m.desc}
-                    </td>
+                  <tr key={m.name} className="border-t border-border transition-colors hover:bg-muted/30">
+                    <td className="px-4 py-3 font-medium text-foreground">{m.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{m.index}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{m.desc}</td>
                   </tr>
                 ))}
               </tbody>
@@ -150,15 +149,10 @@ const ZenvueBrilliance = () => {
       {/* Coatings */}
       <section className="border-b border-border bg-muted/30">
         <div className="container mx-auto px-4 py-16 sm:py-24 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
-            Coatings Included
-          </h2>
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">Coatings Included</h2>
           <div className="mt-8 mx-auto max-w-xl space-y-3">
             {COATINGS.map((c) => (
-              <div
-                key={c}
-                className="flex items-center gap-3 text-sm text-foreground"
-              >
+              <div key={c} className="flex items-center gap-3 text-sm text-foreground">
                 <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-accent">
                   <Check className="h-3 w-3 text-accent-foreground" />
                 </div>
@@ -175,20 +169,13 @@ const ZenvueBrilliance = () => {
           <h2 className="text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">Ideal For</h2>
           <div className="mt-8 grid gap-6 md:grid-cols-3">
             {IDEAL_FOR.map((item) => (
-              <Card
-                key={item.title}
-                className="border-border bg-card transition-colors hover:bg-muted/20"
-              >
+              <Card key={item.title} className="border-border bg-card transition-colors hover:bg-muted/20">
                 <CardHeader className="pb-2">
                   <item.icon className="h-8 w-8 text-accent" />
-                  <h3 className="mt-4 text-lg font-semibold text-foreground">
-                    {item.title}
-                  </h3>
+                  <h3 className="mt-4 text-lg font-semibold text-foreground">{item.title}</h3>
                 </CardHeader>
                 <CardContent>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {item.desc}
-                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
                 </CardContent>
               </Card>
             ))}
