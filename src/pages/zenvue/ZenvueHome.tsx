@@ -1,4 +1,4 @@
-import { ShoppingBag, Handshake, ArrowDown, Award, Layers, Palette, ShieldCheck, Sparkles, Eye, Sun } from "lucide-react";
+import { ShoppingBag, Handshake, ArrowDown, Award, Layers, Palette, ShieldCheck, Sparkles, Eye } from "lucide-react";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueProductCard from "@/components/zenvue/ZenvueProductCard";
@@ -46,9 +46,9 @@ const ZenvueHome = () => {
             <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
               Our Product Range
             </h2>
-            <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">Three product lines designed for every patient need.</p>
+            <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">Two core ZenVue product lines designed for everyday patient needs.</p>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             <ZenvueProductCard
               title="Brilliance™ Progressive"
               description="Advanced progressive lenses with smooth corridor transitions for natural, comfortable vision at all distances."
@@ -62,14 +62,6 @@ const ZenvueHome = () => {
               features={["CR-39, Poly & Hi-Index 1.67", "Clear and Darkun™ options", "Distance, reading & computer", "Hard-coat and multi-coat"]}
               to="/zenvue/single-vision"
               icon={Eye}
-            />
-            <ZenvueProductCard
-              title="SunDun™ Polarized"
-              description="Premium gray polarized lenses that eliminate glare for crystal-clear outdoor vision."
-              features={["99.9% polarization efficiency", "CR-39 & Polycarbonate", "UV400 protection", "Ideal for Caribbean sun"]}
-              to="/zenvue/sundun"
-              icon={Sun}
-              accentColor="hsl(216 19% 26%)"
             />
           </div>
         </div>

@@ -49,7 +49,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.zenvue.home", path: "/zenvue", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
   { id: "public.zenvue.brilliance", path: "/zenvue/brilliance", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
   { id: "public.zenvue.single-vision", path: "/zenvue/single-vision", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
-  { id: "public.zenvue.sundun", path: "/zenvue/sundun", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
+  { id: "public.zenvue.sundun", path: "/zenvue/sundun", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "legacy-redirect", redirectTo: "/lenses/polarized" },
   { id: "public.zenvue.darkun", path: "/zenvue/darkun", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
   { id: "public.photochromic", path: "/photochromic", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
   { id: "public.zenvue.compare", path: "/zenvue/compare", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },

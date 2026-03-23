@@ -56,7 +56,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/photochromic" },
     { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
-    { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/zenvue/sundun" },
+    { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/lenses/polarized" },
     { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
     { label: "Myopia Control", description: "Evidence-based options for slowing myopia progression", to: "/lenses/myopia-control" }]
 
@@ -66,7 +66,6 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Brilliance™ Progressive", description: "Featured progressive product page", to: "/zenvue/brilliance" },
     { label: "Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
-    { label: "SunDun™ Polarized", description: "Featured polarized lens page", to: "/zenvue/sundun" },
     { label: "Photochromic Guide", description: "Compare Darkun™, Transitions® families, and use-cases", to: "/photochromic" },
     { label: "ZenVue Wholesale", description: "Partner application for optical professionals", to: "/zenvue/wholesale" }]
 
@@ -215,6 +214,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   bifocals: "Bifocals",
   "myopia-control": "Myopia Control",
   "blue-filter": "Blue Filter",
+  polarized: "Polarized",
   "tints-fashion-colors": "Tints & Fashion Colors",
   "thickness-chart": "Thickness Chart",
   "ultraclear-ar": "UltraClear AR",
