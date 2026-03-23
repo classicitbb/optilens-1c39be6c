@@ -148,6 +148,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
     category: "lenses",
     sell_price: form.sell_price
   }), [form.base_price, form.sell_price, form.full_lab, calculate]);
+  const halfPairUsdList = useMemo(
+    () => form.sell_price > 0 ? form.sell_price / 2 : null,
+    [form.sell_price]
+  );
 
   const governance = useMemo(() => checkGovernance(calc, settings, form.base_price), [calc, settings, form.base_price]);
 
@@ -426,7 +430,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     <Label className={labelCls}>Sell Price (BBD)</Label>
                     <Input className={inputCls} type="number" step="0.01" min="0" value={form.sell_price} onChange={(e) => setNum("sell_price", e.target.value)} />
                   </div>
-                  <div />
+                  <div>
+                    <Label className={labelCls}>1/2 pair / USD List $</Label>
+                    <Input className={inputCls} value={halfPairUsdList != null ? fmt(halfPairUsdList) : "—"} readOnly tabIndex={-1} />
+                  </div>
                 </div>
               </div>
               <Separator />
@@ -459,7 +466,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     <ReadOnly label="Full Cost (BBD)" value={fmt(calc.full_cost)} highlight />
                     <ReadOnly label="Strat. Price (BBD)" value={fmt(calc.strategic_price)} />
                     <ReadOnly label="Margin" value={calc.margin != null ? fmtPct(calc.margin) : "—"} />
-                    <ReadOnly label="Sell (USD)" value={calc.sell_price_usd != null ? fmt(calc.sell_price_usd) : "—"} />
+                    <ReadOnly label="USD Fx Conv." value={calc.sell_price_usd != null ? fmt(calc.sell_price_usd) : "—"} />
                   </div> :
 
                 <p className="text-xs text-muted-foreground">Loading pricing settings…</p>
