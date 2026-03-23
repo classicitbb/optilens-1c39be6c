@@ -147,7 +147,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
           });
         });
 
-        const categoryVersionRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const categoryVersionRows = versionsList.flatMap((version) =>
           insertedCategories.map((category, index) => {
             const existing = versionCategoryOverrideMap.get(`${version.id}::${category.key}`);
             return {
