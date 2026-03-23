@@ -234,7 +234,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         if (categoryVersionError) throw categoryVersionError;
 
         const groupingKeyMap = new Map(activeGroupings.map((grouping) => [grouping.id, grouping.key]));
-        const allocationRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const allocationRows = versionsList2.flatMap((version) =>
           (insertedCategories ?? []).flatMap((category: any) =>
             MATERIAL_COLUMNS.map((material) => ({
               pricelist_version_id: version.id,
