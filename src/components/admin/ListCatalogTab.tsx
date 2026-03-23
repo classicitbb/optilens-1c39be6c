@@ -110,6 +110,7 @@ const ListCatalogTab = ({
   const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
   const [hasViewed, setHasViewed] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [editingSectionName, setEditingSectionName] = useState<{oldName: string; value: string; rowType: "lens"|"addon"|"supply"} | null>(null);
 
   const [lensPickerOpen, setLensPickerOpen] = useState(false);
   const [supplyPickerOpen, setSupplyPickerOpen] = useState(false);
