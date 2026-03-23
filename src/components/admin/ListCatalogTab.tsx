@@ -183,7 +183,7 @@ const ListCatalogTab = ({
         lensId: r.row_type === "lens" ? r.item_id ?? undefined : undefined,
         addonId: r.row_type === "addon" ? r.item_id ?? undefined : undefined,
         supplyId: r.row_type === "supply" ? r.item_id ?? undefined : undefined,
-        matrixCell: mappedMatrixMeta && parsedMatrixKey ? `${mappedMatrixMeta.grouping.name} – ${mappedMatrixMeta.category.name} – ${parsedMatrixKey.material}` : r.row_key.startsWith("matrix::") ? r.row_key.replace("matrix::", "").replace(/::/g, " – ") : undefined,
+        matrixCell: mappedMatrixMeta && parsedMatrixKey ? `${mappedMatrixMeta.grouping.name} – ${mappedMatrixMeta.category.name} – ${parsedMatrixKey.material_index}` : r.row_key.startsWith("matrix::") ? r.row_key.replace("matrix::", "").replace(/::/g, " – ") : undefined,
         supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || linkedAddon?.supplier_name || linkedSupply?.supplier_name || ""
       };
       if (r.row_type === "lens") {const arr = newLens.get(r.section) ?? [];arr.push(row);newLens.set(r.section, arr);} else

@@ -116,9 +116,10 @@ export const useRxPricingStructure = (versionId: number | null) => {
 
       const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
       if (versionsError) throw versionsError;
+      const versionsList = (versions ?? []) as unknown as Array<{ id: number }>;
 
-      if ((versions ?? []).length > 0) {
-        const groupingVersionRows = (versions ?? []).map((version: { id: number }) => ({
+      if (versionsList.length > 0) {
+        const groupingVersionRows = versionsList.map((version) => ({
           pricelist_version_id: version.id,
           grouping_id: grouping.id,
           sort_order: grouping.sort_order,
