@@ -113,7 +113,7 @@ const RxAddonsExtrasEditor = ({ versionId, showUSD, fxRate }: Props) => {
       });
 
       try {
-        await upsertRow.mutateAsync({
+        await upsertRow.upsertRow.mutateAsync({
           row_key: rowKey,
           row_type: "addon",
           section: addon.category,
