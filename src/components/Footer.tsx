@@ -128,10 +128,9 @@ const Footer = () => {
               </a>
               <a
                 href="tel:+12464334928"
-                className="flex items-center gap-2 transition-colors hover:text-primary-foreground">
-                
+                className="flex items-center gap-2 transition-colors hover:text-primary-foreground"
+                aria-label="Call +1 246 433-4928">
                 <Phone className="h-4 w-4" aria-hidden="true" />
-                <span>Call +1 246 433-4928</span>
               </a>
             </div>
           </div>
