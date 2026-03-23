@@ -40,7 +40,9 @@ const Auth = () => {
   const { toast } = useToast();
 
   const searchParams = new URLSearchParams(location.search);
-  const from = searchParams.get("redirect") || location.state?.from?.pathname || "/";
+  const rawRedirect = searchParams.get("redirect");
+  const isSafeRedirect = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//");
+  const from = isSafeRedirect ? rawRedirect : (location.state?.from?.pathname ?? "/");
 
   useEffect(() => {
     if (user) {
