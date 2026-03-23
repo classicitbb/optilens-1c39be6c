@@ -103,7 +103,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         const { data: newCategoryRows, error: categoryInsertError } = await supabase
           .from("rx_price_categories" as any)
           .insert(sharedCategoryDefaults.map((category, index) => ({
-            grouping_id: grouping.id,
+          grouping_id: (grouping as any).id,
             key: category.key,
             default_name: category.default_name,
             sort_order: index,
