@@ -17,9 +17,9 @@ SECURITY DEFINER
 SET search_path = public, auth
 AS $$
 DECLARE
-  v_actor_user_id uuid := COALESCE(p_actor_user_id, auth.uid());
-  v_is_admin boolean := public.has_edit_role(v_actor_user_id);
-  v_is_self_checkout boolean := v_actor_user_id = p_target_user_id;
+  v_actor_user_id uuid := auth.uid();
+  v_is_admin boolean := public.has_edit_role(auth.uid());
+  v_is_self_checkout boolean := auth.uid() = p_target_user_id;
   v_order_id uuid;
   v_payment_id uuid;
   v_auth_user auth.users%ROWTYPE;
@@ -57,6 +57,10 @@ DECLARE
 BEGIN
   IF p_target_user_id IS NULL THEN
     RAISE EXCEPTION 'place_customer_order requires a target user id';
+  END IF;
+
+  IF p_actor_user_id IS NOT NULL AND p_actor_user_id <> v_actor_user_id THEN
+    RAISE EXCEPTION 'Actor user id must match the authenticated user.';
   END IF;
 
   IF v_actor_user_id IS NULL OR (NOT v_is_self_checkout AND NOT v_is_admin) THEN

@@ -310,7 +310,11 @@ DROP POLICY IF EXISTS "Staff can read admin notifications" ON public.admin_notif
 CREATE POLICY "Staff can read admin notifications"
   ON public.admin_notifications FOR SELECT
   TO authenticated
-  USING (public.has_any_role(auth.uid()));
+  USING (
+    public.has_role(auth.uid(), 'admin')
+    OR public.has_role(auth.uid(), 'operator')
+    OR public.has_role(auth.uid(), 'viewer')
+  );
 
 DROP POLICY IF EXISTS "Staff can create admin notifications" ON public.admin_notifications;
 CREATE POLICY "Staff can create admin notifications"
@@ -759,7 +763,12 @@ BEGIN
       opened_at
     )
     VALUES (
-      CONCAT('ABN-', to_char(v_now, 'YYYYMMDDHH24MISS')),
+      CONCAT(
+        'ABN-',
+        to_char(v_now, 'YYYYMMDDHH24MISS'),
+        '-',
+        substring(replace(gen_random_uuid()::text, '-', '') from 1 for 8)
+      ),
       'Abandoned cart recovery',
       'Customer cart exceeded the configured inactivity window and needs follow-up.',
       2,
