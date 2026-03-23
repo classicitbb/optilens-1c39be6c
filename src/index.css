@@ -162,7 +162,22 @@
 
   /* Skip-to-content link (screen-reader first, visible on focus) */
   .skip-to-content {
-    @apply fixed left-2 top-2 z-[100] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus:translate-y-0;
+    position: fixed;
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 100;
+    transform: translateY(-5rem);
+    border-radius: 0.5rem;
+    background-color: hsl(var(--primary));
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    transition: transform 0.15s;
+  }
+  .skip-to-content:focus {
+    transform: translateY(0);
   }
 
   /* Ensure visible focus rings across all interactive elements */
