@@ -129,7 +129,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         if (groupingVersionError) throw groupingVersionError;
       }
 
-      if (insertedCategories.length > 0 && (versions ?? []).length > 0) {
+      if (insertedCategories.length > 0 && versions.length > 0) {
         const categoryById = new Map((query.data?.categories ?? []).map((category) => [category.id, category]));
         const { data: allExistingCategoryVersions, error: allCategoryVersionsError } = await supabase
           .from("rx_price_category_versions" as any)
