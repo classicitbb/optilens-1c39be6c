@@ -7,10 +7,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutGrid, HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, ChevronDown, Eye, X, Sun, Moon, Monitor } from
+  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from
@@ -18,13 +18,9 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import GlobalSearch from "./GlobalSearch";
 import AppLauncher from "./AppLauncher";
-import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
 import NotificationBell from "./NotificationBell";
 import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-}
+import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -75,14 +71,19 @@ const ROUTE_LABELS: [string, string][] = [
 
 
 
-const timeAgo = (value: string) => {
-  const diffMs = Date.now() - new Date(value).getTime();
-  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${Math.floor(diffHours / 24)}d ago`;
-};
+const ADMIN_THEME_OPTIONS = [
+  { value: "light", label: "Theme · Light", icon: Sun },
+  { value: "dark", label: "Theme · Dark", icon: Moon },
+  { value: "system", label: "Theme · System", icon: Monitor },
+] as const;
+
+const getInitials = (value: string) =>
+  value
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "?";
 
 function getRouteLabel(pathname: string): string {
   for (const [prefix, label] of ROUTE_LABELS) {
@@ -135,7 +136,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
       if (!user) return null;
       const { data } = await supabase.
       from("profiles").
-      select("display_name").
+      select("display_name, avatar_url").
       eq("user_id", user.id).
       maybeSingle();
       return data;
@@ -144,13 +145,9 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
     staleTime: 5 * 60 * 1000
   });
 
-  const displayName = profile?.display_name || user?.email || "";
-  const initials = (profile?.display_name || user?.email || "?").
-  split(/[\s@]/).
-  filter(Boolean).
-  slice(0, 2).
-  map((s: string) => s[0].toUpperCase()).
-  join("");
+  const displayName = profile?.display_name || resolveUserFullName(user) || user?.email || "";
+  const initials = getInitials(displayName || user?.email || "?");
+  const avatarUrl = profile?.avatar_url || resolveUserAvatar(user);
 
   const handleSignOut = async () => {await signOut();navigate("/");};
 
@@ -246,57 +243,68 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
 
           </TooltipProvider>
           }
-          identity={
-            <span className="text-xs hidden sm:inline-block max-w-[120px] truncate text-[hsl(var(--admin-content-fg))]">
-              {displayName}
-            </span>
-          }
           menu={
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 rounded-full hover:ring-2 hover:ring-primary/20 transition-all focus:outline-none">
-                  <Avatar className="h-7 w-7 text-[11px]">
-                    <AvatarFallback className="bg-primary/10 text-primary font-medium">{initials}</AvatarFallback>
+                <button
+                  className="rounded-full transition-all hover:ring-2 hover:ring-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  aria-label={`Open admin account menu for ${displayName}`}
+                >
+                  <Avatar className="h-8 w-8 border border-white/10 text-[11px] shadow-sm">
+                    <AvatarImage src={avatarUrl || undefined} alt={displayName} />
+                    <AvatarFallback className="bg-primary/10 font-medium text-primary">{initials}</AvatarFallback>
                   </Avatar>
-                  <ChevronDown className="h-3 w-3 text-[hsl(var(--admin-muted-fg))]" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => navigate("/admin/wiki")}>
-                  <BookOpen className="mr-2 h-4 w-4" /> Helpdesk / Wiki
+              <DropdownMenuContent
+                align="end"
+                sideOffset={10}
+                className="w-[min(92vw,20rem)] rounded-[1.25rem] border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-card))] p-1.5 text-[hsl(var(--admin-content-fg))] shadow-2xl shadow-black/30"
+              >
+                <div className="px-3 py-2.5">
+                  <p className="truncate text-sm font-semibold text-[hsl(var(--admin-content-fg))]">{displayName}</p>
+                  <p className="truncate text-xs text-[hsl(var(--admin-muted-fg))]">{user?.email}</p>
+                </div>
+
+                <DropdownMenuItem onClick={() => navigate("/admin/wiki")} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                  <BookOpen className="h-4 w-4" /> Helpdesk / Wiki
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  <User className="mr-2 h-4 w-4" /> My Profile
+                <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                  <User className="h-4 w-4" /> My Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInstall}>
-                  <Download className="mr-2 h-4 w-4" /> Install App
+                <DropdownMenuItem onClick={handleInstall} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                  <Download className="h-4 w-4" /> Install App
                 </DropdownMenuItem>
                 {realRole === "admin" &&
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
                     <a
-                    href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
-                    target="_blank"
-                    rel="noopener noreferrer">
-
-                      <ExternalLink className="mr-2 h-4 w-4" /> Edit with Lovable
+                      href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4" /> Edit with Lovable
                     </a>
                   </DropdownMenuItem>
                 }
-                <DropdownMenuSeparator />
+
+                <DropdownMenuSeparator className="mx-1 my-1.5 bg-[hsl(var(--admin-border))]" />
+
                 <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
-                  <DropdownMenuRadioItem value="light">
-                    <Sun className="mr-2 h-4 w-4" /> Theme · Light
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="dark">
-                    <Moon className="mr-2 h-4 w-4" /> Theme · Dark
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="system">
-                    <Monitor className="mr-2 h-4 w-4" /> Theme · System
-                  </DropdownMenuRadioItem>
+                  {ADMIN_THEME_OPTIONS.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <DropdownMenuRadioItem key={option.value} value={option.value} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                        <Icon className="h-4 w-4" />
+                        {option.label}
+                      </DropdownMenuRadioItem>
+                    );
+                  })}
                 </DropdownMenuRadioGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" /> Logout
+
+                <DropdownMenuSeparator className="mx-1 my-1.5 bg-[hsl(var(--admin-border))]" />
+
+                <DropdownMenuItem onClick={handleSignOut} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                  <LogOut className="h-4 w-4" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

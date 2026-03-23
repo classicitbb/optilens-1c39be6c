@@ -4,17 +4,24 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  LogOut,
   Menu,
+  Monitor,
+  Moon,
   Rocket,
+  Settings,
+  Sun,
+  User,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import AppLauncher from "@/components/admin/AppLauncher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMoonshotStore } from "./lib/store";
+import { useTheme } from "next-themes";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 
 const moonshotApp = ADMIN_APPS.moonshot;
@@ -25,6 +32,12 @@ const footerItems = moonshotApp.sidebarItems.filter((item) => item.route === "/a
 const isActive = (pathname: string, route?: string) =>
   route ? pathname === route || pathname.startsWith(`${route}/`) : false;
 
+const MOONSHOT_THEME_OPTIONS = [
+  { value: "light", label: "Theme · Light", icon: Sun },
+  { value: "dark", label: "Theme · Dark", icon: Moon },
+  { value: "system", label: "Theme · System", icon: Monitor },
+] as const;
+
 export default function MoonshotLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -33,6 +46,7 @@ export default function MoonshotLayout() {
   const [launcherOpen, setLauncherOpen] = useState(false);
   const authUser = useAuth().user;
   const { currentUser, users, logout } = useMoonshotStore();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (!authUser) {
@@ -70,6 +84,7 @@ export default function MoonshotLayout() {
   }, [pathname]);
 
   const sidebarWidth = collapsed ? "w-[56px]" : "w-[280px]";
+  const activeTheme = theme ?? "system";
   const contentPadding = collapsed ? "md:pl-[56px]" : "md:pl-[280px]";
 
   if (!currentUser) {
@@ -179,14 +194,51 @@ export default function MoonshotLayout() {
               <Button variant="ghost" size="icon"><Bell className="h-4 w-4" /></Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="rounded-full">
-                    <Avatar className="h-8 w-8"><AvatarFallback>{currentUser.avatar}</AvatarFallback></Avatar>
+                  <button
+                    className="rounded-full transition-all hover:ring-2 hover:ring-[#14b8a6]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14b8a6]/40"
+                    aria-label={`Open Moonshot account menu for ${currentUser.name}`}
+                  >
+                    <Avatar className="h-8 w-8 border border-slate-700/70 bg-slate-900 text-slate-100 shadow-sm">
+                      <AvatarFallback>{currentUser.avatar}</AvatarFallback>
+                    </Avatar>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate("/admin/moonshot/users")}>Profile</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/admin/moonshot/settings")}>Settings</DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={10}
+                  className="w-[min(92vw,20rem)] rounded-[1.25rem] border border-slate-800 bg-slate-900 p-1.5 text-slate-100 shadow-2xl shadow-black/35"
+                >
+                  <div className="px-3 py-2.5">
+                    <p className="truncate text-sm font-semibold text-slate-50">{currentUser.name}</p>
+                    <p className="truncate text-xs text-slate-400">{currentUser.email}</p>
+                  </div>
+
+                  <DropdownMenuItem onClick={() => navigate("/admin/moonshot/users")} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                    <User className="h-4 w-4" /> Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/admin/moonshot/settings")} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                    <Settings className="h-4 w-4" /> Settings
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="mx-1 my-1.5 bg-slate-800" />
+
+                  <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
+                    {MOONSHOT_THEME_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <DropdownMenuRadioItem key={option.value} value={option.value} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                          <Icon className="h-4 w-4" />
+                          {option.label}
+                        </DropdownMenuRadioItem>
+                      );
+                    })}
+                  </DropdownMenuRadioGroup>
+
+                  <DropdownMenuSeparator className="mx-1 my-1.5 bg-slate-800" />
+
+                  <DropdownMenuItem onClick={logout} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                    <LogOut className="h-4 w-4" /> Logout
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
