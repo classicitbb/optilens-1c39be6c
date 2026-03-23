@@ -6,6 +6,7 @@ import TreatmentMatricesAccordion from "@/components/admin/TreatmentMatricesAcco
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import RxExportBar from "@/components/admin/RxExportBar";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
+import RxAddonsExtrasEditor from "@/components/admin/RxAddonsExtrasEditor";
 import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
