@@ -189,8 +189,10 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent;
     background-image: var(--gradient-accent);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .bg-gradient-primary {
@@ -218,7 +220,8 @@
   }
 
   .glass-effect {
-    @apply backdrop-blur-md;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     background: var(--gradient-glass);
   }
 
