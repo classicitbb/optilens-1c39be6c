@@ -8,6 +8,7 @@ export interface CartItem {
   product_id: number;
   product_name: string;
   product_price: number;
+  product_type: "lens" | "supply";
   quantity: number;
 }
 
@@ -66,7 +67,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setItems(data || []);
+      setItems((data || []).map((d) => ({ ...d, product_type: d.product_type as "lens" | "supply" })));
     } catch (error) {
       if (!isExpectedCartError(error)) {
         console.error("Error fetching cart:", error);
@@ -91,6 +92,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     id: number;
     name: string;
     price: number;
+    productType: "lens" | "supply";
   }) => {
     if (!user) return;
 
@@ -123,12 +125,13 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
             product_id: product.id,
             product_name: product.name,
             product_price: product.price,
+            product_type: product.productType,
           })
           .select()
           .single();
 
         if (error) throw error;
-        setItems((prev) => [...prev, data]);
+        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" }]);
       }
 
       toast({

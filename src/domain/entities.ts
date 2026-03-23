@@ -72,14 +72,32 @@ export interface OrderLineEntity {
   id: string;
   productId: string;
   productName: string;
+  productType?: string;
   unitPrice: number;
   quantity: number;
+}
+
+export interface OrderPaymentSummary {
+  id: string;
+  amount: number;
+  status: PaymentStatus;
+  provider: string;
+  cardBrand?: string;
+  cardLast4?: string;
+  createdAt: string;
 }
 
 export interface OrderEntity extends CanonicalRecord<OrderStatus> {
   accountId?: string;
   totalAmount: number;
+  customerName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  shippingAddress?: Record<string, unknown> | null;
+  billingAddress?: Record<string, unknown> | null;
+  checkoutMethod?: string;
   items: OrderLineEntity[];
+  payments: OrderPaymentSummary[];
 }
 
 export interface JobEntity extends CanonicalRecord<JobStatus> {

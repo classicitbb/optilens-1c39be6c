@@ -14,6 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      abandoned_cart_alerts: {
+        Row: {
+          cart_snapshot: Json
+          cutoff_hours: number
+          email_outbox_id: string | null
+          first_detected_at: string
+          helpdesk_ticket_id: string | null
+          id: string
+          last_detected_at: string
+          notification_id: string | null
+          status: string
+          total_amount: number
+          total_items: number
+          user_id: string
+        }
+        Insert: {
+          cart_snapshot?: Json
+          cutoff_hours?: number
+          email_outbox_id?: string | null
+          first_detected_at?: string
+          helpdesk_ticket_id?: string | null
+          id?: string
+          last_detected_at?: string
+          notification_id?: string | null
+          status?: string
+          total_amount?: number
+          total_items?: number
+          user_id: string
+        }
+        Update: {
+          cart_snapshot?: Json
+          cutoff_hours?: number
+          email_outbox_id?: string | null
+          first_detected_at?: string
+          helpdesk_ticket_id?: string | null
+          id?: string
+          last_detected_at?: string
+          notification_id?: string | null
+          status?: string
+          total_amount?: number
+          total_items?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abandoned_cart_alerts_email_outbox_id_fkey"
+            columns: ["email_outbox_id"]
+            isOneToOne: false
+            referencedRelation: "customer_automation_outbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abandoned_cart_alerts_helpdesk_ticket_id_fkey"
+            columns: ["helpdesk_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abandoned_cart_alerts_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "admin_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activities: {
         Row: {
           activity_type: string | null
@@ -165,6 +232,53 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          event_type: string
+          href: string | null
+          id: string
+          message: string
+          metadata: Json
+          related_ticket_id: string | null
+          related_user_id: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          href?: string | null
+          id?: string
+          message: string
+          metadata?: Json
+          related_ticket_id?: string | null
+          related_user_id?: string | null
+          severity?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          href?: string | null
+          id?: string
+          message?: string
+          metadata?: Json
+          related_ticket_id?: string | null
+          related_user_id?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_related_ticket_id_fkey"
+            columns: ["related_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -1017,6 +1131,171 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      customer_addresses: {
+        Row: {
+          city: string
+          country: string
+          created_at: string
+          id: string
+          is_default_billing: boolean
+          is_default_shipping: boolean
+          label: string
+          line1: string
+          line2: string
+          postal_code: string
+          recipient: string
+          state: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string
+          country?: string
+          created_at?: string
+          id?: string
+          is_default_billing?: boolean
+          is_default_shipping?: boolean
+          label?: string
+          line1?: string
+          line2?: string
+          postal_code?: string
+          recipient?: string
+          state?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string
+          country?: string
+          created_at?: string
+          id?: string
+          is_default_billing?: boolean
+          is_default_shipping?: boolean
+          label?: string
+          line1?: string
+          line2?: string
+          postal_code?: string
+          recipient?: string
+          state?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      customer_automation_outbox: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          payload: Json
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          subject: string
+          template_key: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          recipient_email: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_key: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_key?: string
+        }
+        Relationships: []
+      }
+      customer_payment_methods: {
+        Row: {
+          brand: string
+          cardholder_name: string
+          created_at: string
+          expiry_month: number
+          expiry_year: number
+          id: string
+          is_default: boolean
+          is_demo: boolean
+          last4: string
+          payment_token: string
+          provider: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand?: string
+          cardholder_name?: string
+          created_at?: string
+          expiry_month?: number
+          expiry_year?: number
+          id?: string
+          is_default?: boolean
+          is_demo?: boolean
+          last4?: string
+          payment_token: string
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand?: string
+          cardholder_name?: string
+          created_at?: string
+          expiry_month?: number
+          expiry_year?: number
+          id?: string
+          is_default?: boolean
+          is_demo?: boolean
+          last4?: string
+          payment_token?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      customer_portal_feature_overrides: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature_key: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature_key: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       customer_pricing_access: {
         Row: {
@@ -2982,6 +3261,101 @@ export type Database = {
           },
         ]
       }
+      order_payment_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          payment_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          payment_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payment_events_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "order_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_payments: {
+        Row: {
+          amount: number
+          card_brand: string | null
+          card_last4: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          order_id: string
+          payment_method_id: string | null
+          payment_token: string | null
+          provider: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          card_brand?: string | null
+          card_last4?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          order_id: string
+          payment_method_id?: string | null
+          payment_token?: string | null
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          card_brand?: string | null
+          card_last4?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          order_id?: string
+          payment_method_id?: string | null
+          payment_token?: string | null
+          provider?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string
@@ -3937,6 +4311,173 @@ export type Database = {
           },
         ]
       }
+      rx_price_categories: {
+        Row: {
+          created_at: string
+          default_name: string
+          grouping_id: number
+          id: number
+          is_active: boolean
+          key: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_name: string
+          grouping_id: number
+          id?: number
+          is_active?: boolean
+          key: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_name?: string
+          grouping_id?: number
+          id?: number
+          is_active?: boolean
+          key?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_price_categories_grouping_id_fkey"
+            columns: ["grouping_id"]
+            isOneToOne: false
+            referencedRelation: "rx_price_groupings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_price_category_versions: {
+        Row: {
+          category_id: number
+          created_at: string
+          display_name: string | null
+          id: number
+          is_enabled: boolean
+          pricelist_version_id: number
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: number
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          is_enabled?: boolean
+          pricelist_version_id: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: number
+          created_at?: string
+          display_name?: string | null
+          id?: number
+          is_enabled?: boolean
+          pricelist_version_id?: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_price_category_versions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "rx_price_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_price_category_versions_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_price_grouping_versions: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          grouping_id: number
+          id: number
+          is_enabled: boolean
+          pricelist_version_id: number
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          grouping_id: number
+          id?: number
+          is_enabled?: boolean
+          pricelist_version_id: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          grouping_id?: number
+          id?: number
+          is_enabled?: boolean
+          pricelist_version_id?: number
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_price_grouping_versions_grouping_id_fkey"
+            columns: ["grouping_id"]
+            isOneToOne: false
+            referencedRelation: "rx_price_groupings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_price_grouping_versions_pricelist_version_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_price_groupings: {
+        Row: {
+          created_at: string
+          default_name: string
+          id: number
+          is_active: boolean
+          key: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_name: string
+          id?: number
+          is_active?: boolean
+          key: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_name?: string
+          id?: number
+          is_active?: boolean
+          key?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shipment_charges: {
         Row: {
           amount_bbd: number
@@ -4653,6 +5194,19 @@ export type Database = {
       manage_integration_sync_error: {
         Args: { p_action: string; p_error_id: string }
         Returns: undefined
+      }
+      place_customer_order: {
+        Args: {
+          p_actor_user_id?: string
+          p_checkout?: Json
+          p_items: Json
+          p_target_user_id: string
+        }
+        Returns: string
+      }
+      queue_abandoned_cart_alerts: {
+        Args: { p_cutoff_hours?: number }
+        Returns: Json
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       timeout_stale_integration_sync_jobs: { Args: never; Returns: number }

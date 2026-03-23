@@ -1,17 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles } from "lucide-react";
+import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles, Settings, Palette } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAccountRequestDismissed } from "@/components/AccountRequestBanner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useTheme } from "next-themes";
+import { CartSheet } from "@/components/CartSheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
+import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
 type MegaMenuLink = {
   label: string;
@@ -380,6 +385,27 @@ const MegaMenu = ({ item }: {item: PrimaryMenuItem;}) => {
 
 };
 
+const THEME_OPTIONS = [
+  { value: "system", label: "System", icon: Monitor },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "light", label: "Light", icon: Sun },
+] as const;
+
+const getAccountInitials = (name: string, email: string) => {
+  const source = name || email;
+  const parts = source
+    .split(/\s+|@|\.|_|-/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) return "AC";
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "AC";
+};
+
 const Header = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -389,14 +415,11 @@ const Header = () => {
   const showRequestInMenu = !!user && !roleLoading && !role && bannerDismissed;
   const { theme, resolvedTheme, setTheme } = useTheme();
   const activeTheme = theme ?? "system";
-
-  const cycleThemeIcon = () => {
-    if (activeTheme === "system") {
-      return resolvedTheme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
-    }
-
-    return activeTheme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
-  };
+  const activeUserName = resolveUserFullName(user) || user?.email?.split("@")[0] || "Account";
+  const activeUserEmail = user?.email?.trim() || "";
+  const activeUserAvatar = resolveUserAvatar(user);
+  const activeUserInitials = getAccountInitials(activeUserName, activeUserEmail);
+  const resolvedThemeValue = activeTheme === "system" ? resolvedTheme ?? "system" : activeTheme;
 
   const handleSignOut = async () => {
     await signOut();
@@ -500,98 +523,166 @@ const Header = () => {
                 }
               }}>
               
-                <Search className="mr-2 h-4 w-4" />
-                <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
-                Search
+                <Search className="h-4 w-4" />
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
               </Button>
 
               <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
                 <a href="tel:+12464334928">
                   <Phone className="mr-2 h-4 w-4" />
-                  +1 246 433-4928
+                  Call Us
                 </a>
               </Button>
 
               {user ?
             <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <User className="mr-2 h-4 w-4" />
-                      <span className="hidden sm:inline">Account</span>
-                      <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-11 rounded-full border border-border/60 bg-background/70 px-1.5 shadow-sm transition-all hover:bg-muted/80 sm:gap-2 sm:px-2.5"
+                    >
+                      <Avatar className="h-8 w-8 border border-border/60">
+                        <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
+                        <AvatarFallback className="bg-primary/15 text-xs font-semibold text-foreground">
+                          {activeUserInitials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="sr-only">Open account menu for {activeUserName}</span>
+                      <span className="hidden min-w-0 flex-1 text-left sm:block">
+                        <span className="block truncate text-sm font-semibold text-foreground">{activeUserName}</span>
+                        <span className="hidden truncate text-xs text-muted-foreground md:block">Account</span>
+                      </span>
+                      <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <Link to="/profile" className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/orders" className="flex items-center gap-2">
-                        <Package className="h-4 w-4" />
-                        Orders
-                      </Link>
-                    </DropdownMenuItem>
-                    {hasAccess &&
-                <DropdownMenuItem asChild>
-                        <Link to="/admin" className="flex items-center gap-2">
-                          <Shield className="h-4 w-4" />
-                          Admin
-                        </Link>
-                      </DropdownMenuItem>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={10}
+                    className="w-[min(92vw,24rem)] rounded-[1.75rem] border-border/60 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur-xl"
+                  >
+                    <div className="space-y-1 p-3 sm:p-4">
+                      <div className="flex items-center gap-3 rounded-[1.35rem] px-1 py-1">
+                        <Avatar className="h-14 w-14 border border-primary/15 shadow-sm">
+                          <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
+                          <AvatarFallback className="bg-primary/25 text-lg font-semibold text-foreground">
+                            {activeUserInitials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-semibold text-foreground">{activeUserName}</p>
+                          <p className="truncate text-sm text-muted-foreground">{activeUserEmail}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 pt-1">
+                        <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-accent/70">
+                          <Link to="/profile/account" className="flex items-center gap-3">
+                            <Settings className="h-4.5 w-4.5 text-foreground/80" />
+                            <span className="text-base font-medium">Account settings</span>
+                          </Link>
+                        </DropdownMenuItem>
+
+                        <div className="rounded-2xl px-3 py-3 text-foreground outline-none ring-0 transition-colors hover:bg-accent/50 focus-within:bg-accent/70">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-3">
+                              <Palette className="h-4.5 w-4.5 text-foreground/80" />
+                              <div>
+                                <p className="text-base font-medium leading-none">Appearance</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Theme follows your preference instantly.</p>
+                              </div>
+                            </div>
+                            <ToggleGroup
+                              type="single"
+                              value={activeTheme}
+                              onValueChange={(value) => {
+                                if (value) setTheme(value);
+                              }}
+                              aria-label="Appearance theme"
+                              className="w-full justify-start rounded-full border border-border/70 bg-muted/60 p-1 sm:w-auto sm:justify-center"
+                            >
+                              {THEME_OPTIONS.map((option) => {
+                                const Icon = option.icon;
+                                const isActive = activeTheme === option.value;
+                                const isResolved = activeTheme === "system" && resolvedThemeValue === option.value;
+
+                                return (
+                                  <ToggleGroupItem
+                                    key={option.value}
+                                    value={option.value}
+                                    aria-label={option.label}
+                                    className={cn(
+                                      "h-9 flex-1 rounded-full border-0 px-3 text-muted-foreground shadow-none hover:bg-background/80 hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm sm:flex-none",
+                                      isActive && "ring-1 ring-border/60",
+                                    )}
+                                  >
+                                    <Icon className="h-4 w-4" />
+                                    <span className="sr-only">{option.label}</span>
+                                    {isResolved && !isActive ? <span className="sr-only">Active via system theme</span> : null}
+                                  </ToggleGroupItem>
+                                );
+                              })}
+                            </ToggleGroup>
+                          </div>
+                        </div>
+                      </div>
+
+                      <DropdownMenuSeparator className="mx-0 my-2" />
+
+                      <div className="space-y-1">
+                        <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-accent/70">
+                          <Link to="/orders" className="flex items-center gap-3">
+                            <Package className="h-4.5 w-4.5 text-foreground/80" />
+                            <span className="text-base font-medium">Orders</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        {hasAccess &&
+                <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-accent/70">
+                            <Link to="/admin" className="flex items-center gap-3">
+                              <Shield className="h-4.5 w-4.5 text-foreground/80" />
+                              <span className="text-base font-medium">Admin</span>
+                            </Link>
+                          </DropdownMenuItem>
                 }
-                    {showRequestInMenu &&
-                <DropdownMenuItem onClick={() => {toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" });}} className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Request Account
-                      </DropdownMenuItem>
+                        {showRequestInMenu &&
+                <DropdownMenuItem
+                            onClick={() => {toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" });}}
+                            className="rounded-2xl px-3 py-3 focus:bg-accent/70"
+                          >
+                            <User className="h-4.5 w-4.5 text-foreground/80" />
+                            <span className="text-base font-medium">Request Account</span>
+                          </DropdownMenuItem>
                 }
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger className="flex items-center gap-2">
-                        {cycleThemeIcon()}
-                        Theme
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
-                          <DropdownMenuRadioItem value="light" className="flex items-center gap-2">
-                            <Sun className="h-4 w-4" />
-                            Light
-                          </DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="dark" className="flex items-center gap-2">
-                            <Moon className="h-4 w-4" />
-                            Dark
-                          </DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="system" className="flex items-center gap-2">
-                            <Monitor className="h-4 w-4" />
-                            System
-                          </DropdownMenuRadioItem>
-                        </DropdownMenuRadioGroup>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
-                      <LogOut className="h-4 w-4" />
-                      Sign Out
-                    </DropdownMenuItem>
+                      </div>
+
+                      <DropdownMenuSeparator className="mx-0 my-2" />
+
+                      <DropdownMenuItem onClick={handleSignOut} className="rounded-2xl px-3 py-3 focus:bg-accent/70">
+                        <LogOut className="h-4.5 w-4.5 text-foreground/80" />
+                        <span className="text-base font-medium">Sign out</span>
+                      </DropdownMenuItem>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu> :
 
             <Button variant="ghost" size="sm" asChild>
-                  <Link to="/auth">
+                  <Link to={`/auth?redirect=${encodeURIComponent(`${location.pathname}${location.search}${location.hash}` || "/")}`}>
                     <User className="mr-2 h-4 w-4" />
                     Sign in
                   </Link>
                 </Button>
             }
 
-              <Button variant="hero" size="sm" asChild>
-                <Link to="/store">
-                  <span className="hidden sm:inline">Order Lenses</span>
-                  <span className="sm:hidden">Order</span>
-                </Link>
-              </Button>
+              {user ? (
+                <CartSheet triggerVariant="hero" triggerSize="sm" showLabel className="min-w-[7.5rem] justify-center" />
+              ) : (
+                <Button variant="hero" size="sm" asChild>
+                  <Link to="/store">
+                    <span className="hidden sm:inline">Order Now</span>
+                    <span className="sm:hidden">Order</span>
+                  </Link>
+                </Button>
+              )}
         </div>
       </div>
 

@@ -98,17 +98,17 @@ const MyAccountSection = () => {
     if (!user) return;
 
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({
+    const { error } = await (supabase
+      .from("profiles") as any)
+      .upsert({
+        user_id: user.id,
         full_name: values.full_name.trim(),
         phone: values.phone.trim(),
         display_name: values.display_name || null,
         bio: values.bio || null,
         avatar_url: values.avatar_url || null,
         organization_name: values.organization_name?.trim() || null,
-      })
-      .eq("user_id", user.id);
+      }, { onConflict: "user_id" });
 
     setSaving(false);
 
@@ -117,6 +117,7 @@ const MyAccountSection = () => {
       return;
     }
 
+    await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: user.id });
     await queryClient.invalidateQueries({ queryKey: ["portal-identity", user.id] });
     toast({ title: "Success", description: "Profile updated successfully" });
   };

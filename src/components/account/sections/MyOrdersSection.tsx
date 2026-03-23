@@ -12,6 +12,18 @@ import {
 } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+
+const formatAddress = (address?: Record<string, unknown> | null) => {
+  if (!address) return "—";
+  const values = [
+    typeof address.recipient === "string" ? address.recipient : "",
+    typeof address.line1 === "string" ? address.line1 : "",
+    typeof address.city === "string" ? address.city : "",
+    typeof address.country === "string" ? address.country : "",
+  ].filter(Boolean);
+  return values.length ? values.join(", ") : "—";
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case "completed":

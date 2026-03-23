@@ -6,6 +6,7 @@ import {
   LockKeyhole,
   Package,
   User,
+  WalletCards,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
@@ -15,6 +16,7 @@ const accountNavItems: SidebarNavItem[] = [
   { label: "My Account", to: "/profile/account", icon: User },
   { label: "My Orders", to: "/profile/orders", icon: Package },
   { label: "Address Book", to: "/profile/address-book", icon: BookUser },
+  { label: "Payment Methods", to: "/profile/payment-methods", icon: WalletCards },
   { label: "Quote Form", to: "/profile/quotes", icon: FileSignature },
   { label: "Helpdesk Tickets", to: "/profile/helpdesk", icon: LifeBuoy },
   { label: "Assigned Pricelists", to: "/profile/pricelists", icon: BadgeDollarSign },
