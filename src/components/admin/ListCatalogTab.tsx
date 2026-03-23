@@ -77,7 +77,7 @@ const ListCatalogTab = ({
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: allSupplies, isLoading: sLoading } = useSupplies();
   const { data: priceMatrixData } = usePriceMatrix();
-  const { upsertMutation: upsertMatrixAllocation } = useMatrixAllocations(versionId ?? null);
+  const { data: allocations = [], upsertMutation: upsertMatrixAllocation, deleteMutation: deleteMatrixAllocation } = useMatrixAllocations(versionId ?? null);
   const { data: mftypeRef = [] } = useReferenceData("mftypes");
   const { data: savedRows, isLoading: rowsLoading, saveRows } = usePricelistCatalogRows(
     versionId ?? null,
@@ -88,7 +88,7 @@ const ListCatalogTab = ({
   const { data: companySettings } = useCompanySettings();
   const { hasOverride, lineOverrides } = usePriceHierarchy(versionId);
   const { versions: pricingVersions } = usePricingSettings();
-  const { upsertRow: upsertCatalogRow } = usePricelistCatalogRowUpsert(versionId ?? null, catalogType);
+  const { upsertRow: upsertCatalogRow, deleteRow: deleteCatalogRow } = usePricelistCatalogRowUpsert(versionId ?? null, catalogType);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Determine the margin floor based on catalog type
@@ -380,6 +380,24 @@ const ListCatalogTab = ({
     }
   };
 
+  const clearMatrixLinkedRow = async (rowKey: string) => {
+    const matrixCell = parseMatrixRowKey(rowKey);
+    if (!matrixCell) return false;
+
+    const allocation = allocations.find((entry) =>
+      entry.treatment_type === matrixCell.groupKey &&
+      entry.category === matrixCell.categoryKey &&
+      entry.material_index === matrixCell.material
+    );
+
+    if (allocation) {
+      await deleteMatrixAllocation.mutateAsync(allocation.id);
+    }
+
+    await deleteCatalogRow.mutateAsync(rowKey);
+    return true;
+  };
+
   const commitPrice = async (
     row: CatalogRow,
     section: string,
@@ -483,10 +501,30 @@ const ListCatalogTab = ({
     setIsDirty(true);
   };
 
-  const removeRow = (section: string, rowKey: string, type: "lens" | "addon" | "supply") => {
-    if (type === "supply") setSupplyRows((prev) => {const next = new Map(prev);next.set(section, (effectiveSupplyRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
-    if (type === "addon") setAddonRows((prev) => {const next = new Map(prev);next.set(section, (effectiveAddonRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
-    setLensRows((prev) => {const next = new Map(prev);next.set(section, (effectiveLensRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});
+  const removeRow = async (section: string, rowKey: string, type: "lens" | "addon" | "supply") => {
+    const removeLocalRow = () => {
+      if (type === "supply") setSupplyRows((prev) => {const next = new Map(prev);next.set(section, (effectiveSupplyRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
+      if (type === "addon") setAddonRows((prev) => {const next = new Map(prev);next.set(section, (effectiveAddonRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
+      setLensRows((prev) => {const next = new Map(prev);next.set(section, (effectiveLensRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});
+    };
+
+    if (type === "lens" && rowKey.startsWith("matrix::")) {
+      try {
+        await clearMatrixLinkedRow(rowKey);
+        removeLocalRow();
+        setIsDirty(false);
+        toast({ title: "Row removed", description: "Cleared the linked matrix cell and deleted the list row." });
+      } catch (error: any) {
+        toast({
+          title: "Delete failed",
+          description: error?.message || "The list row could not be removed from the matrix.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    removeLocalRow();
     setIsDirty(true);
   };
 
