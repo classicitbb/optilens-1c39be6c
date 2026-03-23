@@ -1,6 +1,8 @@
 /* Fonts loaded via index.html to avoid render-blocking @import chain */
 
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   :root {
