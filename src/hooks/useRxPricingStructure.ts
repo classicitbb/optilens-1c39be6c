@@ -51,8 +51,8 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if ((groupingVersionsResult as any).error) throw (groupingVersionsResult as any).error;
       if ((categoryVersionsResult as any).error) throw (categoryVersionsResult as any).error;
 
-      const groupings = (groupingsResult.data ?? []) as RxPricingGroupingRecord[];
-      const categories = (categoriesResult.data ?? []) as RxPricingCategoryRecord[];
+      const groupings = (groupingsResult.data ?? []) as unknown as RxPricingGroupingRecord[];
+      const categories = (categoriesResult.data ?? []) as unknown as RxPricingCategoryRecord[];
       const groupingVersions = ((groupingVersionsResult as any).data ?? []) as RxPricingGroupingVersionRecord[];
       const categoryVersions = ((categoryVersionsResult as any).data ?? []) as RxPricingCategoryVersionRecord[];
 
@@ -103,7 +103,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         const { data: newCategoryRows, error: categoryInsertError } = await supabase
           .from("rx_price_categories" as any)
           .insert(sharedCategoryDefaults.map((category, index) => ({
-            grouping_id: grouping.id,
+          grouping_id: (grouping as any).id,
             key: category.key,
             default_name: category.default_name,
             sort_order: index,
@@ -111,24 +111,25 @@ export const useRxPricingStructure = (versionId: number | null) => {
           })))
           .select("id, key");
         if (categoryInsertError) throw categoryInsertError;
-        insertedCategories = (newCategoryRows ?? []) as Array<{ id: number; key: string }>;
+        insertedCategories = (newCategoryRows ?? []) as unknown as Array<{ id: number; key: string }>;
       }
 
-      const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
+      const { data: versionsRaw, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
       if (versionsError) throw versionsError;
+      const versions = (versionsRaw ?? []) as unknown as { id: number }[];
 
-      if ((versions ?? []).length > 0) {
-        const groupingVersionRows = (versions ?? []).map((version: { id: number }) => ({
+      if (versions.length > 0) {
+        const groupingVersionRows = versions.map((version) => ({
           pricelist_version_id: version.id,
-          grouping_id: grouping.id,
-          sort_order: grouping.sort_order,
+          grouping_id: (grouping as any).id,
+          sort_order: (grouping as any).sort_order,
           is_enabled: true,
         }));
         const { error: groupingVersionError } = await supabase.from("rx_price_grouping_versions" as any).upsert(groupingVersionRows, { onConflict: "pricelist_version_id,grouping_id" });
         if (groupingVersionError) throw groupingVersionError;
       }
 
-      if (insertedCategories.length > 0 && (versions ?? []).length > 0) {
+      if (insertedCategories.length > 0 && versions.length > 0) {
         const categoryById = new Map((query.data?.categories ?? []).map((category) => [category.id, category]));
         const { data: allExistingCategoryVersions, error: allCategoryVersionsError } = await supabase
           .from("rx_price_category_versions" as any)
@@ -146,7 +147,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
           });
         });
 
-        const categoryVersionRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const categoryVersionRows = versions.flatMap((version) =>
           insertedCategories.map((category, index) => {
             const existing = versionCategoryOverrideMap.get(`${version.id}::${category.key}`);
             return {
@@ -164,13 +165,13 @@ export const useRxPricingStructure = (versionId: number | null) => {
           .insert(categoryVersionRows);
         if (categoryVersionInsertError) throw categoryVersionInsertError;
 
-        const allocationRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const allocationRows = versions.flatMap((version) =>
           insertedCategories.flatMap((category) =>
             MATERIAL_COLUMNS.map((material) => ({
               pricelist_version_id: version.id,
               category: category.key,
               material_index: material.key,
-              treatment_type: grouping.key,
+              treatment_type: (grouping as any).key,
               lens_id: null,
               allocated_price_bbd: null,
               is_active: true,
@@ -214,11 +215,12 @@ export const useRxPricingStructure = (versionId: number | null) => {
         .select("id, grouping_id, key");
       if (categoryInsertError) throw categoryInsertError;
 
-      const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
+      const { data: versionsRaw2, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
       if (versionsError) throw versionsError;
+      const versions = (versionsRaw2 ?? []) as unknown as { id: number }[];
 
-      if ((versions ?? []).length > 0) {
-        const categoryVersionRows = (versions ?? []).flatMap((version: { id: number }) =>
+      if (versions.length > 0) {
+        const categoryVersionRows = versions.flatMap((version) =>
           (insertedCategories ?? []).map((category: any) => ({
             pricelist_version_id: version.id,
             category_id: category.id,
@@ -232,7 +234,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         if (categoryVersionError) throw categoryVersionError;
 
         const groupingKeyMap = new Map(activeGroupings.map((grouping) => [grouping.id, grouping.key]));
-        const allocationRows = (versions ?? []).flatMap((version: { id: number }) =>
+        const allocationRows = versions.flatMap((version) =>
           (insertedCategories ?? []).flatMap((category: any) =>
             MATERIAL_COLUMNS.map((material) => ({
               pricelist_version_id: version.id,
