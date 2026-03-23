@@ -82,7 +82,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
       const uniqueKey = await ensureUniqueKey("rx_price_groupings", baseKey);
 
       const activeGroupings = query.data?.groupings.filter((grouping) => grouping.is_active) ?? [];
-      const { data: grouping, error: groupingError } = await supabase
+      const { data: groupingRaw, error: groupingError } = await supabase
         .from("rx_price_groupings" as any)
         .insert({
           key: uniqueKey,
@@ -93,6 +93,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         .select("*")
         .single();
       if (groupingError) throw groupingError;
+      const grouping = groupingRaw as unknown as { id: number; key: string; sort_order: number };
 
       const activeCategories = (query.data?.categories ?? []).filter((category) => category.is_active);
       const sharedCategoryDefaults = [...new Map(activeCategories.map((category) => [category.key, category])).values()]
