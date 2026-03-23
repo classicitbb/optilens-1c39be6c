@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -46,7 +46,17 @@ type ContactFormData = z.infer<typeof contactSchema>;
 const ContactForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [honeypot, setHoneypot] = useState("");
+  const [startedAt, setStartedAt] = useState("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    setStartedAt(new Date().toISOString());
+  }, []);
+
+  const sourcePage = useMemo(() => {
+    if (typeof window === "undefined") return "/";
+    return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  }, []);
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
@@ -59,18 +69,22 @@ const ContactForm = () => {
   });
 
   const onSubmit = async (data: ContactFormData) => {
-    if (honeypot) return; // spam bot filled hidden field
+    if (honeypot) return;
 
     setIsSubmitting(true);
     try {
-      const { error } = await (supabase as any).from("public_inquiries").insert({
-        inquiry_type: "contact",
-        name: data.name,
-        email: data.email,
-        phone: data.phone || null,
-        message: data.message,
-        page_slug: "/",
-        source_channel: "website",
+      const { error } = await supabase.functions.invoke("contact-inquiry", {
+        body: {
+          inquiryType: "contact",
+          name: data.name,
+          email: data.email,
+          phone: data.phone || null,
+          message: data.message,
+          pageSlug: sourcePage || "/",
+          sourceChannel: "website",
+          honeypot,
+          startedAt,
+        },
       });
 
       if (error) throw error;
@@ -80,10 +94,12 @@ const ContactForm = () => {
         description: "Thank you for your inquiry. We'll get back to you shortly.",
       });
       form.reset();
+      setHoneypot("");
+      setStartedAt(new Date().toISOString());
     } catch {
       toast({
         title: "Submission failed",
-        description: "Please try again or contact us directly.",
+        description: "Please try again or contact russell@classicvisions.net directly.",
         variant: "destructive",
       });
     } finally {
@@ -92,11 +108,11 @@ const ContactForm = () => {
   };
 
   return (
-    <section id="contact" className="py-16 bg-muted/30 sm:py-20" aria-label="Contact form">
+    <section id="contact" className="bg-muted/30 py-16 sm:py-20" aria-label="Contact form">
       <div className="container mx-auto px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-10 sm:mb-12">
-            <h2 className="text-2xl font-bold text-foreground mb-4 sm:text-3xl md:text-4xl">
+        <div className="mx-auto max-w-2xl">
+          <div className="mb-10 text-center sm:mb-12">
+            <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
               Contact Our Team
             </h2>
             <p className="text-base text-muted-foreground sm:text-lg">
@@ -105,11 +121,10 @@ const ContactForm = () => {
             </p>
           </div>
 
-          <div className="bg-card rounded-2xl shadow-elegant p-8 border border-border">
+          <div className="rounded-2xl border border-border bg-card p-8 shadow-elegant">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Honeypot - hidden from real users */}
-                <div className="absolute opacity-0 h-0 overflow-hidden" aria-hidden="true" tabIndex={-1}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
+                <div className="absolute h-0 overflow-hidden opacity-0" aria-hidden="true" tabIndex={-1}>
                   <label htmlFor="website_url">Website</label>
                   <input
                     id="website_url"
@@ -118,6 +133,15 @@ const ContactForm = () => {
                     autoComplete="off"
                     value={honeypot}
                     onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                  />
+                  <label htmlFor="started_at">Started at</label>
+                  <input
+                    id="started_at"
+                    name="started_at"
+                    type="text"
+                    value={startedAt}
+                    readOnly
                     tabIndex={-1}
                   />
                 </div>
@@ -139,7 +163,7 @@ const ContactForm = () => {
                   )}
                 />
 
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid gap-6 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="email"
@@ -189,7 +213,7 @@ const ContactForm = () => {
                           placeholder="Tell us about your lens requirements, order inquiries, or any questions you have..."
                           rows={5}
                           {...field}
-                          className="bg-background resize-none"
+                          className="resize-none bg-background"
                         />
                       </FormControl>
                       <FormMessage />
