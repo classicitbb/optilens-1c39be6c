@@ -1,0 +1,1 @@
+ALTER TABLE public.matrix_allocations DROP CONSTRAINT matrix_allocations_treatment_type_check;
