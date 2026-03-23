@@ -150,8 +150,7 @@ Deno.serve(async (req) => {
           "",
           "Message:",
           payload.message,
-        ].join("
-"),
+        ].join("\n"),
       }),
     });
 
