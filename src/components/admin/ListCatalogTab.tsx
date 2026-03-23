@@ -77,7 +77,7 @@ const ListCatalogTab = ({
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: allSupplies, isLoading: sLoading } = useSupplies();
   const { data: priceMatrixData } = usePriceMatrix();
-  const { upsertMutation: upsertMatrixAllocation } = useMatrixAllocations(versionId ?? null);
+  const { data: allocations = [], upsertMutation: upsertMatrixAllocation, deleteMutation: deleteMatrixAllocation } = useMatrixAllocations(versionId ?? null);
   const { data: mftypeRef = [] } = useReferenceData("mftypes");
   const { data: savedRows, isLoading: rowsLoading, saveRows } = usePricelistCatalogRows(
     versionId ?? null,
@@ -88,7 +88,7 @@ const ListCatalogTab = ({
   const { data: companySettings } = useCompanySettings();
   const { hasOverride, lineOverrides } = usePriceHierarchy(versionId);
   const { versions: pricingVersions } = usePricingSettings();
-  const { upsertRow: upsertCatalogRow } = usePricelistCatalogRowUpsert(versionId ?? null, catalogType);
+  const { upsertRow: upsertCatalogRow, deleteRow: deleteCatalogRow } = usePricelistCatalogRowUpsert(versionId ?? null, catalogType);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Determine the margin floor based on catalog type
@@ -172,7 +172,7 @@ const ListCatalogTab = ({
       parseFloat(((sellPrice - itemCost) / sellPrice * 100).toFixed(1)) :
       null;
       const parsedMatrixKey = parseMatrixRowKey(r.row_key);
-      const mappedMatrixMeta = parsedMatrixKey ? rxCategoryMap.get(`${parsedMatrixKey.treatment_type}::${parsedMatrixKey.category}`) : null;
+      const mappedMatrixMeta = parsedMatrixKey ? rxCategoryMap.get(`${parsedMatrixKey.groupKey}::${parsedMatrixKey.categoryKey}`) : null;
       const derivedSection = mappedMatrixMeta ? buildMatrixSectionLabel(mappedMatrixMeta.grouping.name, mappedMatrixMeta.category.name) : r.section;
       const row: CatalogRow = {
         key: r.row_key,
@@ -184,10 +184,10 @@ const ListCatalogTab = ({
         lensId: r.row_type === "lens" ? r.item_id ?? undefined : undefined,
         addonId: r.row_type === "addon" ? r.item_id ?? undefined : undefined,
         supplyId: r.row_type === "supply" ? r.item_id ?? undefined : undefined,
-        matrixCell: mappedMatrixMeta && parsedMatrixKey ? `${mappedMatrixMeta.grouping.name} – ${mappedMatrixMeta.category.name} – ${parsedMatrixKey.material_index}` : r.row_key.startsWith("matrix::") ? r.row_key.replace("matrix::", "").replace(/::/g, " – ") : undefined,
+        matrixCell: mappedMatrixMeta && parsedMatrixKey ? `${mappedMatrixMeta.grouping.name} – ${mappedMatrixMeta.category.name} – ${parsedMatrixKey.material}` : r.row_key.startsWith("matrix::") ? r.row_key.replace("matrix::", "").replace(/::/g, " – ") : undefined,
         supplier: linkedLens?.supplier?.abbrev || linkedLens?.supplier?.name || linkedAddon?.supplier_name || linkedSupply?.supplier_name || ""
       };
-      if (r.row_type === "lens") {const arr = newLens.get(r.section) ?? [];arr.push(row);newLens.set(r.section, arr);} else
+      if (r.row_type === "lens") {const arr = newLens.get(derivedSection) ?? [];arr.push(row);newLens.set(derivedSection, arr);} else
       if (r.row_type === "addon") {const arr = newAddon.get(r.section) ?? [];arr.push(row);newAddon.set(r.section, arr);} else
       {const arr = newSupply.get(r.section) ?? [];arr.push(row);newSupply.set(r.section, arr);}
     }
@@ -292,20 +292,72 @@ const ListCatalogTab = ({
     setEditingDesc(null);setIsDirty(true);
   };
 
-  const parseMatrixRowKey = (rowKey: string) => {
-    if (!rowKey.startsWith("matrix::")) return null;
-    const [, treatment_type, category, material_index] = rowKey.split("::");
-    if (!treatment_type || !category || !material_index) return null;
-    return { treatment_type, category, material_index };
-  };
+  const buildPersistedRows = useCallback((): Omit<PricelistCatalogRow, "id">[] => {
+    if (!versionId) return [];
 
-  const syncMatrixLinkedRowPrice = async (
+    let sortOrder = 0;
+    const rows: Omit<PricelistCatalogRow, "id">[] = [];
+
+    for (const [sec, secRows] of effectiveLensRows) {
+      for (const r of secRows) {
+        rows.push({
+          pricelist_version_id: versionId,
+          catalog_type: catalogType,
+          row_key: r.key,
+          row_type: "lens",
+          section: sec,
+          display_description: r.description,
+          bbd_price: r.bbd,
+          item_id: r.lensId ?? null,
+          sort_order: sortOrder++,
+        });
+      }
+    }
+
+    for (const [sec, secRows] of effectiveAddonRows) {
+      for (const r of secRows) {
+        rows.push({
+          pricelist_version_id: versionId,
+          catalog_type: catalogType,
+          row_key: r.key,
+          row_type: "addon",
+          section: sec,
+          display_description: r.description,
+          bbd_price: r.bbd,
+          item_id: r.addonId ?? null,
+          sort_order: sortOrder++,
+        });
+      }
+    }
+
+    for (const [sec, secRows] of effectiveSupplyRows) {
+      for (const r of secRows) {
+        rows.push({
+          pricelist_version_id: versionId,
+          catalog_type: catalogType,
+          row_key: r.key,
+          row_type: "supply",
+          section: sec,
+          display_description: r.description,
+          bbd_price: r.bbd,
+          item_id: r.supplyId ?? null,
+          sort_order: sortOrder++,
+        });
+      }
+    }
+
+    return rows;
+  }, [catalogType, effectiveAddonRows, effectiveLensRows, effectiveSupplyRows, versionId]);
+
+  const syncMatrixLinkedRow = async (
     row: CatalogRow,
     section: string,
     nextPrice: number | null,
     rowType: "lens" | "addon" | "supply"
   ) => {
-    const currentSortOrder = savedRows?.find((saved) => saved.row_key === row.key)?.sort_order ?? 0;
+    const currentSortOrder = buildPersistedRows().find((saved) => saved.row_key === row.key)?.sort_order
+      ?? savedRows?.find((saved) => saved.row_key === row.key)?.sort_order
+      ?? 0;
     await upsertCatalogRow.mutateAsync({
       row_key: row.key,
       row_type: rowType,
@@ -319,13 +371,31 @@ const ListCatalogTab = ({
     const matrixCell = parseMatrixRowKey(row.key);
     if (matrixCell && row.lensId) {
       await upsertMatrixAllocation.mutateAsync({
-        category: matrixCell.category,
-        material_index: matrixCell.material_index,
-        treatment_type: matrixCell.treatment_type,
+        category: matrixCell.categoryKey,
+        material_index: matrixCell.material,
+        treatment_type: matrixCell.groupKey,
         lens_id: row.lensId,
         allocated_price_bbd: nextPrice,
       });
     }
+  };
+
+  const clearMatrixLinkedRow = async (rowKey: string) => {
+    const matrixCell = parseMatrixRowKey(rowKey);
+    if (!matrixCell) return false;
+
+    const allocation = allocations.find((entry) =>
+      entry.treatment_type === matrixCell.groupKey &&
+      entry.category === matrixCell.categoryKey &&
+      entry.material_index === matrixCell.material
+    );
+
+    if (allocation) {
+      await deleteMatrixAllocation.mutateAsync(allocation.id);
+    }
+
+    await deleteCatalogRow.mutateAsync(rowKey);
+    return true;
   };
 
   const commitPrice = async (
@@ -364,7 +434,7 @@ const ListCatalogTab = ({
 
     if (row.key.startsWith("matrix::")) {
       try {
-        await syncMatrixLinkedRowPrice(row, section, nextPrice, rowType);
+        await syncMatrixLinkedRow(row, section, nextPrice, rowType);
         setIsDirty(false);
       } catch (error: any) {
         toast({
@@ -381,8 +451,36 @@ const ListCatalogTab = ({
     if (!pickerTarget) return;
     const { section, rowKey, mode } = pickerTarget;
     if (mode === "cell" && item.type === "lens") {
-      setLensRows((prev) => {const next = new Map(prev);const rows = [...(effectiveLensRows.get(section) ?? [])];const idx = rows.findIndex((r) => r.key === rowKey);if (idx !== -1) rows[idx] = { ...rows[idx], description: item.name, bbd: item.sell_price, usd: item.sell_price * fxRate, lensId: item.id };next.set(section, rows);return next;});
+      const currentRow = (effectiveLensRows.get(section) ?? []).find((row) => row.key === rowKey);
+      const nextRow = currentRow ? {
+        ...currentRow,
+        description: item.name,
+        bbd: item.sell_price,
+        usd: item.sell_price * fxRate,
+        lensId: item.id,
+      } : null;
+
+      setLensRows((prev) => {
+        const next = new Map(prev);
+        const rows = [...(effectiveLensRows.get(section) ?? [])];
+        const idx = rows.findIndex((r) => r.key === rowKey);
+        if (idx !== -1 && nextRow) rows[idx] = nextRow;
+        next.set(section, rows);
+        return next;
+      });
       setIsDirty(true);
+
+      if (nextRow?.key.startsWith("matrix::")) {
+        void syncMatrixLinkedRow(nextRow, section, nextRow.bbd, "lens")
+          .then(() => setIsDirty(false))
+          .catch((error: any) => {
+            toast({
+              title: "Live sync failed",
+              description: error?.message || "The linked lens changed locally but did not sync to the matrix.",
+              variant: "destructive",
+            });
+          });
+      }
     } else if (mode === "add-lens" && item.type === "lens") {
       const newRow: CatalogRow = { key: `lens-${item.id}-${Date.now()}`, section, description: item.name, bbd: item.sell_price, usd: item.sell_price * fxRate, margin: null, lensId: item.id };
       setLensRows((prev) => {const next = new Map(prev);next.set(section, [...(effectiveLensRows.get(section) ?? []), newRow]);return next;});
@@ -403,10 +501,30 @@ const ListCatalogTab = ({
     setIsDirty(true);
   };
 
-  const removeRow = (section: string, rowKey: string, type: "lens" | "addon" | "supply") => {
-    if (type === "supply") setSupplyRows((prev) => {const next = new Map(prev);next.set(section, (effectiveSupplyRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
-    if (type === "addon") setAddonRows((prev) => {const next = new Map(prev);next.set(section, (effectiveAddonRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
-    setLensRows((prev) => {const next = new Map(prev);next.set(section, (effectiveLensRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});
+  const removeRow = async (section: string, rowKey: string, type: "lens" | "addon" | "supply") => {
+    const removeLocalRow = () => {
+      if (type === "supply") setSupplyRows((prev) => {const next = new Map(prev);next.set(section, (effectiveSupplyRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
+      if (type === "addon") setAddonRows((prev) => {const next = new Map(prev);next.set(section, (effectiveAddonRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});else
+      setLensRows((prev) => {const next = new Map(prev);next.set(section, (effectiveLensRows.get(section) ?? []).filter((r) => r.key !== rowKey));return next;});
+    };
+
+    if (type === "lens" && rowKey.startsWith("matrix::")) {
+      try {
+        await clearMatrixLinkedRow(rowKey);
+        removeLocalRow();
+        setIsDirty(false);
+        toast({ title: "Row removed", description: "Cleared the linked matrix cell and deleted the list row." });
+      } catch (error: any) {
+        toast({
+          title: "Delete failed",
+          description: error?.message || "The list row could not be removed from the matrix.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    removeLocalRow();
     setIsDirty(true);
   };
 
@@ -487,17 +605,7 @@ const ListCatalogTab = ({
   /* ── Save to DB ── */
   const handleSave = async () => {
     if (!versionId) {toast({ title: "No version selected", variant: "destructive" });return;}
-    let sortOrder = 0;
-    const rows: Omit<PricelistCatalogRow, "id">[] = [];
-    for (const [sec, secRows] of effectiveLensRows) {
-      for (const r of secRows) {rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "lens", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.lensId ?? null, sort_order: sortOrder++ });}
-    }
-    for (const [sec, secRows] of effectiveAddonRows) {
-      for (const r of secRows) {rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "addon", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.addonId ?? null, sort_order: sortOrder++ });}
-    }
-    for (const [sec, secRows] of effectiveSupplyRows) {
-      for (const r of secRows) {rows.push({ pricelist_version_id: versionId, catalog_type: catalogType, row_key: r.key, row_type: "supply", section: sec, display_description: r.description, bbd_price: r.bbd, item_id: r.supplyId ?? null, sort_order: sortOrder++ });}
-    }
+    const rows = buildPersistedRows();
     saveRows.mutate(rows, {
       onSuccess: () => {
         setIsDirty(false);

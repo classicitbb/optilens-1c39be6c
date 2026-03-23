@@ -29,6 +29,7 @@ import {
   RefreshCw,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import LensFormDialog from "@/components/admin/LensFormDialog";
 import { Switch } from "@/components/ui/switch";
@@ -351,11 +352,11 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     }
   };
 
-  const handleClearRequest = () => {
-    if (!pickerTarget) return;
-    const allocation = getAllocation(pickerTarget.groupKey, pickerTarget.categoryKey, pickerTarget.materialIndex);
+  const handleClearRequest = (target = pickerTarget) => {
+    if (!target) return;
+    const allocation = getAllocation(target.groupKey, target.categoryKey, target.materialIndex);
     if (!allocation) return;
-    setClearTarget(pickerTarget);
+    setClearTarget(target);
     setPickerOpen(false);
     setClearConfirmOpen(true);
   };
@@ -556,13 +557,23 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                             const isPending = pendingRowKeys.has(rowKey);
                             return (
                               <td key={column.key} className="border-r border-border last:border-r-0 p-0">
-                                <div className="flex flex-col">
+                                <div className="group/cell flex flex-col">
                                   <div className="flex items-center">
                                     <div className="flex-1 px-2 py-1.5 text-right font-mono text-xs text-foreground min-w-0">
                                       {allocation?.allocated_price_bbd != null ? <span className="font-semibold">{fmt(allocation.allocated_price_bbd, showUSD, fxRate)}</span> : <span className="text-muted-foreground/40">—</span>}
                                     </div>
                                     {isPending && <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to Price List" />}
                                     {inCatalog && !isPending && <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />}
+                                    {allocation && (
+                                      <button
+                                        onClick={() => handleClearRequest({ groupKey: grouping.key, groupName: grouping.name, categoryKey: category.key, categoryName: category.name, materialIndex: column.key })}
+                                        className="shrink-0 px-1 py-1 rounded transition-colors opacity-0 group-hover/cell:opacity-100 hover:bg-destructive/10 text-destructive"
+                                        title="Clear this matrix cell and delete the linked list row"
+                                        disabled={deleteMutation.isPending || deleteCatalogRow.isPending}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => {
                                         setPickerTarget({ groupKey: grouping.key, groupName: grouping.name, categoryKey: category.key, categoryName: category.name, materialIndex: column.key });

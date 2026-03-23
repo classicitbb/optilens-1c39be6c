@@ -3,7 +3,6 @@ import { format } from "date-fns";
 import { useMatrixAllocations, MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { useLenses } from "@/hooks/useLenses";
 import { PricelistVersion } from "@/hooks/usePricelistVersions";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { compareCategoryOrder, compareMaterialOrder } from "@/lib/sortOrder";
@@ -36,7 +35,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
   const { data: company } = useCompanySettings();
-  const { data: allLenses = [] } = useLenses();
   const { calcFinalPrice } = usePriceHierarchy(version.id);
   const { structure: rxStructure } = useRxPricingStructure(version.id);
 
@@ -60,16 +58,25 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     return map;
   }, [addonRows]);
 
-  const lensIndexMap = useMemo(() => {
-    const map = new Map<string, number>();
-    allLenses.forEach((lens) => map.set(lens.id, lens.index_value));
-    return map;
-  }, [allLenses]);
-
   const categoryMetaMap = useMemo(
     () => new Map(rxStructure.flatMap((grouping) => grouping.categories.map((category) => [`${grouping.key}::${category.key}`, { grouping, category }] as const))),
     [rxStructure]
   );
+
+  const categoryOrderMap = useMemo(() => {
+    const order = new Map<string, number>();
+    let orderIndex = 0;
+    rxStructure.forEach((grouping) => {
+      grouping.categories.forEach((category) => {
+        const existing = order.get(category.name);
+        const nextIndex = orderIndex++;
+        if (existing == null || nextIndex < existing) {
+          order.set(category.name, nextIndex);
+        }
+      });
+    });
+    return order;
+  }, [rxStructure]);
 
   const today = format(new Date(), "dd MMMM yyyy");
   const currency = showUSD ? "USD" : "BBD";
@@ -104,8 +111,15 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
       grouped.get(categoryName)!.push({ ...row, section: meta ? buildMatrixSectionLabel(meta.grouping.name, meta.category.name) : row.section });
     });
 
-    return [...grouped.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
-  }, [catalogRows, categoryMetaMap, rxStructure]);
+    return [...grouped.entries()].sort((a, b) => {
+      const aIndex = categoryOrderMap.get(a[0]);
+      const bIndex = categoryOrderMap.get(b[0]);
+      if (aIndex != null && bIndex != null) return aIndex - bIndex;
+      if (aIndex != null) return -1;
+      if (bIndex != null) return 1;
+      return compareCategoryOrder(a[0], b[0]);
+    });
+  }, [catalogRows, categoryMetaMap, categoryOrderMap, rxStructure]);
 
   const MatrixPreview = () => (
     <div className="space-y-6">
@@ -213,8 +227,6 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   );
 
   const ListPreview = () => {
-    const hasContent = listSections.some(([, rows]) => rows.length > 0) || addonsBySection.size > 0;
-
     const SectionTable = ({ label, rows, pageBreakBefore, isContinuation }: { label: string; rows: typeof catalogRows; pageBreakBefore?: boolean; isContinuation?: boolean }) => (
       <div className={`print-avoid-break print-grid-keep${pageBreakBefore ? " print-page-break-before" : ""}`}>
         <table className="w-full text-xs border-collapse">
@@ -241,17 +253,12 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     const lensListSections: PrintListSection<(typeof catalogRows)[number]>[] = listSections.map(([section, rows]) => ({
       key: `lens-${section}`,
       label: section,
-      rows: [...rows].sort((a, b) => {
-        const aIndex = a.item_id ? (lensIndexMap.get(a.item_id) ?? 999) : 999;
-        const bIndex = b.item_id ? (lensIndexMap.get(b.item_id) ?? 999) : 999;
-        if (aIndex !== bIndex) return aIndex - bIndex;
-        return a.sort_order - b.sort_order;
-      }),
+      rows: rows,
     }));
     const addonListSections: PrintListSection<(typeof catalogRows)[number]>[] = [...addonsBySection.entries()].map(([section, rows]) => ({ key: `addon-${section}`, label: section, rows }));
     const listChunks = preparePrintListChunks([...lensListSections, ...addonListSections], { rowsPerPage: 20, minSplitThreshold: 5 });
 
-     const hasLensContent = lensListSections.some((s) => s.rows.length > 0);
+    const hasLensContent = lensListSections.some((s) => s.rows.length > 0);
     const hasAddonContent = addonListSections.length > 0;
 
     return (
