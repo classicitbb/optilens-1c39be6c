@@ -215,11 +215,12 @@ export const useRxPricingStructure = (versionId: number | null) => {
         .select("id, grouping_id, key");
       if (categoryInsertError) throw categoryInsertError;
 
-      const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
+      const { data: versions2, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
       if (versionsError) throw versionsError;
+      const versionsList2 = (versions2 ?? []) as unknown as Array<{ id: number }>;
 
-      if ((versions ?? []).length > 0) {
-        const categoryVersionRows = (versions ?? []).flatMap((version: { id: number }) =>
+      if (versionsList2.length > 0) {
+        const categoryVersionRows = versionsList2.flatMap((version) =>
           (insertedCategories ?? []).map((category: any) => ({
             pricelist_version_id: version.id,
             category_id: category.id,
