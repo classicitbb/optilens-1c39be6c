@@ -85,27 +85,8 @@ const ZenvueBrilliance = () => {
               </CardHeader>
               <CardContent>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Transitions from clear indoors to tinted outdoors, comes with blue filter built in.{" "}
-                  <Link
-                    to="/zenvue/darkun"
-                    className="text-accent transition-colors hover:text-accent/80 hover:underline"
-                  >
-                    Learn about Darkun™ →
-                  </Link>
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-card transition-colors hover:bg-muted/20">
-              <CardHeader className="space-y-3 pb-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
-                  <Sparkles className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Darkun™ Photochromic Bluefilter Finished</h3>
-              </CardHeader>
-              <CardContent>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Finished Progressive lens that Transitions from clear indoors to tinted outdoors, comes with blue
-                  filter built in. Available in Spheres from +1 to -1.{" "}
+                  Transitions from clear indoors to tinted outdoors, comes with blue filter built in Available as
+                  Finished SV and Finished Progressive.{" "}
                   <Link
                     to="/zenvue/darkun"
                     className="text-accent transition-colors hover:text-accent/80 hover:underline"
