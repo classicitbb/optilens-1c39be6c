@@ -195,10 +195,10 @@ export default function MoonshotLayout() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="rounded-full transition-all hover:ring-2 hover:ring-[#14b8a6]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14b8a6]/40"
+                    className="rounded-full border border-border/60 bg-background shadow-sm transition-all hover:bg-muted/80 hover:ring-2 hover:ring-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     aria-label={`Open Moonshot account menu for ${currentUser.name}`}
                   >
-                    <Avatar className="h-8 w-8 border border-slate-700/70 bg-slate-900 text-slate-100 shadow-sm">
+                    <Avatar className="h-8 w-8 border border-border/60 bg-background text-foreground">
                       <AvatarFallback>{currentUser.avatar}</AvatarFallback>
                     </Avatar>
                   </button>
@@ -206,27 +206,27 @@ export default function MoonshotLayout() {
                 <DropdownMenuContent
                   align="end"
                   sideOffset={10}
-                  className="w-[min(92vw,20rem)] rounded-[1.25rem] border border-slate-800 bg-slate-900 p-1.5 text-slate-100 shadow-2xl shadow-black/35"
+                  className="w-[min(92vw,18rem)] rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl shadow-black/15"
                 >
-                  <div className="px-3 py-2.5">
-                    <p className="truncate text-sm font-semibold text-slate-50">{currentUser.name}</p>
-                    <p className="truncate text-xs text-slate-400">{currentUser.email}</p>
+                  <div className="px-2.5 py-2">
+                    <p className="truncate text-sm font-semibold text-foreground">{currentUser.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{currentUser.email}</p>
                   </div>
 
-                  <DropdownMenuItem onClick={() => navigate("/admin/moonshot/users")} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                  <DropdownMenuItem onClick={() => navigate("/admin/moonshot/users")} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                     <User className="h-4 w-4" /> Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/admin/moonshot/settings")} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                  <DropdownMenuItem onClick={() => navigate("/admin/moonshot/settings")} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                     <Settings className="h-4 w-4" /> Settings
                   </DropdownMenuItem>
 
-                  <DropdownMenuSeparator className="mx-1 my-1.5 bg-slate-800" />
+                  <DropdownMenuSeparator className="mx-0 my-1.5 bg-border" />
 
                   <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
                     {MOONSHOT_THEME_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       return (
-                        <DropdownMenuRadioItem key={option.value} value={option.value} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                        <DropdownMenuRadioItem key={option.value} value={option.value} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                           <Icon className="h-4 w-4" />
                           {option.label}
                         </DropdownMenuRadioItem>
@@ -234,9 +234,9 @@ export default function MoonshotLayout() {
                     })}
                   </DropdownMenuRadioGroup>
 
-                  <DropdownMenuSeparator className="mx-1 my-1.5 bg-slate-800" />
+                  <DropdownMenuSeparator className="mx-0 my-1.5 bg-border" />
 
-                  <DropdownMenuItem onClick={logout} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                  <DropdownMenuItem onClick={logout} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                     <LogOut className="h-4 w-4" /> Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>

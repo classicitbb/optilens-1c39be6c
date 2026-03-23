@@ -247,36 +247,36 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="rounded-full transition-all hover:ring-2 hover:ring-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  className="rounded-full border border-border/60 bg-background shadow-sm transition-all hover:bg-muted/80 hover:ring-2 hover:ring-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   aria-label={`Open admin account menu for ${displayName}`}
                 >
-                  <Avatar className="h-8 w-8 border border-white/10 text-[11px] shadow-sm">
+                  <Avatar className="h-8 w-8 border border-border/60 text-[11px]">
                     <AvatarImage src={avatarUrl || undefined} alt={displayName} />
-                    <AvatarFallback className="bg-primary/10 font-medium text-primary">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/15 font-medium text-foreground">{initials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
                 sideOffset={10}
-                className="w-[min(92vw,20rem)] rounded-[1.25rem] border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-card))] p-1.5 text-[hsl(var(--admin-content-fg))] shadow-2xl shadow-black/30"
+                className="w-[min(92vw,18rem)] rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl shadow-black/15"
               >
-                <div className="px-3 py-2.5">
-                  <p className="truncate text-sm font-semibold text-[hsl(var(--admin-content-fg))]">{displayName}</p>
-                  <p className="truncate text-xs text-[hsl(var(--admin-muted-fg))]">{user?.email}</p>
+                <div className="px-2.5 py-2">
+                  <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
 
-                <DropdownMenuItem onClick={() => navigate("/admin/wiki")} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                <DropdownMenuItem onClick={() => navigate("/admin/wiki")} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <BookOpen className="h-4 w-4" /> Helpdesk / Wiki
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <User className="h-4 w-4" /> My Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleInstall} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                <DropdownMenuItem onClick={handleInstall} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <Download className="h-4 w-4" /> Install App
                 </DropdownMenuItem>
                 {realRole === "admin" &&
-                <DropdownMenuItem asChild className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                <DropdownMenuItem asChild className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                     <a
                       href="https://lovable.dev/projects/d568bffd-cdad-4066-b271-1e09c9a376d6"
                       target="_blank"
@@ -287,13 +287,13 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   </DropdownMenuItem>
                 }
 
-                <DropdownMenuSeparator className="mx-1 my-1.5 bg-[hsl(var(--admin-border))]" />
+                <DropdownMenuSeparator className="mx-0 my-1.5 bg-border" />
 
                 <DropdownMenuRadioGroup value={activeTheme} onValueChange={(value) => setTheme(value)}>
                   {ADMIN_THEME_OPTIONS.map((option) => {
                     const Icon = option.icon;
                     return (
-                      <DropdownMenuRadioItem key={option.value} value={option.value} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                      <DropdownMenuRadioItem key={option.value} value={option.value} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                         <Icon className="h-4 w-4" />
                         {option.label}
                       </DropdownMenuRadioItem>
@@ -301,9 +301,9 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   })}
                 </DropdownMenuRadioGroup>
 
-                <DropdownMenuSeparator className="mx-1 my-1.5 bg-[hsl(var(--admin-border))]" />
+                <DropdownMenuSeparator className="mx-0 my-1.5 bg-border" />
 
-                <DropdownMenuItem onClick={handleSignOut} className="gap-3 rounded-xl px-3 py-2.5 focus:bg-white/5">
+                <DropdownMenuItem onClick={handleSignOut} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <LogOut className="h-4 w-4" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
