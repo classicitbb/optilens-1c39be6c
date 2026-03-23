@@ -427,6 +427,63 @@ const ListCatalogTab = ({
     setIsDirty(true);
   };
 
+  /* ── Group management ── */
+  const renameSection = (oldName: string, newName: string, rowType: "lens" | "addon" | "supply") => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) { setEditingSectionName(null); return; }
+    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
+    setter(() => {
+      const next = new Map<string, CatalogRow[]>();
+      for (const [key, rows] of effectiveMap) {
+        if (key === oldName) {
+          next.set(trimmed, rows.map(r => ({...r, section: trimmed})));
+        } else {
+          next.set(key, rows);
+        }
+      }
+      return next;
+    });
+    setEditingSectionName(null);
+    setIsDirty(true);
+  };
+
+  const removeEmptySection = (sectionName: string, rowType: "lens" | "addon" | "supply") => {
+    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
+    setter(() => {
+      const next = new Map(effectiveMap);
+      next.delete(sectionName);
+      return next;
+    });
+    setIsDirty(true);
+  };
+
+  const addNewGroup = (rowType: "lens" | "addon" | "supply") => {
+    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
+    const name = "New Group";
+    let uniqueName = name;
+    let counter = 1;
+    while (effectiveMap.has(uniqueName)) { uniqueName = `${name} ${counter++}`; }
+    setter(() => {
+      const next = new Map(effectiveMap);
+      next.set(uniqueName, []);
+      return next;
+    });
+    setEditingSectionName({oldName: uniqueName, value: "", rowType});
+    setIsDirty(true);
+  };
+
+  const handleRestore = () => {
+    setLensRows(new Map());
+    setAddonRows(new Map());
+    setSupplyRows(new Map());
+    setIsDirty(false);
+    setEditingSectionName(null);
+    toast({ title: "Restored", description: "Reverted to last saved state." });
+  };
+
   /* ── Save to DB ── */
   const handleSave = async () => {
     if (!versionId) {toast({ title: "No version selected", variant: "destructive" });return;}
