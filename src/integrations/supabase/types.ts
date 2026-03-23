@@ -4655,6 +4655,7 @@ export type Database = {
           date_received: string
           exchange_rate: number
           fob_foreign: number
+          freight_provider: string
           id: string
           invoice_date: string
           invoice_number: string
@@ -4676,6 +4677,7 @@ export type Database = {
           date_received: string
           exchange_rate?: number
           fob_foreign?: number
+          freight_provider?: string
           id?: string
           invoice_date: string
           invoice_number: string
@@ -4697,6 +4699,7 @@ export type Database = {
           date_received?: string
           exchange_rate?: number
           fob_foreign?: number
+          freight_provider?: string
           id?: string
           invoice_date?: string
           invoice_number?: string

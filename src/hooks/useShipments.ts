@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { computeShipmentDerivedTotals } from "@/lib/importCostings";
 
 export interface Shipment {
   id: string;
@@ -16,6 +17,7 @@ export interface Shipment {
   exchange_rate: number;
   fob_foreign: number;
   invoice_total_foreign: number;
+  freight_provider?: "dhl" | "non-dhl";
   status: "draft" | "reviewed" | "locked";
   version: number;
   parent_id: string | null;
@@ -125,6 +127,16 @@ export const useShipments = (typeFilter?: "lens" | "non-lens") => {
   return { ...query, createMutation, updateMutation, deleteMutation };
 };
 
+export const useAllShipmentCharges = () => useQuery({
+  queryKey: ["shipment-charges-all"],
+  queryFn: async () => {
+    const { data, error } = await (supabase.from("shipment_charges" as any) as any)
+      .select("*");
+    if (error) throw error;
+    return (data ?? []) as ShipmentCharge[];
+  },
+});
+
 export const useShipmentCharges = (shipmentId: string | null) => {
   const qc = useQueryClient();
   const query = useQuery({
@@ -151,7 +163,10 @@ export const useShipmentCharges = (shipmentId: string | null) => {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["shipment-charges", shipmentId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["shipment-charges", shipmentId] });
+      qc.invalidateQueries({ queryKey: ["shipment-charges-all"] });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -159,7 +174,10 @@ export const useShipmentCharges = (shipmentId: string | null) => {
       const { error } = await (supabase.from("shipment_charges" as any) as any).delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["shipment-charges", shipmentId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["shipment-charges", shipmentId] });
+      qc.invalidateQueries({ queryKey: ["shipment-charges-all"] });
+    },
   });
 
   return { ...query, upsertMutation, deleteMutation };
@@ -207,22 +225,10 @@ export const useShipmentLines = (shipmentId: string | null) => {
 
 /** Compute shipment derived values */
 export const computeShipmentTotals = (
-  shipment: Pick<Shipment, "fob_foreign" | "invoice_total_foreign" | "exchange_rate">,
-  charges: ShipmentCharge[]
-) => {
-  const xr = shipment.exchange_rate || 1;
-  const fobBbd = shipment.fob_foreign * xr;
-  const invoiceBbd = shipment.invoice_total_foreign * xr;
-  const totalChargesBbd = charges.reduce((sum, c) => {
-    const rowTotal = (c.amount_bbd || 0) + (c.vat_bbd || 0) + (c.duty_bbd || 0);
-    return sum + rowTotal;
-  }, 0);
-  const totalLandedBbd = invoiceBbd + totalChargesBbd;
-  const fobUsd = shipment.fob_foreign || 1;
-  const multiplier = fobUsd > 0 ? totalLandedBbd / fobUsd : 1;
-
-  return { fobBbd, invoiceBbd, totalChargesBbd, totalLandedBbd, multiplier };
-};
+  shipment: Pick<Shipment, "currency" | "exchange_rate" | "fob_foreign" | "invoice_total_foreign" | "freight_provider">,
+  charges: ShipmentCharge[],
+  settings?: { fx_rates?: Record<string, number> | null } | null
+) => computeShipmentDerivedTotals(shipment, charges, settings);
 
 export const computeLineCosts = (
   line: Pick<ShipmentLine, "line_fob_foreign" | "quantity" | "markup_percent">,
