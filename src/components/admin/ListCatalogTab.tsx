@@ -110,6 +110,7 @@ const ListCatalogTab = ({
   const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
   const [hasViewed, setHasViewed] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [editingSectionName, setEditingSectionName] = useState<{oldName: string; value: string; rowType: "lens"|"addon"|"supply"} | null>(null);
 
   const [lensPickerOpen, setLensPickerOpen] = useState(false);
   const [supplyPickerOpen, setSupplyPickerOpen] = useState(false);
@@ -426,6 +427,63 @@ const ListCatalogTab = ({
     setIsDirty(true);
   };
 
+  /* ── Group management ── */
+  const renameSection = (oldName: string, newName: string, rowType: "lens" | "addon" | "supply") => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) { setEditingSectionName(null); return; }
+    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
+    setter(() => {
+      const next = new Map<string, CatalogRow[]>();
+      for (const [key, rows] of effectiveMap) {
+        if (key === oldName) {
+          next.set(trimmed, rows.map(r => ({...r, section: trimmed})));
+        } else {
+          next.set(key, rows);
+        }
+      }
+      return next;
+    });
+    setEditingSectionName(null);
+    setIsDirty(true);
+  };
+
+  const removeEmptySection = (sectionName: string, rowType: "lens" | "addon" | "supply") => {
+    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
+    setter(() => {
+      const next = new Map(effectiveMap);
+      next.delete(sectionName);
+      return next;
+    });
+    setIsDirty(true);
+  };
+
+  const addNewGroup = (rowType: "lens" | "addon" | "supply") => {
+    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
+    const name = "New Group";
+    let uniqueName = name;
+    let counter = 1;
+    while (effectiveMap.has(uniqueName)) { uniqueName = `${name} ${counter++}`; }
+    setter(() => {
+      const next = new Map(effectiveMap);
+      next.set(uniqueName, []);
+      return next;
+    });
+    setEditingSectionName({oldName: uniqueName, value: "", rowType});
+    setIsDirty(true);
+  };
+
+  const handleRestore = () => {
+    setLensRows(new Map());
+    setAddonRows(new Map());
+    setSupplyRows(new Map());
+    setIsDirty(false);
+    setEditingSectionName(null);
+    toast({ title: "Restored", description: "Reverted to last saved state." });
+  };
+
   /* ── Save to DB ── */
   const handleSave = async () => {
     if (!versionId) {toast({ title: "No version selected", variant: "destructive" });return;}
@@ -647,17 +705,52 @@ const ListCatalogTab = ({
 
   const renderSection = (title: string, rows: CatalogRow[], rowType: "lens" | "addon" | "supply") => {
     const displayRows = sortedRows(title, rows);
+    const isEditingThisSection = editingSectionName?.oldName === title;
+    const isUnnamed = !title.trim() || title.startsWith("New Group");
     return (
       <AccordionItem key={title} value={title} className="mt-3 px-2 border-none">
-        <div className="flex items-center justify-between px-4 py-2 mb-0.5" style={{ background: BLUE_BG, color: "white" }}>
+        <div className={`flex items-center justify-between px-4 py-2 mb-0.5 ${isUnnamed ? 'ring-2 ring-destructive/50 ring-inset' : ''}`} style={{ background: BLUE_BG, color: "white" }}>
           <AccordionTrigger className="p-0 hover:no-underline gap-2 font-bold text-sm uppercase tracking-wide [&>svg]:text-white flex-1 justify-start">
-            <span>{title}</span>
+            {isEditingThisSection ? (
+              <input
+                autoFocus
+                className="bg-white/20 text-white placeholder:text-white/50 border border-white/30 rounded px-2 py-0.5 text-sm font-bold uppercase w-48 outline-none"
+                value={editingSectionName.value}
+                placeholder="Enter group name..."
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => setEditingSectionName({...editingSectionName, value: e.target.value})}
+                onBlur={() => renameSection(title, editingSectionName.value, rowType)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") renameSection(title, editingSectionName.value, rowType);
+                  if (e.key === "Escape") setEditingSectionName(null);
+                }}
+              />
+            ) : (
+              <span
+                className="cursor-text hover:bg-white/10 rounded px-1 -mx-1 transition-colors"
+                title="Click to rename group"
+                onClick={(e) => { e.stopPropagation(); setEditingSectionName({oldName: title, value: title, rowType}); }}
+              >
+                {title}
+                {isUnnamed && <span className="ml-2 text-[10px] font-normal normal-case text-red-200">⚠ Name required</span>}
+              </span>
+            )}
             <span className="text-[10px] font-normal normal-case tracking-normal opacity-70 ml-2">({displayRows.length})</span>
           </AccordionTrigger>
-          <button className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
-          onClick={(e) => {e.stopPropagation();setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined });if (rowType === "supply") setSupplyPickerOpen(true);else setLensPickerOpen(true);}}>
-            <Plus className="h-3 w-3" /> Add Line
-          </button>
+          <div className="flex items-center gap-1.5">
+            {displayRows.length === 0 && (
+              <button
+                className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-red-500/30 hover:bg-red-500/50 transition-colors no-print"
+                onClick={(e) => { e.stopPropagation(); removeEmptySection(title, rowType); }}
+              >
+                <X className="h-3 w-3" /> Remove
+              </button>
+            )}
+            <button className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
+            onClick={(e) => {e.stopPropagation();setPickerTarget({ section: title, rowKey: "", mode: rowType === "supply" ? "add-supply" : rowType === "addon" ? "add-addon" : "add-lens", addonSection: rowType === "addon" ? title : undefined });if (rowType === "supply") setSupplyPickerOpen(true);else setLensPickerOpen(true);}}>
+              <Plus className="h-3 w-3" /> Add Line
+            </button>
+          </div>
         </div>
         <AccordionContent className="pb-0 pt-0">
           {displayRows.length === 0 ?
@@ -669,7 +762,6 @@ const ListCatalogTab = ({
                   <th className="w-8 no-print border border-border" style={{ background: "hsl(var(--admin-table-subheader))" }} />
                   <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
                   <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-fg))" }}>Description <SortIcon section={title} col="description" /></th>
-                  {/* Matrix Cell header — screen only, before BBD */}
                   <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>
                     Matrix Cell
                   </th>
@@ -804,20 +896,27 @@ const ListCatalogTab = ({
             </span>
           )}
         </div>
-        <Button
-          size="sm"
-          className="h-8 text-xs gap-1.5"
-          style={{ background: isDirty || hasPending ? "hsl(215 65% 50%)" : undefined }}
-          variant={isDirty || hasPending ? "default" : "outline"}
-          onClick={() => handleSaveRef.current()}
-          disabled={isSavingRows}
-        >
-          {isSavingRows ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save All Changes
-        </Button>
+        <div className="flex items-center gap-2">
+          {isDirty && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={handleRestore}>
+              Restore
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            style={{ background: isDirty || hasPending ? "hsl(215 65% 50%)" : undefined }}
+            variant={isDirty || hasPending ? "default" : "outline"}
+            onClick={() => handleSaveRef.current()}
+            disabled={isSavingRows}
+          >
+            {isSavingRows ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Save All Changes
+          </Button>
+        </div>
       </div>
     </div>
-  ), [hasPending, isDirty, isSavingRows, pendingCount]);
+  ), [hasPending, isDirty, isSavingRows, pendingCount, handleRestore]);
 
   useEffect(() => {
     if (renderSaveBar) renderSaveBar(saveBarContent);
@@ -842,9 +941,19 @@ const ListCatalogTab = ({
         </div>
 
         {catalogType === "buysell" && (
-          <Accordion type="multiple" defaultValue={[...effectiveSupplyRows.keys()]} className="space-y-0">
-            {[...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
-          </Accordion>
+          <>
+            <div className="flex items-center justify-end px-6 py-2 no-print">
+              <button
+                className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded border border-border hover:bg-muted/50 transition-colors"
+                onClick={() => addNewGroup("supply")}
+              >
+                <Plus className="h-3 w-3" /> Add Group
+              </button>
+            </div>
+            <Accordion type="multiple" defaultValue={[...effectiveSupplyRows.keys()]} className="space-y-0">
+              {[...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
+            </Accordion>
+          </>
         )}
         {catalogType === "stock" && (() => {
           const activeMfTypes = mftypeRef.filter((m: any) => m.is_active).map((m: any) => m.name as string);
@@ -867,14 +976,24 @@ const ListCatalogTab = ({
         })()}
         {catalogType === "rx" && renderRxGrouped()}
 
-        {showTreatmentsAddons && catalogType === "rx" && effectiveAddonRows.size > 0 &&
+        {showTreatmentsAddons && catalogType === "rx" &&
         <div className="mt-8 border-t-2 border-dashed border-border pt-4">
-            <div className="px-4 py-2 mb-2 text-xs font-bold tracking-wide" style={{ background: "hsl(var(--admin-table-addon-header))", color: "hsl(var(--admin-table-addon-header-fg))" }}>
-              ADD ONS
+            <div className="flex items-center justify-between px-4 py-2 mb-2" style={{ background: "hsl(var(--admin-table-addon-header))", color: "hsl(var(--admin-table-addon-header-fg))" }}>
+              <span className="text-xs font-bold tracking-wide">ADD-ONS & EXTRAS</span>
+              <button
+                className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
+                onClick={() => addNewGroup("addon")}
+              >
+                <Plus className="h-3 w-3" /> Add Group
+              </button>
             </div>
-            <Accordion type="multiple" defaultValue={[...effectiveAddonRows.keys()]} className="space-y-0">
-              {[...effectiveAddonRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "addon"))}
-            </Accordion>
+            {effectiveAddonRows.size > 0 ? (
+              <Accordion type="multiple" defaultValue={[...effectiveAddonRows.keys()]} className="space-y-0">
+                {[...effectiveAddonRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "addon"))}
+              </Accordion>
+            ) : (
+              <p className="text-xs text-muted-foreground px-4 py-4 italic">No add-on groups yet. Click "Add Group" to create one, or add-ons will auto-populate from active items.</p>
+            )}
           </div>
         }
 
