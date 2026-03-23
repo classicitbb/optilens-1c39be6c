@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useShipmentCharges, useShipmentLines, computeShipmentTotals, computeLineCosts, type Shipment, type ShipmentCharge, type ShipmentLine } from "@/hooks/useShipments";
+import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useShipmentTypes, useChargeTypes } from "@/hooks/useImportCostingRefs";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { useLenses } from "@/hooks/useLenses";
@@ -24,8 +25,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { computeChargeRowTotal, computeInsuranceFreightCharge, formatMoney } from "@/lib/importCostings";
 
-const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = formatMoney;
 
 /** A text input for numeric values that only saves on blur */
 const NumericInput = ({
@@ -210,7 +212,7 @@ const ShipmentDetailPage = () => {
     id: "", type: "lens", supplier_id: "", commodity: "", date_ordered: null,
     po_ref: "", date_received: new Date().toISOString().split("T")[0],
     invoice_number: "", invoice_date: new Date().toISOString().split("T")[0],
-    currency: "USD", exchange_rate: 2, fob_foreign: 0, invoice_total_foreign: 0,
+    currency: "USD", exchange_rate: 2, fob_foreign: 0, invoice_total_foreign: 0, freight_provider: "dhl",
     status: "draft", version: 1, parent_id: null, created_by: user?.id ?? "",
     created_at: "", updated_at: "",
   };
@@ -221,6 +223,7 @@ const ShipmentDetailPage = () => {
   const [invoiceTouched, setInvoiceTouched] = useState(false);
 
   const { data: suppliers } = useReferenceData("suppliers");
+  const { settings } = usePricingEngine();
   const { data: shipmentTypes = [] } = useShipmentTypes();
   const { data: chargeTypes = [] } = useChargeTypes();
   const activeChargeTypes = chargeTypes.filter(ct => ct.is_active);
@@ -249,9 +252,9 @@ const ShipmentDetailPage = () => {
   const isLensShipment = LENS_CODES.includes(shipment?.type ?? "");
 
   const totals = useMemo(() => {
-    if (!shipment) return { fobBbd: 0, invoiceBbd: 0, totalChargesBbd: 0, totalLandedBbd: 0, multiplier: 1 };
-    return computeShipmentTotals(shipment, charges);
-  }, [shipment, charges]);
+    if (!shipment) return { exchangeRate: 1, fobBbd: 0, invoiceBbd: 0, amountTotal: 0, vatTotal: 0, dutyTotal: 0, totalChargesBbd: 0, totalLandedBbd: 0, totalLandedUsd: 0, charityAllocationBbd: 0, totalShipmentCostBbd: 0, multiplier: 0 };
+    return computeShipmentTotals(shipment, charges, settings);
+  }, [shipment, charges, settings]);
 
   const updateField = (field: string, value: any) => {
     if (!shipment) return;
@@ -381,7 +384,8 @@ const ShipmentDetailPage = () => {
 
   if (loading || !shipment) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
 
-  const xr = shipment.exchange_rate || 1;
+  const xr = totals.exchangeRate || shipment.exchange_rate || 1;
+  const insuranceFreightAmount = computeInsuranceFreightCharge(charges);
 
   return (
     <div className="p-4 space-y-4 w-fit min-w-full">
@@ -437,7 +441,7 @@ const ShipmentDetailPage = () => {
         <Field label="Commodity *">
           <Input className="h-8 text-xs" value={shipment.commodity} onChange={(e) => updateField("commodity", e.target.value)} disabled={!editable} />
         </Field>
-        <Field label="PO / Order Ref">
+        <Field label="PO / Order Ref/AWB#">
           <Input className="h-8 text-xs" value={shipment.po_ref} onChange={(e) => updateField("po_ref", e.target.value)} disabled={!editable} />
         </Field>
         <Field label="Date Ordered">
@@ -471,16 +475,39 @@ const ShipmentDetailPage = () => {
         <Field label={`Invoice Total (${shipment.currency}) *`}>
           <NumericInput value={shipment.invoice_total_foreign} onChange={(v) => { setInvoiceTouched(true); updateField("invoice_total_foreign", v); }} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
+        <Field label="Freight Provider">
+          <div className="flex h-8 items-center justify-between rounded-md border border-input bg-background px-3">
+            <span className="text-xs font-medium text-foreground">DHL / non-DHL</span>
+            <Switch
+              checked={(shipment.freight_provider ?? "dhl") === "dhl"}
+              disabled={!editable}
+              onCheckedChange={(checked) => updateField("freight_provider", checked ? "dhl" : "non-dhl")}
+              aria-label="Toggle freight provider between DHL and non-DHL"
+            />
+          </div>
+        </Field>
       </div>
 
       {/* Computed summary */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 rounded border border-border bg-muted">
-        <ComputedField label="FOB (BBD)" value={fmt(totals.fobBbd)} />
-        <ComputedField label="Invoice (BBD)" value={fmt(totals.invoiceBbd)} />
-        <ComputedField label="Total Charges (BBD)" value={fmt(totals.totalChargesBbd)} />
-        <ComputedField label="Total Landed (BBD)" value={fmt(totals.totalLandedBbd)} />
-        <ComputedField label="Multiplier" value={totals.multiplier.toFixed(4)} />
-      </div>
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Dials</h2>
+          <span className="text-xs text-muted-foreground">Rates use pricing settings for {shipment.currency} when available.</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 rounded border border-border bg-muted p-3">
+          <ComputedField label="FOB (BBD)" value={fmt(totals.fobBbd)} />
+          <ComputedField label="Invoice (BBD)" value={fmt(totals.invoiceBbd)} />
+          <ComputedField label="10% of Ins. & Frt. to Charity">
+            <div className="space-y-0.5 text-center">
+              <div className="text-sm font-mono font-semibold text-foreground">{fmt(totals.charityAllocationBbd)}</div>
+              <div className="text-[10px] text-muted-foreground">{fmt(totals.charityAllocationBbd)} + {fmt(totals.totalChargesBbd)} = {fmt(totals.totalShipmentCostBbd)}</div>
+            </div>
+          </ComputedField>
+          <ComputedField label="Total Charges (BBD)" value={fmt(totals.totalChargesBbd)} />
+          <ComputedField label="Total Landed (BBD)" value={fmt(totals.totalLandedBbd)} />
+          <ComputedField label="Multiplier" value={totals.multiplier.toFixed(4)} />
+        </div>
+      </section>
 
       {/* Tabs - only show for saved shipments */}
       {!isNew && (
@@ -513,7 +540,7 @@ const ShipmentDetailPage = () => {
                 </TableHeader>
                 <TableBody>
                   {charges.map((c) => {
-                    const rowTotal = (c.amount_bbd || 0) + (c.vat_bbd || 0) + (c.duty_bbd || 0);
+                    const rowTotal = computeChargeRowTotal(c);
                     return (
                       <TableRow key={c.id} className="text-xs">
                         <TableCell className="py-1">
@@ -542,7 +569,7 @@ const ShipmentDetailPage = () => {
                           <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-full"
                             onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => {}} />
                         </TableCell>
-                        <TableCell className="py-1 text-right font-mono">{fmt(rowTotal)}</TableCell>
+                        <TableCell className="py-1 text-right"><AlignedMoney value={rowTotal} /></TableCell>
                         {editable && (
                           <TableCell className="py-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteCharge.mutate(c.id)}>
@@ -553,6 +580,18 @@ const ShipmentDetailPage = () => {
                       </TableRow>
                     );
                   })}
+                  {charges.length > 0 && (
+                    <TableRow className="bg-muted/60 text-xs font-semibold">
+                      <TableCell className="py-2">Totals</TableCell>
+                      <TableCell className="py-2 text-right"><AlignedMoney value={totals.amountTotal} /></TableCell>
+                      <TableCell className="py-2 text-right"><AlignedMoney value={totals.vatTotal} /></TableCell>
+                      <TableCell className="py-2 text-right font-mono">{fmt(totals.dutyTotal)}</TableCell>
+                      <TableCell className="py-2" />
+                      <TableCell className="py-2 text-[11px] text-muted-foreground">Insurance &amp; Freight: <span className="font-mono text-foreground">{fmt(insuranceFreightAmount)}</span></TableCell>
+                      <TableCell className="py-2 text-right"><AlignedMoney value={totals.totalChargesBbd} /></TableCell>
+                      {editable && <TableCell className="py-2" />}
+                    </TableRow>
+                  )}
                   {charges.length === 0 && (
                     <TableRow><TableCell colSpan={8} className="text-center text-xs py-4 text-muted-foreground">No charges added</TableCell></TableRow>
                   )}
@@ -563,7 +602,10 @@ const ShipmentDetailPage = () => {
               <div>
                 {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addCharge}><Plus className="h-3 w-3" /> Add Charge</Button>}
               </div>
-              <span className="text-xs font-medium">Total Charges (BBD): <span className="font-mono">{fmt(totals.totalChargesBbd)}</span></span>
+              <div className="text-right">
+                <div className="text-[11px] font-medium text-muted-foreground">Total Charges (BBD)</div>
+                <AlignedMoney value={totals.totalChargesBbd} className="text-sm font-semibold text-foreground" />
+              </div>
             </div>
           </TabsContent>
 
@@ -686,9 +728,9 @@ const ShipmentDetailPage = () => {
                   commodity: shipment.commodity, po_ref: shipment.po_ref, date_ordered: shipment.date_ordered,
                   date_received: shipment.date_received, invoice_date: shipment.invoice_date,
                   currency: shipment.currency, exchange_rate: shipment.exchange_rate,
-                  fob_foreign: shipment.fob_foreign, fob_bbd: fobBbd.toFixed(2),
+                  fob_foreign: shipment.fob_foreign, freight_provider: shipment.freight_provider ?? "dhl", fob_bbd: fobBbd.toFixed(2),
                   invoice_total_foreign: shipment.invoice_total_foreign, invoice_total_bbd: invoiceBbd.toFixed(2),
-                  total_charges_bbd: totalChargesBbd.toFixed(2), total_landed_bbd: totalLandedBbd.toFixed(2),
+                  total_charges_bbd: totalChargesBbd.toFixed(2), charity_allocation_bbd: totals.charityAllocationBbd.toFixed(2), total_shipment_cost_bbd: totals.totalShipmentCostBbd.toFixed(2), total_landed_bbd: totalLandedBbd.toFixed(2),
                   multiplier: multiplier.toFixed(4), status: shipment.status, version: shipment.version,
                 }], `shipment-${shipment.invoice_number}.csv`);
               }}><Download className="h-3 w-3" /> Shipment</Button>
@@ -732,11 +774,24 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 );
 
-const ComputedField = ({ label, value }: { label: string; value: string }) => (
+const ComputedField = ({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) => (
   <div className="text-center">
     <div className="text-[10px] text-muted-foreground">{label}</div>
-    <div className="text-sm font-mono font-semibold text-foreground">{value}</div>
+    {children ?? <div className="text-sm font-mono font-semibold text-foreground">{value}</div>}
   </div>
 );
+
+const AlignedMoney = ({ value, className }: { value: number; className?: string }) => {
+  const fixed = Math.abs(value).toFixed(2);
+  const [whole, cents] = fixed.split(".");
+  const sign = value < 0 ? "-" : "";
+
+  return (
+    <span className={cn("inline-flex min-w-[88px] items-baseline justify-end font-mono tabular-nums", className)}>
+      <span>{sign}{Number(whole).toLocaleString()}</span>
+      <span className="w-[2.5ch] text-right">.{cents}</span>
+    </span>
+  );
+};
 
 export default ShipmentDetailPage;

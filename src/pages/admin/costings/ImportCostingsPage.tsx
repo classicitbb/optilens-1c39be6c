@@ -1,21 +1,24 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useShipments, Shipment } from "@/hooks/useShipments";
+import { useShipments, useAllShipmentCharges, Shipment } from "@/hooks/useShipments";
 import { useShipmentTypes } from "@/hooks/useImportCostingRefs";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useToast } from "@/hooks/use-toast";
+import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Trash2, Copy, Ship } from "lucide-react";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Search, Trash2, Copy, Ship, ArrowUpDown, ArrowDown, ArrowUp } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { computeShipmentDerivedTotals, formatMoney } from "@/lib/importCostings";
+import { cn } from "@/lib/utils";
 
 const statusColor: Record<string, string> = {
   draft: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
@@ -23,9 +26,21 @@ const statusColor: Record<string, string> = {
   locked: "bg-green-500/20 text-green-300 border-green-500/30",
 };
 
+type SortKey = "type" | "supplier" | "date_received" | "fob_foreign" | "total_landed_bbd" | "status";
+type SortDirection = "asc" | "desc";
+
+type ShipmentRow = Shipment & {
+  totalLandedBbd: number;
+  totalChargesBbd: number;
+};
+
+const fmt = formatMoney;
+
 const ShipmentsTab = () => {
   const { data: shipments = [], isLoading, createMutation, deleteMutation } = useShipments();
+  const { data: allCharges = [] } = useAllShipmentCharges();
   const { data: shipmentTypes = [] } = useShipmentTypes();
+  const { settings } = usePricingEngine();
   const { canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
   const canEdit = canEditFeature("costings");
@@ -35,20 +50,64 @@ const ShipmentsTab = () => {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<Shipment | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("date_received");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  const chargesByShipment = useMemo(() => {
+    return allCharges.reduce<Record<string, typeof allCharges>>((acc, charge) => {
+      const shipmentId = charge.shipment_id;
+      if (!shipmentId) return acc;
+      acc[shipmentId] ??= [];
+      acc[shipmentId].push(charge);
+      return acc;
+    }, {});
+  }, [allCharges]);
+
+  const shipmentsWithTotals = useMemo<ShipmentRow[]>(() => {
+    return shipments.map((shipment) => {
+      const totals = computeShipmentDerivedTotals(shipment, chargesByShipment[shipment.id] ?? [], settings);
+      return {
+        ...shipment,
+        totalLandedBbd: totals.totalLandedBbd,
+        totalChargesBbd: totals.totalChargesBbd,
+      };
+    });
+  }, [chargesByShipment, settings, shipments]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
-    return shipments.filter((sh) => {
+    const base = shipmentsWithTotals.filter((sh) => {
       if (typeFilter !== "all" && sh.type !== typeFilter && sh.commodity !== typeFilter) return false;
       if (!s) return true;
       return (
         sh.invoice_number.toLowerCase().includes(s) ||
-        sh.po_ref.toLowerCase().includes(s) ||
+        (sh.po_ref || "").toLowerCase().includes(s) ||
         (sh.supplier_name ?? "").toLowerCase().includes(s) ||
         sh.commodity.toLowerCase().includes(s)
       );
     });
-  }, [shipments, search, typeFilter]);
+
+    return [...base].sort((a, b) => {
+      const direction = sortDirection === "asc" ? 1 : -1;
+      const aValue = getSortValue(a, sortKey);
+      const bValue = getSortValue(b, sortKey);
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return (aValue - bValue) * direction;
+      }
+      return String(aValue).localeCompare(String(bValue), undefined, { sensitivity: "base" }) * direction;
+    });
+  }, [search, shipmentsWithTotals, sortDirection, sortKey, typeFilter]);
+
+  const totalsRow = useMemo(() => {
+    return filtered.reduce(
+      (acc, shipment) => {
+        acc.fobForeign += shipment.fob_foreign || 0;
+        acc.totalLandedBbd += shipment.totalLandedBbd || 0;
+        return acc;
+      },
+      { fobForeign: 0, totalLandedBbd: 0 }
+    );
+  }, [filtered]);
 
   const activeShipmentTypes = shipmentTypes.filter(t => t.is_active);
 
@@ -74,6 +133,7 @@ const ShipmentsTab = () => {
       const { id, created_at, updated_at, supplier_name, ...rest } = sh;
       const res = await createMutation.mutateAsync({
         ...rest,
+        freight_provider: sh.freight_provider ?? "dhl",
         status: "draft",
         version: sh.version + 1,
         parent_id: sh.id,
@@ -86,7 +146,14 @@ const ShipmentsTab = () => {
     }
   };
 
-  const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDirection(key === "date_received" ? "desc" : "asc");
+  };
 
   return (
     <div className="space-y-3">
@@ -129,13 +196,13 @@ const ShipmentsTab = () => {
           <TableHeader>
             <TableRow className="text-xs">
               <TableHead className="h-8">Invoice #</TableHead>
-              <TableHead className="h-8">Type</TableHead>
-              <TableHead className="h-8">Supplier</TableHead>
-              <TableHead className="h-8">PO Ref</TableHead>
-              <TableHead className="h-8">Date Received</TableHead>
-              <TableHead className="h-8 text-right">FOB (FX)</TableHead>
-              <TableHead className="h-8 text-right">Invoice (FX)</TableHead>
-              <TableHead className="h-8">Status</TableHead>
+              <SortableHead label="Type" sortKey="type" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
+              <SortableHead label="Supplier" sortKey="supplier" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
+              <TableHead className="h-8">PO Ref / AWB#</TableHead>
+              <SortableHead label="Date Received" sortKey="date_received" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
+              <SortableHead label="FOB (FX)" sortKey="fob_foreign" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} align="right" />
+              <SortableHead label="Total Landed (BBD)" sortKey="total_landed_bbd" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} align="right" />
+              <SortableHead label="Status" sortKey="status" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
               <TableHead className="h-8">V</TableHead>
               {canEdit && <TableHead className="h-8 w-20" />}
             </TableRow>
@@ -158,7 +225,7 @@ const ShipmentsTab = () => {
                   <TableCell className="py-1.5">{sh.po_ref || "—"}</TableCell>
                   <TableCell className="py-1.5">{sh.date_received}</TableCell>
                   <TableCell className="py-1.5 text-right font-mono">{fmt(sh.fob_foreign)}</TableCell>
-                  <TableCell className="py-1.5 text-right font-mono">{fmt(sh.invoice_total_foreign)}</TableCell>
+                  <TableCell className="py-1.5 text-right font-mono">{fmt(sh.totalLandedBbd)}</TableCell>
                   <TableCell className="py-1.5">
                     <Badge variant="outline" className={`text-[10px] ${statusColor[sh.status] || ""}`}>{sh.status}</Badge>
                   </TableCell>
@@ -183,6 +250,17 @@ const ShipmentsTab = () => {
               ))
             )}
           </TableBody>
+          <TableFooter className="sticky bottom-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90">
+            <TableRow className="text-xs hover:bg-background/95">
+              <TableCell className="py-2 font-semibold">Totals</TableCell>
+              <TableCell colSpan={4} className="py-2 text-muted-foreground">
+                {filtered.length} shipment{filtered.length === 1 ? "" : "s"} in current view
+              </TableCell>
+              <TableCell className="py-2 text-right font-mono">{fmt(totalsRow.fobForeign)}</TableCell>
+              <TableCell className="py-2 text-right font-mono">{fmt(totalsRow.totalLandedBbd)}</TableCell>
+              <TableCell colSpan={canEdit ? 3 : 2} className="py-2" />
+            </TableRow>
+          </TableFooter>
         </Table>
       </div>
 
@@ -199,6 +277,60 @@ const ShipmentsTab = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+};
+
+const getSortValue = (shipment: ShipmentRow, key: SortKey) => {
+  switch (key) {
+    case "type":
+      return shipment.type;
+    case "supplier":
+      return shipment.supplier_name || "";
+    case "date_received":
+      return shipment.date_received;
+    case "fob_foreign":
+      return shipment.fob_foreign || 0;
+    case "total_landed_bbd":
+      return shipment.totalLandedBbd || 0;
+    case "status":
+      return shipment.status;
+    default:
+      return "";
+  }
+};
+
+const SortableHead = ({
+  label,
+  sortKey,
+  activeKey,
+  direction,
+  onToggle,
+  align = "left",
+}: {
+  label: string;
+  sortKey: SortKey;
+  activeKey: SortKey;
+  direction: SortDirection;
+  onToggle: (key: SortKey) => void;
+  align?: "left" | "right";
+}) => {
+  const active = activeKey === sortKey;
+  const Icon = !active ? ArrowUpDown : direction === "asc" ? ArrowUp : ArrowDown;
+
+  return (
+    <TableHead className={cn("h-8", align === "right" && "text-right")}>
+      <button
+        type="button"
+        className={cn(
+          "inline-flex w-full items-center gap-1 text-left text-muted-foreground hover:text-foreground",
+          align === "right" && "justify-end"
+        )}
+        onClick={() => onToggle(sortKey)}
+      >
+        <span>{label}</span>
+        <Icon className="h-3.5 w-3.5" />
+      </button>
+    </TableHead>
   );
 };
 
