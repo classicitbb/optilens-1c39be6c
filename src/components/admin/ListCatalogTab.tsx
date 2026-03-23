@@ -969,14 +969,24 @@ const ListCatalogTab = ({
         })()}
         {catalogType === "rx" && renderRxGrouped()}
 
-        {showTreatmentsAddons && catalogType === "rx" && effectiveAddonRows.size > 0 &&
+        {showTreatmentsAddons && catalogType === "rx" &&
         <div className="mt-8 border-t-2 border-dashed border-border pt-4">
-            <div className="px-4 py-2 mb-2 text-xs font-bold tracking-wide" style={{ background: "hsl(var(--admin-table-addon-header))", color: "hsl(var(--admin-table-addon-header-fg))" }}>
-              ADD ONS
+            <div className="flex items-center justify-between px-4 py-2 mb-2" style={{ background: "hsl(var(--admin-table-addon-header))", color: "hsl(var(--admin-table-addon-header-fg))" }}>
+              <span className="text-xs font-bold tracking-wide">ADD-ONS & EXTRAS</span>
+              <button
+                className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors no-print"
+                onClick={() => addNewGroup("addon")}
+              >
+                <Plus className="h-3 w-3" /> Add Group
+              </button>
             </div>
-            <Accordion type="multiple" defaultValue={[...effectiveAddonRows.keys()]} className="space-y-0">
-              {[...effectiveAddonRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "addon"))}
-            </Accordion>
+            {effectiveAddonRows.size > 0 ? (
+              <Accordion type="multiple" defaultValue={[...effectiveAddonRows.keys()]} className="space-y-0">
+                {[...effectiveAddonRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "addon"))}
+              </Accordion>
+            ) : (
+              <p className="text-xs text-muted-foreground px-4 py-4 italic">No add-on groups yet. Click "Add Group" to create one, or add-ons will auto-populate from active items.</p>
+            )}
           </div>
         }
 
