@@ -523,15 +523,14 @@ const Header = () => {
                 }
               }}>
               
-                <Search className="mr-2 h-4 w-4" />
-                <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
-                Search
+                <Search className="h-4 w-4" />
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
               </Button>
 
               <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
                 <a href="tel:+12464334928">
                   <Phone className="mr-2 h-4 w-4" />
-                  +1 246 433-4928
+                  Call Us
                 </a>
               </Button>
 
