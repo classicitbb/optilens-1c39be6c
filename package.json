@@ -54,7 +54,7 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/supabase-js": "^2.99.1",
-    "@tanstack/react-query": "^5.83.0",
+    "@tanstack/react-query": "^5.95.0",
     "@tiptap/extension-link": "^3.20.1",
     "@tiptap/extension-placeholder": "^3.20.4",
     "@tiptap/pm": "^3.20.2",
