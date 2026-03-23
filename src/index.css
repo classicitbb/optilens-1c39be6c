@@ -1,4 +1,4 @@
-/* Fonts loaded via index.html to avoid render-blocking @import chain */
+/* Fonts loaded via JS imports in main.tsx */
 
 @import "tailwindcss";
 
