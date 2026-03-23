@@ -118,7 +118,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if (versionsError) throw versionsError;
       const versions = (versionsRaw ?? []) as unknown as { id: number }[];
 
-      if ((versions ?? []).length > 0) {
+      if (versions.length > 0) {
         const groupingVersionRows = versions.map((version) => ({
           pricelist_version_id: version.id,
           grouping_id: (grouping as any).id,
