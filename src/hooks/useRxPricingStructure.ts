@@ -119,10 +119,10 @@ export const useRxPricingStructure = (versionId: number | null) => {
       const versions = (versionsRaw ?? []) as unknown as { id: number }[];
 
       if ((versions ?? []).length > 0) {
-        const groupingVersionRows = (versions ?? []).map((version: { id: number }) => ({
+        const groupingVersionRows = versions.map((version) => ({
           pricelist_version_id: version.id,
-          grouping_id: grouping.id,
-          sort_order: grouping.sort_order,
+          grouping_id: (grouping as any).id,
+          sort_order: (grouping as any).sort_order,
           is_enabled: true,
         }));
         const { error: groupingVersionError } = await supabase.from("rx_price_grouping_versions" as any).upsert(groupingVersionRows, { onConflict: "pricelist_version_id,grouping_id" });
