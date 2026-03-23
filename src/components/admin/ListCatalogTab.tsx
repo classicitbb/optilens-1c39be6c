@@ -171,7 +171,7 @@ const ListCatalogTab = ({
       parseFloat(((sellPrice - itemCost) / sellPrice * 100).toFixed(1)) :
       null;
       const parsedMatrixKey = parseMatrixRowKey(r.row_key);
-      const mappedMatrixMeta = parsedMatrixKey ? rxCategoryMap.get(`${parsedMatrixKey.groupKey}::${parsedMatrixKey.categoryKey}`) : null;
+      const mappedMatrixMeta = parsedMatrixKey ? rxCategoryMap.get(`${(parsedMatrixKey as any).groupKey ?? parsedMatrixKey.treatment_type}::${(parsedMatrixKey as any).categoryKey ?? parsedMatrixKey.category}`) : null;
       const derivedSection = mappedMatrixMeta ? buildMatrixSectionLabel(mappedMatrixMeta.grouping.name, mappedMatrixMeta.category.name) : r.section;
       const row: CatalogRow = {
         key: r.row_key,
