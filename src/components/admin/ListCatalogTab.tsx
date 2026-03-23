@@ -475,14 +475,14 @@ const ListCatalogTab = ({
     setIsDirty(true);
   };
 
-  const handleRestore = () => {
+  const handleRestore = useCallback(() => {
     setLensRows(new Map());
     setAddonRows(new Map());
     setSupplyRows(new Map());
     setIsDirty(false);
     setEditingSectionName(null);
     toast({ title: "Restored", description: "Reverted to last saved state." });
-  };
+  }, [toast]);
 
   /* ── Save to DB ── */
   const handleSave = async () => {
