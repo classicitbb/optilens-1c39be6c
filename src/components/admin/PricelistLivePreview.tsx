@@ -251,9 +251,14 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     const addonListSections: PrintListSection<(typeof catalogRows)[number]>[] = [...addonsBySection.entries()].map(([section, rows]) => ({ key: `addon-${section}`, label: section, rows }));
     const listChunks = preparePrintListChunks([...lensListSections, ...addonListSections], { rowsPerPage: 20, minSplitThreshold: 5 });
 
+     const hasLensContent = lensListSections.some((s) => s.rows.length > 0);
+    const hasAddonContent = addonListSections.length > 0;
+
     return (
       <div className="space-y-5">
-        {!hasContent ? <p className="text-xs text-muted-foreground text-center py-6">No price list rows yet. Add lenses in the Price Matrix Editor tab.</p> : listChunks.map((chunk) => <SectionTable key={chunk.key} label={chunk.label} rows={chunk.rows} pageBreakBefore={chunk.pageBreakBefore} isContinuation={chunk.isContinuation} />)}
+        {!hasLensContent && !hasAddonContent && <p className="text-xs text-muted-foreground text-center py-6">No price list rows yet. Add lenses in the Price Matrix Editor tab.</p>}
+        {!hasLensContent && hasAddonContent && <p className="text-xs text-muted-foreground text-center py-4">No lens rows yet.</p>}
+        {listChunks.map((chunk) => <SectionTable key={chunk.key} label={chunk.label} rows={chunk.rows} pageBreakBefore={chunk.pageBreakBefore} isContinuation={chunk.isContinuation} />)}
       </div>
     );
   };
