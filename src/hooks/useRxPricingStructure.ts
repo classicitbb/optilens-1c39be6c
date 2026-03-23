@@ -111,7 +111,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
           })))
           .select("id, key");
         if (categoryInsertError) throw categoryInsertError;
-        insertedCategories = (newCategoryRows ?? []) as Array<{ id: number; key: string }>;
+        insertedCategories = (newCategoryRows ?? []) as unknown as Array<{ id: number; key: string }>;
       }
 
       const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
