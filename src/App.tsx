@@ -79,6 +79,7 @@ const App = () => (
                 <Route element={<CustomerShell />}>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/unsubscribe" element={<Unsubscribe />} />
                   <Route path="/store" element={<Store />} />
                   <Route path="/profile/*" element={<PortalRoutes />} />
                   <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
