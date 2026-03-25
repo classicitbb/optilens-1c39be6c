@@ -1,3 +1,21 @@
+# AGENTS.md
+
+## Environment
+- Use Node 20
+- Install dependencies with `npm ci` when `package-lock.json` exists
+- Do not switch package managers
+- Assume the repo must work from a clean checkout
+
+## Validation
+- Run `npm run lint`
+- Run `npm run test -- --runInBand`
+- Run `npm run build`
+
+## Rules
+- Fix dependency and environment issues before changing app code
+- Do not bypass failing checks by removing scripts
+- Report exact failing command and root cause
+
 # Repository agent rules
 
 - Preserve the existing wiki reader shell unless explicitly instructed otherwise.
