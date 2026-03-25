@@ -26,12 +26,14 @@
 - Preserve navigation hierarchy and article URLs during migration.
 - Prefer maintainable refactors over parallel legacy systems.
 
-## Admin architecture and routing governance
+## Frontend architecture and routing governance
 
-- Treat `src/routes/admin/AdminRoutes.tsx` as the canonical runtime route map for the `/admin` shell.
-- Keep `src/features/admin/core/config/apps.ts` synchronized with canonical route assignments (no dead sidebar links).
-- Every admin page must have exactly one canonical route; legacy URLs must be redirect-only.
-- Do not introduce parallel active routing systems for the same admin runtime without an explicit migration plan.
-- For Moonshot pages, prefer the canonical `/admin/moonshot/**` route namespace and keep shell parity with other admin apps.
-- New admin views must include: route registration, nav placement, authz decision, and tests for route accessibility.
-- Keep website content management and website product/store operations as separate admin surfaces.
+- Treat `src/App.tsx` as the frontend shell entrypoint and keep domain split explicit: public, portal, admin, moonshot, ops.
+- Keep route declarations centralized in `src/routes/**` and keep `src/config/routeRegistry.ts` synchronized for metadata + legacy redirects.
+- Every page component intended for runtime use must have exactly one canonical route.
+- Legacy and alias paths must be redirect-only, not duplicate page implementations.
+- Keep privileged areas (`/admin/**`, `/admin/moonshot/**`, `/ops/**`) behind explicit admin authorization guards.
+- Keep `src/features/admin/core/config/apps.ts` synchronized with admin route assignments (no dead sidebar links).
+- Do not run parallel active route systems for the same runtime surface without a migration plan and deprecation path.
+- Keep website content management (`/admin/website/content`) and website product/store operations (`/admin/website/store`) as separate admin surfaces.
+- New routes must ship with: route registration, navigation placement, auth decision, and route accessibility tests.
