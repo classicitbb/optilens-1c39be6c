@@ -46,6 +46,8 @@ interface PortalCustomerListItem {
   crmContactId: string | null;
   crmCustomerId: number | null;
   assignedPricelistId: number | null;
+  cartItemCount: number;
+  cartStatus: "empty" | "in_progress" | "abandoned";
 }
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
@@ -98,6 +100,11 @@ const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders"] as c
 
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "—");
+const getCartStatusLabel = (status: PortalCustomerListItem["cartStatus"]) => {
+  if (status === "abandoned") return "Abandoned";
+  if (status === "in_progress") return "In progress";
+  return "No cart";
+};
 
 const WebsitePortalsPage = () => {
   const queryClient = useQueryClient();
@@ -131,9 +138,32 @@ const WebsitePortalsPage = () => {
         ]),
       );
 
+      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }] = await Promise.all([
+        (supabase as any)
+          .from("cart_items")
+          .select("user_id,quantity")
+          .in("user_id", portalUserIds),
+        (supabase as any)
+          .from("abandoned_cart_alerts")
+          .select("user_id,status")
+          .in("user_id", portalUserIds)
+          .eq("status", "open"),
+      ]);
+
+      if (cartError) throw cartError;
+      if (alertError) throw alertError;
+
+      const cartCountByUser = ((cartRows ?? []) as Array<{ user_id: string; quantity: number }>).reduce<Record<string, number>>(
+        (acc, row) => ({ ...acc, [row.user_id]: (acc[row.user_id] ?? 0) + Number(row.quantity ?? 0) }),
+        {},
+      );
+
+      const openAlertByUser = new Set(((alertRows ?? []) as Array<{ user_id: string }>).map((row) => row.user_id));
+
       return portalUsers
         .map((entry) => {
           const profile = profileMap.get(entry.user_id);
+          const cartItemCount = cartCountByUser[entry.user_id] ?? 0;
           return {
             userId: entry.user_id,
             profileId: profile?.id ? String(profile.id) : `pending:${entry.user_id}`,
@@ -146,6 +176,8 @@ const WebsitePortalsPage = () => {
             crmContactId: typeof profile?.crm_contact_id === "string" ? profile.crm_contact_id : null,
             crmCustomerId: typeof profile?.crm_customer_id === "number" ? profile.crm_customer_id : null,
             assignedPricelistId: null,
+            cartItemCount,
+            cartStatus: openAlertByUser.has(entry.user_id) ? "abandoned" : cartItemCount > 0 ? "in_progress" : "empty",
           } satisfies PortalCustomerListItem;
         })
         .sort((a, b) => (b.fullName || b.email).localeCompare(a.fullName || a.email));
@@ -415,8 +447,15 @@ const WebsitePortalsPage = () => {
                     <p className="font-medium text-foreground">{customer.fullName || customer.email || "Customer"}</p>
                     <p className="text-xs text-muted-foreground">{customer.email || "No email on file"}</p>
                     {customer.organizationName ? <p className="mt-1 text-xs text-muted-foreground">{customer.organizationName}</p> : null}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Cart: {getCartStatusLabel(customer.cartStatus)} ({customer.cartItemCount} item{customer.cartItemCount === 1 ? "" : "s"})
+                    </p>
                   </div>
-                  <Badge variant="outline">{customer.portalAccessStatus.replace(/_/g, " ")}</Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="outline">{customer.portalAccessStatus.replace(/_/g, " ")}</Badge>
+                    {customer.cartStatus === "abandoned" ? <Badge variant="destructive">Abandoned</Badge> : null}
+                    {customer.cartStatus === "in_progress" ? <Badge className="bg-amber-500 text-amber-950 hover:bg-amber-500">In progress</Badge> : null}
+                  </div>
                 </div>
               </button>
             ))}
@@ -548,7 +587,14 @@ const WebsitePortalsPage = () => {
                               <p className="text-sm font-semibold text-foreground">Current cart</p>
                               <p className="text-xs text-muted-foreground">Use a saved card to capture payment immediately, or create a pending manual-review order if no card is on file.</p>
                             </div>
-                            <Badge variant="outline">{detailQuery.data.cartItems.length} item(s)</Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">{detailQuery.data.cartItems.length} item(s)</Badge>
+                              {detailQuery.data.abandonedAlerts.some((alert) => alert.status === "open")
+                                ? <Badge variant="destructive">Abandoned</Badge>
+                                : detailQuery.data.cartItems.length > 0
+                                  ? <Badge className="bg-amber-500 text-amber-950 hover:bg-amber-500">In progress</Badge>
+                                  : <Badge variant="secondary">Empty</Badge>}
+                            </div>
                           </div>
                           <div className="space-y-2">
                             {detailQuery.data.cartItems.length ? detailQuery.data.cartItems.map((item) => (

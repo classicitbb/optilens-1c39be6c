@@ -40,12 +40,22 @@ const getStatusColor = (status: string) => {
 const MyOrdersSection = () => {
   const { orders, loading } = useOrders();
   const { canAccessFeature } = usePortalIdentity();
+  const pendingOrders = orders.filter((order) => ["draft", "pending", "confirmed", "processing"].includes(order.status));
+  const completedOrders = orders.filter((order) => order.status === "completed");
+  const otherOrders = orders.filter((order) => !["draft", "pending", "confirmed", "processing", "completed"].includes(order.status));
+
+  const groupedOrders = [
+    { key: "pending", title: "Pending orders", description: "Orders currently in progress or awaiting fulfillment.", orders: pendingOrders },
+    { key: "completed", title: "Completed orders", description: "Orders that have been fully completed.", orders: completedOrders },
+    { key: "other", title: "Other statuses", description: "Cancelled, shipped, or other order states.", orders: otherOrders },
+  ].filter((group) => group.orders.length > 0);
 
   return (
     <section className="space-y-6">
       <header className="space-y-1">
         <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
         <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
+        {pendingOrders.length ? <Badge className="w-fit bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingOrders.length}</Badge> : null}
         {!canAccessFeature("private-orders") ? (
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
         ) : null}
@@ -65,60 +75,68 @@ const MyOrdersSection = () => {
         </Card>
       ) : (
         <div className="space-y-6">
-          {orders.map((order, index) => (
-            <Card key={order.id} className="animate-fade-in opacity-0" style={{ animationDelay: `${index * 50}ms` }}>
-              <CardHeader>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Package className="h-5 w-5" />
-                      Order #{order.id.slice(0, 8).toUpperCase()}
-                    </CardTitle>
-                    <CardDescription className="mt-1 flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {format(new Date(order.createdAt), "PPP 'at' p")}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className={getStatusColor(order.status)}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </Badge>
-                    <span className="text-xl font-bold text-foreground">${order.totalAmount.toFixed(2)}</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Accordion type="single" collapsible>
-                  <AccordionItem value="items" className="border-none">
-                    <AccordionTrigger className="py-2 text-sm hover:no-underline">
-                      View {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? "s" : ""}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Product</TableHead>
-                            <TableHead className="text-right">Price</TableHead>
-                            <TableHead className="text-right">Qty</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {order.items?.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell className="font-medium">{item.productName}</TableCell>
-                              <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">{item.quantity}</TableCell>
-                              <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CardContent>
-            </Card>
+          {groupedOrders.map((group) => (
+            <section key={group.key} className="space-y-3">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">{group.title}</h3>
+                <p className="text-sm text-muted-foreground">{group.description}</p>
+              </div>
+              {group.orders.map((order, index) => (
+                <Card key={order.id} className="animate-fade-in opacity-0" style={{ animationDelay: `${index * 50}ms` }}>
+                  <CardHeader>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Package className="h-5 w-5" />
+                          Order #{order.id.slice(0, 8).toUpperCase()}
+                        </CardTitle>
+                        <CardDescription className="mt-1 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(order.createdAt), "PPP 'at' p")}
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className={getStatusColor(order.status)}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </Badge>
+                        <span className="text-xl font-bold text-foreground">${order.totalAmount.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible>
+                      <AccordionItem value="items" className="border-none">
+                        <AccordionTrigger className="py-2 text-sm hover:no-underline">
+                          View {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? "s" : ""}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Product</TableHead>
+                                <TableHead className="text-right">Price</TableHead>
+                                <TableHead className="text-right">Qty</TableHead>
+                                <TableHead className="text-right">Total</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {order.items?.map((item) => (
+                                <TableRow key={item.id}>
+                                  <TableCell className="font-medium">{item.productName}</TableCell>
+                                  <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
+                                  <TableCell className="text-right">{item.quantity}</TableCell>
+                                  <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              ))}
+            </section>
           ))}
         </div>
       )}
