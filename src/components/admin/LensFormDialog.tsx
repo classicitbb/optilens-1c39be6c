@@ -58,6 +58,10 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const [pendingNavTarget, setPendingNavTarget] = useState<Lens | null>(null);
   const initialFormRef = useRef<string>("");
   const userEditedRef = useRef(false);
+  const setSavedBaseline = useCallback((nextForm: LensFormData) => {
+    initialFormRef.current = JSON.stringify(nextForm);
+    userEditedRef.current = false;
+  }, []);
 
   const suppliers = useReferenceData("suppliers", open);
   const brands = useReferenceData("brands", open);
@@ -79,8 +83,9 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
   useEffect(() => {
     if (!open) return;
+    let nextForm: LensFormData;
     if (lens) {
-      setForm({
+      nextForm = {
         name: lens.name, supplier_id: lens.supplier_id, brand_id: lens.brand_id,
         material_id: lens.material_id, mftype_id: lens.mftype_id, lenstype_id: lens.lenstype_id,
         finishtype_id: lens.finishtype_id ?? null,
@@ -96,19 +101,13 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
         option: lens.lens_lens_options.length > 0 ?
         { lens_option_id: lens.lens_lens_options[0].lens_option_id, extra_cost: lens.lens_lens_options[0].extra_cost } :
         null
-      });
+      };
     } else {
-      setForm(emptyForm);
+      nextForm = emptyForm;
     }
-  }, [open, lens]);
-
-  useEffect(() => {
-    if (open) {
-      userEditedRef.current = false;
-      const timer = setTimeout(() => {initialFormRef.current = JSON.stringify(form);}, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [open, lens]);
+    setForm(nextForm);
+    setSavedBaseline(nextForm);
+  }, [open, lens, setSavedBaseline]);
 
   const selectedMaterial = (materials.data ?? []).find((m) => m.id === form.material_id);
   const selectedMftype = (mftypes.data ?? []).find((m) => m.id === form.mftype_id);
@@ -163,17 +162,11 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   };
 
   const setOption = (optionId: string) => {
-    setForm((prev) => ({
-      ...prev,
-      option: optionId ? { lens_option_id: optionId, extra_cost: prev.option?.extra_cost ?? 0 } : null
-    }));
+    set("option", optionId ? { lens_option_id: optionId, extra_cost: form.option?.extra_cost ?? 0 } : null);
   };
 
   const setOptionCost = (cost: number) => {
-    setForm((prev) => ({
-      ...prev,
-      option: prev.option ? { ...prev.option, extra_cost: cost } : null
-    }));
+    set("option", form.option ? { ...form.option, extra_cost: cost } : null);
   };
 
   const buildFinalForm = () => {
@@ -190,14 +183,20 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
       return;
     }
     const finalForm = buildFinalForm();
-    if (action === "save") onSubmit(finalForm);else
+    if (action === "save") {
+      onSubmit(finalForm);
+      setSavedBaseline(finalForm);
+    } else
     onSubmitAndClose?.(finalForm);
   };
 
   const handleReasonConfirm = (reason: string) => {
     setReasonDialogOpen(false);
     const finalForm = buildFinalForm();
-    if (pendingAction === "save") onSubmit(finalForm, reason);else
+    if (pendingAction === "save") {
+      onSubmit(finalForm, reason);
+      setSavedBaseline(finalForm);
+    } else
     onSubmitAndClose?.(finalForm, reason);
     setPendingAction(null);
   };
@@ -216,13 +215,9 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const isDirty = () => JSON.stringify(form) !== initialFormRef.current;
 
   const handleNavigate = (target: Lens) => {
-    if (userEditedRef.current && isDirty() && form.base_price > 0) {
+    if (userEditedRef.current && isDirty()) {
       setPendingNavTarget(target);
       setUnsavedDialogOpen(true);
-    } else if (userEditedRef.current && isDirty()) {
-      const finalForm = buildFinalForm();
-      onSubmit(finalForm);
-      setTimeout(() => onNavigate?.(target), 100);
     } else {
       onNavigate?.(target);
     }
@@ -232,6 +227,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
     setUnsavedDialogOpen(false);
     const finalForm = buildFinalForm();
     onSubmit(finalForm);
+    setSavedBaseline(finalForm);
     if (pendingNavTarget) {
       setTimeout(() => onNavigate?.(pendingNavTarget), 100);
       setPendingNavTarget(null);
