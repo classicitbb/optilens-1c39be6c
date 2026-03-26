@@ -93,10 +93,13 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     name: string;
     price: number;
     productType: "lens" | "supply";
+    quantity?: number;
   }) => {
     if (!user) return;
 
     try {
+      const quantityToAdd = Math.max(1, Math.floor(product.quantity ?? 1));
+
       // Check if item already exists
       const existingItem = items.find((item) => item.product_id === product.id);
 
@@ -104,15 +107,15 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         // Update quantity
         const { error } = await supabase
           .from("cart_items")
-          .update({ quantity: existingItem.quantity + 1 })
+          .update({ quantity: existingItem.quantity + quantityToAdd })
           .eq("id", existingItem.id);
 
         if (error) throw error;
 
         setItems((prev) =>
           prev.map((item) =>
-            item.id === existingItem.id
-              ? { ...item, quantity: item.quantity + 1 }
+              item.id === existingItem.id
+              ? { ...item, quantity: item.quantity + quantityToAdd }
               : item
           )
         );
@@ -126,6 +129,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
             product_name: product.name,
             product_price: product.price,
             product_type: product.productType,
+            quantity: quantityToAdd,
           })
           .select()
           .single();

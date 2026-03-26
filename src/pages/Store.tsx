@@ -33,8 +33,9 @@ const ProductCard = ({ product, index }: { product: StoreProduct; index: number 
     addToCart({
       id: getStableStoreProductCartId(product),
       name: product.name,
-      price: product.sell_price,
+      price: product.sell_price_usd,
       productType: product.product_type,
+      quantity: product.product_type === "lens" ? 2 : 1,
     });
   };
 
@@ -57,8 +58,8 @@ const ProductCard = ({ product, index }: { product: StoreProduct; index: number 
         </div>
         <div className="grid grid-cols-[1fr_92px] gap-3">
           <div className="min-w-0 space-y-1">
-            <CardTitle className="truncate text-lg">{product.name}</CardTitle>
-            <CardDescription className="line-clamp-2">{product.description}</CardDescription>
+            <CardTitle className="text-lg leading-snug break-words">{product.name}</CardTitle>
+            <CardDescription className="whitespace-normal break-words">{product.description}</CardDescription>
           </div>
           <div className="relative h-[92px] w-[92px] overflow-hidden rounded-md border border-border/50 bg-muted/30">
             {product.image_url ? (
@@ -101,15 +102,16 @@ const ProductCard = ({ product, index }: { product: StoreProduct; index: number 
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex items-center justify-between">
+      <CardFooter className="flex flex-wrap items-center justify-between gap-2">
         {user ? (
           <>
             <div className="text-2xl font-bold text-foreground">
-              ${product.sell_price.toFixed(2)}
+              ${product.sell_price_usd.toFixed(2)}
               <span className="text-sm font-normal text-muted-foreground">
-                {product.product_type === "supply" ? `/${product.subcategory}` : "/lens"}
+                {product.product_type === "supply" ? `/${product.subcategory}` : "/pair"}
               </span>
             </div>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</span>
             <Button variant="hero" size="sm" onClick={handleAdd}>
               <ShoppingCart className="h-4 w-4" />
               {product.has_variants ? "Configure" : "Add to Cart"}

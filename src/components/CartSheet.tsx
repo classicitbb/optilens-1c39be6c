@@ -117,7 +117,7 @@ export const CartSheet = ({
                         <h4 className="font-medium text-foreground">{item.product_name}</h4>
                       )}
                       <p className="text-sm text-muted-foreground">
-                        ${item.product_price.toFixed(2)}${item.product_type === "supply" ? "/unit" : "/lens"}
+                        ${item.product_price.toFixed(2)}{item.product_type === "supply" ? "/unit" : "/pair"} <span className="text-[10px] font-semibold uppercase">USD</span>
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export const CartSheet = ({
               <Separator className="my-3" />
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total</span>
-                <span>${totalPrice.toFixed(2)}</span>
+                <span>${totalPrice.toFixed(2)} <span className="text-[10px] font-semibold uppercase text-muted-foreground">USD</span></span>
               </div>
               <Button
                 variant="hero"

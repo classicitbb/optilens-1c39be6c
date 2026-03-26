@@ -41,8 +41,9 @@ const StoreProductPage = () => {
     addToCart({
       id: getStableStoreProductCartId(product),
       name: product.name,
-      price: product.sell_price,
+      price: product.sell_price_usd,
       productType: product.product_type,
+      quantity: product.product_type === "lens" ? 2 : 1,
     });
   };
 
@@ -104,7 +105,7 @@ const StoreProductPage = () => {
 
                   <div className="space-y-4">
                     <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
-                    <p className="text-muted-foreground">{product.description}</p>
+                    <p className="whitespace-normal break-words text-muted-foreground">{product.description}</p>
 
                     {product.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2">
@@ -116,11 +117,12 @@ const StoreProductPage = () => {
 
                     <div className="pt-2">
                       <div className="text-3xl font-bold text-foreground">
-                        ${product.sell_price.toFixed(2)}
+                        ${product.sell_price_usd.toFixed(2)}
                         <span className="ml-1 text-sm font-normal text-muted-foreground">
-                          {product.product_type === "supply" ? `/${product.subcategory}` : "/lens"}
+                          {product.product_type === "supply" ? `/${product.subcategory}` : "/pair"}
                         </span>
                       </div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</div>
                     </div>
 
                     {product.has_variants && (

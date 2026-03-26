@@ -750,7 +750,10 @@ export const CheckoutDialog = ({
                   </div>
 
                   <aside className="space-y-4 rounded-lg border p-4 lg:sticky lg:top-4">
-                    <h3 className="text-base font-semibold text-foreground">Order summary</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-semibold text-foreground">Order summary</h3>
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</span>
+                    </div>
                     <div className="max-h-80 space-y-3 overflow-y-auto">
                       {items.map((item) => {
                         const itemLink = cartLinksByItemId.get(item.id);
@@ -776,7 +779,7 @@ export const CheckoutDialog = ({
 
                     <div className="flex justify-between text-lg font-semibold">
                       <span>Total</span>
-                      <span>${totalLabel}</span>
+                      <span>${totalLabel} <span className="text-[10px] font-semibold uppercase text-muted-foreground">USD</span></span>
                     </div>
 
                     <div className="grid gap-3 pt-2 sm:grid-cols-3 lg:grid-cols-1">

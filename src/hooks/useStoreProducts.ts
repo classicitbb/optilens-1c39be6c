@@ -6,6 +6,7 @@ export interface StoreProduct {
   name: string;
   description: string;
   sell_price: number;
+  sell_price_usd: number;
   product_type: "lens" | "supply";
   category: string; // lens type name or supply category
   subcategory: string; // material name or supply unit
@@ -58,11 +59,27 @@ export const useStoreProducts = () => {
       if (lensRes.error) throw lensRes.error;
       if (supplyRes.error) throw supplyRes.error;
 
+      const { data: pricingSettings } = await supabase
+        .from("pricing_settings")
+        .select("fx_rates, fx_risk_buffer")
+        .eq("is_active", true)
+        .order("version", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const fxRates = (pricingSettings?.fx_rates ?? {}) as Record<string, number>;
+      const usdFxRate = (fxRates.USD ?? 1) * (1 + (pricingSettings?.fx_risk_buffer ?? 0));
+      const normalizeUsdPrice = (price: number | null | undefined) => {
+        const numericPrice = Number(price ?? 0);
+        return usdFxRate > 0 ? numericPrice / usdFxRate : numericPrice;
+      };
+
       const lenses: StoreProduct[] = (lensRes.data || []).map((l: any) => ({
         id: l.id,
         name: l.name,
         description: l.notes || "Premium prescription lens",
-        sell_price: l.sell_price,
+        sell_price: Number(l.sell_price ?? 0),
+        sell_price_usd: normalizeUsdPrice(l.sell_price),
         product_type: "lens" as const,
         category: l.lenstype?.name || "Lens",
         subcategory: l.material?.name || "",
@@ -75,7 +92,8 @@ export const useStoreProducts = () => {
         id: s.id,
         name: s.name,
         description: s.description || "",
-        sell_price: s.sell_price,
+        sell_price: Number(s.sell_price ?? 0),
+        sell_price_usd: normalizeUsdPrice(s.sell_price),
         product_type: "supply" as const,
         category: s.category,
         subcategory: `${s.quantity_per_unit} ${s.unit}`,
