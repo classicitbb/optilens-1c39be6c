@@ -3859,28 +3859,55 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          billing_address: Json | null
           bio: string | null
           created_at: string
+          crm_contact_id: string | null
+          crm_customer_id: number | null
           display_name: string | null
+          full_name: string | null
           id: string
+          organization_name: string | null
+          phone: string | null
+          portal_access_note: string | null
+          portal_access_status: string | null
+          shipping_address: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          billing_address?: Json | null
           bio?: string | null
           created_at?: string
+          crm_contact_id?: string | null
+          crm_customer_id?: number | null
           display_name?: string | null
+          full_name?: string | null
           id?: string
+          organization_name?: string | null
+          phone?: string | null
+          portal_access_note?: string | null
+          portal_access_status?: string | null
+          shipping_address?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          billing_address?: Json | null
           bio?: string | null
           created_at?: string
+          crm_contact_id?: string | null
+          crm_customer_id?: number | null
           display_name?: string | null
+          full_name?: string | null
           id?: string
+          organization_name?: string | null
+          phone?: string | null
+          portal_access_note?: string | null
+          portal_access_status?: string | null
+          shipping_address?: Json | null
           updated_at?: string
           user_id?: string
         }
