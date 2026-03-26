@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Copy, Trash2, Lock, Unlock, ArrowUpDown } from "lucide-react";
+import { Copy, Trash2, Lock, Unlock, ArrowUpDown, Globe } from "lucide-react";
 import type { Supply } from "@/hooks/useSupplies";
 import { useMemo, useState, useCallback, useEffect } from "react";
 import MultiSelectFilter from "./MultiSelectFilter";
@@ -10,6 +10,7 @@ import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { usePricelistUsedItems } from "@/hooks/usePricelistUsedItems";
 import { fieldsMatch } from "@/lib/wildcardMatch";
+import { getStoreProductRoute } from "@/hooks/useStoreProducts";
 
 
 type Filter = "active" | "inactive" | "all" | "web";
@@ -253,7 +254,22 @@ const SupplyDataTable = ({
                   <TableCell className={`${tdCls} text-right font-medium`}>{s.sell_price.toFixed(2)}</TableCell>
                   <TableCell className={`${tdCls} text-right`} style={{ color: "hsl(var(--admin-muted-fg))" }}>{fxRate > 0 ? (s.sell_price / fxRate).toFixed(2) : "—"}</TableCell>
                   <TableCell className={tdCls}>{s.quantity_per_unit > 1 ? `${s.quantity_per_unit}/${s.unit}` : s.unit}</TableCell>
-                  <TableCell className={tdCls}>{s.show_on_website ? "✓" : ""}</TableCell>
+                  <TableCell className={tdCls}>
+                    {s.show_on_website ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        title="Open product page"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          window.open(getStoreProductRoute({ id: s.id, product_type: "supply" }), "_blank", "noopener,noreferrer");
+                        }}
+                      >
+                        <Globe className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : ""}
+                  </TableCell>
                   {showActions && (
                     <TableCell className={tdCls} onClick={(e) => e.stopPropagation()}>
                       <Switch checked={s.is_active} onCheckedChange={() => onToggleActive(s)} />
