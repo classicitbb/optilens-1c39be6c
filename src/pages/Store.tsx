@@ -3,15 +3,15 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Search, Eye } from "lucide-react";
+import { ShoppingCart, Search, Eye, Expand, Lock } from "lucide-react";
 import { useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { LensChatbot } from "@/components/LensChatbot";
-import { Link, useSearchParams } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useStoreProducts, StoreProduct } from "@/hooks/useStoreProducts";
+import { useStoreProducts, StoreProduct, getStableStoreProductCartId, getStoreProductRoute } from "@/hooks/useStoreProducts";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -19,25 +19,19 @@ const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   accessories: "Eyewear Accessories",
 };
 
-const getStableProductId = (product: Pick<StoreProduct, "id" | "product_type">) => {
-  let hash = 2166136261;
-  const input = `${product.product_type}:${product.id}`;
-
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return Math.abs(hash >>> 0);
-};
-
 const ProductCard = ({ product, index }: { product: StoreProduct; index: number }) => {
   const { addToCart } = useCartContext();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleAdd = () => {
+    if (product.has_variants) {
+      navigate(getStoreProductRoute(product));
+      return;
+    }
+
     addToCart({
-      id: getStableProductId(product),
+      id: getStableStoreProductCartId(product),
       name: product.name,
       price: product.sell_price,
       productType: product.product_type,
@@ -50,7 +44,7 @@ const ProductCard = ({ product, index }: { product: StoreProduct; index: number 
       className="opacity-0 animate-fade-in"
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      <CardHeader>
+      <CardHeader className="gap-4">
         <div className="mb-2 flex items-center gap-2">
           <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium capitalize text-accent">
             {product.product_type === "supply" ? (SUPPLY_CATEGORY_LABELS[product.category] || product.category) : product.category}
@@ -61,8 +55,39 @@ const ProductCard = ({ product, index }: { product: StoreProduct; index: number 
             </span>
           )}
         </div>
-        <CardTitle className="text-lg">{product.name}</CardTitle>
-        <CardDescription>{product.description}</CardDescription>
+        <div className="grid grid-cols-[1fr_92px] gap-3">
+          <div className="min-w-0 space-y-1">
+            <CardTitle className="truncate text-lg">{product.name}</CardTitle>
+            <CardDescription className="line-clamp-2">{product.description}</CardDescription>
+          </div>
+          <div className="relative h-[92px] w-[92px] overflow-hidden rounded-md border border-border/50 bg-muted/30">
+            {product.image_url ? (
+              <img src={product.image_url} alt={`${product.name} thumbnail`} className="h-full w-full object-cover" loading="lazy" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">No image</div>
+            )}
+            {product.image_url && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute bottom-1 right-1 h-6 w-6"
+                    aria-label={`Expand image for ${product.name}`}
+                  >
+                    <Expand className="h-3.5 w-3.5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{product.name}</DialogTitle>
+                  </DialogHeader>
+                  <img src={product.image_url} alt={`${product.name} large preview`} className="max-h-[70vh] w-full rounded-md object-contain" />
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {product.tags.length > 0 && (
@@ -87,7 +112,13 @@ const ProductCard = ({ product, index }: { product: StoreProduct; index: number 
             </div>
             <Button variant="hero" size="sm" onClick={handleAdd}>
               <ShoppingCart className="h-4 w-4" />
-              Add to Cart
+              {product.has_variants ? "Configure" : "Add to Cart"}
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={getStoreProductRoute(product)}>
+                <Eye className="h-4 w-4" />
+                View
+              </Link>
             </Button>
           </>
         ) : (
