@@ -29,6 +29,15 @@ export const getStableStoreProductCartId = (product: Pick<StoreProduct, "id" | "
   return Math.abs(hash >>> 0);
 };
 
+export const resolveStoreProductFromCartRef = (
+  products: StoreProduct[],
+  cartRef: { product_id: number; product_type: "lens" | "supply" },
+) =>
+  products.find((product) =>
+    product.product_type === cartRef.product_type &&
+    getStableStoreProductCartId(product) === cartRef.product_id,
+  );
+
 export const useStoreProducts = () => {
   return useQuery<StoreProduct[]>({
     queryKey: ["store-products"],
