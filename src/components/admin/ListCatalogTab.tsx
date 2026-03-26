@@ -58,6 +58,8 @@ interface ListCatalogTabProps {
   onSaved?: () => void;
   /** If provided, save controls are rendered via this callback instead of inline */
   renderSaveBar?: (saveBar: React.ReactNode) => void;
+  /** Emits current in-editor rows so external previews can update without save */
+  onRowsChange?: (rows: Omit<PricelistCatalogRow, "id">[]) => void;
 }
 
 const ListCatalogTab = ({
@@ -71,7 +73,8 @@ const ListCatalogTab = ({
   versionId = null,
   pendingMatrixRowKeys,
   onSaved,
-  renderSaveBar
+  renderSaveBar,
+  onRowsChange
 }: ListCatalogTabProps) => {
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
@@ -348,6 +351,12 @@ const ListCatalogTab = ({
 
     return rows;
   }, [catalogType, effectiveAddonRows, effectiveLensRows, effectiveSupplyRows, versionId]);
+
+  const persistedRowsPreview = useMemo(() => buildPersistedRows(), [buildPersistedRows]);
+
+  useEffect(() => {
+    onRowsChange?.(persistedRowsPreview);
+  }, [onRowsChange, persistedRowsPreview]);
 
   const syncMatrixLinkedRow = async (
     row: CatalogRow,
@@ -718,7 +727,11 @@ const ListCatalogTab = ({
           </td>
         }
         {/* Supplier — before description */}
-        <td className="px-2 py-1.5 border border-border text-center whitespace-nowrap" style={{ color: "hsl(var(--admin-table-supplier-fg))", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
+        <td
+          className="px-2 py-1.5 border border-border text-center align-top"
+          style={{ color: "hsl(var(--admin-table-supplier-fg))", fontSize: "10px", minWidth: "72px", maxWidth: "140px", whiteSpace: "normal", overflowWrap: "anywhere", lineHeight: 1.2 }}
+          title={row.supplier || "—"}
+        >
           {row.supplier || "—"}
         </td>
         <td className="px-3 py-1.5 border border-border group relative" style={{ color: "hsl(var(--admin-table-fg))" }}>
@@ -868,7 +881,7 @@ const ListCatalogTab = ({
               <thead>
                 <tr>
                   <th className="w-8 no-print border border-border" style={{ background: "hsl(var(--admin-table-subheader))" }} />
-                  <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
+                  <th className="px-2 py-2 text-center font-semibold border border-border min-w-[72px] max-w-[140px]" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
                   <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-fg))" }}>Description <SortIcon section={title} col="description" /></th>
                   <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>
                     Matrix Cell
@@ -966,7 +979,7 @@ const ListCatalogTab = ({
                     <table className="w-full text-xs border-collapse">
                       <thead>
                         <tr>
-                          <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
+                          <th className="px-2 py-2 text-center font-semibold border border-border min-w-[72px] max-w-[140px]" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
                           <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-fg))" }}>Description <SortIcon section={primarySectionKey} col="description" /></th>
                           <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Matrix Cell</th>
                           <th className={`px-3 py-2 text-right font-semibold border border-border w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={primarySectionKey} col="bbd" /></th>
