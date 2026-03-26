@@ -264,10 +264,14 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   const ListPreview = () => {
     const SectionTable = ({ label, rows, pageBreakBefore, isContinuation }: { label: string; rows: typeof catalogRows; pageBreakBefore?: boolean; isContinuation?: boolean }) => (
       <div className={`print-avoid-break print-grid-keep${pageBreakBefore ? " print-page-break-before" : ""}`}>
-        <table className="w-full text-xs border-collapse">
+        <table className="w-full border-collapse" style={{ fontSize: "13px" }}>
           <thead>
             <tr>
-              <th colSpan={2} className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white" }}>
+              <th
+                colSpan={2}
+                className="px-4 py-1.5 text-left font-bold uppercase tracking-wide"
+                style={{ background: "#1e4db7", color: "white", fontSize: "12px", lineHeight: 1.2 }}
+              >
                 {label}
                 {isContinuation ? " (cont.)" : ""}
               </th>
@@ -275,9 +279,9 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={"id" in row ? (row as any).id ?? row.row_key : row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                <td className="px-4 py-2.5" style={{ color: "#1a202c" }}>{row.display_description}</td>
-                <td className="px-4 py-2.5 text-right font-semibold w-32" style={{ color: "#1a202c" }}>{hierarchyCatalogPrice(row)}</td>
+              <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                <td className="px-4 py-1.5" style={{ color: "#1a202c", lineHeight: 1.25 }}>{row.display_description}</td>
+                <td className="px-4 py-1.5 text-right font-semibold w-32" style={{ color: "#1a202c", lineHeight: 1.25 }}>{hierarchyCatalogPrice(row)}</td>
               </tr>
             ))}
           </tbody>
@@ -297,7 +301,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     const hasAddonContent = addonListSections.length > 0;
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-4">
         {!hasLensContent && !hasAddonContent && <p className="text-xs text-muted-foreground text-center py-6">No price list rows yet. Add lenses in the Price Matrix Editor tab.</p>}
         {!hasLensContent && hasAddonContent && <p className="text-xs text-muted-foreground text-center py-4">No lens rows yet.</p>}
         {listChunks.map((chunk) => <SectionTable key={chunk.key} label={chunk.label} rows={chunk.rows} pageBreakBefore={chunk.pageBreakBefore} isContinuation={chunk.isContinuation} />)}
@@ -309,7 +313,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     <div className="print-preview-container space-y-4 p-6" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", background: "#ffffff" }}>
       <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
         <div className="flex-1 text-center">
-          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "22px", letterSpacing: "2px", color: "#1a202c" }}>
+          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "20px", letterSpacing: "1.8px", color: "#1a202c" }}>
             {CATALOG_TITLES[catalogType] ?? "PRICE LIST"}
           </h1>
         </div>
