@@ -58,6 +58,8 @@ interface ListCatalogTabProps {
   onSaved?: () => void;
   /** If provided, save controls are rendered via this callback instead of inline */
   renderSaveBar?: (saveBar: React.ReactNode) => void;
+  /** Emits current in-editor rows so external previews can update without save */
+  onRowsChange?: (rows: Omit<PricelistCatalogRow, "id">[]) => void;
 }
 
 const ListCatalogTab = ({
@@ -71,7 +73,8 @@ const ListCatalogTab = ({
   versionId = null,
   pendingMatrixRowKeys,
   onSaved,
-  renderSaveBar
+  renderSaveBar,
+  onRowsChange
 }: ListCatalogTabProps) => {
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
@@ -348,6 +351,12 @@ const ListCatalogTab = ({
 
     return rows;
   }, [catalogType, effectiveAddonRows, effectiveLensRows, effectiveSupplyRows, versionId]);
+
+  const persistedRowsPreview = useMemo(() => buildPersistedRows(), [buildPersistedRows]);
+
+  useEffect(() => {
+    onRowsChange?.(persistedRowsPreview);
+  }, [onRowsChange, persistedRowsPreview]);
 
   const syncMatrixLinkedRow = async (
     row: CatalogRow,
