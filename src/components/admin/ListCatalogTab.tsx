@@ -58,6 +58,8 @@ interface ListCatalogTabProps {
   onSaved?: () => void;
   /** If provided, save controls are rendered via this callback instead of inline */
   renderSaveBar?: (saveBar: React.ReactNode) => void;
+  /** Emits current in-editor rows so external previews can update without save */
+  onRowsChange?: (rows: Omit<PricelistCatalogRow, "id">[]) => void;
 }
 
 const ListCatalogTab = ({
@@ -71,7 +73,8 @@ const ListCatalogTab = ({
   versionId = null,
   pendingMatrixRowKeys,
   onSaved,
-  renderSaveBar
+  renderSaveBar,
+  onRowsChange
 }: ListCatalogTabProps) => {
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
@@ -260,10 +263,14 @@ const ListCatalogTab = ({
     return map;
   }, [allSupplies, fxRate, catalogType]);
 
-  const hasDbRows = savedRows && savedRows.length > 0;
-  const effectiveLensRows = useMemo<Map<string, CatalogRow[]>>(() => {if (hasDbRows) return lensRows;const m = new Map(defaultLensRows);lensRows.forEach((r, s) => m.set(s, r));return m;}, [defaultLensRows, lensRows, hasDbRows]);
-  const effectiveAddonRows = useMemo<Map<string, CatalogRow[]>>(() => {if (hasDbRows) return addonRows;const m = new Map(defaultAddonRows);addonRows.forEach((r, s) => m.set(s, r));return m;}, [defaultAddonRows, addonRows, hasDbRows]);
-  const effectiveSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => {if (hasDbRows) return supplyRows;const m = new Map(defaultSupplyRows);supplyRows.forEach((r, s) => m.set(s, r));return m;}, [defaultSupplyRows, supplyRows, hasDbRows]);
+  const usePersistedRows = useMemo(() => {
+    if (!versionId || !savedRows) return false;
+    if (catalogType === "buysell") return true;
+    return savedRows.length > 0;
+  }, [catalogType, savedRows, versionId]);
+  const effectiveLensRows = useMemo<Map<string, CatalogRow[]>>(() => {if (usePersistedRows) return lensRows;const m = new Map(defaultLensRows);lensRows.forEach((r, s) => m.set(s, r));return m;}, [defaultLensRows, lensRows, usePersistedRows]);
+  const effectiveAddonRows = useMemo<Map<string, CatalogRow[]>>(() => {if (usePersistedRows) return addonRows;const m = new Map(defaultAddonRows);addonRows.forEach((r, s) => m.set(s, r));return m;}, [defaultAddonRows, addonRows, usePersistedRows]);
+  const effectiveSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => {if (usePersistedRows) return supplyRows;const m = new Map(defaultSupplyRows);supplyRows.forEach((r, s) => m.set(s, r));return m;}, [defaultSupplyRows, supplyRows, usePersistedRows]);
 
   const toggleSort = (section: string, col: string) => {
     setSortState((prev) => {const next = new Map(prev);const cur = prev.get(section);if (!cur || cur.col !== col) {next.set(section, { col, dir: "asc" });} else if (cur.dir === "asc") {next.set(section, { col, dir: "desc" });} else {next.set(section, { col: "", dir: null });}return next;});
@@ -348,6 +355,17 @@ const ListCatalogTab = ({
 
     return rows;
   }, [catalogType, effectiveAddonRows, effectiveLensRows, effectiveSupplyRows, versionId]);
+
+  const persistedRowsPreview = useMemo(() => buildPersistedRows(), [buildPersistedRows]);
+  const lastEmittedRowsSignatureRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!onRowsChange) return;
+    const nextSignature = JSON.stringify(persistedRowsPreview);
+    if (lastEmittedRowsSignatureRef.current === nextSignature) return;
+    lastEmittedRowsSignatureRef.current = nextSignature;
+    onRowsChange(persistedRowsPreview);
+  }, [onRowsChange, persistedRowsPreview]);
 
   const syncMatrixLinkedRow = async (
     row: CatalogRow,
@@ -495,7 +513,7 @@ const ListCatalogTab = ({
 
   const handleSupplyPick = (item: PickedSupply) => {
     if (!pickerTarget) return;
-    const targetSection = pickerTarget.section || item.category;
+    const targetSection = item.category?.trim() || "Uncategorized";
     const newRow: CatalogRow = { key: `supply-${item.id}-${Date.now()}`, section: targetSection, description: item.name + (item.description ? ` — ${item.description}` : ""), bbd: item.sell_price, usd: item.sell_price * fxRate, margin: null, supplyId: item.id };
     setSupplyRows((prev) => {const next = new Map(prev);next.set(targetSection, [...(effectiveSupplyRows.get(targetSection) ?? []), newRow]);return next;});
     setIsDirty(true);
@@ -546,9 +564,31 @@ const ListCatalogTab = ({
   };
 
   /* ── Group management ── */
+  const removeSection = (sectionName: string, rowType: "lens" | "addon" | "supply", force = false) => {
+    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
+    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
+    const rowsInSection = effectiveMap.get(sectionName) ?? [];
+    if (!force && rowsInSection.length > 0) {
+      const ok = window.confirm(`"${sectionName}" has ${rowsInSection.length} item(s). Remove this group and all of its items?`);
+      if (!ok) return;
+    }
+    setter(() => {
+      const next = new Map(effectiveMap);
+      next.delete(sectionName);
+      return next;
+    });
+    setIsDirty(true);
+  };
+
   const renameSection = (oldName: string, newName: string, rowType: "lens" | "addon" | "supply") => {
     const trimmed = newName.trim();
-    if (!trimmed || trimmed === oldName) { setEditingSectionName(null); return; }
+    if (!trimmed) {
+      const shouldRemove = window.confirm("Group name is empty. Do you want to remove this group?");
+      if (shouldRemove) removeSection(oldName, rowType, true);
+      setEditingSectionName(null);
+      return;
+    }
+    if (trimmed === oldName) { setEditingSectionName(null); return; }
     const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
     const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
     setter(() => {
@@ -563,17 +603,6 @@ const ListCatalogTab = ({
       return next;
     });
     setEditingSectionName(null);
-    setIsDirty(true);
-  };
-
-  const removeEmptySection = (sectionName: string, rowType: "lens" | "addon" | "supply") => {
-    const effectiveMap = rowType === "lens" ? effectiveLensRows : rowType === "addon" ? effectiveAddonRows : effectiveSupplyRows;
-    const setter = rowType === "lens" ? setLensRows : rowType === "addon" ? setAddonRows : setSupplyRows;
-    setter(() => {
-      const next = new Map(effectiveMap);
-      next.delete(sectionName);
-      return next;
-    });
     setIsDirty(true);
   };
 
@@ -718,7 +747,11 @@ const ListCatalogTab = ({
           </td>
         }
         {/* Supplier — before description */}
-        <td className="px-2 py-1.5 border border-border text-center whitespace-nowrap" style={{ color: "hsl(var(--admin-table-supplier-fg))", fontSize: "10px", minWidth: "48px", maxWidth: "64px" }}>
+        <td
+          className="px-2 py-1.5 border border-border text-center align-top"
+          style={{ color: "hsl(var(--admin-table-supplier-fg))", fontSize: "10px", minWidth: "72px", maxWidth: "140px", whiteSpace: "normal", overflowWrap: "anywhere", lineHeight: 1.2 }}
+          title={row.supplier || "—"}
+        >
           {row.supplier || "—"}
         </td>
         <td className="px-3 py-1.5 border border-border group relative" style={{ color: "hsl(var(--admin-table-fg))" }}>
@@ -846,10 +879,10 @@ const ListCatalogTab = ({
             <span className="text-[10px] font-normal normal-case tracking-normal opacity-70 ml-2">({displayRows.length})</span>
           </AccordionTrigger>
           <div className="flex items-center gap-1.5">
-            {displayRows.length === 0 && (
+            {(displayRows.length === 0 || isUnnamed) && (
               <button
                 className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-red-500/30 hover:bg-red-500/50 transition-colors no-print"
-                onClick={(e) => { e.stopPropagation(); removeEmptySection(title, rowType); }}
+                onClick={(e) => { e.stopPropagation(); removeSection(title, rowType); }}
               >
                 <X className="h-3 w-3" /> Remove
               </button>
@@ -868,7 +901,7 @@ const ListCatalogTab = ({
               <thead>
                 <tr>
                   <th className="w-8 no-print border border-border" style={{ background: "hsl(var(--admin-table-subheader))" }} />
-                  <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
+                  <th className="px-2 py-2 text-center font-semibold border border-border min-w-[72px] max-w-[140px]" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
                   <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-fg))" }}>Description <SortIcon section={title} col="description" /></th>
                   <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>
                     Matrix Cell
@@ -966,7 +999,7 @@ const ListCatalogTab = ({
                     <table className="w-full text-xs border-collapse">
                       <thead>
                         <tr>
-                          <th className="px-2 py-2 text-center font-semibold border border-border w-16" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
+                          <th className="px-2 py-2 text-center font-semibold border border-border min-w-[72px] max-w-[140px]" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
                           <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-fg))" }}>Description <SortIcon section={primarySectionKey} col="description" /></th>
                           <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Matrix Cell</th>
                           <th className={`px-3 py-2 text-right font-semibold border border-border w-28 ${showUSD ? "opacity-50" : ""}`} style={{ background: BLUE_BG, color: BLUE_TEXT }}>BBD <SortIcon section={primarySectionKey} col="bbd" /></th>
@@ -1113,7 +1146,7 @@ const ListCatalogTab = ({
       </div>
 
       <LensPickerPopover open={lensPickerOpen} onOpenChange={setLensPickerOpen} onPick={handleLensPick} mode={pickerTarget?.mode === "add-addon" ? "all" : "lens-only"} currentId={null} hideFinished={catalogType === "rx"} wsplOnly={catalogType === "stock"} />
-      <SupplyPickerPopover open={supplyPickerOpen} onOpenChange={setSupplyPickerOpen} onPick={handleSupplyPick} currentId={null} categoryFilter={pickerTarget?.section} />
+      <SupplyPickerPopover open={supplyPickerOpen} onOpenChange={setSupplyPickerOpen} onPick={handleSupplyPick} currentId={null} categoryFilter={null} />
       <LineOverrideDialog
         open={!!overrideTarget}
         onOpenChange={(v) => {if (!v) setOverrideTarget(null);}}
