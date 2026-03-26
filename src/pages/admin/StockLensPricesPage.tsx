@@ -6,6 +6,7 @@ import RxExportBar from "@/components/admin/RxExportBar";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
+import type { PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 
 const StockLensPricesPage = () => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
@@ -23,6 +24,7 @@ const StockLensPricesPage = () => {
   const previewFormat = "list" as const;
   const previewRef = useRef<HTMLDivElement>(null);
   const [saveBar, setSaveBar] = useState<ReactNode>(null);
+  const [liveCatalogRows, setLiveCatalogRows] = useState<Omit<PricelistCatalogRow, "id">[] | null>(null);
 
   const activeVersion = versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
   const resolvedId = activeVersion?.id ?? null;
@@ -59,6 +61,7 @@ const StockLensPricesPage = () => {
             pageTitle={activeVersion?.name ?? "Stock Lens Pricelist"}
             versionId={resolvedId}
             renderSaveBar={setSaveBar}
+            onRowsChange={setLiveCatalogRows}
           />
 
           {/* Live Preview */}
@@ -73,6 +76,7 @@ const StockLensPricesPage = () => {
                 showUSD={showUSD}
                 fxRate={fxRate}
                 catalogType="stock"
+                liveCatalogRows={liveCatalogRows}
               />
             </PdfPreviewShell>
           </div>
