@@ -11,6 +11,7 @@ import NotFound from "@/pages/NotFound";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
 import RouteLoadingFallback from "@/routes/shared/RouteLoadingFallback";
 import Store from "@/pages/Store";
+import StoreProductPage from "@/pages/StoreProductPage";
 import Unsubscribe from "@/pages/Unsubscribe";
 
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
@@ -82,6 +83,7 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/unsubscribe" element={<Unsubscribe />} />
                   <Route path="/store" element={<Store />} />
+                  <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
                   <Route path="/profile/*" element={<PortalRoutes />} />
                   <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
                   <Route path="/portal" element={<Navigate to="/profile" replace />} />

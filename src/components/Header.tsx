@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
+import { useStoreProducts } from "@/hooks/useStoreProducts";
 
 type MegaMenuLink = {
   label: string;
@@ -420,6 +421,7 @@ const Header = () => {
   const activeUserAvatar = resolveUserAvatar(user);
   const activeUserInitials = getAccountInitials(activeUserName, activeUserEmail);
   const resolvedThemeValue = activeTheme === "system" ? resolvedTheme ?? "system" : activeTheme;
+  const { data: storeProducts = [] } = useStoreProducts();
 
   const handleSignOut = async () => {
     await signOut();
@@ -430,7 +432,24 @@ const Header = () => {
   };
 
   const pathSegments = location.pathname.split("/").filter(Boolean);
-  const showBreadcrumbs = pathSegments.length >= 2;
+  const storeProductMatch = location.pathname.match(/^\/store\/product\/(lens|supply)\/([^/]+)$/i);
+  const storeProductType = storeProductMatch?.[1]?.toLowerCase() as "lens" | "supply" | undefined;
+  const storeProductId = storeProductMatch?.[2];
+  const storeProduct = storeProductType && storeProductId
+    ? storeProducts.find((product) => product.product_type === storeProductType && product.id === storeProductId)
+    : null;
+
+  const customBreadcrumbs = storeProductMatch
+    ? [
+      { label: "Home", to: "/" },
+      { label: "Store", to: "/store" },
+      { label: "Product", to: "/store" },
+      { label: storeProductType === "lens" ? "Lenses" : "Supplies", to: `/store?tab=${storeProductType === "lens" ? "lenses" : "supplies"}` },
+      { label: storeProduct?.name ?? "Product", to: null },
+    ]
+    : null;
+
+  const showBreadcrumbs = (customBreadcrumbs?.length ?? pathSegments.length) >= 2;
 
   return (
     <>
@@ -693,23 +712,21 @@ const Header = () => {
       <nav aria-label="Breadcrumb" className="mt-16">
           <div className="container mx-auto max-w-5xl px-4 pt-4 lg:px-8">
             <div className="text-sm text-muted-foreground">
-              <Link to="/" className="text-foreground hover:text-foreground/80">Home</Link>
-              {pathSegments.map((segment, index) => {
-              const to = `/${pathSegments.slice(0, index + 1).join("/")}`;
-              const isLast = index === pathSegments.length - 1;
-              const label = getBreadcrumbLabel(segment);
-
-              return (
-                <span key={to}>
-                    <span className="mx-2">/</span>
-                    {isLast ?
-                  <span className="text-foreground">{label}</span> :
-
-                  <Link to={resolveBreadcrumbTarget(to)} className="hover:text-foreground">{label}</Link>
-                  }
-                  </span>);
-
-            })}
+              {(customBreadcrumbs ?? [{ label: "Home", to: "/" }, ...pathSegments.map((segment, index) => ({
+                label: getBreadcrumbLabel(segment),
+                to: index === pathSegments.length - 1 ? null : resolveBreadcrumbTarget(`/${pathSegments.slice(0, index + 1).join("/")}`),
+              }))]).map((crumb, index) => (
+                <span key={`${crumb.label}-${index}`}>
+                  {index > 0 && <span className="mx-2">/</span>}
+                  {crumb.to ? (
+                    <Link to={crumb.to} className={index === 0 ? "text-foreground hover:text-foreground/80" : "hover:text-foreground"}>
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className="text-foreground">{crumb.label}</span>
+                  )}
+                </span>
+              ))}
             </div>
           </div>
         </nav>
