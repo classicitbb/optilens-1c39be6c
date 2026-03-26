@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { useMatrixAllocations, MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
-import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
+import { usePricelistCatalogRows, type PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { PricelistVersion } from "@/hooks/usePricelistVersions";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
@@ -9,6 +9,7 @@ import { compareCategoryOrder, compareMaterialOrder } from "@/lib/sortOrder";
 import { preparePrintListChunks, type PrintListSection } from "@/features/admin/print/printLayout";
 import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixSectionLabel, parseMatrixRowKey } from "@/features/admin/rx-pricing/structure";
+import { useLenses } from "@/hooks/useLenses";
 
 const CATALOG_TITLES: Record<string, string> = {
   rx: "RX LENS PRICES",
@@ -23,6 +24,7 @@ interface Props {
   fxRate: number;
   catalogType?: "rx" | "stock" | "buysell";
   showSummaryRows?: boolean;
+  liveCatalogRows?: Omit<PricelistCatalogRow, "id">[] | null;
 }
 
 const fmtDisplay = (value: number | null | undefined, showUSD: boolean, fxRate: number) => {
@@ -31,22 +33,35 @@ const fmtDisplay = (value: number | null | undefined, showUSD: boolean, fxRate: 
   return `$${converted.toFixed(2)}`;
 };
 
-const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalogType = "rx", showSummaryRows = true }: Props) => {
+const normalizeFinishLabel = (finishType?: string | null) => {
+  const normalized = (finishType ?? "").trim();
+  if (!normalized) return "Unspecified";
+  return normalized
+    .split(/[-\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join("-");
+};
+
+const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalogType = "rx", showSummaryRows = true, liveCatalogRows = null }: Props) => {
   const { data: allocations = [] } = useMatrixAllocations(version.id);
   const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
+  const { data: allLenses = [] } = useLenses();
   const { data: company } = useCompanySettings();
   const { calcFinalPrice } = usePriceHierarchy(version.id);
   const { structure: rxStructure } = useRxPricingStructure(version.id);
 
+  const resolvedCatalogRows = liveCatalogRows ?? allCatalogRows;
+
   const catalogRows = useMemo(() => {
-    if (catalogType === "buysell") return allCatalogRows.filter((row) => row.row_type === "supply");
-    return allCatalogRows.filter((row) => row.row_type === "lens");
-  }, [allCatalogRows, catalogType]);
+    if (catalogType === "buysell") return resolvedCatalogRows.filter((row) => row.row_type === "supply");
+    return resolvedCatalogRows.filter((row) => row.row_type === "lens");
+  }, [resolvedCatalogRows, catalogType]);
 
   const addonRows = useMemo(() => {
-    if (catalogType === "buysell") return allCatalogRows.filter((row) => ["addon", "treatment"].includes(row.row_type)).sort((a, b) => a.sort_order - b.sort_order);
-    return allCatalogRows.filter((row) => ["addon", "treatment", "supply"].includes(row.row_type)).sort((a, b) => a.sort_order - b.sort_order);
-  }, [allCatalogRows, catalogType]);
+    if (catalogType === "buysell") return resolvedCatalogRows.filter((row) => ["addon", "treatment"].includes(row.row_type)).sort((a, b) => a.sort_order - b.sort_order);
+    return resolvedCatalogRows.filter((row) => ["addon", "treatment", "supply"].includes(row.row_type)).sort((a, b) => a.sort_order - b.sort_order);
+  }, [resolvedCatalogRows, catalogType]);
 
   const addonsBySection = useMemo(() => {
     const map = new Map<string, typeof addonRows>();
@@ -57,6 +72,14 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     });
     return map;
   }, [addonRows]);
+
+  const lensFinishById = useMemo(() => {
+    const map = new Map<string, string>();
+    allLenses.forEach((lens) => {
+      map.set(lens.id, normalizeFinishLabel(lens.finishtype?.name ?? null));
+    });
+    return map;
+  }, [allLenses]);
 
   const categoryMetaMap = useMemo(
     () => new Map(rxStructure.flatMap((grouping) => grouping.categories.map((category) => [`${grouping.key}::${category.key}`, { grouping, category }] as const))),
@@ -96,6 +119,18 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   const matrixGroups = rxStructure;
 
   const listSections = useMemo(() => {
+    if (catalogType === "stock") {
+      const grouped = new Map<string, typeof catalogRows>();
+      catalogRows.forEach((row) => {
+        const mfType = row.section || "Standard";
+        const finishType = row.item_id ? lensFinishById.get(row.item_id) ?? "Unspecified" : "Unspecified";
+        const sectionLabel = `${mfType}-${finishType}`;
+        if (!grouped.has(sectionLabel)) grouped.set(sectionLabel, []);
+        grouped.get(sectionLabel)!.push(row);
+      });
+      return [...grouped.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
+    }
+
     const grouped = new Map<string, typeof catalogRows>();
     rxStructure.forEach((grouping) => {
       grouping.categories.forEach((category) => {
@@ -119,7 +154,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
       if (bIndex != null) return 1;
       return compareCategoryOrder(a[0], b[0]);
     });
-  }, [catalogRows, categoryMetaMap, categoryOrderMap, rxStructure]);
+  }, [catalogRows, catalogType, categoryMetaMap, categoryOrderMap, rxStructure, lensFinishById]);
 
   const MatrixPreview = () => (
     <div className="space-y-6">
@@ -212,7 +247,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <tr key={"id" in row ? (row as any).id ?? row.row_key : row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
                       <td className="px-4 py-2" style={{ color: "#1a202c" }}>{row.display_description}</td>
                       <td className="px-4 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>{hierarchyCatalogPrice(row)}</td>
                     </tr>
@@ -240,7 +275,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id ?? row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
+              <tr key={"id" in row ? (row as any).id ?? row.row_key : row.row_key} style={{ borderBottom: "1px solid #e2e8f0" }}>
                 <td className="px-4 py-2.5" style={{ color: "#1a202c" }}>{row.display_description}</td>
                 <td className="px-4 py-2.5 text-right font-semibold w-32" style={{ color: "#1a202c" }}>{hierarchyCatalogPrice(row)}</td>
               </tr>
