@@ -353,9 +353,14 @@ const ListCatalogTab = ({
   }, [catalogType, effectiveAddonRows, effectiveLensRows, effectiveSupplyRows, versionId]);
 
   const persistedRowsPreview = useMemo(() => buildPersistedRows(), [buildPersistedRows]);
+  const lastEmittedRowsSignatureRef = useRef<string>("");
 
   useEffect(() => {
-    onRowsChange?.(persistedRowsPreview);
+    if (!onRowsChange) return;
+    const nextSignature = JSON.stringify(persistedRowsPreview);
+    if (lastEmittedRowsSignatureRef.current === nextSignature) return;
+    lastEmittedRowsSignatureRef.current = nextSignature;
+    onRowsChange(persistedRowsPreview);
   }, [onRowsChange, persistedRowsPreview]);
 
   const syncMatrixLinkedRow = async (
