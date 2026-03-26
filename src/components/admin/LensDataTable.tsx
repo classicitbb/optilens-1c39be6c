@@ -10,6 +10,7 @@ import MultiSelectFilter from "./MultiSelectFilter";
 import type { Lens } from "@/hooks/useLenses";
 import { usePricelistUsedItems } from "@/hooks/usePricelistUsedItems";
 import { fieldsMatch } from "@/lib/wildcardMatch";
+import { getStoreProductRoute } from "@/hooks/useStoreProducts";
 
 
 type SortKey = "name" | "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
@@ -349,7 +350,17 @@ const LensDataTable = ({
                     <TableCell className="text-center text-xs">{lens.full_lab ? "✓" : ""}</TableCell>
                     <TableCell className="text-center text-xs">{lens.show_in_ws_pricelist ? "✓" : ""}</TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                      {lens.show_on_website && <Globe className="h-3.5 w-3.5 mx-auto" style={{ color: "hsl(var(--admin-accent))" }} />}
+                      {lens.show_on_website && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="mx-auto h-6 w-6"
+                          title="Open product page"
+                          onClick={() => window.open(getStoreProductRoute({ id: lens.id, product_type: "lens" }), "_blank", "noopener,noreferrer")}
+                        >
+                          <Globe className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-accent))" }} />
+                        </Button>
+                      )}
                     </TableCell>
                     {showActions && (
                       <TableCell onClick={(e) => e.stopPropagation()}>
