@@ -13,6 +13,8 @@ import { useCartContext } from "@/contexts/CartContext";
 import { useOrders } from "@/hooks/useOrders";
 import { Separator } from "@/components/ui/separator";
 import { CheckoutDialog, CheckoutFormData } from "@/components/CheckoutDialog";
+import { Link } from "react-router-dom";
+import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 
 interface CartSheetProps {
   className?: string;
@@ -30,6 +32,7 @@ export const CartSheet = ({
   const { items, loading, totalItems, totalPrice, updateQuantity, removeFromCart, clearCart } =
     useCartContext();
   const { createOrder } = useOrders();
+  const { data: storeProducts = [] } = useStoreProducts();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -45,6 +48,15 @@ export const CartSheet = ({
   const handleCheckoutComplete = () => {
     setCheckoutOpen(false);
     setSheetOpen(false);
+  };
+
+  const resolveCartItemLink = (item: (typeof items)[number]) => {
+    const linkedProduct = resolveStoreProductFromCartRef(storeProducts, {
+      product_id: item.product_id,
+      product_type: item.product_type,
+    });
+
+    return linkedProduct ? getStoreProductRoute(linkedProduct) : null;
   };
 
   return (
@@ -87,17 +99,25 @@ export const CartSheet = ({
           <>
             <div className="flex-1 overflow-y-auto py-4">
               <div className="space-y-4">
-                {items.map((item) => (
+                {items.map((item) => {
+                  const itemLink = resolveCartItemLink(item);
+                  return (
                   <div
                     key={item.id}
                     className="flex items-center gap-4 rounded-lg border bg-card p-3"
                   >
                     <div className="flex-1">
-                      <h4 className="font-medium text-foreground">
-                        {item.product_name}
-                      </h4>
+                      {itemLink ? (
+                        <h4 className="font-medium text-foreground">
+                          <Link to={itemLink} className="hover:text-primary hover:underline" onClick={() => setSheetOpen(false)}>
+                            {item.product_name}
+                          </Link>
+                        </h4>
+                      ) : (
+                        <h4 className="font-medium text-foreground">{item.product_name}</h4>
+                      )}
                       <p className="text-sm text-muted-foreground">
-                        ${item.product_price.toFixed(2)}${item.product_type === "supply" ? "/unit" : "/lens"}
+                        ${item.product_price.toFixed(2)}{item.product_type === "supply" ? "/unit" : "/pair"} <span className="text-[10px] font-semibold uppercase">USD</span>
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -130,7 +150,8 @@ export const CartSheet = ({
                       </Button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -153,7 +174,7 @@ export const CartSheet = ({
               <Separator className="my-3" />
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total</span>
-                <span>${totalPrice.toFixed(2)}</span>
+                <span>${totalPrice.toFixed(2)} <span className="text-[10px] font-semibold uppercase text-muted-foreground">USD</span></span>
               </div>
               <Button
                 variant="hero"
