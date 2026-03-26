@@ -131,6 +131,16 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
       return [...grouped.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
     }
 
+    if (catalogType === "buysell") {
+      const grouped = new Map<string, typeof catalogRows>();
+      catalogRows.forEach((row) => {
+        const sectionLabel = row.section?.trim() || "Uncategorized";
+        if (!grouped.has(sectionLabel)) grouped.set(sectionLabel, []);
+        grouped.get(sectionLabel)!.push(row);
+      });
+      return [...grouped.entries()].sort((a, b) => compareCategoryOrder(a[0], b[0]));
+    }
+
     const grouped = new Map<string, typeof catalogRows>();
     rxStructure.forEach((grouping) => {
       grouping.categories.forEach((category) => {
@@ -141,7 +151,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     catalogRows.forEach((row) => {
       const parsed = parseMatrixRowKey(row.row_key);
       const meta = parsed ? categoryMetaMap.get(`${parsed.groupKey}::${parsed.categoryKey}`) : null;
-      const categoryName = meta?.category.name ?? row.section.split(" — ").slice(1).join(" — ") ?? row.section;
+      const derivedSection = row.section.split(" — ").slice(1).join(" — ").trim();
+      const categoryName = meta?.category.name ?? (derivedSection || row.section || "Uncategorized");
       if (!grouped.has(categoryName)) grouped.set(categoryName, []);
       grouped.get(categoryName)!.push({ ...row, section: meta ? buildMatrixSectionLabel(meta.grouping.name, meta.category.name) : row.section });
     });
