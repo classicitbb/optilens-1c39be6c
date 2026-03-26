@@ -10,7 +10,33 @@ export interface StoreProduct {
   category: string; // lens type name or supply category
   subcategory: string; // material name or supply unit
   tags: string[];
+  image_url: string | null;
+  has_variants: boolean;
 }
+
+export const getStoreProductRoute = (product: Pick<StoreProduct, "id" | "product_type">) =>
+  `/store/product/${product.product_type}/${product.id}`;
+
+export const getStableStoreProductCartId = (product: Pick<StoreProduct, "id" | "product_type">) => {
+  let hash = 2166136261;
+  const input = `${product.product_type}:${product.id}`;
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return Math.abs(hash >>> 0);
+};
+
+export const resolveStoreProductFromCartRef = (
+  products: StoreProduct[],
+  cartRef: { product_id: number; product_type: "lens" | "supply" },
+) =>
+  products.find((product) =>
+    product.product_type === cartRef.product_type &&
+    getStableStoreProductCartId(product) === cartRef.product_id,
+  );
 
 export const useStoreProducts = () => {
   return useQuery<StoreProduct[]>({
@@ -41,6 +67,8 @@ export const useStoreProducts = () => {
         category: l.lenstype?.name || "Lens",
         subcategory: l.material?.name || "",
         tags: [l.mftype?.name, l.material?.name, l.lenstype?.name].filter(Boolean),
+        image_url: null,
+        has_variants: false,
       }));
 
       const supplies: StoreProduct[] = (supplyRes.data || []).map((s: any) => ({
@@ -52,6 +80,8 @@ export const useStoreProducts = () => {
         category: s.category,
         subcategory: `${s.quantity_per_unit} ${s.unit}`,
         tags: [s.category, s.unit],
+        image_url: s.image_url || null,
+        has_variants: false,
       }));
 
       return [...lenses, ...supplies];

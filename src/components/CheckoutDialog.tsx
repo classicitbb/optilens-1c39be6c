@@ -18,6 +18,8 @@ import { EMPTY_ADDRESS, ProfileAddress, resolveUserFullName } from "@/lib/profil
 import { cn } from "@/lib/utils";
 import { useCustomerAddresses, toProfileAddress } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
+import { Link } from "react-router-dom";
+import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 
 export interface CheckoutFormData {
   fullName: string;
@@ -171,6 +173,7 @@ export const CheckoutDialog = ({
   onCheckout,
 }: CheckoutDialogProps) => {
   const { user } = useAuth();
+  const { data: storeProducts = [] } = useStoreProducts();
   const { addresses, defaultShipping, defaultBilling, isLoading: addressesLoading } = useCustomerAddresses();
   const { paymentMethods, defaultPaymentMethod, isLoading: paymentMethodsLoading } = useCustomerPaymentMethods();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -181,6 +184,19 @@ export const CheckoutDialog = ({
   const [formData, setFormData] = useState<CheckoutFormData>(emptyCheckoutState);
 
   const totalLabel = useMemo(() => totalPrice.toFixed(2), [totalPrice]);
+  const cartLinksByItemId = useMemo(() => {
+    const links = new Map<string, string>();
+    items.forEach((item) => {
+      const linkedProduct = resolveStoreProductFromCartRef(storeProducts, {
+        product_id: item.product_id,
+        product_type: item.product_type,
+      });
+      if (linkedProduct) {
+        links.set(item.id, getStoreProductRoute(linkedProduct));
+      }
+    });
+    return links;
+  }, [items, storeProducts]);
 
   useEffect(() => {
     if (!open || !user) return;
@@ -424,7 +440,7 @@ export const CheckoutDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : handleClose())}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl lg:max-w-6xl">
         {isComplete ? (
           <div className="py-6 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
@@ -469,301 +485,319 @@ export const CheckoutDialog = ({
                   </Button>
                 )}
 
-                <div className={cn("grid gap-4", googlePayAvailable && "pt-1")}>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="checkout-full-name">Full name</Label>
-                      <Input
-                        id="checkout-full-name"
-                        value={formData.fullName}
-                        onChange={(event) => setFormData((prev) => ({ ...prev, fullName: event.target.value, cardholderName: prev.cardholderName || event.target.value }))}
-                        placeholder="Jane Smith"
-                      />
+                <div className="grid gap-6 lg:grid-cols-[1.55fr_1fr] lg:items-start">
+                  <div className="space-y-6">
+                    <div className={cn("grid gap-4", googlePayAvailable && "pt-1")}>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="checkout-full-name">Full name</Label>
+                          <Input
+                            id="checkout-full-name"
+                            value={formData.fullName}
+                            onChange={(event) => setFormData((prev) => ({ ...prev, fullName: event.target.value, cardholderName: prev.cardholderName || event.target.value }))}
+                            placeholder="Jane Smith"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="checkout-phone">Phone number</Label>
+                          <Input
+                            id="checkout-phone"
+                            value={formData.phone}
+                            onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))}
+                            placeholder="+1 (246) 555-0101"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="checkout-email">Email address</Label>
+                        <Input
+                          id="checkout-email"
+                          value={formData.email}
+                          onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
+                          placeholder="you@example.com"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="checkout-phone">Phone number</Label>
-                      <Input
-                        id="checkout-phone"
-                        value={formData.phone}
-                        onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))}
-                        placeholder="+1 (246) 555-0101"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="checkout-email">Email address</Label>
-                    <Input
-                      id="checkout-email"
-                      value={formData.email}
-                      onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
-                      placeholder="you@example.com"
-                    />
-                  </div>
-                </div>
 
-                <div className="space-y-3 rounded-lg border p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Saved shipping addresses</p>
-                      <p className="text-xs text-muted-foreground">Choose from up to 2 saved profile addresses or edit below for a one-off shipment.</p>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href="/profile/address-book">Manage in profile</a>
-                    </Button>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {addresses.map((address) => (
-                      <button
-                        key={`shipping-${address.id}`}
-                        type="button"
-                        className={cn(
-                          "rounded-lg border px-3 py-3 text-left transition-colors",
-                          formData.shippingAddressId === address.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40",
-                        )}
-                        onClick={() => {
-                          const nextAddress = toProfileAddress(address);
-                          setFormData((prev) => ({
-                            ...prev,
-                            shippingAddressId: address.id,
-                            shippingAddress: nextAddress,
-                            billingAddress: sameAsShipping ? nextAddress : prev.billingAddress,
-                            billingAddressId: sameAsShipping ? address.id : prev.billingAddressId,
-                          }));
-                        }}
-                      >
-                        <p className="font-medium text-foreground">{address.label}</p>
-                        <p className="text-xs text-muted-foreground">{address.line1}, {address.city}</p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">
-                          {address.isDefaultShipping ? "Default shipping" : "Saved address"}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <AddressFields idPrefix="shipping" title="Shipping address" value={formData.shippingAddress} onChange={updateShippingAddress} />
-
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Billing address matches shipping</p>
-                    <p className="text-xs text-muted-foreground">Disable this if you want a separate billing destination.</p>
-                  </div>
-                  <button
-                    type="button"
-                    className={cn(
-                      "inline-flex h-6 w-11 items-center rounded-full border transition-colors",
-                      sameAsShipping ? "bg-primary border-primary justify-end" : "bg-muted border-border justify-start",
-                    )}
-                    onClick={() => {
-                      setSameAsShipping((prev) => {
-                        const next = !prev;
-                        if (next) {
-                          setFormData((current) => ({
-                            ...current,
-                            billingAddress: current.shippingAddress,
-                            billingAddressId: current.shippingAddressId,
-                          }));
-                        }
-                        return next;
-                      });
-                    }}
-                  >
-                    <span className="mx-0.5 h-5 w-5 rounded-full bg-background shadow-sm" />
-                  </button>
-                </div>
-
-                {!sameAsShipping && (
-                  <>
                     <div className="space-y-3 rounded-lg border p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-foreground">Saved billing addresses</p>
-                          <p className="text-xs text-muted-foreground">Choose another saved address or edit below for this order only.</p>
+                          <p className="text-sm font-semibold text-foreground">Saved shipping addresses</p>
+                          <p className="text-xs text-muted-foreground">Choose from up to 2 saved profile addresses or edit below for a one-off shipment.</p>
                         </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="/profile/address-book">Manage in profile</a>
+                        </Button>
                       </div>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {addresses.map((address) => (
                           <button
-                            key={`billing-${address.id}`}
+                            key={`shipping-${address.id}`}
                             type="button"
                             className={cn(
                               "rounded-lg border px-3 py-3 text-left transition-colors",
-                              formData.billingAddressId === address.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40",
+                              formData.shippingAddressId === address.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40",
                             )}
                             onClick={() => {
+                              const nextAddress = toProfileAddress(address);
                               setFormData((prev) => ({
                                 ...prev,
-                                billingAddressId: address.id,
-                                billingAddress: toProfileAddress(address),
+                                shippingAddressId: address.id,
+                                shippingAddress: nextAddress,
+                                billingAddress: sameAsShipping ? nextAddress : prev.billingAddress,
+                                billingAddressId: sameAsShipping ? address.id : prev.billingAddressId,
                               }));
                             }}
                           >
                             <p className="font-medium text-foreground">{address.label}</p>
                             <p className="text-xs text-muted-foreground">{address.line1}, {address.city}</p>
                             <p className="mt-1 text-[11px] text-muted-foreground">
-                              {address.isDefaultBilling ? "Default billing" : "Saved address"}
+                              {address.isDefaultShipping ? "Default shipping" : "Saved address"}
                             </p>
                           </button>
                         ))}
                       </div>
                     </div>
-                    <AddressFields idPrefix="billing" title="Billing address" value={formData.billingAddress} onChange={updateBillingAddress} />
-                  </>
-                )}
 
-                <div className="space-y-4 rounded-lg border p-4">
-                  <div className="flex items-center gap-2">
-                    <WalletCards className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Payment method</p>
-                      <p className="text-xs text-muted-foreground">Save demo cards to speed up future orders or let staff charge saved cards on your behalf.</p>
-                    </div>
-                  </div>
+                    <AddressFields idPrefix="shipping" title="Shipping address" value={formData.shippingAddress} onChange={updateShippingAddress} />
 
-                  {paymentMethods.length > 0 ? (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {paymentMethods.map((method) => (
-                        <button
-                          key={method.id}
-                          type="button"
-                          className={cn(
-                            "rounded-lg border px-3 py-3 text-left transition-colors",
-                            formData.paymentMethodId === method.id && formData.checkoutMethod === "saved_demo_card"
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40",
-                          )}
-                          onClick={() => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              paymentMethodId: method.id,
-                              checkoutMethod: "saved_demo_card",
-                              cardholderName: method.cardholderName,
-                              cardBrand: method.brand,
-                              cardLast4: method.last4,
-                              expiryMonth: method.expiryMonth,
-                              expiryYear: method.expiryYear,
-                              savePaymentMethod: false,
-                            }));
-                          }}
-                        >
-                          <p className="font-medium text-foreground">{method.brand} •••• {method.last4}</p>
-                          <p className="text-xs text-muted-foreground">Expires {String(method.expiryMonth).padStart(2, "0")}/{method.expiryYear}</p>
-                          <p className="mt-1 text-[11px] text-muted-foreground">{method.isDefault ? "Default card" : "Saved demo card"}</p>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <Button
-                    type="button"
-                    variant={formData.checkoutMethod === "new_demo_card" ? "default" : "outline"}
-                    onClick={() => setFormData((prev) => ({ ...prev, checkoutMethod: "new_demo_card", paymentMethodId: null }))}
-                  >
-                    Use a new demo card
-                  </Button>
-
-                  {formData.checkoutMethod !== "saved_demo_card" && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="checkout-cardholder">Cardholder name</Label>
-                        <Input
-                          id="checkout-cardholder"
-                          value={formData.cardholderName}
-                          onChange={(event) => setFormData((prev) => ({ ...prev, cardholderName: event.target.value }))}
-                          placeholder="Jane Smith"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="checkout-card-brand">Card brand</Label>
-                        <Input
-                          id="checkout-card-brand"
-                          value={formData.cardBrand}
-                          onChange={(event) => setFormData((prev) => ({ ...prev, cardBrand: event.target.value }))}
-                          placeholder="Visa"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="checkout-card-last4">Card last 4</Label>
-                        <Input
-                          id="checkout-card-last4"
-                          value={formData.cardLast4}
-                          onChange={(event) => setFormData((prev) => ({ ...prev, cardLast4: event.target.value.replace(/\D/g, "").slice(-4) }))}
-                          placeholder="4242"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="checkout-card-expiry-month">Expiry month</Label>
-                        <Input
-                          id="checkout-card-expiry-month"
-                          type="number"
-                          min={1}
-                          max={12}
-                          value={formData.expiryMonth}
-                          onChange={(event) => setFormData((prev) => ({ ...prev, expiryMonth: Number(event.target.value || prev.expiryMonth) }))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="checkout-card-expiry-year">Expiry year</Label>
-                        <Input
-                          id="checkout-card-expiry-year"
-                          type="number"
-                          min={new Date().getFullYear()}
-                          value={formData.expiryYear}
-                          onChange={(event) => setFormData((prev) => ({ ...prev, expiryYear: Number(event.target.value || prev.expiryYear) }))}
-                        />
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Billing address matches shipping</p>
+                        <p className="text-xs text-muted-foreground">Disable this if you want a separate billing destination.</p>
                       </div>
                       <button
                         type="button"
                         className={cn(
-                          "inline-flex items-center justify-between rounded-lg border px-4 py-3 text-left md:col-span-2",
-                          formData.savePaymentMethod ? "border-primary bg-primary/5" : "border-border",
+                          "inline-flex h-6 w-11 items-center rounded-full border transition-colors",
+                          sameAsShipping ? "bg-primary border-primary justify-end" : "bg-muted border-border justify-start",
                         )}
-                        onClick={() => setFormData((prev) => ({ ...prev, savePaymentMethod: !prev.savePaymentMethod }))}
+                        onClick={() => {
+                          setSameAsShipping((prev) => {
+                            const next = !prev;
+                            if (next) {
+                              setFormData((current) => ({
+                                ...current,
+                                billingAddress: current.shippingAddress,
+                                billingAddressId: current.shippingAddressId,
+                              }));
+                            }
+                            return next;
+                          });
+                        }}
                       >
-                        <span>
-                          <span className="block text-sm font-medium text-foreground">Save this demo card to your profile</span>
-                          <span className="block text-xs text-muted-foreground">Stored as a tokenized demo method only. No full card data or CVV is saved.</span>
-                        </span>
-                        <span className="text-xs font-semibold text-primary">{formData.savePaymentMethod ? "On" : "Off"}</span>
+                        <span className="mx-0.5 h-5 w-5 rounded-full bg-background shadow-sm" />
                       </button>
                     </div>
-                  )}
-                </div>
 
-                <div className="rounded-lg border p-4">
-                  <div className="max-h-52 space-y-3 overflow-y-auto">
-                    {items.map((item) => (
-                      <div key={item.id} className="flex justify-between text-sm">
-                        <span className="text-foreground">
-                          {item.product_name} <span className="text-muted-foreground">× {item.quantity}</span>
-                        </span>
-                        <span className="font-medium">${(item.product_price * item.quantity).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Separator className="my-4" />
-
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total</span>
-                    <span>${totalLabel}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1" onClick={handleClose} disabled={isProcessing}>
-                    Cancel
-                  </Button>
-                  <Button variant="hero" className="flex-1" onClick={() => handleCheckout(formData.checkoutMethod)} disabled={!isReadyToPlaceOrder || isProcessing}>
-                    {isProcessing ? (
+                    {!sameAsShipping && (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
+                        <div className="space-y-3 rounded-lg border p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">Saved billing addresses</p>
+                              <p className="text-xs text-muted-foreground">Choose another saved address or edit below for this order only.</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {addresses.map((address) => (
+                              <button
+                                key={`billing-${address.id}`}
+                                type="button"
+                                className={cn(
+                                  "rounded-lg border px-3 py-3 text-left transition-colors",
+                                  formData.billingAddressId === address.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40",
+                                )}
+                                onClick={() => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    billingAddressId: address.id,
+                                    billingAddress: toProfileAddress(address),
+                                  }));
+                                }}
+                              >
+                                <p className="font-medium text-foreground">{address.label}</p>
+                                <p className="text-xs text-muted-foreground">{address.line1}, {address.city}</p>
+                                <p className="mt-1 text-[11px] text-muted-foreground">
+                                  {address.isDefaultBilling ? "Default billing" : "Saved address"}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <AddressFields idPrefix="billing" title="Billing address" value={formData.billingAddress} onChange={updateBillingAddress} />
                       </>
-                    ) : (
-                      "Place Order"
                     )}
-                  </Button>
+
+                    <div className="space-y-4 rounded-lg border p-4">
+                      <div className="flex items-center gap-2">
+                        <WalletCards className="h-4 w-4 text-primary" />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Payment method</p>
+                          <p className="text-xs text-muted-foreground">Save demo cards to speed up future orders or let staff charge saved cards on your behalf.</p>
+                        </div>
+                      </div>
+
+                      {paymentMethods.length > 0 ? (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {paymentMethods.map((method) => (
+                            <button
+                              key={method.id}
+                              type="button"
+                              className={cn(
+                                "rounded-lg border px-3 py-3 text-left transition-colors",
+                                formData.paymentMethodId === method.id && formData.checkoutMethod === "saved_demo_card"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/40",
+                              )}
+                              onClick={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  paymentMethodId: method.id,
+                                  checkoutMethod: "saved_demo_card",
+                                  cardholderName: method.cardholderName,
+                                  cardBrand: method.brand,
+                                  cardLast4: method.last4,
+                                  expiryMonth: method.expiryMonth,
+                                  expiryYear: method.expiryYear,
+                                  savePaymentMethod: false,
+                                }));
+                              }}
+                            >
+                              <p className="font-medium text-foreground">{method.brand} •••• {method.last4}</p>
+                              <p className="text-xs text-muted-foreground">Expires {String(method.expiryMonth).padStart(2, "0")}/{method.expiryYear}</p>
+                              <p className="mt-1 text-[11px] text-muted-foreground">{method.isDefault ? "Default card" : "Saved demo card"}</p>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <Button
+                        type="button"
+                        variant={formData.checkoutMethod === "new_demo_card" ? "default" : "outline"}
+                        onClick={() => setFormData((prev) => ({ ...prev, checkoutMethod: "new_demo_card", paymentMethodId: null }))}
+                      >
+                        Use a new demo card
+                      </Button>
+
+                      {formData.checkoutMethod !== "saved_demo_card" && (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="checkout-cardholder">Cardholder name</Label>
+                            <Input
+                              id="checkout-cardholder"
+                              value={formData.cardholderName}
+                              onChange={(event) => setFormData((prev) => ({ ...prev, cardholderName: event.target.value }))}
+                              placeholder="Jane Smith"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="checkout-card-brand">Card brand</Label>
+                            <Input
+                              id="checkout-card-brand"
+                              value={formData.cardBrand}
+                              onChange={(event) => setFormData((prev) => ({ ...prev, cardBrand: event.target.value }))}
+                              placeholder="Visa"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="checkout-card-last4">Card last 4</Label>
+                            <Input
+                              id="checkout-card-last4"
+                              value={formData.cardLast4}
+                              onChange={(event) => setFormData((prev) => ({ ...prev, cardLast4: event.target.value.replace(/\D/g, "").slice(-4) }))}
+                              placeholder="4242"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="checkout-card-expiry-month">Expiry month</Label>
+                            <Input
+                              id="checkout-card-expiry-month"
+                              type="number"
+                              min={1}
+                              max={12}
+                              value={formData.expiryMonth}
+                              onChange={(event) => setFormData((prev) => ({ ...prev, expiryMonth: Number(event.target.value || prev.expiryMonth) }))}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="checkout-card-expiry-year">Expiry year</Label>
+                            <Input
+                              id="checkout-card-expiry-year"
+                              type="number"
+                              min={new Date().getFullYear()}
+                              value={formData.expiryYear}
+                              onChange={(event) => setFormData((prev) => ({ ...prev, expiryYear: Number(event.target.value || prev.expiryYear) }))}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            className={cn(
+                              "inline-flex items-center justify-between rounded-lg border px-4 py-3 text-left md:col-span-2",
+                              formData.savePaymentMethod ? "border-primary bg-primary/5" : "border-border",
+                            )}
+                            onClick={() => setFormData((prev) => ({ ...prev, savePaymentMethod: !prev.savePaymentMethod }))}
+                          >
+                            <span>
+                              <span className="block text-sm font-medium text-foreground">Save this demo card to your profile</span>
+                              <span className="block text-xs text-muted-foreground">Stored as a tokenized demo method only. No full card data or CVV is saved.</span>
+                            </span>
+                            <span className="text-xs font-semibold text-primary">{formData.savePaymentMethod ? "On" : "Off"}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <aside className="space-y-4 rounded-lg border p-4 lg:sticky lg:top-4">
+                    <h3 className="text-base font-semibold text-foreground">Order summary</h3>
+                    <div className="max-h-80 space-y-3 overflow-y-auto">
+                      {items.map((item) => {
+                        const itemLink = cartLinksByItemId.get(item.id);
+                        return (
+                          <div key={item.id} className="flex justify-between gap-3 text-sm">
+                            <span className="text-foreground">
+                              {itemLink ? (
+                                <Link to={itemLink} className="hover:text-primary hover:underline">
+                                  {item.product_name}
+                                </Link>
+                              ) : (
+                                item.product_name
+                              )}{" "}
+                              <span className="text-muted-foreground">× {item.quantity}</span>
+                            </span>
+                            <span className="font-medium">${(item.product_price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    <div className="flex justify-between text-lg font-semibold">
+                      <span>Total</span>
+                      <span>${totalLabel}</span>
+                    </div>
+
+                    <div className="grid gap-3 pt-2 sm:grid-cols-3 lg:grid-cols-1">
+                      <Button variant="outline" onClick={handleClose} disabled={isProcessing}>
+                        Cancel
+                      </Button>
+                      <Button variant="secondary" asChild disabled={isProcessing}>
+                        <Link to="/store" onClick={() => onOpenChange(false)}>Keep Shopping</Link>
+                      </Button>
+                      <Button variant="hero" onClick={() => handleCheckout(formData.checkoutMethod)} disabled={!isReadyToPlaceOrder || isProcessing}>
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          "Place Order"
+                        )}
+                      </Button>
+                    </div>
+                  </aside>
                 </div>
               </div>
             )}
