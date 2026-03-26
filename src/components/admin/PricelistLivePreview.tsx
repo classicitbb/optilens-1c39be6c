@@ -157,8 +157,9 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   }, [catalogRows, catalogType, categoryMetaMap, categoryOrderMap, rxStructure, lensFinishById]);
 
   const MatrixPreview = () => (
-    <div className="space-y-6">
+    <div className={catalogType === "rx" ? "space-y-4" : "space-y-6"}>
       {matrixGroups.map((grouping) => {
+        const useCompactMatrixStyles = catalogType === "rx";
         const visibleCols = MATERIAL_COLUMNS.filter((column) =>
           allocations.some((allocation) => allocation.treatment_type === grouping.key && allocation.material_index === column.key && allocation.allocated_price_bbd != null)
         );
@@ -181,14 +182,21 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
         return (
           <div key={grouping.id} className="print-grid-keep">
-            <table className="w-full text-xs border-collapse" style={{ tableLayout: "auto" }}>
+            <table className="w-full border-collapse" style={{ tableLayout: "auto", fontSize: useCompactMatrixStyles ? "12px" : undefined }}>
               <thead>
                 <tr>
-                  <th className="px-4 py-2.5 text-left font-bold uppercase tracking-wider text-sm" style={{ background: "#1e4db7", color: "white", borderBottom: "none" }}>
+                  <th
+                    className={`px-4 text-left font-bold uppercase ${useCompactMatrixStyles ? "py-1.5 tracking-wide" : "py-2.5 tracking-wider text-sm"}`}
+                    style={{ background: "#1e4db7", color: "white", borderBottom: "none", lineHeight: useCompactMatrixStyles ? 1.2 : undefined, fontSize: useCompactMatrixStyles ? "12px" : undefined }}
+                  >
                     {grouping.name}
                   </th>
                   {sortedCols.map((column) => (
-                    <th key={column.key} className="px-3 py-2.5 text-center font-bold uppercase tracking-wider" style={{ background: "#1e4db7", color: "white", minWidth: "90px", borderBottom: "none" }}>
+                    <th
+                      key={column.key}
+                      className={`px-3 text-center font-bold uppercase ${useCompactMatrixStyles ? "py-1.5 tracking-wide" : "py-2.5 tracking-wider"}`}
+                      style={{ background: "#1e4db7", color: "white", minWidth: "90px", borderBottom: "none", lineHeight: useCompactMatrixStyles ? 1.2 : undefined, fontSize: useCompactMatrixStyles ? "11px" : undefined }}
+                    >
                       {column.key}
                     </th>
                   ))}
@@ -197,11 +205,11 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
               <tbody>
                 {activeCategories.map((category) => (
                   <tr key={category.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                    <td className="px-4 py-2 font-medium" style={{ color: "#1a202c" }}>{category.name}</td>
+                    <td className={`px-4 font-medium ${useCompactMatrixStyles ? "py-1.5" : "py-2"}`} style={{ color: "#1a202c", lineHeight: useCompactMatrixStyles ? 1.25 : undefined }}>{category.name}</td>
                     {sortedCols.map((column) => {
                       const allocation = allocations.find((entry) => entry.treatment_type === grouping.key && entry.category === category.key && entry.material_index === column.key);
                       return (
-                        <td key={column.key} className="px-3 py-2 text-right font-semibold" style={{ color: "#1a202c" }}>
+                        <td key={column.key} className={`px-3 text-right font-semibold ${useCompactMatrixStyles ? "py-1.5" : "py-2"}`} style={{ color: "#1a202c", lineHeight: useCompactMatrixStyles ? 1.25 : undefined }}>
                           {allocation?.allocated_price_bbd != null ? hierarchyMatrixPrice(allocation.allocated_price_bbd, allocation.id ? String(allocation.id) : undefined) : "—"}
                         </td>
                       );
@@ -210,21 +218,21 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
                 ))}
                 {showSummaryRows && (
                   <tr style={{ borderTop: "2px solid #cbd5e0", background: "#f7fafc" }}>
-                    <td className="px-4 py-2 italic text-xs" style={{ color: "#718096" }}>Col. Averages</td>
+                    <td className={`px-4 italic text-xs ${useCompactMatrixStyles ? "py-1.5" : "py-2"}`} style={{ color: "#718096", lineHeight: useCompactMatrixStyles ? 1.25 : undefined }}>Col. Averages</td>
                     {sortedCols.map((column) => {
                       const avg = getColAvg(column.key, grouping.key);
-                      return <td key={column.key} className="px-3 py-2 text-right italic" style={{ color: "#4a5568" }}>{avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}</td>;
+                      return <td key={column.key} className={`px-3 text-right italic ${useCompactMatrixStyles ? "py-1.5" : "py-2"}`} style={{ color: "#4a5568", lineHeight: useCompactMatrixStyles ? 1.25 : undefined }}>{avg != null ? fmtDisplay(avg, showUSD, fxRate) : "—"}</td>;
                     })}
                   </tr>
                 )}
                 {showSummaryRows && grouping.key !== "clear" && (
                   <tr style={{ background: "#fffbeb", borderTop: "1px solid #e2e8f0" }}>
-                    <td className="px-4 py-2 italic text-xs" style={{ color: "#b7791f" }}>Δ vs Clear</td>
+                    <td className={`px-4 italic text-xs ${useCompactMatrixStyles ? "py-1.5" : "py-2"}`} style={{ color: "#b7791f", lineHeight: useCompactMatrixStyles ? 1.25 : undefined }}>Δ vs Clear</td>
                     {sortedCols.map((column) => {
                       const treatAvg = getColAvg(column.key, grouping.key);
                       const clearAvg = getColAvg(column.key, "clear");
                       const delta = treatAvg != null && clearAvg != null ? treatAvg - clearAvg : null;
-                      return <td key={column.key} className="px-3 py-2 text-right font-semibold text-xs" style={{ color: delta == null ? "#a0aec0" : delta > 0 ? "#38a169" : "#e53e3e" }}>{delta != null ? `${delta > 0 ? "+" : ""}${fmtDisplay(delta, showUSD, fxRate)}` : "—"}</td>;
+                      return <td key={column.key} className={`px-3 text-right font-semibold text-xs ${useCompactMatrixStyles ? "py-1.5" : "py-2"}`} style={{ color: delta == null ? "#a0aec0" : delta > 0 ? "#38a169" : "#e53e3e", lineHeight: useCompactMatrixStyles ? 1.25 : undefined }}>{delta != null ? `${delta > 0 ? "+" : ""}${fmtDisplay(delta, showUSD, fxRate)}` : "—"}</td>;
                     })}
                   </tr>
                 )}
