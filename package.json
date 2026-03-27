@@ -22,6 +22,7 @@
     "release-ledger:sync": "node scripts/sync_release_ledger.mjs",
     "supabase:types:generate": "npx supabase gen types typescript --local > src/integrations/supabase/types.ts",
     "test": "node scripts/run-tests.mjs",
+    "test:headers": "vitest run --coverage=false src/tests/integration/securityHeaders.integration.test.ts",
     "test:e2e": "vitest run --coverage=false src/tests/e2e",
     "test:integration": "vitest run --coverage=false src/tests/integration",
     "test:unit": "vitest run --coverage=false src/tests/unit"
