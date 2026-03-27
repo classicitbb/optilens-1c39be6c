@@ -43,6 +43,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.coatings.caring", path: "/coatings/caring-for-coated-lenses", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "legacy-redirect", redirectTo: "/knowledge#caring-for-coated-lenses" },
   { id: "customer.store", path: "/store", domain: "customer-portal", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "customer-main", status: "active" },
   { id: "customer.store.product", path: "/store/product/:productType/:productId", domain: "customer-portal", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "customer-main", status: "active" },
+  { id: "customer.checkout", path: "/checkout", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "active" },
   { id: "customer.profile", path: "/profile/*", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "active" },
   { id: "customer.orders-redirect", path: "/orders", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "legacy-redirect", redirectTo: "/profile/orders" },
   { id: "admin.root", path: "/admin", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
