@@ -88,6 +88,13 @@ async function handlePreview(req: Request): Promise<Response> {
   const originBlocked = rejectDisallowedOrigin(req, previewCorsPolicy)
   if (originBlocked) return originBlocked
 
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const authHeader = req.headers.get('Authorization')
 
@@ -128,7 +135,7 @@ async function handlePreview(req: Request): Promise<Response> {
 }
 
 // Webhook handler - verifies signature and sends email
-async function handleWebhook(req: Request): Promise<Response> {
+async function handleWebhook(req: Request, corsHeaders: Record<string, string>): Promise<Response> {
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
 
   if (!apiKey) {
@@ -279,19 +286,28 @@ async function handleWebhook(req: Request): Promise<Response> {
 Deno.serve(async (req) => {
   const url = new URL(req.url)
 
-  // Handle CORS preflight for main endpoint
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
-
   // Route to preview handler for /preview path
   if (url.pathname.endsWith('/preview')) {
     return handlePreview(req)
   }
 
+  const preflight = handleCorsPreflight(req, corsPolicy)
+  if (preflight) return preflight
+
+  const corsHeaders = getCorsHeaders(req, corsPolicy)
+  const originBlocked = rejectDisallowedOrigin(req, corsPolicy)
+  if (originBlocked) return originBlocked
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   // Main webhook handler
   try {
-    return await handleWebhook(req)
+    return await handleWebhook(req, corsHeaders)
   } catch (error) {
     console.error('Webhook handler error:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
