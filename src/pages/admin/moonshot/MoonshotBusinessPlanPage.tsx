@@ -13,11 +13,11 @@ import { sanitizeBusinessPlanRichNotes } from "@/lib/sanitizeRichTextHtml";
 
 const escapeHtml = (value: string | undefined | null) =>
   String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#39;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 const formatMultilineText = (value: string | undefined | null) =>
   escapeHtml(value).replaceAll("\n", "<br />");
