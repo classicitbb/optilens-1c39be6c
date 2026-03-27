@@ -19,6 +19,17 @@ const escapeHtml = (value: string | undefined) =>
     .replaceAll("\"", "&quot;")
     .replaceAll("'", "&#039;");
 
+const escapeHtml = (value: string | undefined | null) =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+
+const formatMultilineText = (value: string | undefined | null) =>
+  escapeHtml(value).replaceAll("\n", "<br />");
+
 export default function MoonshotBusinessPlanPage() {
   const { businessPlan, updateBusinessPlan } = useMoonshotStore();
   const dirtyRef = useRef(false);
@@ -49,7 +60,6 @@ export default function MoonshotBusinessPlanPage() {
     const st = values?.shortTermFocus;
     if (!ff || !st) return "";
     const coreValues = (ff.coreValues ?? []).map((cv, idx) => `<li>${idx + 1}. ${escapeHtml(cv)}</li>`).join("");
-    const safeRichNotes = sanitizeBusinessPlanRichNotes(ff.richNotes ?? "");
     return `
       <html>
       <head><title>Moonshot Business Plan</title><style>body{font-family:Arial;padding:24px}h1,h2{margin:0 0 12px}section{margin-bottom:20px}ul{padding-left:16px}</style></head>
@@ -57,20 +67,22 @@ export default function MoonshotBusinessPlanPage() {
         <h1>Moonshot Business Plan</h1>
         <section><h2>Future Focus</h2>
           <h3>Core Values</h3><ul>${coreValues}</ul>
-          <h3>BHAG</h3><p>${escapeHtml(ff.bhag)}</p>
+          <h3>BHAG</h3><p>${formatMultilineText(ff.bhag)}</p>
           <h3>3-Year Vision</h3><p>Revenue: ${escapeHtml(ff.threeYearVision?.revenue)} · MRR: ${escapeHtml(ff.threeYearVision?.mrr)} · NRR: ${escapeHtml(ff.threeYearVision?.nrr)} · Gross Margin: ${escapeHtml(ff.threeYearVision?.grossMargin)} · Customers: ${escapeHtml(ff.threeYearVision?.customers)}</p>
-          <h3>Marketing Strategy</h3><p><strong>Target Market:</strong> ${escapeHtml(ff.marketingStrategy?.targetMarket)}</p><p><strong>Differentiators:</strong> ${escapeHtml(ff.marketingStrategy?.differentiators)}</p>
-          <p><strong>Core Focus:</strong> ${escapeHtml(ff.coreFocus)}</p>
-          <p><strong>Coaches:</strong> ${escapeHtml(ff.coachesAndAdvisors)}</p>
-          <h3>Rich Notes</h3><div>${safeRichNotes}</div>
+          <h3>Marketing Strategy</h3><p><strong>Target Market:</strong> ${formatMultilineText(ff.marketingStrategy?.targetMarket)}</p><p><strong>Differentiators:</strong> ${formatMultilineText(ff.marketingStrategy?.differentiators)}</p>
+          <p><strong>Guarantee:</strong> ${formatMultilineText(ff.marketingStrategy?.guarantee)}</p>
+          <p><strong>Process:</strong> ${formatMultilineText(ff.marketingStrategy?.process)}</p>
+          <p><strong>Core Focus:</strong> ${formatMultilineText(ff.coreFocus)}</p>
+          <p><strong>Coaches:</strong> ${formatMultilineText(ff.coachesAndAdvisors)}</p>
+          <p><strong>Rich Notes:</strong> ${formatMultilineText(ff.richNotes)}</p>
         </section>
         <section><h2>Short-term Focus</h2>
-          <p><strong>1-Year Plan:</strong> ${escapeHtml(st.oneYearPlan)}</p>
-          <p><strong>Quarterly Goals:</strong> ${escapeHtml(st.quarterlyGoals)}</p>
-          <p><strong>Key Initiatives:</strong> ${escapeHtml(st.keyInitiatives)}</p>
-          <p><strong>Obstacles:</strong> ${escapeHtml(st.obstacles)}</p>
-          <p><strong>Rocks Summary:</strong> ${escapeHtml(st.rocksSummary)}</p>
-          <p><strong>Notes:</strong> ${escapeHtml(st.notes)}</p>
+          <p><strong>1-Year Plan:</strong> ${formatMultilineText(st.oneYearPlan)}</p>
+          <p><strong>Quarterly Goals:</strong> ${formatMultilineText(st.quarterlyGoals)}</p>
+          <p><strong>Key Initiatives:</strong> ${formatMultilineText(st.keyInitiatives)}</p>
+          <p><strong>Obstacles:</strong> ${formatMultilineText(st.obstacles)}</p>
+          <p><strong>Rocks Summary:</strong> ${formatMultilineText(st.rocksSummary)}</p>
+          <p><strong>Notes:</strong> ${formatMultilineText(st.notes)}</p>
         </section>
       </body>
       </html>`;
@@ -156,17 +168,21 @@ export default function MoonshotBusinessPlanPage() {
 
               <section className="space-y-2">
                 <FormLabel>Rich Notes</FormLabel>
-                <div
-                  ref={richNotesRef}
-                  className="min-h-32 rounded-md border p-3 prose prose-sm max-w-none"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={(e) =>
-                    form.setValue(
-                      "futureFocus.richNotes",
-                      sanitizeBusinessPlanRichNotes((e.target as HTMLDivElement).innerHTML),
-                    )
-                  }
+                <FormField
+                  control={form.control}
+                  name="futureFocus.richNotes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          value={field.value ?? ""}
+                          className="min-h-32"
+                          placeholder="Add notes in plain text."
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
               </section>
             </TabsContent>
