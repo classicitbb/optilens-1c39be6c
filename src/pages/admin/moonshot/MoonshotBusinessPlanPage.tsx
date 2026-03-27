@@ -20,7 +20,7 @@ const escapeHtml = (value: string | undefined | null) =>
     .replace(/'/g, "&#39;");
 
 const formatMultilineText = (value: string | undefined | null) =>
-  escapeHtml(value).replaceAll("\n", "<br />");
+  escapeHtml(value).replace(/\n/g, "<br />");
 
 export default function MoonshotBusinessPlanPage() {
   const { businessPlan, updateBusinessPlan } = useMoonshotStore();
