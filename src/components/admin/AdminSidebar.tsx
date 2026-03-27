@@ -57,7 +57,7 @@ const AdminSidebar = () => {
     return () => window.clearTimeout(collapseTimer);
   }, [mode, isEditorRoute]);
 
-  const w = isCollapsed ? "w-14" : "w-60";
+  const w = isCollapsed ? "w-10" : "w-60";
   const linkBase = "flex items-center gap-2 px-3 py-1.5 text-[13px] rounded transition-colors";
 
   const integrationStatusLabel =
