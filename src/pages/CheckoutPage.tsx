@@ -31,6 +31,7 @@ const CheckoutPage = () => {
   const handleCheckout = async (details: CheckoutFormData): Promise<boolean> => {
     const order = await createOrder(items, totalPrice, details);
     if (order) {
+      setOrderPlaced(true);
       await clearCart();
       return true;
     }
