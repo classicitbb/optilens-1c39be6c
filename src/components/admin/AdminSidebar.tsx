@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { PanelLeftClose, PanelLeft, ArrowLeft, Pin, PinOff } from "lucide-react";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
+import { cn } from "@/lib/utils";
 
 type IntegrationConnectionRow = {
   status: "connected" | "error" | "not_configured" | null;
@@ -57,7 +58,7 @@ const AdminSidebar = () => {
     return () => window.clearTimeout(collapseTimer);
   }, [mode, isEditorRoute]);
 
-  const w = isCollapsed ? "w-14" : "w-60";
+  const w = isCollapsed ? "w-10" : "w-60";
   const linkBase = "flex items-center gap-2 px-3 py-1.5 text-[13px] rounded transition-colors";
 
   const integrationStatusLabel =
@@ -108,7 +109,7 @@ const AdminSidebar = () => {
       data-collapse-reason={collapseReason}
       data-sidebar-mode={mode}
     >
-      <div className="h-11 flex items-center justify-between px-3 border-b rounded-none border-[hsl(var(--admin-border))]">
+      <div className={cn("h-11 flex items-center border-b rounded-none border-[hsl(var(--admin-border))]", isCollapsed ? "justify-center px-1" : "justify-between px-3")}>
         {!isCollapsed && activeApp && (
           <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">{activeApp.title}</span>
         )}
@@ -142,7 +143,7 @@ const AdminSidebar = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-2 space-y-0.5 rounded-none">
+      <div className="flex-1 overflow-y-auto overflow-x-visible py-2 space-y-0.5 rounded-none">
         <SidebarNavList
           items={sidebarItems}
           pathname={currentPath}
