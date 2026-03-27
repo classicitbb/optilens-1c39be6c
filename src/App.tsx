@@ -13,6 +13,7 @@ import RouteLoadingFallback from "@/routes/shared/RouteLoadingFallback";
 import Store from "@/pages/Store";
 import StoreProductPage from "@/pages/StoreProductPage";
 import Unsubscribe from "@/pages/Unsubscribe";
+import CheckoutPage from "@/pages/CheckoutPage";
 
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
@@ -84,6 +85,7 @@ const App = () => (
                   <Route path="/unsubscribe" element={<Unsubscribe />} />
                   <Route path="/store" element={<Store />} />
                   <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
+                  <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/profile/*" element={<PortalRoutes />} />
                   <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
                   <Route path="/portal" element={<Navigate to="/profile" replace />} />
