@@ -156,7 +156,7 @@ const WebsiteStorePage = () => {
         .select("id, product_type, product_id, is_vat_taxable, quantity_label, website_badges");
 
       if (error) return [] as ProductOverride[];
-      return (data ?? []) as ProductOverride[];
+      return (data ?? []) as unknown as ProductOverride[];
     },
   });
 
