@@ -100,7 +100,7 @@ const WebsiteStorePage = () => {
   const { data: supplies = [], isLoading: loadingSupplies, updateMutation: updateSupplyMutation } = useSupplies();
   const { data: addons = [], isLoading: loadingAddons, updateMutation: updateAddonMutation } = useAddons();
   const { data: pricingSheets = [] } = usePricingSheets();
-  const { data: addonPricingSheets = [] } = useAddonPricingSheets();
+  const { data: addonPricingSheets = [] } = useAddonPricingSheets(null);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ProductFilter>("all");
