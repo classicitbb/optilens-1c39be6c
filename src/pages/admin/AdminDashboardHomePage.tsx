@@ -1,5 +1,6 @@
 import { ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Rocket, Settings, ShoppingCart, Target, Users } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -91,24 +92,32 @@ const AdminDashboardHomePage = () => {
         </p>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-primary" />
-          <h2 className="text-lg font-semibold tracking-tight">Website Analytics (Placeholder Metrics)</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
-          {metrics.map((metric) => (
-            <Card key={metric.label} className="border-border/70">
-              <CardHeader className="space-y-1 p-4 pb-1.5">
-                <CardDescription className="text-xs">{metric.label}</CardDescription>
-                <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">{metric.trend}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <section>
+        <Accordion type="single" collapsible className="w-full rounded-xl border border-border/70 bg-card px-4">
+          <AccordionItem value="website-analytics" className="border-none">
+            <AccordionTrigger className="py-4 text-left hover:no-underline">
+              <span className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <span className="text-lg font-semibold tracking-tight">Website Analytics (Placeholder Metrics)</span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
+                {metrics.map((metric) => (
+                  <Card key={metric.label} className="border-border/70">
+                    <CardHeader className="space-y-1 p-4 pb-1.5">
+                      <CardDescription className="text-xs">{metric.label}</CardDescription>
+                      <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">{metric.trend}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </section>
 
       <section className="space-y-3">
