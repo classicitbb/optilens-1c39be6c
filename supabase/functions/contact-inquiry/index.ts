@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { z } from "npm:zod@3.25.76";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
+import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -24,27 +25,6 @@ const inquirySchema = z.object({
   honeypot: z.string().optional().default(""),
   startedAt: z.string().datetime({ offset: true }),
 });
-
-const maskIp = (rawIp: string | null) => {
-  if (!rawIp) return null;
-  if (rawIp.includes(":")) {
-    const parts = rawIp.split(":").filter(Boolean);
-    return `${parts.slice(0, 4).join(":")}:*`;
-  }
-  const parts = rawIp.split(".");
-  if (parts.length === 4) {
-    return `${parts[0]}.${parts[1]}.${parts[2]}.*`;
-  }
-  return rawIp;
-};
-
-const getIpHint = (req: Request) => {
-  const forwardedFor = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const realIp = req.headers.get("x-real-ip")?.trim();
-  return maskIp(forwardedFor || realIp || null);
-};
-
-const getUserAgent = (req: Request) => req.headers.get("user-agent")?.slice(0, 500) ?? "unknown";
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
@@ -84,8 +64,22 @@ Deno.serve(async (req) => {
     }
 
     const payload = inquirySchema.parse(await req.json());
+    const sourcePath = new URL(req.url).pathname;
+    const ipHint = getIpHintFromRequest(req);
+    const userAgent = getUserAgentFromRequest(req) ?? "unknown";
 
     if (payload.honeypot.trim()) {
+      await logSecurityAuditEvent({
+        category: "edge_security",
+        eventType: "abuse.bot_detected",
+        severity: "high",
+        statusCode: 400,
+        sourceFunction: "contact-inquiry",
+        sourcePath,
+        ipHint,
+        userAgent,
+        payload: { reason: "honeypot_populated" },
+      });
       return new Response(JSON.stringify({ error: "Spam rejected" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -94,6 +88,17 @@ Deno.serve(async (req) => {
 
     const startedAtMs = Date.parse(payload.startedAt);
     if (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs < MIN_FORM_FILL_MS) {
+      await logSecurityAuditEvent({
+        category: "edge_security",
+        eventType: "abuse.bot_detected",
+        severity: "medium",
+        statusCode: 400,
+        sourceFunction: "contact-inquiry",
+        sourcePath,
+        ipHint,
+        userAgent,
+        payload: { reason: "form_fill_too_fast", minFillMs: MIN_FORM_FILL_MS },
+      });
       return new Response(JSON.stringify({ error: "Submission blocked by bot protection" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -105,7 +110,6 @@ Deno.serve(async (req) => {
     });
 
     const rateLimitSince = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-    const ipHint = getIpHint(req);
     if (ipHint) {
       const { count, error: rateLimitError } = await supabase
         .from("public_inquiries")
@@ -115,6 +119,17 @@ Deno.serve(async (req) => {
 
       if (rateLimitError) throw rateLimitError;
       if ((count ?? 0) >= MAX_SUBMISSIONS_PER_HOUR) {
+        await logSecurityAuditEvent({
+          category: "edge_security",
+          eventType: "abuse.rate_limit",
+          severity: "high",
+          statusCode: 429,
+          sourceFunction: "contact-inquiry",
+          sourcePath,
+          ipHint,
+          userAgent,
+          payload: { reason: "ip_hourly_limit", maxPerHour: MAX_SUBMISSIONS_PER_HOUR },
+        });
         return new Response(JSON.stringify({ error: "Too many submissions, please try again later" }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -130,6 +145,17 @@ Deno.serve(async (req) => {
 
     if (emailRateLimitError) throw emailRateLimitError;
     if ((emailCount ?? 0) >= MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR) {
+      await logSecurityAuditEvent({
+        category: "edge_security",
+        eventType: "abuse.rate_limit",
+        severity: "high",
+        statusCode: 429,
+        sourceFunction: "contact-inquiry",
+        sourcePath,
+        ipHint,
+        userAgent,
+        payload: { reason: "email_hourly_limit", maxPerHour: MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR, emailDomain: payload.email.split("@")[1] ?? "unknown" },
+      });
       return new Response(JSON.stringify({ error: "Too many submissions, please try again later" }), {
         status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -148,7 +174,7 @@ Deno.serve(async (req) => {
         source_channel: payload.sourceChannel,
         honeypot: null,
         ip_hint: ipHint,
-        notes: JSON.stringify({ userAgent: getUserAgent(req), delivered_to: CONTACT_RECIPIENT }),
+        notes: JSON.stringify({ userAgent, delivered_to: CONTACT_RECIPIENT }),
       })
       .select("id, created_at")
       .single();
