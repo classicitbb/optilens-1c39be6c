@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { PanelLeftClose, PanelLeft, ArrowLeft, Pin, PinOff } from "lucide-react";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
+import { cn } from "@/lib/utils";
 
 type IntegrationConnectionRow = {
   status: "connected" | "error" | "not_configured" | null;
