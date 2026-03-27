@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2, ListChecks } from "lucide-react";
+import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2, ListChecks, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
@@ -15,11 +15,12 @@ import { getStoreProductRoute } from "@/hooks/useStoreProducts";
 
 type SortKey = "name" | "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
 type SortDir = "asc" | "desc";
-type Filter = "all" | "active" | "inactive" | "web" | "zero_cost" | "zero_sell";
+type Filter = "all" | "active" | "inactive" | "web" | "zero_cost" | "zero_sell" | "in_pricelist" | "liked" | "disliked";
 type ColumnFilterKey = "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype";
 
 interface Props {
   lenses: Lens[];
+  preferences?: Record<string, "liked" | "disliked">;
   search: string;
   filterVersion?: number;
   onRowClick: (lens: Lens) => void;
@@ -49,7 +50,7 @@ const emptyColFilters: Record<ColumnFilterKey, string[]> = {
 };
 
 const LensDataTable = ({
-  lenses, search, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete,
+  lenses, preferences = {}, search, filterVersion, onRowClick, onToggleActive, onDuplicate, onDelete, canDelete,
   filter: filterProp, onFilterChange,
   sortKey: sortKeyProp, sortDir: sortDirProp, onSortChange,
   colFilters: colFiltersProp, onColFiltersChange,
@@ -156,8 +157,11 @@ const LensDataTable = ({
     if (targetFilter === "web") return items.filter((i) => i.show_on_website);
     if (targetFilter === "zero_cost") return items.filter((i) => i.base_price === 0);
     if (targetFilter === "zero_sell") return items.filter((i) => i.sell_price === 0);
+    if (targetFilter === "in_pricelist") return items.filter((i) => i.show_in_pricelist || usedItems.has(i.id));
+    if (targetFilter === "liked") return items.filter((i) => preferences[i.id] === "liked");
+    if (targetFilter === "disliked") return items.filter((i) => preferences[i.id] === "disliked");
     return items;
-  }, []);
+  }, [preferences, usedItems]);
 
   const baseFiltered = useMemo(() => {
     let items = lenses;
@@ -193,6 +197,9 @@ const LensDataTable = ({
     web: applyStatusFilter(baseFiltered, "web").length,
     zero_cost: applyStatusFilter(baseFiltered, "zero_cost").length,
     zero_sell: applyStatusFilter(baseFiltered, "zero_sell").length,
+    in_pricelist: applyStatusFilter(baseFiltered, "in_pricelist").length,
+    liked: applyStatusFilter(baseFiltered, "liked").length,
+    disliked: applyStatusFilter(baseFiltered, "disliked").length,
   }), [baseFiltered, applyStatusFilter]);
 
   const filtered = useMemo(() => {
@@ -223,6 +230,9 @@ const LensDataTable = ({
     { label: "Inactive", value: "inactive", count: filterCounts.inactive },
     { label: "All", value: "all", count: filterCounts.all },
     { label: "Web", value: "web", count: filterCounts.web },
+    { label: "In Pricelist", value: "in_pricelist", count: filterCounts.in_pricelist },
+    { label: "Liked", value: "liked", count: filterCounts.liked },
+    { label: "Disliked", value: "disliked", count: filterCounts.disliked },
     { label: "Zero Cost", value: "zero_cost", count: filterCounts.zero_cost },
     { label: "Zero Sell", value: "zero_sell", count: filterCounts.zero_sell },
   ];
@@ -333,6 +343,12 @@ const LensDataTable = ({
                           <span title="Used in a pricelist" className="inline-flex items-center justify-center h-3.5 w-3.5 rounded-full shrink-0" style={{ background: "hsl(var(--admin-accent))", color: "hsl(var(--admin-accent-fg))" }}>
                             <ListChecks className="h-2 w-2" />
                           </span>
+                        )}
+                        {preferences[lens.id] === "liked" && (
+                          <ThumbsUp className="h-3 w-3 shrink-0" title="Liked lens" style={{ color: "hsl(var(--admin-success))" }} />
+                        )}
+                        {preferences[lens.id] === "disliked" && (
+                          <ThumbsDown className="h-3 w-3 shrink-0" title="Disliked lens" style={{ color: "hsl(var(--admin-destructive))" }} />
                         )}
                       </span>
                     </TableCell>

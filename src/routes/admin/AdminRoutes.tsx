@@ -12,6 +12,7 @@ const ProductCatalogPage = lazy(() => import("@/pages/admin/ProductCatalogPage")
 const RxLensPricesPage = lazy(() => import("@/pages/admin/RxLensPricesPage"));
 const StockLensPricesPage = lazy(() => import("@/pages/admin/StockLensPricesPage"));
 const BuySellPricesPage = lazy(() => import("@/pages/admin/BuySellPricesPage"));
+const PricingComparePage = lazy(() => import("@/pages/admin/PricingComparePage"));
 const ImportsPage = lazy(() => import("@/pages/admin/ImportsPage"));
 const UsersPage = lazy(() => import("@/pages/admin/UsersPage"));
 const CompanySettingsPage = lazy(() => import("@/pages/admin/CompanySettingsPage"));
@@ -61,6 +62,7 @@ const AdminRoutes = () => (
       <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
       <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
       <Route path="pricing/supplies" element={<BuySellPricesPage />} />
+      <Route path="pricing/compare" element={<PricingComparePage />} />
       <Route path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
       <Route path="pricing/publisher-old" element={<Navigate to="/admin/pricing/publisher" replace />} />
       <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
