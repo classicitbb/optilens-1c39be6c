@@ -100,7 +100,7 @@ const WebsiteStorePage = () => {
   const { data: supplies = [], isLoading: loadingSupplies, updateMutation: updateSupplyMutation } = useSupplies();
   const { data: addons = [], isLoading: loadingAddons, updateMutation: updateAddonMutation } = useAddons();
   const { data: pricingSheets = [] } = usePricingSheets();
-  const { data: addonPricingSheets = [] } = useAddonPricingSheets();
+  const { data: addonPricingSheets = [] } = useAddonPricingSheets(null);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ProductFilter>("all");
@@ -144,7 +144,7 @@ const WebsiteStorePage = () => {
         .order("sort_order", { ascending: true });
 
       if (error) return [] as ProductMedia[];
-      return (data ?? []) as ProductMedia[];
+      return (data ?? []) as unknown as ProductMedia[];
     },
   });
 
@@ -156,7 +156,7 @@ const WebsiteStorePage = () => {
         .select("id, product_type, product_id, is_vat_taxable, quantity_label, website_badges");
 
       if (error) return [] as ProductOverride[];
-      return (data ?? []) as ProductOverride[];
+      return (data ?? []) as unknown as ProductOverride[];
     },
   });
 

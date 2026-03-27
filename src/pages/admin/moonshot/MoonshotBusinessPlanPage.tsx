@@ -11,24 +11,16 @@ import { useMoonshotStore } from "@/features/admin/moonshot/lib/store";
 import type { BusinessPlan } from "@/features/admin/moonshot/lib/types";
 import { sanitizeBusinessPlanRichNotes } from "@/lib/sanitizeRichTextHtml";
 
-const escapeHtml = (value: string | undefined) =>
-  (value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#039;");
-
 const escapeHtml = (value: string | undefined | null) =>
   String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#39;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 const formatMultilineText = (value: string | undefined | null) =>
-  escapeHtml(value).replaceAll("\n", "<br />");
+  escapeHtml(value).replace(/\n/g, "<br />");
 
 export default function MoonshotBusinessPlanPage() {
   const { businessPlan, updateBusinessPlan } = useMoonshotStore();
