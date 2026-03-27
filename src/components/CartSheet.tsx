@@ -10,10 +10,8 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartContext } from "@/contexts/CartContext";
-import { useOrders } from "@/hooks/useOrders";
 import { Separator } from "@/components/ui/separator";
-import { CheckoutDialog, CheckoutFormData } from "@/components/CheckoutDialog";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 
 interface CartSheetProps {
@@ -29,26 +27,11 @@ export const CartSheet = ({
   triggerSize = "icon",
   showLabel = false,
 }: CartSheetProps) => {
-  const { items, loading, totalItems, totalPrice, updateQuantity, removeFromCart, clearCart } =
+  const { items, loading, totalItems, totalPrice, updateQuantity, removeFromCart } =
     useCartContext();
-  const { createOrder } = useOrders();
   const { data: storeProducts = [] } = useStoreProducts();
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-
-  const handleCheckout = async (details: CheckoutFormData): Promise<boolean> => {
-    const order = await createOrder(items, totalPrice, details);
-    if (order) {
-      await clearCart();
-      return true;
-    }
-    return false;
-  };
-
-  const handleCheckoutComplete = () => {
-    setCheckoutOpen(false);
-    setSheetOpen(false);
-  };
+  const navigate = useNavigate();
 
   const resolveCartItemLink = (item: (typeof items)[number]) => {
     const linkedProduct = resolveStoreProductFromCartRef(storeProducts, {
@@ -179,7 +162,10 @@ export const CartSheet = ({
               <Button
                 variant="hero"
                 className="mt-4 w-full"
-                onClick={() => setCheckoutOpen(true)}
+                onClick={() => {
+                  setSheetOpen(false);
+                  navigate("/checkout");
+                }}
               >
                 Proceed to Checkout
               </Button>
@@ -189,18 +175,6 @@ export const CartSheet = ({
       </SheetContent>
     </Sheet>
 
-      <CheckoutDialog
-        open={checkoutOpen}
-        onOpenChange={(open) => {
-          setCheckoutOpen(open);
-          if (!open) {
-            handleCheckoutComplete();
-          }
-        }}
-        items={items}
-        totalPrice={totalPrice}
-        onCheckout={handleCheckout}
-      />
     </>
   );
 };
