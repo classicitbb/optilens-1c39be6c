@@ -143,7 +143,7 @@ const AdminSidebar = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-visible py-2 space-y-0.5 rounded-none">
+      <div className="flex-1 overflow-x-visible py-2 space-y-0.5 rounded-none">
         <SidebarNavList
           items={sidebarItems}
           pathname={currentPath}
