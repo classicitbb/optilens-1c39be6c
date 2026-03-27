@@ -144,7 +144,7 @@ const WebsiteStorePage = () => {
         .order("sort_order", { ascending: true });
 
       if (error) return [] as ProductMedia[];
-      return (data ?? []) as ProductMedia[];
+      return (data ?? []) as unknown as ProductMedia[];
     },
   });
 
