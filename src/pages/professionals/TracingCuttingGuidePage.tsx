@@ -385,7 +385,7 @@ const TracingCuttingGuidePage = () => {
       {showBackToTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-50 rounded-full border border-border bg-background p-3 shadow-fab transition-colors hover:bg-muted"
+          className="floating-action-btn"
           aria-label="Back to top"
         >
           <ArrowUp className="h-4 w-4 text-foreground" />
