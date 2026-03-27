@@ -1,14 +1,49 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const createCorsHeaders = (req: Request) => {
+  const requestOrigin = req.headers.get("origin");
+  const resolvedOrigin =
+    requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
+      ? requestOrigin
+      : ALLOWED_ORIGINS[0] ?? "null";
+
+  return {
+    "Access-Control-Allow-Origin": resolvedOrigin,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    Vary: "Origin",
+  };
 };
 
+const jsonResponse = (req: Request, status: number, payload: unknown) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...createCorsHeaders(req), "Content-Type": "application/json" },
+  });
+
+const allowedActions = new Set([
+  "list-users",
+  "reset-password",
+  "set-password",
+  "invite-user",
+  "create-user",
+]);
+
 Deno.serve(async (req) => {
+  const corsHeaders = createCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return jsonResponse(req, 405, { error: "Method not allowed" });
   }
 
   try {
@@ -19,10 +54,7 @@ Deno.serve(async (req) => {
     // Verify caller is admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, 401, { error: "Unauthorized" });
     }
 
     const anonClient = createClient(supabaseUrl, anonKey, {
@@ -32,10 +64,7 @@ Deno.serve(async (req) => {
       data: { user: caller },
     } = await anonClient.auth.getUser();
     if (!caller) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, 401, { error: "Unauthorized" });
     }
 
     // Check admin role
@@ -48,14 +77,14 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, 403, { error: "Forbidden" });
     }
 
     const body = await req.json();
     const { action } = body;
+    if (!allowedActions.has(action)) {
+      return jsonResponse(req, 400, { error: "Unknown action" });
+    }
 
     if (action === "list-users") {
       const {
@@ -68,21 +97,13 @@ Deno.serve(async (req) => {
         email: u.email,
         created_at: u.created_at,
       }));
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, 200, result);
     }
 
     if (action === "reset-password") {
       const { email } = body;
       if (!email) {
-        return new Response(
-          JSON.stringify({ error: "Email is required" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return jsonResponse(req, 400, { error: "Email is required" });
       }
       const { error } = await adminClient.auth.admin.generateLink({
         type: "recovery",
@@ -92,70 +113,43 @@ Deno.serve(async (req) => {
         },
       });
       if (error) throw error;
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, 200, { success: true });
     }
 
     if (action === "set-password") {
       const { userId, password } = body;
       if (!userId || !password) {
-        return new Response(
-          JSON.stringify({ error: "userId and password are required" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return jsonResponse(req, 400, { error: "userId and password are required" });
       }
       if (password.length < 8) {
-        return new Response(
-          JSON.stringify({ error: "Password must be at least 8 characters" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return jsonResponse(req, 400, { error: "Password must be at least 8 characters" });
       }
       const { error } = await adminClient.auth.admin.updateUserById(userId, {
         password,
       });
       if (error) throw error;
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, 200, { success: true });
     }
 
     if (action === "invite-user") {
       const { email } = body;
       if (!email) {
-        return new Response(
-          JSON.stringify({ error: "Email is required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse(req, 400, { error: "Email is required" });
       }
       const { error } = await adminClient.auth.admin.inviteUserByEmail(email, {
         redirectTo: "https://optilens.lovable.app/reset-password",
       });
       if (error) throw error;
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, 200, { success: true });
     }
 
     if (action === "create-user") {
       const { email, password, displayName } = body;
       if (!email || !password) {
-        return new Response(
-          JSON.stringify({ error: "Email and password are required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse(req, 400, { error: "Email and password are required" });
       }
       if (password.length < 8) {
-        return new Response(
-          JSON.stringify({ error: "Password must be at least 8 characters" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse(req, 400, { error: "Password must be at least 8 characters" });
       }
       const { data: newUser, error } = await adminClient.auth.admin.createUser({
         email,
@@ -170,23 +164,10 @@ Deno.serve(async (req) => {
           .update({ display_name: displayName })
           .eq("user_id", newUser.user.id);
       }
-      return new Response(JSON.stringify({ success: true, userId: newUser?.user?.id }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(req, 200, { success: true, userId: newUser?.user?.id });
     }
-
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return jsonResponse(req, 500, { error: message });
   }
 });
