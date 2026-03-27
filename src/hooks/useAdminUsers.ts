@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { AppRole } from "@/hooks/useUserRole";
+import { useUserRole, type AppRole } from "@/hooks/useUserRole";
+import { validateAdminFunctionRequest } from "@/features/admin/security/adminFunctionPolicy";
 
 export interface AdminUser {
   user_id: string;
@@ -13,6 +14,7 @@ export interface AdminUser {
 
 export const useAdminUsers = () => {
   const qc = useQueryClient();
+  const { role } = useUserRole();
 
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ["admin-users"],
@@ -32,7 +34,7 @@ export const useAdminUsers = () => {
       try {
         const { data, error: fnErr } = await supabase.functions.invoke(
           "admin-user-management",
-          { body: { action: "list-users" } }
+          { body: validateAdminFunctionRequest({ actorRole: role, action: "list-users" }) }
         );
         if (!fnErr && Array.isArray(data)) authUsers = data;
       } catch {
@@ -102,7 +104,7 @@ export const useAdminUsers = () => {
     mutationFn: async (email: string) => {
       const { data, error } = await supabase.functions.invoke(
         "admin-user-management",
-        { body: { action: "reset-password", email } }
+        { body: validateAdminFunctionRequest({ actorRole: role, action: "reset-password", payload: { email } }) }
       );
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -113,7 +115,7 @@ export const useAdminUsers = () => {
     mutationFn: async (email: string) => {
       const { data, error } = await supabase.functions.invoke(
         "admin-user-management",
-        { body: { action: "invite-user", email } }
+        { body: validateAdminFunctionRequest({ actorRole: role, action: "invite-user", payload: { email } }) }
       );
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -125,7 +127,7 @@ export const useAdminUsers = () => {
     mutationFn: async ({ email, password, displayName }: { email: string; password: string; displayName?: string }) => {
       const { data, error } = await supabase.functions.invoke(
         "admin-user-management",
-        { body: { action: "create-user", email, password, displayName } }
+        { body: validateAdminFunctionRequest({ actorRole: role, action: "create-user", payload: { email, password, displayName } }) }
       );
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

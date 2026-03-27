@@ -8,7 +8,7 @@ on:
 
 jobs:
   pr-validation:
-    name: Lint, Typecheck, Build
+    name: Lint, Test, Typecheck, Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,6 +25,9 @@ jobs:
 
       - name: Run lint
         run: ./scripts/npm-clean.sh run lint
+
+      - name: Run test
+        run: ./scripts/npm-clean.sh run test
 
       - name: Run typecheck
         run: npx tsc --noEmit

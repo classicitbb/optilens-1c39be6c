@@ -28,4 +28,24 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
+
+  test: {
+    environment: "jsdom",
+    setupFiles: "./src/tests/setup.ts",
+    include: ["src/tests/**/*.test.ts", "src/tests/**/*.test.tsx"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      include: [
+        "src/features/admin/security/**/*.ts",
+        "src/components/admin/AdminProtectedRoute.tsx",
+      ],
+      thresholds: {
+        lines: 95,
+        functions: 95,
+        branches: 90,
+        statements: 95,
+      },
+    },
+  },
 }));
