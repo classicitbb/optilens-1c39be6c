@@ -69,7 +69,7 @@ describe("admin route authorization boundaries", () => {
 
     expect(container.querySelector(".animate-spin")).toBeInTheDocument();
   });
-  it.each(["/admin/settings", "/admin/moonshot/workspace", "/ops/jobs"])(
+  it.each(["/admin/settings", "/admin/website/store", "/admin/moonshot/workspace", "/ops/jobs"])(
     "redirects unauthenticated traffic away from %s",
     (path) => {
       authState.user = null;
@@ -88,7 +88,7 @@ describe("admin route authorization boundaries", () => {
     }
   );
 
-  it.each(["/admin/settings", "/admin/moonshot/workspace", "/ops/jobs"])(
+  it.each(["/admin/settings", "/admin/website/store", "/admin/moonshot/workspace", "/ops/jobs"])(
     "renders forbidden state for authenticated non-admin at %s",
     (path) => {
       authState.user = { id: "u-1" };

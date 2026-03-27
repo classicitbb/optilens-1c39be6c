@@ -49,6 +49,7 @@ const HelpdeskStagesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskSta
 const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskConfigPage"));
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
 const WebsitePortalsPage = lazy(() => import("@/pages/admin/WebsitePortalsPage"));
+const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 
 const AdminRoutes = () => (
   <Routes>
@@ -113,7 +114,7 @@ const AdminRoutes = () => (
       <Route path="website/microsites" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="website/features" element={<PlaceholderPage />} />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
-      <Route path="website/store" element={<PlaceholderPage />} />
+      <Route path="website/store" element={<WebsiteStorePage />} />
 
       <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
       <Route path="knowledge/wiki" element={<AdminWikiPage />} />
