@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { sanitizeBusinessPlanRichNotes } from "@/lib/sanitizeRichTextHtml";
 import {
   seedBusinessPlan,
   seedGoodNewsEntries,
@@ -349,7 +350,19 @@ export const useMoonshotStore = create<MoonshotState>()(
       deleteIssue: (id) => set((s) => ({ issues: s.issues.filter((i) => i.id !== id) })),
       addGoodNewsEntry: (entry) => set((s) => ({ goodNewsEntries: [{ id: makeId("gn"), createdAt: new Date().toISOString(), ...entry }, ...s.goodNewsEntries] })),
       addRapidFireEntry: (entry) => set((s) => ({ rapidFireEntries: [{ id: makeId("rf"), createdAt: new Date().toISOString(), status: "Open", ...entry }, ...s.rapidFireEntries] })),
-      updateBusinessPlan: (plan) => set((s) => ({ businessPlan: { ...s.businessPlan, ...plan } })),
+      updateBusinessPlan: (plan) =>
+        set((s) => {
+          const candidate = { ...s.businessPlan, ...plan };
+          return {
+            businessPlan: {
+              ...candidate,
+              futureFocus: {
+                ...candidate.futureFocus,
+                richNotes: sanitizeBusinessPlanRichNotes(candidate.futureFocus.richNotes ?? ""),
+              },
+            },
+          };
+        }),
       addUser: (user) => set((s) => ({ users: [...s.users, { id: makeId("u"), ...user, seatsUsed: user.seatIds.length }] })),
       updateUser: (id, updates) => set((s) => ({ users: s.users.map((u) => { if (u.id !== id) return u; const nextSeatIds = updates.seatIds ?? u.seatIds; return { ...u, ...updates, seatsUsed: nextSeatIds.length }; }) })),
       deleteUser: (id) => set((s) => ({
