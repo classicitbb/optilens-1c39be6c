@@ -14,6 +14,7 @@ const CheckoutPage = () => {
   const { user } = useAuth();
   const { createOrder } = useOrders();
   const [checkoutOpen, setCheckoutOpen] = useState(true);
+  const [orderPlaced, setOrderPlaced] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -21,14 +22,16 @@ const CheckoutPage = () => {
       return;
     }
 
-    if (items.length === 0) {
+    // Don't redirect after a successful order — let the dialog show confirmation
+    if (!orderPlaced && items.length === 0) {
       navigate("/store", { replace: true });
     }
-  }, [items.length, navigate, user]);
+  }, [items.length, navigate, user, orderPlaced]);
 
   const handleCheckout = async (details: CheckoutFormData): Promise<boolean> => {
     const order = await createOrder(items, totalPrice, details);
     if (order) {
+      setOrderPlaced(true);
       await clearCart();
       return true;
     }
