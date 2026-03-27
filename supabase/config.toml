@@ -8,12 +8,22 @@ project_id = "xstmeirxhfbiyayrrsob"
   [functions.contact-inquiry]
     verify_jwt = false
   [functions.lens-assistant]
-    verify_jwt = false
+    verify_jwt = true
+  [functions.lead-intelligence]
+    verify_jwt = true
   [functions.send-transactional-email]
     verify_jwt = true
   [functions.preview-transactional-email]
-    verify_jwt = false
+    verify_jwt = true
   [functions.handle-email-unsubscribe]
     verify_jwt = false
   [functions.handle-email-suppression]
+    verify_jwt = false
+  [functions.odoo-sync-pull-contacts]
+    verify_jwt = true
+  [functions.odoo-sync-push-contacts]
+    verify_jwt = true
+  [functions.odoo-sync-scheduler]
+    verify_jwt = true
+  [functions.odoo-sync-webhook]
     verify_jwt = false

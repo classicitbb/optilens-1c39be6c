@@ -9,12 +9,22 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { sanitizeBusinessPlanRichNotes } from "@/lib/sanitizeRichTextHtml";
 import { useMoonshotStore } from "../lib/store";
 import { BusinessPlan } from "../lib/types";
+
+const escapeHtml = (value: string | undefined) =>
+  (value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#039;");
 
 export default function BusinessPlanPage() {
   const { businessPlan, updateBusinessPlan } = useMoonshotStore();
   const dirtyRef = useRef(false);
+  const richNotesRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<BusinessPlan>({ defaultValues: businessPlan });
   const values = form.watch();
@@ -37,7 +47,8 @@ export default function BusinessPlanPage() {
   }, [updateBusinessPlan, values]);
 
   const printHtml = useMemo(() => {
-    const coreValues = values.futureFocus.coreValues.map((cv, idx) => `<li>${idx + 1}. ${cv}</li>`).join("");
+    const coreValues = values.futureFocus.coreValues.map((cv, idx) => `<li>${idx + 1}. ${escapeHtml(cv)}</li>`).join("");
+    const safeRichNotes = sanitizeBusinessPlanRichNotes(values.futureFocus.richNotes);
     return `
       <html>
       <head><title>Moonshot Business Plan</title><style>body{font-family:Arial;padding:24px}h1,h2{margin:0 0 12px}section{margin-bottom:20px}ul{padding-left:16px}</style></head>
@@ -45,23 +56,33 @@ export default function BusinessPlanPage() {
         <h1>Moonshot Business Plan</h1>
         <section><h2>Future Focus</h2>
           <h3>Core Values</h3><ul>${coreValues}</ul>
-          <h3>BHAG</h3><p>${values.futureFocus.bhag}</p>
-          <h3>3-Year Vision</h3><p>Revenue: ${values.futureFocus.threeYearVision.revenue} · MRR: ${values.futureFocus.threeYearVision.mrr} · NRR: ${values.futureFocus.threeYearVision.nrr} · Gross Margin: ${values.futureFocus.threeYearVision.grossMargin} · Customers: ${values.futureFocus.threeYearVision.customers}</p>
-          <h3>Marketing Strategy</h3><p><strong>Target Market:</strong> ${values.futureFocus.marketingStrategy.targetMarket}</p><p><strong>Differentiators:</strong> ${values.futureFocus.marketingStrategy.differentiators}</p>
-          <p><strong>Core Focus:</strong> ${values.futureFocus.coreFocus}</p>
-          <p><strong>Coaches:</strong> ${values.futureFocus.coachesAndAdvisors}</p>
+          <h3>BHAG</h3><p>${escapeHtml(values.futureFocus.bhag)}</p>
+          <h3>3-Year Vision</h3><p>Revenue: ${escapeHtml(values.futureFocus.threeYearVision.revenue)} · MRR: ${escapeHtml(values.futureFocus.threeYearVision.mrr)} · NRR: ${escapeHtml(values.futureFocus.threeYearVision.nrr)} · Gross Margin: ${escapeHtml(values.futureFocus.threeYearVision.grossMargin)} · Customers: ${escapeHtml(values.futureFocus.threeYearVision.customers)}</p>
+          <h3>Marketing Strategy</h3><p><strong>Target Market:</strong> ${escapeHtml(values.futureFocus.marketingStrategy.targetMarket)}</p><p><strong>Differentiators:</strong> ${escapeHtml(values.futureFocus.marketingStrategy.differentiators)}</p>
+          <p><strong>Core Focus:</strong> ${escapeHtml(values.futureFocus.coreFocus)}</p>
+          <p><strong>Coaches:</strong> ${escapeHtml(values.futureFocus.coachesAndAdvisors)}</p>
+          <h3>Rich Notes</h3><div>${safeRichNotes}</div>
         </section>
         <section><h2>Short-term Focus</h2>
-          <p><strong>1-Year Plan:</strong> ${values.shortTermFocus.oneYearPlan}</p>
-          <p><strong>Quarterly Goals:</strong> ${values.shortTermFocus.quarterlyGoals}</p>
-          <p><strong>Key Initiatives:</strong> ${values.shortTermFocus.keyInitiatives}</p>
-          <p><strong>Obstacles:</strong> ${values.shortTermFocus.obstacles}</p>
-          <p><strong>Rocks Summary:</strong> ${values.shortTermFocus.rocksSummary}</p>
-          <p><strong>Notes:</strong> ${values.shortTermFocus.notes}</p>
+          <p><strong>1-Year Plan:</strong> ${escapeHtml(values.shortTermFocus.oneYearPlan)}</p>
+          <p><strong>Quarterly Goals:</strong> ${escapeHtml(values.shortTermFocus.quarterlyGoals)}</p>
+          <p><strong>Key Initiatives:</strong> ${escapeHtml(values.shortTermFocus.keyInitiatives)}</p>
+          <p><strong>Obstacles:</strong> ${escapeHtml(values.shortTermFocus.obstacles)}</p>
+          <p><strong>Rocks Summary:</strong> ${escapeHtml(values.shortTermFocus.rocksSummary)}</p>
+          <p><strong>Notes:</strong> ${escapeHtml(values.shortTermFocus.notes)}</p>
         </section>
       </body>
       </html>`;
   }, [values]);
+
+  const safeRichNotes = useMemo(() => sanitizeBusinessPlanRichNotes(values.futureFocus.richNotes), [values.futureFocus.richNotes]);
+
+  useEffect(() => {
+    if (!richNotesRef.current || richNotesRef.current.innerHTML === safeRichNotes) {
+      return;
+    }
+    richNotesRef.current.innerHTML = safeRichNotes;
+  }, [safeRichNotes]);
 
   const openPrint = () => {
     const win = window.open("", "_blank", "width=980,height=800");
@@ -128,11 +149,16 @@ export default function BusinessPlanPage() {
               <section className="space-y-2">
                 <FormLabel>Rich Notes</FormLabel>
                 <div
+                  ref={richNotesRef}
                   className="min-h-32 rounded-md border p-3 prose prose-sm max-w-none"
                   contentEditable
                   suppressContentEditableWarning
-                  onInput={(e) => form.setValue("futureFocus.richNotes", (e.target as HTMLDivElement).innerHTML)}
-                  dangerouslySetInnerHTML={{ __html: values.futureFocus.richNotes }}
+                  onInput={(e) =>
+                    form.setValue(
+                      "futureFocus.richNotes",
+                      sanitizeBusinessPlanRichNotes((e.target as HTMLDivElement).innerHTML),
+                    )
+                  }
                 />
               </section>
             </TabsContent>

@@ -1,4 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "npm:zod@3.25.76";
+import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
+import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
   .split(",")
@@ -57,8 +59,10 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 401, { error: "Unauthorized" });
     }
 
-    const anonClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+  try {
+    const authContext = await requirePrivilegedAccess(req, corsHeaders, {
+      allowedRoles: ["admin"],
+      sourceFunction: "admin-user-management",
     });
     const {
       data: { user: caller },
@@ -101,7 +105,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reset-password") {
-      const { email } = body;
+      const { email } = parsed.data;
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
@@ -117,7 +121,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "set-password") {
-      const { userId, password } = body;
+      const { userId, password } = parsed.data;
       if (!userId || !password) {
         return jsonResponse(req, 400, { error: "userId and password are required" });
       }
@@ -132,7 +136,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "invite-user") {
-      const { email } = body;
+      const { email } = parsed.data;
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }

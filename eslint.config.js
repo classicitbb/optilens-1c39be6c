@@ -26,6 +26,13 @@ export default tseslint.config(
       "@typescript-eslint/no-require-imports": "warn",
       "prefer-const": "warn",
       "no-useless-escape": "warn",
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: "Use approved sanitizer/trusted wrapper components instead of direct dangerouslySetInnerHTML.",
+        },
+      ],
     },
   },
 );

@@ -9,6 +9,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useMoonshotStore } from "@/features/admin/moonshot/lib/store";
 import type { BusinessPlan } from "@/features/admin/moonshot/lib/types";
+import { sanitizeBusinessPlanRichNotes } from "@/lib/sanitizeRichTextHtml";
+
+const escapeHtml = (value: string | undefined) =>
+  (value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#039;");
 
 const escapeHtml = (value: string | undefined | null) =>
   String(value ?? "")
@@ -24,6 +33,7 @@ const formatMultilineText = (value: string | undefined | null) =>
 export default function MoonshotBusinessPlanPage() {
   const { businessPlan, updateBusinessPlan } = useMoonshotStore();
   const dirtyRef = useRef(false);
+  const richNotesRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<BusinessPlan>({ defaultValues: businessPlan });
   const values = form.watch();
@@ -77,6 +87,18 @@ export default function MoonshotBusinessPlanPage() {
       </body>
       </html>`;
   }, [values]);
+
+  const safeRichNotes = useMemo(
+    () => sanitizeBusinessPlanRichNotes(values.futureFocus?.richNotes ?? ""),
+    [values.futureFocus?.richNotes],
+  );
+
+  useEffect(() => {
+    if (!richNotesRef.current || richNotesRef.current.innerHTML === safeRichNotes) {
+      return;
+    }
+    richNotesRef.current.innerHTML = safeRichNotes;
+  }, [safeRichNotes]);
 
   const openPrint = () => {
     const win = window.open("", "_blank", "width=980,height=800");

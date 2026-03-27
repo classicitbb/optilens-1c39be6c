@@ -1,0 +1,30 @@
+name: Dependency Audit
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    name: npm audit (fail on high/critical)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Pin npm 10
+        run: npm install --global npm@10.9.4
+
+      - name: Install dependencies
+        run: ./scripts/npm-clean.sh ci
+
+      - name: Enforce vulnerability policy
+        run: ./scripts/npm-clean.sh run security:audit
