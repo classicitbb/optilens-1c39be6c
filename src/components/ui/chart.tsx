@@ -2,6 +2,7 @@ import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
+import { TrustedInlineStyle } from "@/components/ui/TrustedInlineStyle";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
@@ -65,24 +66,32 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  const safeId = CSS.escape(id);
+  const sanitizeColor = (color: string | undefined) => {
+    if (!color) return null;
+    const trimmed = color.trim();
+    if (/^(#[0-9a-fA-F]{3,8}|rgb[a]?\\([^\\)]+\\)|hsl[a]?\\([^\\)]+\\)|var\\(--[\\w-]+\\)|[a-zA-Z]+)$/.test(trimmed)) {
+      return trimmed;
+    }
+    return null;
+  };
+
   return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+    <TrustedInlineStyle
+      cssText={Object.entries(THEMES)
+        .map(
+          ([theme, prefix]) => `
+${prefix} [data-chart=${safeId}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    const color = sanitizeColor(itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color);
+    return color ? `  --color-${CSS.escape(key)}: ${color};` : null;
   })
   .join("\n")}
 }
 `,
-          )
-          .join("\n"),
-      }}
+        )
+        .join("\n")}
     />
   );
 };

@@ -2,11 +2,19 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { seedBusinessPlan, seedIssues, seedMeetings, seedMetrics, seedOneOnOnes, seedOrgChart, seedRocks, seedSeatFitReviews, seedSeats, seedSettings, seedTodos, seedUsers } from "./seed";
 import type { AgendaSection, BusinessPlan, Invitation, Issue, Meeting, Metric, MoonshotSettings, MoonshotUser, OneOnOneActionItem, OneOnOneTemplate, OrgChart, OrgChartSeat, Rock, Seat, SeatFitReview, Todo, WorkspaceTile, WorkspaceTileType } from "./types";
+import { sanitizeBusinessPlanRichNotes } from "@/lib/sanitizeRichTextHtml";
 
 /** Migrate old flat businessPlan shape to the new nested one */
 function migrateBusinessPlan(raw: unknown): BusinessPlan {
   if (raw && typeof raw === "object" && "futureFocus" in (raw as Record<string, unknown>)) {
-    return raw as BusinessPlan;
+    const draft = raw as BusinessPlan;
+    return {
+      ...draft,
+      futureFocus: {
+        ...draft.futureFocus,
+        richNotes: sanitizeBusinessPlanRichNotes(draft.futureFocus.richNotes ?? ""),
+      },
+    };
   }
   return seedBusinessPlan;
 }
@@ -230,7 +238,19 @@ export const useMoonshotStore = create<MoonshotState>()(
       addIssue: (issue) => set((s) => ({ issues: [...s.issues, { id: makeId("i"), ...issue }] })),
       updateIssue: (id, updates) => set((s) => ({ issues: s.issues.map((i) => (i.id === id ? { ...i, ...updates } : i)) })),
       deleteIssue: (id) => set((s) => ({ issues: s.issues.filter((i) => i.id !== id) })),
-      updateBusinessPlan: (plan) => set((s) => ({ businessPlan: { ...s.businessPlan, ...plan } })),
+      updateBusinessPlan: (plan) =>
+        set((s) => {
+          const candidate = { ...s.businessPlan, ...plan };
+          return {
+            businessPlan: {
+              ...candidate,
+              futureFocus: {
+                ...candidate.futureFocus,
+                richNotes: sanitizeBusinessPlanRichNotes(candidate.futureFocus.richNotes ?? ""),
+              },
+            },
+          };
+        }),
       addUser: (user) =>
         set((s) => {
           const newUser: MoonshotUser = {
