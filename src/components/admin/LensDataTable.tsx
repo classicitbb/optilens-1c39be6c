@@ -345,10 +345,10 @@ const LensDataTable = ({
                           </span>
                         )}
                         {preferences[lens.id] === "liked" && (
-                          <ThumbsUp className="h-3 w-3 shrink-0" title="Liked lens" style={{ color: "hsl(var(--admin-success))" }} />
+                          <ThumbsUp className="h-3 w-3 shrink-0" style={{ color: "hsl(var(--admin-success))" }} />
                         )}
                         {preferences[lens.id] === "disliked" && (
-                          <ThumbsDown className="h-3 w-3 shrink-0" title="Disliked lens" style={{ color: "hsl(var(--admin-destructive))" }} />
+                          <ThumbsDown className="h-3 w-3 shrink-0" style={{ color: "hsl(var(--admin-destructive))" }} />
                         )}
                       </span>
                     </TableCell>
