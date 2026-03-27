@@ -13,25 +13,41 @@ serve(async (req) => {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
 
   const expectedToken = Deno.env.get("ODOO_WEBHOOK_TOKEN");
-  if (expectedToken) {
-    const provided = req.headers.get("x-odoo-webhook-token") ?? "";
-    if (provided !== expectedToken) {
-      await logSecurityAuditEvent({
-        category: "edge_security",
-        eventType: "auth.unauthorized",
-        severity: "high",
-        statusCode: 401,
-        sourceFunction: "odoo-sync-webhook",
-        sourcePath: new URL(req.url).pathname,
-        ipHint: getIpHintFromRequest(req),
-        userAgent: getUserAgentFromRequest(req),
-        payload: { reason: "invalid_webhook_token" },
-      });
-      return new Response(JSON.stringify({ error: "Unauthorized webhook token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  if (!expectedToken) {
+    await logSecurityAuditEvent({
+      category: "edge_security",
+      eventType: "auth.misconfigured",
+      severity: "critical",
+      statusCode: 500,
+      sourceFunction: "odoo-sync-webhook",
+      sourcePath: new URL(req.url).pathname,
+      ipHint: getIpHintFromRequest(req),
+      userAgent: getUserAgentFromRequest(req),
+      payload: { reason: "missing_odoo_webhook_token" },
+    });
+    return new Response(JSON.stringify({ error: "Webhook token is not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const provided = req.headers.get("x-odoo-webhook-token") ?? "";
+  if (provided !== expectedToken) {
+    await logSecurityAuditEvent({
+      category: "edge_security",
+      eventType: "auth.unauthorized",
+      severity: "high",
+      statusCode: 401,
+      sourceFunction: "odoo-sync-webhook",
+      sourcePath: new URL(req.url).pathname,
+      ipHint: getIpHintFromRequest(req),
+      userAgent: getUserAgentFromRequest(req),
+      payload: { reason: "invalid_webhook_token" },
+    });
+    return new Response(JSON.stringify({ error: "Unauthorized webhook token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const body = await req.json().catch(() => ({}));
