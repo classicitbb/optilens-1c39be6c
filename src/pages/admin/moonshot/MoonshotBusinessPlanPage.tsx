@@ -11,14 +11,6 @@ import { useMoonshotStore } from "@/features/admin/moonshot/lib/store";
 import type { BusinessPlan } from "@/features/admin/moonshot/lib/types";
 import { sanitizeBusinessPlanRichNotes } from "@/lib/sanitizeRichTextHtml";
 
-const escapeHtml = (value: string | undefined) =>
-  (value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#039;");
-
 const escapeHtml = (value: string | undefined | null) =>
   String(value ?? "")
     .replaceAll("&", "&amp;")
