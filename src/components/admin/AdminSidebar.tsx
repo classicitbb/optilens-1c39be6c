@@ -108,7 +108,7 @@ const AdminSidebar = () => {
       data-collapse-reason={collapseReason}
       data-sidebar-mode={mode}
     >
-      <div className="h-11 flex items-center justify-between px-3 border-b rounded-none border-[hsl(var(--admin-border))]">
+      <div className={cn("h-11 flex items-center border-b rounded-none border-[hsl(var(--admin-border))]", isCollapsed ? "justify-center px-1" : "justify-between px-3")}>
         {!isCollapsed && activeApp && (
           <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">{activeApp.title}</span>
         )}

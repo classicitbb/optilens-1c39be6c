@@ -94,10 +94,9 @@ const SidebarNavList = ({
         }
 
         return (
-          <div key={to} className="group/nav-item relative">
+          <div key={to} className="group/nav-item relative flex justify-center">
             {disabled ? (
               <span
-                title={label}
                 aria-disabled="true"
                 className={cn(
                   collapsedItemBaseClassName,
@@ -109,7 +108,6 @@ const SidebarNavList = ({
             ) : (
               <Link
                 to={to}
-                title={label}
                 onKeyDown={activateOnSpace}
                 className={cn(
                   collapsedItemBaseClassName,
@@ -120,29 +118,15 @@ const SidebarNavList = ({
               </Link>
             )}
 
-            {disabled ? (
-              <span
-                className={cn(
-                  "pointer-events-none",
-                  flyoutBaseClassName,
-                  labelClassName,
-                )}
-              >
-                {label}
-              </span>
-            ) : (
-              <Link
-                to={to}
-                onKeyDown={activateOnSpace}
-                className={cn(
-                  flyoutBaseClassName,
-                  "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  labelClassName,
-                )}
-              >
-                {label}
-              </Link>
-            )}
+            <span
+              className={cn(
+                flyoutBaseClassName,
+                disabled ? "pointer-events-none" : "focus-visible:opacity-100 focus-visible:outline-none",
+                labelClassName,
+              )}
+            >
+              {label}
+            </span>
           </div>
         );
       })}
