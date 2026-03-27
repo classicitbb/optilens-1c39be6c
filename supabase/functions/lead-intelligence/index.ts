@@ -7,6 +7,7 @@ import type { LeadCandidate, ProviderAdapter } from "./providers/types.ts";
 import { loadScoringWeights, scoreLead } from "./scoring.ts";
 import { generateSearchPlan, type AutopilotConstraints } from "./strategy.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
+import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -202,31 +203,14 @@ serve(async (req) => {
   if (originBlocked) return originBlocked;
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const authContext = await requirePrivilegedAccess(req, corsHeaders, {
+      allowedRoles: ["admin"],
+      sourceFunction: "lead-intelligence",
+    });
+    if (authContext instanceof Response) {
+      return authContext;
     }
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const supabaseClient = authContext.supabaseUserClient;
 
     const { query, country, cities, globalSearch, includeDiagnostics, mode, constraints } = await req.json();
     const searchMode: "manual" | "autopilot" = mode === "manual" ? "manual" : "autopilot";

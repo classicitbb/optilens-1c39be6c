@@ -2,7 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
-import { requireAuthenticatedUser, requireUserRole } from '../_shared/http/auth.ts'
+import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: 'authorization, content-type',
@@ -17,19 +17,12 @@ Deno.serve(async (req) => {
   const originBlocked = rejectDisallowedOrigin(req, corsPolicy)
   if (originBlocked) return originBlocked
 
-  const authContext = await requireAuthenticatedUser(req, corsHeaders)
+  const authContext = await requirePrivilegedAccess(req, corsHeaders, {
+    allowedRoles: ['admin'],
+    sourceFunction: 'preview-transactional-email',
+  })
   if (authContext instanceof Response) {
     return authContext
-  }
-
-  const roleCheck = await requireUserRole(
-    authContext.supabaseAdminClient,
-    authContext.user.id,
-    ['admin'],
-    corsHeaders,
-  )
-  if (roleCheck instanceof Response) {
-    return roleCheck
   }
 
   const templateNames = Object.keys(TEMPLATES)

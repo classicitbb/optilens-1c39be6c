@@ -160,3 +160,42 @@ export async function requireUserRole(
 
   return true;
 }
+
+export async function requirePrivilegedAccess(
+  req: Request,
+  corsHeaders: Record<string, string>,
+  options: {
+    allowedRoles: string[];
+    sourceFunction?: string;
+  },
+): Promise<AuthContext | Response> {
+  const authContext = await requireAuthenticatedUser(req, corsHeaders);
+  if (authContext instanceof Response) {
+    return authContext;
+  }
+
+  const sourcePath = new URL(req.url).pathname;
+  const requestId = req.headers.get("x-request-id") ?? undefined;
+  const ipHint = getIpHintFromRequest(req);
+  const userAgent = getUserAgentFromRequest(req);
+
+  const roleCheck = await requireUserRole(
+    authContext.supabaseAdminClient,
+    authContext.user.id,
+    options.allowedRoles,
+    corsHeaders,
+    {
+      sourceFunction: options.sourceFunction,
+      sourcePath,
+      requestId,
+      ipHint,
+      userAgent,
+    },
+  );
+
+  if (roleCheck instanceof Response) {
+    return roleCheck;
+  }
+
+  return authContext;
+}
