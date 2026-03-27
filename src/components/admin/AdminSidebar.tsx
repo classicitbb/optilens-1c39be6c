@@ -4,12 +4,14 @@ import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { PanelLeftClose, PanelLeft, ArrowLeft } from "lucide-react";
+import { PanelLeftClose, PanelLeft, ArrowLeft, Pin, PinOff } from "lucide-react";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
 
 type IntegrationConnectionRow = {
   status: "connected" | "error" | "not_configured" | null;
 };
+
+type SidebarMode = "manual-open" | "manual-collapsed" | "auto-open" | "auto-collapsed";
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -40,31 +42,22 @@ const AdminSidebar = () => {
   });
 
   const isEditorRoute = /\/publisher\/\d+/.test(currentPath) || /\/quotations\/[^/]+$/.test(currentPath);
-  const [collapsed, setCollapsed] = useState(isEditorRoute);
-  const [collapseReason, setCollapseReason] = useState<"editor" | "manual" | "auto" | null>(
-    isEditorRoute ? "editor" : null,
-  );
-  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const [mode, setMode] = useState<SidebarMode>(isEditorRoute ? "manual-collapsed" : "auto-open");
+
+  const isCollapsed = isEditorRoute || mode === "manual-collapsed" || mode === "auto-collapsed";
+  const collapseReason = isEditorRoute ? "editor" : mode;
 
   useEffect(() => {
-    if (!isEditorRoute) return;
-    setCollapsed(true);
-    setCollapseReason("editor");
-    setIsPinnedOpen(false);
-  }, [isEditorRoute]);
-
-  useEffect(() => {
-    if (isEditorRoute || collapsed || isPinnedOpen) return;
+    if (isEditorRoute || mode !== "auto-open") return;
 
     const collapseTimer = window.setTimeout(() => {
-      setCollapsed(true);
-      setCollapseReason("auto");
+      setMode("auto-collapsed");
     }, 5000);
 
     return () => window.clearTimeout(collapseTimer);
-  }, [collapsed, isEditorRoute, isPinnedOpen]);
+  }, [mode, isEditorRoute]);
 
-  const w = collapsed ? "w-14" : "w-60";
+  const w = isCollapsed ? "w-14" : "w-60";
   const linkBase = "flex items-center gap-2 px-3 py-1.5 text-[13px] rounded transition-colors";
 
   const integrationStatusLabel =
@@ -95,41 +88,65 @@ const AdminSidebar = () => {
     [activeApp, integrationStatus, integrationStatusLabel],
   );
 
+  const handleToggleSidebar = () => {
+    if (isCollapsed) {
+      setMode("auto-open");
+      return;
+    }
+
+    setMode("manual-collapsed");
+  };
+
+  const handlePinToggle = () => {
+    if (isEditorRoute || isCollapsed) return;
+    setMode((prevMode) => (prevMode === "manual-open" ? "auto-open" : "manual-open"));
+  };
+
   return (
     <aside
       className={`admin-sidebar ${w} shrink-0 flex flex-col transition-all duration-200 border-r border-[hsl(var(--admin-border))]`}
-      data-collapse-reason={collapseReason ?? undefined}
+      data-collapse-reason={collapseReason}
+      data-sidebar-mode={mode}
     >
       <div className="h-11 flex items-center justify-between px-3 border-b rounded-none border-[hsl(var(--admin-border))]">
-        {!collapsed && activeApp && (
+        {!isCollapsed && activeApp && (
           <span className="text-sm font-semibold tracking-tight text-[hsl(var(--admin-sidebar-fg))]">{activeApp.title}</span>
         )}
-        <button
-          onClick={() => {
-            if (collapsed) {
-              setCollapsed(false);
-              setIsPinnedOpen(true);
-            } else {
-              setCollapsed(true);
-              setIsPinnedOpen(false);
-            }
-            setCollapseReason("manual");
-          }}
-          className="p-1 rounded hover:bg-[hsl(var(--admin-sidebar-hover))]"
-        >
-          {collapsed ? (
-            <PanelLeft className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
+        <div className="flex items-center gap-1">
+          {!isCollapsed && !isEditorRoute && (
+            <button
+              onClick={handlePinToggle}
+              className="p-1 rounded hover:bg-[hsl(var(--admin-sidebar-hover))]"
+              aria-label={mode === "manual-open" ? "Unpin sidebar" : "Pin sidebar open"}
+              title={mode === "manual-open" ? "Unpin sidebar" : "Pin sidebar open"}
+            >
+              {mode === "manual-open" ? (
+                <PinOff className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
+              ) : (
+                <Pin className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
+              )}
+            </button>
           )}
-        </button>
+          <button
+            onClick={handleToggleSidebar}
+            className="p-1 rounded hover:bg-[hsl(var(--admin-sidebar-hover))]"
+            aria-label={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
+            title={isCollapsed ? "Open sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <PanelLeft className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4 text-[hsl(var(--admin-sidebar-fg))]" />
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto py-2 space-y-0.5 rounded-none">
         <SidebarNavList
           items={sidebarItems}
           pathname={currentPath}
-          collapsed={collapsed}
+          collapsed={isCollapsed}
           className="space-y-0.5"
           itemClassName={linkBase}
           activeItemClassName="font-medium bg-[hsl(var(--admin-sidebar-active))]/20 text-[hsl(var(--admin-sidebar-active-fg))]"
@@ -142,10 +159,10 @@ const AdminSidebar = () => {
         <Link
           to="/"
           className={`${linkBase} w-full text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]`}
-          title={collapsed ? "Back to Site" : undefined}
+          title={isCollapsed ? "Back to Site" : undefined}
         >
           <ArrowLeft className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Back to Site</span>}
+          {!isCollapsed && <span>Back to Site</span>}
         </Link>
       </div>
     </aside>
