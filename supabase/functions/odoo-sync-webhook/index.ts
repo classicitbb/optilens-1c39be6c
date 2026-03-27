@@ -1,9 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { pullContacts } from "../_shared/odoo/contactSync.ts";
-import { corsHeaders, createRunLog, finalizeRunLog, loadConnection } from "../_shared/odoo/runtime.ts";
+import { createRunLog, finalizeRunLog, getOdooCorsHeaders, handleOdooCorsPreflight, loadConnection, rejectDisallowedOdooOrigin } from "../_shared/odoo/runtime.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const preflight = handleOdooCorsPreflight(req);
+  if (preflight) return preflight;
+
+  const corsHeaders = getOdooCorsHeaders(req);
+  const originBlocked = rejectDisallowedOdooOrigin(req);
+  if (originBlocked) return originBlocked;
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
 
   const expectedToken = Deno.env.get("ODOO_WEBHOOK_TOKEN");

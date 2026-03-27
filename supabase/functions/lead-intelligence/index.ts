@@ -6,11 +6,9 @@ import { firecrawlSearchProvider } from "./providers/firecrawlSearch.ts";
 import type { LeadCandidate, ProviderAdapter } from "./providers/types.ts";
 import { loadScoringWeights, scoreLead } from "./scoring.ts";
 import { generateSearchPlan, type AutopilotConstraints } from "./strategy.ts";
+import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const corsPolicy = createCorsPolicy();
 
 type ProviderTelemetry = {
   attempted: boolean;
@@ -196,7 +194,12 @@ async function loadProviderCredentials(
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const preflight = handleCorsPreflight(req, corsPolicy);
+  if (preflight) return preflight;
+
+  const corsHeaders = getCorsHeaders(req, corsPolicy);
+  const originBlocked = rejectDisallowedOrigin(req, corsPolicy);
+  if (originBlocked) return originBlocked;
 
   try {
     const authHeader = req.headers.get("Authorization");
