@@ -1,6 +1,6 @@
 import { z } from "npm:zod@3.25.76";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
-import { requireAuthenticatedUser, requireUserRole } from "../_shared/http/auth.ts";
+import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -21,14 +21,12 @@ Deno.serve(async (req) => {
   if (originBlocked) return originBlocked;
 
   try {
-    const authContext = await requireAuthenticatedUser(req, corsHeaders);
+    const authContext = await requirePrivilegedAccess(req, corsHeaders, {
+      allowedRoles: ["admin"],
+      sourceFunction: "admin-user-management",
+    });
     if (authContext instanceof Response) {
       return authContext;
-    }
-
-    const roleCheck = await requireUserRole(authContext.supabaseAdminClient, authContext.user.id, ["admin"], corsHeaders);
-    if (roleCheck instanceof Response) {
-      return roleCheck;
     }
 
     const parsed = requestSchema.safeParse(await req.json());

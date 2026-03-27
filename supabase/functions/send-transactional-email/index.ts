@@ -3,7 +3,7 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
-import { requireAuthenticatedUser, requireUserRole } from '../_shared/http/auth.ts'
+import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
 
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
@@ -53,19 +53,12 @@ Deno.serve(async (req) => {
     )
   }
 
-  const authContext = await requireAuthenticatedUser(req, corsHeaders)
+  const authContext = await requirePrivilegedAccess(req, corsHeaders, {
+    allowedRoles: ['admin'],
+    sourceFunction: 'send-transactional-email',
+  })
   if (authContext instanceof Response) {
     return authContext
-  }
-
-  const roleCheck = await requireUserRole(
-    authContext.supabaseAdminClient,
-    authContext.user.id,
-    ['admin'],
-    corsHeaders,
-  )
-  if (roleCheck instanceof Response) {
-    return roleCheck
   }
 
   // Parse request body
