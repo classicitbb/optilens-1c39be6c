@@ -1,10 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import type { OdooConnection } from "./types.ts";
+import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../http/cors.ts";
 
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const odooCorsPolicy = createCorsPolicy({
+  allowHeaders: "authorization, x-client-info, apikey, content-type, x-odoo-webhook-token",
+  allowMethods: "POST, OPTIONS",
+});
+
+export function getOdooCorsHeaders(req: Request) {
+  return getCorsHeaders(req, odooCorsPolicy);
+}
+
+export function handleOdooCorsPreflight(req: Request): Response | null {
+  return handleCorsPreflight(req, odooCorsPolicy);
+}
+
+export function rejectDisallowedOdooOrigin(req: Request): Response | null {
+  return rejectDisallowedOrigin(req, odooCorsPolicy);
+}
 
 export const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",

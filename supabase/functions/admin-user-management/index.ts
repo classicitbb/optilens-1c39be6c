@@ -1,61 +1,46 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "npm:zod@3.25.76";
+import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
+import { requireAuthenticatedUser, requireUserRole } from "../_shared/http/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const corsPolicy = createCorsPolicy();
+
+const requestSchema = z.object({
+  action: z.enum(["list-users", "reset-password", "set-password", "invite-user", "create-user"]),
+  email: z.string().email().optional(),
+  userId: z.string().uuid().optional(),
+  password: z.string().min(8).optional(),
+  displayName: z.string().trim().min(1).max(100).optional(),
+});
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handleCorsPreflight(req, corsPolicy);
+  if (preflight) return preflight;
+
+  const corsHeaders = getCorsHeaders(req, corsPolicy);
+  const originBlocked = rejectDisallowedOrigin(req, corsPolicy);
+  if (originBlocked) return originBlocked;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authContext = await requireAuthenticatedUser(req, corsHeaders);
+    if (authContext instanceof Response) {
+      return authContext;
+    }
 
-    // Verify caller is admin
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+    const roleCheck = await requireUserRole(authContext.supabaseAdminClient, authContext.user.id, ["admin"], corsHeaders);
+    if (roleCheck instanceof Response) {
+      return roleCheck;
+    }
+
+    const parsed = requestSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: "Invalid request payload", details: parsed.error.flatten() }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const anonClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const {
-      data: { user: caller },
-    } = await anonClient.auth.getUser();
-    if (!caller) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Check admin role
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: roleRow } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const body = await req.json();
-    const { action } = body;
+    const { action } = parsed.data;
+    const adminClient = authContext.supabaseAdminClient;
 
     if (action === "list-users") {
       const {
@@ -74,15 +59,12 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reset-password") {
-      const { email } = body;
+      const { email } = parsed.data;
       if (!email) {
-        return new Response(
-          JSON.stringify({ error: "Email is required" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return new Response(JSON.stringify({ error: "Email is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const { error } = await adminClient.auth.admin.generateLink({
         type: "recovery",
@@ -98,24 +80,12 @@ Deno.serve(async (req) => {
     }
 
     if (action === "set-password") {
-      const { userId, password } = body;
+      const { userId, password } = parsed.data;
       if (!userId || !password) {
-        return new Response(
-          JSON.stringify({ error: "userId and password are required" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-      if (password.length < 8) {
-        return new Response(
-          JSON.stringify({ error: "Password must be at least 8 characters" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return new Response(JSON.stringify({ error: "userId and password are required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const { error } = await adminClient.auth.admin.updateUserById(userId, {
         password,
@@ -127,12 +97,12 @@ Deno.serve(async (req) => {
     }
 
     if (action === "invite-user") {
-      const { email } = body;
+      const { email } = parsed.data;
       if (!email) {
-        return new Response(
-          JSON.stringify({ error: "Email is required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Email is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const { error } = await adminClient.auth.admin.inviteUserByEmail(email, {
         redirectTo: "https://optilens.lovable.app/reset-password",
@@ -143,50 +113,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === "create-user") {
-      const { email, password, displayName } = body;
-      if (!email || !password) {
-        return new Response(
-          JSON.stringify({ error: "Email and password are required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (password.length < 8) {
-        return new Response(
-          JSON.stringify({ error: "Password must be at least 8 characters" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const { data: newUser, error } = await adminClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
-      if (error) throw error;
-      // Update display name if provided
-      if (displayName && newUser?.user) {
-        await adminClient
-          .from("profiles")
-          .update({ display_name: displayName })
-          .eq("user_id", newUser.user.id);
-      }
-      return new Response(JSON.stringify({ success: true, userId: newUser?.user?.id }), {
+    const { email, password, displayName } = parsed.data;
+    if (!email || !password) {
+      return new Response(JSON.stringify({ error: "Email and password are required" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
-      status: 400,
+    const { data: newUser, error } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (error) throw error;
+
+    if (displayName && newUser?.user) {
+      await adminClient.from("profiles").update({ display_name: displayName }).eq("user_id", newUser.user.id);
+    }
+
+    return new Response(JSON.stringify({ success: true, userId: newUser?.user?.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

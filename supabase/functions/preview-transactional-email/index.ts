@@ -1,39 +1,35 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
+import { requireAuthenticatedUser, requireUserRole } from '../_shared/http/auth.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
-}
-
-// Renders all registered templates with their previewData.
-// Gated by LOVABLE_API_KEY — only the Go API calls this.
+const corsPolicy = createCorsPolicy({
+  allowHeaders: 'authorization, content-type',
+  allowMethods: 'GET, OPTIONS',
+})
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+  const preflight = handleCorsPreflight(req, corsPolicy)
+  if (preflight) return preflight
+
+  const corsHeaders = getCorsHeaders(req, corsPolicy)
+  const originBlocked = rejectDisallowedOrigin(req, corsPolicy)
+  if (originBlocked) return originBlocked
+
+  const authContext = await requireAuthenticatedUser(req, corsHeaders)
+  if (authContext instanceof Response) {
+    return authContext
   }
 
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: 'Server configuration error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
-  }
-
-  // Verify the caller is authorized with LOVABLE_API_KEY
-  const authHeader = req.headers.get('Authorization')
-  const token = authHeader?.replace(/^Bearer\s+/i, '')
-  if (token !== apiKey) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+  const roleCheck = await requireUserRole(
+    authContext.supabaseAdminClient,
+    authContext.user.id,
+    ['admin'],
+    corsHeaders,
+  )
+  if (roleCheck instanceof Response) {
+    return roleCheck
   }
 
   const templateNames = Object.keys(TEMPLATES)
