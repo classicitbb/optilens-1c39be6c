@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { pullContacts } from "../_shared/odoo/contactSync.ts";
 import { createRunLog, finalizeRunLog, getOdooCorsHeaders, handleOdooCorsPreflight, loadConnection, rejectDisallowedOdooOrigin } from "../_shared/odoo/runtime.ts";
+import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
 
 serve(async (req) => {
   const preflight = handleOdooCorsPreflight(req);
@@ -15,6 +16,17 @@ serve(async (req) => {
   if (expectedToken) {
     const provided = req.headers.get("x-odoo-webhook-token") ?? "";
     if (provided !== expectedToken) {
+      await logSecurityAuditEvent({
+        category: "edge_security",
+        eventType: "auth.unauthorized",
+        severity: "high",
+        statusCode: 401,
+        sourceFunction: "odoo-sync-webhook",
+        sourcePath: new URL(req.url).pathname,
+        ipHint: getIpHintFromRequest(req),
+        userAgent: getUserAgentFromRequest(req),
+        payload: { reason: "invalid_webhook_token" },
+      });
       return new Response(JSON.stringify({ error: "Unauthorized webhook token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

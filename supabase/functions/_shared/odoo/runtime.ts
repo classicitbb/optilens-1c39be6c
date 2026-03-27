@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import type { OdooConnection } from "./types.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../http/cors.ts";
+import { logSecurityAuditEvent } from "../security/auditLogger.ts";
 
 const odooCorsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type, x-odoo-webhook-token",
@@ -41,6 +42,13 @@ export async function loadConnection(connectionId?: string): Promise<OdooConnect
 export async function getConnectionSecret(connectionId: string): Promise<string> {
   const { data, error } = await supabaseAdmin.rpc("get_integration_connection_secret", { p_connection_id: connectionId });
   if (error || !data) throw new Error(`Unable to retrieve secret: ${error?.message ?? "empty"}`);
+  await logSecurityAuditEvent({
+    category: "secrets_management",
+    eventType: "secrets.connection_secret_accessed",
+    severity: "medium",
+    sourceFunction: "odoo-runtime",
+    payload: { connectionId, provider: "odoo" },
+  });
   return data as string;
 }
 
