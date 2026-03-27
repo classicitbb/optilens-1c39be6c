@@ -8,6 +8,7 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuditLog, buildPricingSummary } from "@/hooks/useAuditLog";
 import { useCatalogFilterStore, CatalogFilterStore } from "@/hooks/useCatalogFilterStore";
+import { useLensPreferences } from "@/hooks/useLensPreferences";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FilterX, Download, Settings, Database, Upload, Package as PackageIcon } from "lucide-react";
@@ -50,6 +51,7 @@ const ProductCatalogPage = () => {
   const activeTab = store.activeTab;
   const [filterVersion, setFilterVersion] = useState(0);
   const { canEdit, isAdmin, role } = useAdminRole();
+  const { preferences } = useLensPreferences();
   const showCost = role === "admin" || role === "operator";
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
@@ -158,6 +160,11 @@ const ProductCatalogPage = () => {
       <div className="flex items-center justify-between shrink-0">
         <AdminPageHeader icon={PackageIcon} title="Product Catalog" />
         <div className="flex items-center gap-2">
+          {activeTab === "lenses" && (
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => navigate("/admin/pricing/compare")}>
+              Compare Tool
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-7 w-7 p-0" style={{ borderRadius: "4px" }}>
@@ -214,7 +221,7 @@ const ProductCatalogPage = () => {
 
       {/* Tab content – fills remaining height */}
       <div className="flex-1 min-h-0 flex flex-col">
-        {activeTab === "lenses" && <LensesTab search={search} filterVersion={filterVersion} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} store={store} />}
+        {activeTab === "lenses" && <LensesTab search={search} filterVersion={filterVersion} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} store={store} preferences={preferences} />}
         {activeTab === "addons" && <AddonsTab search={search} filterVersion={filterVersion} formOpen={addonFormOpen} setFormOpen={setAddonFormOpen} store={store} />}
         {activeTab === "supplies" && <SuppliesTab search={search} filterVersion={filterVersion} formOpen={supplyFormOpen} setFormOpen={setSupplyFormOpen} store={store} />}
       </div>
@@ -224,7 +231,7 @@ const ProductCatalogPage = () => {
 
 /* ─── Tab wrappers that accept lifted formOpen ─── */
 
-const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {search: string;filterVersion: number;formOpen: boolean;setFormOpen: (v: boolean) => void;store: CatalogFilterStore;}) => {
+const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store, preferences }: {search: string;filterVersion: number;formOpen: boolean;setFormOpen: (v: boolean) => void;store: CatalogFilterStore;preferences: Record<string, "liked" | "disliked">;}) => {
   const { data: lenses, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useLenses();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
@@ -284,7 +291,7 @@ const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {sea
 
   return (
     <div className="flex flex-col h-full">
-      <LensDataTable lenses={lenses ?? []} search={search} filterVersion={filterVersion} onRowClick={(lens) => canEdit && setEditLens(lens)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(lens) => setDeleteTarget(lens)} canDelete={isAdmin} />
+      <LensDataTable lenses={lenses ?? []} preferences={preferences} search={search} filterVersion={filterVersion} onRowClick={(lens) => canEdit && setEditLens(lens)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(lens) => setDeleteTarget(lens)} canDelete={isAdmin} />
       <LensFormDialog open={formOpen} onOpenChange={setFormOpen} lens={null} onSubmit={handleCreate} isPending={createMutation.isPending} />
       <LensFormDialog open={!!editLens} onOpenChange={(open) => !open && setEditLens(null)} lens={editLens} lenses={lenses ?? []} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(l) => setEditLens(l)} isPending={updateMutation.isPending} />
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
