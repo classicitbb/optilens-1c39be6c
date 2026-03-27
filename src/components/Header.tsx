@@ -578,37 +578,37 @@ const Header = () => {
                   <DropdownMenuContent
                     align="end"
                     sideOffset={10}
-                    className="w-[min(92vw,24rem)] rounded-[1.75rem] border-border/60 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur-xl"
+                    className="w-[min(88vw,18rem)] rounded-2xl border-border/60 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur-xl"
                   >
-                    <div className="space-y-1 p-3 sm:p-4">
-                      <div className="flex items-center gap-3 rounded-[1.35rem] px-1 py-1">
-                        <Avatar className="h-14 w-14 border border-primary/15 shadow-sm">
+                    <div className="space-y-1 p-2.5 sm:p-3">
+                      <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">
+                        <Avatar className="h-10 w-10 border border-primary/15 shadow-sm">
                           <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
-                          <AvatarFallback className="bg-primary/25 text-lg font-semibold text-foreground">
+                          <AvatarFallback className="bg-primary/25 text-sm font-semibold text-foreground">
                             {activeUserInitials}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="truncate text-base font-semibold text-foreground">{activeUserName}</p>
-                          <p className="truncate text-sm text-muted-foreground">{activeUserEmail}</p>
+                          <p className="truncate text-sm font-semibold text-foreground">{activeUserName}</p>
+                          <p className="truncate text-xs text-muted-foreground">{activeUserEmail}</p>
                         </div>
                       </div>
 
-                      <div className="space-y-1.5 pt-1">
-                        <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-accent/70">
+                      <div className="space-y-1 pt-1">
+                        <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
                           <Link to="/profile/account" className="flex items-center gap-3">
                             <Settings className="h-4.5 w-4.5 text-foreground/80" />
-                            <span className="text-base font-medium">Account settings</span>
+                            <span className="text-sm font-medium">Account settings</span>
                           </Link>
                         </DropdownMenuItem>
 
-                        <div className="rounded-2xl px-3 py-3 text-foreground outline-none ring-0 transition-colors hover:bg-accent/50 focus-within:bg-accent/70">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="rounded-xl px-2.5 py-2 text-foreground outline-none ring-0 transition-colors hover:bg-accent/50 focus-within:bg-accent/70">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-3">
                               <Palette className="h-4.5 w-4.5 text-foreground/80" />
                               <div>
-                                <p className="text-base font-medium leading-none">Appearance</p>
-                                <p className="mt-1 text-xs text-muted-foreground">Theme follows your preference instantly.</p>
+                                <p className="text-sm font-medium leading-none">Appearance</p>
+                                <p className="mt-1 text-[11px] text-muted-foreground">Theme follows your preference instantly.</p>
                               </div>
                             </div>
                             <ToggleGroup
@@ -618,7 +618,7 @@ const Header = () => {
                                 if (value) setTheme(value);
                               }}
                               aria-label="Appearance theme"
-                              className="w-full justify-start rounded-full border border-border/70 bg-muted/60 p-1 sm:w-auto sm:justify-center"
+                              className="w-full justify-start rounded-full border border-border/70 bg-muted/60 p-0.5 sm:w-auto sm:justify-center"
                             >
                               {THEME_OPTIONS.map((option) => {
                                 const Icon = option.icon;
@@ -631,11 +631,11 @@ const Header = () => {
                                     value={option.value}
                                     aria-label={option.label}
                                     className={cn(
-                                      "h-9 flex-1 rounded-full border-0 px-3 text-muted-foreground shadow-none hover:bg-background/80 hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm sm:flex-none",
+                                      "h-7 flex-1 rounded-full border-0 px-2 text-muted-foreground shadow-none hover:bg-background/80 hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm sm:flex-none",
                                       isActive && "ring-1 ring-border/60",
                                     )}
                                   >
-                                    <Icon className="h-4 w-4" />
+                                    <Icon className="h-3.5 w-3.5" />
                                     <span className="sr-only">{option.label}</span>
                                     {isResolved && !isActive ? <span className="sr-only">Active via system theme</span> : null}
                                   </ToggleGroupItem>
@@ -649,36 +649,36 @@ const Header = () => {
                       <DropdownMenuSeparator className="mx-0 my-2" />
 
                       <div className="space-y-1">
-                        <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-accent/70">
+                        <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
                           <Link to="/orders" className="flex items-center gap-3">
                             <Package className="h-4.5 w-4.5 text-foreground/80" />
-                            <span className="text-base font-medium">Orders</span>
+                            <span className="text-sm font-medium">Orders</span>
                           </Link>
                         </DropdownMenuItem>
                         {hasAccess &&
-                <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-accent/70">
+                <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
                             <Link to="/admin" className="flex items-center gap-3">
                               <Shield className="h-4.5 w-4.5 text-foreground/80" />
-                              <span className="text-base font-medium">Admin</span>
+                              <span className="text-sm font-medium">Admin</span>
                             </Link>
                           </DropdownMenuItem>
                 }
                         {showRequestInMenu &&
                 <DropdownMenuItem
                             onClick={() => {toast({ title: "Request Submitted", description: "Your customer account request has been sent. We'll be in touch shortly!" });}}
-                            className="rounded-2xl px-3 py-3 focus:bg-accent/70"
+                            className="rounded-xl px-2.5 py-2 focus:bg-accent/70"
                           >
                             <User className="h-4.5 w-4.5 text-foreground/80" />
-                            <span className="text-base font-medium">Request Account</span>
+                            <span className="text-sm font-medium">Request Account</span>
                           </DropdownMenuItem>
                 }
                       </div>
 
                       <DropdownMenuSeparator className="mx-0 my-2" />
 
-                      <DropdownMenuItem onClick={handleSignOut} className="rounded-2xl px-3 py-3 focus:bg-accent/70">
+                      <DropdownMenuItem onClick={handleSignOut} className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
                         <LogOut className="h-4.5 w-4.5 text-foreground/80" />
-                        <span className="text-base font-medium">Sign out</span>
+                        <span className="text-sm font-medium">Sign out</span>
                       </DropdownMenuItem>
                     </div>
                   </DropdownMenuContent>
