@@ -93,7 +93,7 @@ const AdminDashboardHomePage = () => {
       </section>
 
       <section>
-        <Accordion type="single" collapsible defaultValue="website-analytics" className="w-full rounded-xl border border-border/70 bg-card px-4">
+        <Accordion type="single" collapsible className="w-full rounded-xl border border-border/70 bg-card px-4">
           <AccordionItem value="website-analytics" className="border-none">
             <AccordionTrigger className="py-4 text-left hover:no-underline">
               <span className="flex items-center gap-2">
