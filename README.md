@@ -48,6 +48,20 @@ npm ci
 npm run dev
 ```
 
+## Security header regression checks
+
+Run policy tests locally:
+
+```bash
+npm run test:headers
+```
+
+Run deployed-environment checks by passing one or more HTTPS URLs:
+
+```bash
+HEADER_TEST_URLS="https://app.example.com,https://staging.example.com" npm run test:headers
+```
+
 ## Lockfile policy
 
 This repository uses **npm as the single source of truth** for dependency resolution.
