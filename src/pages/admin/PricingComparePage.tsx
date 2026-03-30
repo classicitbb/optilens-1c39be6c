@@ -111,6 +111,35 @@ const PricingComparePage = () => {
     return "Markup %";
   }, [metric]);
 
+  const setSearchValue = (column: 1 | 2 | 3, value: string) => {
+    setSearchByColumn((prev) => {
+      if (linkedSearch && column === 1) {
+        return { 1: value, 2: value, 3: value };
+      }
+      return { ...prev, [column]: value };
+    });
+  };
+
+  const toggleLinkedSearch = () => {
+    setLinkedSearch((prev) => {
+      const next = !prev;
+      if (next) {
+        setSearchByColumn((current) => ({ 1: current[1], 2: current[1], 3: current[1] }));
+      }
+      return next;
+    });
+  };
+
+  const addLensToCompare = (column: 1 | 2 | 3, lens: Lens) => {
+    setSelected((prev) =>
+      prev.map((slot) => {
+        if (slot.column === column) return { ...slot, lens };
+        if (slot.lens?.id === lens.id) return { ...slot, lens: null };
+        return slot;
+      })
+    );
+  };
+
   if (isMobile) {
     return <div className="h-full" />;
   }
@@ -120,12 +149,12 @@ const PricingComparePage = () => {
       <div className="flex items-center justify-between">
         <AdminPageHeader icon={Search} title="Supplier Lens Compare" />
         <div className="flex items-center gap-2">
-          <Button variant={metric === "cost_usd" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setMetric("cost_usd")}>Cost</Button>
-          <Button variant={metric === "sell_usd" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setMetric("sell_usd")}>Sell USD</Button>
-          <Button variant={metric === "sell_bbd" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setMetric("sell_bbd")}>Sell BBD</Button>
-          <Button variant={metric === "markup_percent" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setMetric("markup_percent")}>Markup %</Button>
-          <Button variant={diffMode === "absolute" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setDiffMode("absolute")}>Δ Abs</Button>
-          <Button variant={diffMode === "percent" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setDiffMode("percent")}>Δ %</Button>
+          <Button type="button" variant={metric === "cost_usd" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setMetric("cost_usd")}>Cost</Button>
+          <Button type="button" variant={metric === "sell_usd" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setMetric("sell_usd")}>Sell USD</Button>
+          <Button type="button" variant={metric === "sell_bbd" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setMetric("sell_bbd")}>Sell BBD</Button>
+          <Button type="button" variant={metric === "markup_percent" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setMetric("markup_percent")}>Markup %</Button>
+          <Button type="button" variant={diffMode === "absolute" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setDiffMode("absolute")}>Δ Abs</Button>
+          <Button type="button" variant={diffMode === "percent" ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setDiffMode("percent")}>Δ %</Button>
         </div>
       </div>
 
@@ -201,13 +230,13 @@ const PricingComparePage = () => {
                           <TableCell className="text-xs text-right align-top">{currency(lens.sell_price)}</TableCell>
                           <TableCell className="align-top">
                             <div className="flex items-center justify-end gap-0.5">
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => addLensToCompare(column, lens)} title="Add to compare">
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => addLensToCompare(column, lens)} title="Add to compare">
                                 <Plus className="h-3 w-3" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPreference(lens.id, preference === "liked" ? null : "liked")} title="Like lens">
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPreference(lens.id, preference === "liked" ? null : "liked")} title="Like lens">
                                 <ThumbsUp className="h-3 w-3" style={{ color: preference === "liked" ? "hsl(var(--admin-success))" : undefined }} />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPreference(lens.id, preference === "disliked" ? null : "disliked")} title="Dislike lens">
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPreference(lens.id, preference === "disliked" ? null : "disliked")} title="Dislike lens">
                                 <ThumbsDown className="h-3 w-3" style={{ color: preference === "disliked" ? "hsl(var(--admin-destructive))" : undefined }} />
                               </Button>
                             </div>
@@ -275,7 +304,7 @@ const PricingComparePage = () => {
                       </TableCell>
                       <TableCell className="text-xs text-right">{slot.column === 1 ? "Baseline" : deltaLabel}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelected((prev) => prev.map((entry) => (entry.column === slot.column ? { ...entry, lens: null } : entry)))} title="Remove lens from compare">
+                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelected((prev) => prev.map((entry) => (entry.column === slot.column ? { ...entry, lens: null } : entry)))} title="Remove lens from compare">
                           <X className="h-3 w-3" />
                         </Button>
                       </TableCell>
@@ -292,31 +321,3 @@ const PricingComparePage = () => {
 };
 
 export default PricingComparePage;
-  const setSearchValue = (column: 1 | 2 | 3, value: string) => {
-    setSearchByColumn((prev) => {
-      if (linkedSearch && column === 1) {
-        return { 1: value, 2: value, 3: value };
-      }
-      return { ...prev, [column]: value };
-    });
-  };
-
-  const toggleLinkedSearch = () => {
-    setLinkedSearch((prev) => {
-      const next = !prev;
-      if (next) {
-        setSearchByColumn((current) => ({ 1: current[1], 2: current[1], 3: current[1] }));
-      }
-      return next;
-    });
-  };
-
-  const addLensToCompare = (column: 1 | 2 | 3, lens: Lens) => {
-    setSelected((prev) =>
-      prev.map((slot) => {
-        if (slot.column === column) return { ...slot, lens };
-        if (slot.lens?.id === lens.id) return { ...slot, lens: null };
-        return slot;
-      })
-    );
-  };
