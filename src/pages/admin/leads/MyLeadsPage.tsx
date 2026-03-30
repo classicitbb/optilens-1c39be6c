@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Kanban, RefreshCw, DatabaseZap, FileText, Send, Instagram, PlusCircle, Sprout, Search } from "lucide-react";
+import { Kanban, RefreshCw, DatabaseZap, FileText, Send, Camera, PlusCircle, Sprout, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
