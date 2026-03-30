@@ -12,8 +12,8 @@ import { fieldsMatch } from "@/lib/wildcardMatch";
 
 type CompareMetric = "cost_usd" | "sell_usd" | "sell_bbd" | "markup_percent";
 type DiffMode = "absolute" | "percent";
-
-type CompareSlot = { column: 1 | 2 | 3; lens: Lens | null };
+type CompareColumn = 1 | 2 | 3;
+type CompareSlot = { column: CompareColumn; lens: Lens | null };
 
 const COLUMNS = [1, 2, 3] as const;
 
@@ -25,7 +25,7 @@ const PricingComparePage = () => {
   const { settings } = usePricingEngine();
   const { preferences, setPreference } = useLensPreferences();
 
-  const [searchByColumn, setSearchByColumn] = useState<Record<1 | 2 | 3, string>>({ 1: "", 2: "", 3: "" });
+  const [searchByColumn, setSearchByColumn] = useState<Record<CompareColumn, string>>({ 1: "", 2: "", 3: "" });
   const [linkedSearch, setLinkedSearch] = useState(false);
   const [selected, setSelected] = useState<CompareSlot[]>([
     { column: 1, lens: null },
@@ -47,19 +47,19 @@ const PricingComparePage = () => {
   );
 
   const selectedByColumn = useMemo(() => {
-    const lookup = new Map<1 | 2 | 3, Lens | null>();
+    const lookup = new Map<CompareColumn, Lens | null>();
     selected.forEach((entry) => lookup.set(entry.column, entry.lens));
     return lookup;
   }, [selected]);
 
   const filteredByColumn = useMemo(() => {
-    const selectedLensIdsByColumn = {
+    const selectedLensIdsByColumn: Record<CompareColumn, string | null> = {
       1: selectedByColumn.get(1)?.id ?? null,
       2: selectedByColumn.get(2)?.id ?? null,
       3: selectedByColumn.get(3)?.id ?? null,
     };
 
-    const filterFor = (column: 1 | 2 | 3) => {
+    const filterFor = (column: CompareColumn) => {
       const query = searchByColumn[column].trim().toLowerCase();
       const blockedLensIds = new Set(
         COLUMNS
@@ -86,12 +86,37 @@ const PricingComparePage = () => {
         .slice(0, 40);
     };
 
-    return {
-      1: filterFor(1),
-      2: filterFor(2),
-      3: filterFor(3),
-    };
+    return { 1: filterFor(1), 2: filterFor(2), 3: filterFor(3) };
   }, [searchByColumn, selectedByColumn, visibleLenses]);
+
+  const setSearchValue = (column: CompareColumn, value: string) => {
+    setSearchByColumn((prev) => {
+      if (linkedSearch && column === 1) {
+        return { 1: value, 2: value, 3: value };
+      }
+      return { ...prev, [column]: value };
+    });
+  };
+
+  const toggleLinkedSearch = () => {
+    setLinkedSearch((prev) => {
+      const next = !prev;
+      if (next) {
+        setSearchByColumn((current) => ({ 1: current[1], 2: current[1], 3: current[1] }));
+      }
+      return next;
+    });
+  };
+
+  const addLensToCompare = (column: CompareColumn, lens: Lens) => {
+    setSelected((prev) =>
+      prev.map((slot) => {
+        if (slot.column === column) return { ...slot, lens };
+        if (slot.lens?.id === lens.id) return { ...slot, lens: null };
+        return slot;
+      })
+    );
+  };
 
   const metricValue = (lens: Lens): number => {
     const sellUsd = fxRate > 0 ? lens.sell_price / fxRate : 0;
@@ -292,31 +317,3 @@ const PricingComparePage = () => {
 };
 
 export default PricingComparePage;
-  const setSearchValue = (column: 1 | 2 | 3, value: string) => {
-    setSearchByColumn((prev) => {
-      if (linkedSearch && column === 1) {
-        return { 1: value, 2: value, 3: value };
-      }
-      return { ...prev, [column]: value };
-    });
-  };
-
-  const toggleLinkedSearch = () => {
-    setLinkedSearch((prev) => {
-      const next = !prev;
-      if (next) {
-        setSearchByColumn((current) => ({ 1: current[1], 2: current[1], 3: current[1] }));
-      }
-      return next;
-    });
-  };
-
-  const addLensToCompare = (column: 1 | 2 | 3, lens: Lens) => {
-    setSelected((prev) =>
-      prev.map((slot) => {
-        if (slot.column === column) return { ...slot, lens };
-        if (slot.lens?.id === lens.id) return { ...slot, lens: null };
-        return slot;
-      })
-    );
-  };
