@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 export type AutopilotConstraints = {

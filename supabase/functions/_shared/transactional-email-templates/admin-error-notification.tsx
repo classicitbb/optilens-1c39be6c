@@ -28,7 +28,7 @@ const AdminErrorNotificationEmail = ({
 }: AdminErrorNotificationProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>{errorCount} runtime error(s) detected on OptiLens</Preview>
+    <Preview>{`${errorCount} runtime error(s) detected on OptiLens`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={alertBanner}>
