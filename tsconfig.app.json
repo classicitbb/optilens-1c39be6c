@@ -30,6 +30,7 @@
     "src"
   ],
   "exclude": [
-    "src/**/*.test.node.ts"
+    "src/**/*.test.node.ts",
+    "src/tests/integration/**"
   ]
 }
