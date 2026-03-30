@@ -127,7 +127,7 @@ const Auth = () => {
         <div className="rounded-2xl border border-white/15 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
           <div className="mb-6 text-center">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Eye className="h-7 w-7 text-white" />
+              <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
             <h1 className="text-2xl font-bold text-white">
               {isLogin ? "Welcome Back" : "Create Account"}
