@@ -210,7 +210,7 @@ const ProductCatalogPage = () => {
 
       {/* Shared search + clear filters */}
       <div className="flex items-center gap-2 shrink-0">
-        <div className="relative max-w-xs border shadow-sm">
+        <div className="relative max-w-3xl w-full border shadow-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={currentTab.placeholder} className="h-8 text-xs pl-8" />
         </div>
