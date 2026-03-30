@@ -38,7 +38,7 @@ const Index = () => {
           <div className="container mx-auto px-4 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
-                Contact Our Team
+                ​
               </h2>
               <p className="mb-8 text-base text-muted-foreground sm:text-lg">
                 ​

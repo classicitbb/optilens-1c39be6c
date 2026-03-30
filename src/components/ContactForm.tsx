@@ -116,8 +116,7 @@ const ContactForm = () => {
               Contact Our Team
             </h2>
             <p className="text-base text-muted-foreground sm:text-lg">
-              Have questions about our lens products? Fill out the form below and
-              our optical experts will respond within 24 hours.
+              ​
             </p>
           </div>
 
