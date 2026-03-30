@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Plus, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { Search, Plus, ThumbsUp, ThumbsDown, X, Link2, Unlink2 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const PricingComparePage = () => {
   const { preferences, setPreference } = useLensPreferences();
 
   const [searchByColumn, setSearchByColumn] = useState<Record<1 | 2 | 3, string>>({ 1: "", 2: "", 3: "" });
+  const [linkedSearch, setLinkedSearch] = useState(false);
   const [selected, setSelected] = useState<CompareSlot[]>([
     { column: 1, lens: null },
     { column: 2, lens: null },
@@ -45,11 +46,31 @@ const PricingComparePage = () => {
     [lenses]
   );
 
+  const selectedByColumn = useMemo(() => {
+    const lookup = new Map<1 | 2 | 3, Lens | null>();
+    selected.forEach((entry) => lookup.set(entry.column, entry.lens));
+    return lookup;
+  }, [selected]);
+
   const filteredByColumn = useMemo(() => {
+    const selectedLensIdsByColumn = {
+      1: selectedByColumn.get(1)?.id ?? null,
+      2: selectedByColumn.get(2)?.id ?? null,
+      3: selectedByColumn.get(3)?.id ?? null,
+    };
+
     const filterFor = (column: 1 | 2 | 3) => {
       const query = searchByColumn[column].trim().toLowerCase();
-      if (!query) return visibleLenses.slice(0, 40);
-      return visibleLenses
+      const blockedLensIds = new Set(
+        COLUMNS
+          .filter((entry) => entry !== column)
+          .map((entry) => selectedLensIdsByColumn[entry])
+          .filter((entry): entry is string => Boolean(entry))
+      );
+
+      const columnBase = visibleLenses.filter((lens) => !blockedLensIds.has(lens.id));
+      if (!query) return columnBase.slice(0, 40);
+      return columnBase
         .filter((lens) =>
           fieldsMatch(
             query,
@@ -70,7 +91,7 @@ const PricingComparePage = () => {
       2: filterFor(2),
       3: filterFor(3),
     };
-  }, [searchByColumn, visibleLenses]);
+  }, [searchByColumn, selectedByColumn, visibleLenses]);
 
   const metricValue = (lens: Lens): number => {
     const sellUsd = fxRate > 0 ? lens.sell_price / fxRate : 0;
@@ -80,12 +101,6 @@ const PricingComparePage = () => {
     if (lens.base_price <= 0) return 0;
     return ((sellUsd - lens.base_price) / lens.base_price) * 100;
   };
-
-  const selectedByColumn = useMemo(() => {
-    const lookup = new Map<1 | 2 | 3, Lens | null>();
-    selected.forEach((entry) => lookup.set(entry.column, entry.lens));
-    return lookup;
-  }, [selected]);
 
   const columnOneLens = selectedByColumn.get(1);
 
@@ -118,14 +133,30 @@ const PricingComparePage = () => {
         {COLUMNS.map((column) => (
           <div key={column} className="border rounded-md flex flex-col min-h-0" style={{ borderColor: "hsl(var(--admin-border))" }}>
             <div className="p-2 border-b" style={{ borderColor: "hsl(var(--admin-border))" }}>
-              <p className="text-xs font-semibold mb-2">Compare Column {column}</p>
+              <div className="mb-2 flex items-center justify-between gap-1">
+                <p className="text-xs font-semibold">Compare Column {column}</p>
+                {column === 1 && (
+                  <Button
+                    type="button"
+                    variant={linkedSearch ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 px-2 text-[11px] gap-1"
+                    onClick={toggleLinkedSearch}
+                    title={linkedSearch ? "Unlink search columns" : "Link search to columns 2 and 3"}
+                  >
+                    {linkedSearch ? <Link2 className="h-3 w-3" /> : <Unlink2 className="h-3 w-3" />}
+                    {linkedSearch ? "Linked" : "Link Search"}
+                  </Button>
+                )}
+              </div>
               <div className="relative">
                 <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchByColumn[column]}
-                  onChange={(event) => setSearchByColumn((prev) => ({ ...prev, [column]: event.target.value }))}
+                  onChange={(event) => setSearchValue(column, event.target.value)}
                   placeholder="Search supplier / lens / type"
                   className="h-8 text-xs pl-8"
+                  disabled={linkedSearch && column !== 1}
                 />
               </div>
             </div>
@@ -170,7 +201,7 @@ const PricingComparePage = () => {
                           <TableCell className="text-xs text-right align-top">{currency(lens.sell_price)}</TableCell>
                           <TableCell className="align-top">
                             <div className="flex items-center justify-end gap-0.5">
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelected((prev) => prev.map((slot) => (slot.column === column ? { ...slot, lens } : slot)))} title="Add to compare">
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => addLensToCompare(column, lens)} title="Add to compare">
                                 <Plus className="h-3 w-3" />
                               </Button>
                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPreference(lens.id, preference === "liked" ? null : "liked")} title="Like lens">
@@ -261,3 +292,31 @@ const PricingComparePage = () => {
 };
 
 export default PricingComparePage;
+  const setSearchValue = (column: 1 | 2 | 3, value: string) => {
+    setSearchByColumn((prev) => {
+      if (linkedSearch && column === 1) {
+        return { 1: value, 2: value, 3: value };
+      }
+      return { ...prev, [column]: value };
+    });
+  };
+
+  const toggleLinkedSearch = () => {
+    setLinkedSearch((prev) => {
+      const next = !prev;
+      if (next) {
+        setSearchByColumn((current) => ({ 1: current[1], 2: current[1], 3: current[1] }));
+      }
+      return next;
+    });
+  };
+
+  const addLensToCompare = (column: 1 | 2 | 3, lens: Lens) => {
+    setSelected((prev) =>
+      prev.map((slot) => {
+        if (slot.column === column) return { ...slot, lens };
+        if (slot.lens?.id === lens.id) return { ...slot, lens: null };
+        return slot;
+      })
+    );
+  };
