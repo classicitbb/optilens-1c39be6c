@@ -35,16 +35,32 @@ Use this lane for version upgrades that cross major versions or require migratio
      - `npm run build`
      - `npm run qa:smoke`
 
+#### Completed major migration PRs
+
+- [x] Recharts 3 migration (2026-03-30)
+  - [x] Updated `recharts` from 2.15.4 to 3.8.1.
+  - [x] Fixed `chart.tsx` — Tooltip and Legend prop types changed; used permissive typing to accommodate recharts 3 internal state restructuring.
+  - [x] No app-level chart code changes needed (only shadcn chart wrapper affected).
+- [x] Vite 8 migration (2026-03-30)
+  - [x] Updated `vite` from 7.3.1 to 8.0.3 (Rolldown/Oxc bundler).
+  - [x] `@vitejs/plugin-react-swc` 4.3.0 compatible — no config changes needed.
+  - [x] Compat layer auto-converts esbuild/rollupOptions config.
+  - [x] Excluded integration test files from `tsconfig.app.json` (Node.js types not available in browser tsconfig).
+- [x] Vitest 4 / @vitest/coverage-v8 4 migration (2026-03-30)
+  - [x] Updated `vitest` from 3.2.4 to 4.1.2 and `@vitest/coverage-v8` from 3.2.4 to 4.1.2.
+  - [x] V8 coverage uses more accurate remapping logic; coverage numbers may shift.
+  - [x] `coverage.all` removed in v4 (was not used in this project).
+- [x] Lucide-react 1.x migration (2026-03-30)
+  - [x] Updated `lucide-react` from 0.462.0 to 1.7.0.
+  - [x] Replaced removed `Instagram` brand icon with `Camera` in MyLeadsPage.
+  - [x] 32.3% package size reduction (ESM/CJS only, UMD removed).
+
 #### Planned dedicated major migration PRs
 
 - [ ] React 19 migration checklist
   - [ ] Update `react`, `react-dom`, and related `@types/*` packages.
   - [ ] Verify concurrent/strict mode behavior in auth/profile/admin routes.
   - [ ] Validate third-party compatibility (Radix, React Query, router integrations).
-- [ ] Vite 7 migration checklist
-  - [ ] Upgrade `vite` and `@vitejs/plugin-react-swc` together.
-  - [ ] Confirm config compatibility and build output integrity.
-  - [ ] Re-run CI workflows that depend on Vite CLI behavior.
 - [ ] Tailwind 4 migration checklist
   - [ ] Upgrade `tailwindcss`, PostCSS-related packages, and config format.
   - [ ] Validate design token rendering and utility class compatibility.
