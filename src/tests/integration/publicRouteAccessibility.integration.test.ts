@@ -10,10 +10,23 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers /optical-retail-websites in the public route registry", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.optical-retail-websites" && route.path === "/optical-retail-websites" && route.status === "active"),
+    ).toBeTruthy();
+  });
+
   it("declares a runtime route for /v2", () => {
     const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="v2" element={<FrontPageV2 />} />');
+  });
+
+  it("declares a runtime route for /optical-retail-websites", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />');
   });
 });

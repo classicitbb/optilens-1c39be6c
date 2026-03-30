@@ -44,7 +44,7 @@ const products = [
     title: "Optician Website Design",
     description: "Professional, modern websites built specifically for opticians and optical retailers. Showcase your practice and drive appointments.",
     features: ["Custom branding", "Online booking", "Mobile responsive"],
-    link: "#contact",
+    link: "/optical-retail-websites",
     cta: true,
   },
 ];
@@ -94,17 +94,10 @@ const Products = () => {
                   className="group/btn w-full"
                   asChild
                 >
-                  {product.cta ? (
-                    <a href={product.link}>
-                      Contact Us
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" aria-hidden="true" />
-                    </a>
-                  ) : (
-                    <Link to={product.link}>
-                      View Products
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" aria-hidden="true" />
-                    </Link>
-                  )}
+                  <Link to={product.link}>
+                    {product.cta ? "View Demo & Quote" : "View Products"}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" aria-hidden="true" />
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
