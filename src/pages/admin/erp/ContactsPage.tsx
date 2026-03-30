@@ -178,6 +178,18 @@ const normalizeBoolean = (value: string) => {
   return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "y";
 };
 
+const normalizeValue = (value?: string | null) => (value ?? "").trim().toLowerCase();
+
+const getDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
+  const email = normalizeValue(row.email);
+  if (email) return `email:${email}`;
+  const name = normalizeValue(row.name);
+  const phone = normalizeValue(row.phone);
+  if (name && phone) return `name_phone:${name}|${phone}`;
+  if (name) return `name:${name}`;
+  return "";
+};
+
 const emptyContact = (isCompany: boolean): Partial<Contact> => ({
   name: "",
   is_company: isCompany,
@@ -383,6 +395,25 @@ const ContactsPage = () => {
       .sort((a, b) => a.countryCode.localeCompare(b.countryCode));
   }, [filtered, groupBy]);
 
+  const existingDuplicateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    contacts.forEach((contact) => {
+      const key = getDuplicateKey(contact);
+      if (key) keys.add(key);
+    });
+    return keys;
+  }, [contacts]);
+
+  const duplicateKeyCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    contacts.forEach((contact) => {
+      const key = getDuplicateKey(contact);
+      if (!key) return;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    return counts;
+  }, [contacts]);
+
   useEffect(() => {
     if (groupBy !== "country") return;
     setCollapsedCountryGroups((prev) => {
@@ -402,12 +433,8 @@ const ContactsPage = () => {
   }, [groupBy, groupedByCountry]);
 
   useEffect(() => {
-    setSelectedContactIds((prev) => {
-      if (prev.length === 0) return prev;
-      const contactIdSet = new Set(contacts.map((contact) => contact.id));
-      const next = prev.filter((id) => contactIdSet.has(id));
-      return next.length === prev.length && next.every((id, index) => id === prev[index]) ? prev : next;
-    });
+    const contactIdSet = new Set(contacts.map((contact) => contact.id));
+    setSelectedContactIds((prev) => prev.filter((id) => contactIdSet.has(id)));
   }, [contacts]);
 
 
@@ -799,7 +826,14 @@ const ContactsPage = () => {
           aria-label={`Select ${c.name}`}
         />
       </TableCell>
-      <TableCell className="font-medium text-xs">{c.name}</TableCell>
+      <TableCell className="font-medium text-xs">
+        <div className="flex items-center gap-1.5">
+          <span>{c.name}</span>
+          {(duplicateKeyCounts.get(getDuplicateKey(c)) ?? 0) > 1 && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">Duplicate</Badge>
+          )}
+        </div>
+      </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
           <Badge
@@ -875,7 +909,9 @@ const ContactsPage = () => {
       let imported = 0;
       let errors = 0;
       let skipped = 0;
+      let duplicates = 0;
       const issues: string[] = [];
+      const importSeenKeys = new Set<string>();
       for (let i = 1; i < rows.length; i += 1) {
         const rowValues = rows[i];
         const row: Record<string, string | boolean | null> = {};
@@ -902,10 +938,21 @@ const ContactsPage = () => {
           row.is_company = false;
         }
 
+        const duplicateKey = getDuplicateKey({
+          name: String(row.name ?? ""),
+          email: String(row.email ?? ""),
+          phone: String(row.phone ?? ""),
+        });
+        if (duplicateKey && (existingDuplicateKeys.has(duplicateKey) || importSeenKeys.has(duplicateKey))) {
+          duplicates += 1;
+          continue;
+        }
+
         const { error } = await supabase.from("contacts").insert(row as any);
         if (error) errors++;
         else {
           imported++;
+          if (duplicateKey) importSeenKeys.add(duplicateKey);
           if (row.country_code && !countryLookup.has(normalizeHeader(String(row.country_code)))) {
             issues.push(`Row ${i + 1}: country "${String(row.country_code)}" was imported as-is.`);
           }
@@ -913,7 +960,7 @@ const ContactsPage = () => {
       }
       await qc.invalidateQueries({ queryKey: ["contacts"] });
       toast({
-        title: `Imported ${imported} contacts${errors ? `, ${errors} errors` : ""}${skipped ? `, ${skipped} skipped` : ""}`,
+        title: `Imported ${imported} contacts${errors ? `, ${errors} errors` : ""}${skipped ? `, ${skipped} skipped` : ""}${duplicates ? `, ${duplicates} duplicates flagged` : ""}`,
         description: issues.length > 0 ? issues.slice(0, 2).join(" ") : undefined,
         variant: errors > 0 ? "destructive" : "default",
       });
@@ -1057,6 +1104,23 @@ const ContactsPage = () => {
       await qc.invalidateQueries({ queryKey: ["contacts"] });
     } catch (error: any) {
       toast({ title: "Purge failed", description: error.message ?? "Please try again.", variant: "destructive" });
+    }
+  };
+
+  const toggleArchiveContact = async (contact: Partial<Contact>) => {
+    if (!contact.id) return;
+    try {
+      const nextArchived = !(contact.is_archived ?? false);
+      const { error } = await supabase
+        .from("contacts")
+        .update({ is_archived: nextArchived })
+        .eq("id", contact.id as any);
+      if (error) throw error;
+      setEditContact((prev) => (prev ? { ...prev, is_archived: nextArchived } : prev));
+      await qc.invalidateQueries({ queryKey: ["contacts"] });
+      toast({ title: nextArchived ? "Contact archived" : "Contact unarchived" });
+    } catch (error: any) {
+      toast({ title: "Archive update failed", description: error.message ?? "Please try again.", variant: "destructive" });
     }
   };
 
@@ -1730,9 +1794,19 @@ const ContactsPage = () => {
                 <div className="flex items-center justify-between px-4 py-2.5 border-t shrink-0" style={{ borderColor: "hsl(215 25% 88%)" }}>
                   <div>
                     {editContact.id && (
-                      <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
-                        <Trash2 className="h-3 w-3" /> Delete
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 gap-1"
+                          onClick={() => toggleArchiveContact(editContact)}
+                        >
+                          {editContact.is_archived ? "Unarchive" : "Archive"}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
+                          <Trash2 className="h-3 w-3" /> Delete
+                        </Button>
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-2">
