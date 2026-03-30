@@ -4756,6 +4756,72 @@ export type Database = {
           },
         ]
       }
+      store_product_media: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          is_active: boolean
+          product_id: string
+          product_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          is_active?: boolean
+          product_id: string
+          product_type: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          product_id?: string
+          product_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      store_product_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          is_vat_taxable: boolean
+          product_id: string
+          product_type: string
+          quantity_label: string | null
+          updated_at: string
+          website_badges: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_vat_taxable?: boolean
+          product_id: string
+          product_type: string
+          quantity_label?: string | null
+          updated_at?: string
+          website_badges?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_vat_taxable?: boolean
+          product_id?: string
+          product_type?: string
+          quantity_label?: string | null
+          updated_at?: string
+          website_badges?: Json
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           abbrev: string
