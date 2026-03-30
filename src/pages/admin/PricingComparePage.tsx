@@ -111,6 +111,35 @@ const PricingComparePage = () => {
     return "Markup %";
   }, [metric]);
 
+  const setSearchValue = (column: 1 | 2 | 3, value: string) => {
+    setSearchByColumn((prev) => {
+      if (linkedSearch && column === 1) {
+        return { 1: value, 2: value, 3: value };
+      }
+      return { ...prev, [column]: value };
+    });
+  };
+
+  const toggleLinkedSearch = () => {
+    setLinkedSearch((prev) => {
+      const next = !prev;
+      if (next) {
+        setSearchByColumn((current) => ({ 1: current[1], 2: current[1], 3: current[1] }));
+      }
+      return next;
+    });
+  };
+
+  const addLensToCompare = (column: 1 | 2 | 3, lens: Lens) => {
+    setSelected((prev) =>
+      prev.map((slot) => {
+        if (slot.column === column) return { ...slot, lens };
+        if (slot.lens?.id === lens.id) return { ...slot, lens: null };
+        return slot;
+      })
+    );
+  };
+
   if (isMobile) {
     return <div className="h-full" />;
   }
@@ -292,31 +321,3 @@ const PricingComparePage = () => {
 };
 
 export default PricingComparePage;
-  const setSearchValue = (column: 1 | 2 | 3, value: string) => {
-    setSearchByColumn((prev) => {
-      if (linkedSearch && column === 1) {
-        return { 1: value, 2: value, 3: value };
-      }
-      return { ...prev, [column]: value };
-    });
-  };
-
-  const toggleLinkedSearch = () => {
-    setLinkedSearch((prev) => {
-      const next = !prev;
-      if (next) {
-        setSearchByColumn((current) => ({ 1: current[1], 2: current[1], 3: current[1] }));
-      }
-      return next;
-    });
-  };
-
-  const addLensToCompare = (column: 1 | 2 | 3, lens: Lens) => {
-    setSelected((prev) =>
-      prev.map((slot) => {
-        if (slot.column === column) return { ...slot, lens };
-        if (slot.lens?.id === lens.id) return { ...slot, lens: null };
-        return slot;
-      })
-    );
-  };
