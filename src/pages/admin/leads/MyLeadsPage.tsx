@@ -239,7 +239,7 @@ const MyLeadsPage = () => {
           <Button size="sm" variant="outline" className="h-8 text-xs"><DatabaseZap className="h-3 w-3 mr-1" /> Enrich All</Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><FileText className="h-3 w-3 mr-1" /> Generate Audits</Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><Send className="h-3 w-3 mr-1" /> Send Sequence</Button>
-          <Button size="sm" variant="outline" className="h-8 text-xs"><Instagram className="h-3 w-3 mr-1" /> Generate IG Posts</Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs"><Camera className="h-3 w-3 mr-1" /> Generate IG Posts</Button>
           <Badge variant="outline">Total: {filtered.length}</Badge>
         </CardContent>
       </Card>
