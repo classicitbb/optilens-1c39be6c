@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { PanelLeftClose, PanelLeft, ArrowLeft, Pin, PinOff } from "lucide-react";
+import { PanelLeftClose, PanelLeft, Pin, PinOff } from "lucide-react";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
 import { cn } from "@/lib/utils";
 
@@ -154,17 +154,6 @@ const AdminSidebar = () => {
           inactiveItemClassName="text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]"
           labelClassName="text-sidebar-ring"
         />
-      </div>
-
-      <div className="border-t px-3 py-2 space-y-0.5 rounded-none border-[hsl(var(--admin-border))]">
-        <Link
-          to="/"
-          className={`${linkBase} w-full text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]`}
-          title={isCollapsed ? "Back to Site" : undefined}
-        >
-          <ArrowLeft className="h-4 w-4 shrink-0" />
-          {!isCollapsed && <span>Back to Site</span>}
-        </Link>
       </div>
     </aside>
   );
