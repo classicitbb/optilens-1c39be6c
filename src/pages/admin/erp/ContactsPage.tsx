@@ -1168,7 +1168,7 @@ const ContactsPage = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="h-[calc(100vh-180px)] min-h-[480px] flex flex-col gap-4 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
@@ -1283,9 +1283,10 @@ const ContactsPage = () => {
       </div>
 
       {/* Table */}
-      <div className="border rounded-md overflow-hidden" style={{ borderColor: "hsl(215 25% 88%)" }}>
+      <div className="border rounded-md flex-1 min-h-0 overflow-hidden" style={{ borderColor: "hsl(215 25% 88%)" }}>
+        <div className="h-full overflow-y-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
               <TableHead className="w-10">
                 <Checkbox
@@ -1344,6 +1345,7 @@ const ContactsPage = () => {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Edit Dialog */}
