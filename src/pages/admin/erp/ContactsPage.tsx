@@ -190,6 +190,16 @@ const getDuplicateKey = (row: { name?: string | null; email?: string | null; pho
   return "";
 };
 
+const splitLinkedContactName = (name: string) => {
+  const [companyName, ...personParts] = name.split(",");
+  const personName = personParts.join(",").trim();
+  if (!companyName?.trim() || !personName) return null;
+  return {
+    companyName: companyName.trim(),
+    personName,
+  };
+};
+
 const emptyContact = (isCompany: boolean): Partial<Contact> => ({
   name: "",
   is_company: isCompany,
@@ -463,6 +473,11 @@ const ContactsPage = () => {
     setEditContact((prev) => {
       if (!prev) return prev;
       const notes = prev.notes ?? "";
+      const normalizedNotes = notes.trim().replace(/\s+/g, " ").toLowerCase();
+      const normalizedDelta = delta.replace(/\s+/g, " ").toLowerCase();
+      if (normalizedDelta && normalizedNotes.endsWith(normalizedDelta)) {
+        return prev;
+      }
       const needsSpacer = notes.length > 0 && !/\s$/.test(notes);
       return { ...prev, notes: `${notes}${needsSpacer ? " " : ""}${delta}` };
     });
@@ -910,8 +925,48 @@ const ContactsPage = () => {
       let errors = 0;
       let skipped = 0;
       let duplicates = 0;
+      let linkedRows = 0;
       const issues: string[] = [];
       const importSeenKeys = new Set<string>();
+      const existingCompanyByName = new Map<string, string>();
+      contacts
+        .filter((contact) => contact.is_company)
+        .forEach((contact) => {
+          existingCompanyByName.set(normalizeValue(contact.name), contact.id);
+        });
+
+      const createCompanyFromRow = async (companyName: string, row: Record<string, string | boolean | null>) => {
+        const lookupKey = normalizeValue(companyName);
+        const existingCompanyId = existingCompanyByName.get(lookupKey);
+        if (existingCompanyId) return existingCompanyId;
+
+        const { data: inserted, error } = await supabase
+          .from("contacts")
+          .insert({
+            name: companyName,
+            is_company: true,
+            email: "",
+            phone: "",
+            street: row.street ?? "",
+            street2: row.street2 ?? "",
+            city: row.city ?? "",
+            state: row.state ?? "",
+            zip: row.zip ?? "",
+            country_code: row.country_code ?? "",
+            tax_id: row.tax_id ?? "",
+            website: row.website ?? "",
+            salesperson: row.salesperson ?? "",
+            notes: row.notes ?? "",
+            is_archived: false,
+          } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        existingCompanyByName.set(lookupKey, inserted.id);
+        imported += 1;
+        return inserted.id as string;
+      };
+
       for (let i = 1; i < rows.length; i += 1) {
         const rowValues = rows[i];
         const row: Record<string, string | boolean | null> = {};
@@ -938,6 +993,44 @@ const ContactsPage = () => {
           row.is_company = false;
         }
 
+        const rawName = String(row.name ?? "").trim();
+        const linkedName = splitLinkedContactName(rawName);
+        if (linkedName) {
+          try {
+            const companyId = await createCompanyFromRow(linkedName.companyName, row);
+            const personRow = {
+              ...row,
+              name: linkedName.personName,
+              is_company: false,
+              parent_id: companyId,
+            };
+
+            const personDuplicateKey = getDuplicateKey({
+              name: String(personRow.name ?? ""),
+              email: String(personRow.email ?? ""),
+              phone: String(personRow.phone ?? ""),
+            });
+            const personScopedKey = `${personDuplicateKey}|parent:${companyId}`;
+            if (personDuplicateKey && importSeenKeys.has(personScopedKey)) {
+              duplicates += 1;
+              continue;
+            }
+
+            const { error } = await supabase.from("contacts").insert(personRow as any);
+            if (error) {
+              errors += 1;
+              continue;
+            }
+            imported += 1;
+            linkedRows += 1;
+            if (personDuplicateKey) importSeenKeys.add(personScopedKey);
+            continue;
+          } catch {
+            errors += 1;
+            continue;
+          }
+        }
+
         const duplicateKey = getDuplicateKey({
           name: String(row.name ?? ""),
           email: String(row.email ?? ""),
@@ -960,7 +1053,7 @@ const ContactsPage = () => {
       }
       await qc.invalidateQueries({ queryKey: ["contacts"] });
       toast({
-        title: `Imported ${imported} contacts${errors ? `, ${errors} errors` : ""}${skipped ? `, ${skipped} skipped` : ""}${duplicates ? `, ${duplicates} duplicates flagged` : ""}`,
+        title: `Imported ${imported} contacts${linkedRows ? ` (${linkedRows} linked from name pairs)` : ""}${errors ? `, ${errors} errors` : ""}${skipped ? `, ${skipped} skipped` : ""}${duplicates ? `, ${duplicates} duplicates flagged` : ""}`,
         description: issues.length > 0 ? issues.slice(0, 2).join(" ") : undefined,
         variant: errors > 0 ? "destructive" : "default",
       });
@@ -1168,7 +1261,7 @@ const ContactsPage = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-180px)] min-h-[480px] flex flex-col gap-4 overflow-hidden">
+    <div className="h-[calc(100vh-120px)] flex flex-col gap-4 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
