@@ -1,32 +1,16 @@
-import { z } from "npm:zod@3.25.76";
+import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
-const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
-const createCorsHeaders = (req: Request) => {
-  const requestOrigin = req.headers.get("origin");
-  const resolvedOrigin =
-    requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
-      ? requestOrigin
-      : ALLOWED_ORIGINS[0] ?? "null";
-
-  return {
-    "Access-Control-Allow-Origin": resolvedOrigin,
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    Vary: "Origin",
-  };
-};
+const corsPolicy = createCorsPolicy({
+  allowHeaders: "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  allowMethods: "POST, OPTIONS",
+});
 
 const jsonResponse = (req: Request, status: number, payload: unknown) =>
   new Response(JSON.stringify(payload), {
     status,
-    headers: { ...createCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(req, corsPolicy), "Content-Type": "application/json" },
   });
 
 const allowedActions = new Set([
@@ -38,11 +22,12 @@ const allowedActions = new Set([
 ]);
 
 Deno.serve(async (req) => {
-  const corsHeaders = createCorsHeaders(req);
+  const preflight = handleCorsPreflight(req, corsPolicy);
+  if (preflight) return preflight;
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsHeaders = getCorsHeaders(req, corsPolicy);
+  const originBlocked = rejectDisallowedOrigin(req, corsPolicy);
+  if (originBlocked) return originBlocked;
 
   if (req.method !== "POST") {
     return jsonResponse(req, 405, { error: "Method not allowed" });
@@ -51,38 +36,18 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify caller is admin
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return jsonResponse(req, 401, { error: "Unauthorized" });
-    }
-
-  try {
     const authContext = await requirePrivilegedAccess(req, corsHeaders, {
       allowedRoles: ["admin"],
       sourceFunction: "admin-user-management",
     });
-    const {
-      data: { user: caller },
-    } = await anonClient.auth.getUser();
-    if (!caller) {
-      return jsonResponse(req, 401, { error: "Unauthorized" });
+    if (authContext instanceof Response) {
+      return authContext;
     }
 
-    // Check admin role
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: roleRow } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleRow) {
-      return jsonResponse(req, 403, { error: "Forbidden" });
-    }
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
     const body = await req.json();
     const { action } = body;
@@ -105,7 +70,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reset-password") {
-      const { email } = parsed.data;
+      const { email } = body;
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
@@ -121,7 +86,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "set-password") {
-      const { userId, password } = parsed.data;
+      const { userId, password } = body;
       if (!userId || !password) {
         return jsonResponse(req, 400, { error: "userId and password are required" });
       }
@@ -136,7 +101,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "invite-user") {
-      const { email } = parsed.data;
+      const { email } = body;
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
@@ -161,7 +126,6 @@ Deno.serve(async (req) => {
         email_confirm: true,
       });
       if (error) throw error;
-      // Update display name if provided
       if (displayName && newUser?.user) {
         await adminClient
           .from("profiles")
@@ -170,6 +134,8 @@ Deno.serve(async (req) => {
       }
       return jsonResponse(req, 200, { success: true, userId: newUser?.user?.id });
     }
+
+    return jsonResponse(req, 400, { error: "Unhandled action" });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
     return jsonResponse(req, 500, { error: message });
