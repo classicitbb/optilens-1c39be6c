@@ -974,9 +974,12 @@ const ContactsPage = () => {
 
       const isCompanyIndex = headerFields.findIndex((field) => field === "is_company");
       const existingImportKeys = new Set<string>();
+      const existingContactByName = new Map<string, { id: string; is_company: boolean }>();
       contacts.forEach((contact) => {
         const key = getImportDuplicateKey(contact);
         if (key) existingImportKeys.add(key);
+        const nameKey = normalizeValue(contact.name);
+        if (nameKey) existingContactByName.set(nameKey, { id: contact.id, is_company: contact.is_company });
       });
 
       const previewRows = rows.slice(1).map((rawRowValues, offset) => {
@@ -1016,7 +1019,31 @@ const ContactsPage = () => {
 
         const linkedName = splitLinkedContactName(rawName);
         if (linkedName) {
+          const linkedPersonKey = normalizeValue(linkedName.personName);
+          const existingLinkedPerson = existingContactByName.get(linkedPersonKey);
+          if (existingLinkedPerson) {
+            return {
+              rowNumber,
+              displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`,
+              row,
+              linkedName,
+              status: "ready" as const,
+              reason: "Existing person will be linked to this company",
+            };
+          }
           return { rowNumber, displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`, row, linkedName, status: "ready" as const };
+        }
+
+        const existingByName = existingContactByName.get(normalizeValue(rawName));
+        if (existingByName) {
+          return {
+            rowNumber,
+            displayName: rawName,
+            row,
+            linkedName: null,
+            status: "duplicate" as const,
+            reason: "Name already exists",
+          };
         }
 
         const duplicateKey = getImportDuplicateKey({
@@ -1051,6 +1078,11 @@ const ContactsPage = () => {
     let linkedRows = 0;
     const issues: string[] = [];
     const importSeenKeys = new Set<string>();
+    const existingContactByName = new Map<string, { id: string; is_company: boolean }>();
+    contacts.forEach((contact) => {
+      const nameKey = normalizeValue(contact.name);
+      if (nameKey) existingContactByName.set(nameKey, { id: contact.id, is_company: contact.is_company });
+    });
     const existingCompanyByName = new Map<string, string>();
     contacts
       .filter((contact) => contact.is_company)
@@ -1102,6 +1134,29 @@ const ContactsPage = () => {
       if (linkedName) {
         try {
           const companyId = await createCompanyFromRow(linkedName.companyName, row);
+          const linkedPersonKey = normalizeValue(linkedName.personName);
+          const existingLinkedPerson = existingContactByName.get(linkedPersonKey);
+          if (existingLinkedPerson) {
+            if (existingLinkedPerson.id === "__new__") {
+              duplicates += 1;
+              continue;
+            }
+            const { error: updateError } = await supabase
+              .from("contacts")
+              .update({
+                parent_id: companyId,
+                is_company: false,
+              } as any)
+              .eq("id", existingLinkedPerson.id as any);
+            if (updateError) {
+              errors += 1;
+              issues.push(`Row ${previewRow.rowNumber}: ${updateError.message}`);
+              continue;
+            }
+            linkedRows += 1;
+            continue;
+          }
+
           const personRow = {
             ...row,
             name: linkedName.personName,
@@ -1127,6 +1182,7 @@ const ContactsPage = () => {
           }
           imported += 1;
           linkedRows += 1;
+          if (linkedPersonKey) existingContactByName.set(linkedPersonKey, { id: "__new__", is_company: false });
           if (!personScopedKey.startsWith("|")) importSeenKeys.add(personScopedKey);
           continue;
         } catch (error: any) {
@@ -1141,6 +1197,11 @@ const ContactsPage = () => {
         email: String(row.email ?? ""),
         phone: String(row.phone ?? ""),
       });
+      const rawNameKey = normalizeValue(String(row.name ?? ""));
+      if (rawNameKey && existingContactByName.has(rawNameKey)) {
+        duplicates += 1;
+        continue;
+      }
       if (duplicateKey && importSeenKeys.has(duplicateKey)) {
         duplicates += 1;
         continue;
@@ -1152,6 +1213,7 @@ const ContactsPage = () => {
         issues.push(`Row ${previewRow.rowNumber}: ${error.message}`);
       } else {
         imported += 1;
+        if (rawNameKey) existingContactByName.set(rawNameKey, { id: "__new__", is_company: !!row.is_company });
         if (duplicateKey) importSeenKeys.add(duplicateKey);
       }
     }
@@ -1563,17 +1625,16 @@ const ContactsPage = () => {
               <TableHeader className="sticky top-0 bg-background">
                 <TableRow>
                   <TableHead>Row</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  {CONTACT_IMPORT_FIELDS.map((field) => (
+                    <TableHead key={field}>{field}</TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {importPreviewRows.map((row) => (
                   <TableRow key={`${row.rowNumber}-${row.displayName}`}>
                     <TableCell className="text-xs">{row.rowNumber}</TableCell>
-                    <TableCell className="text-xs">{row.displayName}</TableCell>
-                    <TableCell className="text-xs">{row.linkedName ? "Linked company/person" : row.row.is_company ? "Company" : "Person"}</TableCell>
                     <TableCell className="text-xs">
                       {row.status === "ready"
                         ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Ready</Badge>
@@ -1581,6 +1642,11 @@ const ContactsPage = () => {
                           ? <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">{row.reason ?? "Duplicate"}</Badge>
                           : <Badge variant="destructive">{row.reason ?? "Invalid"}</Badge>}
                     </TableCell>
+                    {CONTACT_IMPORT_FIELDS.map((field) => (
+                      <TableCell key={`${row.rowNumber}-${field}`} className="text-xs whitespace-nowrap">
+                        {String(row.row[field] ?? "")}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))}
               </TableBody>
