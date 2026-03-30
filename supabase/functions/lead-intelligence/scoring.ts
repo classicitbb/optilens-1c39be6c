@@ -128,7 +128,7 @@ function assessFactor(lead: LeadCandidate, factor: LeadScoreFactor, params: { co
   }
 }
 
-export async function loadScoringWeights(supabaseClient: SupabaseClient): Promise<Record<LeadScoreFactor, number>> {
+export async function loadScoringWeights(supabaseClient: any): Promise<Record<LeadScoreFactor, number>> {
   const weights = { ...DEFAULT_SCORING_WEIGHTS };
 
   try {

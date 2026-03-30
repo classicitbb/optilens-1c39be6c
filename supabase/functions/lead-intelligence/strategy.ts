@@ -67,7 +67,7 @@ const includesAny = (haystack: string[], needles: string[]) => {
 };
 
 export async function generateSearchPlan(
-  supabaseClient: SupabaseClient,
+  supabaseClient: any,
   constraints: AutopilotConstraints,
 ): Promise<PlanningResult> {
   const { data, error } = await supabaseClient
