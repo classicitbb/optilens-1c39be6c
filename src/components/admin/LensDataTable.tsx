@@ -348,7 +348,7 @@ const LensDataTable = ({
                           <ThumbsUp className="h-3 w-3 shrink-0" aria-label="Liked lens" style={{ color: "hsl(var(--admin-success))" }} />
                         )}
                         {preferences[lens.id] === "disliked" && (
-                          <ThumbsDown className="h-3 w-3 shrink-0" title="Disliked lens" style={{ color: "hsl(var(--admin-destructive))" }} />
+                          <ThumbsDown className="h-3 w-3 shrink-0" aria-label="Disliked lens" style={{ color: "hsl(var(--admin-destructive))" }} />
                         )}
                       </span>
                     </TableCell>
