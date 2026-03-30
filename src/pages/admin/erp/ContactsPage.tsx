@@ -23,6 +23,15 @@ import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptions
 
 type FilterMode = "all" | "companies" | "persons" | "customers";
 type GroupByMode = "none" | "country";
+type ImportPreviewStatus = "ready" | "duplicate" | "invalid";
+type ImportPreviewRow = {
+  rowNumber: number;
+  displayName: string;
+  row: Record<string, string | boolean | null>;
+  linkedName: ReturnType<typeof splitLinkedContactName>;
+  status: ImportPreviewStatus;
+  reason?: string;
+};
 
 type SpeechRecognitionErrorCode = "aborted" | "audio-capture" | "bad-grammar" | "language-not-supported" | "network" | "no-speech" | "not-allowed" | "phrases-not-supported" | "service-not-allowed";
 
@@ -178,6 +187,11 @@ const normalizeBoolean = (value: string) => {
   return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "y";
 };
 
+const isBooleanLike = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  return ["true", "false", "1", "0", "yes", "no", "y", "n"].includes(normalized);
+};
+
 const normalizeValue = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
 const getDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
@@ -187,6 +201,15 @@ const getDuplicateKey = (row: { name?: string | null; email?: string | null; pho
   const phone = normalizeValue(row.phone);
   if (name && phone) return `name_phone:${name}|${phone}`;
   if (name) return `name:${name}`;
+  return "";
+};
+
+const getImportDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
+  const email = normalizeValue(row.email);
+  if (email) return `email:${email}`;
+  const name = normalizeValue(row.name);
+  const phone = normalizeValue(row.phone);
+  if (name && phone) return `name_phone:${name}|${phone}`;
   return "";
 };
 
@@ -265,6 +288,9 @@ const ContactsPage = () => {
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<"archive" | "delete" | null>(null);
   const [isPurgeDialogOpen, setIsPurgeDialogOpen] = useState(false);
+  const [isImportPreviewOpen, setIsImportPreviewOpen] = useState(false);
+  const [importPreviewRows, setImportPreviewRows] = useState<ImportPreviewRow[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Load tags when editing
   const { data: editTagIdsData } = useContactTagLinks(editContact?.id);
@@ -370,6 +396,11 @@ const ContactsPage = () => {
     lookup.set("trinidad_and_tobago", "Trinidad & Tobago");
     lookup.set("trinidad_tobago", "Trinidad & Tobago");
     return lookup;
+  }, []);
+
+  const countryNameFormatter = useMemo(() => {
+    if (typeof Intl === "undefined" || typeof Intl.DisplayNames === "undefined") return null;
+    return new Intl.DisplayNames(["en"], { type: "region" });
   }, []);
 
 
@@ -901,7 +932,27 @@ const ContactsPage = () => {
     </TableRow>
   );
 
+  const normalizeImportedCountry = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    const aliasCountry = countryLookup.get(normalizeHeader(trimmed));
+    if (aliasCountry) return aliasCountry;
+    if (countryNameFormatter && /^[A-Za-z]{2}$/.test(trimmed)) {
+      const byCode = countryNameFormatter.of(trimmed.toUpperCase());
+      if (byCode) return byCode;
+    }
+    return trimmed;
+  };
+
+  const previewSummary = useMemo(() => {
+    const ready = importPreviewRows.filter((row) => row.status === "ready").length;
+    const duplicates = importPreviewRows.filter((row) => row.status === "duplicate").length;
+    const invalid = importPreviewRows.filter((row) => row.status === "invalid").length;
+    return { total: importPreviewRows.length, ready, duplicates, invalid };
+  }, [importPreviewRows]);
+
   const importCsv = () => {
+    if (isImporting) return;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".csv";
@@ -921,54 +972,26 @@ const ContactsPage = () => {
         return;
       }
 
-      let imported = 0;
-      let errors = 0;
-      let skipped = 0;
-      let duplicates = 0;
-      let linkedRows = 0;
-      const issues: string[] = [];
-      const importSeenKeys = new Set<string>();
-      const existingCompanyByName = new Map<string, string>();
-      contacts
-        .filter((contact) => contact.is_company)
-        .forEach((contact) => {
-          existingCompanyByName.set(normalizeValue(contact.name), contact.id);
-        });
+      const isCompanyIndex = headerFields.findIndex((field) => field === "is_company");
+      const existingImportKeys = new Set<string>();
+      contacts.forEach((contact) => {
+        const key = getImportDuplicateKey(contact);
+        if (key) existingImportKeys.add(key);
+      });
 
-      const createCompanyFromRow = async (companyName: string, row: Record<string, string | boolean | null>) => {
-        const lookupKey = normalizeValue(companyName);
-        const existingCompanyId = existingCompanyByName.get(lookupKey);
-        if (existingCompanyId) return existingCompanyId;
+      const previewRows = rows.slice(1).map((rawRowValues, offset) => {
+        let rowValues = rawRowValues;
+        if (isCompanyIndex >= 0 && rawRowValues.length > headerFields.length) {
+          const boolIdx = rawRowValues.findIndex((value, idx) => idx >= isCompanyIndex && isBooleanLike(value));
+          if (boolIdx > isCompanyIndex) {
+            const namePartCount = boolIdx - isCompanyIndex + 1;
+            rowValues = [
+              rawRowValues.slice(0, namePartCount).join(", ").replace(/\s+/g, " ").trim(),
+              ...rawRowValues.slice(boolIdx),
+            ];
+          }
+        }
 
-        const { data: inserted, error } = await supabase
-          .from("contacts")
-          .insert({
-            name: companyName,
-            is_company: true,
-            email: "",
-            phone: "",
-            street: row.street ?? "",
-            street2: row.street2 ?? "",
-            city: row.city ?? "",
-            state: row.state ?? "",
-            zip: row.zip ?? "",
-            country_code: row.country_code ?? "",
-            tax_id: row.tax_id ?? "",
-            website: row.website ?? "",
-            salesperson: row.salesperson ?? "",
-            notes: row.notes ?? "",
-            is_archived: false,
-          } as any)
-          .select("id")
-          .single();
-        if (error) throw error;
-        existingCompanyByName.set(lookupKey, inserted.id);
-        imported += 1;
-        return inserted.id as string;
-      };
-
-      for (let i = 1; i < rows.length; i += 1) {
-        const rowValues = rows[i];
         const row: Record<string, string | boolean | null> = {};
         headerFields.forEach((field, idx) => {
           if (!field) return;
@@ -978,87 +1001,170 @@ const ContactsPage = () => {
             return;
           }
           if (field === "country_code") {
-            const canonicalCountry = countryLookup.get(normalizeHeader(value));
-            row[field] = canonicalCountry ?? value;
+            row[field] = normalizeImportedCountry(value);
             return;
           }
           row[field] = value;
         });
 
-        if (!row.name || String(row.name).trim() === "") {
-          skipped += 1;
-          continue;
-        }
-        if (!("is_company" in row)) {
-          row.is_company = false;
-        }
-
+        const rowNumber = offset + 2;
         const rawName = String(row.name ?? "").trim();
+        if (!rawName) {
+          return { rowNumber, displayName: "(Unnamed contact)", row, linkedName: null, status: "invalid" as const, reason: "Missing name" };
+        }
+        if (!("is_company" in row)) row.is_company = false;
+
         const linkedName = splitLinkedContactName(rawName);
         if (linkedName) {
-          try {
-            const companyId = await createCompanyFromRow(linkedName.companyName, row);
-            const personRow = {
-              ...row,
-              name: linkedName.personName,
-              is_company: false,
-              parent_id: companyId,
-            };
-
-            const personDuplicateKey = getDuplicateKey({
-              name: String(personRow.name ?? ""),
-              email: String(personRow.email ?? ""),
-              phone: String(personRow.phone ?? ""),
-            });
-            const personScopedKey = `${personDuplicateKey}|parent:${companyId}`;
-            if (personDuplicateKey && importSeenKeys.has(personScopedKey)) {
-              duplicates += 1;
-              continue;
-            }
-
-            const { error } = await supabase.from("contacts").insert(personRow as any);
-            if (error) {
-              errors += 1;
-              continue;
-            }
-            imported += 1;
-            linkedRows += 1;
-            if (personDuplicateKey) importSeenKeys.add(personScopedKey);
-            continue;
-          } catch {
-            errors += 1;
-            continue;
-          }
+          return { rowNumber, displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`, row, linkedName, status: "ready" as const };
         }
 
-        const duplicateKey = getDuplicateKey({
-          name: String(row.name ?? ""),
+        const duplicateKey = getImportDuplicateKey({
+          name: rawName,
           email: String(row.email ?? ""),
           phone: String(row.phone ?? ""),
         });
-        if (duplicateKey && (existingDuplicateKeys.has(duplicateKey) || importSeenKeys.has(duplicateKey))) {
-          duplicates += 1;
-          continue;
+        if (duplicateKey && (existingImportKeys.has(duplicateKey))) {
+          return { rowNumber, displayName: rawName, row, linkedName: null, status: "duplicate" as const, reason: "Duplicate by email or by name+phone" };
         }
-
-        const { error } = await supabase.from("contacts").insert(row as any);
-        if (error) errors++;
-        else {
-          imported++;
-          if (duplicateKey) importSeenKeys.add(duplicateKey);
-          if (row.country_code && !countryLookup.has(normalizeHeader(String(row.country_code)))) {
-            issues.push(`Row ${i + 1}: country "${String(row.country_code)}" was imported as-is.`);
-          }
-        }
-      }
-      await qc.invalidateQueries({ queryKey: ["contacts"] });
-      toast({
-        title: `Imported ${imported} contacts${linkedRows ? ` (${linkedRows} linked from name pairs)` : ""}${errors ? `, ${errors} errors` : ""}${skipped ? `, ${skipped} skipped` : ""}${duplicates ? `, ${duplicates} duplicates flagged` : ""}`,
-        description: issues.length > 0 ? issues.slice(0, 2).join(" ") : undefined,
-        variant: errors > 0 ? "destructive" : "default",
+        if (duplicateKey) existingImportKeys.add(duplicateKey);
+        return { rowNumber, displayName: rawName, row, linkedName: null, status: "ready" as const };
       });
+
+      setImportPreviewRows(previewRows);
+      setIsImportPreviewOpen(true);
     };
     input.click();
+  };
+
+  const runImportFromPreview = async () => {
+    const readyRows = importPreviewRows.filter((row) => row.status === "ready");
+    if (readyRows.length === 0) {
+      toast({ title: "No valid rows ready for import", variant: "destructive" });
+      return;
+    }
+
+    setIsImporting(true);
+    let imported = 0;
+    let errors = 0;
+    let duplicates = 0;
+    let linkedRows = 0;
+    const issues: string[] = [];
+    const importSeenKeys = new Set<string>();
+    const existingCompanyByName = new Map<string, string>();
+    contacts
+      .filter((contact) => contact.is_company)
+      .forEach((contact) => {
+        existingCompanyByName.set(normalizeValue(contact.name), contact.id);
+      });
+
+    const createCompanyFromRow = async (companyName: string, row: Record<string, string | boolean | null>) => {
+      const lookupKey = normalizeValue(companyName);
+      const existingCompanyId = existingCompanyByName.get(lookupKey);
+      if (existingCompanyId) return existingCompanyId;
+
+      const { data: inserted, error } = await supabase
+        .from("contacts")
+        .insert({
+          name: companyName,
+          is_company: true,
+          email: "",
+          phone: "",
+          street: row.street ?? "",
+          street2: row.street2 ?? "",
+          city: row.city ?? "",
+          state: row.state ?? "",
+          zip: row.zip ?? "",
+          country_code: row.country_code ?? "",
+          tax_id: row.tax_id ?? "",
+          website: row.website ?? "",
+          salesperson: row.salesperson ?? "",
+          notes: row.notes ?? "",
+          is_archived: false,
+        } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      existingCompanyByName.set(lookupKey, inserted.id);
+      imported += 1;
+      return inserted.id as string;
+    };
+
+    for (const previewRow of readyRows) {
+      const row = previewRow.row;
+      const rawName = String(row.name ?? "").trim();
+      if (!rawName) {
+        errors += 1;
+        continue;
+      }
+
+      const linkedName = previewRow.linkedName;
+      if (linkedName) {
+        try {
+          const companyId = await createCompanyFromRow(linkedName.companyName, row);
+          const personRow = {
+            ...row,
+            name: linkedName.personName,
+            is_company: false,
+            parent_id: companyId,
+          };
+
+          const personScopedKey = `${getImportDuplicateKey({
+            name: linkedName.personName,
+            email: String(personRow.email ?? ""),
+            phone: String(personRow.phone ?? ""),
+          })}|parent:${companyId}`;
+          if (!personScopedKey.startsWith("|") && importSeenKeys.has(personScopedKey)) {
+            duplicates += 1;
+            continue;
+          }
+
+          const { error } = await supabase.from("contacts").insert(personRow as any);
+          if (error) {
+            errors += 1;
+            issues.push(`Row ${previewRow.rowNumber}: ${error.message}`);
+            continue;
+          }
+          imported += 1;
+          linkedRows += 1;
+          if (!personScopedKey.startsWith("|")) importSeenKeys.add(personScopedKey);
+          continue;
+        } catch (error: any) {
+          errors += 1;
+          issues.push(`Row ${previewRow.rowNumber}: ${error?.message ?? "Linked import failed"}`);
+          continue;
+        }
+      }
+
+      const duplicateKey = getImportDuplicateKey({
+        name: String(row.name ?? ""),
+        email: String(row.email ?? ""),
+        phone: String(row.phone ?? ""),
+      });
+      if (duplicateKey && importSeenKeys.has(duplicateKey)) {
+        duplicates += 1;
+        continue;
+      }
+
+      const { error } = await supabase.from("contacts").insert(row as any);
+      if (error) {
+        errors += 1;
+        issues.push(`Row ${previewRow.rowNumber}: ${error.message}`);
+      } else {
+        imported += 1;
+        if (duplicateKey) importSeenKeys.add(duplicateKey);
+      }
+    }
+
+    await qc.invalidateQueries({ queryKey: ["contacts"] });
+    setIsImporting(false);
+    setIsImportPreviewOpen(false);
+    setImportPreviewRows([]);
+    toast({
+      title: `Imported ${imported} contacts${linkedRows ? ` (${linkedRows} linked from name pairs)` : ""}${errors ? `, ${errors} errors` : ""}${duplicates ? `, ${duplicates} duplicates flagged` : ""}`,
+      description: issues.length > 0 ? issues.slice(0, 2).join(" ") : undefined,
+      variant: errors > 0 ? "destructive" : "default",
+    });
   };
 
   const handleSave = async () => {
@@ -1268,7 +1374,7 @@ const ContactsPage = () => {
           <AdminPageHeader icon={Building2} title="Contacts" />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Import CSV" onClick={importCsv}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Import CSV" onClick={importCsv} disabled={isImporting}>
               <Upload className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" title="Export CSV" onClick={exportCsv}>
@@ -1440,6 +1546,54 @@ const ContactsPage = () => {
         </Table>
         </div>
       </div>
+
+      <Dialog open={isImportPreviewOpen} onOpenChange={(open) => !isImporting && setIsImportPreviewOpen(open)}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Import contacts preview</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Badge variant="secondary">{previewSummary.total} incoming rows</Badge>
+            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">{previewSummary.ready} ready</Badge>
+            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">{previewSummary.duplicates} duplicates</Badge>
+            <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100">{previewSummary.invalid} invalid</Badge>
+          </div>
+          <div className="max-h-[55vh] overflow-y-auto border rounded-md">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background">
+                <TableRow>
+                  <TableHead>Row</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importPreviewRows.map((row) => (
+                  <TableRow key={`${row.rowNumber}-${row.displayName}`}>
+                    <TableCell className="text-xs">{row.rowNumber}</TableCell>
+                    <TableCell className="text-xs">{row.displayName}</TableCell>
+                    <TableCell className="text-xs">{row.linkedName ? "Linked company/person" : row.row.is_company ? "Company" : "Person"}</TableCell>
+                    <TableCell className="text-xs">
+                      {row.status === "ready"
+                        ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Ready</Badge>
+                        : row.status === "duplicate"
+                          ? <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">{row.reason ?? "Duplicate"}</Badge>
+                          : <Badge variant="destructive">{row.reason ?? "Invalid"}</Badge>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" disabled={isImporting} onClick={() => setIsImportPreviewOpen(false)}>Cancel</Button>
+            <Button type="button" disabled={isImporting || previewSummary.ready === 0} onClick={runImportFromPreview}>
+              {isImporting ? "Importing..." : `Import ${previewSummary.ready} ready records`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editContact} onOpenChange={(v) => !v && closeEditDialog()}>
