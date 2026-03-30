@@ -9,6 +9,7 @@ import {
 } from "@/config/routeRegistry";
 
 const Index = lazy(() => import("@/pages/Index"));
+const FrontPageV2 = lazy(() => import("@/pages/FrontPageV2"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazy(() => import("@/pages/LensDesignGuidePage"));
@@ -55,6 +56,7 @@ const PublicRoutes = () => (
   <ComingSoonGate>
     <Routes>
       <Route index element={<Index />} />
+      <Route path="v2" element={<FrontPageV2 />} />
       <Route path="knowledge" element={<Knowledge />} />
       <Route path="legal/:slug" element={<LegalPage />} />
 
