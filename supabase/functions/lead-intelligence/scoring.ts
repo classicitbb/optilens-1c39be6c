@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import type { LeadCandidate } from "./providers/types.ts";
 
@@ -127,7 +128,7 @@ function assessFactor(lead: LeadCandidate, factor: LeadScoreFactor, params: { co
   }
 }
 
-export async function loadScoringWeights(supabaseClient: SupabaseClient): Promise<Record<LeadScoreFactor, number>> {
+export async function loadScoringWeights(supabaseClient: any): Promise<Record<LeadScoreFactor, number>> {
   const weights = { ...DEFAULT_SCORING_WEIGHTS };
 
   try {

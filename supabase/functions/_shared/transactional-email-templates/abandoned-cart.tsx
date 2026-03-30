@@ -28,7 +28,7 @@ const AbandonedCartEmail = ({
 }: AbandonedCartProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>You left {totalItems} item(s) in your cart</Preview>
+    <Preview>{`You left ${totalItems} item(s) in your cart`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Still interested?</Heading>
