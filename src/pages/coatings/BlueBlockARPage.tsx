@@ -92,7 +92,7 @@ const BlueBlockARPage = () => {
         {/* Hero */}
         <section className="container mx-auto max-w-6xl px-4 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-accent">Premium Performance</p>
-          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">BlueBlock AR (BlueGuard&nbsp;AR+)</h1>
+          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">BlueBlock AR (Blue Defense&nbsp;AR+)</h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
             Combines anti-reflective performance with selective blue-violet light management, helping reduce harsh glare from digital screens while preserving color balance for daily wear.
           </p>
