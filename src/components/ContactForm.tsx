@@ -113,7 +113,7 @@ const ContactForm = () => {
         <div className="mx-auto max-w-2xl">
           <div className="mb-10 text-center sm:mb-12">
             <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
-              Contact Our Team
+              ​
             </h2>
             <p className="text-base text-muted-foreground sm:text-lg">
               ​
