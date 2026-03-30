@@ -41,8 +41,7 @@ const Index = () => {
                 Contact Our Team
               </h2>
               <p className="mb-8 text-base text-muted-foreground sm:text-lg">
-                Have questions about our lens products? Fill out the form below and our optical
-                experts will respond within 24 hours.
+                ​
               </p>
             </div>
             <div className="mx-auto max-w-2xl">
