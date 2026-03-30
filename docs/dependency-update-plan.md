@@ -23,9 +23,14 @@ Applied non-breaking dependency updates where `Wanted > Current` and the major v
 - `npm run build` (pass)
 - `npm run qa:smoke` (pass)
 
-## Phase 2 — Planned isolated major upgrades
+## Phase 2 — Completed isolated major upgrades (2026-03-30)
 
-Major upgrades will be split into isolated PRs with migration notes and focused regression checks.
+### Completed
+
+- **recharts** 2.15.4 → 3.8.1 — chart.tsx Tooltip/Legend types updated for recharts 3 state management rewrite.
+- **vite** 7.3.1 → 8.0.3 — Rolldown/Oxc bundler; compat layer handles existing config.
+- **vitest** 3.2.4 → 4.1.2 + **@vitest/coverage-v8** 3.2.4 → 4.1.2 — more accurate V8 coverage remapping.
+- **lucide-react** 0.462.0 → 1.7.0 — brand icons removed; `Instagram` → `Camera`.
 
 ### Deferred known breaking-major tracks
 
@@ -33,12 +38,9 @@ Major upgrades will be split into isolated PRs with migration notes and focused 
 - React Router 7 (`react-router-dom`)
 - Tailwind 4 (`tailwindcss`)
 - Zod 4 (`zod`)
-- Recharts 3 (`recharts`)
 
 ### Additional major candidates to schedule separately
 
-- `vite` 7 + `@vitejs/plugin-react-swc` 4 alignment
-- `eslint` 10 ecosystem
 - `@hookform/resolvers` 5
 - `date-fns` 4
 

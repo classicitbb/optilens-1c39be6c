@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Kanban, RefreshCw, DatabaseZap, FileText, Send, Instagram, PlusCircle, Sprout, Search } from "lucide-react";
+import { Kanban, RefreshCw, DatabaseZap, FileText, Send, Camera, PlusCircle, Sprout, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -239,7 +239,7 @@ const MyLeadsPage = () => {
           <Button size="sm" variant="outline" className="h-8 text-xs"><DatabaseZap className="h-3 w-3 mr-1" /> Enrich All</Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><FileText className="h-3 w-3 mr-1" /> Generate Audits</Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><Send className="h-3 w-3 mr-1" /> Send Sequence</Button>
-          <Button size="sm" variant="outline" className="h-8 text-xs"><Instagram className="h-3 w-3 mr-1" /> Generate IG Posts</Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs"><Camera className="h-3 w-3 mr-1" /> Generate IG Posts</Button>
           <Badge variant="outline">Total: {filtered.length}</Badge>
         </CardContent>
       </Card>

@@ -243,7 +243,7 @@ We may update this Cookie Policy periodically. The "Last updated" date at the to
 ## Contact Us
 For questions about our use of cookies, contact us at info@classicvisions.net.`,
   },
-  "disclaimer": {
+  disclaimer: {
     title: "Disclaimer",
     content: `Last updated: March 2026
 
@@ -277,7 +277,7 @@ We reserve the right to modify this disclaimer at any time. Changes will be effe
 ## Contact
 For questions regarding this disclaimer, contact us at info@classicvisions.net.`,
   },
-  "accessibility": {
+  accessibility: {
     title: "Accessibility Statement",
     content: `Last updated: March 2026
 
@@ -412,11 +412,11 @@ For return inquiries, contact us at:
 
 const SLUG_MAP: Record<string, string> = {
   "privacy-policy": "privacy-policy",
-  "terms": "terms-conditions",
+  terms: "terms-conditions",
   "return-policy": "return-policy",
-  "disclaimer": "disclaimer",
+  disclaimer: "disclaimer",
   "cookie-policy": "cookie-policy",
-  "accessibility": "accessibility",
+  accessibility: "accessibility",
 };
 
 const LegalPage = () => {

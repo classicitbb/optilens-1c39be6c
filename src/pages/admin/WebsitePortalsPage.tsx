@@ -413,19 +413,21 @@ const WebsitePortalsPage = () => {
 
 
   return (
-    <div className="space-y-4 p-4">
-      <AdminPageHeader icon={ShieldCheck} title="Website Portals">
-        <div className="flex items-center gap-2">
-          <Input value={cutoffHours} onChange={(event) => setCutoffHours(event.target.value)} className="h-8 w-20 text-xs" />
-          <Button size="sm" variant="outline" onClick={() => runAbandonedCartScan.mutate()} disabled={runAbandonedCartScan.isPending}>
-            <BellRing className="mr-2 h-3.5 w-3.5" />
-            {runAbandonedCartScan.isPending ? "Scanning…" : "Scan abandoned carts"}
-          </Button>
-        </div>
-      </AdminPageHeader>
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden p-4">
+      <div className="shrink-0">
+        <AdminPageHeader icon={ShieldCheck} title="Website Portals">
+          <div className="flex items-center gap-2">
+            <Input value={cutoffHours} onChange={(event) => setCutoffHours(event.target.value)} className="h-8 w-20 text-xs" />
+            <Button size="sm" variant="outline" onClick={() => runAbandonedCartScan.mutate()} disabled={runAbandonedCartScan.isPending}>
+              <BellRing className="mr-2 h-3.5 w-3.5" />
+              {runAbandonedCartScan.isPending ? "Scanning…" : "Scan abandoned carts"}
+            </Button>
+          </div>
+        </AdminPageHeader>
+      </div>
 
-      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <Card className="xl:h-[calc(100vh-11rem)] xl:overflow-hidden">
+      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden xl:grid-cols-[320px_minmax(0,1fr)]">
+        <Card className="flex min-h-0 flex-col overflow-hidden shadow-none hover:shadow-none">
           <CardHeader className="space-y-3">
             <CardTitle className="text-base">Customers</CardTitle>
             <div className="relative">
@@ -434,7 +436,7 @@ const WebsitePortalsPage = () => {
             </div>
             <CardDescription>{customers.length} customer portal profile(s)</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 overflow-y-auto xl:max-h-[calc(100vh-18rem)]">
+          <CardContent className="min-h-0 flex-1 space-y-2 overflow-y-auto">
             {customers.map((customer) => (
               <button
                 key={customer.userId}
@@ -462,16 +464,16 @@ const WebsitePortalsPage = () => {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        <div className="flex min-h-0 flex-col gap-4 overflow-hidden">
           {!selectedCustomer || !detailQuery.data ? (
-            <Card>
+            <Card className="shadow-none hover:shadow-none">
               <CardContent className="flex min-h-[320px] items-center justify-center text-sm text-muted-foreground">
                 Select a customer to review their portal profile, cart, orders, pricing access, and support history.
               </CardContent>
             </Card>
           ) : (
             <>
-              <Card>
+              <Card className="shrink-0 shadow-none hover:shadow-none">
                 <CardHeader>
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div>
@@ -506,8 +508,8 @@ const WebsitePortalsPage = () => {
                 </CardContent>
               </Card>
 
-              <Tabs defaultValue="operations" className="space-y-4">
-                <TabsList className="flex w-full flex-wrap justify-start gap-2">
+              <Tabs defaultValue="operations" className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+                <TabsList className="flex w-full shrink-0 flex-wrap justify-start gap-2">
                   <TabsTrigger value="operations">Operations</TabsTrigger>
                   <TabsTrigger value="orders">Orders</TabsTrigger>
                   <TabsTrigger value="addresses">Addresses</TabsTrigger>
@@ -515,8 +517,8 @@ const WebsitePortalsPage = () => {
                   <TabsTrigger value="support">Support</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="operations" className="space-y-4">
-                  <Card>
+                <TabsContent value="operations" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <Card className="shadow-none hover:shadow-none">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <UserRound className="h-5 w-5" />
@@ -651,8 +653,8 @@ const WebsitePortalsPage = () => {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="orders" className="space-y-4">
-                  <Card>
+                <TabsContent value="orders" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <Card className="shadow-none hover:shadow-none">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <Package className="h-5 w-5" />
@@ -677,25 +679,29 @@ const WebsitePortalsPage = () => {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="addresses" className="space-y-4">
-                  <AddressBookSection
-                    targetUserId={selectedCustomer.userId}
-                    title="Customer addresses"
-                    description="Update the customer’s saved checkout addresses. Maximum 2 addresses per account."
-                  />
+                <TabsContent value="addresses" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <div className="space-y-4">
+                    <AddressBookSection
+                      targetUserId={selectedCustomer.userId}
+                      title="Customer addresses"
+                      description="Update the customer’s saved checkout addresses. Maximum 2 addresses per account."
+                    />
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="payments" className="space-y-4">
-                  <PaymentMethodsSection
-                    targetUserId={selectedCustomer.userId}
-                    title="Saved demo cards"
-                    description="Manage the customer’s tokenized demo cards for on-behalf ordering and saved checkout."
-                  />
+                <TabsContent value="payments" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <div className="space-y-4">
+                    <PaymentMethodsSection
+                      targetUserId={selectedCustomer.userId}
+                      title="Saved demo cards"
+                      description="Manage the customer’s tokenized demo cards for on-behalf ordering and saved checkout."
+                    />
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="support" className="space-y-4">
+                <TabsContent value="support" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
                   <div className="grid gap-4 xl:grid-cols-3">
-                    <Card>
+                    <Card className="shadow-none hover:shadow-none">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg"><LifeBuoy className="h-5 w-5" /> Helpdesk tickets</CardTitle>
                       </CardHeader>
@@ -710,7 +716,7 @@ const WebsitePortalsPage = () => {
                       </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="shadow-none hover:shadow-none">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg"><Mail className="h-5 w-5" /> Submitted forms</CardTitle>
                       </CardHeader>
@@ -725,7 +731,7 @@ const WebsitePortalsPage = () => {
                       </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="shadow-none hover:shadow-none">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-lg"><ExternalLink className="h-5 w-5" /> Quote requests</CardTitle>
                       </CardHeader>
