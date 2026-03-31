@@ -48,6 +48,7 @@ interface PortalCustomerListItem {
   assignedPricelistId: number | null;
   cartItemCount: number;
   cartStatus: "empty" | "in_progress" | "abandoned";
+  presenceStatus: "online" | "idle" | "offline" | string;
 }
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
@@ -115,6 +116,7 @@ const WebsitePortalsPage = () => {
   const [search, setSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [cutoffHours, setCutoffHours] = useState("24");
+  const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
 
   const customersQuery = useQuery({
     queryKey: ["website-portals-customers"],
@@ -138,7 +140,7 @@ const WebsitePortalsPage = () => {
         ]),
       );
 
-      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }] = await Promise.all([
+      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }] = await Promise.all([
         (supabase as any)
           .from("cart_items")
           .select("user_id,quantity")
@@ -148,10 +150,15 @@ const WebsitePortalsPage = () => {
           .select("user_id,status")
           .in("user_id", portalUserIds)
           .eq("status", "open"),
+        (supabase as any)
+          .from("user_presence")
+          .select("user_id,status,last_heartbeat_at")
+          .in("user_id", portalUserIds),
       ]);
 
       if (cartError) throw cartError;
       if (alertError) throw alertError;
+      if (presenceError) throw presenceError;
 
       const cartCountByUser = ((cartRows ?? []) as Array<{ user_id: string; quantity: number }>).reduce<Record<string, number>>(
         (acc, row) => ({ ...acc, [row.user_id]: (acc[row.user_id] ?? 0) + Number(row.quantity ?? 0) }),
@@ -159,6 +166,7 @@ const WebsitePortalsPage = () => {
       );
 
       const openAlertByUser = new Set(((alertRows ?? []) as Array<{ user_id: string }>).map((row) => row.user_id));
+      const presenceByUser = new Map(((presenceRows ?? []) as Array<{ user_id: string; status: string; last_heartbeat_at: string }>).map((row) => [row.user_id, row]));
 
       return portalUsers
         .map((entry) => {
@@ -178,6 +186,7 @@ const WebsitePortalsPage = () => {
             assignedPricelistId: null,
             cartItemCount,
             cartStatus: openAlertByUser.has(entry.user_id) ? "abandoned" : cartItemCount > 0 ? "in_progress" : "empty",
+            presenceStatus: presenceByUser.get(entry.user_id)?.status ?? "offline",
           } satisfies PortalCustomerListItem;
         })
         .sort((a, b) => (b.fullName || b.email).localeCompare(a.fullName || a.email));
@@ -322,6 +331,27 @@ const WebsitePortalsPage = () => {
     },
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to assign pricelist.", variant: "destructive" }),
   });
+  const updateCustomerProfile = useMutation({
+    mutationFn: async (payload: { full_name: string; phone: string; organization_name: string }) => {
+      if (!selectedCustomer) throw new Error("Select a customer first.");
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .upsert({
+          user_id: selectedCustomer.userId,
+          full_name: payload.full_name.trim(),
+          phone: payload.phone.trim(),
+          organization_name: payload.organization_name.trim(),
+        }, { onConflict: "user_id" });
+      if (error) throw error;
+      await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: selectedCustomer.userId });
+    },
+    onSuccess: async () => {
+      await detailQuery.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] });
+      toast({ title: "Profile updated", description: "Customer profile details were saved and resynced." });
+    },
+    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to update customer profile.", variant: "destructive" }),
+  });
 
   const resolveAlert = useMutation({
     mutationFn: async (alertId: string) => {
@@ -411,6 +441,15 @@ const WebsitePortalsPage = () => {
     refetchPaymentMethods();
   }, [selectedCustomer, refetchAddresses, refetchPaymentMethods]);
 
+  useEffect(() => {
+    if (!detailQuery.data) return;
+    setProfileDraft({
+      full_name: detailQuery.data.fullName || "",
+      phone: detailQuery.data.phone || "",
+      organization_name: detailQuery.data.organizationName || "",
+    });
+  }, [detailQuery.data]);
+
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden p-4">
@@ -455,6 +494,7 @@ const WebsitePortalsPage = () => {
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge variant="outline">{customer.portalAccessStatus.replace(/_/g, " ")}</Badge>
+                    <Badge variant={customer.presenceStatus === "online" ? "default" : "secondary"}>{customer.presenceStatus}</Badge>
                     {customer.cartStatus === "abandoned" ? <Badge variant="destructive">Abandoned</Badge> : null}
                     {customer.cartStatus === "in_progress" ? <Badge className="bg-amber-500 text-amber-950 hover:bg-amber-500">In progress</Badge> : null}
                   </div>
@@ -482,6 +522,7 @@ const WebsitePortalsPage = () => {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline">{detailQuery.data.portalAccessStatus.replace(/_/g, " ")}</Badge>
+                      <Badge variant={selectedCustomer?.presenceStatus === "online" ? "default" : "secondary"}>{selectedCustomer?.presenceStatus ?? "offline"}</Badge>
                       {detailQuery.data.crmCustomerId ? <Badge variant="outline">Approved customer</Badge> : <Badge variant="secondary">Pending approval</Badge>}
                     </div>
                   </div>
@@ -511,6 +552,7 @@ const WebsitePortalsPage = () => {
               <Tabs defaultValue="operations" className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
                 <TabsList className="flex w-full shrink-0 flex-wrap justify-start gap-2">
                   <TabsTrigger value="operations">Operations</TabsTrigger>
+                  <TabsTrigger value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="orders">Orders</TabsTrigger>
                   <TabsTrigger value="addresses">Addresses</TabsTrigger>
                   <TabsTrigger value="payments">Payments</TabsTrigger>
@@ -649,6 +691,35 @@ const WebsitePortalsPage = () => {
                           </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="profile" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <Card className="shadow-none hover:shadow-none">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Profile details (admin edit-on-behalf)</CardTitle>
+                      <CardDescription>Keep customer account identity complete and synchronized.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Full name</Label>
+                        <Input value={profileDraft.full_name} onChange={(event) => setProfileDraft((prev) => ({ ...prev, full_name: event.target.value }))} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Phone</Label>
+                        <Input value={profileDraft.phone} onChange={(event) => setProfileDraft((prev) => ({ ...prev, phone: event.target.value }))} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Organization</Label>
+                        <Input value={profileDraft.organization_name} onChange={(event) => setProfileDraft((prev) => ({ ...prev, organization_name: event.target.value }))} />
+                      </div>
+                      <Button
+                        onClick={() => updateCustomerProfile.mutate(profileDraft)}
+                        disabled={updateCustomerProfile.isPending || !profileDraft.full_name.trim() || !profileDraft.phone.trim() || !profileDraft.organization_name.trim()}
+                      >
+                        Save & resync profile
+                      </Button>
                     </CardContent>
                   </Card>
                 </TabsContent>

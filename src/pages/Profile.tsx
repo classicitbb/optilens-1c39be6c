@@ -4,6 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getPortalFeatureBlockedReason, type PortalFeature, usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { getMissingProfileRequirements } from "@/features/portal/profileCompletion";
 
 const quickSections = [
   {
@@ -58,7 +63,31 @@ const gatedSections = new Map<string, PortalFeature>([
 
 const Profile = () => {
   const { identity, canAccessFeature } = usePortalIdentity();
+  const { user } = useAuth();
+  const { addresses } = useCustomerAddresses();
+  const { data: profile } = useQuery({
+    queryKey: ["profile-summary", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("profiles")
+        .select("full_name,phone,organization_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { full_name?: string | null; phone?: string | null; organization_name?: string | null } | null;
+    },
+  });
   const quoteReason = getPortalFeatureBlockedReason(identity, "quotes");
+  const missingRequirements = getMissingProfileRequirements(
+    {
+      fullName: profile?.full_name,
+      phone: profile?.phone,
+      organizationName: profile?.organization_name,
+      hasShippingAddress: addresses.length > 0,
+    },
+    identity,
+  );
 
   return (
     <section className="space-y-6">
@@ -79,6 +108,21 @@ const Profile = () => {
           </Badge>
         </CardHeader>
       </Card>
+      {missingRequirements.length ? (
+        <Card className="border-amber-300/60 bg-amber-50/30">
+          <CardHeader>
+            <CardTitle className="text-base">Complete your profile</CardTitle>
+            <CardDescription>Finish these items to unlock full portal access.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {missingRequirements.map((item) => (
+              <Button key={item.key} asChild variant="outline" className="w-full justify-start">
+                <Link to={`${item.route}?focus=${item.focus}`}>Add {item.label}</Link>
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {quickSections.map(({ title, description, to, icon: Icon }) => {

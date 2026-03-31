@@ -65,10 +65,13 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
       return;
     }
 
+    setLoading(true);
+
     try {
       const { data, error } = await supabase
         .from("cart_items")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
@@ -105,7 +108,14 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     variantMetadata?: Record<string, unknown>;
     quantity?: number;
   }) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to add items to your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const quantityToAdd = Math.max(1, Math.floor(product.quantity ?? 1));
@@ -114,20 +124,18 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
       const existingItem = items.find((item) => item.product_id === product.id && (item.variant_id ?? null) === (product.variantId ?? null));
 
       if (existingItem) {
-        // Update quantity
+        const newQuantity = existingItem.quantity + quantityToAdd;
+
         const { error } = await supabase
           .from("cart_items")
-          .update({ quantity: existingItem.quantity + quantityToAdd })
-          .eq("id", existingItem.id);
+          .update({ quantity: newQuantity })
+          .eq("id", existingItem.id)
+          .eq("user_id", user.id);
 
         if (error) throw error;
 
         setItems((prev) =>
-          prev.map((item) =>
-              item.id === existingItem.id
-              ? { ...item, quantity: item.quantity + quantityToAdd }
-              : item
-          )
+          prev.map((item) => (item.id === existingItem.id ? { ...item, quantity: newQuantity } : item)),
         );
       } else {
         // Insert new item
@@ -170,21 +178,25 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
   };
 
   const updateQuantity = async (itemId: string, quantity: number) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to update your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (quantity < 1) {
       return removeFromCart(itemId);
     }
 
     try {
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ quantity })
-        .eq("id", itemId);
+      const { error } = await supabase.from("cart_items").update({ quantity }).eq("id", itemId).eq("user_id", user.id);
 
       if (error) throw error;
 
-      setItems((prev) =>
-        prev.map((item) => (item.id === itemId ? { ...item, quantity } : item))
-      );
+      setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, quantity } : item)));
     } catch (error) {
       console.error("Error updating quantity:", error);
       toast({
@@ -196,11 +208,17 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
   };
 
   const removeFromCart = async (itemId: string) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to modify your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("id", itemId);
+      const { error } = await supabase.from("cart_items").delete().eq("id", itemId).eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -224,10 +242,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("user_id", user.id);
+      const { error } = await supabase.from("cart_items").delete().eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -238,10 +253,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce(
-    (sum, item) => sum + item.product_price * item.quantity,
-    0
-  );
+  const totalPrice = items.reduce((sum, item) => sum + item.product_price * item.quantity, 0);
 
   return {
     items,
