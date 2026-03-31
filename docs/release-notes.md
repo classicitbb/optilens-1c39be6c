@@ -1,5 +1,7 @@
 # Release Notes
 
+> Indexed summary entry point. Detailed source entries live in `docs/releases/` and are aggregated here for backward compatibility.
+
 Summarized release outcomes for each major date-stamped update.
 
 ## 2026-03-31 — PR Doc Symmetry Guardrail

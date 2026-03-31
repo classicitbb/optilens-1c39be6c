@@ -1,5 +1,7 @@
 # Changelog
 
+> Indexed summary entry point. Detailed source entries live in `docs/changelog/` and are aggregated here for backward compatibility.
+
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
 ## 2026-03-31 — PR Doc Symmetry Guardrail
