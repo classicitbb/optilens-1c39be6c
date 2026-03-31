@@ -136,7 +136,7 @@ export const useUpsertProductVariants = (productType: StoreProductType, productI
             allow_backorder: variant.allow_backorder ?? false,
             is_active: variant.is_active ?? true,
             sort_order: variant.sort_order ?? index,
-            id: variant.id,
+            ...(variant.id ? { id: variant.id } : {}),
           })),
           { onConflict: "product_type,product_id,variant_key" },
         )
