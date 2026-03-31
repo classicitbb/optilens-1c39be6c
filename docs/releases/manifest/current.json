@@ -1,0 +1,26 @@
+{
+  "semanticVersion": "0.0.0",
+  "releaseDateTimeUtc": "2026-02-28T00:00:00.000Z",
+  "environment": "production",
+  "releaseSummary": [
+    "Lead Finder now degrades gracefully when the `lead-intelligence` Edge Function cannot be reached.",
+    "Users receive a clear in-page warning and non-crashing diagnostics state instead of repeated fatal runtime failure behavior.",
+    "Search action now catches unexpected failures and reports a controlled toast error."
+  ],
+  "moduleImpact": [
+    {
+      "module": "src/features/admin",
+      "impact": "medium",
+      "notes": "Updated as part of Admin E2E Runtime Hardening (Lead Finder graceful fallback)."
+    },
+    {
+      "module": "src/pages/admin",
+      "impact": "medium",
+      "notes": "Updated as part of Admin E2E Runtime Hardening (Lead Finder graceful fallback)."
+    }
+  ],
+  "migrationNotes": [
+    "No manual data migration is required for this release."
+  ],
+  "hasBreakingChanges": false
+}
