@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-03-31 — PR Doc Symmetry Guardrail
+
+### Release Notes
+- Added a module documentation index and PR guard to enforce code/doc companion updates.
+- CI PR checks now run doc symmetry validation as a required gate.
+- Exception handling now supports explicit rationale-backed overrides via bug exception files or PR metadata labels.
+
 ## 2026-02-28 — Admin E2E Runtime Hardening (Lead Finder graceful fallback)
 
 ### Release Notes

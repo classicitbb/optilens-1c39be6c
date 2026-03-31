@@ -8,6 +8,11 @@ const checks = [
     args: ["run", "qa:lockfiles"],
   },
   {
+    name: "Documentation symmetry guard",
+    command: "npm",
+    args: ["run", "qa:doc-symmetry"],
+  },
+  {
     name: "Release ledger drift check",
     command: "npm",
     args: ["run", "qa:release-ledger"],

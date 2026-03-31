@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "Module-to-documentation symmetry rules used by PR guard automation.",
+  "rules": [
+    {
+      "modulePathPattern": "src/**",
+      "requiredDocs": [
+        "CHANGELOG.md",
+        "docs/release-notes.md",
+        "docs/modules/frontend-runtime.md",
+        "docs/help/frontend-help.md",
+        "docs/bugs/frontend-bug-reports.md"
+      ]
+    },
+    {
+      "modulePathPattern": "app/**",
+      "requiredDocs": [
+        "CHANGELOG.md",
+        "docs/release-notes.md",
+        "docs/modules/admin-runtime.md",
+        "docs/help/admin-help.md",
+        "docs/bugs/admin-bug-reports.md"
+      ]
+    },
+    {
+      "modulePathPattern": "scripts/**",
+      "requiredDocs": [
+        "CHANGELOG.md",
+        "docs/release-notes.md",
+        "docs/modules/automation-and-qa.md",
+        "docs/help/dev-workflow-help.md",
+        "docs/bugs/automation-bug-reports.md"
+      ]
+    },
+    {
+      "modulePathPattern": "security/**",
+      "requiredDocs": [
+        "CHANGELOG.md",
+        "docs/release-notes.md",
+        "docs/modules/security-controls.md",
+        "docs/help/security-ops-help.md",
+        "docs/bugs/security-bug-reports.md"
+      ]
+    }
+  ]
+}
