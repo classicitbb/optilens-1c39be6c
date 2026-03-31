@@ -9,7 +9,7 @@ export interface StoreProduct {
   sell_price: number;
   sell_price_usd: number;
   is_vat_taxable: boolean;
-  product_type: "lens" | "supply";
+  product_type: "lens" | "supply" | "addon";
   category: string; // lens type name or supply category
   subcategory: string; // material name or supply unit
   tags: string[];
@@ -36,7 +36,7 @@ export const getStableStoreProductCartId = (product: Pick<StoreProduct, "id" | "
 
 export const resolveStoreProductFromCartRef = (
   products: StoreProduct[],
-  cartRef: { product_id: number; product_type: "lens" | "supply" },
+  cartRef: { product_id: number; product_type: "lens" | "supply" | "addon" },
 ) =>
   products.find((product) =>
     product.product_type === cartRef.product_type &&
@@ -59,6 +59,12 @@ export const useStoreProducts = () => {
           .select("id, name, description, sell_price, category, unit, quantity_per_unit, image_url")
           .order("name"),
         supabase
+          .from("addons")
+          .select("id, name, description, category, price, show_on_website, is_active")
+          .eq("show_on_website", true)
+          .eq("is_active", true)
+          .order("name"),
+        supabase
           .from("store_product_media" as any)
           .select("product_type, product_id, image_url, sort_order, is_active")
           .eq("is_active", true)
@@ -76,6 +82,7 @@ export const useStoreProducts = () => {
 
       if (lensRes.error) throw lensRes.error;
       if (supplyRes.error) throw supplyRes.error;
+      if (addonRes.error) throw addonRes.error;
       // Non-fatal to support incremental rollout before SQL migration is applied.
       const mediaRows = Array.isArray(mediaRes.data) ? mediaRes.data as any[] : [];
       const overrideRows = Array.isArray(overrideRes.data) ? overrideRes.data as any[] : [];
@@ -106,6 +113,7 @@ export const useStoreProducts = () => {
       }
 
       const overrideMap = new Map<string, any>();
+      const variantSummaryMap = new Map<string, number>();
       for (const row of overrideRows) {
         const key = `${row.product_type}:${row.product_id}`;
         overrideMap.set(key, row);
@@ -159,7 +167,7 @@ export const useStoreProducts = () => {
         variant_mode: variantModeMap.get(`supply:${s.id}`) ?? "none",
       }));
 
-      return [...lenses, ...supplies];
+      return [...lenses, ...supplies, ...addons];
     },
   });
 };

@@ -16,6 +16,7 @@ import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useToast } from "@/hooks/use-toast";
 import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
 import { canonicalToHtml, toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
+import { validateWikiBuildVersionForPublish } from "@/lib/wikiReleaseMetadata";
 import { Badge } from "@/components/ui/badge";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 
@@ -125,6 +126,11 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
     const validation = validateCanonicalDocument(doc);
     if (!validation.valid) {
       toast({ title: "Cannot publish", description: validation.message, variant: "destructive" });
+      return;
+    }
+    const buildVersionValidation = validateWikiBuildVersionForPublish(form.content);
+    if (!buildVersionValidation.valid) {
+      toast({ title: "Cannot publish", description: buildVersionValidation.message, variant: "destructive" });
       return;
     }
     if (!canPublish) {
@@ -289,5 +295,4 @@ const WikiContentPanel = ({ categories, activeArticleId, editingArticleId, canEd
 };
 
 export default WikiContentPanel;
-
 

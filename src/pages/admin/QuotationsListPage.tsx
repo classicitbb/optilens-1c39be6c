@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Copy, FileText, Search } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 import { format } from "date-fns";
 
 const statusColors: Record<string, string> = {
@@ -90,7 +91,10 @@ const QuotationsListPage = () => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <AdminPageHeader icon={FileText} title="Quotations" />
+        <div className="flex items-center gap-2">
+          <AdminPageHeader icon={FileText} title="Quotations" />
+          <ReleaseWhatChangedLink section="quotes" />
+        </div>
         {canEdit && (
           <Button
             size="sm"

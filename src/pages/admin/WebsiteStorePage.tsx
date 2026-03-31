@@ -499,7 +499,10 @@ const WebsiteStorePage = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden p-4 gap-4">
       <div className="flex items-center justify-between shrink-0">
-        <AdminPageHeader icon={Store} title="Website Store Products" />
+        <div className="flex items-center gap-2">
+          <AdminPageHeader icon={Store} title="Website Store Products" />
+          <ReleaseWhatChangedLink section="store-orders" />
+        </div>
         <Button size="sm" className="h-8 text-xs gap-1" onClick={() => setPickerOpen(true)}>
           <Plus className="h-3.5 w-3.5" /> Add Product to Website
         </Button>
@@ -578,7 +581,12 @@ const WebsiteStorePage = () => {
                       <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openEditor(row)}>
                         <Settings className="h-3 w-3 mr-1" /> Edit
                       </Button>
-                      {(row.type === "lens" || row.type === "supply") && (
+                      <Button size="sm" variant="outline" className="h-7 text-[11px]" asChild>
+                        <Link to={`/admin/website/store/variants/${row.type}/${row.id}`}>
+                          Variants
+                        </Link>
+                      </Button>
+                      {(row.type === "lens" || row.type === "supply" || row.type === "addon") && (
                         <Button size="sm" variant="outline" className="h-7 text-[11px]" asChild>
                           <Link to={`/store/product/${row.type}/${row.id}`} target="_blank" rel="noreferrer">
                             <Eye className="h-3 w-3 mr-1" /> View

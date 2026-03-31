@@ -8,7 +8,12 @@ export interface CartItem {
   product_id: number;
   product_name: string;
   product_price: number;
-  product_type: "lens" | "supply";
+  product_type: "lens" | "supply" | "addon";
+  variant_id?: string | null;
+  variant_label?: string | null;
+  variant_sku?: string | null;
+  variant_opc_code?: string | null;
+  variant_metadata?: Record<string, unknown> | null;
   quantity: number;
   variant_id?: string | null;
   variant_label?: string | null;
@@ -65,14 +70,17 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
       return;
     }
 
+    setLoading(true);
+
     try {
       const { data, error } = await supabase
         .from("cart_items")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setItems((data || []).map((d) => ({ ...d, product_type: d.product_type as "lens" | "supply" })));
+      setItems((data || []).map((d: any) => ({ ...d, product_type: d.product_type as "lens" | "supply" | "addon", variant_metadata: (d.variant_metadata ?? {}) as Record<string, unknown> })));
     } catch (error) {
       if (!isExpectedCartError(error)) {
         console.error("Error fetching cart:", error);
@@ -97,7 +105,12 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     id: number;
     name: string;
     price: number;
-    productType: "lens" | "supply";
+    productType: "lens" | "supply" | "addon";
+    variantId?: string;
+    variantLabel?: string;
+    variantSku?: string;
+    variantOpcCode?: string;
+    variantMetadata?: Record<string, unknown>;
     quantity?: number;
     variantId?: string;
     variantLabel?: string;
@@ -105,7 +118,14 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     opcCode?: string;
     variantSnapshot?: Record<string, unknown>;
   }) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to add items to your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const quantityToAdd = Math.max(1, Math.floor(product.quantity ?? 1));
@@ -114,23 +134,35 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
       const existingItem = items.find((item) => item.product_id === product.id && (item.variant_id ?? null) === (product.variantId ?? null));
 
       if (existingItem) {
-        // Update quantity
+        const newQuantity = existingItem.quantity + quantityToAdd;
+
         const { error } = await supabase
           .from("cart_items")
-          .update({ quantity: existingItem.quantity + quantityToAdd })
-          .eq("id", existingItem.id);
+          .update({ quantity: newQuantity })
+          .eq("id", existingItem.id)
+          .eq("user_id", user.id);
 
         if (error) throw error;
 
         setItems((prev) =>
-          prev.map((item) =>
-              item.id === existingItem.id
-              ? { ...item, quantity: item.quantity + quantityToAdd }
-              : item
-          )
+          prev.map((item) => (item.id === existingItem.id ? { ...item, quantity: newQuantity } : item)),
         );
       } else {
         // Insert new item
+        const cartInsertPayload = {
+          user_id: user.id,
+          product_id: product.id,
+          product_name: product.name,
+          product_price: product.price,
+          product_type: product.productType,
+          quantity: quantityToAdd,
+          variant_id: product.variantId ?? null,
+          variant_label: product.variantLabel ?? null,
+          variant_sku: product.variantSku ?? null,
+          variant_opc_code: product.variantOpcCode ?? null,
+          variant_metadata: (product.variantMetadata ?? {}) as unknown as import("@/integrations/supabase/types").Json,
+        };
+
         const { data, error } = await supabase
           .from("cart_items")
           .insert({
@@ -150,7 +182,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
           .single();
 
         if (error) throw error;
-        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" }]);
+        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" | "addon", variant_metadata: (data.variant_metadata ?? {}) as Record<string, unknown> }]);
       }
 
       toast({
@@ -168,21 +200,25 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
   };
 
   const updateQuantity = async (itemId: string, quantity: number) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to update your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (quantity < 1) {
       return removeFromCart(itemId);
     }
 
     try {
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ quantity })
-        .eq("id", itemId);
+      const { error } = await supabase.from("cart_items").update({ quantity }).eq("id", itemId).eq("user_id", user.id);
 
       if (error) throw error;
 
-      setItems((prev) =>
-        prev.map((item) => (item.id === itemId ? { ...item, quantity } : item))
-      );
+      setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, quantity } : item)));
     } catch (error) {
       console.error("Error updating quantity:", error);
       toast({
@@ -194,11 +230,17 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
   };
 
   const removeFromCart = async (itemId: string) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to modify your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("id", itemId);
+      const { error } = await supabase.from("cart_items").delete().eq("id", itemId).eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -222,10 +264,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("user_id", user.id);
+      const { error } = await supabase.from("cart_items").delete().eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -236,10 +275,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce(
-    (sum, item) => sum + item.product_price * item.quantity,
-    0
-  );
+  const totalPrice = items.reduce((sum, item) => sum + item.product_price * item.quantity, 0);
 
   return {
     items,

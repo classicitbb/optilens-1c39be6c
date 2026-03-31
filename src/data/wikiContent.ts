@@ -1452,7 +1452,7 @@ Moonshot Settings configures the preferences and defaults for the Moonshot opera
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Overview
-- **Build version:** 2026.03.31
+- **Build version:** {{release.semanticVersion}}
 
 ## What this module does
 The Wiki module is the internal documentation control plane for operations teams. It unifies static handbook content, release ledger artifacts, and managed help articles in one editor + reader experience.
@@ -1474,7 +1474,7 @@ Use this module as the source of truth for runtime procedures, release communica
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Capability matrix
-- **Build version:** 2026.03.31
+- **Build version:** {{release.semanticVersion}}
 
 ## Confirmed active admin surfaces
 - Pricing: catalog, rx/stock/supplies pricing, supplier compare, publisher, costings, imports, settings
@@ -1503,7 +1503,7 @@ Update this matrix whenever a new admin runtime page becomes active, a placehold
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** First-run setup
-- **Build version:** 2026.03.31
+- **Build version:** {{release.semanticVersion}}
 
 ## Setup checklist
 1. Confirm your role can open both **Articles** and **Help Assignments** tabs.
@@ -1524,7 +1524,7 @@ Setup is complete when an operator can find a route article, open it, and confir
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Daily workflow
-- **Build version:** 0.0.0
+- **Build version:** {{release.semanticVersion}}
 
 ## Daily operator routine
 1. Start with latest release notes/changelog check.
@@ -1543,7 +1543,7 @@ Operations stay consistent even when team members rotate coverage.`,
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Team workflow
-- **Build version:** 0.0.0
+- **Build version:** {{release.semanticVersion}}
 
 ## Team operating model
 1. Assign a documentation owner per module route family.
@@ -1562,7 +1562,7 @@ Treat workflow documentation defects like operational defects with explicit owne
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Admin workflow
-- **Build version:** 0.0.0
+- **Build version:** {{release.semanticVersion}}
 
 ## Admin responsibilities
 1. Enforce least-privilege access for wiki editing.
@@ -1581,7 +1581,7 @@ No critical workflow rollout should close until matching documentation is update
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Troubleshooting
-- **Build version:** 0.0.0
+- **Build version:** {{release.semanticVersion}}
 
 ## Common issues
 ### Missing categories or articles
@@ -1607,7 +1607,7 @@ No critical workflow rollout should close until matching documentation is update
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** FAQ
-- **Build version:** 0.0.0
+- **Build version:** {{release.semanticVersion}}
 
 ## Frequently asked questions
 ### Who can edit wiki docs?
@@ -1632,7 +1632,7 @@ Yes, but mark as temporary and include explicit removal date.`,
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Best practices
-- **Build version:** 0.0.0
+- **Build version:** {{release.semanticVersion}}
 
 ## Best practices
 1. Keep one workflow objective per article.
@@ -1651,7 +1651,7 @@ A new operator should complete the workflow correctly without live coaching.`,
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Writing standard
-- **Build version:** 0.0.0
+- **Build version:** {{release.semanticVersion}}
 
 ## Required structure for every help article
 1. **Purpose / Route**

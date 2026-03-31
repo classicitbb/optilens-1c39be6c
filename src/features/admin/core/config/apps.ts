@@ -153,6 +153,7 @@ export const ADMIN_APPS = {
       { label: 'Audit Log', route: '/admin/settings/audit', icon: ScrollText },
       { label: 'Integrations', route: '/admin/settings/integrations', icon: Plug },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
+      { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
     ] satisfies SidebarItem[],
   },
   moonshot: {

@@ -1,6 +1,25 @@
 # Changelog
 
+> Indexed summary entry point. Detailed source entries live in `docs/changelog/` and are aggregated here for backward compatibility.
+
 All notable major updates to this project are tracked in date-stamped, human-readable format.
+
+## 2026-03-31 — PR Doc Symmetry Guardrail
+
+### Plan
+- Add a machine-readable module documentation index that maps code paths to required companion documentation updates.
+- Enforce doc symmetry in pull requests by validating changed files against the mapping.
+- Add a rationale-required override path for exceptional cases while keeping normal CI behavior blocking by default.
+
+### Release Notes
+- Added a new documentation symmetry guard for PR checks to block code-only changes that skip required docs updates.
+- Added explicit override support through `docs/bugs/*doc-symmetry-exception*.md` or PR metadata labels with required rationale.
+- Wired the doc symmetry check into the PR check pipeline and package scripts so CI can enforce it consistently.
+
+### Technical Changelog
+- Added `docs/ai/module-doc-index.json` to define module-to-doc requirements.
+- Added `scripts/check_doc_symmetry.mjs` to inspect git diff changes and enforce companion docs.
+- Updated `scripts/pr_checks.mjs` and `package.json` scripts to run the doc symmetry guard in PR checks.
 
 ## 2026-02-28 — Admin E2E Runtime Hardening (Lead Finder graceful fallback)
 

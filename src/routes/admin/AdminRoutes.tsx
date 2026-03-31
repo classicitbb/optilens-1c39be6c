@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
+const AdminDocsLayout = lazy(() => import("@/components/admin/AdminDocsLayout"));
 const AdminHomeRedirect = lazy(() => import("@/components/admin/AdminHomeRedirect"));
 const AdminDashboardHomePage = lazy(() => import("@/pages/admin/AdminDashboardHomePage"));
 const ReferenceDataPage = lazy(() => import("@/pages/admin/ReferenceDataPage"));
@@ -43,6 +44,7 @@ const CrmActivitiesPage = lazy(() => import("@/pages/admin/crm/CrmActivitiesPage
 const CrmDashboardPage = lazy(() => import("@/pages/admin/crm/CrmDashboardPage"));
 const RuntimeErrorsPage = lazy(() => import("@/pages/admin/RuntimeErrorsPage"));
 const IntegrationsPage = lazy(() => import("@/pages/admin/settings/IntegrationsPage"));
+const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
 const HelpdeskTeamsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTeamsPage"));
 const HelpdeskSlaPoliciesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskSlaPoliciesPage"));
@@ -51,6 +53,7 @@ const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskCon
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
 const WebsitePortalsPage = lazy(() => import("@/pages/admin/WebsitePortalsPage"));
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
+const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
 
 const AdminRoutes = () => (
   <Routes>
@@ -117,6 +120,7 @@ const AdminRoutes = () => (
       <Route path="website/features" element={<PlaceholderPage />} />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
       <Route path="website/store" element={<WebsiteStorePage />} />
+      <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
 
       <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
       <Route path="knowledge/wiki" element={<AdminWikiPage />} />
@@ -128,6 +132,7 @@ const AdminRoutes = () => (
       <Route path="settings/audit" element={<AuditLogPage />} />
       <Route path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>} />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
+      <Route path="settings/releases" element={<ReleasesPage />} />
 
       <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="reference" element={<Navigate to="/admin/pricing/reference" replace />} />
@@ -159,6 +164,12 @@ const AdminRoutes = () => (
       <Route path="erp/website" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+    </Route>
+
+    <Route element={<AdminDocsLayout />}>
+      <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
+      <Route path="knowledge/wiki" element={<AdminWikiPage />} />
+      <Route path="knowledge/wiki/:articleSlug" element={<AdminWikiPage />} />
     </Route>
   </Routes>
 );

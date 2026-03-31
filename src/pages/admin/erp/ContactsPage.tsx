@@ -1153,7 +1153,7 @@ const ContactsPage = () => {
       if (linkedName) {
         try {
           const companyId = await createCompanyFromRow(linkedName.companyName, row);
-          const personRow = {
+          const personRow: Record<string, unknown> = {
             ...row,
             name: linkedName.personName,
             is_company: false,

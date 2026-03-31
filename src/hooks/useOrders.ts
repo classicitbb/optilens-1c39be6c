@@ -83,7 +83,7 @@ export const useOrders = (targetUserId?: string) => {
       product_id: number;
       product_name: string;
       product_price: number;
-      product_type: "lens" | "supply";
+      product_type: "lens" | "supply" | "addon";
       quantity: number;
       variant_id?: string | null;
       variant_label?: string | null;
