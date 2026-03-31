@@ -82,6 +82,14 @@ export const useStoreProducts = () => {
 
       if (lensRes.error) throw lensRes.error;
       if (supplyRes.error) throw supplyRes.error;
+
+      // Destructure the third parallel result (addons)
+      const addonRes = await supabase
+        .from("addons")
+        .select("id, name, description, category, price, show_on_website, is_active")
+        .eq("show_on_website", true)
+        .eq("is_active", true)
+        .order("name");
       if (addonRes.error) throw addonRes.error;
       // Non-fatal to support incremental rollout before SQL migration is applied.
       const mediaRows = Array.isArray(mediaRes.data) ? mediaRes.data as any[] : [];
