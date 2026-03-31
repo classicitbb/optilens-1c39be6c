@@ -1,26 +1,8 @@
-import {
-  BadgeDollarSign,
-  BookUser,
-  FileSignature,
-  LifeBuoy,
-  LockKeyhole,
-  Package,
-  User,
-  WalletCards,
-} from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
-
-const accountNavItems: SidebarNavItem[] = [
-  { label: "My Account", to: "/profile/account", icon: User },
-  { label: "My Orders", to: "/profile/orders", icon: Package },
-  { label: "Address Book", to: "/profile/address-book", icon: BookUser },
-  { label: "Payment Methods", to: "/profile/payment-methods", icon: WalletCards },
-  { label: "Quote Form", to: "/profile/quotes", icon: FileSignature },
-  { label: "Helpdesk Tickets", to: "/profile/helpdesk", icon: LifeBuoy },
-  { label: "Assigned Pricelists", to: "/profile/pricelists", icon: BadgeDollarSign },
-];
+import { ACCOUNT_NAV_ITEMS } from "@/components/account/accountNav";
 
 interface AccountSidebarProps {
   pathname: string;
@@ -36,7 +18,7 @@ const approvalBadge = (
 const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
   const { canAccessFeature } = usePortalIdentity();
 
-  const items = accountNavItems.map((item) => {
+  const items = ACCOUNT_NAV_ITEMS.map((item) => {
     if (item.to === "/profile/quotes") {
       return { ...item, disabled: !canAccessFeature("quotes"), badge: !canAccessFeature("quotes") ? approvalBadge : undefined };
     }

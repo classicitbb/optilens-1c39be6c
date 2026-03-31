@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import AccountSidebar from "@/components/account/AccountSidebar";
 import AccountTopBar from "@/components/account/AccountTopBar";
+import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 
 const getDisplayName = (email?: string | null) => {
   if (!email) return "Customer";
@@ -12,6 +13,7 @@ const getDisplayName = (email?: string | null) => {
 const AccountLayout = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  usePresenceHeartbeat("customer");
 
   const displayName = getDisplayName(user?.email);
 

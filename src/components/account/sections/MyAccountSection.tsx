@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { KeyRound, Phone, Save, Shield, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,17 +23,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
-
-const profileSchema = z.object({
-  full_name: z.string().trim().min(1, "Full name is required").max(120, "Name must be less than 120 characters"),
-  phone: z.string().trim().min(1, "Phone number is required").max(50, "Phone number must be less than 50 characters"),
-  display_name: z.string().max(100, "Display name must be less than 100 characters").optional(),
-  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
-  avatar_url: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-  organization_name: z.string().max(160, "Organization must be less than 160 characters").optional(),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
+import { type ProfileFormValues, profileSchema } from "@/features/portal/profileSchema";
+import { getMissingProfileRequirements } from "@/features/portal/profileCompletion";
+import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
 
 const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
   admin: { bg: "hsl(0 72% 51% / 0.12)", color: "hsl(0 72% 51%)" },
@@ -52,6 +43,8 @@ const MyAccountSection = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resettingPw, setResettingPw] = useState(false);
+  const [searchParams] = useSearchParams();
+  const { addresses } = useCustomerAddresses();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -93,6 +86,13 @@ const MyAccountSection = () => {
 
     fetchProfile();
   }, [user, form, toast]);
+
+  useEffect(() => {
+    const focus = searchParams.get("focus");
+    if (!focus) return;
+    const target = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name='${focus}']`);
+    target?.focus();
+  }, [searchParams]);
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) return;
@@ -147,6 +147,16 @@ const MyAccountSection = () => {
     );
   }
 
+  const missingRequirements = getMissingProfileRequirements(
+    {
+      fullName: form.getValues("full_name"),
+      phone: form.getValues("phone"),
+      organizationName: form.getValues("organization_name"),
+      hasShippingAddress: addresses.length > 0,
+    },
+    identity,
+  );
+
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader className="text-center">
@@ -194,6 +204,20 @@ const MyAccountSection = () => {
             {identity?.crmCustomerId ? <Badge variant="outline">Customer approved</Badge> : null}
           </div>
         </div>
+        {missingRequirements.length ? (
+          <div className="space-y-2 rounded-lg border border-amber-400/50 bg-amber-50/40 p-4">
+            <p className="text-sm font-medium text-foreground">Profile setup required</p>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              {missingRequirements.map((item) => (
+                <li key={item.key}>
+                  <Link to={`${item.route}?focus=${item.focus}`} className="underline underline-offset-2">
+                    Add {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {hasAccess && (
           <Button variant="outline" size="sm" asChild>
