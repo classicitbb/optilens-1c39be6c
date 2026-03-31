@@ -215,11 +215,9 @@ const WebsiteStoreVariantManagerPage = () => {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Store Variants"
-        subtitle="Mode-specific variant management with import, manual entry, and preview."
-        actions={<Button variant="outline" onClick={() => navigate("/admin/website/store")}>Back to store products</Button>}
-      />
+      <AdminPageHeader icon={Layers} title="Store Variants">
+        <Button variant="outline" onClick={() => navigate("/admin/website/store")}>Back to store products</Button>
+      </AdminPageHeader>
 
       <Card>
         <CardHeader>

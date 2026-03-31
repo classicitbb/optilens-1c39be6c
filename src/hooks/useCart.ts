@@ -150,17 +150,17 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
           variant_label: product.variantLabel ?? null,
           variant_sku: product.variantSku ?? null,
           variant_opc_code: product.variantOpcCode ?? null,
-          variant_metadata: product.variantMetadata ?? {},
+          variant_metadata: (product.variantMetadata ?? {}) as any,
         };
 
         const { data, error } = await supabase
           .from("cart_items")
-          .insert(cartInsertPayload)
+          .insert([cartInsertPayload])
           .select()
           .single();
 
         if (error) throw error;
-        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" | "addon" }]);
+        setItems((prev) => [...prev, { ...data, variant_metadata: (data.variant_metadata ?? {}) as Record<string, unknown>, product_type: data.product_type as "lens" | "supply" | "addon" }]);
       }
 
       toast({
