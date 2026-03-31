@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Layers, Trash2 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -197,7 +197,7 @@ const WebsiteStoreVariantManagerPage = () => {
       variant_key: `${manualGeneric.title}:${JSON.stringify(attrs)}`,
       sku: manualGeneric.sku || null,
       opc_code: manualGeneric.opc || null,
-      attributes: attrs,
+      attributes: attrs as Record<string, string | number | boolean>,
       metadata: { mode: currentMode },
       price: Number(manualGeneric.price || 0),
       stock_qty: Number(manualGeneric.stock || 0),
@@ -215,11 +215,9 @@ const WebsiteStoreVariantManagerPage = () => {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Store Variants"
-        subtitle="Mode-specific variant management with import, manual entry, and preview."
-        actions={<Button variant="outline" onClick={() => navigate("/admin/website/store")}>Back to store products</Button>}
-      />
+      <AdminPageHeader icon={Layers} title="Store Variants">
+        <Button variant="outline" onClick={() => navigate("/admin/website/store")}>Back to store products</Button>
+      </AdminPageHeader>
 
       <Card>
         <CardHeader>
