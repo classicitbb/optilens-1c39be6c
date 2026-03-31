@@ -175,7 +175,25 @@ export const useStoreProducts = () => {
         variant_mode: variantModeMap.get(`supply:${s.id}`) ?? "none",
       }));
 
-      return [...lenses, ...supplies, ...addons];
+      const addonProducts: StoreProduct[] = (addonRes.data || []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        description: a.description || "",
+        quantity_label: "each",
+        sell_price: Number(a.price ?? 0),
+        sell_price_usd: normalizeUsdPrice(a.price),
+        is_vat_taxable: false,
+        product_type: "addon" as const,
+        category: a.category || "Add-on",
+        subcategory: "",
+        tags: [a.category].filter(Boolean),
+        image_url: null,
+        image_urls: [],
+        has_variants: false,
+        variant_mode: "none" as const,
+      }));
+
+      return [...lenses, ...supplies, ...addonProducts];
     },
   });
 };
