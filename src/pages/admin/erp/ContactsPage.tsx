@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +23,15 @@ import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptions
 
 type FilterMode = "all" | "companies" | "persons" | "customers";
 type GroupByMode = "none" | "country";
-type CsvExportMode = "raw" | "grouped";
+type ImportPreviewStatus = "ready" | "duplicate" | "invalid";
+type ImportPreviewRow = {
+  rowNumber: number;
+  displayName: string;
+  row: Record<string, string | boolean | null>;
+  linkedName: ReturnType<typeof splitLinkedContactName>;
+  status: ImportPreviewStatus;
+  reason?: string;
+};
 
 type SpeechRecognitionErrorCode = "aborted" | "audio-capture" | "bad-grammar" | "language-not-supported" | "network" | "no-speech" | "not-allowed" | "phrases-not-supported" | "service-not-allowed";
 
@@ -61,6 +71,157 @@ const LEAD_SOURCES = [
 ];
 
 const PIPELINE_STAGES = ["New", "Prospect", "Qualified", "Active Customer", "Inactive"];
+
+const CONTACT_IMPORT_FIELDS = [
+  "name",
+  "is_company",
+  "email",
+  "phone",
+  "street",
+  "street2",
+  "city",
+  "state",
+  "zip",
+  "country_code",
+  "tax_id",
+  "website",
+  "salesperson",
+  "notes",
+] as const;
+
+type ContactImportField = typeof CONTACT_IMPORT_FIELDS[number];
+
+const FIELD_ALIASES: Record<string, ContactImportField> = {
+  name: "name",
+  fullname: "name",
+  full_name: "name",
+  contact_name: "name",
+  company_name: "name",
+  iscompany: "is_company",
+  is_company: "is_company",
+  company: "is_company",
+  email: "email",
+  email_address: "email",
+  phone: "phone",
+  phone_number: "phone",
+  mobile: "phone",
+  street: "street",
+  address: "street",
+  address1: "street",
+  street2: "street2",
+  address2: "street2",
+  city: "city",
+  state: "state",
+  province: "state",
+  zip: "zip",
+  postal: "zip",
+  postal_code: "zip",
+  country: "country_code",
+  country_code: "country_code",
+  tax_id: "tax_id",
+  taxid: "tax_id",
+  website: "website",
+  web: "website",
+  salesperson: "salesperson",
+  sales_person: "salesperson",
+  notes: "notes",
+};
+
+const normalizeHeader = (header: string) => header.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+const parseCsvLine = (line: string): string[] => {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (char === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  values.push(current.trim());
+  return values;
+};
+
+const parseCsvText = (text: string): string[][] => {
+  const rows: string[][] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (current.trim()) rows.push(parseCsvLine(current));
+      current = "";
+      if (char === "\r" && text[i + 1] === "\n") i += 1;
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) rows.push(parseCsvLine(current));
+  return rows;
+};
+
+const normalizeBoolean = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "y";
+};
+
+const isBooleanLike = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  return ["true", "false", "1", "0", "yes", "no", "y", "n"].includes(normalized);
+};
+
+const normalizeValue = (value?: string | null) => (value ?? "").trim().toLowerCase();
+
+const getDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
+  const email = normalizeValue(row.email);
+  if (email) return `email:${email}`;
+  const name = normalizeValue(row.name);
+  const phone = normalizeValue(row.phone);
+  if (name && phone) return `name_phone:${name}|${phone}`;
+  if (name) return `name:${name}`;
+  return "";
+};
+
+const getImportDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
+  const email = normalizeValue(row.email);
+  if (email) return `email:${email}`;
+  const name = normalizeValue(row.name);
+  const phone = normalizeValue(row.phone);
+  if (name && phone) return `name_phone:${name}|${phone}`;
+  return "";
+};
+
+const splitLinkedContactName = (name: string) => {
+  const [companyName, ...personParts] = name.split(",");
+  const personName = personParts.join(",").trim();
+  if (!companyName?.trim() || !personName) return null;
+  return {
+    companyName: companyName.trim(),
+    personName,
+  };
+};
 
 const emptyContact = (isCompany: boolean): Partial<Contact> => ({
   name: "",
@@ -103,7 +264,6 @@ const ContactsPage = () => {
   const [filter, setFilter] = useState<FilterMode>("all");
   const [groupBy, setGroupBy] = useState<GroupByMode>("none");
   const [countryFilter, setCountryFilter] = useState("all");
-  const [csvExportMode, setCsvExportMode] = useState<CsvExportMode>("raw");
   const [search, setSearch] = useState("");
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
   const [initialParentId, setInitialParentId] = useState<string | null>(null);
@@ -121,6 +281,12 @@ const ContactsPage = () => {
   const businessCardInputRef = useRef<HTMLInputElement>(null);
   const [businessCardFile, setBusinessCardFile] = useState<File | null>(null);
   const [isUploadingBusinessCard, setIsUploadingBusinessCard] = useState(false);
+  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState<"archive" | "delete" | null>(null);
+  const [isPurgeDialogOpen, setIsPurgeDialogOpen] = useState(false);
+  const [isImportPreviewOpen, setIsImportPreviewOpen] = useState(false);
+  const [importPreviewRows, setImportPreviewRows] = useState<ImportPreviewRow[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Load tags when editing
   const { data: editTagIds = [] } = useContactTagLinks(editContact?.id);
@@ -207,6 +373,31 @@ const ContactsPage = () => {
     return [{ value: dictationLanguage, label: `${dictationLanguage} (Browser default)` }, ...DICTATION_LANGUAGE_OPTIONS];
   }, [dictationLanguage]);
 
+  const countryLookup = useMemo(() => {
+    const lookup = new Map<string, string>();
+    COUNTRY_OPTIONS.forEach((option) => {
+      const canonical = option.value;
+      const normalized = normalizeHeader(option.label);
+      lookup.set(normalized, canonical);
+      lookup.set(normalizeHeader(canonical), canonical);
+    });
+    lookup.set("usa", "United States");
+    lookup.set("us", "United States");
+    lookup.set("united_states_of_america", "United States");
+    lookup.set("u_s_a", "United States");
+    lookup.set("uk", "United Kingdom");
+    lookup.set("u_k", "United Kingdom");
+    lookup.set("great_britain", "United Kingdom");
+    lookup.set("trinidad_and_tobago", "Trinidad & Tobago");
+    lookup.set("trinidad_tobago", "Trinidad & Tobago");
+    return lookup;
+  }, []);
+
+  const countryNameFormatter = useMemo(() => {
+    if (typeof Intl === "undefined" || typeof Intl.DisplayNames === "undefined") return null;
+    return new Intl.DisplayNames(["en"], { type: "region" });
+  }, []);
+
 
   const filtered = useMemo(() => {
     let list = contacts;
@@ -240,6 +431,25 @@ const ContactsPage = () => {
       .sort((a, b) => a.countryCode.localeCompare(b.countryCode));
   }, [filtered, groupBy]);
 
+  const existingDuplicateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    contacts.forEach((contact) => {
+      const key = getDuplicateKey(contact);
+      if (key) keys.add(key);
+    });
+    return keys;
+  }, [contacts]);
+
+  const duplicateKeyCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    contacts.forEach((contact) => {
+      const key = getDuplicateKey(contact);
+      if (!key) return;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    return counts;
+  }, [contacts]);
+
   useEffect(() => {
     if (groupBy !== "country") return;
     setCollapsedCountryGroups((prev) => {
@@ -257,6 +467,11 @@ const ContactsPage = () => {
       return next;
     });
   }, [groupBy, groupedByCountry]);
+
+  useEffect(() => {
+    const contactIdSet = new Set(contacts.map((contact) => contact.id));
+    setSelectedContactIds((prev) => prev.filter((id) => contactIdSet.has(id)));
+  }, [contacts]);
 
 
   const clearInterimTimer = useCallback(() => {
@@ -284,6 +499,11 @@ const ContactsPage = () => {
     setEditContact((prev) => {
       if (!prev) return prev;
       const notes = prev.notes ?? "";
+      const normalizedNotes = notes.trim().replace(/\s+/g, " ").toLowerCase();
+      const normalizedDelta = delta.replace(/\s+/g, " ").toLowerCase();
+      if (normalizedDelta && normalizedNotes.endsWith(normalizedDelta)) {
+        return prev;
+      }
       const needsSpacer = notes.length > 0 && !/\s$/.test(notes);
       return { ...prev, notes: `${notes}${needsSpacer ? " " : ""}${delta}` };
     });
@@ -562,24 +782,19 @@ const ContactsPage = () => {
 
 
   const exportCsv = () => {
-    const headers = ["name","is_company","email","phone","street","street2","city","state","zip","country_code","tax_id","website","salesperson","notes"];
+    const headers = [...CONTACT_IMPORT_FIELDS];
     const toCsvValue = (value: unknown) => {
       const str = String(value ?? "");
       return str.includes(",") || str.includes('"') || str.includes("\n")
         ? `"${str.replace(/"/g, '""')}"`
         : str;
     };
-    const baseRows = filtered.map((c) =>
-      headers.map((h) => toCsvValue((c as any)[h])).join(",")
-    );
-
     const groupedRows = groupedByCountry.flatMap((group) => [
       [toCsvValue(`Country: ${group.countryCode}`), toCsvValue(`Count: ${group.contacts.length}`), ...Array(headers.length - 2).fill("")].join(","),
       ...group.contacts.map((c) => headers.map((h) => toCsvValue((c as any)[h])).join(",")),
     ]);
 
-    const useGroupedExport = csvExportMode === "grouped" && groupBy === "country";
-    const rows = useGroupedExport ? groupedRows : baseRows;
+    const rows = groupBy === "country" ? groupedRows : filtered.map((c) => headers.map((h) => toCsvValue((c as any)[h])).join(","));
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -588,11 +803,11 @@ const ContactsPage = () => {
     a.download = `contacts-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: `Exported ${filtered.length} contacts (${useGroupedExport ? "grouped" : "raw"} mode)` });
+    toast({ title: `Exported ${filtered.length} contacts` });
   };
 
   const downloadImportTemplate = () => {
-    const headers = ["name", "is_company", "email", "phone", "street", "street2", "city", "state", "zip", "country_code", "tax_id", "website", "salesperson", "notes"];
+    const headers = [...CONTACT_IMPORT_FIELDS];
     const exampleRows = [
       ["Acme Optical", "true", "info@acmeoptical.com", "+1 246 555 0100", "42 Broad St", "Suite 3", "Bridgetown", "Saint Michael", "BB11000", "BB", "123456", "https://acmeoptical.com", "rjh", "Example company row"],
       ["Jane Doe", "false", "jane.doe@acmeoptical.com", "+1 246 555 0101", "42 Broad St", "", "Bridgetown", "Saint Michael", "BB11000", "BB", "", "", "rjh", "Example person row"],
@@ -625,9 +840,41 @@ const ContactsPage = () => {
     }));
   };
 
+  const isAllVisibleSelected = filtered.length > 0 && filtered.every((contact) => selectedContactIds.includes(contact.id));
+
+  const toggleContactSelection = (contactId: string, checked: boolean) => {
+    setSelectedContactIds((prev) => checked ? [...prev, contactId] : prev.filter((id) => id !== contactId));
+  };
+
+  const toggleSelectAllVisible = (checked: boolean) => {
+    if (!checked) {
+      setSelectedContactIds((prev) => prev.filter((id) => !filtered.some((contact) => contact.id === id)));
+      return;
+    }
+    setSelectedContactIds((prev) => {
+      const merged = new Set(prev);
+      filtered.forEach((contact) => merged.add(contact.id));
+      return [...merged];
+    });
+  };
+
   const renderContactRow = (c: Contact) => (
     <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
-      <TableCell className="font-medium text-xs">{c.name}</TableCell>
+      <TableCell className="w-10" onClick={(event) => event.stopPropagation()}>
+        <Checkbox
+          checked={selectedContactIds.includes(c.id)}
+          onCheckedChange={(checked) => toggleContactSelection(c.id, checked === true)}
+          aria-label={`Select ${c.name}`}
+        />
+      </TableCell>
+      <TableCell className="font-medium text-xs">
+        <div className="flex items-center gap-1.5">
+          <span>{c.name}</span>
+          {(duplicateKeyCounts.get(getDuplicateKey(c)) ?? 0) > 1 && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">Duplicate</Badge>
+          )}
+        </div>
+      </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
           <Badge
@@ -680,7 +927,27 @@ const ContactsPage = () => {
     </TableRow>
   );
 
+  const normalizeImportedCountry = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    const aliasCountry = countryLookup.get(normalizeHeader(trimmed));
+    if (aliasCountry) return aliasCountry;
+    if (countryNameFormatter && /^[A-Za-z]{2}$/.test(trimmed)) {
+      const byCode = countryNameFormatter.of(trimmed.toUpperCase());
+      if (byCode) return byCode;
+    }
+    return trimmed;
+  };
+
+  const previewSummary = useMemo(() => {
+    const ready = importPreviewRows.filter((row) => row.status === "ready").length;
+    const duplicates = importPreviewRows.filter((row) => row.status === "duplicate").length;
+    const invalid = importPreviewRows.filter((row) => row.status === "invalid").length;
+    return { total: importPreviewRows.length, ready, duplicates, invalid };
+  }, [importPreviewRows]);
+
   const importCsv = () => {
+    if (isImporting) return;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".csv";
@@ -688,39 +955,270 @@ const ContactsPage = () => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       const text = await file.text();
-      const lines = text.split("\n").filter((l) => l.trim());
-      if (lines.length < 2) {
+      const rows = parseCsvText(text);
+      if (rows.length < 2) {
         toast({ title: "CSV must have a header row and at least one data row", variant: "destructive" });
         return;
       }
-      const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-      const nameIdx = headers.findIndex((h) => h.toLowerCase() === "name");
-      if (nameIdx === -1) {
+
+      const headerFields = rows[0].map((header) => FIELD_ALIASES[normalizeHeader(header)] ?? null);
+      if (!headerFields.includes("name")) {
         toast({ title: "CSV must contain a 'name' column", variant: "destructive" });
         return;
       }
-      let imported = 0;
-      let errors = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const vals = lines[i].match(/(".*?"|[^,]*)/g)?.map((v) => v.trim().replace(/^"|"$/g, "").replace(/""/g, '"')) ?? [];
-        const row: Record<string, any> = {};
-        headers.forEach((h, idx) => {
-          if (h === "is_company") {
-            row[h] = vals[idx]?.toLowerCase() === "true";
-          } else {
-            row[h] = vals[idx] ?? "";
+
+      const isCompanyIndex = headerFields.findIndex((field) => field === "is_company");
+      const existingImportKeys = new Set<string>();
+      const existingContactByName = new Map<string, { id: string; is_company: boolean }>();
+      contacts.forEach((contact) => {
+        const key = getImportDuplicateKey(contact);
+        if (key) existingImportKeys.add(key);
+        const nameKey = normalizeValue(contact.name);
+        if (nameKey) existingContactByName.set(nameKey, { id: contact.id, is_company: contact.is_company });
+      });
+
+      const previewRows = rows.slice(1).map((rawRowValues, offset) => {
+        let rowValues = rawRowValues;
+        if (isCompanyIndex >= 0 && rawRowValues.length > headerFields.length) {
+          const boolIdx = rawRowValues.findIndex((value, idx) => idx >= isCompanyIndex && isBooleanLike(value));
+          if (boolIdx > isCompanyIndex) {
+            const namePartCount = boolIdx - isCompanyIndex + 1;
+            rowValues = [
+              rawRowValues.slice(0, namePartCount).join(", ").replace(/\s+/g, " ").trim(),
+              ...rawRowValues.slice(boolIdx),
+            ];
           }
+        }
+
+        const row: Record<string, string | boolean | null> = {};
+        headerFields.forEach((field, idx) => {
+          if (!field) return;
+          const value = (rowValues[idx] ?? "").trim();
+          if (field === "is_company") {
+            row[field] = normalizeBoolean(value);
+            return;
+          }
+          if (field === "country_code") {
+            row[field] = normalizeImportedCountry(value);
+            return;
+          }
+          row[field] = value;
         });
-        if (!row.name) continue;
-        const { error } = await supabase.from("contacts").insert(row as any);
-        if (error) errors++;
-        else imported++;
-      }
-      toast({ title: `Imported ${imported} contacts${errors ? `, ${errors} errors` : ""}` });
-      // Refetch
-      window.location.reload();
+
+        const rowNumber = offset + 2;
+        const rawName = String(row.name ?? "").trim();
+        if (!rawName) {
+          return { rowNumber, displayName: "(Unnamed contact)", row, linkedName: null, status: "invalid" as const, reason: "Missing name" };
+        }
+        if (!("is_company" in row)) row.is_company = false;
+
+        const linkedName = splitLinkedContactName(rawName);
+        if (linkedName) {
+          if (row.is_company === true) {
+            return {
+              rowNumber,
+              displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`,
+              row,
+              linkedName,
+              status: "invalid" as const,
+              reason: "Row has company+person in name but is_company is true",
+            };
+          }
+          const linkedPersonKey = normalizeValue(linkedName.personName);
+          const existingLinkedPerson = existingContactByName.get(linkedPersonKey);
+          if (existingLinkedPerson) {
+            return {
+              rowNumber,
+              displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`,
+              row,
+              linkedName,
+              status: "duplicate" as const,
+              reason: "Person name already exists (contacts_name_key)",
+            };
+          }
+          return { rowNumber, displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`, row, linkedName, status: "ready" as const };
+        }
+
+        const existingByName = existingContactByName.get(normalizeValue(rawName));
+        if (existingByName) {
+          return {
+            rowNumber,
+            displayName: rawName,
+            row,
+            linkedName: null,
+            status: "duplicate" as const,
+            reason: "Name already exists",
+          };
+        }
+
+        const duplicateKey = getImportDuplicateKey({
+          name: rawName,
+          email: String(row.email ?? ""),
+          phone: String(row.phone ?? ""),
+        });
+        if (duplicateKey && (existingImportKeys.has(duplicateKey))) {
+          return { rowNumber, displayName: rawName, row, linkedName: null, status: "duplicate" as const, reason: "Duplicate by email or by name+phone" };
+        }
+        if (duplicateKey) existingImportKeys.add(duplicateKey);
+        return { rowNumber, displayName: rawName, row, linkedName: null, status: "ready" as const };
+      });
+
+      setImportPreviewRows(previewRows);
+      setIsImportPreviewOpen(true);
     };
     input.click();
+  };
+
+  const runImportFromPreview = async () => {
+    if (previewSummary.invalid > 0 || previewSummary.duplicates > 0) {
+      toast({
+        title: "Fix preview issues before importing",
+        description: "Import is blocked until all rows are ready.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const readyRows = importPreviewRows.filter((row) => row.status === "ready");
+    if (readyRows.length === 0 || readyRows.length !== importPreviewRows.length) {
+      toast({ title: "All rows must be ready before importing", variant: "destructive" });
+      return;
+    }
+
+    setIsImporting(true);
+    let imported = 0;
+    let errors = 0;
+    let duplicates = 0;
+    let linkedRows = 0;
+    const issues: string[] = [];
+    const importSeenKeys = new Set<string>();
+    const existingContactByName = new Map<string, { id: string; is_company: boolean }>();
+    contacts.forEach((contact) => {
+      const nameKey = normalizeValue(contact.name);
+      if (nameKey) existingContactByName.set(nameKey, { id: contact.id, is_company: contact.is_company });
+    });
+    const existingCompanyByName = new Map<string, string>();
+    contacts
+      .filter((contact) => contact.is_company)
+      .forEach((contact) => {
+        existingCompanyByName.set(normalizeValue(contact.name), contact.id);
+      });
+
+    const createCompanyFromRow = async (companyName: string, row: Record<string, string | boolean | null>) => {
+      const lookupKey = normalizeValue(companyName);
+      const existingCompanyId = existingCompanyByName.get(lookupKey);
+      if (existingCompanyId) return existingCompanyId;
+
+      const { data: inserted, error } = await supabase
+        .from("contacts")
+        .insert({
+          name: companyName,
+          is_company: true,
+          email: "",
+          phone: "",
+          street: row.street ?? "",
+          street2: row.street2 ?? "",
+          city: row.city ?? "",
+          state: row.state ?? "",
+          zip: row.zip ?? "",
+          country_code: row.country_code ?? "",
+          tax_id: row.tax_id ?? "",
+          website: row.website ?? "",
+          salesperson: row.salesperson ?? "",
+          notes: row.notes ?? "",
+          is_archived: false,
+        } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      existingCompanyByName.set(lookupKey, inserted.id);
+      imported += 1;
+      return inserted.id as string;
+    };
+
+    for (const previewRow of readyRows) {
+      const row = previewRow.row;
+      const rawName = String(row.name ?? "").trim();
+      if (!rawName) {
+        errors += 1;
+        continue;
+      }
+
+      const linkedName = previewRow.linkedName;
+      if (linkedName) {
+        try {
+          const companyId = await createCompanyFromRow(linkedName.companyName, row);
+          const personRow = {
+            ...row,
+            name: linkedName.personName,
+            is_company: false,
+            parent_id: companyId,
+          };
+          const linkedPersonKey = normalizeValue(linkedName.personName);
+
+          const personScopedKey = `${getImportDuplicateKey({
+            name: linkedName.personName,
+            email: String(personRow.email ?? ""),
+            phone: String(personRow.phone ?? ""),
+          })}|parent:${companyId}`;
+          if (!personScopedKey.startsWith("|") && importSeenKeys.has(personScopedKey)) {
+            duplicates += 1;
+            continue;
+          }
+
+          const { error } = await supabase.from("contacts").insert(personRow as any);
+          if (error) {
+            errors += 1;
+            issues.push(`Row ${previewRow.rowNumber}: ${error.message}`);
+            continue;
+          }
+          imported += 1;
+          linkedRows += 1;
+          if (linkedPersonKey) existingContactByName.set(linkedPersonKey, { id: "__new__", is_company: false });
+          if (!personScopedKey.startsWith("|")) importSeenKeys.add(personScopedKey);
+          continue;
+        } catch (error: any) {
+          errors += 1;
+          issues.push(`Row ${previewRow.rowNumber}: ${error?.message ?? "Linked import failed"}`);
+          continue;
+        }
+      }
+
+      const duplicateKey = getImportDuplicateKey({
+        name: String(row.name ?? ""),
+        email: String(row.email ?? ""),
+        phone: String(row.phone ?? ""),
+      });
+      const rawNameKey = normalizeValue(String(row.name ?? ""));
+      if (rawNameKey && existingContactByName.has(rawNameKey)) {
+        duplicates += 1;
+        continue;
+      }
+      if (duplicateKey && importSeenKeys.has(duplicateKey)) {
+        duplicates += 1;
+        continue;
+      }
+
+      const { error } = await supabase.from("contacts").insert(row as any);
+      if (error) {
+        errors += 1;
+        issues.push(`Row ${previewRow.rowNumber}: ${error.message}`);
+      } else {
+        imported += 1;
+        if (rawNameKey) existingContactByName.set(rawNameKey, { id: "__new__", is_company: !!row.is_company });
+        if (duplicateKey) importSeenKeys.add(duplicateKey);
+      }
+    }
+
+    await qc.invalidateQueries({ queryKey: ["contacts"] });
+    setIsImporting(false);
+    setIsImportPreviewOpen(false);
+    setImportPreviewRows([]);
+    toast({
+      title: `Imported ${imported} contacts${linkedRows ? ` (${linkedRows} linked from name pairs)` : ""}${errors ? `, ${errors} errors` : ""}${duplicates ? `, ${duplicates} duplicates flagged` : ""}`,
+      description: issues.length > 0 ? issues.slice(0, 2).join(" ") : undefined,
+      variant: errors > 0 ? "destructive" : "default",
+    });
   };
 
   const handleSave = async () => {
@@ -830,6 +1328,55 @@ const ContactsPage = () => {
     }
   };
 
+  const runBulkAction = async () => {
+    if (!bulkAction || selectedContactIds.length === 0) return;
+    try {
+      if (bulkAction === "archive") {
+        const { error } = await supabase.from("contacts").update({ is_archived: true }).in("id", selectedContactIds as any);
+        if (error) throw error;
+        toast({ title: `Archived ${selectedContactIds.length} contacts` });
+      } else {
+        const { error } = await supabase.from("contacts").delete().in("id", selectedContactIds as any);
+        if (error) throw error;
+        toast({ title: `Deleted ${selectedContactIds.length} contacts` });
+      }
+      setSelectedContactIds([]);
+      setBulkAction(null);
+      await qc.invalidateQueries({ queryKey: ["contacts"] });
+    } catch (error: any) {
+      toast({ title: "Bulk action failed", description: error.message ?? "Please try again.", variant: "destructive" });
+    }
+  };
+
+  const purgeArchivedContacts = async () => {
+    try {
+      const { error } = await supabase.from("contacts").delete().eq("is_archived", true as any);
+      if (error) throw error;
+      setIsPurgeDialogOpen(false);
+      toast({ title: "Archived contacts purged" });
+      await qc.invalidateQueries({ queryKey: ["contacts"] });
+    } catch (error: any) {
+      toast({ title: "Purge failed", description: error.message ?? "Please try again.", variant: "destructive" });
+    }
+  };
+
+  const toggleArchiveContact = async (contact: Partial<Contact>) => {
+    if (!contact.id) return;
+    try {
+      const nextArchived = !(contact.is_archived ?? false);
+      const { error } = await supabase
+        .from("contacts")
+        .update({ is_archived: nextArchived })
+        .eq("id", contact.id as any);
+      if (error) throw error;
+      setEditContact((prev) => (prev ? { ...prev, is_archived: nextArchived } : prev));
+      await qc.invalidateQueries({ queryKey: ["contacts"] });
+      toast({ title: nextArchived ? "Contact archived" : "Contact unarchived" });
+    } catch (error: any) {
+      toast({ title: "Archive update failed", description: error.message ?? "Please try again.", variant: "destructive" });
+    }
+  };
+
   const openEdit = (contact: Contact) => {
     stopDictation();
     setEditContact(contact);
@@ -870,14 +1417,14 @@ const ContactsPage = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="h-[calc(100vh-120px)] flex flex-col gap-4 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <AdminPageHeader icon={Building2} title="Contacts" />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Import CSV" onClick={importCsv}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" title="Import CSV" onClick={importCsv} disabled={isImporting}>
               <Upload className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" title="Export CSV" onClick={exportCsv}>
@@ -895,6 +1442,9 @@ const ContactsPage = () => {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={downloadImportTemplate}>
                 <Download className="h-4 w-4 mr-2" /> Download import template
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsPurgeDialogOpen(true)}>
+                <Trash2 className="h-4 w-4 mr-2" /> Purge archived contacts
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -966,28 +1516,34 @@ const ContactsPage = () => {
             <SelectItem value="country">Country</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={csvExportMode} onValueChange={(value) => setCsvExportMode(value as CsvExportMode)}>
-          <SelectTrigger className="h-8 text-xs w-[150px]">
-            <SelectValue placeholder="CSV mode" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="raw">CSV: raw rows</SelectItem>
-            <SelectItem value="grouped">CSV: grouped view</SelectItem>
-          </SelectContent>
-        </Select>
         <span className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
-          Grouped export mirrors country sections; raw export always outputs a flat filtered list.
+          Export mirrors current filters and optionally country grouping.
         </span>
+        {selectedContactIds.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-[11px]">{selectedContactIds.length} selected</Badge>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setBulkAction("archive")}>Archive selected</Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs text-red-600" onClick={() => setBulkAction("delete")}>Delete selected</Button>
+          </div>
+        )}
         <span className="text-xs ml-auto" style={{ color: "hsl(215 15% 50%)" }}>
           {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Table */}
-      <div className="border rounded-md overflow-hidden" style={{ borderColor: "hsl(215 25% 88%)" }}>
+      <div className="border rounded-md flex-1 min-h-0 overflow-hidden" style={{ borderColor: "hsl(215 25% 88%)" }}>
+        <div className="h-full overflow-y-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={isAllVisibleSelected}
+                  onCheckedChange={(checked) => toggleSelectAllVisible(checked === true)}
+                  aria-label="Select all visible contacts"
+                />
+              </TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Email</TableHead>
@@ -1001,13 +1557,13 @@ const ContactsPage = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={9} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   Loading...
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                <TableCell colSpan={9} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   No contacts found. Click "New" to create one.
                 </TableCell>
               </TableRow>
@@ -1017,7 +1573,7 @@ const ContactsPage = () => {
                 return (
                   <Fragment key={group.countryCode}>
                     <TableRow className="bg-muted/30">
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={9}>
                         <button
                           type="button"
                           onClick={() => toggleCountryGroup(group.countryCode)}
@@ -1034,64 +1590,73 @@ const ContactsPage = () => {
                 );
               })
             ) : (
-              filtered.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
-                  <TableCell className="font-medium text-xs">{c.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Badge
-                        className="text-[10px] px-1.5 py-0 h-5 border-0"
-                        style={{
-                          background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
-                          color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
-                        }}
-                      >
-                        {c.is_company ? "Company" : "Person"}
-                      </Badge>
-                      {c.is_customer && (
-                        <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
-                          Customer
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs">{c.email}</TableCell>
-                  <TableCell className="text-xs">{c.phone}</TableCell>
-                  <TableCell className="text-xs">{c.salesperson}</TableCell>
-                  <TableCell className="text-xs">{c.city}</TableCell>
-                  <TableCell className="text-xs">{c.country_code}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {getOpportunityCount(c.id) > 0 && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-6 px-2 text-[10px]"
-                          onClick={(e) => openCrmForContact(c, e)}
-                        >
-                          <Kanban className="h-3 w-3 mr-1" /> CRM ({getOpportunityCount(c.id)})
-                        </Button>
-                      )}
-                      {getAssignedPriceProfileId(c) && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-6 px-2 text-[10px]"
-                          onClick={(e) => openPricingForContact(c, e)}
-                        >
-                          <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              filtered.map((c) => renderContactRow(c))
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
+
+      <Dialog open={isImportPreviewOpen} onOpenChange={(open) => !isImporting && setIsImportPreviewOpen(open)}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Import contacts preview</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Badge variant="secondary">{previewSummary.total} incoming rows</Badge>
+            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">{previewSummary.ready} ready</Badge>
+            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">{previewSummary.duplicates} duplicates</Badge>
+            <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100">{previewSummary.invalid} invalid</Badge>
+          </div>
+          <div className="max-h-[55vh] overflow-y-auto border rounded-md">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background">
+                <TableRow>
+                  <TableHead>Row</TableHead>
+                  <TableHead>Status</TableHead>
+                  {CONTACT_IMPORT_FIELDS.map((field) => (
+                    <TableHead key={field}>{field}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importPreviewRows.map((row) => (
+                  <TableRow key={`${row.rowNumber}-${row.displayName}`}>
+                    <TableCell className="text-xs">{row.rowNumber}</TableCell>
+                    <TableCell className="text-xs">
+                      {row.status === "ready"
+                        ? <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Ready</Badge>
+                        : row.status === "duplicate"
+                          ? <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">{row.reason ?? "Duplicate"}</Badge>
+                          : <Badge variant="destructive">{row.reason ?? "Invalid"}</Badge>}
+                    </TableCell>
+                    {CONTACT_IMPORT_FIELDS.map((field) => (
+                      <TableCell key={`${row.rowNumber}-${field}`} className="text-xs whitespace-nowrap">
+                        {String(row.row[field] ?? "")}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {previewSummary.ready !== previewSummary.total && (
+            <p className="text-xs text-amber-600">
+              Import is blocked until every row is validated as Ready.
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" disabled={isImporting} onClick={() => setIsImportPreviewOpen(false)}>Cancel</Button>
+            <Button
+              type="button"
+              disabled={isImporting || previewSummary.ready === 0 || previewSummary.ready !== previewSummary.total}
+              onClick={runImportFromPreview}
+            >
+              {isImporting ? "Importing..." : `Import ${previewSummary.ready} ready records`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editContact} onOpenChange={(v) => !v && closeEditDialog()}>
@@ -1167,6 +1732,22 @@ const ContactsPage = () => {
                         <div>
                           <label className="text-[11px] font-medium mb-0.5 block">Name *</label>
                           <Input className="h-7 text-xs" value={editContact.name ?? ""} onChange={(e) => setEditContact({ ...editContact, name: e.target.value })} />
+                        </div>
+                        <div className="border rounded-md p-2 space-y-1.5" style={{ borderColor: "hsl(var(--border))" }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-[11px] font-semibold">Contact type</Label>
+                            <Switch
+                              checked={editContact.is_company ?? false}
+                              onCheckedChange={(checked) => setEditContact({
+                                ...editContact,
+                                is_company: checked,
+                                parent_id: checked ? null : editContact.parent_id ?? null,
+                              })}
+                            />
+                          </div>
+                          <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
+                            {editContact.is_company ? "Company (can have linked persons)" : "Person (can link to one company)"}
+                          </p>
                         </div>
                         {!editContact.is_company && (
                           <div>
@@ -1525,9 +2106,19 @@ const ContactsPage = () => {
                 <div className="flex items-center justify-between px-4 py-2.5 border-t shrink-0" style={{ borderColor: "hsl(215 25% 88%)" }}>
                   <div>
                     {editContact.id && (
-                      <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
-                        <Trash2 className="h-3 w-3" /> Delete
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 gap-1"
+                          onClick={() => toggleArchiveContact(editContact)}
+                        >
+                          {editContact.is_archived ? "Unarchive" : "Archive"}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
+                          <Trash2 className="h-3 w-3" /> Delete
+                        </Button>
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -1542,6 +2133,38 @@ const ContactsPage = () => {
           })()}
         </DialogContent>
       </Dialog>
+      <AlertDialog open={bulkAction !== null} onOpenChange={(open) => !open && setBulkAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{bulkAction === "delete" ? "Delete selected contacts?" : "Archive selected contacts?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkAction === "delete"
+                ? `This permanently deletes ${selectedContactIds.length} selected contacts. This action cannot be undone.`
+                : `This archives ${selectedContactIds.length} selected contacts. Archived contacts stay hidden until "Archived" is enabled.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={runBulkAction} className={bulkAction === "delete" ? "bg-destructive hover:bg-destructive/90" : ""}>
+              {bulkAction === "delete" ? "Delete contacts" : "Archive contacts"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={isPurgeDialogOpen} onOpenChange={setIsPurgeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Purge all archived contacts?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes every archived contact for testing cleanup. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={purgeArchivedContacts} className="bg-destructive hover:bg-destructive/90">Purge archived</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
