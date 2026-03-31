@@ -9,7 +9,7 @@ import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { contextSlugToPath } from "@/lib/adminContexts";
+import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
 
 interface SearchResult {
   id: string;
@@ -60,7 +60,7 @@ const GlobalSearch = () => {
             id: `wiki-static-${cat.id}-${article.id}`,
             label: article.title,
             sublabel: cat.title,
-            path: `/admin/knowledge/wiki#${article.id}`,
+            path: toAdminWikiArticlePath({ id: `static:${article.id}`, title: article.title }),
             icon: BookOpen,
             group: "Help / Wiki",
           }))
@@ -79,15 +79,13 @@ const GlobalSearch = () => {
           const contexts = article.help_article_contexts?.map((c: any) => c.context_slug).filter(Boolean) ?? [];
           const effectiveContexts = contexts.length > 0 ? contexts : [article.page_slug];
           const allowedContexts = effectiveContexts.filter((contextSlug: string) => canViewContextSlug(contextSlug, canView));
-          const context = allowedContexts.find((slug: string) => slug !== "all") ?? allowedContexts[0] ?? "knowledge/wiki";
-
           if (allowedContexts.length === 0) return null;
 
           return {
             id: `wiki-db-${article.id}`,
             label: article.title,
             sublabel: article.category || "Custom",
-            path: `${contextSlugToPath(context)}#${article.id}`,
+            path: toAdminWikiArticlePath({ id: article.id, title: article.title, slug: article.slug }),
             icon: BookOpen,
             group: "Help / Wiki",
           };
