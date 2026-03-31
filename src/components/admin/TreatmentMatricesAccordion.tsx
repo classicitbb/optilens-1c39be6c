@@ -23,6 +23,7 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronRight,
+  Link2Off,
   Loader2,
   Pencil,
   Plus,
@@ -37,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { fieldsMatch } from "@/lib/wildcardMatch";
 import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixRowKey, buildMatrixSectionLabel } from "@/features/admin/rx-pricing/structure";
+import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 
 interface TreatmentMatricesAccordionProps {
   versionId: number;
@@ -232,6 +234,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   const { data: allocations = [], isLoading: allocLoading, upsertMutation, deleteMutation } = useMatrixAllocations(versionId);
   const { data: catalogRows = [] } = usePricelistCatalogRows(versionId, "rx");
   const { upsertRow: upsertCatalogRow, deleteRow: deleteCatalogRow } = usePricelistCatalogRowUpsert(versionId, "rx");
+  const { lineOverrides, hasOverride } = usePriceHierarchy(versionId);
   const { data: allLenses } = useLenses();
   const {
     structure,
@@ -555,13 +558,20 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                             const inCatalog = allocation?.lens_id ? catalogLensIds.has(allocation.lens_id) : false;
                             const rowKey = buildMatrixRowKey(grouping.key, category.key, column.key);
                             const isPending = pendingRowKeys.has(rowKey);
+                            const allocationId = allocation?.id ? String(allocation.id) : undefined;
+                            const isOverridden = allocationId ? hasOverride(allocationId, "matrix_allocation") : false;
+                            const overrideRow = allocationId
+                              ? lineOverrides.find((entry) => entry.reference_type === "matrix_allocation" && entry.reference_id === allocationId)
+                              : null;
+                            const displayPrice = overrideRow?.overridden_price_bbd ?? allocation?.allocated_price_bbd ?? null;
                             return (
                               <td key={column.key} className="border-r border-border last:border-r-0 p-0">
-                                <div className="group/cell flex flex-col">
+                                <div className={cn("group/cell flex flex-col", isOverridden && "bg-amber-100/40 dark:bg-amber-900/20")}>
                                   <div className="flex items-center">
                                     <div className="flex-1 px-2 py-1.5 text-right font-mono text-xs text-foreground min-w-0">
-                                      {allocation?.allocated_price_bbd != null ? <span className="font-semibold">{fmt(allocation.allocated_price_bbd, showUSD, fxRate)}</span> : <span className="text-muted-foreground/40">—</span>}
+                                      {displayPrice != null ? <span className="font-semibold">{fmt(displayPrice, showUSD, fxRate)}</span> : <span className="text-muted-foreground/40">—</span>}
                                     </div>
+                                    {isOverridden && <Link2Off className="h-3 w-3 shrink-0 text-amber-600 mr-0.5" title="Price override from price list editor" />}
                                     {isPending && <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to Price List" />}
                                     {inCatalog && !isPending && <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />}
                                     {allocation && (
