@@ -21,7 +21,9 @@
     "test:headers": "vitest run --coverage=false src/tests/integration/securityHeaders.integration.test.ts",
     "test:e2e": "vitest run --coverage=false src/tests/e2e",
     "test:integration": "vitest run --coverage=false src/tests/integration",
-    "test:unit": "vitest run --coverage=false src/tests/unit"
+    "test:unit": "vitest run --coverage=false src/tests/unit",
+    "qa:doc-symmetry": "node scripts/check_doc_symmetry.mjs",
+    "ci:pr-checks": "npm run qa:pr-checks"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",

@@ -1,22 +1,27 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-02-28T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-03-31T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Lead Finder now degrades gracefully when the `lead-intelligence` Edge Function cannot be reached.",
-    "Users receive a clear in-page warning and non-crashing diagnostics state instead of repeated fatal runtime failure behavior.",
-    "Search action now catches unexpected failures and reports a controlled toast error."
+    "Added a module documentation index and PR guard to enforce code/doc companion updates.",
+    "CI PR checks now run doc symmetry validation as a required gate.",
+    "Exception handling now supports explicit rationale-backed overrides via bug exception files or PR metadata labels."
   ],
   "moduleImpact": [
     {
-      "module": "src/features/admin",
+      "module": "docs/ai",
       "impact": "medium",
-      "notes": "Updated as part of Admin E2E Runtime Hardening (Lead Finder graceful fallback)."
+      "notes": "Updated as part of PR Doc Symmetry Guardrail."
     },
     {
-      "module": "src/pages/admin",
+      "module": "scripts/check_doc_symmetry.mjs",
       "impact": "medium",
-      "notes": "Updated as part of Admin E2E Runtime Hardening (Lead Finder graceful fallback)."
+      "notes": "Updated as part of PR Doc Symmetry Guardrail."
+    },
+    {
+      "module": "scripts/pr_checks.mjs",
+      "impact": "medium",
+      "notes": "Updated as part of PR Doc Symmetry Guardrail."
     }
   ],
   "migrationNotes": [
