@@ -14,7 +14,7 @@ export const SOURCE_CATEGORIES = [
 ] as const;
 export type SourceCategory = (typeof SOURCE_CATEGORIES)[number];
 
-export const ORDER_STATUSES = ["draft", "submitted", "pending_review", "awaiting_payment", "paid", "partially_allocated", "ready_for_fulfilment", "fulfilled", "cancelled", "backordered", "partially_fulfilled", "pending", "confirmed", "processing", "shipped", "completed"] as const;
+export const ORDER_STATUSES = ["draft", "pending", "confirmed", "processing", "shipped", "completed", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const QUOTE_STATUSES = ["draft", "sent", "accepted", "expired", "rejected", "cancelled"] as const;

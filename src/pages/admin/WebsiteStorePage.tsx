@@ -33,7 +33,6 @@ import { usePricingSheets } from "@/hooks/usePricingSheets";
 import { useAddonPricingSheets } from "@/hooks/useAddonPricingSheets";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { StoreVariantManager } from "@/components/admin/store/StoreVariantManager";
 import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 
 type ProductType = "lens" | "supply" | "addon";
@@ -503,7 +502,6 @@ const WebsiteStorePage = () => {
         <div className="flex items-center gap-2">
           <AdminPageHeader icon={Store} title="Website Store Products" />
           <ReleaseWhatChangedLink section="store-orders" />
-
         </div>
         <Button size="sm" className="h-8 text-xs gap-1" onClick={() => setPickerOpen(true)}>
           <Plus className="h-3.5 w-3.5" /> Add Product to Website
@@ -667,12 +665,6 @@ const WebsiteStorePage = () => {
                 </div>
               </div>
 
-
-
-              <div className="space-y-2">
-                <Label>Variants</Label>
-                <StoreVariantManager productType={selected.type} productId={selected.id} />
-              </div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => setMediaOpen(true)}>
                   <ImagePlus className="h-4 w-4 mr-1" /> Manage Images

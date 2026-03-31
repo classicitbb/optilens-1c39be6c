@@ -16,23 +16,13 @@ export const toOrderLineEntity = (item: {
   product_price: number;
   product_type?: string | null;
   quantity: number;
-  variant_id?: string | null;
-  variant_label?: string | null;
-  sku?: string | null;
-  opc_code?: string | null;
-  variant_snapshot?: Record<string, unknown> | null;
 }): OrderLineEntity => ({
   id: item.id,
   productId: String(item.product_id),
   productName: item.product_name,
   productType: item.product_type ?? undefined,
-  variantId: item.variant_id ?? undefined,
-  variantLabel: item.variant_label ?? undefined,
-  sku: item.sku ?? undefined,
-  opcCode: item.opc_code ?? undefined,
   unitPrice: item.product_price,
   quantity: item.quantity,
-  variantSnapshot: item.variant_snapshot ?? undefined,
 });
 
 
@@ -74,11 +64,6 @@ export const toOrderEntity = (order: {
     product_price: number;
     product_type?: string | null;
     quantity: number;
-    variant_id?: string | null;
-    variant_label?: string | null;
-    sku?: string | null;
-    opc_code?: string | null;
-    variant_snapshot?: Record<string, unknown> | null;
   }>;
   payments?: Array<{
     id: string;

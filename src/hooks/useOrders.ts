@@ -87,9 +87,9 @@ export const useOrders = (targetUserId?: string) => {
       quantity: number;
       variant_id?: string | null;
       variant_label?: string | null;
-      sku?: string | null;
-      opc_code?: string | null;
-      variant_snapshot?: Record<string, unknown>;
+      variant_sku?: string | null;
+      variant_opc_code?: string | null;
+      variant_metadata?: Record<string, unknown> | null;
     }[],
     totalAmount: number,
     checkout?: CheckoutFormData,
@@ -116,7 +116,7 @@ export const useOrders = (targetUserId?: string) => {
         expiry_year: checkout.expiryYear,
       };
 
-      const primary = await (supabase.rpc as any)("place_customer_order_v2", {
+      const { data, error } = await (supabase.rpc as any)("place_customer_order", {
         p_target_user_id: effectiveUserId,
         p_items: cartItems.map((item) => ({
           product_id: item.product_id,
@@ -126,31 +126,15 @@ export const useOrders = (targetUserId?: string) => {
           quantity: item.quantity,
           variant_id: item.variant_id ?? null,
           variant_label: item.variant_label ?? null,
-          sku: item.sku ?? null,
-          opc_code: item.opc_code ?? null,
-          variant_snapshot: item.variant_snapshot ?? {},
+          variant_sku: item.variant_sku ?? null,
+          variant_opc_code: item.variant_opc_code ?? null,
+          variant_metadata: item.variant_metadata ?? {},
         })),
         p_checkout: payload,
         p_actor_user_id: actorUserId ?? user?.id ?? effectiveUserId,
       });
 
-      let data = primary.data;
-      if (primary.error) {
-        const fallback = await (supabase.rpc as any)("place_customer_order", {
-          p_target_user_id: effectiveUserId,
-          p_items: cartItems.map((item) => ({
-            product_id: item.product_id,
-            product_name: item.product_name,
-            product_price: item.product_price,
-            product_type: item.product_type,
-            quantity: item.quantity,
-          })),
-          p_checkout: payload,
-          p_actor_user_id: actorUserId ?? user?.id ?? effectiveUserId,
-        });
-        if (fallback.error) throw primary.error;
-        data = fallback.data;
-      }
+      if (error) throw error;
 
       const orderId = Array.isArray(data) ? data[0] : data;
       if (!orderId) throw new Error("Order placement did not return an order id.");

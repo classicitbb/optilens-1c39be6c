@@ -1,1 +1,0 @@
-ALTER VIEW public.store_product_variant_summary SET (security_invoker = true);

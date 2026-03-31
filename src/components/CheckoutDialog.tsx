@@ -64,7 +64,7 @@ const emptyCheckoutState = (): CheckoutFormData => ({
   billingAddressId: null,
   shippingAddress: { ...EMPTY_ADDRESS },
   billingAddress: { ...EMPTY_ADDRESS },
-  checkoutMethod: "manual_review",
+  checkoutMethod: "new_demo_card",
   paymentMethodId: null,
   savePaymentMethod: false,
   cardholderName: "",
@@ -230,7 +230,7 @@ export const CheckoutDialog = ({
       billingAddressId: defaultBilling?.id ?? defaultShipping?.id ?? prev.billingAddressId,
       billingAddress: defaultBilling ? toProfileAddress(defaultBilling) : defaultShipping ? toProfileAddress(defaultShipping) : prev.billingAddress,
       paymentMethodId: defaultPaymentMethod?.id ?? prev.paymentMethodId,
-      checkoutMethod: defaultPaymentMethod ? "saved_demo_card" : "manual_review",
+      checkoutMethod: defaultPaymentMethod ? "saved_demo_card" : prev.checkoutMethod,
       cardholderName: prev.cardholderName || defaultPaymentMethod?.cardholderName || prev.fullName,
     }));
     setSameAsShipping((current) => current || (!!defaultShipping && !!defaultBilling && defaultShipping.id === defaultBilling.id));
@@ -323,7 +323,7 @@ export const CheckoutDialog = ({
       return;
     }
 
-    if (!hasSavedMethod && !hasNewCard && checkoutMethod !== "google_pay" && checkoutMethod !== "manual_review") {
+    if (!hasSavedMethod && !hasNewCard && checkoutMethod !== "google_pay") {
       return;
     }
 
@@ -435,7 +435,6 @@ export const CheckoutDialog = ({
       formData.shippingAddress.country.trim() &&
       ((formData.checkoutMethod === "saved_demo_card" && formData.paymentMethodId) ||
         formData.checkoutMethod === "google_pay" ||
-        formData.checkoutMethod === "manual_review" ||
         formData.cardLast4.replace(/\D/g, "").length === 4),
   );
 
@@ -447,9 +446,9 @@ export const CheckoutDialog = ({
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
               <CheckCircle className="h-10 w-10 text-accent" />
             </div>
-            <DialogTitle className="mb-2 text-xl">Order Submitted</DialogTitle>
+            <DialogTitle className="mb-2 text-xl">Order Confirmed!</DialogTitle>
             <DialogDescription className="mb-6">
-              Your order was submitted for admin review. Payment instructions and link will appear in your account shortly.
+              Your order, payment confirmation, and saved checkout preferences are now attached to your account.
             </DialogDescription>
             <Button onClick={handleClose} className="w-full">
               Continue Shopping
@@ -463,7 +462,7 @@ export const CheckoutDialog = ({
                 Checkout
               </DialogTitle>
               <DialogDescription>
-                Submit your order now and settle payment after admin review, or use an immediate demo payment method.
+                Use a saved demo card or enter a new demo payment method. Saved addresses and payment methods prefill automatically.
               </DialogDescription>
             </DialogHeader>
 
@@ -681,15 +680,7 @@ export const CheckoutDialog = ({
                         Use a new demo card
                       </Button>
 
-                      <Button
-                        type="button"
-                        variant={formData.checkoutMethod === "manual_review" ? "default" : "outline"}
-                        onClick={() => setFormData((prev) => ({ ...prev, checkoutMethod: "manual_review", paymentMethodId: null }))}
-                      >
-                        Pay after review
-                      </Button>
-
-                      {formData.checkoutMethod === "new_demo_card" && (
+                      {formData.checkoutMethod !== "saved_demo_card" && (
                         <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="checkout-cardholder">Cardholder name</Label>
