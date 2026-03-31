@@ -1,6 +1,7 @@
 import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
 import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
 import { toCanonicalDocument } from "@/lib/wikiCanonical";
+import { composeWikiArticleReleaseMetadata } from "@/lib/wikiReleaseMetadata";
 
 export interface WikiRendererInput {
   bodyJson?: BlogCanonicalContent | null;
@@ -21,7 +22,7 @@ interface WikiArticleRendererProps {
  */
 export const toWikiRendererDocument = ({ bodyJson, legacyContent }: WikiRendererInput): BlogCanonicalContent => {
   if (bodyJson) return toCanonicalDocument(bodyJson);
-  if (legacyContent) return toCanonicalDocument(legacyContent);
+  if (legacyContent) return toCanonicalDocument(composeWikiArticleReleaseMetadata(legacyContent));
   return toCanonicalDocument(undefined);
 };
 

@@ -133,7 +133,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         // Insert new item
         const { data, error } = await supabase
           .from("cart_items")
-          .insert({
+          .insert([{
             user_id: user.id,
             product_id: product.id,
             product_name: product.name,

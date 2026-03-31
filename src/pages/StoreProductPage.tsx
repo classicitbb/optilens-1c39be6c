@@ -52,6 +52,16 @@ const StoreProductPage = () => {
     });
   };
 
+
+  const handleAddVariantSelection = async (items: { variantId: string; quantity: number }[]) => {
+    const inserted = await addVariantsMutation.mutateAsync(items);
+    await refetch();
+    toast({
+      title: "Variants added",
+      description: `${inserted} variant line${inserted === 1 ? "" : "s"} added to cart.`,
+    });
+  };
+
   const handleAdd = () => {
     if (!product) return;
 
