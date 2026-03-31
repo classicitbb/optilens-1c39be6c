@@ -502,6 +502,7 @@ const WebsiteStorePage = () => {
         <div className="flex items-center gap-2">
           <AdminPageHeader icon={Store} title="Website Store Products" />
           <ReleaseWhatChangedLink section="store-orders" />
+
         </div>
         <Button size="sm" className="h-8 text-xs gap-1" onClick={() => setPickerOpen(true)}>
           <Plus className="h-3.5 w-3.5" /> Add Product to Website

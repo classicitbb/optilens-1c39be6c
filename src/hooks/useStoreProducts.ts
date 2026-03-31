@@ -47,7 +47,7 @@ export const useStoreProducts = () => {
   return useQuery<StoreProduct[]>({
     queryKey: ["store-products"],
     queryFn: async () => {
-      const [lensRes, supplyRes, mediaRes, overrideRes, variantConfigRes, variantAggRes] = await Promise.all([
+      const [lensRes, supplyRes, _addonResUnused, mediaRes, overrideRes, variantConfigRes, variantAggRes] = await Promise.all([
         supabase
           .from("lenses")
           .select("id, name, sell_price, show_on_website, notes, lenstype:lenstypes(name), material:materials(name), mftype:mftypes(name)")

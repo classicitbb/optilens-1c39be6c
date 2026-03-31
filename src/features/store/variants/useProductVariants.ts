@@ -41,7 +41,7 @@ export const useProductVariantConfig = (productType: ProductType, productId: str
         .eq("product_id", productId)
         .maybeSingle();
       if (error) throw error;
-      return data as ProductVariantConfig | null;
+      return (data as unknown) as ProductVariantConfig | null;
     },
     enabled: Boolean(productId),
   });
