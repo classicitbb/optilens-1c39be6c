@@ -83,8 +83,13 @@ export const useOrders = (targetUserId?: string) => {
       product_id: number;
       product_name: string;
       product_price: number;
-      product_type: "lens" | "supply";
+      product_type: "lens" | "supply" | "addon";
       quantity: number;
+      variant_id?: string | null;
+      variant_label?: string | null;
+      variant_sku?: string | null;
+      variant_opc_code?: string | null;
+      variant_metadata?: Record<string, unknown> | null;
     }[],
     totalAmount: number,
     checkout?: CheckoutFormData,
@@ -119,6 +124,11 @@ export const useOrders = (targetUserId?: string) => {
           product_price: item.product_price,
           product_type: item.product_type,
           quantity: item.quantity,
+          variant_id: item.variant_id ?? null,
+          variant_label: item.variant_label ?? null,
+          variant_sku: item.variant_sku ?? null,
+          variant_opc_code: item.variant_opc_code ?? null,
+          variant_metadata: item.variant_metadata ?? {},
         })),
         p_checkout: payload,
         p_actor_user_id: actorUserId ?? user?.id ?? effectiveUserId,

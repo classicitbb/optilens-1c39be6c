@@ -1,0 +1,125 @@
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import type { ProductVariant } from "@/hooks/useProductVariants";
+
+interface LensVariantGridProps {
+  variants: ProductVariant[];
+  onAddSelected: (items: { variantId: string; quantity: number }[]) => Promise<void>;
+}
+
+const asNumber = (value: unknown) => Number(value ?? 0);
+
+export const LensVariantGrid = ({ variants, onAddSelected }: LensVariantGridProps) => {
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [saving, setSaving] = useState(false);
+
+  const spheres = useMemo(
+    () => Array.from(new Set(variants.map((variant) => asNumber(variant.attributes?.sphere)).filter((value) => Number.isFinite(value)))).sort((a, b) => a - b),
+    [variants],
+  );
+
+  const cylinders = useMemo(
+    () => Array.from(new Set(variants.map((variant) => asNumber(variant.attributes?.cylinder)).filter((value) => Number.isFinite(value)))).sort((a, b) => a - b),
+    [variants],
+  );
+
+  const variantByCell = useMemo(() => {
+    const map = new Map<string, ProductVariant>();
+    variants.forEach((variant) => {
+      const sphere = asNumber(variant.attributes?.sphere);
+      const cylinder = asNumber(variant.attributes?.cylinder);
+      map.set(`${sphere}:${cylinder}`, variant);
+    });
+    return map;
+  }, [variants]);
+
+  const selectedCount = Object.values(quantities).reduce((sum, qty) => sum + (qty > 0 ? qty : 0), 0);
+
+  const handleAdd = async () => {
+    const payload = Object.entries(quantities)
+      .filter(([, quantity]) => quantity > 0)
+      .map(([variantId, quantity]) => ({ variantId, quantity }));
+
+    if (payload.length === 0) return;
+    setSaving(true);
+    try {
+      await onAddSelected(payload);
+      setQuantities({});
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="max-h-[420px] overflow-auto rounded-xl border border-border">
+        <table className="w-full border-collapse text-sm">
+          <thead className="sticky top-0 z-10 bg-background">
+            <tr>
+              <th className="sticky left-0 z-20 border-b border-r bg-background px-3 py-2 text-left">Sphere \ Cylinder</th>
+              {cylinders.map((cylinder) => (
+                <th key={cylinder} className="border-b border-r px-3 py-2 text-center font-semibold">
+                  {cylinder.toFixed(2)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {spheres.map((sphere) => (
+              <tr key={sphere}>
+                <th className="sticky left-0 z-10 border-r bg-background px-3 py-2 text-left font-semibold">{sphere.toFixed(2)}</th>
+                {cylinders.map((cylinder) => {
+                  const variant = variantByCell.get(`${sphere}:${cylinder}`);
+                  const availableQty = (variant?.stock_qty ?? 0) - (variant?.reserved_qty ?? 0);
+                  const isUnavailable = !variant || !variant.is_active || (!variant.allow_backorder && availableQty <= 0);
+                  const isLowStock = !isUnavailable && availableQty <= (variant?.low_stock_threshold ?? 0);
+
+                  return (
+                    <td key={`${sphere}:${cylinder}`} className="border-r border-t p-2 align-top">
+                      {variant ? (
+                        <div className={cn("space-y-1 rounded-md p-2", isUnavailable && "bg-muted/40", isLowStock && "ring-1 ring-amber-500/40")}>
+                          <div className="text-[10px] text-muted-foreground">${variant.price.toFixed(2)}</div>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={quantities[variant.id] ?? ""}
+                            onChange={(event) => {
+                              const next = Math.max(0, Number(event.target.value || 0));
+                              setQuantities((prev) => ({ ...prev, [variant.id]: next }));
+                            }}
+                            className="h-8"
+                            disabled={isUnavailable}
+                            aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
+                          />
+                          <div className="text-[10px] text-muted-foreground">
+                            {isUnavailable ? "Unavailable" : `Stock ${Math.max(availableQty, 0)}`}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-md bg-muted/30 p-2 text-[10px] text-muted-foreground">N/A</div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">Selected quantity: {selectedCount}</div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setQuantities({})}>Clear grid</Button>
+          <Button onClick={handleAdd} disabled={saving || selectedCount === 0}>
+            {saving ? "Adding..." : "Add selected to cart"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LensVariantGrid;

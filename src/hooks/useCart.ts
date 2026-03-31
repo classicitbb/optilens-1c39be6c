@@ -8,7 +8,12 @@ export interface CartItem {
   product_id: number;
   product_name: string;
   product_price: number;
-  product_type: "lens" | "supply";
+  product_type: "lens" | "supply" | "addon";
+  variant_id?: string | null;
+  variant_label?: string | null;
+  variant_sku?: string | null;
+  variant_opc_code?: string | null;
+  variant_metadata?: Record<string, unknown> | null;
   quantity: number;
 }
 
@@ -67,7 +72,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setItems((data || []).map((d) => ({ ...d, product_type: d.product_type as "lens" | "supply" })));
+      setItems((data || []).map((d) => ({ ...d, product_type: d.product_type as "lens" | "supply" | "addon", variant_metadata: (d.variant_metadata ?? {}) as Record<string, unknown> })));
     } catch (error) {
       if (!isExpectedCartError(error)) {
         console.error("Error fetching cart:", error);
@@ -92,7 +97,12 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     id: number;
     name: string;
     price: number;
-    productType: "lens" | "supply";
+    productType: "lens" | "supply" | "addon";
+    variantId?: string;
+    variantLabel?: string;
+    variantSku?: string;
+    variantOpcCode?: string;
+    variantMetadata?: Record<string, unknown>;
     quantity?: number;
   }) => {
     if (!user) return;
@@ -101,7 +111,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
       const quantityToAdd = Math.max(1, Math.floor(product.quantity ?? 1));
 
       // Check if item already exists
-      const existingItem = items.find((item) => item.product_id === product.id);
+      const existingItem = items.find((item) => item.product_id === product.id && (item.variant_id ?? null) === (product.variantId ?? null));
 
       if (existingItem) {
         // Update quantity
@@ -123,19 +133,24 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         // Insert new item
         const { data, error } = await supabase
           .from("cart_items")
-          .insert({
+          .insert([{
             user_id: user.id,
             product_id: product.id,
             product_name: product.name,
             product_price: product.price,
             product_type: product.productType,
             quantity: quantityToAdd,
-          })
+            variant_id: product.variantId ?? null,
+            variant_label: product.variantLabel ?? null,
+            variant_sku: product.variantSku ?? null,
+            variant_opc_code: product.variantOpcCode ?? null,
+            variant_metadata: (product.variantMetadata ?? {}) as any,
+          }])
           .select()
           .single();
 
         if (error) throw error;
-        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" }]);
+        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" | "addon", variant_metadata: (data.variant_metadata ?? {}) as Record<string, unknown> }]);
       }
 
       toast({

@@ -8,6 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getStableStoreProductCartId, useStoreProducts } from "@/hooks/useStoreProducts";
+import { useBulkAddVariantsToCart, useProductVariants } from "@/hooks/useProductVariants";
+import LensVariantGrid from "@/components/lenses/LensVariantGrid";
+import { useToast } from "@/hooks/use-toast";
 import { Expand, Lock, ShoppingCart } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 
@@ -18,17 +21,30 @@ const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
 };
 
 const StoreProductPage = () => {
-  const { productId, productType } = useParams<{ productId: string; productType: "lens" | "supply" }>();
+  const { productId, productType } = useParams<{ productId: string; productType: "lens" | "supply" | "addon" }>();
   const { data: products, isLoading } = useStoreProducts();
-  const { addToCart } = useCartContext();
+  const { addToCart, refetch } = useCartContext();
+  const { toast } = useToast();
+  const addVariantsMutation = useBulkAddVariantsToCart();
+  const { data: variants = [] } = useProductVariants(productType as any, productId);
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  if (!productId || (productType !== "lens" && productType !== "supply")) {
+  if (!productId || (productType !== "lens" && productType !== "supply" && productType !== "addon")) {
     return <Navigate to="/store" replace />;
   }
 
   const product = (products || []).find((candidate) => candidate.id === productId && candidate.product_type === productType);
+
+
+  const handleAddVariantSelection = async (items: { variantId: string; quantity: number }[]) => {
+    const inserted = await addVariantsMutation.mutateAsync(items);
+    await refetch();
+    toast({
+      title: "Variants added",
+      description: `${inserted} variant line${inserted === 1 ? "" : "s"} added to cart.`,
+    });
+  };
 
   const handleAdd = () => {
     if (!product) return;
@@ -125,10 +141,18 @@ const StoreProductPage = () => {
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</div>
                     </div>
 
-                    {product.has_variants && (
+                    {product.has_variants && product.product_type === "lens" && variants.length > 0 && (
+                      <Card className="border-border/70 bg-muted/20">
+                        <CardContent className="p-4">
+                          <LensVariantGrid variants={variants} onAddSelected={handleAddVariantSelection} />
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {product.has_variants && !(product.product_type === "lens" && variants.length > 0) && (
                       <Card className="border-border/70 bg-muted/30">
                         <CardContent className="p-4 text-sm text-foreground">
-                          This product requires configuration before it can be added to the cart.
+                          This product requires variant selection before it can be added to the cart.
                         </CardContent>
                       </Card>
                     )}
