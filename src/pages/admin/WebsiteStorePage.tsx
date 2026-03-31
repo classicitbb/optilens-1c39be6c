@@ -577,7 +577,12 @@ const WebsiteStorePage = () => {
                       <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openEditor(row)}>
                         <Settings className="h-3 w-3 mr-1" /> Edit
                       </Button>
-                      {(row.type === "lens" || row.type === "supply") && (
+                      <Button size="sm" variant="outline" className="h-7 text-[11px]" asChild>
+                        <Link to={`/admin/website/store/variants/${row.type}/${row.id}`}>
+                          Variants
+                        </Link>
+                      </Button>
+                      {(row.type === "lens" || row.type === "supply" || row.type === "addon") && (
                         <Button size="sm" variant="outline" className="h-7 text-[11px]" asChild>
                           <Link to={`/store/product/${row.type}/${row.id}`} target="_blank" rel="noreferrer">
                             <Eye className="h-3 w-3 mr-1" /> View
