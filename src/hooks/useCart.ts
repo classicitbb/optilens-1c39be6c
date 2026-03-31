@@ -144,7 +144,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
             variant_label: product.variantLabel ?? null,
             variant_sku: product.variantSku ?? null,
             variant_opc_code: product.variantOpcCode ?? null,
-            variant_metadata: product.variantMetadata ?? {},
+            variant_metadata: (product.variantMetadata ?? {}) as any,
           }])
           .select()
           .single();
