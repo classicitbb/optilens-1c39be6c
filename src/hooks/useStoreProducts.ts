@@ -113,7 +113,7 @@ export const useStoreProducts = () => {
         overrideMap.set(key, row);
       }
 
-      for (const row of ((variantSummaryRes.data ?? []) as any[])) {
+      for (const row of (variantSummaryRes.data ?? [])) {
         variantSummaryMap.set(`${row.product_type}:${row.product_id}`, Number(row.active_variants ?? 0));
       }
 
