@@ -436,11 +436,13 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          opc_code: string | null
           product_id: number
           product_name: string
           product_price: number
           product_type: string
           quantity: number
+          sku: string | null
           updated_at: string
           user_id: string
           variant_id: string | null
@@ -448,15 +450,18 @@ export type Database = {
           variant_metadata: Json
           variant_opc_code: string | null
           variant_sku: string | null
+          variant_snapshot: Json
         }
         Insert: {
           created_at?: string
           id?: string
+          opc_code?: string | null
           product_id: number
           product_name: string
           product_price: number
           product_type?: string
           quantity?: number
+          sku?: string | null
           updated_at?: string
           user_id: string
           variant_id?: string | null
@@ -464,15 +469,18 @@ export type Database = {
           variant_metadata?: Json
           variant_opc_code?: string | null
           variant_sku?: string | null
+          variant_snapshot?: Json
         }
         Update: {
           created_at?: string
           id?: string
+          opc_code?: string | null
           product_id?: number
           product_name?: string
           product_price?: number
           product_type?: string
           quantity?: number
+          sku?: string | null
           updated_at?: string
           user_id?: string
           variant_id?: string | null
@@ -480,6 +488,7 @@ export type Database = {
           variant_metadata?: Json
           variant_opc_code?: string | null
           variant_sku?: string | null
+          variant_snapshot?: Json
         }
         Relationships: [
           {
@@ -3285,50 +3294,59 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          opc_code: string | null
           order_id: string
           product_id: number
           product_name: string
           product_price: number
           product_type: string
           quantity: number
+          sku: string | null
           unit_price_snapshot: number
           variant_id: string | null
           variant_label: string | null
           variant_metadata: Json
           variant_opc_code: string | null
           variant_sku: string | null
+          variant_snapshot: Json
         }
         Insert: {
           created_at?: string
           id?: string
+          opc_code?: string | null
           order_id: string
           product_id: number
           product_name: string
           product_price: number
           product_type?: string
           quantity?: number
+          sku?: string | null
           unit_price_snapshot?: number
           variant_id?: string | null
           variant_label?: string | null
           variant_metadata?: Json
           variant_opc_code?: string | null
           variant_sku?: string | null
+          variant_snapshot?: Json
         }
         Update: {
           created_at?: string
           id?: string
+          opc_code?: string | null
           order_id?: string
           product_id?: number
           product_name?: string
           product_price?: number
           product_type?: string
           quantity?: number
+          sku?: string | null
           unit_price_snapshot?: number
           variant_id?: string | null
           variant_label?: string | null
           variant_metadata?: Json
           variant_opc_code?: string | null
           variant_sku?: string | null
+          variant_snapshot?: Json
         }
         Relationships: [
           {
@@ -3375,6 +3393,47 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "order_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_payment_links: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          order_id: string
+          status: string
+          token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id: string
+          status?: string
+          token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id?: string
+          status?: string
+          token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payment_links_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -3438,6 +3497,50 @@ export type Database = {
             columns: ["payment_method_id"]
             isOneToOne: false
             referencedRelation: "customer_payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_revisions: {
+        Row: {
+          actor_user_id: string | null
+          after_snapshot: Json
+          before_snapshot: Json
+          created_at: string
+          customer_note: string | null
+          id: string
+          internal_note: string | null
+          order_id: string
+          revision_type: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          after_snapshot?: Json
+          before_snapshot?: Json
+          created_at?: string
+          customer_note?: string | null
+          id?: string
+          internal_note?: string | null
+          order_id: string
+          revision_type: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          after_snapshot?: Json
+          before_snapshot?: Json
+          created_at?: string
+          customer_note?: string | null
+          id?: string
+          internal_note?: string | null
+          order_id?: string
+          revision_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_revisions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -3939,6 +4042,114 @@ export type Database = {
           name?: string
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      product_variant_configs: {
+        Row: {
+          attributes: Json
+          created_at: string
+          id: string
+          opc_template: string | null
+          product_id: string
+          product_type: string
+          settings: Json
+          sku_template: string | null
+          updated_at: string
+          variant_mode: string
+        }
+        Insert: {
+          attributes?: Json
+          created_at?: string
+          id?: string
+          opc_template?: string | null
+          product_id: string
+          product_type: string
+          settings?: Json
+          sku_template?: string | null
+          updated_at?: string
+          variant_mode?: string
+        }
+        Update: {
+          attributes?: Json
+          created_at?: string
+          id?: string
+          opc_template?: string | null
+          product_id?: string
+          product_type?: string
+          settings?: Json
+          sku_template?: string | null
+          updated_at?: string
+          variant_mode?: string
+        }
+        Relationships: []
+      }
+      product_variants: {
+        Row: {
+          allow_backorder: boolean
+          attribute_values: Json
+          cost: number | null
+          created_at: string
+          display_label: string | null
+          id: string
+          is_active: boolean
+          low_stock_threshold: number
+          metadata: Json
+          opc_code: string | null
+          price: number
+          product_id: string
+          product_type: string
+          sku: string | null
+          sort_order: number
+          stock_qty: number | null
+          title: string
+          updated_at: string
+          variant_key: string
+          variant_mode: string
+        }
+        Insert: {
+          allow_backorder?: boolean
+          attribute_values?: Json
+          cost?: number | null
+          created_at?: string
+          display_label?: string | null
+          id?: string
+          is_active?: boolean
+          low_stock_threshold?: number
+          metadata?: Json
+          opc_code?: string | null
+          price?: number
+          product_id: string
+          product_type: string
+          sku?: string | null
+          sort_order?: number
+          stock_qty?: number | null
+          title: string
+          updated_at?: string
+          variant_key: string
+          variant_mode?: string
+        }
+        Update: {
+          allow_backorder?: boolean
+          attribute_values?: Json
+          cost?: number | null
+          created_at?: string
+          display_label?: string | null
+          id?: string
+          is_active?: boolean
+          low_stock_threshold?: number
+          metadata?: Json
+          opc_code?: string | null
+          price?: number
+          product_id?: string
+          product_type?: string
+          sku?: string | null
+          sort_order?: number
+          stock_qty?: number | null
+          title?: string
+          updated_at?: string
+          variant_key?: string
+          variant_mode?: string
         }
         Relationships: []
       }
@@ -5580,6 +5791,15 @@ export type Database = {
         Returns: undefined
       }
       place_customer_order: {
+        Args: {
+          p_actor_user_id?: string
+          p_checkout?: Json
+          p_items: Json
+          p_target_user_id: string
+        }
+        Returns: string
+      }
+      place_customer_order_v2: {
         Args: {
           p_actor_user_id?: string
           p_checkout?: Json
