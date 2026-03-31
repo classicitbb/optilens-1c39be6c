@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FilterX, Download, Settings, Database, Upload, Package as PackageIcon } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
@@ -158,7 +159,10 @@ const ProductCatalogPage = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden p-4 gap-4">
       <div className="flex items-center justify-between shrink-0">
-        <AdminPageHeader icon={PackageIcon} title="Product Catalog" />
+        <div className="flex items-center gap-2">
+          <AdminPageHeader icon={PackageIcon} title="Product Catalog" />
+          <ReleaseWhatChangedLink section="pricing" />
+        </div>
         <div className="flex items-center gap-2">
           {activeTab === "lenses" && (
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => navigate("/admin/pricing/compare")}>
