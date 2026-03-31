@@ -9,13 +9,13 @@ import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getStableStoreProductCartId, useStoreProducts } from "@/hooks/useStoreProducts";
 import { useBulkAddVariantsToCart, useProductVariantSettings, useProductVariants } from "@/hooks/useProductVariants";
-import LensVariantGrid from "@/components/lenses/LensVariantGrid";
 import { useToast } from "@/hooks/use-toast";
 import { Expand, Lock, ShoppingCart } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { LensVariantGrid } from "@/components/store/LensVariantGrid";
 import { StandardVariantSelector } from "@/components/store/StandardVariantSelector";
-import { useProductVariantConfig, useProductVariants } from "@/features/store/variants/useProductVariants";
+import { useProductVariantConfig } from "@/features/store/variants/useProductVariants";
+import type { ProductVariant as FeatureProductVariant } from "@/features/store/variants/types";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -24,19 +24,27 @@ const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
 };
 
 const StoreProductPage = () => {
-  const { productId, productType } = useParams<{ productId: string; productType: "lens" | "supply" | "addon" }>();
+  const { productId, productType } = useParams<{ productId: string; productType: string }>();
   const { data: products, isLoading } = useStoreProducts();
   const { addToCart, refetch } = useCartContext();
   const { toast } = useToast();
   const addVariantsMutation = useBulkAddVariantsToCart();
-  const { data: variants = [] } = useProductVariants(productType as any, productId);
-  const { data: variantSettings } = useProductVariantSettings(productType as any, productId);
+  const safeProductType = productType === "lens" || productType === "supply" || productType === "addon" ? productType : "lens";
+  const safeProductId = productId ?? "";
+  const { data: hookVariants = [] } = useProductVariants(safeProductType, safeProductId);
+  const { data: variantSettings } = useProductVariantSettings(safeProductType, safeProductId);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const safeProductType = productType === "lens" || productType === "supply" ? productType : "lens";
-  const safeProductId = productId ?? "";
-  const { data: variantConfig } = useProductVariantConfig(safeProductType, safeProductId);
-  const { data: variants = [] } = useProductVariants(safeProductType, safeProductId);
+  const configProductType = safeProductType === "addon" ? "lens" : safeProductType;
+  const { data: variantConfig } = useProductVariantConfig(configProductType as "lens" | "supply", safeProductId);
+
+  // Map hook variants to feature variants for LensVariantGrid / StandardVariantSelector
+  const variants: FeatureProductVariant[] = hookVariants.map((v) => ({
+    ...v,
+    variant_mode: (variantConfig?.variant_mode ?? "none") as FeatureProductVariant["variant_mode"],
+    display_label: v.title,
+    attribute_values: v.attributes ?? {},
+  }));
 
   if (!productId || (productType !== "lens" && productType !== "supply" && productType !== "addon")) {
     return <Navigate to="/store" replace />;
@@ -46,9 +54,6 @@ const StoreProductPage = () => {
   const isChiralLens = product?.product_type === "lens"
     ? Boolean((variantSettings?.config as any)?.is_chiral) || product.tags.some((tag) => /progressive|bifocal/i.test(tag))
     : false;
-  const rowLabel = String((variantSettings?.config as any)?.row_label ?? "Sphere");
-  const columnLabel = String((variantSettings?.config as any)?.column_label ?? "Cylinder");
-
 
   const handleAddVariantSelection = async (items: { variantId: string; quantity: number }[]) => {
     const inserted = await addVariantsMutation.mutateAsync(items);

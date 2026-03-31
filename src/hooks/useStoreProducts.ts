@@ -47,7 +47,7 @@ export const useStoreProducts = () => {
   return useQuery<StoreProduct[]>({
     queryKey: ["store-products"],
     queryFn: async () => {
-      const [lensRes, supplyRes, mediaRes, overrideRes, variantConfigRes, variantAggRes] = await Promise.all([
+      const [lensRes, supplyRes, _addonResUnused, mediaRes, overrideRes, variantConfigRes, variantAggRes] = await Promise.all([
         supabase
           .from("lenses")
           .select("id, name, sell_price, show_on_website, notes, lenstype:lenstypes(name), material:materials(name), mftype:mftypes(name)")
@@ -82,6 +82,14 @@ export const useStoreProducts = () => {
 
       if (lensRes.error) throw lensRes.error;
       if (supplyRes.error) throw supplyRes.error;
+
+      // Destructure the third parallel result (addons)
+      const addonRes = await supabase
+        .from("addons")
+        .select("id, name, description, category, price, show_on_website, is_active")
+        .eq("show_on_website", true)
+        .eq("is_active", true)
+        .order("name");
       if (addonRes.error) throw addonRes.error;
       // Non-fatal to support incremental rollout before SQL migration is applied.
       const mediaRows = Array.isArray(mediaRes.data) ? mediaRes.data as any[] : [];
@@ -167,7 +175,25 @@ export const useStoreProducts = () => {
         variant_mode: variantModeMap.get(`supply:${s.id}`) ?? "none",
       }));
 
-      return [...lenses, ...supplies, ...addons];
+      const addonProducts: StoreProduct[] = (addonRes.data || []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        description: a.description || "",
+        quantity_label: "each",
+        sell_price: Number(a.price ?? 0),
+        sell_price_usd: normalizeUsdPrice(a.price),
+        is_vat_taxable: false,
+        product_type: "addon" as const,
+        category: a.category || "Add-on",
+        subcategory: "",
+        tags: [a.category].filter(Boolean),
+        image_url: null,
+        image_urls: [],
+        has_variants: false,
+        variant_mode: "none" as const,
+      }));
+
+      return [...lenses, ...supplies, ...addonProducts];
     },
   });
 };

@@ -14,12 +14,10 @@ export interface CartItem {
   variant_sku?: string | null;
   variant_opc_code?: string | null;
   variant_metadata?: Record<string, unknown> | null;
+  variant_snapshot?: Record<string, unknown>;
   quantity: number;
-  variant_id?: string | null;
-  variant_label?: string | null;
   sku?: string | null;
   opc_code?: string | null;
-  variant_snapshot?: Record<string, unknown>;
 }
 
 interface UseCartOptions {
@@ -80,7 +78,12 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setItems((data || []).map((d: any) => ({ ...d, product_type: d.product_type as "lens" | "supply" | "addon", variant_metadata: (d.variant_metadata ?? {}) as Record<string, unknown> })));
+      setItems((data || []).map((d: any) => ({
+        ...d,
+        product_type: d.product_type as "lens" | "supply" | "addon",
+        variant_metadata: (d.variant_metadata ?? {}) as Record<string, unknown>,
+        variant_snapshot: (typeof d.variant_snapshot === "object" && d.variant_snapshot !== null ? d.variant_snapshot : {}) as Record<string, unknown>,
+      })));
     } catch (error) {
       if (!isExpectedCartError(error)) {
         console.error("Error fetching cart:", error);
@@ -112,8 +115,6 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     variantOpcCode?: string;
     variantMetadata?: Record<string, unknown>;
     quantity?: number;
-    variantId?: string;
-    variantLabel?: string;
     sku?: string;
     opcCode?: string;
     variantSnapshot?: Record<string, unknown>;
@@ -149,20 +150,6 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         );
       } else {
         // Insert new item
-        const cartInsertPayload = {
-          user_id: user.id,
-          product_id: product.id,
-          product_name: product.name,
-          product_price: product.price,
-          product_type: product.productType,
-          quantity: quantityToAdd,
-          variant_id: product.variantId ?? null,
-          variant_label: product.variantLabel ?? null,
-          variant_sku: product.variantSku ?? null,
-          variant_opc_code: product.variantOpcCode ?? null,
-          variant_metadata: (product.variantMetadata ?? {}) as unknown as import("@/integrations/supabase/types").Json,
-        };
-
         const { data, error } = await supabase
           .from("cart_items")
           .insert({
@@ -174,15 +161,23 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
             quantity: quantityToAdd,
             variant_id: product.variantId ?? null,
             variant_label: product.variantLabel ?? null,
+            variant_sku: product.variantSku ?? null,
+            variant_opc_code: product.variantOpcCode ?? null,
+            variant_metadata: (product.variantMetadata ?? {}) as unknown as import("@/integrations/supabase/types").Json,
             sku: product.sku ?? null,
             opc_code: product.opcCode ?? null,
-            variant_snapshot: product.variantSnapshot ?? {},
-          })
+            variant_snapshot: (product.variantSnapshot ?? {}) as unknown as import("@/integrations/supabase/types").Json,
+          } as any)
           .select()
           .single();
 
         if (error) throw error;
-        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" | "addon", variant_metadata: (data.variant_metadata ?? {}) as Record<string, unknown> }]);
+        setItems((prev) => [...prev, {
+          ...data,
+          product_type: data.product_type as "lens" | "supply" | "addon",
+          variant_metadata: (data.variant_metadata ?? {}) as Record<string, unknown>,
+          variant_snapshot: (typeof data.variant_snapshot === "object" && data.variant_snapshot !== null ? data.variant_snapshot : {}) as Record<string, unknown>,
+        } as CartItem]);
       }
 
       toast({
