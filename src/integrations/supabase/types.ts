@@ -443,6 +443,11 @@ export type Database = {
           quantity: number
           updated_at: string
           user_id: string
+          variant_id: string | null
+          variant_label: string | null
+          variant_metadata: Json
+          variant_opc_code: string | null
+          variant_sku: string | null
         }
         Insert: {
           created_at?: string
@@ -454,6 +459,11 @@ export type Database = {
           quantity?: number
           updated_at?: string
           user_id: string
+          variant_id?: string | null
+          variant_label?: string | null
+          variant_metadata?: Json
+          variant_opc_code?: string | null
+          variant_sku?: string | null
         }
         Update: {
           created_at?: string
@@ -465,8 +475,21 @@ export type Database = {
           quantity?: number
           updated_at?: string
           user_id?: string
+          variant_id?: string | null
+          variant_label?: string | null
+          variant_metadata?: Json
+          variant_opc_code?: string | null
+          variant_sku?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "store_product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       catalog_assignments: {
         Row: {
@@ -3268,6 +3291,12 @@ export type Database = {
           product_price: number
           product_type: string
           quantity: number
+          unit_price_snapshot: number
+          variant_id: string | null
+          variant_label: string | null
+          variant_metadata: Json
+          variant_opc_code: string | null
+          variant_sku: string | null
         }
         Insert: {
           created_at?: string
@@ -3278,6 +3307,12 @@ export type Database = {
           product_price: number
           product_type?: string
           quantity?: number
+          unit_price_snapshot?: number
+          variant_id?: string | null
+          variant_label?: string | null
+          variant_metadata?: Json
+          variant_opc_code?: string | null
+          variant_sku?: string | null
         }
         Update: {
           created_at?: string
@@ -3288,6 +3323,12 @@ export type Database = {
           product_price?: number
           product_type?: string
           quantity?: number
+          unit_price_snapshot?: number
+          variant_id?: string | null
+          variant_label?: string | null
+          variant_metadata?: Json
+          variant_opc_code?: string | null
+          variant_sku?: string | null
         }
         Relationships: [
           {
@@ -3295,6 +3336,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "store_product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -4860,6 +4908,158 @@ export type Database = {
         }
         Relationships: []
       }
+      store_product_variant_settings: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          opc_template: string | null
+          product_id: string
+          product_type: string
+          sku_template: string | null
+          updated_at: string
+          updated_by: string | null
+          variant_mode: Database["public"]["Enums"]["store_variant_mode"]
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          opc_template?: string | null
+          product_id: string
+          product_type: string
+          sku_template?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variant_mode?: Database["public"]["Enums"]["store_variant_mode"]
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          opc_template?: string | null
+          product_id?: string
+          product_type?: string
+          sku_template?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variant_mode?: Database["public"]["Enums"]["store_variant_mode"]
+        }
+        Relationships: []
+      }
+      store_product_variants: {
+        Row: {
+          allow_backorder: boolean
+          attributes: Json
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          low_stock_threshold: number
+          metadata: Json
+          opc_code: string | null
+          price: number
+          product_id: string
+          product_type: string
+          reserved_qty: number
+          sku: string | null
+          sort_order: number
+          stock_qty: number
+          title: string
+          updated_at: string
+          updated_by: string | null
+          variant_key: string
+        }
+        Insert: {
+          allow_backorder?: boolean
+          attributes?: Json
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          low_stock_threshold?: number
+          metadata?: Json
+          opc_code?: string | null
+          price?: number
+          product_id: string
+          product_type: string
+          reserved_qty?: number
+          sku?: string | null
+          sort_order?: number
+          stock_qty?: number
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          variant_key: string
+        }
+        Update: {
+          allow_backorder?: boolean
+          attributes?: Json
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          low_stock_threshold?: number
+          metadata?: Json
+          opc_code?: string | null
+          price?: number
+          product_id?: string
+          product_type?: string
+          reserved_qty?: number
+          sku?: string | null
+          sort_order?: number
+          stock_qty?: number
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          variant_key?: string
+        }
+        Relationships: []
+      }
+      store_variant_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          id: string
+          variant_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          variant_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_variant_audit_logs_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "store_product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           abbrev: string
@@ -5165,6 +5365,18 @@ export type Database = {
         }
         Relationships: []
       }
+      store_product_variant_summary: {
+        Row: {
+          active_variants: number | null
+          low_stock_variants: number | null
+          max_price: number | null
+          min_price: number | null
+          product_id: string | null
+          product_type: string | null
+          total_variants: number | null
+        }
+        Relationships: []
+      }
       supplies_public: {
         Row: {
           category: string | null
@@ -5200,6 +5412,10 @@ export type Database = {
       }
     }
     Functions: {
+      add_variant_items_to_cart: {
+        Args: { p_items: Json; p_target_user_id?: string }
+        Returns: number
+      }
       can_access_customer_portal_feature: {
         Args: { p_feature_key?: string; p_user_id?: string }
         Returns: boolean
@@ -5470,6 +5686,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "operator" | "viewer" | "customer"
       shipment_status: "draft" | "reviewed" | "locked"
+      store_variant_mode:
+        | "none"
+        | "lens_grid"
+        | "standard_options"
+        | "service_config"
+        | "generic_matrix"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5599,6 +5821,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "operator", "viewer", "customer"],
       shipment_status: ["draft", "reviewed", "locked"],
+      store_variant_mode: [
+        "none",
+        "lens_grid",
+        "standard_options",
+        "service_config",
+        "generic_matrix",
+      ],
     },
   },
 } as const
