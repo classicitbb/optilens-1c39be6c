@@ -236,6 +236,44 @@ export type Database = {
           },
         ]
       }
+      admin_notification_receipts: {
+        Row: {
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          notification_id: string
+          read_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          notification_id: string
+          read_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          notification_id?: string
+          read_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notification_receipts_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "admin_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notifications: {
         Row: {
           created_at: string
@@ -4990,6 +5028,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_presence: {
+        Row: {
+          availability_mode: string
+          last_heartbeat_at: string
+          last_seen_at: string
+          role_scope: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          availability_mode?: string
+          last_heartbeat_at?: string
+          last_seen_at?: string
+          role_scope?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          availability_mode?: string
+          last_heartbeat_at?: string
+          last_seen_at?: string
+          role_scope?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -5132,6 +5200,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_access_customer_portal_feature: {
+        Args: { p_feature_key?: string; p_user_id?: string }
+        Returns: boolean
+      }
       cancel_integration_sync_job: {
         Args: { p_sync_job_id: string }
         Returns: undefined
@@ -5388,6 +5460,10 @@ export type Database = {
           p_provider: string
           p_tenant_key?: string
         }
+        Returns: undefined
+      }
+      upsert_presence_heartbeat: {
+        Args: { p_role_scope?: string; p_status?: string }
         Returns: undefined
       }
     }
