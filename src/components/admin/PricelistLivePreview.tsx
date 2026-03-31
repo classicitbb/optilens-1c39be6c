@@ -10,6 +10,7 @@ import { preparePrintListChunks, type PrintListSection } from "@/features/admin/
 import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixSectionLabel, parseMatrixRowKey } from "@/features/admin/rx-pricing/structure";
 import { useLenses } from "@/hooks/useLenses";
+import { resolveCatalogRowPreviewPriceBbd } from "@/lib/pricelistPreviewPricing";
 
 const CATALOG_TITLES: Record<string, string> = {
   rx: "RX LENS PRICES",
@@ -48,7 +49,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
   const { data: allCatalogRows = [] } = usePricelistCatalogRows(version.id, catalogType);
   const { data: allLenses = [] } = useLenses();
   const { data: company } = useCompanySettings();
-  const { calcFinalPrice } = usePriceHierarchy(version.id);
+  const { calcFinalPrice, lineOverrides } = usePriceHierarchy(version.id);
   const { structure: rxStructure } = useRxPricingStructure(version.id);
 
   const resolvedCatalogRows = liveCatalogRows ?? allCatalogRows;
@@ -109,8 +110,8 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     return fmtDisplay(finalBbd, showUSD, fxRate);
   };
 
-  const hierarchyCatalogPrice = (row: { bbd_price: number | null; row_key: string; row_type: string }) => {
-    const finalBbd = calcFinalPrice(row.bbd_price, version, catalogType, row.row_key, row.row_type);
+  const hierarchyCatalogPrice = (row: { bbd_price: number | null; row_type: string; item_id?: string | null }) => {
+    const finalBbd = resolveCatalogRowPreviewPriceBbd(row, lineOverrides);
     return fmtDisplay(finalBbd, showUSD, fxRate);
   };
 
