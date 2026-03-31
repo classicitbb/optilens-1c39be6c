@@ -14,6 +14,7 @@
     "qa:lockfiles": "node scripts/check_lockfiles.mjs",
     "qa:pr-checks": "node scripts/pr_checks.mjs",
     "qa:release-ledger": "node scripts/sync_release_ledger.mjs --check",
+    "qa:wiki-build-version": "node scripts/validate_wiki_build_versions.mjs",
     "qa:smoke": "node scripts/admin_smoke_and_error_checks.mjs",
     "security:audit": "node scripts/audit-policy.mjs",
     "release-ledger:sync": "node scripts/sync_release_ledger.mjs",

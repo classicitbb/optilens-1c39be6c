@@ -17,6 +17,11 @@ const checks = [
     command: "npm",
     args: ["run", "qa:release-ledger"],
   },
+  {
+    name: "Wiki build version validation",
+    command: "npm",
+    args: ["run", "qa:wiki-build-version"],
+  },
 ];
 
 for (const check of checks) {
