@@ -93,11 +93,11 @@ export const CartSheet = ({
                       {itemLink ? (
                         <h4 className="font-medium text-foreground">
                           <Link to={itemLink} className="hover:text-primary hover:underline" onClick={() => setSheetOpen(false)}>
-                            {item.product_name}
+                            {item.product_name}{item.variant_label ? ` · ${item.variant_label}` : ""}
                           </Link>
                         </h4>
                       ) : (
-                        <h4 className="font-medium text-foreground">{item.product_name}</h4>
+                        <h4 className="font-medium text-foreground">{item.product_name}{item.variant_label ? ` · ${item.variant_label}` : ""}</h4>
                       )}
                       <p className="text-sm text-muted-foreground">
                         ${item.product_price.toFixed(2)}{item.product_type === "supply" ? "/unit" : "/pair"} <span className="text-[10px] font-semibold uppercase">USD</span>
@@ -146,7 +146,7 @@ export const CartSheet = ({
                     className="flex justify-between text-sm text-muted-foreground"
                   >
                     <span>
-                      {item.product_name} × {item.quantity}
+                      {item.product_name}{item.variant_label ? ` · ${item.variant_label}` : ""} × {item.quantity}
                     </span>
                     <span>
                       ${(item.product_price * item.quantity).toFixed(2)}

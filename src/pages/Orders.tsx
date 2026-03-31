@@ -151,7 +151,7 @@ const getStatusColor = (status: string) => {
                               {order.items.map((item) => (
                                 <TableRow key={item.id}>
                                   <TableCell className="font-medium">
-                                    {item.productName}
+                                    {item.productName}{item.variantLabel ? ` · ${item.variantLabel}` : ""}
                                   </TableCell>
                                   <TableCell className="text-right">
                                     ${item.unitPrice.toFixed(2)}
