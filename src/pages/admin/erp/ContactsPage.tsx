@@ -1019,6 +1019,16 @@ const ContactsPage = () => {
 
         const linkedName = splitLinkedContactName(rawName);
         if (linkedName) {
+          if (row.is_company === true) {
+            return {
+              rowNumber,
+              displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`,
+              row,
+              linkedName,
+              status: "invalid" as const,
+              reason: "Row has company+person in name but is_company is true",
+            };
+          }
           const linkedPersonKey = normalizeValue(linkedName.personName);
           const existingLinkedPerson = existingContactByName.get(linkedPersonKey);
           if (existingLinkedPerson) {
@@ -1027,8 +1037,8 @@ const ContactsPage = () => {
               displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`,
               row,
               linkedName,
-              status: "ready" as const,
-              reason: "Existing person will be linked to this company",
+              status: "duplicate" as const,
+              reason: "Person name already exists (contacts_name_key)",
             };
           }
           return { rowNumber, displayName: `${linkedName.companyName} ↔ ${linkedName.personName}`, row, linkedName, status: "ready" as const };
@@ -1065,9 +1075,18 @@ const ContactsPage = () => {
   };
 
   const runImportFromPreview = async () => {
+    if (previewSummary.invalid > 0 || previewSummary.duplicates > 0) {
+      toast({
+        title: "Fix preview issues before importing",
+        description: "Import is blocked until all rows are ready.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const readyRows = importPreviewRows.filter((row) => row.status === "ready");
-    if (readyRows.length === 0) {
-      toast({ title: "No valid rows ready for import", variant: "destructive" });
+    if (readyRows.length === 0 || readyRows.length !== importPreviewRows.length) {
+      toast({ title: "All rows must be ready before importing", variant: "destructive" });
       return;
     }
 
@@ -1134,35 +1153,13 @@ const ContactsPage = () => {
       if (linkedName) {
         try {
           const companyId = await createCompanyFromRow(linkedName.companyName, row);
-          const linkedPersonKey = normalizeValue(linkedName.personName);
-          const existingLinkedPerson = existingContactByName.get(linkedPersonKey);
-          if (existingLinkedPerson) {
-            if (existingLinkedPerson.id === "__new__") {
-              duplicates += 1;
-              continue;
-            }
-            const { error: updateError } = await supabase
-              .from("contacts")
-              .update({
-                parent_id: companyId,
-                is_company: false,
-              } as any)
-              .eq("id", existingLinkedPerson.id as any);
-            if (updateError) {
-              errors += 1;
-              issues.push(`Row ${previewRow.rowNumber}: ${updateError.message}`);
-              continue;
-            }
-            linkedRows += 1;
-            continue;
-          }
-
-          const personRow = {
+          const personRow: Record<string, unknown> = {
             ...row,
             name: linkedName.personName,
             is_company: false,
             parent_id: companyId,
           };
+          const linkedPersonKey = normalizeValue(linkedName.personName);
 
           const personScopedKey = `${getImportDuplicateKey({
             name: linkedName.personName,
@@ -1652,9 +1649,18 @@ const ContactsPage = () => {
               </TableBody>
             </Table>
           </div>
+          {previewSummary.ready !== previewSummary.total && (
+            <p className="text-xs text-amber-600">
+              Import is blocked until every row is validated as Ready.
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" disabled={isImporting} onClick={() => setIsImportPreviewOpen(false)}>Cancel</Button>
-            <Button type="button" disabled={isImporting || previewSummary.ready === 0} onClick={runImportFromPreview}>
+            <Button
+              type="button"
+              disabled={isImporting || previewSummary.ready === 0 || previewSummary.ready !== previewSummary.total}
+              onClick={runImportFromPreview}
+            >
               {isImporting ? "Importing..." : `Import ${previewSummary.ready} ready records`}
             </Button>
           </div>
