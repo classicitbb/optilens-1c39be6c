@@ -52,11 +52,11 @@ const AdminWikiPage = () => {
             const contexts = article.context_slugs?.length ? article.context_slugs : ["knowledge/wiki"];
             return contexts.some((contextSlug) => canViewContextSlug(contextSlug, canView));
           })
-          .map((article) => ({
+          .map((article): WikiArticleView => ({
             id: `static:${article.id}`,
             title: article.title,
             content: article.content,
-            body_json: article.body_json,
+            body_json: (article as any).body_json,
             categoryId: category.id,
             categoryTitle: category.title,
             status: "published" as const,
