@@ -23,6 +23,8 @@ import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixSectionLabel, parseMatrixRowKey } from "@/features/admin/rx-pricing/structure";
 import { usePricingSettings } from "@/hooks/usePricingSettings";
 import { usePricelistCatalogRowUpsert } from "@/hooks/usePricelistCatalogRowUpsert";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const BLUE_BG = "#1e4db7";
 const BLUE_TEXT = "#fff";
@@ -92,6 +94,7 @@ const ListCatalogTab = ({
   const { hasOverride, lineOverrides } = usePriceHierarchy(versionId);
   const { versions: pricingVersions } = usePricingSettings();
   const { upsertRow: upsertCatalogRow, deleteRow: deleteCatalogRow } = usePricelistCatalogRowUpsert(versionId ?? null, catalogType);
+  const queryClient = useQueryClient();
   const printRef = useRef<HTMLDivElement>(null);
 
   // Determine the margin floor based on catalog type
@@ -398,6 +401,69 @@ const ListCatalogTab = ({
     }
   };
 
+  const upsertMatrixCellOverride = async (allocationId: number, overridePrice: number | null) => {
+    if (overridePrice == null || !versionId) return;
+
+    const sectionType = CATALOG_TO_SECTION_LABEL[catalogType] ?? "RX Lens Prices";
+    const { data: existingSection, error: sectionLookupError } = await supabase
+      .from("pricelist_child_sections")
+      .select("id")
+      .eq("pricelist_version_id", versionId)
+      .eq("section_type", sectionType)
+      .limit(1)
+      .maybeSingle();
+    if (sectionLookupError) throw sectionLookupError;
+
+    let childSectionId = existingSection?.id;
+    if (!childSectionId) {
+      const { data: createdSection, error: createSectionError } = await supabase
+        .from("pricelist_child_sections")
+        .insert({
+          pricelist_version_id: versionId,
+          section_type: sectionType,
+          child_markup_percent: 0,
+          child_discount_percent: 0,
+        })
+        .select("id")
+        .single();
+      if (createSectionError) throw createSectionError;
+      childSectionId = createdSection.id;
+    }
+
+    const refId = String(allocationId);
+    const { data: existingOverride, error: overrideLookupError } = await supabase
+      .from("pricelist_line_overrides")
+      .select("id")
+      .eq("child_section_id", childSectionId)
+      .eq("reference_type", "matrix_allocation")
+      .eq("reference_id", refId)
+      .limit(1)
+      .maybeSingle();
+    if (overrideLookupError) throw overrideLookupError;
+
+    if (existingOverride?.id) {
+      const { error: updateOverrideError } = await supabase
+        .from("pricelist_line_overrides")
+        .update({
+          overridden_price_bbd: overridePrice,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingOverride.id);
+      if (updateOverrideError) throw updateOverrideError;
+    } else {
+      const { error: createOverrideError } = await supabase
+        .from("pricelist_line_overrides")
+        .insert({
+          child_section_id: childSectionId,
+          reference_type: "matrix_allocation",
+          reference_id: refId,
+          overridden_price_bbd: overridePrice,
+          reason: "Price list editor override",
+        });
+      if (createOverrideError) throw createOverrideError;
+    }
+  };
+
   const clearMatrixLinkedRow = async (rowKey: string) => {
     const matrixCell = parseMatrixRowKey(rowKey);
     if (!matrixCell) return false;
@@ -453,6 +519,19 @@ const ListCatalogTab = ({
     if (row.key.startsWith("matrix::")) {
       try {
         await syncMatrixLinkedRow(row, section, nextPrice, rowType);
+        const matrixCell = parseMatrixRowKey(row.key);
+        if (matrixCell && row.lensId && nextPrice != null) {
+          const matchingAllocation = allocations.find((entry) =>
+            entry.treatment_type === matrixCell.groupKey &&
+            entry.category === matrixCell.categoryKey &&
+            entry.material_index === matrixCell.material &&
+            entry.lens_id === row.lensId
+          );
+          if (matchingAllocation) {
+            await upsertMatrixCellOverride(matchingAllocation.id, nextPrice);
+            queryClient.invalidateQueries({ queryKey: ["pricelist-line-overrides"] });
+          }
+        }
         setIsDirty(false);
       } catch (error: any) {
         toast({
