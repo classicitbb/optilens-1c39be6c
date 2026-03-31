@@ -250,8 +250,12 @@ const emptyContact = (isCompany: boolean): Partial<Contact> => ({
   pipeline_stage: "New",
 });
 
+const EMPTY_CONTACTS: Contact[] = [];
+const EMPTY_STRING_LIST: string[] = [];
+
 const ContactsPage = () => {
-  const { data: contacts = [], isLoading } = useContacts();
+  const { data: contactsData, isLoading } = useContacts();
+  const contacts = contactsData ?? EMPTY_CONTACTS;
   const { data: tags = [] } = useContactTags();
   const { data: industries = [] } = useIndustries();
   const saveContact = useSaveContact();
@@ -289,7 +293,8 @@ const ContactsPage = () => {
   const [isImporting, setIsImporting] = useState(false);
 
   // Load tags when editing
-  const { data: editTagIds = [] } = useContactTagLinks(editContact?.id);
+  const { data: editTagIdsData } = useContactTagLinks(editContact?.id);
+  const editTagIds = editTagIdsData ?? EMPTY_STRING_LIST;
 
   const { data: linkedContacts = [], isLoading: isLoadingLinkedContacts } = useQuery({
     queryKey: ["contacts-by-parent", editContact?.id],
@@ -1399,12 +1404,16 @@ const ContactsPage = () => {
     }
   };
 
-  // Sync tag ids when editTagIds loads
-  useMemo(() => {
-    if (editTagIds.length > 0 && editContact?.id) {
-      setSelectedTagIds(editTagIds);
-    }
-  }, [editTagIds, editContact?.id]);
+  useEffect(() => {
+    if (!editContact?.id) return;
+
+    setSelectedTagIds((prev) => {
+      if (prev.length === editTagIds.length && prev.every((id, index) => id === editTagIds[index])) {
+        return prev;
+      }
+      return editTagIds;
+    });
+  }, [editContact?.id, editTagIds]);
 
   const getParentName = (parentId: string | null) => {
     if (!parentId) return "";

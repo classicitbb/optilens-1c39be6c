@@ -82,91 +82,89 @@ Access is enforced both in the user interface and at the database level through 
         title: "Application and Route Reference",
         content: `## Application structure
 
-The platform is organised into ten business applications, each with dedicated routes for specific workflows.
+The operations console is split into admin domains with one canonical route per runtime page, plus legacy redirect paths for migrated URLs.
 
 ## Pricing application
 
-- **Product Catalog** manages SKUs, lens specifications, add-ons, and supplies across segmented tabs with search, column filters, and bulk active/inactive toggling
-- **RX Lens Prices** displays the full prescription lens pricing matrix with base prices, treatment upgrades, and material options
-- **Stock Lens Prices** shows wholesale stock lens pricing with WSPL-enabled items
-- **Supplies Prices** manages accessory and supply item pricing
-- **Lens Catalog Builder** assembles and publishes customer-facing catalogs with customisable sections, cover pages, and pricelist inclusions
-- **Import Costings** tracks landed cost calculations for shipments including duty, freight, and currency conversion
-- **Costing Reports** provides analytical views of import cost trends and margin analysis
-- **Reference Data** maintains shared lookup tables for brands, finish types, charge types, and suppliers
-- **Imports** handles bulk data loading for lenses, add-ons, supplies, and costing references
-- **Pricing Settings** configures global pricing parameters including VAT, duty rates, labour percentages, and profit margins
+- **Product Catalog** manages SKUs, lens specifications, add-ons, and supplies across segmented tabs with search, column filters, and active/inactive controls
+- **RX Lens Prices** maintains the prescription lens pricing matrix (base prices, upgrades, and material options)
+- **Stock Lens Prices** manages wholesale stock lens pricing with WSPL visibility
+- **Supplies Prices** manages non-lens accessory and supply pricing
+- **Supplier Compare** provides supplier-level pricing comparison to support sourcing decisions
+- **Lens Catalog Builder** publishes customer-facing catalog/proposal content
+- **Import Costings** tracks shipment landed costs (freight, duties, currency effects)
+- **Costing Reports** analyzes landed cost trends and margin exposure
+- **Reference Data** governs shared lookups (brands, finish types, charge types, suppliers)
+- **Imports** supports bulk data loads for pricing domains
+- **Pricing Settings** defines global pricing parameters and defaults
 
 ## Sales application
 
-- **Proposals** creates consultative, presentation-style offers with customisable content blocks
-- **Quotations** manages formal quotes with frame selection, lens configuration, Rx details, and pricing
-- **Web Orders** processes orders placed through the public website
-- **RX Orders** handles prescription lens orders from the order form
+- **Proposals** builds consultative proposal documents
+- **Quotations** handles formal quote creation/editing
+- **Quotation Print Preview** provides print-ready output for signed or shared quotes
+- **Web Orders** route exists but is currently placeholder-backed
+- **RX Orders** route exists but is currently placeholder-backed
 
 ## Contacts application
 
-- **All Contacts** maintains the master contact database with company and individual records, location data, and integration sync status
-- **Tags Config** manages contact classification tags organised by category with colour coding
-- **Industries Config** maintains the industry lookup table for contact segmentation
+- **All Contacts** maintains account/contact master data and sync status
+- **Tags Config** governs contact tag taxonomy
+- **Industries Config** governs industry segmentation taxonomy
 
 ## Leads application
 
-- **Lead Finder** discovers new business prospects using multi-provider intelligence searches
-- **My Leads** manages qualified leads with scoring, status tracking, and CRM conversion
-- **Campaigns and Sequences** organises outreach campaigns with email, WhatsApp, and social media sequence builders
-- **Audit Reports** tracks lead source performance, conversion rates, and compliance metrics
-- **AI Assistant** generates outreach copy and campaign assets using artificial intelligence
-- **Settings** configures lead scoring rules, targeting policies, and compliance guardrails
+- **Lead Finder** runs multi-provider prospect discovery
+- **My Leads** manages qualification, status, and conversion to CRM opportunities
+- **Campaigns & Sequences** manages outreach orchestration
+- **Audit Reports** tracks source and conversion performance
+- **AI Assistant** supports campaign/outreach content generation
+- **Settings** controls lead policy and scoring configuration
 
 ## CRM application
 
-- **Dashboard** displays sales KPIs, pipeline funnel, revenue trends, and overdue activity alerts
-- **Pipeline** visualises opportunities across customisable stages with drag-and-drop management
-- **Activities** tracks calls, emails, meetings, and tasks with due dates and completion status
+- **Dashboard** surfaces KPI, pipeline health, and overdue activity risk
+- **Pipeline** manages opportunities by stage
+- **Activities** tracks calls, meetings, emails, and task follow-ups
 
 ## Helpdesk application
 
-- **Tickets** manages support requests with priority levels, team assignments, stage tracking, and SLA monitoring
-- **Teams** configures support teams with assignment modes and visibility settings
-- **Stages** defines the ticket lifecycle stages with open, in-progress, and closed states
-- **SLA Policies** sets response and resolution time targets by priority and team
-- **Config** manages ticket types, tags, and general helpdesk settings
+- **Overview** centralizes operational ticket health and SLA posture
+- **Tickets** manages lifecycle, assignments, and SLA status
+- **Teams** defines service ownership groups and assignment mode
+- **Stages** defines lifecycle states and closure semantics
+- **SLA Policies** defines response/resolution commitments
+- **Config** controls tagging/types and operational defaults
 
 ## Website application
 
-- **Pages and Content** manages public-facing website content including articles, FAQs, and legal pages
-- **Feature Pages** configures product and service feature pages
-- **Patient Portals** manages patient-facing content and provider directories
-- **Store and Products** manages the online store product listings
+- **Pages / Content** governs managed site content and article publishing
+- **Feature Pages** route exists for feature-page governance (current implementation is placeholder-backed)
+- **Patient Portals** manages patient portal content surfaces
+- **Store / Products** manages store-facing catalog experiences
 
 ## Knowledge application
 
-- **Wiki** centralises all internal documentation, help articles, and operational procedures with versioning, publishing workflows, and context-based assignments
+- **Wiki Articles** houses operational docs, SOPs, and release-ledger references
+- **Help Assignments** maps help articles to route contexts for in-page guidance
 
 ## Settings application
 
-- **Company** configures business identity, addresses, logo, and global defaults
-- **Users** manages user accounts, role assignments, and access provisioning
-- **Roles and Permissions** defines granular feature-level access control for each role
-- **Audit Log** provides a chronological record of all data changes with before and after snapshots
-- **Integrations** manages external system connections, sync scheduling, and job monitoring
-- **Runtime Errors** displays application error logs for debugging and stability monitoring
+- **Company** manages business identity and default settings
+- **Users** manages identity lifecycle and role assignment
+- **Roles & Permissions** configures feature-level authorization
+- **Audit Log** tracks system changes for accountability
+- **Integrations** governs external connectors and sync operations (admin-guarded)
+- **Runtime Errors** surfaces production error telemetry for triage
 
 ## Moonshot application
 
-- **Dashboard** provides an executive pulse view of strategic metrics and team health
-- **Workspace** serves as the central operating board for weekly execution
-- **Meetings** schedules, runs, and documents structured team meetings
-- **Scorecards** tracks weekly KPI accountability with target and actual comparisons
-- **Rocks** manages quarterly strategic priorities with ownership and progress tracking
-- **Todos** captures action items with due dates and completion status
-- **Issues** logs and prioritises execution blockers for resolution
-- **Business Plan** documents long-horizon strategic vision and annual goals
-- **Tools** provides organisational utilities including org charts, one-on-ones, and right-person-right-seat assessments
-- **Users** manages Moonshot team membership and seat assignments
-- **Resources** displays help articles assigned to Moonshot context
-- **Settings** configures Moonshot preferences and team defaults`,
+- **Dashboard, Workspace, Meetings, Scorecards, Rocks, Todos, Issues, Business Plan, Tools, Users, Resources, Settings** are active and accessible through \`/admin/moonshot/*\`
+- **Tools subroutes** currently include Org Chart, One-on-Ones, and Right Person Right Seat
+
+## Ops domain
+
+- \`/ops/*\` routes currently redirect to \`/admin/dashboard\` and do not expose a separate active UI surface yet.`,
       },
       {
         id: "daily-rhythm",
@@ -1454,19 +1452,49 @@ Moonshot Settings configures the preferences and defaults for the Moonshot opera
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** Overview
-- **Build version:** 0.0.0
+- **Build version:** 2026.03.31
 
 ## What this module does
-The Wiki module is the internal knowledge base for admin users. It centralizes SOPs, route-level instructions, and operating playbooks so teams can execute consistently.
+The Wiki module is the internal documentation control plane for operations teams. It unifies static handbook content, release ledger artifacts, and managed help articles in one editor + reader experience.
 
 ## Primary capabilities
-1. Browse module categories and route-specific docs.
-2. Access context-aware guidance from operational pages.
-3. Maintain internal procedures as living documentation.
-4. Keep release-facing guidance aligned to ledger artifacts.
+1. Read baseline handbook content shipped with the application build.
+2. Read and maintain database-backed help articles from the same workspace.
+3. Search across article titles and bodies to resolve workflows quickly.
+4. Maintain wiki headings/categories without code changes.
+5. Use Help Assignments to map articles to route contexts so operators get page-level guidance.
 
-## Scope
-This route is the documentation hub for all admin module workflows.`,
+## Governance scope
+Use this module as the source of truth for runtime procedures, release communication, and route-level task guidance.`,
+      },
+      {
+        id: "wiki-admin-capability-matrix",
+        title: "Admin capability matrix (2026-03)",
+        context_slugs: ["knowledge/wiki"],
+        content: `## Metadata
+- **Route segment:** /admin/knowledge/wiki
+- **Article type:** Capability matrix
+- **Build version:** 2026.03.31
+
+## Confirmed active admin surfaces
+- Pricing: catalog, rx/stock/supplies pricing, supplier compare, publisher, costings, imports, settings
+- Sales: proposals and quotations (web/rx order routes remain placeholders)
+- Contacts: contacts + tag/industry configuration
+- Leads: finder, my leads, campaigns, reports, AI assistant, settings
+- CRM: dashboard, pipeline, activities
+- Helpdesk: overview, tickets, teams, stages, SLA, config
+- Website: content, portals, store (feature pages route currently placeholder-backed)
+- Knowledge: wiki article management + help assignment mapping
+- Settings: company, users, roles, audit, integrations, runtime errors
+- Moonshot: full operating-system route family with tools subroutes
+
+## Redirect and migration notes
+1. Legacy/alias URLs should stay redirect-only.
+2. Any new runtime page must ship with route registration and navigation placement.
+3. Do not duplicate page implementations for aliases.
+
+## Documentation update trigger
+Update this matrix whenever a new admin runtime page becomes active, a placeholder route is implemented, or a canonical route changes.`,
       },
       {
         id: "wiki-first-run-setup",
@@ -1475,17 +1503,19 @@ This route is the documentation hub for all admin module workflows.`,
         content: `## Metadata
 - **Route segment:** /admin/knowledge/wiki
 - **Article type:** First-run setup
-- **Build version:** 0.0.0
+- **Build version:** 2026.03.31
 
 ## Setup checklist
-1. Confirm your role can view the Wiki feature.
-2. Open **/admin/knowledge/wiki** and validate category navigation.
-3. Verify search returns both static and managed wiki entries.
-4. Confirm release ledger docs load under the Release Ledger section.
-5. Save any missing-route documentation gaps as follow-up tasks.
+1. Confirm your role can open both **Articles** and **Help Assignments** tabs.
+2. Open **/admin/knowledge/wiki** and validate static categories load.
+3. Validate managed categories/headings load from the database.
+4. Test article search using a known route keyword (for example \`pricing/catalog\`).
+5. Open **Help Assignments** and verify at least one route context has a mapped article.
+6. Create a draft article and confirm it appears in filtered search results.
+7. Confirm release-ledger articles (Release Notes, Changelog, Delivery Plan) render.
 
 ## Done criteria
-Setup is complete when users can browse categories, open route docs, and resolve one real task using only wiki guidance.`,
+Setup is complete when an operator can find a route article, open it, and confirm the same article is assigned as contextual help on its target route.`,
       },
       {
         id: "wiki-daily-workflow",
