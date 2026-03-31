@@ -33,7 +33,7 @@ import { usePricingSheets } from "@/hooks/usePricingSheets";
 import { useAddonPricingSheets } from "@/hooks/useAddonPricingSheets";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
+import { StoreVariantManager } from "@/components/admin/store/StoreVariantManager";
 
 type ProductType = "lens" | "supply" | "addon";
 type ProductFilter = "all" | "lenses" | "supplies" | "services";
@@ -665,6 +665,12 @@ const WebsiteStorePage = () => {
                 </div>
               </div>
 
+
+
+              <div className="space-y-2">
+                <Label>Variants</Label>
+                <StoreVariantManager productType={selected.type} productId={selected.id} />
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => setMediaOpen(true)}>
                   <ImagePlus className="h-4 w-4 mr-1" /> Manage Images

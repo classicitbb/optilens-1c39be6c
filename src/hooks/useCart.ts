@@ -15,6 +15,11 @@ export interface CartItem {
   variant_opc_code?: string | null;
   variant_metadata?: Record<string, unknown> | null;
   quantity: number;
+  variant_id?: string | null;
+  variant_label?: string | null;
+  sku?: string | null;
+  opc_code?: string | null;
+  variant_snapshot?: Record<string, unknown>;
 }
 
 interface UseCartOptions {
@@ -107,6 +112,11 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     variantOpcCode?: string;
     variantMetadata?: Record<string, unknown>;
     quantity?: number;
+    variantId?: string;
+    variantLabel?: string;
+    sku?: string;
+    opcCode?: string;
+    variantSnapshot?: Record<string, unknown>;
   }) => {
     if (!user) {
       toast({
@@ -155,7 +165,19 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
 
         const { data, error } = await supabase
           .from("cart_items")
-          .insert([cartInsertPayload])
+          .insert({
+            user_id: user.id,
+            product_id: product.id,
+            product_name: product.name,
+            product_price: product.price,
+            product_type: product.productType,
+            quantity: quantityToAdd,
+            variant_id: product.variantId ?? null,
+            variant_label: product.variantLabel ?? null,
+            sku: product.sku ?? null,
+            opc_code: product.opcCode ?? null,
+            variant_snapshot: product.variantSnapshot ?? {},
+          })
           .select()
           .single();
 

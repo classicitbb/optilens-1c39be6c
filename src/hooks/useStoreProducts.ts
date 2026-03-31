@@ -16,6 +16,7 @@ export interface StoreProduct {
   image_url: string | null;
   image_urls: string[];
   has_variants: boolean;
+  variant_mode?: "none" | "lens_grid" | "standard_options" | "service_config" | "generic_matrix";
 }
 
 export const getStoreProductRoute = (product: Pick<StoreProduct, "id" | "product_type">) =>
@@ -46,7 +47,7 @@ export const useStoreProducts = () => {
   return useQuery<StoreProduct[]>({
     queryKey: ["store-products"],
     queryFn: async () => {
-      const [lensRes, supplyRes, addonRes, mediaRes, overrideRes, variantSummaryRes] = await Promise.all([
+      const [lensRes, supplyRes, mediaRes, overrideRes, variantConfigRes, variantAggRes] = await Promise.all([
         supabase
           .from("lenses")
           .select("id, name, sell_price, show_on_website, notes, lenstype:lenstypes(name), material:materials(name), mftype:mftypes(name)")
@@ -72,8 +73,11 @@ export const useStoreProducts = () => {
           .from("store_product_overrides" as any)
           .select("product_type, product_id, quantity_label, is_vat_taxable, website_badges"),
         supabase
-          .from("store_product_variant_summary" as any)
-          .select("product_type, product_id, active_variants"),
+          .from("product_variant_configs" as any)
+          .select("product_type, product_id, variant_mode"),
+        supabase
+          .from("product_variants" as any)
+          .select("product_type, product_id, id"),
       ]);
 
       if (lensRes.error) throw lensRes.error;
@@ -82,6 +86,8 @@ export const useStoreProducts = () => {
       // Non-fatal to support incremental rollout before SQL migration is applied.
       const mediaRows = Array.isArray(mediaRes.data) ? mediaRes.data as any[] : [];
       const overrideRows = Array.isArray(overrideRes.data) ? overrideRes.data as any[] : [];
+      const variantConfigRows = Array.isArray(variantConfigRes.data) ? variantConfigRes.data as any[] : [];
+      const variantAggRows = Array.isArray(variantAggRes.data) ? variantAggRes.data as any[] : [];
 
       const { data: pricingSettings } = await supabase
         .from("pricing_settings")
@@ -113,8 +119,14 @@ export const useStoreProducts = () => {
         overrideMap.set(key, row);
       }
 
-      for (const row of ((variantSummaryRes.data ?? []) as any[])) {
-        variantSummaryMap.set(`${row.product_type}:${row.product_id}`, Number(row.active_variants ?? 0));
+      const variantModeMap = new Map<string, StoreProduct["variant_mode"]>();
+      for (const row of variantConfigRows) {
+        variantModeMap.set(`${row.product_type}:${row.product_id}`, row.variant_mode);
+      }
+      const variantCountMap = new Map<string, number>();
+      for (const row of variantAggRows) {
+        const key = `${row.product_type}:${row.product_id}`;
+        variantCountMap.set(key, (variantCountMap.get(key) ?? 0) + 1);
       }
 
       const lenses: StoreProduct[] = (lensRes.data || []).map((l: any) => ({
@@ -132,7 +144,8 @@ export const useStoreProducts = () => {
         tags: [l.mftype?.name, l.material?.name, l.lenstype?.name, ...(overrideMap.get(`lens:${l.id}`)?.website_badges ?? [])].filter(Boolean),
         image_url: (mediaMap.get(`lens:${l.id}`) ?? [])[0] || null,
         image_urls: mediaMap.get(`lens:${l.id}`) ?? [],
-        has_variants: (variantSummaryMap.get(`lens:${l.id}`) ?? 0) > 0,
+        has_variants: (variantCountMap.get(`lens:${l.id}`) ?? 0) > 0,
+        variant_mode: variantModeMap.get(`lens:${l.id}`) ?? "none",
       }));
 
       const supplies: StoreProduct[] = (supplyRes.data || []).map((s: any) => ({
@@ -150,26 +163,8 @@ export const useStoreProducts = () => {
         tags: [s.category, s.unit, ...(overrideMap.get(`supply:${s.id}`)?.website_badges ?? [])].filter(Boolean),
         image_url: (mediaMap.get(`supply:${s.id}`) ?? [])[0] || s.image_url || null,
         image_urls: (mediaMap.get(`supply:${s.id}`) ?? []).length > 0 ? (mediaMap.get(`supply:${s.id}`) ?? []) : (s.image_url ? [s.image_url] : []),
-        has_variants: (variantSummaryMap.get(`supply:${s.id}`) ?? 0) > 0,
-      }));
-
-
-      const addons: StoreProduct[] = (addonRes.data || []).map((a: any) => ({
-        ...(overrideMap.get(`addon:${a.id}`) ?? {}),
-        id: a.id,
-        name: a.name,
-        description: a.description || "",
-        quantity_label: overrideMap.get(`addon:${a.id}`)?.quantity_label || "service",
-        sell_price: Number(a.price ?? 0),
-        sell_price_usd: normalizeUsdPrice(a.price),
-        is_vat_taxable: Boolean(overrideMap.get(`addon:${a.id}`)?.is_vat_taxable),
-        product_type: "addon" as const,
-        category: a.category || "Service",
-        subcategory: "service",
-        tags: [a.category, ...(overrideMap.get(`addon:${a.id}`)?.website_badges ?? [])].filter(Boolean),
-        image_url: (mediaMap.get(`addon:${a.id}`) ?? [])[0] || null,
-        image_urls: mediaMap.get(`addon:${a.id}`) ?? [],
-        has_variants: (variantSummaryMap.get(`addon:${a.id}`) ?? 0) > 0,
+        has_variants: (variantCountMap.get(`supply:${s.id}`) ?? 0) > 0,
+        variant_mode: variantModeMap.get(`supply:${s.id}`) ?? "none",
       }));
 
       return [...lenses, ...supplies, ...addons];

@@ -73,8 +73,13 @@ export interface OrderLineEntity {
   productId: string;
   productName: string;
   productType?: string;
+  variantId?: string;
+  variantLabel?: string;
+  sku?: string;
+  opcCode?: string;
   unitPrice: number;
   quantity: number;
+  variantSnapshot?: Record<string, unknown>;
 }
 
 export interface OrderPaymentSummary {

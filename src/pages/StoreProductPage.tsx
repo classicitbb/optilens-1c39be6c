@@ -13,6 +13,9 @@ import LensVariantGrid from "@/components/lenses/LensVariantGrid";
 import { useToast } from "@/hooks/use-toast";
 import { Expand, Lock, ShoppingCart } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { LensVariantGrid } from "@/components/store/LensVariantGrid";
+import { StandardVariantSelector } from "@/components/store/StandardVariantSelector";
+import { useProductVariantConfig, useProductVariants } from "@/features/store/variants/useProductVariants";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -30,6 +33,10 @@ const StoreProductPage = () => {
   const { data: variantSettings } = useProductVariantSettings(productType as any, productId);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const safeProductType = productType === "lens" || productType === "supply" ? productType : "lens";
+  const safeProductId = productId ?? "";
+  const { data: variantConfig } = useProductVariantConfig(safeProductType, safeProductId);
+  const { data: variants = [] } = useProductVariants(safeProductType, safeProductId);
 
   if (!productId || (productType !== "lens" && productType !== "supply" && productType !== "addon")) {
     return <Navigate to="/store" replace />;
@@ -52,15 +59,10 @@ const StoreProductPage = () => {
     });
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!product) return;
 
-    if (product.has_variants) {
-      // Variant configuration will be introduced on this page; avoid direct cart insertion until configured.
-      return;
-    }
-
-    addToCart({
+    await addToCart({
       id: getStableStoreProductCartId(product),
       name: product.name,
       price: product.sell_price_usd,
@@ -147,30 +149,51 @@ const StoreProductPage = () => {
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</div>
                     </div>
 
-                    {product.has_variants && product.product_type === "lens" && variants.length > 0 && (
-                      <Card className="border-border/70 bg-muted/20">
-                        <CardContent className="p-4">
-                          <LensVariantGrid
-                            variants={variants}
-                            isChiral={isChiralLens}
-                            rowLabel={rowLabel}
-                            columnLabel={columnLabel}
-                            onAddSelected={handleAddVariantSelection}
-                          />
-                        </CardContent>
-                      </Card>
+
+                    {product.has_variants && variantConfig?.variant_mode === "lens_grid" && (
+                      <LensVariantGrid
+                        variants={variants}
+                        onAddSelected={async (entries) => {
+                          for (const entry of entries) {
+                            await addToCart({
+                              id: getStableStoreProductCartId(product),
+                              name: `${product.name} · ${entry.variant.display_label || entry.variant.title}`,
+                              price: entry.variant.price || product.sell_price_usd,
+                              productType: product.product_type,
+                              quantity: entry.quantity,
+                              variantId: entry.variant.id,
+                              variantLabel: entry.variant.display_label || entry.variant.title,
+                              sku: entry.variant.sku ?? undefined,
+                              opcCode: entry.variant.opc_code ?? undefined,
+                              variantSnapshot: entry.variant.attribute_values,
+                            });
+                          }
+                        }}
+                      />
                     )}
 
-                    {product.has_variants && !(product.product_type === "lens" && variants.length > 0) && (
-                      <Card className="border-border/70 bg-muted/30">
-                        <CardContent className="p-4 text-sm text-foreground">
-                          This product requires variant selection before it can be added to the cart.
-                        </CardContent>
-                      </Card>
+                    {product.has_variants && variantConfig?.variant_mode !== "lens_grid" && (
+                      <StandardVariantSelector
+                        variants={variants}
+                        onAdd={async (variant) => {
+                          await addToCart({
+                            id: getStableStoreProductCartId(product),
+                            name: `${product.name} · ${variant.display_label || variant.title}`,
+                            price: variant.price || product.sell_price_usd,
+                            productType: product.product_type,
+                            quantity: 1,
+                            variantId: variant.id,
+                            variantLabel: variant.display_label || variant.title,
+                            sku: variant.sku ?? undefined,
+                            opcCode: variant.opc_code ?? undefined,
+                            variantSnapshot: variant.attribute_values,
+                          });
+                        }}
+                      />
                     )}
 
                     {user ? (
-                      <Button variant="hero" size="lg" onClick={handleAdd} disabled={product.has_variants}>
+                      <Button variant="hero" size="lg" onClick={() => void handleAdd()} disabled={product.has_variants}>
                         <ShoppingCart className="h-5 w-5" />
                         {product.has_variants ? "Configuration required" : "Add to Cart"}
                       </Button>
