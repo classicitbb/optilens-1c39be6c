@@ -5,10 +5,12 @@ import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";
 import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
+import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 
 const AdminLayout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const location = useLocation();
+  usePresenceHeartbeat("admin");
   const contextSlug = pathnameToContextSlug(location.pathname);
   const hideSidebar = location.pathname === "/admin/dashboard";
 

@@ -1,0 +1,31 @@
+{
+  "semanticVersion": "0.0.0",
+  "releaseDateTimeUtc": "2026-03-31T00:00:00.000Z",
+  "environment": "production",
+  "releaseSummary": [
+    "Added a module documentation index and PR guard to enforce code/doc companion updates.",
+    "CI PR checks now run doc symmetry validation as a required gate.",
+    "Exception handling now supports explicit rationale-backed overrides via bug exception files or PR metadata labels."
+  ],
+  "moduleImpact": [
+    {
+      "module": "docs/ai",
+      "impact": "medium",
+      "notes": "Updated as part of PR Doc Symmetry Guardrail."
+    },
+    {
+      "module": "scripts/check_doc_symmetry.mjs",
+      "impact": "medium",
+      "notes": "Updated as part of PR Doc Symmetry Guardrail."
+    },
+    {
+      "module": "scripts/pr_checks.mjs",
+      "impact": "medium",
+      "notes": "Updated as part of PR Doc Symmetry Guardrail."
+    }
+  ],
+  "migrationNotes": [
+    "No manual data migration is required for this release."
+  ],
+  "hasBreakingChanges": false
+}

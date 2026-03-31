@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense, useMemo, useRef } from "react";
-import { X, BookOpen, ChevronRight } from "lucide-react";
+import { X, BookOpen, ChevronRight, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import { getContextLabel } from "@/lib/adminContexts";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
 import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
 import { wikiCategories } from "@/data/wikiContent";
+import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
 
 const WikiArticleEditDialog = lazy(() => import("./WikiArticleEditDialog"));
 
@@ -37,6 +39,7 @@ const CATEGORY_DEFAULT_CONTEXT: Record<string, string> = {
 };
 
 const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
+  const navigate = useNavigate();
   const { articles, isLoading } = useHelpArticles(currentSlug);
   const { headings } = useWikiHeadings();
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
@@ -203,6 +206,14 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
 
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-3 min-w-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => navigate(toAdminWikiArticlePath({ id: article.sourceArticleId, title: article.title }))}
+                      >
+                        Open full documentation <ExternalLink className="h-3 w-3" />
+                      </Button>
                       <div className="text-[12px] leading-relaxed space-y-1 text-muted-foreground min-w-0 break-words [overflow-wrap:anywhere]">
                         {renderContent((article as any).body_json, article.content)}
                       </div>

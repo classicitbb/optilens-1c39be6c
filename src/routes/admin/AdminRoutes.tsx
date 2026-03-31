@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
+const AdminDocsLayout = lazy(() => import("@/components/admin/AdminDocsLayout"));
 const AdminHomeRedirect = lazy(() => import("@/components/admin/AdminHomeRedirect"));
 const AdminDashboardHomePage = lazy(() => import("@/pages/admin/AdminDashboardHomePage"));
 const ReferenceDataPage = lazy(() => import("@/pages/admin/ReferenceDataPage"));
@@ -120,9 +121,6 @@ const AdminRoutes = () => (
       <Route path="website/store" element={<WebsiteStorePage />} />
       <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
 
-      <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
-      <Route path="knowledge/wiki" element={<AdminWikiPage />} />
-
       <Route path="settings" element={<Navigate to="/admin/settings/company" replace />} />
       <Route path="settings/company" element={<CompanySettingsPage />} />
       <Route path="settings/users" element={<UsersPage />} />
@@ -161,6 +159,12 @@ const AdminRoutes = () => (
       <Route path="erp/website" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+    </Route>
+
+    <Route element={<AdminDocsLayout />}>
+      <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
+      <Route path="knowledge/wiki" element={<AdminWikiPage />} />
+      <Route path="knowledge/wiki/:articleSlug" element={<AdminWikiPage />} />
     </Route>
   </Routes>
 );
