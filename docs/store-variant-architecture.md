@@ -17,9 +17,10 @@
    - `service_config`
    - `generic_matrix`
 3. **Concrete sellable variant rows** in `store_product_variants` with SKU/OPC/price/stock/status metadata.
-4. **Lens grid UI** reads concrete variants (sphere/cylinder now, extensible JSON attributes for axis/add/diameter/etc.).
-5. **Batch cart insertion RPC** adds each selected lens cell as an independent cart line.
-6. **Audit logging** for variant create/update in `store_variant_audit_logs`.
+4. **Lens grid UI** reads concrete variants (sphere/cylinder now, extensible JSON attributes for axis/add/diameter/etc.) with configurable power-axis labels (Sphere/Cylinder or Base/Add).
+5. **Chiral pair handling** supports progressive/bifocal pair semantics: one grid quantity is one pair, and cart insertion splits into Left/Right lines with eye-specific OPC snapshots.
+6. **Batch cart insertion RPC** adds each selected lens cell as independent fulfillable cart lines.
+7. **Audit logging** for variant create/update in `store_variant_audit_logs`.
 
 ## Schema changes
 

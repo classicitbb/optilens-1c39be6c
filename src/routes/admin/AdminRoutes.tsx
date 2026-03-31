@@ -122,6 +122,9 @@ const AdminRoutes = () => (
       <Route path="website/store" element={<WebsiteStorePage />} />
       <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
 
+      <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
+      <Route path="knowledge/wiki" element={<AdminWikiPage />} />
+
       <Route path="settings" element={<Navigate to="/admin/settings/company" replace />} />
       <Route path="settings/company" element={<CompanySettingsPage />} />
       <Route path="settings/users" element={<UsersPage />} />

@@ -36,19 +36,20 @@ export interface ProductVariantSettings {
 const queryKey = (productType: StoreProductType, productId: string) => ["store-product-variants", productType, productId] as const;
 const settingsKey = (productType: StoreProductType, productId: string) => ["store-product-variant-settings", productType, productId] as const;
 
-export const useProductVariants = (productType?: StoreProductType, productId?: string) => {
+export const useProductVariants = (productType?: StoreProductType, productId?: string, options?: { activeOnly?: boolean }) => {
+  const activeOnly = options?.activeOnly ?? true;
   return useQuery<ProductVariant[]>({
     queryKey: ["store-product-variants", productType, productId],
     enabled: Boolean(productType && productId),
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const query = (supabase as any)
         .from("store_product_variants")
         .select("*")
         .eq("product_type", productType)
         .eq("product_id", productId)
-        .eq("is_active", true)
         .order("sort_order", { ascending: true });
-
+      if (activeOnly) query.eq("is_active", true);
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as ProductVariant[];
     },
@@ -146,6 +147,22 @@ export const useUpsertProductVariants = (productType: StoreProductType, productI
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKey(productType, productId) });
+    },
+  });
+};
+
+export const useArchiveProductVariant = (productType: StoreProductType, productId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (variantId: string) => {
+      const { error } = await (supabase as any)
+        .from("store_product_variants")
+        .update({ is_active: false })
+        .eq("id", variantId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["store-product-variants", productType, productId] });
     },
   });
 };

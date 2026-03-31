@@ -6,12 +6,23 @@ import type { ProductVariant } from "@/hooks/useProductVariants";
 
 interface LensVariantGridProps {
   variants: ProductVariant[];
+  isChiral?: boolean;
+  rowLabel?: string;
+  columnLabel?: string;
+  readOnly?: boolean;
   onAddSelected: (items: { variantId: string; quantity: number }[]) => Promise<void>;
 }
 
 const asNumber = (value: unknown) => Number(value ?? 0);
 
-export const LensVariantGrid = ({ variants, onAddSelected }: LensVariantGridProps) => {
+export const LensVariantGrid = ({
+  variants,
+  isChiral = false,
+  rowLabel = "Sphere",
+  columnLabel = "Cylinder",
+  readOnly = false,
+  onAddSelected,
+}: LensVariantGridProps) => {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
 
@@ -58,7 +69,7 @@ export const LensVariantGrid = ({ variants, onAddSelected }: LensVariantGridProp
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-background">
             <tr>
-              <th className="sticky left-0 z-20 border-b border-r bg-background px-3 py-2 text-left">Sphere \ Cylinder</th>
+              <th className="sticky left-0 z-20 border-b border-r bg-background px-3 py-2 text-left">{rowLabel} \ {columnLabel}</th>
               {cylinders.map((cylinder) => (
                 <th key={cylinder} className="border-b border-r px-3 py-2 text-center font-semibold">
                   {cylinder.toFixed(2)}
@@ -90,7 +101,7 @@ export const LensVariantGrid = ({ variants, onAddSelected }: LensVariantGridProp
                               setQuantities((prev) => ({ ...prev, [variant.id]: next }));
                             }}
                             className="h-8"
-                            disabled={isUnavailable}
+                            disabled={isUnavailable || readOnly}
                             aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
                           />
                           <div className="text-[10px] text-muted-foreground">
@@ -110,13 +121,18 @@ export const LensVariantGrid = ({ variants, onAddSelected }: LensVariantGridProp
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">Selected quantity: {selectedCount}</div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setQuantities({})}>Clear grid</Button>
-          <Button onClick={handleAdd} disabled={saving || selectedCount === 0}>
-            {saving ? "Adding..." : "Add selected to cart"}
-          </Button>
+        <div className="text-sm text-muted-foreground">
+          Selected quantity: {selectedCount}
+          {isChiral ? " pairs (cart will split into Left + Right lines)" : ""}
         </div>
+        {!readOnly && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setQuantities({})}>Clear grid</Button>
+            <Button onClick={handleAdd} disabled={saving || selectedCount === 0}>
+              {saving ? "Adding..." : "Add selected to cart"}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

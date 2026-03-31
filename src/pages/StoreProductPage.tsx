@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getStableStoreProductCartId, useStoreProducts } from "@/hooks/useStoreProducts";
-import { useBulkAddVariantsToCart, useProductVariants } from "@/hooks/useProductVariants";
+import { useBulkAddVariantsToCart, useProductVariantSettings, useProductVariants } from "@/hooks/useProductVariants";
 import LensVariantGrid from "@/components/lenses/LensVariantGrid";
 import { useToast } from "@/hooks/use-toast";
 import { Expand, Lock, ShoppingCart } from "lucide-react";
@@ -27,6 +27,7 @@ const StoreProductPage = () => {
   const { toast } = useToast();
   const addVariantsMutation = useBulkAddVariantsToCart();
   const { data: variants = [] } = useProductVariants(productType as any, productId);
+  const { data: variantSettings } = useProductVariantSettings(productType as any, productId);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -35,6 +36,21 @@ const StoreProductPage = () => {
   }
 
   const product = (products || []).find((candidate) => candidate.id === productId && candidate.product_type === productType);
+  const isChiralLens = product?.product_type === "lens"
+    ? Boolean((variantSettings?.config as any)?.is_chiral) || product.tags.some((tag) => /progressive|bifocal/i.test(tag))
+    : false;
+  const rowLabel = String((variantSettings?.config as any)?.row_label ?? "Sphere");
+  const columnLabel = String((variantSettings?.config as any)?.column_label ?? "Cylinder");
+
+
+  const handleAddVariantSelection = async (items: { variantId: string; quantity: number }[]) => {
+    const inserted = await addVariantsMutation.mutateAsync(items);
+    await refetch();
+    toast({
+      title: "Variants added",
+      description: `${inserted} variant line${inserted === 1 ? "" : "s"} added to cart.`,
+    });
+  };
 
 
   const handleAddVariantSelection = async (items: { variantId: string; quantity: number }[]) => {
@@ -144,7 +160,13 @@ const StoreProductPage = () => {
                     {product.has_variants && product.product_type === "lens" && variants.length > 0 && (
                       <Card className="border-border/70 bg-muted/20">
                         <CardContent className="p-4">
-                          <LensVariantGrid variants={variants} onAddSelected={handleAddVariantSelection} />
+                          <LensVariantGrid
+                            variants={variants}
+                            isChiral={isChiralLens}
+                            rowLabel={rowLabel}
+                            columnLabel={columnLabel}
+                            onAddSelected={handleAddVariantSelection}
+                          />
                         </CardContent>
                       </Card>
                     )}

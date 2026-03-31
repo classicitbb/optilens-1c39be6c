@@ -72,7 +72,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setItems((data || []).map((d) => ({ ...d, product_type: d.product_type as "lens" | "supply" | "addon", variant_metadata: (d.variant_metadata ?? {}) as Record<string, unknown> })));
+      setItems((data || []).map((d) => ({ ...d, product_type: d.product_type as "lens" | "supply" | "addon" })));
     } catch (error) {
       if (!isExpectedCartError(error)) {
         console.error("Error fetching cart:", error);
@@ -144,13 +144,13 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
             variant_label: product.variantLabel ?? null,
             variant_sku: product.variantSku ?? null,
             variant_opc_code: product.variantOpcCode ?? null,
-            variant_metadata: (product.variantMetadata ?? {}) as any,
-          }])
+            variant_metadata: product.variantMetadata ?? {},
+          })
           .select()
           .single();
 
         if (error) throw error;
-        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" | "addon", variant_metadata: (data.variant_metadata ?? {}) as Record<string, unknown> }]);
+        setItems((prev) => [...prev, { ...data, product_type: data.product_type as "lens" | "supply" | "addon" }]);
       }
 
       toast({

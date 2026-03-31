@@ -213,6 +213,9 @@ DECLARE
   v_variant public.store_product_variants%ROWTYPE;
   v_qty integer;
   v_inserted integer := 0;
+  v_is_chiral boolean;
+  v_left_opc text;
+  v_right_opc text;
 BEGIN
   IF p_target_user_id IS NULL THEN
     RAISE EXCEPTION 'A target user is required.';
@@ -247,44 +250,102 @@ BEGIN
       CONTINUE;
     END IF;
 
-    INSERT INTO public.cart_items (
-      user_id,
-      product_id,
-      product_name,
-      product_price,
-      product_type,
-      quantity,
-      variant_id,
-      variant_label,
-      variant_sku,
-      variant_opc_code,
-      variant_metadata
-    )
-    VALUES (
-      p_target_user_id,
-      abs(hashtext(v_variant.product_type || ':' || v_variant.product_id::text)),
-      v_variant.title,
-      v_variant.price,
-      v_variant.product_type,
-      v_qty,
-      v_variant.id,
-      v_variant.title,
-      v_variant.sku,
-      v_variant.opc_code,
-      jsonb_build_object('attributes', v_variant.attributes, 'source', 'variant_engine')
-    )
-    ON CONFLICT (user_id, product_type, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid))
-    DO UPDATE SET
-      quantity = cart_items.quantity + EXCLUDED.quantity,
-      product_price = EXCLUDED.product_price,
-      product_name = EXCLUDED.product_name,
-      variant_label = EXCLUDED.variant_label,
-      variant_sku = EXCLUDED.variant_sku,
-      variant_opc_code = EXCLUDED.variant_opc_code,
-      variant_metadata = EXCLUDED.variant_metadata,
-      updated_at = now();
+    v_is_chiral := COALESCE((v_variant.metadata->>'is_chiral')::boolean, false);
+    v_left_opc := COALESCE(NULLIF(v_variant.metadata->'opc_by_eye'->>'left', ''), NULLIF(v_variant.opc_code, ''));
+    v_right_opc := COALESCE(NULLIF(v_variant.metadata->'opc_by_eye'->>'right', ''), NULLIF(v_variant.opc_code, ''));
 
-    v_inserted := v_inserted + 1;
+    IF v_is_chiral THEN
+      IF v_left_opc IS NOT NULL THEN
+        INSERT INTO public.cart_items (
+          user_id, product_id, product_name, product_price, product_type, quantity,
+          variant_id, variant_label, variant_sku, variant_opc_code, variant_metadata
+        )
+        VALUES (
+          p_target_user_id,
+          abs(hashtext(v_variant.product_type || ':' || v_variant.product_id::text || ':left')),
+          v_variant.title || ' (Left)',
+          v_variant.price,
+          v_variant.product_type,
+          v_qty,
+          v_variant.id,
+          v_variant.title || ' (Left)',
+          v_variant.sku,
+          v_left_opc,
+          jsonb_build_object('attributes', v_variant.attributes, 'source', 'variant_engine', 'eye', 'left', 'pair_quantity', v_qty)
+        )
+        ON CONFLICT (user_id, product_type, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid))
+        DO UPDATE SET
+          quantity = cart_items.quantity + EXCLUDED.quantity,
+          product_price = EXCLUDED.product_price,
+          product_name = EXCLUDED.product_name,
+          variant_label = EXCLUDED.variant_label,
+          variant_sku = EXCLUDED.variant_sku,
+          variant_opc_code = EXCLUDED.variant_opc_code,
+          variant_metadata = EXCLUDED.variant_metadata,
+          updated_at = now();
+        v_inserted := v_inserted + 1;
+      END IF;
+
+      IF v_right_opc IS NOT NULL THEN
+        INSERT INTO public.cart_items (
+          user_id, product_id, product_name, product_price, product_type, quantity,
+          variant_id, variant_label, variant_sku, variant_opc_code, variant_metadata
+        )
+        VALUES (
+          p_target_user_id,
+          abs(hashtext(v_variant.product_type || ':' || v_variant.product_id::text || ':right')),
+          v_variant.title || ' (Right)',
+          v_variant.price,
+          v_variant.product_type,
+          v_qty,
+          v_variant.id,
+          v_variant.title || ' (Right)',
+          v_variant.sku,
+          v_right_opc,
+          jsonb_build_object('attributes', v_variant.attributes, 'source', 'variant_engine', 'eye', 'right', 'pair_quantity', v_qty)
+        )
+        ON CONFLICT (user_id, product_type, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid))
+        DO UPDATE SET
+          quantity = cart_items.quantity + EXCLUDED.quantity,
+          product_price = EXCLUDED.product_price,
+          product_name = EXCLUDED.product_name,
+          variant_label = EXCLUDED.variant_label,
+          variant_sku = EXCLUDED.variant_sku,
+          variant_opc_code = EXCLUDED.variant_opc_code,
+          variant_metadata = EXCLUDED.variant_metadata,
+          updated_at = now();
+        v_inserted := v_inserted + 1;
+      END IF;
+    ELSE
+      INSERT INTO public.cart_items (
+        user_id, product_id, product_name, product_price, product_type, quantity,
+        variant_id, variant_label, variant_sku, variant_opc_code, variant_metadata
+      )
+      VALUES (
+        p_target_user_id,
+        abs(hashtext(v_variant.product_type || ':' || v_variant.product_id::text)),
+        v_variant.title,
+        v_variant.price,
+        v_variant.product_type,
+        v_qty,
+        v_variant.id,
+        v_variant.title,
+        v_variant.sku,
+        COALESCE(v_variant.opc_code, v_left_opc, v_right_opc),
+        jsonb_build_object('attributes', v_variant.attributes, 'source', 'variant_engine')
+      )
+      ON CONFLICT (user_id, product_type, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid))
+      DO UPDATE SET
+        quantity = cart_items.quantity + EXCLUDED.quantity,
+        product_price = EXCLUDED.product_price,
+        product_name = EXCLUDED.product_name,
+        variant_label = EXCLUDED.variant_label,
+        variant_sku = EXCLUDED.variant_sku,
+        variant_opc_code = EXCLUDED.variant_opc_code,
+        variant_metadata = EXCLUDED.variant_metadata,
+        updated_at = now();
+      v_inserted := v_inserted + 1;
+    END IF;
   END LOOP;
 
   RETURN v_inserted;
