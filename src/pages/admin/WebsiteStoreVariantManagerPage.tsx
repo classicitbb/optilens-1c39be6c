@@ -86,11 +86,9 @@ const WebsiteStoreVariantManagerPage = () => {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Store Variants"
-        subtitle="Unified variant management for standard options, lens grids, services, and generic matrix modes."
-        actions={<Button variant="outline" onClick={() => navigate("/admin/website/store")}>Back to store products</Button>}
-      />
+      <AdminPageHeader icon={Layers} title="Store Variants">
+        <Button variant="outline" onClick={() => navigate("/admin/website/store")}>Back to store products</Button>
+      </AdminPageHeader>
 
       <Card>
         <CardHeader>
