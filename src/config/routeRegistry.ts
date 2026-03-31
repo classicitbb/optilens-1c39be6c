@@ -50,6 +50,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "customer.orders-redirect", path: "/orders", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "legacy-redirect", redirectTo: "/profile/orders" },
   { id: "admin.root", path: "/admin", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.pricing.compare", path: "/admin/pricing/compare", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.settings.releases", path: "/admin/settings/releases", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.knowledge.wiki", path: "/admin/knowledge/wiki", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.knowledge.wiki.article", path: "/admin/knowledge/wiki/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "moonshot.root", path: "/admin/moonshot", domain: "moonshot", audience: "leadership", authMode: "admin", layout: "moonshot-shell", navGroup: "moonshot", status: "active" },

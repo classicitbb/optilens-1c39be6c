@@ -33,6 +33,7 @@ import { usePricingSheets } from "@/hooks/usePricingSheets";
 import { useAddonPricingSheets } from "@/hooks/useAddonPricingSheets";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 
 type ProductType = "lens" | "supply" | "addon";
 type ProductFilter = "all" | "lenses" | "supplies" | "services";
@@ -498,7 +499,10 @@ const WebsiteStorePage = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden p-4 gap-4">
       <div className="flex items-center justify-between shrink-0">
-        <AdminPageHeader icon={Store} title="Website Store Products" />
+        <div className="flex items-center gap-2">
+          <AdminPageHeader icon={Store} title="Website Store Products" />
+          <ReleaseWhatChangedLink section="store-orders" />
+        </div>
         <Button size="sm" className="h-8 text-xs gap-1" onClick={() => setPickerOpen(true)}>
           <Plus className="h-3.5 w-3.5" /> Add Product to Website
         </Button>

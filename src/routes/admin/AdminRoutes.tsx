@@ -44,6 +44,7 @@ const CrmActivitiesPage = lazy(() => import("@/pages/admin/crm/CrmActivitiesPage
 const CrmDashboardPage = lazy(() => import("@/pages/admin/crm/CrmDashboardPage"));
 const RuntimeErrorsPage = lazy(() => import("@/pages/admin/RuntimeErrorsPage"));
 const IntegrationsPage = lazy(() => import("@/pages/admin/settings/IntegrationsPage"));
+const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
 const HelpdeskTeamsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTeamsPage"));
 const HelpdeskSlaPoliciesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskSlaPoliciesPage"));
@@ -126,6 +127,7 @@ const AdminRoutes = () => (
       <Route path="settings/audit" element={<AuditLogPage />} />
       <Route path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>} />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
+      <Route path="settings/releases" element={<ReleasesPage />} />
 
       <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="reference" element={<Navigate to="/admin/pricing/reference" replace />} />
