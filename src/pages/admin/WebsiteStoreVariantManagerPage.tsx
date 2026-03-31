@@ -197,7 +197,7 @@ const WebsiteStoreVariantManagerPage = () => {
       variant_key: `${manualGeneric.title}:${JSON.stringify(attrs)}`,
       sku: manualGeneric.sku || null,
       opc_code: manualGeneric.opc || null,
-      attributes: attrs,
+      attributes: attrs as Record<string, string | number | boolean>,
       metadata: { mode: currentMode },
       price: Number(manualGeneric.price || 0),
       stock_qty: Number(manualGeneric.stock || 0),
