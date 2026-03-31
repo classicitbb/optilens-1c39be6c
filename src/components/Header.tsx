@@ -433,8 +433,8 @@ const Header = () => {
   };
 
   const pathSegments = location.pathname.split("/").filter(Boolean);
-  const storeProductMatch = location.pathname.match(/^\/store\/product\/(lens|supply)\/([^/]+)$/i);
-  const storeProductType = storeProductMatch?.[1]?.toLowerCase() as "lens" | "supply" | undefined;
+  const storeProductMatch = location.pathname.match(/^\/store\/product\/(lens|supply|addon)\/([^/]+)$/i);
+  const storeProductType = storeProductMatch?.[1]?.toLowerCase() as "lens" | "supply" | "addon" | undefined;
   const storeProductId = storeProductMatch?.[2];
   const storeProduct = storeProductType && storeProductId
     ? storeProducts.find((product) => product.product_type === storeProductType && product.id === storeProductId)
@@ -445,7 +445,7 @@ const Header = () => {
       { label: "Home", to: "/" },
       { label: "Store", to: "/store" },
       { label: "Product", to: "/store" },
-      { label: storeProductType === "lens" ? "Lenses" : "Supplies", to: `/store?tab=${storeProductType === "lens" ? "lenses" : "supplies"}` },
+      { label: storeProductType === "lens" ? "Lenses" : storeProductType === "supply" ? "Supplies" : "Services", to: `/store?tab=${storeProductType === "lens" ? "lenses" : storeProductType === "supply" ? "supplies" : "services"}` },
       { label: storeProduct?.name ?? "Product", to: null },
     ]
     : null;

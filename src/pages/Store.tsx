@@ -220,7 +220,8 @@ const Store = () => {
       const matchesTab =
         activeTab === "all" ||
         (activeTab === "lenses" && p.product_type === "lens") ||
-        (activeTab === "supplies" && p.product_type === "supply");
+        (activeTab === "supplies" && p.product_type === "supply") ||
+        (activeTab === "services" && p.product_type === "addon");
 
       const matchesCategory =
         !initialCategory ||
@@ -252,8 +253,8 @@ const Store = () => {
           <div className="mb-12 text-center">
             <h1 className="mb-4 text-4xl font-bold text-foreground">Product Catalog</h1>
             <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-              Browse our comprehensive selection of premium lenses and optical supplies.
-              Quality products at wholesale prices.
+              Browse premium lenses, optical supplies, and service packages in one storefront.
+              Configure variants, then place your order for admin review and fulfilment.
             </p>
           </div>
 
@@ -264,6 +265,7 @@ const Store = () => {
                 <TabsTrigger value="all">All Products</TabsTrigger>
                 <TabsTrigger value="lenses">Lenses</TabsTrigger>
                 <TabsTrigger value="supplies">Supplies</TabsTrigger>
+                <TabsTrigger value="services">Services</TabsTrigger>
               </TabsList>
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
