@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
 import type { PricelistVersion } from "@/hooks/usePricelistVersions";
 import { useCatalogTemplates, type CatalogTemplate } from "@/hooks/useCatalogTemplates";
-import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useCompanySettings, type CompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
+const CATALOG_ASSET_BUCKET = "data-files";
 
 /* ─── Types ─── */
 interface CatalogSection {
@@ -32,6 +33,24 @@ interface CatalogSection {
   article_id: string | null;
   custom_title: string | null;
 }
+
+interface CatalogArticleOption {
+  id: string;
+  title: string;
+  category: string;
+  content?: string;
+  description?: string;
+  page_slug?: string | null;
+}
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return "Something went wrong.";
+};
 
 /* ─── Hooks ─── */
 const useAllPricelistVersions = () => {
@@ -54,7 +73,7 @@ const useHelpArticlesForCatalog = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("help_articles")
-        .select("id, title, category, visibility, content, description, body_json, page_slug")
+        .select("id, title, category, visibility, content, description, page_slug")
         .eq("is_active", true)
         .in("content_type", ["knowledge", "faq"])
         .in("visibility", ["public", "customer"])
@@ -84,7 +103,7 @@ const useCatalogSectionsEditor = (templateId?: number) => {
 
   const addSection = useMutation({
     mutationFn: async (section: Omit<CatalogSection, "id">) => {
-      const { error } = await supabase.from("catalog_sections").insert(section as any);
+      const { error } = await supabase.from("catalog_sections").insert([section]);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
@@ -92,7 +111,7 @@ const useCatalogSectionsEditor = (templateId?: number) => {
 
   const updateSection = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<CatalogSection> & { id: number }) => {
-      const { error } = await supabase.from("catalog_sections").update(updates as any).eq("id", id);
+      const { error } = await supabase.from("catalog_sections").update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
@@ -109,7 +128,7 @@ const useCatalogSectionsEditor = (templateId?: number) => {
   const reorderSections = useMutation({
     mutationFn: async (sections: { id: number; sort_order: number }[]) => {
       for (const s of sections) {
-        await supabase.from("catalog_sections").update({ sort_order: s.sort_order } as any).eq("id", s.id);
+        await supabase.from("catalog_sections").update({ sort_order: s.sort_order }).eq("id", s.id);
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
@@ -236,7 +255,7 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
   index: number;
   total: number;
   versions: { id: number; name: string; format_type: string | null }[];
-  articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string }[];
+  articles: CatalogArticleOption[];
   onUpdate: (id: number, updates: Partial<CatalogSection>) => void;
   onRemove: (id: number) => void;
   onMoveUp: () => void;
@@ -394,18 +413,18 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
   template: CatalogTemplate;
   sections: CatalogSection[];
   versions: PricelistVersion[];
-  articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string; page_slug?: string | null }[];
-  settings: any;
+  articles: CatalogArticleOption[];
+  settings: CompanySettings | null | undefined;
   coverContent: CoverContent;
 }) => {
   const includedSections = sections.filter((s) => s.is_included !== false);
 
-  const getKnowledgePreviewCopy = (article: { content?: string | null; body_json?: unknown; description?: string | null } | null | undefined, mode: string | null) => {
+  const getKnowledgePreviewCopy = (article: { content?: string | null; description?: string | null } | null | undefined, mode: string | null) => {
     const description = article?.description ?? "";
     const content = article?.content ?? "";
-    if (mode === "full") return { description, content, bodyJson: article?.body_json ?? null };
-    if (mode === "excerpt") return { description, content: content.slice(0, 1800) + (content.length > 1800 ? "…" : ""), bodyJson: null };
-    return { description, content: content.slice(0, 700) + (content.length > 700 ? "…" : ""), bodyJson: null };
+    if (mode === "full") return { description, content };
+    if (mode === "excerpt") return { description, content: content.slice(0, 1800) + (content.length > 1800 ? "…" : "") };
+    return { description, content: content.slice(0, 700) + (content.length > 700 ? "…" : "") };
   };
 
   const docStyles: React.CSSProperties = {
@@ -550,7 +569,6 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                           <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{previewCopy.description}</p>
                         )}
                         <WikiArticleRenderer
-                          bodyJson={previewCopy.bodyJson as any}
                           legacyContent={previewCopy.content}
                           className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
                         />
@@ -573,7 +591,6 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                         <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{fixedArticle.description}</p>
                       )}
                       <WikiArticleRenderer
-                        bodyJson={fixedArticle.body_json as any}
                         legacyContent={fixedArticle.content}
                         className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
                       />
@@ -687,8 +704,8 @@ const CatalogEditorPage = () => {
         gradient_color_end: gradEnd,
       });
       toast({ title: "Template saved" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   }, [template, name, coverTitle, coverSubtitle, coverBody, coverFooter, coverGradientAngle, coverGradientEnabled, coverInvertText, coverLogoUrl, coverBackgroundUrl, gradStart, gradEnd, updateMutation, toast]);
 
@@ -702,17 +719,17 @@ const CatalogEditorPage = () => {
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `catalogs/${template.id}/${kind}-${Date.now()}-${safeName}`;
-      const { error: uploadError } = await supabase.storage.from("catalog-assets").upload(path, file, {
+      const { error: uploadError } = await supabase.storage.from(CATALOG_ASSET_BUCKET).upload(path, file, {
         upsert: false,
         contentType: file.type || "application/octet-stream",
       });
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from("catalog-assets").getPublicUrl(path);
+      const { data } = supabase.storage.from(CATALOG_ASSET_BUCKET).getPublicUrl(path);
       if (kind === "logo") setCoverLogoUrl(data.publicUrl);
       else setCoverBackgroundUrl(data.publicUrl);
       toast({ title: `${kind === "logo" ? "Logo" : "Background"} uploaded` });
-    } catch (e: any) {
-      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Upload failed", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -730,24 +747,24 @@ const CatalogEditorPage = () => {
         article_id: null,
         custom_title: null,
       });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
   const handleUpdateSection = async (id: number, updates: Partial<CatalogSection>) => {
     try {
       await updateSection.mutateAsync({ id, ...updates });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
   const handleRemoveSection = async (id: number) => {
     try {
       await removeSection.mutateAsync(id);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -759,8 +776,8 @@ const CatalogEditorPage = () => {
     const updates = reordered.map((s, i) => ({ id: s.id!, sort_order: i }));
     try {
       await reorderSections.mutateAsync(updates);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
