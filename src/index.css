@@ -332,6 +332,9 @@
   --admin-table-link-fg: 215 65% 45%;
   --admin-table-link-supply-fg: 130 55% 40%;
   --admin-table-label-fg: 215 15% 40%;
+  --admin-scrollbar-track: 215 25% 92%;
+  --admin-scrollbar-thumb: 215 25% 70%;
+  --admin-scrollbar-thumb-hover: 215 30% 58%;
   --admin-radius: 4px;
 
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -389,10 +392,38 @@
   --admin-table-link-fg: 215 55% 65%;
   --admin-table-link-supply-fg: 130 40% 60%;
   --admin-table-label-fg: 215 15% 65%;
+  --admin-scrollbar-track: 215 22% 14%;
+  --admin-scrollbar-thumb: 215 20% 34%;
+  --admin-scrollbar-thumb-hover: 215 20% 44%;
 }
 
 .admin-tool * {
   border-radius: var(--admin-radius);
+}
+
+.admin-tool,
+.admin-tool * {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--admin-scrollbar-thumb)) hsl(var(--admin-scrollbar-track));
+}
+
+.admin-tool ::-webkit-scrollbar {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.admin-tool ::-webkit-scrollbar-track {
+  background: hsl(var(--admin-scrollbar-track));
+}
+
+.admin-tool ::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--admin-scrollbar-thumb));
+  border: 2px solid hsl(var(--admin-scrollbar-track));
+  border-radius: 9999px;
+}
+
+.admin-tool ::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--admin-scrollbar-thumb-hover));
 }
 
 /* Print/PDF preview areas must have no rounded corners */
