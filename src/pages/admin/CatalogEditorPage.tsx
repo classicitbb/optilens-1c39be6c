@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil } from "lucide-react";
+import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import SectionContentDialog from "@/components/admin/SectionContentDialog";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
@@ -132,6 +132,7 @@ const FIXED_SECTIONS = [
   { type: "dispensing_guide", label: "Dispensing Guide", icon: "👓" },
   { type: "lablink_instructions", label: "LabLink Instructions", icon: "🔗" },
   { type: "special_services", label: "Special Services", icon: "⭐" },
+  { type: "custom_text", label: "Custom Text", icon: "📝" },
 ] as const;
 
 const ALL_SECTION_DEFS = [
@@ -162,10 +163,22 @@ type CoverContent = {
   subtitle: string;
   body: string;
   footer: string;
+  gradientAngle: number;
+  gradientEnabled: boolean;
+  invertText: boolean;
+  logoUrl: string;
 };
 
 const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent => {
-  const fallback: CoverContent = { subtitle: rawSubtitle ?? "", body: "", footer: "" };
+  const fallback: CoverContent = {
+    subtitle: rawSubtitle ?? "",
+    body: "",
+    footer: "",
+    gradientAngle: 135,
+    gradientEnabled: true,
+    invertText: false,
+    logoUrl: "",
+  };
   if (!rawSubtitle) return fallback;
 
   try {
@@ -175,6 +188,10 @@ const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent
       subtitle: typeof parsed.subtitle === "string" ? parsed.subtitle : "",
       body: typeof parsed.body === "string" ? parsed.body : "",
       footer: typeof parsed.footer === "string" ? parsed.footer : "",
+      gradientAngle: typeof parsed.gradientAngle === "number" ? parsed.gradientAngle : 135,
+      gradientEnabled: typeof parsed.gradientEnabled === "boolean" ? parsed.gradientEnabled : true,
+      invertText: typeof parsed.invertText === "boolean" ? parsed.invertText : false,
+      logoUrl: typeof parsed.logoUrl === "string" ? parsed.logoUrl : "",
     };
   } catch {
     return fallback;
@@ -182,11 +199,11 @@ const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent
 };
 
 const serializeCoverContent = (coverContent: CoverContent): string | null => {
-  if (!coverContent.subtitle.trim() && !coverContent.body.trim() && !coverContent.footer.trim()) {
+  if (!coverContent.subtitle.trim() && !coverContent.body.trim() && !coverContent.footer.trim() && !coverContent.logoUrl.trim()) {
     return null;
   }
 
-  if (!coverContent.body.trim() && !coverContent.footer.trim()) {
+  if (!coverContent.body.trim() && !coverContent.footer.trim() && coverContent.gradientAngle === 135 && coverContent.gradientEnabled && !coverContent.invertText && !coverContent.logoUrl.trim()) {
     return coverContent.subtitle;
   }
 
@@ -384,19 +401,23 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
       {/* Cover */}
       <div
         style={{
-          background: `linear-gradient(135deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`,
-          minHeight: 880,
-          color: "#ffffff",
+          background: coverContent.gradientEnabled
+            ? `linear-gradient(${coverContent.gradientAngle}deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`
+            : "#ffffff",
+          minHeight: 760,
+          color: coverContent.invertText ? "#0f172a" : "#ffffff",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "42px 32px",
+          padding: "28px 32px",
           pageBreakAfter: "always",
           breakAfter: "page",
         }}
       >
         <div style={{ textAlign: "center" }}>
-          {settings?.logo_url && <img src={settings.logo_url} alt="Logo" className="h-10 mb-6 mx-auto object-contain" />}
+          {(coverContent.logoUrl || settings?.logo_url) && (
+            <img src={coverContent.logoUrl || settings.logo_url} alt="Logo" className="h-8 mb-4 mx-auto object-contain" />
+          )}
           <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "10px", letterSpacing: "0.5px" }}>
             {template.cover_title || template.name}
           </h1>
@@ -409,7 +430,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
             </p>
           )}
         </div>
-        <div style={{ textAlign: "center", opacity: 0.75, fontSize: "9px", whiteSpace: "pre-wrap" }}>
+        <div style={{ textAlign: "center", opacity: 0.8, fontSize: "9px", whiteSpace: "pre-wrap" }}>
           {coverContent.footer || settings?.company_name || ""}
           {!coverContent.footer && settings?.tel && <div style={{ marginTop: 4 }}>{settings.tel} · {settings.email}</div>}
         </div>
@@ -417,7 +438,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
 
       {/* TOC */}
       {includedSections.length > 0 && (
-        <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0", minHeight: 880, pageBreakAfter: "always", breakAfter: "page" }}>
+        <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0", minHeight: 760, pageBreakAfter: "always", breakAfter: "page" }}>
                 <div style={{ fontSize: "13px", fontWeight: 700, color: "#2b6cb0", marginBottom: "12px", borderBottom: "2px solid #2b6cb0", paddingBottom: "6px" }}>
                   Table of Contents
                 </div>
@@ -458,7 +479,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                   style={{
                     padding: "4px 0",
                     borderBottom: "1px solid #e2e8f0",
-                    minHeight: 880,
+                    minHeight: 760,
                     pageBreakAfter: "always",
                     breakAfter: "page",
                     pageBreakInside: "avoid",
@@ -536,7 +557,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
             })}
 
       {includedSections.length === 0 && (
-        <div style={{ padding: "40px 24px", textAlign: "center", color: "#a0aec0", fontSize: "10px", minHeight: 880 }}>
+        <div style={{ padding: "40px 24px", textAlign: "center", color: "#a0aec0", fontSize: "10px", minHeight: 760 }}>
           Add sections from the palette to see the catalog preview.
         </div>
       )}
@@ -566,6 +587,11 @@ const CatalogEditorPage = () => {
   const [coverSubtitle, setCoverSubtitle] = useState("");
   const [coverBody, setCoverBody] = useState("");
   const [coverFooter, setCoverFooter] = useState("");
+  const [coverGradientAngle, setCoverGradientAngle] = useState(135);
+  const [coverGradientEnabled, setCoverGradientEnabled] = useState(true);
+  const [coverInvertText, setCoverInvertText] = useState(false);
+  const [coverLogoUrl, setCoverLogoUrl] = useState("");
+  const [coverSettingsOpen, setCoverSettingsOpen] = useState(true);
   const [gradStart, setGradStart] = useState("#1e4db7");
   const [gradEnd, setGradEnd] = useState("#0f2a5e");
 
@@ -579,6 +605,10 @@ const CatalogEditorPage = () => {
       setCoverSubtitle(parsedCover.subtitle);
       setCoverBody(parsedCover.body);
       setCoverFooter(parsedCover.footer);
+      setCoverGradientAngle(parsedCover.gradientAngle);
+      setCoverGradientEnabled(parsedCover.gradientEnabled);
+      setCoverInvertText(parsedCover.invertText);
+      setCoverLogoUrl(parsedCover.logoUrl);
       setGradStart(template.gradient_color_start ?? "#1e4db7");
       setGradEnd(template.gradient_color_end ?? "#0f2a5e");
     }
@@ -591,7 +621,15 @@ const CatalogEditorPage = () => {
         id: template.id,
         name,
         cover_title: coverTitle,
-        cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter }),
+        cover_subtitle: serializeCoverContent({
+          subtitle: coverSubtitle,
+          body: coverBody,
+          footer: coverFooter,
+          gradientAngle: coverGradientAngle,
+          gradientEnabled: coverGradientEnabled,
+          invertText: coverInvertText,
+          logoUrl: coverLogoUrl,
+        }),
         gradient_color_start: gradStart,
         gradient_color_end: gradEnd,
       });
@@ -599,7 +637,7 @@ const CatalogEditorPage = () => {
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
-  }, [template, name, coverTitle, coverSubtitle, coverBody, coverFooter, gradStart, gradEnd, updateMutation, toast]);
+  }, [template, name, coverTitle, coverSubtitle, coverBody, coverFooter, coverGradientAngle, coverGradientEnabled, coverInvertText, coverLogoUrl, gradStart, gradEnd, updateMutation, toast]);
 
   const handleAddSection = async (sectionType: string) => {
     if (!template) return;
@@ -650,7 +688,7 @@ const CatalogEditorPage = () => {
   };
 
   const liveTemplate: CatalogTemplate = template
-    ? { ...template, name, cover_title: coverTitle, cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter }), gradient_color_start: gradStart, gradient_color_end: gradEnd }
+    ? { ...template, name, cover_title: coverTitle, cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl }), gradient_color_start: gradStart, gradient_color_end: gradEnd }
     : { id: 0, name: "", cover_title: null, cover_subtitle: null, gradient_color_start: null, gradient_color_end: null, created_at: null, updated_at: null, created_by: null };
 
   if (!template) {
@@ -738,10 +776,11 @@ const CatalogEditorPage = () => {
             <div className="overflow-auto h-full px-4 py-3 space-y-4">
               {/* Cover Settings */}
               <div className="border rounded-lg p-4" style={{ borderColor: "hsl(var(--border))" }}>
-                <h3 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
-                  <Palette className="h-3.5 w-3.5 text-primary" /> Cover Settings
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
+                <button className="w-full flex items-center justify-between text-xs font-semibold text-foreground mb-3" onClick={() => setCoverSettingsOpen((v) => !v)}>
+                  <span className="flex items-center gap-1.5"><Palette className="h-3.5 w-3.5 text-primary" /> Cover Settings</span>
+                  {coverSettingsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                {coverSettingsOpen && <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-[10px]">Catalog Name</Label>
                     <Input className="h-7 text-xs mt-0.5" value={name} onChange={(e) => setName(e.target.value)} />
@@ -762,6 +801,18 @@ const CatalogEditorPage = () => {
                     <Label className="text-[10px]">Cover Footer</Label>
                     <Input className="h-7 text-xs mt-0.5" value={coverFooter} onChange={(e) => setCoverFooter(e.target.value)} placeholder="Company footer or campaign tagline" />
                   </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Logo URL Override</Label>
+                    <Input className="h-7 text-xs mt-0.5" value={coverLogoUrl} onChange={(e) => setCoverLogoUrl(e.target.value)} placeholder="https://..." />
+                  </div>
+                  <div className="col-span-2 flex items-center gap-4">
+                    <label className="text-[10px] flex items-center gap-2"><input type="checkbox" checked={coverGradientEnabled} onChange={(e) => setCoverGradientEnabled(e.target.checked)} />Gradient enabled</label>
+                    <label className="text-[10px] flex items-center gap-2"><input type="checkbox" checked={coverInvertText} onChange={(e) => setCoverInvertText(e.target.checked)} />Dark text</label>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Gradient Angle ({coverGradientAngle}°)</Label>
+                    <input type="range" min={0} max={360} step={5} value={coverGradientAngle} onChange={(e) => setCoverGradientAngle(Number(e.target.value))} className="w-full mt-1" />
+                  </div>
                   <div className="flex items-center gap-3 col-span-2">
                     <div>
                       <Label className="text-[10px]">Gradient Start</Label>
@@ -779,7 +830,7 @@ const CatalogEditorPage = () => {
                     </div>
                     <div className="flex-1 rounded-md h-7 ml-2" style={{ background: `linear-gradient(90deg, ${gradStart}, ${gradEnd})` }} />
                   </div>
-                </div>
+                </div>}
               </div>
 
               {/* Section Builder */}
@@ -813,7 +864,7 @@ const CatalogEditorPage = () => {
             </div>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle withHandle className="relative z-20 bg-border/80 hover:bg-primary/40 data-[dragging=true]:bg-primary/60" />
 
           <ResizablePanel defaultSize={45} minSize={25} maxSize={55}>
             <div className="h-full p-2">
@@ -821,6 +872,7 @@ const CatalogEditorPage = () => {
                 title={`${template.name} — Lens Catalog Builder Preview`}
                 formatLabel={`${sections.filter((section) => section.is_included !== false).length} sections`}
                 maxHeight="calc(100vh - 220px)"
+                headerRight={<Button variant="ghost" size="sm" className="h-7 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" />Preview Settings</Button>}
               >
                 <EditorLivePreview
                   template={liveTemplate}
@@ -828,7 +880,7 @@ const CatalogEditorPage = () => {
                   versions={versions}
                   articles={articles}
                   settings={settings}
-                  coverContent={{ subtitle: coverSubtitle, body: coverBody, footer: coverFooter }}
+                  coverContent={{ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl }}
                 />
               </PdfPreviewShell>
             </div>
