@@ -156,7 +156,7 @@ const ShipmentsTab = () => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-1.5">
           {[{ code: "all", name: "All" }, ...activeShipmentTypes].map((f) => (
@@ -191,20 +191,21 @@ const ShipmentsTab = () => {
         </div>
       </div>
 
-      <div className="border rounded-md overflow-hidden">
-        <Table>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <Table>
           <TableHeader>
             <TableRow className="text-xs">
-              <TableHead className="h-8">Invoice #</TableHead>
+              <TableHead className="sticky top-0 z-20 h-8 bg-background">Invoice #</TableHead>
               <SortableHead label="Type" sortKey="type" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
               <SortableHead label="Supplier" sortKey="supplier" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
-              <TableHead className="h-8">PO Ref / AWB#</TableHead>
+              <TableHead className="sticky top-0 z-20 h-8 bg-background">PO Ref / AWB#</TableHead>
               <SortableHead label="Date Received" sortKey="date_received" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
               <SortableHead label="FOB (FX)" sortKey="fob_foreign" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} align="right" />
               <SortableHead label="Total Landed (BBD)" sortKey="total_landed_bbd" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} align="right" />
               <SortableHead label="Status" sortKey="status" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
-              <TableHead className="h-8">V</TableHead>
-              {canEdit && <TableHead className="h-8 w-20" />}
+              <TableHead className="sticky top-0 z-20 h-8 bg-background">V</TableHead>
+              {canEdit && <TableHead className="sticky top-0 z-20 h-8 w-20 bg-background" />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -261,7 +262,8 @@ const ShipmentsTab = () => {
               <TableCell colSpan={canEdit ? 3 : 2} className="py-2" />
             </TableRow>
           </TableFooter>
-        </Table>
+          </Table>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
@@ -318,7 +320,7 @@ const SortableHead = ({
   const Icon = !active ? ArrowUpDown : direction === "asc" ? ArrowUp : ArrowDown;
 
   return (
-    <TableHead className={cn("h-8", align === "right" && "text-right")}>
+    <TableHead className={cn("sticky top-0 z-20 h-8 bg-background", align === "right" && "text-right")}>
       <button
         type="button"
         className={cn(
@@ -336,7 +338,7 @@ const SortableHead = ({
 
 const ImportCostingsPage = () => {
   return (
-    <div className="p-4 space-y-4">
+    <div className="flex h-full min-h-0 flex-col gap-4 p-4">
       <AdminPageHeader icon={Ship} title="Import Costings" />
       <ShipmentsTab />
     </div>
