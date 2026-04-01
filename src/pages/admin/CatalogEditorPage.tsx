@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil } from "lucide-react";
 import SectionContentDialog from "@/components/admin/SectionContentDialog";
@@ -158,6 +157,41 @@ const KNOWLEDGE_TEXT_MODES = [
   { value: "excerpt", label: "Extended Excerpt" },
   { value: "full", label: "Full Article" },
 ] as const;
+
+type CoverContent = {
+  subtitle: string;
+  body: string;
+  footer: string;
+};
+
+const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent => {
+  const fallback: CoverContent = { subtitle: rawSubtitle ?? "", body: "", footer: "" };
+  if (!rawSubtitle) return fallback;
+
+  try {
+    const parsed = JSON.parse(rawSubtitle) as Partial<CoverContent>;
+    if (typeof parsed !== "object" || parsed === null) return fallback;
+    return {
+      subtitle: typeof parsed.subtitle === "string" ? parsed.subtitle : "",
+      body: typeof parsed.body === "string" ? parsed.body : "",
+      footer: typeof parsed.footer === "string" ? parsed.footer : "",
+    };
+  } catch {
+    return fallback;
+  }
+};
+
+const serializeCoverContent = (coverContent: CoverContent): string | null => {
+  if (!coverContent.subtitle.trim() && !coverContent.body.trim() && !coverContent.footer.trim()) {
+    return null;
+  }
+
+  if (!coverContent.body.trim() && !coverContent.footer.trim()) {
+    return coverContent.subtitle;
+  }
+
+  return JSON.stringify(coverContent);
+};
 
 /* ═══════════════════ Section Row ═══════════════════ */
 const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRemove, onMoveUp, onMoveDown }: {
@@ -319,12 +353,13 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
 };
 
 /* ═══════════════════ Live Preview ═══════════════════ */
-const EditorLivePreview = ({ template, sections, versions, articles, settings }: {
+const EditorLivePreview = ({ template, sections, versions, articles, settings, coverContent }: {
   template: CatalogTemplate;
   sections: CatalogSection[];
   versions: PricelistVersion[];
   articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string }[];
   settings: any;
+  coverContent: CoverContent;
 }) => {
   const includedSections = sections.filter((s) => s.is_included !== false);
 
@@ -345,49 +380,44 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 no-print" style={{ borderColor: "hsl(var(--border))" }}>
-        <div className="flex gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-          <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+    <div style={docStyles}>
+      {/* Cover */}
+      <div
+        style={{
+          background: `linear-gradient(135deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`,
+          minHeight: 880,
+          color: "#ffffff",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: "42px 32px",
+          pageBreakAfter: "always",
+          breakAfter: "page",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          {settings?.logo_url && <img src={settings.logo_url} alt="Logo" className="h-10 mb-6 mx-auto object-contain" />}
+          <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "10px", letterSpacing: "0.5px" }}>
+            {template.cover_title || template.name}
+          </h1>
+          {coverContent.subtitle && (
+            <p style={{ fontSize: "12px", opacity: 0.9, marginBottom: "16px" }}>{coverContent.subtitle}</p>
+          )}
+          {coverContent.body && (
+            <p style={{ fontSize: "10px", opacity: 0.85, maxWidth: 500, margin: "0 auto", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+              {coverContent.body}
+            </p>
+          )}
         </div>
-        <span className="text-[10px] text-muted-foreground font-mono flex-1 text-center truncate">
-          {template.name} — PDF Preview
-        </span>
-        <span className="text-[9px] text-muted-foreground">{includedSections.length} sections</span>
+        <div style={{ textAlign: "center", opacity: 0.75, fontSize: "9px", whiteSpace: "pre-wrap" }}>
+          {coverContent.footer || settings?.company_name || ""}
+          {!coverContent.footer && settings?.tel && <div style={{ marginTop: 4 }}>{settings.tel} · {settings.email}</div>}
+        </div>
       </div>
-      <ScrollArea className="flex-1 bg-muted/20">
-        <div className="p-4">
-          <div className="rounded shadow-lg border" style={{ ...docStyles, borderColor: "#e2e8f0" }}>
-            {/* Cover */}
-            <div
-              className="flex flex-col items-center justify-center text-center text-white"
-              style={{
-                background: `linear-gradient(135deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`,
-                minHeight: 280,
-                padding: "40px 24px",
-                borderRadius: "4px 4px 0 0",
-              }}
-            >
-              {settings?.logo_url && <img src={settings.logo_url} alt="Logo" className="h-10 mb-4 object-contain" />}
-              <h1 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "4px", letterSpacing: "0.5px" }}>
-                {template.cover_title || template.name}
-              </h1>
-              {template.cover_subtitle && (
-                <p style={{ fontSize: "11px", opacity: 0.85, marginBottom: "16px" }}>{template.cover_subtitle}</p>
-              )}
-              {settings?.company_name && (
-                <div style={{ marginTop: "auto", paddingTop: "24px", opacity: 0.6, fontSize: "9px" }}>
-                  <div>{settings.company_name}</div>
-                  {settings.tel && <div>{settings.tel} · {settings.email}</div>}
-                </div>
-              )}
-            </div>
 
-            {/* TOC */}
-            {includedSections.length > 0 && (
-              <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0" }}>
+      {/* TOC */}
+      {includedSections.length > 0 && (
+        <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0", minHeight: 880, pageBreakAfter: "always", breakAfter: "page" }}>
                 <div style={{ fontSize: "13px", fontWeight: 700, color: "#2b6cb0", marginBottom: "12px", borderBottom: "2px solid #2b6cb0", paddingBottom: "6px" }}>
                   Table of Contents
                 </div>
@@ -406,11 +436,11 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                     </div>
                   );
                 })}
-              </div>
-            )}
+        </div>
+      )}
 
-            {/* Section Pages */}
-            {includedSections.map((s, i) => {
+      {/* Section Pages */}
+      {includedSections.map((s, i) => {
               const art = s.section_type === "knowledge_article"
                 ? articles.find((a) => String(a.id) === String(s.article_id))
                 : null;
@@ -423,7 +453,18 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
               const previewFormat: "matrix" | "list" = (s.section_type === "rx_prices" && s.format_choice === "matrix") ? "matrix" : "list";
 
               return (
-                <div key={s.id ?? i} style={{ padding: "4px 0", borderBottom: "1px solid #e2e8f0" }}>
+                <div
+                  key={s.id ?? i}
+                  style={{
+                    padding: "4px 0",
+                    borderBottom: "1px solid #e2e8f0",
+                    minHeight: 880,
+                    pageBreakAfter: "always",
+                    breakAfter: "page",
+                    pageBreakInside: "avoid",
+                    breakInside: "avoid",
+                  }}
+                >
                   {/* Pricing sections: embed PricelistLivePreview directly */}
                   {isPricing && version && catalogType ? (
                     <PricelistLivePreview
@@ -494,19 +535,16 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
               );
             })}
 
-            {includedSections.length === 0 && (
-              <div style={{ padding: "40px 24px", textAlign: "center", color: "#a0aec0", fontSize: "10px" }}>
-                Add sections from the palette to see the catalog preview.
-              </div>
-            )}
-
-            <div style={{ padding: "12px 24px", borderTop: "1px solid #e2e8f0", textAlign: "center", fontSize: "8px", color: "#a0aec0", background: "#f7fafc" }}>
-              {settings?.company_name && <div>{settings.company_name} — {settings?.slogan}</div>}
-              {settings?.tel && <div style={{ marginTop: "2px" }}>{settings.tel} · {settings.email}</div>}
-            </div>
-          </div>
+      {includedSections.length === 0 && (
+        <div style={{ padding: "40px 24px", textAlign: "center", color: "#a0aec0", fontSize: "10px", minHeight: 880 }}>
+          Add sections from the palette to see the catalog preview.
         </div>
-      </ScrollArea>
+      )}
+
+      <div style={{ padding: "12px 24px", borderTop: "1px solid #e2e8f0", textAlign: "center", fontSize: "8px", color: "#a0aec0", background: "#f7fafc" }}>
+        {settings?.company_name && <div>{settings.company_name} — {settings?.slogan}</div>}
+        {settings?.tel && <div style={{ marginTop: "2px" }}>{settings.tel} · {settings.email}</div>}
+      </div>
     </div>
   );
 };
@@ -526,6 +564,8 @@ const CatalogEditorPage = () => {
   const [name, setName] = useState("");
   const [coverTitle, setCoverTitle] = useState("");
   const [coverSubtitle, setCoverSubtitle] = useState("");
+  const [coverBody, setCoverBody] = useState("");
+  const [coverFooter, setCoverFooter] = useState("");
   const [gradStart, setGradStart] = useState("#1e4db7");
   const [gradEnd, setGradEnd] = useState("#0f2a5e");
 
@@ -535,7 +575,10 @@ const CatalogEditorPage = () => {
     if (template) {
       setName(template.name);
       setCoverTitle(template.cover_title ?? "");
-      setCoverSubtitle(template.cover_subtitle ?? "");
+      const parsedCover = parseCoverContent(template.cover_subtitle);
+      setCoverSubtitle(parsedCover.subtitle);
+      setCoverBody(parsedCover.body);
+      setCoverFooter(parsedCover.footer);
       setGradStart(template.gradient_color_start ?? "#1e4db7");
       setGradEnd(template.gradient_color_end ?? "#0f2a5e");
     }
@@ -548,7 +591,7 @@ const CatalogEditorPage = () => {
         id: template.id,
         name,
         cover_title: coverTitle,
-        cover_subtitle: coverSubtitle,
+        cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter }),
         gradient_color_start: gradStart,
         gradient_color_end: gradEnd,
       });
@@ -556,7 +599,7 @@ const CatalogEditorPage = () => {
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
-  }, [template, name, coverTitle, coverSubtitle, gradStart, gradEnd, updateMutation, toast]);
+  }, [template, name, coverTitle, coverSubtitle, coverBody, coverFooter, gradStart, gradEnd, updateMutation, toast]);
 
   const handleAddSection = async (sectionType: string) => {
     if (!template) return;
@@ -607,7 +650,7 @@ const CatalogEditorPage = () => {
   };
 
   const liveTemplate: CatalogTemplate = template
-    ? { ...template, name, cover_title: coverTitle, cover_subtitle: coverSubtitle, gradient_color_start: gradStart, gradient_color_end: gradEnd }
+    ? { ...template, name, cover_title: coverTitle, cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter }), gradient_color_start: gradStart, gradient_color_end: gradEnd }
     : { id: 0, name: "", cover_title: null, cover_subtitle: null, gradient_color_start: null, gradient_color_end: null, created_at: null, updated_at: null, created_by: null };
 
   if (!template) {
@@ -711,6 +754,14 @@ const CatalogEditorPage = () => {
                     <Label className="text-[10px]">Cover Subtitle</Label>
                     <Input className="h-7 text-xs mt-0.5" value={coverSubtitle} onChange={(e) => setCoverSubtitle(e.target.value)} />
                   </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Body</Label>
+                    <textarea className="w-full mt-0.5 border border-input rounded-md bg-transparent px-2 py-1.5 text-xs min-h-16" value={coverBody} onChange={(e) => setCoverBody(e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Footer</Label>
+                    <Input className="h-7 text-xs mt-0.5" value={coverFooter} onChange={(e) => setCoverFooter(e.target.value)} placeholder="Company footer or campaign tagline" />
+                  </div>
                   <div className="flex items-center gap-3 col-span-2">
                     <div>
                       <Label className="text-[10px]">Gradient Start</Label>
@@ -777,6 +828,7 @@ const CatalogEditorPage = () => {
                   versions={versions}
                   articles={articles}
                   settings={settings}
+                  coverContent={{ subtitle: coverSubtitle, body: coverBody, footer: coverFooter }}
                 />
               </PdfPreviewShell>
             </div>
