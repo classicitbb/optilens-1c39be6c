@@ -224,6 +224,12 @@ const sanitizeLogoUrl = (value: string): string => {
   }
 };
 
+const validateImageFile = (file: File): string | null => {
+  if (!file.type.startsWith("image/")) return "Please upload an image file.";
+  if (file.size > 8 * 1024 * 1024) return "Image must be 8MB or smaller.";
+  return null;
+};
+
 /* ═══════════════════ Section Row ═══════════════════ */
 const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRemove, onMoveUp, onMoveDown }: {
   section: CatalogSection;
@@ -688,10 +694,18 @@ const CatalogEditorPage = () => {
 
   const handleUploadAsset = async (file: File, kind: "logo" | "background") => {
     if (!template) return;
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast({ title: "Upload failed", description: validationError, variant: "destructive" });
+      return;
+    }
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `catalogs/${template.id}/${kind}-${Date.now()}-${safeName}`;
-      const { error: uploadError } = await supabase.storage.from("catalog-assets").upload(path, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage.from("catalog-assets").upload(path, file, {
+        upsert: false,
+        contentType: file.type || "application/octet-stream",
+      });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from("catalog-assets").getPublicUrl(path);
       if (kind === "logo") setCoverLogoUrl(data.publicUrl);
@@ -865,19 +879,33 @@ const CatalogEditorPage = () => {
                     <Input className="h-7 text-xs mt-0.5" value={coverFooter} onChange={(e) => setCoverFooter(e.target.value)} placeholder="Company footer or campaign tagline" />
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-[10px]">Cover Logo URL Override</Label>
-                    <Input className="h-7 text-xs mt-0.5" value={coverLogoUrl} onChange={(e) => setCoverLogoUrl(e.target.value)} placeholder="https://..." type="url" />
-                    <p className="text-[10px] text-muted-foreground mt-1">Paste an absolute URL (https://...) to override the default company logo.</p>
+                    <Label className="text-[10px]">Cover Logo</Label>
                     <div className="mt-2">
-                      <Input type="file" accept="image/*" className="h-8 text-xs" onChange={(e) => e.target.files?.[0] && handleUploadAsset(e.target.files[0], "logo")} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="w-full text-xs"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadAsset(file, "logo");
+                          e.currentTarget.value = "";
+                        }}
+                      />
                     </div>
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-[10px]">Cover Background Image URL</Label>
-                    <Input className="h-7 text-xs mt-0.5" value={coverBackgroundUrl} onChange={(e) => setCoverBackgroundUrl(e.target.value)} placeholder="https://..." type="url" />
-                    <p className="text-[10px] text-muted-foreground mt-1">Upload to the <code>catalog-assets</code> bucket or paste a public image URL.</p>
+                    <Label className="text-[10px]">Cover Background Image</Label>
                     <div className="mt-2">
-                      <Input type="file" accept="image/*" className="h-8 text-xs" onChange={(e) => e.target.files?.[0] && handleUploadAsset(e.target.files[0], "background")} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="w-full text-xs"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadAsset(file, "background");
+                          e.currentTarget.value = "";
+                        }}
+                      />
                     </div>
                   </div>
                   <div className="col-span-2 flex items-center gap-4">
