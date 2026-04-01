@@ -44,6 +44,16 @@ const useAssignmentCounts = () => {
 const fmt = (n: number | null) => n != null ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—";
 const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
+const getCoverSubtitleForExport = (rawSubtitle: string | null | undefined): string => {
+  if (!rawSubtitle) return "";
+  try {
+    const parsed = JSON.parse(rawSubtitle) as { subtitle?: string };
+    return typeof parsed?.subtitle === "string" ? parsed.subtitle : rawSubtitle;
+  } catch {
+    return rawSubtitle;
+  }
+};
+
 /* ═══════════════════ PDF Generator ═══════════════════ */
 const generateCatalogPdf = async (template: CatalogTemplate, settings: any) => {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -55,9 +65,10 @@ const generateCatalogPdf = async (template: CatalogTemplate, settings: any) => {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(28);
   doc.text(template.cover_title || template.name, pw / 2, ph / 2 - 10, { align: "center" });
-  if (template.cover_subtitle) {
+  const coverSubtitle = getCoverSubtitleForExport(template.cover_subtitle);
+  if (coverSubtitle) {
     doc.setFontSize(14);
-    doc.text(template.cover_subtitle, pw / 2, ph / 2 + 5, { align: "center" });
+    doc.text(coverSubtitle, pw / 2, ph / 2 + 5, { align: "center" });
   }
   if (settings?.company_name) {
     doc.setFontSize(10);

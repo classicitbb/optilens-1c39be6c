@@ -59,6 +59,7 @@ const PdfPreviewShell = ({
   );
   const [previewScale, setPreviewScale] = useState(1);
   const [pageCount, setPageCount] = useState(1);
+  const [settingsVisible, setSettingsVisible] = useState(true);
   const paneRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -157,7 +158,13 @@ const PdfPreviewShell = ({
       </div>
 
       <div className="px-3 py-2 bg-muted/20 border-b border-border no-print space-y-2">
-        {/* Row 1: Toggle + Page settings grid + Print action + Info */}
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSettingsVisible((v) => !v)}>
+            {settingsVisible ? "Hide settings" : "Show settings"}
+          </Button>
+        </div>
+        {settingsVisible && (
+        <>
         <div className="grid grid-cols-[auto_1fr_auto] items-start gap-2">
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 shrink-0" onClick={() => setVisible((v) => !v)}>
             {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -235,6 +242,8 @@ const PdfPreviewShell = ({
           <p className="text-[10px] text-amber-700 dark:text-amber-400 text-right">
             Disable browser headers/footers in print settings.
           </p>
+        )}
+        </>
         )}
       </div>
 
