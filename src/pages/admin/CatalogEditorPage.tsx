@@ -167,6 +167,7 @@ type CoverContent = {
   gradientEnabled: boolean;
   invertText: boolean;
   logoUrl: string;
+  backgroundUrl: string;
 };
 
 const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent => {
@@ -178,6 +179,7 @@ const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent
     gradientEnabled: true,
     invertText: false,
     logoUrl: "",
+    backgroundUrl: "",
   };
   if (!rawSubtitle) return fallback;
 
@@ -192,6 +194,7 @@ const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent
       gradientEnabled: typeof parsed.gradientEnabled === "boolean" ? parsed.gradientEnabled : true,
       invertText: typeof parsed.invertText === "boolean" ? parsed.invertText : false,
       logoUrl: typeof parsed.logoUrl === "string" ? parsed.logoUrl : "",
+      backgroundUrl: typeof parsed.backgroundUrl === "string" ? parsed.backgroundUrl : "",
     };
   } catch {
     return fallback;
@@ -199,11 +202,11 @@ const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent
 };
 
 const serializeCoverContent = (coverContent: CoverContent): string | null => {
-  if (!coverContent.subtitle.trim() && !coverContent.body.trim() && !coverContent.footer.trim() && !coverContent.logoUrl.trim()) {
+  if (!coverContent.subtitle.trim() && !coverContent.body.trim() && !coverContent.footer.trim() && !coverContent.logoUrl.trim() && !coverContent.backgroundUrl.trim()) {
     return null;
   }
 
-  if (!coverContent.body.trim() && !coverContent.footer.trim() && coverContent.gradientAngle === 135 && coverContent.gradientEnabled && !coverContent.invertText && !coverContent.logoUrl.trim()) {
+  if (!coverContent.body.trim() && !coverContent.footer.trim() && coverContent.gradientAngle === 135 && coverContent.gradientEnabled && !coverContent.invertText && !coverContent.logoUrl.trim() && !coverContent.backgroundUrl.trim()) {
     return coverContent.subtitle;
   }
 
@@ -408,16 +411,19 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
   };
 
   const effectiveLogoUrl = sanitizeLogoUrl(coverContent.logoUrl) || settings?.logo_url || "";
+  const effectiveBackgroundUrl = sanitizeLogoUrl(coverContent.backgroundUrl);
 
   return (
     <div style={docStyles}>
       {/* Cover */}
       <div
         style={{
-          background: coverContent.gradientEnabled
-            ? `linear-gradient(${coverContent.gradientAngle}deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`
-            : "#ffffff",
-          minHeight: 760,
+          background: effectiveBackgroundUrl
+            ? `${coverContent.gradientEnabled ? `linear-gradient(${coverContent.gradientAngle}deg, ${template.gradient_color_start || "#1e4db7cc"}, ${template.gradient_color_end || "#0f2a5ecc"}),` : ""} url('${effectiveBackgroundUrl}') center / cover no-repeat`
+            : coverContent.gradientEnabled
+              ? `linear-gradient(${coverContent.gradientAngle}deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`
+              : "#ffffff",
+          minHeight: 1040,
           color: coverContent.invertText ? "#0f172a" : "#ffffff",
           display: "flex",
           flexDirection: "column",
@@ -451,7 +457,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
 
       {/* TOC */}
       {includedSections.length > 0 && (
-        <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0", minHeight: 760, pageBreakAfter: "always", breakAfter: "page" }}>
+        <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0", minHeight: 760, pageBreakAfter: "always", breakAfter: "page", pageBreakBefore: "always", breakBefore: "page" }}>
                 <div style={{ fontSize: "13px", fontWeight: 700, color: "#2b6cb0", marginBottom: "12px", borderBottom: "2px solid #2b6cb0", paddingBottom: "6px" }}>
                   Table of Contents
                 </div>
@@ -629,6 +635,7 @@ const CatalogEditorPage = () => {
   const [coverGradientEnabled, setCoverGradientEnabled] = useState(true);
   const [coverInvertText, setCoverInvertText] = useState(false);
   const [coverLogoUrl, setCoverLogoUrl] = useState("");
+  const [coverBackgroundUrl, setCoverBackgroundUrl] = useState("");
   const [coverSettingsOpen, setCoverSettingsOpen] = useState(true);
   const [gradStart, setGradStart] = useState("#1e4db7");
   const [gradEnd, setGradEnd] = useState("#0f2a5e");
@@ -647,6 +654,7 @@ const CatalogEditorPage = () => {
       setCoverGradientEnabled(parsedCover.gradientEnabled);
       setCoverInvertText(parsedCover.invertText);
       setCoverLogoUrl(parsedCover.logoUrl);
+      setCoverBackgroundUrl(parsedCover.backgroundUrl);
       setGradStart(template.gradient_color_start ?? "#1e4db7");
       setGradEnd(template.gradient_color_end ?? "#0f2a5e");
     }
@@ -667,6 +675,7 @@ const CatalogEditorPage = () => {
           gradientEnabled: coverGradientEnabled,
           invertText: coverInvertText,
           logoUrl: coverLogoUrl,
+          backgroundUrl: coverBackgroundUrl,
         }),
         gradient_color_start: gradStart,
         gradient_color_end: gradEnd,
@@ -675,7 +684,23 @@ const CatalogEditorPage = () => {
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
-  }, [template, name, coverTitle, coverSubtitle, coverBody, coverFooter, coverGradientAngle, coverGradientEnabled, coverInvertText, coverLogoUrl, gradStart, gradEnd, updateMutation, toast]);
+  }, [template, name, coverTitle, coverSubtitle, coverBody, coverFooter, coverGradientAngle, coverGradientEnabled, coverInvertText, coverLogoUrl, coverBackgroundUrl, gradStart, gradEnd, updateMutation, toast]);
+
+  const handleUploadAsset = async (file: File, kind: "logo" | "background") => {
+    if (!template) return;
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `catalogs/${template.id}/${kind}-${Date.now()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage.from("catalog-assets").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("catalog-assets").getPublicUrl(path);
+      if (kind === "logo") setCoverLogoUrl(data.publicUrl);
+      else setCoverBackgroundUrl(data.publicUrl);
+      toast({ title: `${kind === "logo" ? "Logo" : "Background"} uploaded` });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    }
+  };
 
   const handleAddSection = async (sectionType: string) => {
     if (!template) return;
@@ -726,7 +751,7 @@ const CatalogEditorPage = () => {
   };
 
   const liveTemplate: CatalogTemplate = template
-    ? { ...template, name, cover_title: coverTitle, cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl }), gradient_color_start: gradStart, gradient_color_end: gradEnd }
+    ? { ...template, name, cover_title: coverTitle, cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl, backgroundUrl: coverBackgroundUrl }), gradient_color_start: gradStart, gradient_color_end: gradEnd }
     : { id: 0, name: "", cover_title: null, cover_subtitle: null, gradient_color_start: null, gradient_color_end: null, created_at: null, updated_at: null, created_by: null };
 
   if (!template) {
@@ -843,6 +868,17 @@ const CatalogEditorPage = () => {
                     <Label className="text-[10px]">Cover Logo URL Override</Label>
                     <Input className="h-7 text-xs mt-0.5" value={coverLogoUrl} onChange={(e) => setCoverLogoUrl(e.target.value)} placeholder="https://..." type="url" />
                     <p className="text-[10px] text-muted-foreground mt-1">Paste an absolute URL (https://...) to override the default company logo.</p>
+                    <div className="mt-2">
+                      <Input type="file" accept="image/*" className="h-8 text-xs" onChange={(e) => e.target.files?.[0] && handleUploadAsset(e.target.files[0], "logo")} />
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Background Image URL</Label>
+                    <Input className="h-7 text-xs mt-0.5" value={coverBackgroundUrl} onChange={(e) => setCoverBackgroundUrl(e.target.value)} placeholder="https://..." type="url" />
+                    <p className="text-[10px] text-muted-foreground mt-1">Upload to the <code>catalog-assets</code> bucket or paste a public image URL.</p>
+                    <div className="mt-2">
+                      <Input type="file" accept="image/*" className="h-8 text-xs" onChange={(e) => e.target.files?.[0] && handleUploadAsset(e.target.files[0], "background")} />
+                    </div>
                   </div>
                   <div className="col-span-2 flex items-center gap-4">
                     <label className="text-[10px] flex items-center gap-2"><input type="checkbox" checked={coverGradientEnabled} onChange={(e) => setCoverGradientEnabled(e.target.checked)} />Gradient enabled</label>
@@ -919,7 +955,7 @@ const CatalogEditorPage = () => {
                   versions={versions}
                   articles={articles}
                   settings={settings}
-                  coverContent={{ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl }}
+                  coverContent={{ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl, backgroundUrl: coverBackgroundUrl }}
                 />
               </PdfPreviewShell>
             </div>
