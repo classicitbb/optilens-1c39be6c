@@ -41,6 +41,11 @@ const getContentAreaPx = (settings: PrintSettings) => {
 
 const PAGE_GAP = 16;
 
+const getActiveDocumentStylesMarkup = () =>
+  Array.from(document.querySelectorAll<HTMLStyleElement | HTMLLinkElement>('style, link[rel="stylesheet"]'))
+    .map((node) => node.outerHTML)
+    .join("\n");
+
 const PdfPreviewShell = ({
   title,
   formatLabel,
@@ -122,9 +127,11 @@ const PdfPreviewShell = ({
     if (!content) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+    const documentStyles = getActiveDocumentStylesMarkup();
 
     printWindow.document
       .write(`<!DOCTYPE html><html><head><title>${title}</title>
+      ${documentStyles}
       <style>${buildPrintStyles(printSettings)}</style>
     </head><body>
       <div class="pre-print-hint">Disable browser headers/footers in print settings.</div>
