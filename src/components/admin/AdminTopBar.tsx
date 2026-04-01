@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutGrid, HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, Pencil } from
+  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, Pencil, ArrowLeft } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -160,6 +160,8 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   };
 
   const pageLabel = getRouteLabel(location.pathname);
+  const isEditorRoute = /\/publisher\/\d+/.test(location.pathname) || /\/quotations\/[^/]+$/.test(location.pathname);
+  const canGoBack = !isEditorRoute && ((window.history.state?.idx ?? 0) > 0);
   const activeTheme = theme ?? "system";
   const cycleTheme = () => {
     if (activeTheme === "system") {
@@ -167,6 +169,11 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
       return;
     }
     setTheme(activeTheme === "dark" ? "light" : "dark");
+  };
+
+  const handleBack = () => {
+    if (!canGoBack) return;
+    navigate(-1);
   };
 
   return (
@@ -196,7 +203,20 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
         </div>
 
         {/* ── CENTER: search ── */}
-        <div className="flex-1 min-w-0 max-w-md mx-auto">
+        <div className="flex-1 min-w-0 max-w-md mx-auto flex items-center gap-2">
+          {!isEditorRoute && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={handleBack}
+              disabled={!canGoBack}
+              aria-label="Go back"
+              title={canGoBack ? "Go back" : "No previous page"}
+            >
+              <ArrowLeft className="h-4 w-4 text-[hsl(var(--admin-muted-fg))]" />
+            </Button>
+          )}
           <GlobalSearch />
         </div>
 
