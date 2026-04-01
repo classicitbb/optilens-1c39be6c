@@ -11,9 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil } from "lucide-react";
+import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import SectionContentDialog from "@/components/admin/SectionContentDialog";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
@@ -55,7 +54,7 @@ const useHelpArticlesForCatalog = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("help_articles")
-        .select("id, title, category, visibility, content, description")
+        .select("id, title, category, visibility, content, description, body_json, page_slug")
         .eq("is_active", true)
         .in("content_type", ["knowledge", "faq"])
         .in("visibility", ["public", "customer"])
@@ -133,6 +132,7 @@ const FIXED_SECTIONS = [
   { type: "dispensing_guide", label: "Dispensing Guide", icon: "👓" },
   { type: "lablink_instructions", label: "LabLink Instructions", icon: "🔗" },
   { type: "special_services", label: "Special Services", icon: "⭐" },
+  { type: "custom_text", label: "Custom Text", icon: "📝" },
 ] as const;
 
 const ALL_SECTION_DEFS = [
@@ -158,6 +158,77 @@ const KNOWLEDGE_TEXT_MODES = [
   { value: "excerpt", label: "Extended Excerpt" },
   { value: "full", label: "Full Article" },
 ] as const;
+
+type CoverContent = {
+  subtitle: string;
+  body: string;
+  footer: string;
+  gradientAngle: number;
+  gradientEnabled: boolean;
+  invertText: boolean;
+  logoUrl: string;
+  backgroundUrl: string;
+};
+
+const parseCoverContent = (rawSubtitle: string | null | undefined): CoverContent => {
+  const fallback: CoverContent = {
+    subtitle: rawSubtitle ?? "",
+    body: "",
+    footer: "",
+    gradientAngle: 135,
+    gradientEnabled: true,
+    invertText: false,
+    logoUrl: "",
+    backgroundUrl: "",
+  };
+  if (!rawSubtitle) return fallback;
+
+  try {
+    const parsed = JSON.parse(rawSubtitle) as Partial<CoverContent>;
+    if (typeof parsed !== "object" || parsed === null) return fallback;
+    return {
+      subtitle: typeof parsed.subtitle === "string" ? parsed.subtitle : "",
+      body: typeof parsed.body === "string" ? parsed.body : "",
+      footer: typeof parsed.footer === "string" ? parsed.footer : "",
+      gradientAngle: typeof parsed.gradientAngle === "number" ? parsed.gradientAngle : 135,
+      gradientEnabled: typeof parsed.gradientEnabled === "boolean" ? parsed.gradientEnabled : true,
+      invertText: typeof parsed.invertText === "boolean" ? parsed.invertText : false,
+      logoUrl: typeof parsed.logoUrl === "string" ? parsed.logoUrl : "",
+      backgroundUrl: typeof parsed.backgroundUrl === "string" ? parsed.backgroundUrl : "",
+    };
+  } catch {
+    return fallback;
+  }
+};
+
+const serializeCoverContent = (coverContent: CoverContent): string | null => {
+  if (!coverContent.subtitle.trim() && !coverContent.body.trim() && !coverContent.footer.trim() && !coverContent.logoUrl.trim() && !coverContent.backgroundUrl.trim()) {
+    return null;
+  }
+
+  if (!coverContent.body.trim() && !coverContent.footer.trim() && coverContent.gradientAngle === 135 && coverContent.gradientEnabled && !coverContent.invertText && !coverContent.logoUrl.trim() && !coverContent.backgroundUrl.trim()) {
+    return coverContent.subtitle;
+  }
+
+  return JSON.stringify(coverContent);
+};
+
+const sanitizeLogoUrl = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? trimmed : "";
+  } catch {
+    return "";
+  }
+};
+
+const validateImageFile = (file: File): string | null => {
+  if (!file.type.startsWith("image/")) return "Please upload an image file.";
+  if (file.size > 8 * 1024 * 1024) return "Image must be 8MB or smaller.";
+  return null;
+};
 
 /* ═══════════════════ Section Row ═══════════════════ */
 const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRemove, onMoveUp, onMoveDown }: {
@@ -319,12 +390,13 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
 };
 
 /* ═══════════════════ Live Preview ═══════════════════ */
-const EditorLivePreview = ({ template, sections, versions, articles, settings }: {
+const EditorLivePreview = ({ template, sections, versions, articles, settings, coverContent }: {
   template: CatalogTemplate;
   sections: CatalogSection[];
   versions: PricelistVersion[];
-  articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string }[];
+  articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string; page_slug?: string | null }[];
   settings: any;
+  coverContent: CoverContent;
 }) => {
   const includedSections = sections.filter((s) => s.is_included !== false);
 
@@ -344,50 +416,54 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
     background: "white",
   };
 
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 no-print" style={{ borderColor: "hsl(var(--border))" }}>
-        <div className="flex gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-          <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
-        </div>
-        <span className="text-[10px] text-muted-foreground font-mono flex-1 text-center truncate">
-          {template.name} — PDF Preview
-        </span>
-        <span className="text-[9px] text-muted-foreground">{includedSections.length} sections</span>
-      </div>
-      <ScrollArea className="flex-1 bg-muted/20">
-        <div className="p-4">
-          <div className="rounded shadow-lg border" style={{ ...docStyles, borderColor: "#e2e8f0" }}>
-            {/* Cover */}
-            <div
-              className="flex flex-col items-center justify-center text-center text-white"
-              style={{
-                background: `linear-gradient(135deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`,
-                minHeight: 280,
-                padding: "40px 24px",
-                borderRadius: "4px 4px 0 0",
-              }}
-            >
-              {settings?.logo_url && <img src={settings.logo_url} alt="Logo" className="h-10 mb-4 object-contain" />}
-              <h1 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "4px", letterSpacing: "0.5px" }}>
-                {template.cover_title || template.name}
-              </h1>
-              {template.cover_subtitle && (
-                <p style={{ fontSize: "11px", opacity: 0.85, marginBottom: "16px" }}>{template.cover_subtitle}</p>
-              )}
-              {settings?.company_name && (
-                <div style={{ marginTop: "auto", paddingTop: "24px", opacity: 0.6, fontSize: "9px" }}>
-                  <div>{settings.company_name}</div>
-                  {settings.tel && <div>{settings.tel} · {settings.email}</div>}
-                </div>
-              )}
-            </div>
+  const effectiveLogoUrl = sanitizeLogoUrl(coverContent.logoUrl) || settings?.logo_url || "";
+  const effectiveBackgroundUrl = sanitizeLogoUrl(coverContent.backgroundUrl);
 
-            {/* TOC */}
-            {includedSections.length > 0 && (
-              <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0" }}>
+  return (
+    <div style={docStyles}>
+      {/* Cover */}
+      <div
+        style={{
+          background: effectiveBackgroundUrl
+            ? `${coverContent.gradientEnabled ? `linear-gradient(${coverContent.gradientAngle}deg, ${template.gradient_color_start || "#1e4db7cc"}, ${template.gradient_color_end || "#0f2a5ecc"}),` : ""} url('${effectiveBackgroundUrl}') center / cover no-repeat`
+            : coverContent.gradientEnabled
+              ? `linear-gradient(${coverContent.gradientAngle}deg, ${template.gradient_color_start || "#1e4db7"}, ${template.gradient_color_end || "#0f2a5e"})`
+              : "#ffffff",
+          minHeight: 1040,
+          color: coverContent.invertText ? "#0f172a" : "#ffffff",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: "28px 32px",
+          pageBreakAfter: "always",
+          breakAfter: "page",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          {effectiveLogoUrl && (
+            <img src={effectiveLogoUrl} alt="Logo" className="h-8 mb-4 mx-auto object-contain" />
+          )}
+          <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "10px", letterSpacing: "0.5px" }}>
+            {template.cover_title || template.name}
+          </h1>
+          {coverContent.subtitle && (
+            <p style={{ fontSize: "12px", opacity: 0.9, marginBottom: "16px" }}>{coverContent.subtitle}</p>
+          )}
+          {coverContent.body && (
+            <p style={{ fontSize: "10px", opacity: 0.85, maxWidth: 500, margin: "0 auto", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+              {coverContent.body}
+            </p>
+          )}
+        </div>
+        <div style={{ textAlign: "center", opacity: 0.8, fontSize: "9px", whiteSpace: "pre-wrap" }}>
+          {coverContent.footer || settings?.company_name || ""}
+          {!coverContent.footer && settings?.tel && <div style={{ marginTop: 4 }}>{settings.tel} · {settings.email}</div>}
+        </div>
+      </div>
+
+      {/* TOC */}
+      {includedSections.length > 0 && (
+        <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0", minHeight: 760, pageBreakAfter: "always", breakAfter: "page", pageBreakBefore: "always", breakBefore: "page" }}>
                 <div style={{ fontSize: "13px", fontWeight: 700, color: "#2b6cb0", marginBottom: "12px", borderBottom: "2px solid #2b6cb0", paddingBottom: "6px" }}>
                   Table of Contents
                 </div>
@@ -406,13 +482,16 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                     </div>
                   );
                 })}
-              </div>
-            )}
+        </div>
+      )}
 
-            {/* Section Pages */}
-            {includedSections.map((s, i) => {
+      {/* Section Pages */}
+      {includedSections.map((s, i) => {
               const art = s.section_type === "knowledge_article"
                 ? articles.find((a) => String(a.id) === String(s.article_id))
+                : null;
+              const fixedArticle = s.section_type !== "knowledge_article"
+                ? articles.find((a) => a.page_slug === s.section_type)
                 : null;
               const label = s.section_type === "knowledge_article"
                 ? (s.custom_title || art?.title || "Knowledge Article")
@@ -423,7 +502,18 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
               const previewFormat: "matrix" | "list" = (s.section_type === "rx_prices" && s.format_choice === "matrix") ? "matrix" : "list";
 
               return (
-                <div key={s.id ?? i} style={{ padding: "4px 0", borderBottom: "1px solid #e2e8f0" }}>
+                <div
+                  key={s.id ?? i}
+                  style={{
+                    padding: "4px 0",
+                    borderBottom: "1px solid #e2e8f0",
+                    minHeight: 760,
+                    pageBreakAfter: "always",
+                    breakAfter: "page",
+                    pageBreakInside: "avoid",
+                    breakInside: "avoid",
+                  }}
+                >
                   {/* Pricing sections: embed PricelistLivePreview directly */}
                   {isPricing && version && catalogType ? (
                     <PricelistLivePreview
@@ -468,8 +558,30 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
                     );
                   })()}
 
-                  {/* Fixed sections placeholder */}
-                  {!isPricing && !art && (
+                  {/* Fixed sections: render stored article if available */}
+                  {!isPricing && !art && fixedArticle && (
+                    <div style={{ padding: "16px 24px" }}>
+                      <div style={{
+                        background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
+                        fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
+                        marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px",
+                      }}>
+                        <span>{getSectionIcon(s.section_type)}</span>
+                        {label}
+                      </div>
+                      {fixedArticle.description && (
+                        <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{fixedArticle.description}</p>
+                      )}
+                      <WikiArticleRenderer
+                        bodyJson={fixedArticle.body_json as any}
+                        legacyContent={fixedArticle.content}
+                        className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
+                      />
+                    </div>
+                  )}
+
+                  {/* Fixed sections fallback */}
+                  {!isPricing && !art && !fixedArticle && (
                     <div style={{ padding: "16px 24px" }}>
                       <div style={{
                         background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
@@ -494,19 +606,16 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings }:
               );
             })}
 
-            {includedSections.length === 0 && (
-              <div style={{ padding: "40px 24px", textAlign: "center", color: "#a0aec0", fontSize: "10px" }}>
-                Add sections from the palette to see the catalog preview.
-              </div>
-            )}
-
-            <div style={{ padding: "12px 24px", borderTop: "1px solid #e2e8f0", textAlign: "center", fontSize: "8px", color: "#a0aec0", background: "#f7fafc" }}>
-              {settings?.company_name && <div>{settings.company_name} — {settings?.slogan}</div>}
-              {settings?.tel && <div style={{ marginTop: "2px" }}>{settings.tel} · {settings.email}</div>}
-            </div>
-          </div>
+      {includedSections.length === 0 && (
+        <div style={{ padding: "40px 24px", textAlign: "center", color: "#a0aec0", fontSize: "10px", minHeight: 760 }}>
+          Add sections from the palette to see the catalog preview.
         </div>
-      </ScrollArea>
+      )}
+
+      <div style={{ padding: "12px 24px", borderTop: "1px solid #e2e8f0", textAlign: "center", fontSize: "8px", color: "#a0aec0", background: "#f7fafc" }}>
+        {settings?.company_name && <div>{settings.company_name} — {settings?.slogan}</div>}
+        {settings?.tel && <div style={{ marginTop: "2px" }}>{settings.tel} · {settings.email}</div>}
+      </div>
     </div>
   );
 };
@@ -526,6 +635,14 @@ const CatalogEditorPage = () => {
   const [name, setName] = useState("");
   const [coverTitle, setCoverTitle] = useState("");
   const [coverSubtitle, setCoverSubtitle] = useState("");
+  const [coverBody, setCoverBody] = useState("");
+  const [coverFooter, setCoverFooter] = useState("");
+  const [coverGradientAngle, setCoverGradientAngle] = useState(135);
+  const [coverGradientEnabled, setCoverGradientEnabled] = useState(true);
+  const [coverInvertText, setCoverInvertText] = useState(false);
+  const [coverLogoUrl, setCoverLogoUrl] = useState("");
+  const [coverBackgroundUrl, setCoverBackgroundUrl] = useState("");
+  const [coverSettingsOpen, setCoverSettingsOpen] = useState(true);
   const [gradStart, setGradStart] = useState("#1e4db7");
   const [gradEnd, setGradEnd] = useState("#0f2a5e");
 
@@ -535,7 +652,15 @@ const CatalogEditorPage = () => {
     if (template) {
       setName(template.name);
       setCoverTitle(template.cover_title ?? "");
-      setCoverSubtitle(template.cover_subtitle ?? "");
+      const parsedCover = parseCoverContent(template.cover_subtitle);
+      setCoverSubtitle(parsedCover.subtitle);
+      setCoverBody(parsedCover.body);
+      setCoverFooter(parsedCover.footer);
+      setCoverGradientAngle(parsedCover.gradientAngle);
+      setCoverGradientEnabled(parsedCover.gradientEnabled);
+      setCoverInvertText(parsedCover.invertText);
+      setCoverLogoUrl(parsedCover.logoUrl);
+      setCoverBackgroundUrl(parsedCover.backgroundUrl);
       setGradStart(template.gradient_color_start ?? "#1e4db7");
       setGradEnd(template.gradient_color_end ?? "#0f2a5e");
     }
@@ -548,7 +673,16 @@ const CatalogEditorPage = () => {
         id: template.id,
         name,
         cover_title: coverTitle,
-        cover_subtitle: coverSubtitle,
+        cover_subtitle: serializeCoverContent({
+          subtitle: coverSubtitle,
+          body: coverBody,
+          footer: coverFooter,
+          gradientAngle: coverGradientAngle,
+          gradientEnabled: coverGradientEnabled,
+          invertText: coverInvertText,
+          logoUrl: coverLogoUrl,
+          backgroundUrl: coverBackgroundUrl,
+        }),
         gradient_color_start: gradStart,
         gradient_color_end: gradEnd,
       });
@@ -556,7 +690,31 @@ const CatalogEditorPage = () => {
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
-  }, [template, name, coverTitle, coverSubtitle, gradStart, gradEnd, updateMutation, toast]);
+  }, [template, name, coverTitle, coverSubtitle, coverBody, coverFooter, coverGradientAngle, coverGradientEnabled, coverInvertText, coverLogoUrl, coverBackgroundUrl, gradStart, gradEnd, updateMutation, toast]);
+
+  const handleUploadAsset = async (file: File, kind: "logo" | "background") => {
+    if (!template) return;
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast({ title: "Upload failed", description: validationError, variant: "destructive" });
+      return;
+    }
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `catalogs/${template.id}/${kind}-${Date.now()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage.from("catalog-assets").upload(path, file, {
+        upsert: false,
+        contentType: file.type || "application/octet-stream",
+      });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("catalog-assets").getPublicUrl(path);
+      if (kind === "logo") setCoverLogoUrl(data.publicUrl);
+      else setCoverBackgroundUrl(data.publicUrl);
+      toast({ title: `${kind === "logo" ? "Logo" : "Background"} uploaded` });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    }
+  };
 
   const handleAddSection = async (sectionType: string) => {
     if (!template) return;
@@ -607,7 +765,7 @@ const CatalogEditorPage = () => {
   };
 
   const liveTemplate: CatalogTemplate = template
-    ? { ...template, name, cover_title: coverTitle, cover_subtitle: coverSubtitle, gradient_color_start: gradStart, gradient_color_end: gradEnd }
+    ? { ...template, name, cover_title: coverTitle, cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl, backgroundUrl: coverBackgroundUrl }), gradient_color_start: gradStart, gradient_color_end: gradEnd }
     : { id: 0, name: "", cover_title: null, cover_subtitle: null, gradient_color_start: null, gradient_color_end: null, created_at: null, updated_at: null, created_by: null };
 
   if (!template) {
@@ -695,10 +853,11 @@ const CatalogEditorPage = () => {
             <div className="overflow-auto h-full px-4 py-3 space-y-4">
               {/* Cover Settings */}
               <div className="border rounded-lg p-4" style={{ borderColor: "hsl(var(--border))" }}>
-                <h3 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
-                  <Palette className="h-3.5 w-3.5 text-primary" /> Cover Settings
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
+                <button className="w-full flex items-center justify-between text-xs font-semibold text-foreground mb-3" onClick={() => setCoverSettingsOpen((v) => !v)}>
+                  <span className="flex items-center gap-1.5"><Palette className="h-3.5 w-3.5 text-primary" /> Cover Settings</span>
+                  {coverSettingsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                {coverSettingsOpen && <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-[10px]">Catalog Name</Label>
                     <Input className="h-7 text-xs mt-0.5" value={name} onChange={(e) => setName(e.target.value)} />
@@ -710,6 +869,52 @@ const CatalogEditorPage = () => {
                   <div className="col-span-2">
                     <Label className="text-[10px]">Cover Subtitle</Label>
                     <Input className="h-7 text-xs mt-0.5" value={coverSubtitle} onChange={(e) => setCoverSubtitle(e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Body</Label>
+                    <textarea className="w-full mt-0.5 border border-input rounded-md bg-transparent px-2 py-1.5 text-xs min-h-16" value={coverBody} onChange={(e) => setCoverBody(e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Footer</Label>
+                    <Input className="h-7 text-xs mt-0.5" value={coverFooter} onChange={(e) => setCoverFooter(e.target.value)} placeholder="Company footer or campaign tagline" />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Logo</Label>
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="w-full text-xs"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadAsset(file, "logo");
+                          e.currentTarget.value = "";
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Cover Background Image</Label>
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="w-full text-xs"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadAsset(file, "background");
+                          e.currentTarget.value = "";
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-span-2 flex items-center gap-4">
+                    <label className="text-[10px] flex items-center gap-2"><input type="checkbox" checked={coverGradientEnabled} onChange={(e) => setCoverGradientEnabled(e.target.checked)} />Gradient enabled</label>
+                    <label className="text-[10px] flex items-center gap-2"><input type="checkbox" checked={coverInvertText} onChange={(e) => setCoverInvertText(e.target.checked)} />Dark text</label>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-[10px]">Gradient Angle ({coverGradientAngle}°)</Label>
+                    <input type="range" min={0} max={360} step={5} value={coverGradientAngle} onChange={(e) => setCoverGradientAngle(Number(e.target.value))} className="w-full mt-1" />
                   </div>
                   <div className="flex items-center gap-3 col-span-2">
                     <div>
@@ -728,7 +933,7 @@ const CatalogEditorPage = () => {
                     </div>
                     <div className="flex-1 rounded-md h-7 ml-2" style={{ background: `linear-gradient(90deg, ${gradStart}, ${gradEnd})` }} />
                   </div>
-                </div>
+                </div>}
               </div>
 
               {/* Section Builder */}
@@ -762,7 +967,7 @@ const CatalogEditorPage = () => {
             </div>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle withHandle className="relative z-20 bg-border/80 hover:bg-primary/40 data-[dragging=true]:bg-primary/60" />
 
           <ResizablePanel defaultSize={45} minSize={25} maxSize={55}>
             <div className="h-full p-2">
@@ -770,6 +975,7 @@ const CatalogEditorPage = () => {
                 title={`${template.name} — Lens Catalog Builder Preview`}
                 formatLabel={`${sections.filter((section) => section.is_included !== false).length} sections`}
                 maxHeight="calc(100vh - 220px)"
+                headerRight={<Button variant="ghost" size="sm" className="h-7 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" />Preview Settings</Button>}
               >
                 <EditorLivePreview
                   template={liveTemplate}
@@ -777,6 +983,7 @@ const CatalogEditorPage = () => {
                   versions={versions}
                   articles={articles}
                   settings={settings}
+                  coverContent={{ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl, backgroundUrl: coverBackgroundUrl }}
                 />
               </PdfPreviewShell>
             </div>
