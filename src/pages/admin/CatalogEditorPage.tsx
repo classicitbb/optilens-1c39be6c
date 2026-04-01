@@ -54,7 +54,7 @@ const useHelpArticlesForCatalog = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("help_articles")
-        .select("id, title, category, visibility, content, description")
+        .select("id, title, category, visibility, content, description, body_json, page_slug")
         .eq("is_active", true)
         .in("content_type", ["knowledge", "faq"])
         .in("visibility", ["public", "customer"])
@@ -208,6 +208,17 @@ const serializeCoverContent = (coverContent: CoverContent): string | null => {
   }
 
   return JSON.stringify(coverContent);
+};
+
+const sanitizeLogoUrl = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? trimmed : "";
+  } catch {
+    return "";
+  }
 };
 
 /* ═══════════════════ Section Row ═══════════════════ */
@@ -374,7 +385,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
   template: CatalogTemplate;
   sections: CatalogSection[];
   versions: PricelistVersion[];
-  articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string }[];
+  articles: { id: string; title: string; category: string; content?: string; body_json?: any; description?: string; page_slug?: string | null }[];
   settings: any;
   coverContent: CoverContent;
 }) => {
@@ -396,6 +407,8 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
     background: "white",
   };
 
+  const effectiveLogoUrl = sanitizeLogoUrl(coverContent.logoUrl) || settings?.logo_url || "";
+
   return (
     <div style={docStyles}>
       {/* Cover */}
@@ -415,8 +428,8 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
         }}
       >
         <div style={{ textAlign: "center" }}>
-          {(coverContent.logoUrl || settings?.logo_url) && (
-            <img src={coverContent.logoUrl || settings.logo_url} alt="Logo" className="h-8 mb-4 mx-auto object-contain" />
+          {effectiveLogoUrl && (
+            <img src={effectiveLogoUrl} alt="Logo" className="h-8 mb-4 mx-auto object-contain" />
           )}
           <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "10px", letterSpacing: "0.5px" }}>
             {template.cover_title || template.name}
@@ -464,6 +477,9 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
       {includedSections.map((s, i) => {
               const art = s.section_type === "knowledge_article"
                 ? articles.find((a) => String(a.id) === String(s.article_id))
+                : null;
+              const fixedArticle = s.section_type !== "knowledge_article"
+                ? articles.find((a) => a.page_slug === s.section_type)
                 : null;
               const label = s.section_type === "knowledge_article"
                 ? (s.custom_title || art?.title || "Knowledge Article")
@@ -530,8 +546,30 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                     );
                   })()}
 
-                  {/* Fixed sections placeholder */}
-                  {!isPricing && !art && (
+                  {/* Fixed sections: render stored article if available */}
+                  {!isPricing && !art && fixedArticle && (
+                    <div style={{ padding: "16px 24px" }}>
+                      <div style={{
+                        background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
+                        fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
+                        marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px",
+                      }}>
+                        <span>{getSectionIcon(s.section_type)}</span>
+                        {label}
+                      </div>
+                      {fixedArticle.description && (
+                        <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{fixedArticle.description}</p>
+                      )}
+                      <WikiArticleRenderer
+                        bodyJson={fixedArticle.body_json as any}
+                        legacyContent={fixedArticle.content}
+                        className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
+                      />
+                    </div>
+                  )}
+
+                  {/* Fixed sections fallback */}
+                  {!isPricing && !art && !fixedArticle && (
                     <div style={{ padding: "16px 24px" }}>
                       <div style={{
                         background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
@@ -803,7 +841,8 @@ const CatalogEditorPage = () => {
                   </div>
                   <div className="col-span-2">
                     <Label className="text-[10px]">Cover Logo URL Override</Label>
-                    <Input className="h-7 text-xs mt-0.5" value={coverLogoUrl} onChange={(e) => setCoverLogoUrl(e.target.value)} placeholder="https://..." />
+                    <Input className="h-7 text-xs mt-0.5" value={coverLogoUrl} onChange={(e) => setCoverLogoUrl(e.target.value)} placeholder="https://..." type="url" />
+                    <p className="text-[10px] text-muted-foreground mt-1">Paste an absolute URL (https://...) to override the default company logo.</p>
                   </div>
                   <div className="col-span-2 flex items-center gap-4">
                     <label className="text-[10px] flex items-center gap-2"><input type="checkbox" checked={coverGradientEnabled} onChange={(e) => setCoverGradientEnabled(e.target.checked)} />Gradient enabled</label>
