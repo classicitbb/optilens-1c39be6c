@@ -118,7 +118,7 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
                 {customTitle || pricingLabel}
               </div>
               <div className="mt-1 text-[8.5px] text-muted-foreground">
-                {(obj.content.pricelist_version_id as number | null) ? `Version #${obj.content.pricelist_version_id as number}` : "No pricelist assigned"}
+                {(content.pricelist_version_id as number | null) ? `Version #${content.pricelist_version_id as number}` : "No pricelist assigned"}
               </div>
             </div>
             <table className="w-full border-collapse">
