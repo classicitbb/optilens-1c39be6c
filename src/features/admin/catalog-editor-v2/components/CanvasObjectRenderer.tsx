@@ -24,7 +24,7 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
   if (!obj.is_visible) return null;
 
   const content = obj.content ?? {};
-  const style = obj.style ?? {};
+  const objStyle = obj.style ?? {};
   const sectionType = typeof content.section_type === "string" ? content.section_type : "";
   const customTitle = typeof content.custom_title === "string" ? content.custom_title : "";
   const pricingLabel = sectionType === "stock_prices"
