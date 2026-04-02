@@ -884,6 +884,24 @@ const CatalogEditorPage = () => {
           </span>
         </button>
         <div className="ml-auto flex items-center gap-[5px]">
+          <div className="flex items-center rounded-md border border-border bg-muted/20 p-0.5">
+            <Button
+              variant="default"
+              size="sm"
+              className="h-6 rounded px-2 text-[11px]"
+              onClick={() => navigate(`/admin/pricing/publisher/${template.id}`)}
+            >
+              Classic
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 rounded px-2 text-[11px]"
+              onClick={() => navigate(`/admin/pricing/publisher/${template.id}/canvas`)}
+            >
+              Canvas
+            </Button>
+          </div>
           <button
             type="button"
             onClick={handleStatusToggle}

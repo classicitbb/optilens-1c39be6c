@@ -23,6 +23,17 @@ const HANDLES = [
 const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown }: Props) => {
   if (!obj.is_visible) return null;
 
+  const sectionType = typeof obj.content.section_type === "string" ? obj.content.section_type : "";
+  const customTitle = typeof obj.content.custom_title === "string" ? obj.content.custom_title : "";
+  const pricingLabel = sectionType === "stock_prices"
+    ? "Stock Prices"
+    : sectionType === "supplies_prices"
+      ? "Supplies Prices"
+      : "RX Prices";
+  const articleLabel = sectionType
+    ? sectionType.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+    : "Knowledge Article";
+
   const style: React.CSSProperties = {
     position: "absolute",
     left: obj.x,
@@ -99,10 +110,13 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <div className="bg-background border rounded overflow-hidden">
             <div className="px-3 py-2">
               <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-primary/10 text-primary mb-1">
-                {(obj.content.section_type as string) ?? "rx prices"}
+                {pricingLabel}
               </span>
               <div className="text-[10px] font-medium pb-1 border-b-[1.5px] border-primary mt-1">
-                {(obj.content.custom_title as string) || "Pricing Section"}
+                {customTitle || pricingLabel}
+              </div>
+              <div className="mt-1 text-[8.5px] text-muted-foreground">
+                {(obj.content.pricelist_version_id as number | null) ? `Version #${obj.content.pricelist_version_id as number}` : "No pricelist assigned"}
               </div>
             </div>
             <table className="w-full border-collapse">
@@ -130,9 +144,11 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
         return (
           <div className="bg-background border rounded p-2.5 overflow-hidden">
             <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-green-500/10 text-green-700 mb-1">article</span>
-            <div className="text-[10px] font-medium mb-1">Knowledge Article</div>
+            <div className="text-[10px] font-medium mb-1">{customTitle || articleLabel}</div>
             <div className="text-[8.5px] text-muted-foreground leading-relaxed">
-              Article content will render here from the linked knowledge base article.
+              {sectionType === "knowledge_article"
+                ? "Article content will render here from the linked knowledge base article."
+                : `${articleLabel} will render here from the catalog section source.`}
             </div>
           </div>
         );
@@ -142,15 +158,15 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                {["Column 1", "Column 2", "Column 3"].map((h) => (
+                {Array.from({ length: Number(obj.content.cols ?? 3) }, (_, index) => `Column ${index + 1}`).map((h) => (
                   <th key={h} className="bg-muted text-[9px] font-medium p-1 text-left border text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {[1, 2, 3].map((r) => (
+              {Array.from({ length: Number(obj.content.rows ?? 4) }, (_, rowIndex) => rowIndex + 1).map((r) => (
                 <tr key={r}>
-                  {[1, 2, 3].map((c) => (
+                  {Array.from({ length: Number(obj.content.cols ?? 3) }, (_, colIndex) => colIndex + 1).map((c) => (
                     <td key={c} className={cn("text-[9px] p-1 border", r % 2 === 0 && "bg-muted/50")}>Cell {r},{c}</td>
                   ))}
                 </tr>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { CanvasObject, CanvasPage, EditorState, CanvasObjectType } from "../types";
@@ -17,6 +17,7 @@ export const useCanvasEditor = (templateId: number) => {
   const [editorState, setEditorState] = useState<EditorState>(DEFAULT_EDITOR_STATE);
   const undoStack = useRef<CanvasObject[][]>([]);
   const redoStack = useRef<CanvasObject[][]>([]);
+  const objectsQueryKey = ["catalog-page-objects", editorState.activePageId];
 
   // Fetch pages
   const pagesQuery = useQuery({
@@ -50,9 +51,12 @@ export const useCanvasEditor = (templateId: number) => {
 
   // Auto-select first page
   const pages = pagesQuery.data ?? [];
-  if (pages.length > 0 && !editorState.activePageId) {
-    setEditorState((s) => ({ ...s, activePageId: pages[0].id }));
-  }
+
+  useEffect(() => {
+    if (pages.length > 0 && !editorState.activePageId) {
+      setEditorState((s) => ({ ...s, activePageId: pages[0].id }));
+    }
+  }, [pages, editorState.activePageId]);
 
   // Create initial page if none exist
   const createPageMutation = useMutation({
@@ -81,8 +85,23 @@ export const useCanvasEditor = (templateId: number) => {
         .eq("id", id);
       if (error) throw error;
     },
+    onMutate: async (obj) => {
+      await qc.cancelQueries({ queryKey: objectsQueryKey });
+      const previous = qc.getQueryData<CanvasObject[]>(objectsQueryKey) ?? [];
+      qc.setQueryData<CanvasObject[]>(objectsQueryKey, previous.map((current) => (
+        current.id === obj.id
+          ? { ...current, ...obj }
+          : current
+      )));
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        qc.setQueryData(objectsQueryKey, context.previous);
+      }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["catalog-page-objects", editorState.activePageId] });
+      qc.invalidateQueries({ queryKey: objectsQueryKey });
     },
   });
 
@@ -97,8 +116,23 @@ export const useCanvasEditor = (templateId: number) => {
       if (error) throw error;
       return data as unknown as CanvasObject;
     },
+    onMutate: async (obj) => {
+      await qc.cancelQueries({ queryKey: objectsQueryKey });
+      const previous = qc.getQueryData<CanvasObject[]>(objectsQueryKey) ?? [];
+      const optimisticId = `optimistic-${Date.now()}`;
+      qc.setQueryData<CanvasObject[]>(objectsQueryKey, [
+        ...previous,
+        { ...obj, id: optimisticId },
+      ]);
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        qc.setQueryData(objectsQueryKey, context.previous);
+      }
+    },
     onSuccess: (obj) => {
-      qc.invalidateQueries({ queryKey: ["catalog-page-objects", editorState.activePageId] });
+      qc.invalidateQueries({ queryKey: objectsQueryKey });
       setEditorState((s) => ({ ...s, selectedObjectId: obj.id }));
     },
   });
@@ -112,8 +146,19 @@ export const useCanvasEditor = (templateId: number) => {
         .eq("id", id);
       if (error) throw error;
     },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: objectsQueryKey });
+      const previous = qc.getQueryData<CanvasObject[]>(objectsQueryKey) ?? [];
+      qc.setQueryData<CanvasObject[]>(objectsQueryKey, previous.filter((obj) => obj.id !== id));
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        qc.setQueryData(objectsQueryKey, context.previous);
+      }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["catalog-page-objects", editorState.activePageId] });
+      qc.invalidateQueries({ queryKey: objectsQueryKey });
       setEditorState((s) => ({ ...s, selectedObjectId: null }));
     },
   });
@@ -135,10 +180,11 @@ export const useCanvasEditor = (templateId: number) => {
   }, []);
 
   const insertObject = useCallback(
-    (type: CanvasObjectType, overrides?: Partial<CanvasObject>) => {
+    async (type: CanvasObjectType, overrides?: Partial<CanvasObject>) => {
       if (!editorState.activePageId) return;
       const objects = objectsQuery.data ?? [];
       const maxZ = objects.reduce((m, o) => Math.max(m, o.z_index), 0);
+      const { id: _ignoredId, page_id: _ignoredPageId, ...safeOverrides } = overrides ?? {};
 
       const defaults: Record<string, Partial<CanvasObject>> = {
         text: { width: 288, height: null, content: { text: "Text block" }, style: { fontSize: 12, fontFamily: "Geist" } },
@@ -152,7 +198,7 @@ export const useCanvasEditor = (templateId: number) => {
       };
 
       const base = defaults[type] ?? {};
-      addObjectMutation.mutate({
+      return addObjectMutation.mutateAsync({
         page_id: editorState.activePageId,
         object_type: type,
         x: 28,
@@ -167,10 +213,25 @@ export const useCanvasEditor = (templateId: number) => {
         is_visible: true,
         label: null,
         ...base,
-        ...overrides,
+        ...safeOverrides,
       } as Omit<CanvasObject, "id">);
     },
     [editorState.activePageId, objectsQuery.data, addObjectMutation]
+  );
+
+  const updateObject = useCallback(
+    async (obj: Partial<CanvasObject> & { id: string }) => updateObjectMutation.mutateAsync(obj),
+    [updateObjectMutation],
+  );
+
+  const deleteObject = useCallback(
+    async (id: string) => deleteObjectMutation.mutateAsync(id),
+    [deleteObjectMutation],
+  );
+
+  const addPage = useCallback(
+    async () => createPageMutation.mutateAsync(),
+    [createPageMutation],
   );
 
   return {
@@ -185,9 +246,9 @@ export const useCanvasEditor = (templateId: number) => {
     setActiveTab,
     setActivePage,
     insertObject,
-    updateObject: updateObjectMutation.mutate,
-    deleteObject: deleteObjectMutation.mutate,
-    addPage: createPageMutation.mutate,
+    updateObject,
+    deleteObject,
+    addPage,
     undoStack,
     redoStack,
   };

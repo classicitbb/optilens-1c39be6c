@@ -3,11 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { CanvasObject, PropertyTab } from "../types";
-import { Copy, Trash2, ArrowUp, ArrowDown, Lock, Eye } from "lucide-react";
+import { Copy, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 
 interface Props {
   selectedObject: CanvasObject | null;
   activeTab: PropertyTab;
+  articleOptions: Array<{ id: string; title: string; category: string }>;
+  fixedSectionOptions: Array<{ value: string; label: string }>;
+  pricingVersions: {
+    rx_prices: Array<{ id: number; name: string }>;
+    stock_prices: Array<{ id: number; name: string }>;
+    supplies_prices: Array<{ id: number; name: string }>;
+  };
   onTabChange: (tab: PropertyTab) => void;
   onUpdate: (obj: Partial<CanvasObject> & { id: string }) => void;
   onDelete: (id: string) => void;
@@ -20,7 +27,17 @@ const TABS: { key: PropertyTab; label: string }[] = [
   { key: "arrange", label: "Arrange" },
 ];
 
-const PropertiesPanel = ({ selectedObject, activeTab, onTabChange, onUpdate, onDelete, onDuplicate }: Props) => {
+const PropertiesPanel = ({
+  selectedObject,
+  activeTab,
+  articleOptions,
+  fixedSectionOptions,
+  pricingVersions,
+  onTabChange,
+  onUpdate,
+  onDelete,
+  onDuplicate,
+}: Props) => {
   if (!selectedObject) {
     return (
       <div className="w-[256px] border-l bg-background flex flex-col shrink-0">
@@ -35,6 +52,12 @@ const PropertiesPanel = ({ selectedObject, activeTab, onTabChange, onUpdate, onD
   }
 
   const obj = selectedObject;
+  const sectionType = typeof obj.content.section_type === "string" ? obj.content.section_type : "";
+  const isPricingBlock = obj.object_type === "pricing_block";
+  const isKnowledgeArticle = obj.object_type === "article_block" && sectionType === "knowledge_article";
+  const availablePricingVersions = isPricingBlock
+    ? pricingVersions[sectionType as keyof typeof pricingVersions] ?? []
+    : [];
 
   const chipLabel = (() => {
     switch (obj.object_type) {
@@ -181,15 +204,116 @@ const PropertiesPanel = ({ selectedObject, activeTab, onTabChange, onUpdate, onD
                   </Select>
                 </div>
                 <div className="space-y-0.5">
+                  <span className="text-[10px] text-muted-foreground">Pricelist version</span>
+                  <Select
+                    value={String((obj.content.pricelist_version_id as number | null) ?? "")}
+                    onValueChange={(value) => onUpdate({
+                      id: obj.id,
+                      content: {
+                        ...obj.content,
+                        pricelist_version_id: value ? Number(value) : null,
+                      },
+                    })}
+                  >
+                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select pricelist version" /></SelectTrigger>
+                    <SelectContent>
+                      {availablePricingVersions.map((version) => (
+                        <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-0.5">
                   <span className="text-[10px] text-muted-foreground">Display format</span>
                   <div className="flex border rounded overflow-hidden">
-                    <button className={cn("flex-1 h-7 text-[11px]", (obj.content.format as string) !== "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={() => onUpdate({ id: obj.id, content: { ...obj.content, format: "list" } })}>List</button>
-                    <button className={cn("flex-1 h-7 text-[11px]", (obj.content.format as string) === "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={() => onUpdate({ id: obj.id, content: { ...obj.content, format: "matrix" } })}>Matrix</button>
+                    <button type="button" className={cn("flex-1 h-7 text-[11px]", (obj.content.format as string) !== "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={() => onUpdate({ id: obj.id, content: { ...obj.content, format: "list" } })}>List</button>
+                    <button type="button" disabled={sectionType !== "rx_prices"} className={cn("flex-1 h-7 text-[11px]", (obj.content.format as string) === "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground", sectionType !== "rx_prices" && "cursor-not-allowed opacity-50")} onClick={() => onUpdate({ id: obj.id, content: { ...obj.content, format: "matrix" } })}>Matrix</button>
                   </div>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-muted-foreground">Custom title</span>
                   <Input className="h-7 text-xs" placeholder="Leave blank for default" value={(obj.content.custom_title as string) ?? ""} onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, custom_title: e.target.value } })} />
+                </div>
+              </div>
+            )}
+            {obj.object_type === "article_block" && (
+              <div className="space-y-2">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] text-muted-foreground">Section type</span>
+                  <Select
+                    value={sectionType || "knowledge_article"}
+                    onValueChange={(value) => onUpdate({
+                      id: obj.id,
+                      label: value === "knowledge_article"
+                        ? "Knowledge Article"
+                        : fixedSectionOptions.find((option) => option.value === value)?.label ?? value,
+                      content: {
+                        ...obj.content,
+                        section_type: value,
+                        article_id: value === "knowledge_article" ? obj.content.article_id ?? null : null,
+                        text_mode: value === "knowledge_article" ? obj.content.text_mode ?? "summary" : null,
+                      },
+                    })}
+                  >
+                    <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="knowledge_article">Knowledge Article</SelectItem>
+                      {fixedSectionOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {isKnowledgeArticle && (
+                  <>
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-muted-foreground">Article</span>
+                      <Select
+                        value={String((obj.content.article_id as string | null) ?? "")}
+                        onValueChange={(value) => onUpdate({
+                          id: obj.id,
+                          content: { ...obj.content, article_id: value || null },
+                        })}
+                      >
+                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select article" /></SelectTrigger>
+                        <SelectContent>
+                          {articleOptions.map((article) => (
+                            <SelectItem key={article.id} value={article.id}>
+                              {article.category ? `${article.category} · ${article.title}` : article.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] text-muted-foreground">Text mode</span>
+                      <Select
+                        value={String((obj.content.text_mode as string | null) ?? "summary")}
+                        onValueChange={(value) => onUpdate({
+                          id: obj.id,
+                          content: { ...obj.content, text_mode: value },
+                        })}
+                      >
+                        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="summary">Summary</SelectItem>
+                          <SelectItem value="excerpt">Extended Excerpt</SelectItem>
+                          <SelectItem value="full">Full Article</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-0.5">
+                  <span className="text-[10px] text-muted-foreground">Custom title</span>
+                  <Input
+                    className="h-7 text-xs"
+                    placeholder="Leave blank for default"
+                    value={(obj.content.custom_title as string) ?? ""}
+                    onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, custom_title: e.target.value } })}
+                  />
                 </div>
               </div>
             )}
@@ -199,6 +323,37 @@ const PropertiesPanel = ({ selectedObject, activeTab, onTabChange, onUpdate, onD
                 value={(obj.content.text as string) ?? ""}
                 onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, text: e.target.value } })}
               />
+            )}
+            {obj.object_type === "image" && (
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-muted-foreground">Image URL</span>
+                <Input
+                  className="h-7 text-xs"
+                  placeholder="https://example.com/image.jpg"
+                  value={(obj.content.src as string) ?? ""}
+                  onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, src: e.target.value } })}
+                />
+              </div>
+            )}
+            {obj.object_type === "table" && (
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] text-muted-foreground">Rows</span>
+                  <Input
+                    className="h-7 text-xs font-mono"
+                    value={String((obj.content.rows as number) ?? 4)}
+                    onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, rows: Number(e.target.value) || 1 } })}
+                  />
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-[10px] text-muted-foreground">Columns</span>
+                  <Input
+                    className="h-7 text-xs font-mono"
+                    value={String((obj.content.cols as number) ?? 3)}
+                    onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, cols: Number(e.target.value) || 1 } })}
+                  />
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -225,13 +380,13 @@ const PropertiesPanel = ({ selectedObject, activeTab, onTabChange, onUpdate, onD
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[11.5px] text-muted-foreground">Locked</span>
-                  <button className={cn("w-[30px] h-[17px] rounded-full relative transition-colors", obj.is_locked ? "bg-primary" : "bg-muted border")} onClick={() => onUpdate({ id: obj.id, is_locked: !obj.is_locked })}>
+                  <button type="button" className={cn("w-[30px] h-[17px] rounded-full relative transition-colors", obj.is_locked ? "bg-primary" : "bg-muted border")} onClick={() => onUpdate({ id: obj.id, is_locked: !obj.is_locked })}>
                     <div className={cn("w-[11px] h-[11px] rounded-full absolute top-[2px] transition-all", obj.is_locked ? "left-[15px] bg-primary-foreground" : "left-[2px] bg-muted-foreground")} />
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[11.5px] text-muted-foreground">Visible in export</span>
-                  <button className={cn("w-[30px] h-[17px] rounded-full relative transition-colors", obj.is_visible ? "bg-primary" : "bg-muted border")} onClick={() => onUpdate({ id: obj.id, is_visible: !obj.is_visible })}>
+                  <button type="button" className={cn("w-[30px] h-[17px] rounded-full relative transition-colors", obj.is_visible ? "bg-primary" : "bg-muted border")} onClick={() => onUpdate({ id: obj.id, is_visible: !obj.is_visible })}>
                     <div className={cn("w-[11px] h-[11px] rounded-full absolute top-[2px] transition-all", obj.is_visible ? "left-[15px] bg-primary-foreground" : "left-[2px] bg-muted-foreground")} />
                   </button>
                 </div>
