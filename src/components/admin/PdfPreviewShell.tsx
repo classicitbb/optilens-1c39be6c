@@ -106,15 +106,19 @@ const PdfPreviewShell = ({
 
     const updateScale = () => {
       const page = getPageDimensionsPx(resolvedSettings);
+      const rawStackHeight = page.height * pageCount + PAGE_GAP * Math.max(0, pageCount - 1);
       const availableWidth = Math.max(1, pane.clientWidth - 24);
-      setPreviewScale(Math.min(1, availableWidth / page.width));
+      const availableHeight = Math.max(1, pane.clientHeight - 24);
+      const widthScale = availableWidth / page.width;
+      const heightScale = availableHeight / rawStackHeight;
+      setPreviewScale(Math.min(1, widthScale, heightScale));
     };
 
     updateScale();
     const observer = new ResizeObserver(updateScale);
     observer.observe(pane);
     return () => observer.disconnect();
-  }, [resolvedSettings, visible, maxHeight]);
+  }, [resolvedSettings, visible, maxHeight, pageCount]);
 
   const updatePrintSettings = (next: Partial<PrintSettings>) => {
     const resolved = resolvePrintSettings({ ...resolvedSettings, ...next });
@@ -257,7 +261,7 @@ const PdfPreviewShell = ({
       </div>
 
       {visible && (
-        <div ref={paneRef} className="bg-muted/10 overflow-auto" style={{ maxHeight, minHeight: "260px", padding: "12px" }}>
+        <div ref={paneRef} className="bg-muted/10 overflow-hidden" style={{ height: maxHeight, minHeight: "260px", padding: "12px" }}>
           {/* Scaled page stack */}
           <div className="mx-auto" style={{ width: page.width * previewScale, height: totalStackHeight }}>
             <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: page.width }}>

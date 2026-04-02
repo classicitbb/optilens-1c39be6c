@@ -432,7 +432,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
   const docStyles: React.CSSProperties = {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     color: "#1a202c",
-    fontSize: "10px",
+    fontSize: "13px",
     lineHeight: 1.5,
     background: "white",
   };
@@ -496,10 +496,10 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                     : getSectionLabel(s.section_type);
                   return (
                     <div key={s.id ?? i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px dotted #e2e8f0" }}>
-                      <span style={{ color: "#2d3748", fontSize: "12px" }}>
+                      <span style={{ color: "#2d3748", fontSize: "13px", lineHeight: 1.25 }}>
                         {i + 1}. {label}{vName ? ` — ${vName}` : ""}
                       </span>
-                      <span style={{ color: "#a0aec0", fontSize: "12px", fontFamily: "monospace" }}>{i + 2}</span>
+                      <span style={{ color: "#a0aec0", fontSize: "13px", fontFamily: "monospace", lineHeight: 1.25 }}>{i + 2}</span>
                     </div>
                   );
                 })}
@@ -528,11 +528,8 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                   style={{
                     padding: "4px 0",
                     borderBottom: "1px solid #e2e8f0",
-                    minHeight: 760,
-                    pageBreakAfter: "always",
-                    breakAfter: "page",
-                    pageBreakInside: "avoid",
-                    breakInside: "avoid",
+                    pageBreakInside: "auto",
+                    breakInside: "auto",
                   }}
                 >
                   {/* Pricing sections: embed PricelistLivePreview directly */}
@@ -559,8 +556,8 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                     const previewCopy = getKnowledgePreviewCopy(art, s.format_choice);
                     return (
                       <div style={{ padding: "16px 24px" }}>
-                        <div style={{
-                          background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
+                      <div style={{
+                          background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "12px",
                           fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
                           marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px",
                         }}>
@@ -568,11 +565,11 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                           {label}
                         </div>
                         {previewCopy.description && (
-                          <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{previewCopy.description}</p>
+                          <p style={{ fontSize: "13px", color: "#718096", fontStyle: "italic", marginBottom: "8px", lineHeight: 1.35 }}>{previewCopy.description}</p>
                         )}
                         <WikiArticleRenderer
                           legacyContent={previewCopy.content}
-                          className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
+                          className="prose max-w-none [&_h1]:mb-2 [&_h1]:mt-3 [&_h1]:text-[13px] [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:mt-2 [&_h3]:text-[12px] [&_h3]:font-semibold [&_p]:my-1.5 [&_p]:text-[13px] [&_p]:leading-[1.35] [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[13px] [&_li]:leading-[1.35] [&_a]:text-primary [&_a]:underline"
                         />
                       </div>
                     );
@@ -582,7 +579,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                   {!isPricing && !art && fixedArticle && (
                     <div style={{ padding: "16px 24px" }}>
                       <div style={{
-                        background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
+                        background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "12px",
                         fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
                         marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px",
                       }}>
@@ -590,11 +587,11 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                         {label}
                       </div>
                       {fixedArticle.description && (
-                        <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic", marginBottom: "8px" }}>{fixedArticle.description}</p>
+                        <p style={{ fontSize: "13px", color: "#718096", fontStyle: "italic", marginBottom: "8px", lineHeight: 1.35 }}>{fixedArticle.description}</p>
                       )}
                       <WikiArticleRenderer
                         legacyContent={fixedArticle.content}
-                        className="prose prose-sm max-w-none [&_h1]:text-xs [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h3]:text-[10px] [&_h3]:font-semibold [&_p]:text-[9px] [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[9px] [&_a]:text-primary [&_a]:underline"
+                        className="prose max-w-none [&_h1]:mb-2 [&_h1]:mt-3 [&_h1]:text-[13px] [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:mt-2 [&_h3]:text-[12px] [&_h3]:font-semibold [&_p]:my-1.5 [&_p]:text-[13px] [&_p]:leading-[1.35] [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:text-[13px] [&_li]:leading-[1.35] [&_a]:text-primary [&_a]:underline"
                       />
                     </div>
                   )}
@@ -603,7 +600,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                   {!isPricing && !art && !fixedArticle && (
                     <div style={{ padding: "16px 24px" }}>
                       <div style={{
-                        background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "10px",
+                        background: "#2b6cb0", color: "white", padding: "6px 12px", fontSize: "12px",
                         fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
                         marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px",
                       }}>
@@ -611,16 +608,12 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                         {label}
                       </div>
                       <div style={{ padding: "12px", background: "#f7fafc", border: "1px solid #e2e8f0" }}>
-                        <p style={{ fontSize: "9px", color: "#718096", fontStyle: "italic" }}>
+                        <p style={{ fontSize: "13px", color: "#718096", fontStyle: "italic", lineHeight: 1.35 }}>
                           {label} content will be rendered from company settings and templates.
                         </p>
                       </div>
                     </div>
                   )}
-
-                  <div style={{ textAlign: "center", marginTop: "8px", paddingBottom: "8px", fontSize: "8px", color: "#a0aec0" }}>
-                    Page {i + 2}
-                  </div>
                 </div>
               );
             })}
