@@ -159,7 +159,7 @@ const WikiArticleEditDialog = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-4 items-start">
             <div>
               <Label className="text-xs font-medium mb-1 block">Content</Label>
               <RichTextEditor
@@ -172,7 +172,7 @@ const WikiArticleEditDialog = ({
 
             <div>
               <Label className="text-xs font-medium mb-1 block">Preview</Label>
-              <div className="border border-border rounded-lg p-3 min-h-[320px] max-h-[420px] overflow-y-auto">
+              <div className="border border-border rounded-lg p-4 min-h-[420px] max-h-[70dvh] overflow-y-auto xl:sticky xl:top-0">
                 <WikiArticleRenderer legacyContent={form.content} className="text-sm" emptyMessage="Nothing to preview yet." />
               </div>
             </div>
