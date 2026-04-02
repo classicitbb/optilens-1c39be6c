@@ -160,15 +160,15 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                {Array.from({ length: Number(obj.content.cols ?? 3) }, (_, index) => `Column ${index + 1}`).map((h) => (
+                {Array.from({ length: Number(content.cols ?? 3) }, (_, index) => `Column ${index + 1}`).map((h) => (
                   <th key={h} className="bg-muted text-[9px] font-medium p-1 text-left border text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: Number(obj.content.rows ?? 4) }, (_, rowIndex) => rowIndex + 1).map((r) => (
+              {Array.from({ length: Number(content.rows ?? 4) }, (_, rowIndex) => rowIndex + 1).map((r) => (
                 <tr key={r}>
-                  {Array.from({ length: Number(obj.content.cols ?? 3) }, (_, colIndex) => colIndex + 1).map((c) => (
+                  {Array.from({ length: Number(content.cols ?? 3) }, (_, colIndex) => colIndex + 1).map((c) => (
                     <td key={c} className={cn("text-[9px] p-1 border", r % 2 === 0 && "bg-muted/50")}>Cell {r},{c}</td>
                   ))}
                 </tr>
