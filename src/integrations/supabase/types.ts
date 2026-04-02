@@ -536,6 +536,106 @@ export type Database = {
           },
         ]
       }
+      catalog_page_objects: {
+        Row: {
+          content: Json
+          created_at: string
+          height: number | null
+          id: string
+          is_locked: boolean
+          is_visible: boolean
+          label: string | null
+          object_type: string
+          page_id: string
+          rotation: number
+          style: Json
+          updated_at: string
+          width: number
+          x: number
+          y: number
+          z_index: number
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          height?: number | null
+          id?: string
+          is_locked?: boolean
+          is_visible?: boolean
+          label?: string | null
+          object_type?: string
+          page_id: string
+          rotation?: number
+          style?: Json
+          updated_at?: string
+          width?: number
+          x?: number
+          y?: number
+          z_index?: number
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          height?: number | null
+          id?: string
+          is_locked?: boolean
+          is_visible?: boolean
+          label?: string | null
+          object_type?: string
+          page_id?: string
+          rotation?: number
+          style?: Json
+          updated_at?: string
+          width?: number
+          x?: number
+          y?: number
+          z_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_page_objects_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_pages: {
+        Row: {
+          catalog_template_id: number
+          created_at: string
+          id: string
+          page_number: number
+          page_settings: Json
+          updated_at: string
+        }
+        Insert: {
+          catalog_template_id: number
+          created_at?: string
+          id?: string
+          page_number?: number
+          page_settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          catalog_template_id?: number
+          created_at?: string
+          id?: string
+          page_number?: number
+          page_settings?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_pages_catalog_template_id_fkey"
+            columns: ["catalog_template_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_sections: {
         Row: {
           article_id: string | null
@@ -604,6 +704,7 @@ export type Database = {
           gradient_color_start: string | null
           id: number
           name: string
+          status: string
           updated_at: string | null
         }
         Insert: {
@@ -615,6 +716,7 @@ export type Database = {
           gradient_color_start?: string | null
           id?: number
           name: string
+          status?: string
           updated_at?: string | null
         }
         Update: {
@@ -626,6 +728,7 @@ export type Database = {
           gradient_color_start?: string | null
           id?: number
           name?: string
+          status?: string
           updated_at?: string | null
         }
         Relationships: []
