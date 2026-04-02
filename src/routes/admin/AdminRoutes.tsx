@@ -29,6 +29,7 @@ const QuotePrintPreviewPage = lazy(() => import("@/pages/admin/QuotePrintPreview
 const CatalogPublisherPage = lazy(() => import("@/pages/admin/CatalogPublisherPage"));
 const CatalogPublisherV2Page = lazy(() => import("@/pages/admin/CatalogPublisherV2Page"));
 const CatalogEditorPage = lazy(() => import("@/pages/admin/CatalogEditorPage"));
+const CanvasEditorPage = lazy(() => import("@/pages/admin/CanvasEditorPage"));
 const ContactsPage = lazy(() => import("@/pages/admin/erp/ContactsPage"));
 const ContactTagsConfigPage = lazy(() => import("@/pages/admin/erp/ContactTagsConfigPage"));
 const IndustriesConfigPage = lazy(() => import("@/pages/admin/erp/IndustriesConfigPage"));
