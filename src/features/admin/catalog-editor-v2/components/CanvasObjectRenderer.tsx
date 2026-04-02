@@ -23,8 +23,10 @@ const HANDLES = [
 const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown }: Props) => {
   if (!obj.is_visible) return null;
 
-  const sectionType = typeof obj.content.section_type === "string" ? obj.content.section_type : "";
-  const customTitle = typeof obj.content.custom_title === "string" ? obj.content.custom_title : "";
+  const content = obj.content ?? {};
+  const style = obj.style ?? {};
+  const sectionType = typeof content.section_type === "string" ? content.section_type : "";
+  const customTitle = typeof content.custom_title === "string" ? content.custom_title : "";
   const pricingLabel = sectionType === "stock_prices"
     ? "Stock Prices"
     : sectionType === "supplies_prices"
