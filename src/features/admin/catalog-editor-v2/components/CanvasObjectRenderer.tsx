@@ -53,12 +53,12 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <div
             className="p-1 text-xs border border-dashed border-transparent hover:border-primary/30"
             style={{
-              fontSize: (obj.style.fontSize as number) ?? 12,
-              fontFamily: (obj.style.fontFamily as string) ?? "inherit",
-              color: (obj.style.color as string) ?? "hsl(var(--foreground))",
+              fontSize: (objStyle.fontSize as number) ?? 12,
+              fontFamily: (objStyle.fontFamily as string) ?? "inherit",
+              color: (objStyle.color as string) ?? "hsl(var(--foreground))",
             }}
           >
-            {(obj.content.text as string) || "Text block"}
+            {(content.text as string) || "Text block"}
           </div>
         );
 
