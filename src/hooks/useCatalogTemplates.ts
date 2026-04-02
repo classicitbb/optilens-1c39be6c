@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface CatalogTemplate {
   id: number;
   name: string;
+  status: string | null;
   cover_title: string | null;
   cover_subtitle: string | null;
   gradient_color_start: string | null;
@@ -79,7 +80,29 @@ export const useCatalogTemplates = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as CatalogTemplate;
+
+      const duplicatedTemplate = data as CatalogTemplate;
+
+      const { data: sections, error: sectionsError } = await supabase
+        .from("catalog_sections")
+        .select("*")
+        .eq("catalog_template_id", template.id)
+        .order("sort_order");
+      if (sectionsError) throw sectionsError;
+
+      if ((sections ?? []).length > 0) {
+        const sectionCopies = (sections ?? []).map(({ id: _id, catalog_template_id: _catalogTemplateId, ...section }) => ({
+          ...section,
+          catalog_template_id: duplicatedTemplate.id,
+        }));
+
+        const { error: insertSectionsError } = await supabase
+          .from("catalog_sections")
+          .insert(sectionCopies as any[]);
+        if (insertSectionsError) throw insertSectionsError;
+      }
+
+      return duplicatedTemplate;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-templates"] }),
   });
