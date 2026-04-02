@@ -1,6 +1,7 @@
 import { type MouseEvent as ReactMouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import type { CanvasObject } from "../types";
+import CanvasPricingBlock from "./CanvasPricingBlock";
 
 interface Props {
   obj: CanvasObject;
@@ -27,11 +28,6 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
   const objStyle = obj.style ?? {};
   const sectionType = typeof content.section_type === "string" ? content.section_type : "";
   const customTitle = typeof content.custom_title === "string" ? content.custom_title : "";
-  const pricingLabel = sectionType === "stock_prices"
-    ? "Stock Prices"
-    : sectionType === "supplies_prices"
-      ? "Supplies Prices"
-      : "RX Prices";
   const articleLabel = sectionType
     ? sectionType.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
     : "Knowledge Article";
@@ -109,37 +105,11 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
 
       case "pricing_block":
         return (
-          <div className="bg-background border rounded overflow-hidden">
-            <div className="px-3 py-2">
-              <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-primary/10 text-primary mb-1">
-                {pricingLabel}
-              </span>
-              <div className="text-[10px] font-medium pb-1 border-b-[1.5px] border-primary mt-1">
-                {customTitle || pricingLabel}
-              </div>
-              <div className="mt-1 text-[8.5px] text-muted-foreground">
-                {(content.pricelist_version_id as number | null) ? `Version #${content.pricelist_version_id as number}` : "No pricelist assigned"}
-              </div>
-            </div>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="bg-muted text-[9px] font-medium p-1 text-left border text-muted-foreground">Lens description</th>
-                  <th className="bg-muted text-[9px] font-medium p-1 text-left border text-muted-foreground">Material</th>
-                  <th className="bg-muted text-[9px] font-medium p-1 text-right border text-muted-foreground">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[1, 2, 3].map((i) => (
-                  <tr key={i}>
-                    <td className="text-[9px] p-1 border">Sample lens {i}</td>
-                    <td className="text-[9px] p-1 border text-muted-foreground">CR-39</td>
-                    <td className="text-[9px] p-1 border text-right font-mono text-primary">$18.00</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <CanvasPricingBlock
+            pricelist_version_id={(content.pricelist_version_id as number | null) ?? null}
+            section_type={sectionType}
+            custom_title={customTitle || undefined}
+          />
         );
 
       case "article_block":
