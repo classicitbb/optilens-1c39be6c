@@ -571,7 +571,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                                     <div className="flex-1 px-2 py-1.5 text-right font-mono text-xs text-foreground min-w-0">
                                       {displayPrice != null ? <span className="font-semibold">{fmt(displayPrice, showUSD, fxRate)}</span> : <span className="text-muted-foreground/40">—</span>}
                                     </div>
-                                    {isOverridden && <Link2Off className="h-3 w-3 shrink-0 text-amber-600 mr-0.5" title="Price override from price list editor" />}
+                                    {isOverridden && <Link2Off className="h-3 w-3 shrink-0 text-amber-600 mr-0.5" />}
                                     {isPending && <span className="h-1.5 w-1.5 rounded-full bg-red-500 mr-0.5 shrink-0" title="Pending sync to Price List" />}
                                     {inCatalog && !isPending && <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />}
                                     {allocation && (

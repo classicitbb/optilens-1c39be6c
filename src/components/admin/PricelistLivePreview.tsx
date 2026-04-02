@@ -110,7 +110,7 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
     return fmtDisplay(finalBbd, showUSD, fxRate);
   };
 
-  const hierarchyCatalogPrice = (row: { bbd_price: number | null; row_type: string; item_id?: string | null }) => {
+  const hierarchyCatalogPrice = (row: { bbd_price: number | null; row_type: string; item_id?: string | null | undefined }) => {
     const finalBbd = resolveCatalogRowPreviewPriceBbd(row, lineOverrides);
     return fmtDisplay(finalBbd, showUSD, fxRate);
   };
