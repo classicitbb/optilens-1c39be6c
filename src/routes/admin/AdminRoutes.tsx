@@ -70,6 +70,7 @@ const AdminRoutes = () => (
       <Route path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
       <Route path="pricing/publisher-old" element={<Navigate to="/admin/pricing/publisher" replace />} />
       <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
+      <Route path="pricing/publisher/:id/canvas" element={<CanvasEditorPage />} />
       <Route path="pricing/costings" element={<ImportCostingsPage />} />
       <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
       <Route path="pricing/costings/:id" element={<ShipmentDetailPage />} />
