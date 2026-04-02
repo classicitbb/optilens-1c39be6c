@@ -145,7 +145,7 @@ const PropertiesPanel = ({
               <div className="p-3.5 border-b">
                 <div className="text-[9.5px] font-medium tracking-wider uppercase text-muted-foreground mb-2">Typography</div>
                 <div className="space-y-1.5">
-                  <Select value={(obj.style.fontFamily as string) ?? "Geist"} onValueChange={(v) => onUpdate({ id: obj.id, style: { ...obj.style, fontFamily: v } })}>
+                  <Select value={(objStyle.fontFamily as string) ?? "Geist"} onValueChange={(v) => onUpdate({ id: obj.id, style: { ...objStyle, fontFamily: v } })}>
                     <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Geist">Geist</SelectItem>
@@ -157,11 +157,11 @@ const PropertiesPanel = ({
                   <div className="grid grid-cols-2 gap-1.5">
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-muted-foreground">Size</span>
-                      <Input className="h-7 text-xs font-mono" value={`${(obj.style.fontSize as number) ?? 12}px`} onChange={(e) => onUpdate({ id: obj.id, style: { ...obj.style, fontSize: parseFloat(e.target.value) || 12 } })} />
+                      <Input className="h-7 text-xs font-mono" value={`${(objStyle.fontSize as number) ?? 12}px`} onChange={(e) => onUpdate({ id: obj.id, style: { ...objStyle, fontSize: parseFloat(e.target.value) || 12 } })} />
                     </div>
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-muted-foreground">Line height</span>
-                      <Input className="h-7 text-xs font-mono" value={(obj.style.lineHeight as number) ?? 1.55} onChange={(e) => onUpdate({ id: obj.id, style: { ...obj.style, lineHeight: parseFloat(e.target.value) || 1.55 } })} />
+                      <Input className="h-7 text-xs font-mono" value={(objStyle.lineHeight as number) ?? 1.55} onChange={(e) => onUpdate({ id: obj.id, style: { ...objStyle, lineHeight: parseFloat(e.target.value) || 1.55 } })} />
                     </div>
                   </div>
                 </div>
@@ -174,13 +174,13 @@ const PropertiesPanel = ({
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-muted-foreground w-10 shrink-0">Fill</span>
-                  <div className="w-6 h-6 rounded border shrink-0" style={{ background: (obj.style.fill as string) ?? "transparent" }} />
-                  <Input className="h-6 text-[10.5px] font-mono flex-1" value={(obj.style.fill as string) ?? ""} onChange={(e) => onUpdate({ id: obj.id, style: { ...obj.style, fill: e.target.value } })} />
+                  <div className="w-6 h-6 rounded border shrink-0" style={{ background: (objStyle.fill as string) ?? "transparent" }} />
+                  <Input className="h-6 text-[10.5px] font-mono flex-1" value={(objStyle.fill as string) ?? ""} onChange={(e) => onUpdate({ id: obj.id, style: { ...objStyle, fill: e.target.value } })} />
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-muted-foreground w-10 shrink-0">Stroke</span>
-                  <div className="w-6 h-6 rounded border shrink-0" style={{ background: (obj.style.stroke as string) ?? "transparent" }} />
-                  <Input className="h-6 text-[10.5px] font-mono flex-1" value={(obj.style.stroke as string) ?? ""} onChange={(e) => onUpdate({ id: obj.id, style: { ...obj.style, stroke: e.target.value } })} />
+                  <div className="w-6 h-6 rounded border shrink-0" style={{ background: (objStyle.stroke as string) ?? "transparent" }} />
+                  <Input className="h-6 text-[10.5px] font-mono flex-1" value={(objStyle.stroke as string) ?? ""} onChange={(e) => onUpdate({ id: obj.id, style: { ...objStyle, stroke: e.target.value } })} />
                 </div>
               </div>
             </div>
@@ -196,7 +196,7 @@ const PropertiesPanel = ({
               <div className="space-y-2">
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-muted-foreground">Section type</span>
-                  <Select value={(obj.content.section_type as string) ?? "rx_prices"} onValueChange={(v) => onUpdate({ id: obj.id, content: { ...obj.content, section_type: v } })}>
+                  <Select value={(content.section_type as string) ?? "rx_prices"} onValueChange={(v) => onUpdate({ id: obj.id, content: { ...content, section_type: v } })}>
                     <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="rx_prices">Rx Prices</SelectItem>
@@ -208,11 +208,11 @@ const PropertiesPanel = ({
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-muted-foreground">Pricelist version</span>
                   <Select
-                    value={String((obj.content.pricelist_version_id as number | null) ?? "")}
+                    value={String((content.pricelist_version_id as number | null) ?? "")}
                     onValueChange={(value) => onUpdate({
                       id: obj.id,
                       content: {
-                        ...obj.content,
+                        ...content,
                         pricelist_version_id: value ? Number(value) : null,
                       },
                     })}
@@ -228,13 +228,13 @@ const PropertiesPanel = ({
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-muted-foreground">Display format</span>
                   <div className="flex border rounded overflow-hidden">
-                    <button type="button" className={cn("flex-1 h-7 text-[11px]", (obj.content.format as string) !== "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={() => onUpdate({ id: obj.id, content: { ...obj.content, format: "list" } })}>List</button>
-                    <button type="button" disabled={sectionType !== "rx_prices"} className={cn("flex-1 h-7 text-[11px]", (obj.content.format as string) === "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground", sectionType !== "rx_prices" && "cursor-not-allowed opacity-50")} onClick={() => onUpdate({ id: obj.id, content: { ...obj.content, format: "matrix" } })}>Matrix</button>
+                    <button type="button" className={cn("flex-1 h-7 text-[11px]", (content.format as string) !== "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground")} onClick={() => onUpdate({ id: obj.id, content: { ...content, format: "list" } })}>List</button>
+                    <button type="button" disabled={sectionType !== "rx_prices"} className={cn("flex-1 h-7 text-[11px]", (content.format as string) === "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground", sectionType !== "rx_prices" && "cursor-not-allowed opacity-50")} onClick={() => onUpdate({ id: obj.id, content: { ...content, format: "matrix" } })}>Matrix</button>
                   </div>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-muted-foreground">Custom title</span>
-                  <Input className="h-7 text-xs" placeholder="Leave blank for default" value={(obj.content.custom_title as string) ?? ""} onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, custom_title: e.target.value } })} />
+                  <Input className="h-7 text-xs" placeholder="Leave blank for default" value={(content.custom_title as string) ?? ""} onChange={(e) => onUpdate({ id: obj.id, content: { ...content, custom_title: e.target.value } })} />
                 </div>
               </div>
             )}
@@ -250,10 +250,10 @@ const PropertiesPanel = ({
                         ? "Knowledge Article"
                         : fixedSectionOptions.find((option) => option.value === value)?.label ?? value,
                       content: {
-                        ...obj.content,
+                        ...content,
                         section_type: value,
-                        article_id: value === "knowledge_article" ? obj.content.article_id ?? null : null,
-                        text_mode: value === "knowledge_article" ? obj.content.text_mode ?? "summary" : null,
+                        article_id: value === "knowledge_article" ? content.article_id ?? null : null,
+                        text_mode: value === "knowledge_article" ? content.text_mode ?? "summary" : null,
                       },
                     })}
                   >
@@ -272,10 +272,10 @@ const PropertiesPanel = ({
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-muted-foreground">Article</span>
                       <Select
-                        value={String((obj.content.article_id as string | null) ?? "")}
+                        value={String((content.article_id as string | null) ?? "")}
                         onValueChange={(value) => onUpdate({
                           id: obj.id,
-                          content: { ...obj.content, article_id: value || null },
+                          content: { ...content, article_id: value || null },
                         })}
                       >
                         <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select article" /></SelectTrigger>
@@ -291,10 +291,10 @@ const PropertiesPanel = ({
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-muted-foreground">Text mode</span>
                       <Select
-                        value={String((obj.content.text_mode as string | null) ?? "summary")}
+                        value={String((content.text_mode as string | null) ?? "summary")}
                         onValueChange={(value) => onUpdate({
                           id: obj.id,
-                          content: { ...obj.content, text_mode: value },
+                          content: { ...content, text_mode: value },
                         })}
                       >
                         <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
@@ -313,8 +313,8 @@ const PropertiesPanel = ({
                   <Input
                     className="h-7 text-xs"
                     placeholder="Leave blank for default"
-                    value={(obj.content.custom_title as string) ?? ""}
-                    onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, custom_title: e.target.value } })}
+                    value={(content.custom_title as string) ?? ""}
+                    onChange={(e) => onUpdate({ id: obj.id, content: { ...content, custom_title: e.target.value } })}
                   />
                 </div>
               </div>
@@ -322,8 +322,8 @@ const PropertiesPanel = ({
             {obj.object_type === "text" && (
               <textarea
                 className="w-full min-h-[120px] text-xs border rounded p-2 bg-muted/50 resize-y"
-                value={(obj.content.text as string) ?? ""}
-                onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, text: e.target.value } })}
+                value={(content.text as string) ?? ""}
+                onChange={(e) => onUpdate({ id: obj.id, content: { ...content, text: e.target.value } })}
               />
             )}
             {obj.object_type === "image" && (
@@ -332,8 +332,8 @@ const PropertiesPanel = ({
                 <Input
                   className="h-7 text-xs"
                   placeholder="https://example.com/image.jpg"
-                  value={(obj.content.src as string) ?? ""}
-                  onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, src: e.target.value } })}
+                  value={(content.src as string) ?? ""}
+                  onChange={(e) => onUpdate({ id: obj.id, content: { ...content, src: e.target.value } })}
                 />
               </div>
             )}
@@ -343,16 +343,16 @@ const PropertiesPanel = ({
                   <span className="text-[10px] text-muted-foreground">Rows</span>
                   <Input
                     className="h-7 text-xs font-mono"
-                    value={String((obj.content.rows as number) ?? 4)}
-                    onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, rows: Number(e.target.value) || 1 } })}
+                    value={String((content.rows as number) ?? 4)}
+                    onChange={(e) => onUpdate({ id: obj.id, content: { ...content, rows: Number(e.target.value) || 1 } })}
                   />
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10px] text-muted-foreground">Columns</span>
                   <Input
                     className="h-7 text-xs font-mono"
-                    value={String((obj.content.cols as number) ?? 3)}
-                    onChange={(e) => onUpdate({ id: obj.id, content: { ...obj.content, cols: Number(e.target.value) || 1 } })}
+                    value={String((content.cols as number) ?? 3)}
+                    onChange={(e) => onUpdate({ id: obj.id, content: { ...content, cols: Number(e.target.value) || 1 } })}
                   />
                 </div>
               </div>
