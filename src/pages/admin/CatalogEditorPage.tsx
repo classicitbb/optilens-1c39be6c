@@ -485,7 +485,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
       {/* TOC */}
       {includedSections.length > 0 && (
         <div style={{ padding: "24px", borderBottom: "1px solid #e2e8f0", minHeight: 760, pageBreakAfter: "always", breakAfter: "page", pageBreakBefore: "always", breakBefore: "page" }}>
-                <div style={{ fontSize: "13px", fontWeight: 700, color: "#2b6cb0", marginBottom: "12px", borderBottom: "2px solid #2b6cb0", paddingBottom: "6px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#2b6cb0", marginBottom: "12px", borderBottom: "2px solid #2b6cb0", paddingBottom: "6px" }}>
                   Table of Contents
                 </div>
                 {includedSections.map((s, i) => {
@@ -496,10 +496,10 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
                     : getSectionLabel(s.section_type);
                   return (
                     <div key={s.id ?? i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px dotted #e2e8f0" }}>
-                      <span style={{ color: "#2d3748", fontSize: "10px" }}>
+                      <span style={{ color: "#2d3748", fontSize: "12px" }}>
                         {i + 1}. {label}{vName ? ` — ${vName}` : ""}
                       </span>
-                      <span style={{ color: "#a0aec0", fontSize: "9px", fontFamily: "monospace" }}>{i + 2}</span>
+                      <span style={{ color: "#a0aec0", fontSize: "12px", fontFamily: "monospace" }}>{i + 2}</span>
                     </div>
                   );
                 })}
@@ -796,7 +796,7 @@ const CatalogEditorPage = () => {
   }
 
   return (
-    <div className="-m-4 flex h-full min-h-0 flex-col overflow-hidden bg-background">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-sm border border-border bg-background">
       {/* Top bar — like QuoteEditorPage */}
       <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">
         <button onClick={() => navigate("/admin/pricing/publisher")} className="p-1 rounded hover:bg-muted">
