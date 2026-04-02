@@ -145,7 +145,7 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
       case "article_block":
         return (
           <div className="bg-background border rounded p-2.5 overflow-hidden">
-            <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-green-500/10 text-green-700 mb-1">article</span>
+            <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-accent/10 text-accent-foreground mb-1">article</span>
             <div className="text-[10px] font-medium mb-1">{customTitle || articleLabel}</div>
             <div className="text-[8.5px] text-muted-foreground leading-relaxed">
               {sectionType === "knowledge_article"
