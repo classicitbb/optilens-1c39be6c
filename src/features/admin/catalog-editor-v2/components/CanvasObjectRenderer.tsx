@@ -65,8 +65,8 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
       case "image":
         return (
           <div className="w-full h-full bg-muted flex items-center justify-center rounded overflow-hidden">
-            {(obj.content.src as string) ? (
-              <img src={obj.content.src as string} alt="" className="w-full h-full object-cover" />
+            {(content.src as string) ? (
+              <img src={content.src as string} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-muted-foreground text-[10px]">Image placeholder</span>
             )}
