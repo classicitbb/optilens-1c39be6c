@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import NewCatalogDialog from "@/components/admin/NewCatalogDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -236,7 +237,7 @@ const AssignDialog = ({ template, open, onClose }: { template: CatalogTemplate |
 
 /* ═══════════════════ Main List Page ═══════════════════ */
 const CatalogPublisherPage = () => {
-  const { data: templates = [], isLoading, createMutation, deleteMutation, duplicateMutation } = useCatalogTemplates();
+  const { data: templates = [], isLoading, deleteMutation, duplicateMutation } = useCatalogTemplates();
   const { data: counts = {} } = useAssignmentCounts();
   const { data: settings } = useCompanySettings();
   const { canEditFeature } = useRolePermissions();
@@ -249,6 +250,7 @@ const CatalogPublisherPage = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [assignTarget, setAssignTarget] = useState<CatalogTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CatalogTemplate | null>(null);
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -274,20 +276,6 @@ const CatalogPublisherPage = () => {
       return sortDir === "desc" ? -cmp : cmp;
     });
   }, [templates, search, sortField, sortDir, counts]);
-
-  const handleNew = async () => {
-    try {
-      const created = await createMutation.mutateAsync({
-        name: "Untitled Catalog",
-        cover_title: settings?.company_name ?? "Product Catalog",
-        cover_subtitle: settings?.slogan ?? "",
-      });
-      toast({ title: "Catalog created" });
-      navigate(`/admin/pricing/publisher/${created.id}`);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    }
-  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -336,8 +324,7 @@ const CatalogPublisherPage = () => {
             size="sm"
             className="h-7 text-xs gap-1"
             style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }}
-            onClick={handleNew}
-            disabled={createMutation.isPending}
+            onClick={() => setNewDialogOpen(true)}
           >
             <Plus className="h-3.5 w-3.5" /> New Catalog
           </Button>
@@ -433,6 +420,12 @@ const CatalogPublisherPage = () => {
       </div>
 
       <AssignDialog template={assignTarget} open={!!assignTarget} onClose={() => setAssignTarget(null)} />
+      <NewCatalogDialog
+        open={newDialogOpen}
+        onOpenChange={setNewDialogOpen}
+        defaultCoverTitle={settings?.company_name ?? "Product Catalog"}
+        defaultCoverSubtitle={settings?.slogan ?? ""}
+      />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
