@@ -101,8 +101,8 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <div
             className="w-full"
             style={{
-              height: (obj.style.strokeWidth as number) ?? 1,
-              background: (obj.style.stroke as string) ?? "hsl(var(--muted-foreground))",
+              height: (objStyle.strokeWidth as number) ?? 1,
+              background: (objStyle.stroke as string) ?? "hsl(var(--muted-foreground))",
             }}
           />
         );
