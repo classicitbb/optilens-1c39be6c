@@ -90,8 +90,8 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <div
             className="w-full h-full rounded-full"
             style={{
-              background: (obj.style.fill as string) ?? "hsl(var(--accent) / 0.1)",
-              border: `${(obj.style.strokeWidth as number) ?? 1.5}px solid ${(obj.style.stroke as string) ?? "hsl(var(--accent) / 0.3)"}`,
+              background: (objStyle.fill as string) ?? "hsl(var(--accent) / 0.1)",
+              border: `${(objStyle.strokeWidth as number) ?? 1.5}px solid ${(objStyle.stroke as string) ?? "hsl(var(--accent) / 0.3)"}`,
             }}
           />
         );
