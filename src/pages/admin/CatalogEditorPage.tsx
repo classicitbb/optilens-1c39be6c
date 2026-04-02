@@ -172,6 +172,8 @@ const SECTION_TO_CATALOG_TYPE: Record<string, string> = {
   supplies_prices: "buysell",
 };
 
+const PUBLISHABLE_PRICING_SECTION_TYPES = new Set(["rx_prices", "stock_prices", "supplies_prices"]);
+
 const fmtPrice = (n: number | null) => n != null ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—";
 
 const KNOWLEDGE_TEXT_MODES = [
@@ -657,6 +659,7 @@ const CatalogEditorPage = () => {
   const [coverSettingsOpen, setCoverSettingsOpen] = useState(false);
   const [gradStart, setGradStart] = useState("#1e4db7");
   const [gradEnd, setGradEnd] = useState("#0f2a5e");
+  const [status, setStatus] = useState<"draft" | "published">("draft");
 
   const { data: sections = [], addSection, updateSection, removeSection, reorderSections } = useCatalogSectionsEditor(template?.id);
 
@@ -675,15 +678,64 @@ const CatalogEditorPage = () => {
       setCoverBackgroundUrl(parsedCover.backgroundUrl);
       setGradStart(template.gradient_color_start ?? "#1e4db7");
       setGradEnd(template.gradient_color_end ?? "#0f2a5e");
+      setStatus(template.status === "published" ? "published" : "draft");
     }
   }, [template]);
 
-  const handleSave = useCallback(async () => {
+  const validatePublish = useCallback(() => {
+    const trimmedName = name.trim();
+    if (!trimmedName || trimmedName === "Untitled Catalog") {
+      toast({
+        title: "Cannot publish catalog",
+        description: "Give the catalog a real name before publishing.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const includedSections = sections.filter((section) => section.is_included !== false);
+    if (includedSections.length === 0) {
+      toast({
+        title: "Cannot publish catalog",
+        description: "Include at least one section before publishing.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const missingPricelistSection = includedSections.find(
+      (section) =>
+        PUBLISHABLE_PRICING_SECTION_TYPES.has(section.section_type) &&
+        !section.pricelist_version_id,
+    );
+
+    if (missingPricelistSection) {
+      toast({
+        title: "Cannot publish catalog",
+        description: `${getSectionLabel(missingPricelistSection.section_type)} needs a pricelist version before publishing.`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  }, [name, sections, toast]);
+
+  const handleSave = useCallback(async (
+    options?: {
+      nextStatus?: "draft" | "published";
+      successTitle?: string;
+      successDescription?: string;
+    },
+  ) => {
     if (!template) return;
+
+    const nextStatus = options?.nextStatus ?? status;
     try {
       await updateMutation.mutateAsync({
         id: template.id,
         name,
+        status: nextStatus,
         cover_title: coverTitle,
         cover_subtitle: serializeCoverContent({
           subtitle: coverSubtitle,
@@ -698,11 +750,38 @@ const CatalogEditorPage = () => {
         gradient_color_start: gradStart,
         gradient_color_end: gradEnd,
       });
-      toast({ title: "Template saved" });
+      setStatus(nextStatus);
+      toast({
+        title: options?.successTitle ?? "Template saved",
+        description: options?.successDescription,
+      });
+      return true;
     } catch (e: unknown) {
       toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+      return false;
     }
-  }, [template, name, coverTitle, coverSubtitle, coverBody, coverFooter, coverGradientAngle, coverGradientEnabled, coverInvertText, coverLogoUrl, coverBackgroundUrl, gradStart, gradEnd, updateMutation, toast]);
+  }, [template, status, name, coverTitle, coverSubtitle, coverBody, coverFooter, coverGradientAngle, coverGradientEnabled, coverInvertText, coverLogoUrl, coverBackgroundUrl, gradStart, gradEnd, updateMutation, toast]);
+
+  const handlePublish = useCallback(async () => {
+    if (!validatePublish()) return false;
+    return handleSave({
+      nextStatus: "published",
+      successTitle: "Catalog published",
+      successDescription: "The catalog is now marked as published.",
+    });
+  }, [handleSave, validatePublish]);
+
+  const handleStatusToggle = useCallback(async () => {
+    if (status === "published") {
+      await handleSave({
+        nextStatus: "draft",
+        successTitle: "Catalog saved as draft",
+      });
+      return;
+    }
+
+    await handlePublish();
+  }, [handlePublish, handleSave, status]);
 
   const handleUploadAsset = async (file: File, kind: "logo" | "background") => {
     if (!template) return;
@@ -777,8 +856,8 @@ const CatalogEditorPage = () => {
   };
 
   const liveTemplate: CatalogTemplate = template
-    ? { ...template, name, cover_title: coverTitle, cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl, backgroundUrl: coverBackgroundUrl }), gradient_color_start: gradStart, gradient_color_end: gradEnd }
-    : { id: 0, name: "", cover_title: null, cover_subtitle: null, gradient_color_start: null, gradient_color_end: null, created_at: null, updated_at: null, created_by: null };
+    ? { ...template, name, status, cover_title: coverTitle, cover_subtitle: serializeCoverContent({ subtitle: coverSubtitle, body: coverBody, footer: coverFooter, gradientAngle: coverGradientAngle, gradientEnabled: coverGradientEnabled, invertText: coverInvertText, logoUrl: coverLogoUrl, backgroundUrl: coverBackgroundUrl }), gradient_color_start: gradStart, gradient_color_end: gradEnd }
+    : { id: 0, name: "", status: "draft", cover_title: null, cover_subtitle: null, gradient_color_start: null, gradient_color_end: null, created_at: null, updated_at: null, created_by: null };
 
   if (!template) {
     return (
@@ -790,22 +869,73 @@ const CatalogEditorPage = () => {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-sm border border-border bg-background">
-      {/* Top bar — like QuoteEditorPage */}
-      <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">
-        <button onClick={() => navigate("/admin/pricing/publisher")} className="p-1 rounded hover:bg-muted">
-          <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+      <div className="flex h-[46px] shrink-0 items-center border-b border-border bg-background px-3">
+        <button
+          onClick={() => navigate("/admin/pricing/publisher")}
+          className="mr-2 flex items-center gap-2 border-r border-border pr-3 text-left transition-colors hover:text-foreground"
+        >
+          <span className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-border bg-background text-muted-foreground">
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </span>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="hover:text-foreground">Publisher</span>
+            <span className="text-muted-foreground/60">/</span>
+            <span className="max-w-[240px] truncate font-medium text-foreground">{name || "Untitled Catalog"}</span>
+          </span>
         </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-semibold text-foreground truncate">{name || "Untitled Catalog"}</h1>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { handleSave().then(() => navigate("/admin/pricing/publisher")); }}>
+        <div className="ml-auto flex items-center gap-[5px]">
+          <button
+            type="button"
+            onClick={handleStatusToggle}
+            disabled={updateMutation.isPending}
+            className={[
+              "flex h-5 items-center gap-1 rounded-full px-2 text-[11px] font-medium transition-opacity",
+              status === "published"
+                ? "bg-emerald-100 text-emerald-700 hover:opacity-85"
+                : "bg-amber-100 text-amber-700 hover:opacity-85",
+              updateMutation.isPending ? "cursor-not-allowed opacity-70" : "",
+            ].join(" ")}
+            title={status === "published" ? "Mark catalog as draft" : "Publish catalog"}
+          >
+            <span className="h-[5px] w-[5px] rounded-full bg-current" />
+            <span>{status === "published" ? "Published" : "Draft"}</span>
+          </button>
+          <div className="mx-[5px] h-[18px] w-px bg-border" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 rounded-md border border-transparent px-[7px] text-xs font-normal text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground"
+            onClick={() => {
+              void handleSave({
+                successTitle: "Template saved",
+              });
+            }}
+            disabled={updateMutation.isPending}
+          >
+            Save
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 rounded-md border border-transparent px-[7px] text-xs font-normal text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground"
+            onClick={async () => {
+              const saved = await handleSave({
+                successTitle: "Template saved",
+              });
+              if (saved) navigate("/admin/pricing/publisher");
+            }}
+            disabled={updateMutation.isPending}
+          >
             Save &amp; Exit
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleSave} disabled={updateMutation.isPending}>
-            Save Template
-          </Button>
-          <Button size="sm" className="h-7 text-xs" onClick={() => { handleSave(); toast({ title: "Published" }); }}>
+          <Button
+            size="sm"
+            className="h-7 rounded-md px-[9px] text-xs font-normal"
+            onClick={() => {
+              void handlePublish();
+            }}
+            disabled={updateMutation.isPending}
+          >
             Save &amp; Publish
           </Button>
         </div>

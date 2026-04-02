@@ -7,14 +7,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import NewCatalogDialog from "@/components/admin/NewCatalogDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Copy, Pencil, Users, FileDown, ArrowUpDown, ChevronUp, ChevronDown, BookOpen } from "lucide-react";
+import { Plus, Search, Trash2, Copy, Users, FileDown, BookOpen } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,8 +22,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 /* ─── Types ─── */
-type SortField = "name" | "updated_at" | "customers";
-type SortDir = "asc" | "desc";
+type SortField = "updated_at" | "name" | "customers" | "sections";
 
 /* ─── Assignment counts ─── */
 const useAssignmentCounts = () => {
@@ -41,7 +40,21 @@ const useAssignmentCounts = () => {
   });
 };
 
-const fmt = (n: number | null) => n != null ? n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—";
+const useSectionCounts = () => {
+  return useQuery({
+    queryKey: ["catalog-section-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("catalog_sections").select("catalog_template_id");
+      if (error) throw error;
+      const counts: Record<number, number> = {};
+      (data ?? []).forEach((row: any) => {
+        counts[row.catalog_template_id] = (counts[row.catalog_template_id] || 0) + 1;
+      });
+      return counts;
+    },
+  });
+};
+
 const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
 const getCoverSubtitleForExport = (rawSubtitle: string | null | undefined): string => {
@@ -52,6 +65,29 @@ const getCoverSubtitleForExport = (rawSubtitle: string | null | undefined): stri
   } catch {
     return rawSubtitle;
   }
+};
+
+const getCatalogSubtitle = (rawSubtitle: string | null | undefined) => {
+  if (!rawSubtitle) return "";
+  try {
+    const parsed = JSON.parse(rawSubtitle) as { subtitle?: string };
+    return typeof parsed?.subtitle === "string" ? parsed.subtitle : "";
+  } catch {
+    return rawSubtitle;
+  }
+};
+
+const getStatusBadgeClasses = (status: string | null | undefined) => {
+  const normalized = (status ?? "draft").toLowerCase();
+  if (normalized === "published") {
+    return "bg-green-500/10 text-green-700 border-green-500/20";
+  }
+  return "bg-amber-500/10 text-amber-700 border-amber-500/20";
+};
+
+const getStatusLabel = (status: string | null | undefined) => {
+  const normalized = (status ?? "draft").toLowerCase();
+  return normalized === "published" ? "Published" : "Draft";
 };
 
 /* ═══════════════════ PDF Generator ═══════════════════ */
@@ -236,8 +272,9 @@ const AssignDialog = ({ template, open, onClose }: { template: CatalogTemplate |
 
 /* ═══════════════════ Main List Page ═══════════════════ */
 const CatalogPublisherPage = () => {
-  const { data: templates = [], isLoading, createMutation, deleteMutation, duplicateMutation } = useCatalogTemplates();
+  const { data: templates = [], isLoading, deleteMutation, duplicateMutation } = useCatalogTemplates();
   const { data: counts = {} } = useAssignmentCounts();
+  const { data: sectionCounts = {} } = useSectionCounts();
   const { data: settings } = useCompanySettings();
   const { canEditFeature } = useRolePermissions();
   const canEdit = canEditFeature("catalog-publisher");
@@ -246,19 +283,9 @@ const CatalogPublisherPage = () => {
 
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>("updated_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [assignTarget, setAssignTarget] = useState<CatalogTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CatalogTemplate | null>(null);
-
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortField(field); setSortDir("asc"); }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-30" />;
-    return sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
-  };
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let list = templates;
@@ -267,27 +294,12 @@ const CatalogPublisherPage = () => {
       list = list.filter((t) => t.name.toLowerCase().includes(s) || (t.cover_title ?? "").toLowerCase().includes(s));
     }
     return [...list].sort((a, b) => {
-      let cmp = 0;
-      if (sortField === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortField === "updated_at") cmp = (a.updated_at ?? "").localeCompare(b.updated_at ?? "");
-      else if (sortField === "customers") cmp = (counts[a.id] ?? 0) - (counts[b.id] ?? 0);
-      return sortDir === "desc" ? -cmp : cmp;
+      if (sortField === "name") return a.name.localeCompare(b.name);
+      if (sortField === "customers") return (counts[b.id] ?? 0) - (counts[a.id] ?? 0);
+      if (sortField === "sections") return (sectionCounts[b.id] ?? 0) - (sectionCounts[a.id] ?? 0);
+      return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
     });
-  }, [templates, search, sortField, sortDir, counts]);
-
-  const handleNew = async () => {
-    try {
-      const created = await createMutation.mutateAsync({
-        name: "Untitled Catalog",
-        cover_title: settings?.company_name ?? "Product Catalog",
-        cover_subtitle: settings?.slogan ?? "",
-      });
-      toast({ title: "Catalog created" });
-      navigate(`/admin/pricing/publisher/${created.id}`);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    }
-  };
+  }, [templates, search, sortField, counts, sectionCounts]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -336,8 +348,7 @@ const CatalogPublisherPage = () => {
             size="sm"
             className="h-7 text-xs gap-1"
             style={{ background: "hsl(215 65% 50%)", color: "white", borderRadius: "4px" }}
-            onClick={handleNew}
-            disabled={createMutation.isPending}
+            onClick={() => setNewDialogOpen(true)}
           >
             <Plus className="h-3.5 w-3.5" /> New Catalog
           </Button>
@@ -355,84 +366,108 @@ const CatalogPublisherPage = () => {
             className="h-7 text-xs pl-7"
           />
         </div>
+        <div className="flex items-center gap-1 rounded-md border border-border bg-background p-1">
+          {[
+            { key: "updated_at" as const, label: "Recent" },
+            { key: "name" as const, label: "Name" },
+            { key: "customers" as const, label: "Customers" },
+            { key: "sections" as const, label: "Sections" },
+          ].map((option) => (
+            <Button
+              key={option.key}
+              type="button"
+              variant={sortField === option.key ? "default" : "ghost"}
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setSortField(option.key)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="border rounded" style={{ borderColor: "hsl(215 15% 85%)" }}>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs h-8 cursor-pointer select-none" onClick={() => toggleSort("name")}>
-                <span className="flex items-center gap-1">Name <SortIcon field="name" /></span>
-              </TableHead>
-              <TableHead className="text-xs h-8 cursor-pointer select-none" onClick={() => toggleSort("updated_at")}>
-                <span className="flex items-center gap-1">Last Edited <SortIcon field="updated_at" /></span>
-              </TableHead>
-              <TableHead className="text-xs h-8 text-center cursor-pointer select-none" onClick={() => toggleSort("customers")}>
-                <span className="flex items-center gap-1 justify-center"># Customers <SortIcon field="customers" /></span>
-              </TableHead>
-              <TableHead className="text-xs h-8">Status</TableHead>
-              {canEdit && <TableHead className="text-xs h-8 w-40">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-xs py-8" style={{ color: "hsl(215 15% 55%)" }}>
-                  No catalogs found. Click "New Catalog" to create one.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((t) => {
-                const custCount = counts[t.id] ?? 0;
-                return (
-                  <TableRow
-                    key={t.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/admin/pricing/publisher/${t.id}`)}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {filtered.length === 0 ? (
+          <div className="col-span-full rounded-xl border border-dashed border-border bg-background px-6 py-12 text-center">
+            <p className="text-sm text-muted-foreground">No catalogs found. Click "New catalog" to create one.</p>
+          </div>
+        ) : (
+          filtered.map((template) => {
+            const customerCount = counts[template.id] ?? 0;
+            const sectionCount = sectionCounts[template.id] ?? 0;
+            const subtitle = getCatalogSubtitle(template.cover_subtitle);
+            const statusLabel = getStatusLabel(template.status);
+            const coverTitle = template.cover_title || template.name;
+            const gradientStart = template.gradient_color_start || "#2c4f7e";
+            const gradientEnd = template.gradient_color_end || "#173b73";
+
+            return (
+              <div
+                key={template.id}
+                className="overflow-hidden rounded-xl border border-border bg-background shadow-sm transition-shadow hover:shadow-md"
+              >
+                <button
+                  type="button"
+                  className="block w-full text-left"
+                  onClick={() => navigate(`/admin/pricing/publisher/${template.id}`)}
+                >
+                  <div
+                    className="flex h-32 flex-col justify-end px-5 py-4"
+                    style={{ background: `linear-gradient(135deg, ${gradientStart}, ${gradientEnd})` }}
                   >
-                    <TableCell className="text-xs font-medium py-1.5">{t.name}</TableCell>
-                    <TableCell className="text-xs py-1.5" style={{ color: "hsl(215 15% 55%)" }}>{fmtDate(t.updated_at)}</TableCell>
-                    <TableCell className="text-xs py-1.5 text-center">
-                      <Badge variant="outline" className={`text-[10px] h-5 ${custCount > 0 ? "bg-primary/10 text-primary border-primary/30" : ""}`}>
-                        {custCount}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs py-1.5">
-                      <Badge variant="outline" className="text-[10px] h-5 bg-green-500/10 text-green-600 border-green-500/30">
-                        Draft
-                      </Badge>
-                    </TableCell>
-                    {canEdit && (
-                      <TableCell className="text-xs py-1.5">
-                        <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Edit" onClick={() => navigate(`/admin/pricing/publisher/${t.id}`)}>
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Assign to Customers" onClick={() => setAssignTarget(t)}>
-                            <Users className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={() => handleDuplicate(t)}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Download PDF" onClick={() => handleDownloadPdf(t)}>
-                            <FileDown className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="Delete" onClick={() => setDeleteTarget(t)}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                    <div className="text-base font-semibold text-white">{coverTitle}</div>
+                    <div className="mt-1 text-xs text-white/75">{subtitle || fmtDate(template.updated_at)}</div>
+                  </div>
+                </button>
+
+                <div className="flex flex-col gap-3 px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-foreground">{template.name}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Last edited {fmtDate(template.updated_at)}</div>
+                    </div>
+                    <Badge variant="outline" className={`h-5 text-[10px] ${getStatusBadgeClasses(template.status)}`}>
+                      {statusLabel}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{sectionCount} section{sectionCount === 1 ? "" : "s"}</span>
+                    <span>&middot;</span>
+                    <span>{customerCount} customer{customerCount === 1 ? "" : "s"}</span>
+                  </div>
+
+                  {canEdit && (
+                    <div className="flex gap-2 border-t pt-3">
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleDuplicate(template)}>
+                        <Copy className="mr-1 h-3 w-3" /> Duplicate
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setAssignTarget(template)}>
+                        <Users className="mr-1 h-3 w-3" /> Assign
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleDownloadPdf(template)}>
+                        <FileDown className="mr-1 h-3 w-3" /> PDF
+                      </Button>
+                      <Button variant="ghost" size="sm" className="ml-auto h-7 text-xs text-destructive hover:text-destructive" onClick={() => setDeleteTarget(template)}>
+                        <Trash2 className="mr-1 h-3 w-3" /> Delete
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <AssignDialog template={assignTarget} open={!!assignTarget} onClose={() => setAssignTarget(null)} />
+      <NewCatalogDialog
+        open={newDialogOpen}
+        onOpenChange={setNewDialogOpen}
+        defaultCoverTitle={settings?.company_name ?? "Product Catalog"}
+        defaultCoverSubtitle={settings?.slogan ?? ""}
+      />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
