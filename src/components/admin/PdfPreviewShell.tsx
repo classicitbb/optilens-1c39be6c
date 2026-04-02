@@ -14,6 +14,7 @@ interface PdfPreviewShellProps {
   maxHeight?: string;
   showPrint?: boolean;
   defaultVisible?: boolean;
+  defaultSettingsVisible?: boolean;
   defaultPrintSettings?: Partial<PrintSettings>;
   printSettings?: PrintSettings;
   onPrintSettingsChange?: (next: PrintSettings) => void;
@@ -54,6 +55,7 @@ const PdfPreviewShell = ({
   maxHeight = "70vh",
   showPrint = true,
   defaultVisible = true,
+  defaultSettingsVisible = true,
   defaultPrintSettings,
   printSettings: controlledPrintSettings,
   onPrintSettingsChange,
@@ -64,7 +66,7 @@ const PdfPreviewShell = ({
   );
   const [previewScale, setPreviewScale] = useState(1);
   const [pageCount, setPageCount] = useState(1);
-  const [settingsVisible, setSettingsVisible] = useState(true);
+  const [settingsVisible, setSettingsVisible] = useState(defaultSettingsVisible);
   const paneRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -164,9 +166,9 @@ const PdfPreviewShell = ({
         {formatLabel && <span className="text-[10px] font-medium text-primary">{formatLabel}</span>}
       </div>
 
-      <div className="px-3 py-2 bg-muted/20 border-b border-border no-print space-y-2">
+      <div className="space-y-1.5 border-b border-border bg-muted/20 px-3 py-1.5 no-print">
         <div className="flex justify-end">
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSettingsVisible((v) => !v)}>
+          <Button variant="ghost" size="sm" className="h-6 text-[11px]" onClick={() => setSettingsVisible((v) => !v)}>
             {settingsVisible ? "Hide settings" : "Show settings"}
           </Button>
         </div>

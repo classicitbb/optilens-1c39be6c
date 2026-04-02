@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import SectionContentDialog from "@/components/admin/SectionContentDialog";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
@@ -20,6 +20,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
 const CATALOG_ASSET_BUCKET = "data-files";
+const DESKTOP_WORKSPACE_MIN_WIDTH = 1560;
+const PREVIEW_PANEL_MIN_WIDTH = 720;
 
 /* ─── Types ─── */
 interface CatalogSection {
@@ -267,7 +269,7 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   return (
-    <div className="border rounded-lg p-3 bg-background group" style={{ borderColor: "hsl(var(--border))" }}>
+    <div className="group rounded-lg border bg-background p-2.5" style={{ borderColor: "hsl(var(--border))" }}>
       <div className="flex items-center gap-2">
         <div className="flex flex-col gap-0.5">
           <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onMoveUp} disabled={index === 0}>
@@ -295,14 +297,14 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
       </div>
 
       {isPricing && (
-        <div className="mt-2 pl-14 flex flex-wrap items-center gap-3">
+        <div className="mt-2 flex flex-wrap items-center gap-2 pl-11">
           <div className="flex items-center gap-2">
             <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Pricelist:</Label>
             <Select
               value={section.pricelist_version_id ? String(section.pricelist_version_id) : ""}
               onValueChange={(v) => section.id && onUpdate(section.id, { pricelist_version_id: Number(v) })}
             >
-              <SelectTrigger className="h-7 text-[11px] w-48">
+              <SelectTrigger className="h-7 w-44 text-[11px]">
                 <SelectValue placeholder="Select pricelist…" />
               </SelectTrigger>
               <SelectContent>
@@ -332,14 +334,14 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
       )}
 
       {isKnowledge && (
-        <div className="mt-2 pl-14 space-y-2">
+        <div className="mt-2 space-y-1.5 pl-11">
           <div>
             <Label className="text-[10px] text-muted-foreground">Article (public Knowledge Base only)</Label>
             <Select
               value={section.article_id ? String(section.article_id) : ""}
               onValueChange={(v) => section.id && onUpdate(section.id, { article_id: v })}
             >
-              <SelectTrigger className="h-7 text-[11px] w-72">
+              <SelectTrigger className="h-7 w-72 text-[11px]">
                 <SelectValue placeholder="Select article…" />
               </SelectTrigger>
               <SelectContent>
@@ -388,7 +390,7 @@ const SectionRow = ({ section, index, total, versions, articles, onUpdate, onRem
           <div>
             <Label className="text-[10px] text-muted-foreground">Custom Title Override (optional)</Label>
             <Input
-              className="h-7 text-xs w-72 mt-0.5"
+              className="mt-0.5 h-7 w-72 text-xs"
               placeholder={articles.find((a) => String(a.id) === String(section.article_id))?.title || "Use original title"}
               value={section.custom_title ?? ""}
               onChange={(e) => section.id && onUpdate(section.id, { custom_title: e.target.value || null })}
@@ -659,7 +661,7 @@ const CatalogEditorPage = () => {
   const [coverInvertText, setCoverInvertText] = useState(false);
   const [coverLogoUrl, setCoverLogoUrl] = useState("");
   const [coverBackgroundUrl, setCoverBackgroundUrl] = useState("");
-  const [coverSettingsOpen, setCoverSettingsOpen] = useState(true);
+  const [coverSettingsOpen, setCoverSettingsOpen] = useState(false);
   const [gradStart, setGradStart] = useState("#1e4db7");
   const [gradEnd, setGradEnd] = useState("#0f2a5e");
 
@@ -794,9 +796,9 @@ const CatalogEditorPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="-m-4 flex h-full min-h-0 flex-col overflow-hidden bg-background">
       {/* Top bar — like QuoteEditorPage */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+      <div className="flex shrink-0 items-center gap-3 border-b border-border px-3 py-2">
         <button onClick={() => navigate("/admin/pricing/publisher")} className="p-1 rounded hover:bg-muted">
           <ArrowLeft className="h-4 w-4 text-muted-foreground" />
         </button>
@@ -817,9 +819,10 @@ const CatalogEditorPage = () => {
       </div>
 
       {/* Content — palette + builder + preview */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
+      <div className="flex min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="flex min-h-0 flex-1" style={{ minWidth: `${DESKTOP_WORKSPACE_MIN_WIDTH}px` }}>
         {/* Left: Palette */}
-        <div className="w-48 shrink-0 border-r overflow-auto pr-2 p-3 space-y-3" style={{ borderColor: "hsl(var(--border))" }}>
+        <div className="w-[220px] shrink-0 overflow-auto border-r bg-muted/15 px-3 py-2.5 pr-2.5 space-y-3" style={{ borderColor: "hsl(var(--border))" }}>
           <div>
             <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
               <Layers className="h-3 w-3" /> Pricing
@@ -865,16 +868,23 @@ const CatalogEditorPage = () => {
         </div>
 
         {/* Center builder + Right preview with resizable handle on left of preview */}
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          <ResizablePanel defaultSize={55} minSize={35}>
-            <div className="overflow-auto h-full px-4 py-3 space-y-4">
+        <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0">
+          <ResizablePanel defaultSize={53} minSize={41} className="min-w-[620px]">
+            <div className="h-full overflow-auto px-3 py-2.5 space-y-3">
               {/* Cover Settings */}
-              <div className="border rounded-lg p-4" style={{ borderColor: "hsl(var(--border))" }}>
-                <button className="w-full flex items-center justify-between text-xs font-semibold text-foreground mb-3" onClick={() => setCoverSettingsOpen((v) => !v)}>
+              <div className="rounded-lg border p-3" style={{ borderColor: "hsl(var(--border))" }}>
+                <button className="mb-2 flex w-full items-center justify-between text-xs font-semibold text-foreground" onClick={() => setCoverSettingsOpen((v) => !v)}>
                   <span className="flex items-center gap-1.5"><Palette className="h-3.5 w-3.5 text-primary" /> Cover Settings</span>
                   {coverSettingsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
-                {coverSettingsOpen && <div className="grid grid-cols-2 gap-3">
+                {!coverSettingsOpen && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+                    <span>Catalog: <span className="font-medium text-foreground">{name || "Untitled Catalog"}</span></span>
+                    <span>Cover: <span className="font-medium text-foreground">{coverTitle || "No cover title"}</span></span>
+                    <span>Theme: <span className="font-medium text-foreground">{gradStart} to {gradEnd}</span></span>
+                  </div>
+                )}
+                {coverSettingsOpen && <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <Label className="text-[10px]">Catalog Name</Label>
                     <Input className="h-7 text-xs mt-0.5" value={name} onChange={(e) => setName(e.target.value)} />
@@ -955,7 +965,7 @@ const CatalogEditorPage = () => {
 
               {/* Section Builder */}
               <div>
-                <h3 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-foreground">
                   <Layers className="h-3.5 w-3.5 text-primary" /> Sections ({sections.length})
                 </h3>
                 {sections.length === 0 ? (
@@ -986,13 +996,13 @@ const CatalogEditorPage = () => {
 
           <ResizableHandle withHandle className="relative z-20 bg-border/80 hover:bg-primary/40 data-[dragging=true]:bg-primary/60" />
 
-          <ResizablePanel defaultSize={45} minSize={25} maxSize={55}>
-            <div className="h-full p-2">
+          <ResizablePanel defaultSize={47} minSize={43} className="min-w-[720px]">
+            <div className="h-full p-2 pl-1" style={{ minWidth: `${PREVIEW_PANEL_MIN_WIDTH}px` }}>
               <PdfPreviewShell
                 title={`${template.name} — Lens Catalog Builder Preview`}
                 formatLabel={`${sections.filter((section) => section.is_included !== false).length} sections`}
-                maxHeight="calc(100vh - 220px)"
-                headerRight={<Button variant="ghost" size="sm" className="h-7 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" />Preview Settings</Button>}
+                maxHeight="calc(100vh - 164px)"
+                defaultSettingsVisible={false}
               >
                 <EditorLivePreview
                   template={liveTemplate}
@@ -1006,6 +1016,7 @@ const CatalogEditorPage = () => {
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
+        </div>
       </div>
     </div>
   );
