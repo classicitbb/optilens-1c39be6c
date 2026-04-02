@@ -23,8 +23,10 @@ const HANDLES = [
 const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown }: Props) => {
   if (!obj.is_visible) return null;
 
-  const sectionType = typeof obj.content.section_type === "string" ? obj.content.section_type : "";
-  const customTitle = typeof obj.content.custom_title === "string" ? obj.content.custom_title : "";
+  const content = obj.content ?? {};
+  const objStyle = obj.style ?? {};
+  const sectionType = typeof content.section_type === "string" ? content.section_type : "";
+  const customTitle = typeof content.custom_title === "string" ? content.custom_title : "";
   const pricingLabel = sectionType === "stock_prices"
     ? "Stock Prices"
     : sectionType === "supplies_prices"
@@ -51,20 +53,20 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <div
             className="p-1 text-xs border border-dashed border-transparent hover:border-primary/30"
             style={{
-              fontSize: (obj.style.fontSize as number) ?? 12,
-              fontFamily: (obj.style.fontFamily as string) ?? "inherit",
-              color: (obj.style.color as string) ?? "hsl(var(--foreground))",
+              fontSize: (objStyle.fontSize as number) ?? 12,
+              fontFamily: (objStyle.fontFamily as string) ?? "inherit",
+              color: (objStyle.color as string) ?? "hsl(var(--foreground))",
             }}
           >
-            {(obj.content.text as string) || "Text block"}
+            {(content.text as string) || "Text block"}
           </div>
         );
 
       case "image":
         return (
           <div className="w-full h-full bg-muted flex items-center justify-center rounded overflow-hidden">
-            {(obj.content.src as string) ? (
-              <img src={obj.content.src as string} alt="" className="w-full h-full object-cover" />
+            {(content.src as string) ? (
+              <img src={content.src as string} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-muted-foreground text-[10px]">Image placeholder</span>
             )}
@@ -76,9 +78,9 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <div
             className="w-full h-full"
             style={{
-              background: (obj.style.fill as string) ?? "hsl(var(--accent) / 0.1)",
-              border: `${(obj.style.strokeWidth as number) ?? 1.5}px solid ${(obj.style.stroke as string) ?? "hsl(var(--accent) / 0.3)"}`,
-              borderRadius: (obj.style.borderRadius as number) ?? 4,
+              background: (objStyle.fill as string) ?? "hsl(var(--accent) / 0.1)",
+              border: `${(objStyle.strokeWidth as number) ?? 1.5}px solid ${(objStyle.stroke as string) ?? "hsl(var(--accent) / 0.3)"}`,
+              borderRadius: (objStyle.borderRadius as number) ?? 4,
             }}
           />
         );
@@ -88,8 +90,8 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <div
             className="w-full h-full rounded-full"
             style={{
-              background: (obj.style.fill as string) ?? "hsl(var(--accent) / 0.1)",
-              border: `${(obj.style.strokeWidth as number) ?? 1.5}px solid ${(obj.style.stroke as string) ?? "hsl(var(--accent) / 0.3)"}`,
+              background: (objStyle.fill as string) ?? "hsl(var(--accent) / 0.1)",
+              border: `${(objStyle.strokeWidth as number) ?? 1.5}px solid ${(objStyle.stroke as string) ?? "hsl(var(--accent) / 0.3)"}`,
             }}
           />
         );
@@ -99,8 +101,8 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <div
             className="w-full"
             style={{
-              height: (obj.style.strokeWidth as number) ?? 1,
-              background: (obj.style.stroke as string) ?? "hsl(var(--muted-foreground))",
+              height: (objStyle.strokeWidth as number) ?? 1,
+              background: (objStyle.stroke as string) ?? "hsl(var(--muted-foreground))",
             }}
           />
         );
@@ -116,7 +118,7 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
                 {customTitle || pricingLabel}
               </div>
               <div className="mt-1 text-[8.5px] text-muted-foreground">
-                {(obj.content.pricelist_version_id as number | null) ? `Version #${obj.content.pricelist_version_id as number}` : "No pricelist assigned"}
+                {(content.pricelist_version_id as number | null) ? `Version #${content.pricelist_version_id as number}` : "No pricelist assigned"}
               </div>
             </div>
             <table className="w-full border-collapse">
@@ -143,7 +145,7 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
       case "article_block":
         return (
           <div className="bg-background border rounded p-2.5 overflow-hidden">
-            <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-green-500/10 text-green-700 mb-1">article</span>
+            <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-accent/10 text-accent-foreground mb-1">article</span>
             <div className="text-[10px] font-medium mb-1">{customTitle || articleLabel}</div>
             <div className="text-[8.5px] text-muted-foreground leading-relaxed">
               {sectionType === "knowledge_article"
@@ -158,15 +160,15 @@ const CanvasObjectRenderer = ({ obj, isSelected, onMouseDown, onResizeMouseDown 
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                {Array.from({ length: Number(obj.content.cols ?? 3) }, (_, index) => `Column ${index + 1}`).map((h) => (
+                {Array.from({ length: Number(content.cols ?? 3) }, (_, index) => `Column ${index + 1}`).map((h) => (
                   <th key={h} className="bg-muted text-[9px] font-medium p-1 text-left border text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: Number(obj.content.rows ?? 4) }, (_, rowIndex) => rowIndex + 1).map((r) => (
+              {Array.from({ length: Number(content.rows ?? 4) }, (_, rowIndex) => rowIndex + 1).map((r) => (
                 <tr key={r}>
-                  {Array.from({ length: Number(obj.content.cols ?? 3) }, (_, colIndex) => colIndex + 1).map((c) => (
+                  {Array.from({ length: Number(content.cols ?? 3) }, (_, colIndex) => colIndex + 1).map((c) => (
                     <td key={c} className={cn("text-[9px] p-1 border", r % 2 === 0 && "bg-muted/50")}>Cell {r},{c}</td>
                   ))}
                 </tr>

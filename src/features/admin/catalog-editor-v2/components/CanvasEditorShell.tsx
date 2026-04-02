@@ -406,7 +406,8 @@ const CanvasEditorShell = () => {
   }, [saveTemplate, toast, validatePublish]);
 
   const createCatalogSection = useCallback(async (sectionType: string, content: Record<string, unknown>) => {
-    const nextSortOrder = (sections.at(-1)?.sort_order ?? sections.length) + 1;
+    const lastSection = sections.length > 0 ? sections[sections.length - 1] : undefined;
+    const nextSortOrder = (lastSection?.sort_order ?? sections.length) + 1;
     const isPricing = PRICING_SECTION_TYPES.has(sectionType);
     const payload = {
       catalog_template_id: templateId,
