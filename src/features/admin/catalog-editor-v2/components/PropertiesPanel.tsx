@@ -52,7 +52,9 @@ const PropertiesPanel = ({
   }
 
   const obj = selectedObject;
-  const sectionType = typeof obj.content.section_type === "string" ? obj.content.section_type : "";
+  const content = obj.content ?? {};
+  const objStyle = obj.style ?? {};
+  const sectionType = typeof content.section_type === "string" ? content.section_type : "";
   const isPricingBlock = obj.object_type === "pricing_block";
   const isKnowledgeArticle = obj.object_type === "article_block" && sectionType === "knowledge_article";
   const availablePricingVersions = isPricingBlock
