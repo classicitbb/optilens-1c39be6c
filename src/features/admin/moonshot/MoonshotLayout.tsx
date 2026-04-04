@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  Bell,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -18,7 +17,6 @@ import AppLauncher from "@/components/admin/AppLauncher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMoonshotStore } from "./lib/store";
 import { useTheme } from "next-themes";
@@ -190,8 +188,6 @@ export default function MoonshotLayout() {
               ))}
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <Input placeholder="Search" className="w-[140px] md:w-[220px] bg-muted" />
-              <Button variant="ghost" size="icon"><Bell className="h-4 w-4" /></Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button

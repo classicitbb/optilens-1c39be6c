@@ -14,7 +14,6 @@ describe("supabase edge-function auth hardening", () => {
     "lens-assistant",
     "odoo-sync-pull-contacts",
     "odoo-sync-push-contacts",
-    "odoo-sync-scheduler",
     "preview-transactional-email",
     "send-transactional-email",
   ] as const;
@@ -53,7 +52,6 @@ describe("supabase edge-function auth hardening", () => {
       "supabase/functions/lead-intelligence/index.ts",
       "supabase/functions/odoo-sync-pull-contacts/index.ts",
       "supabase/functions/odoo-sync-push-contacts/index.ts",
-      "supabase/functions/odoo-sync-scheduler/index.ts",
       "supabase/functions/send-transactional-email/index.ts",
       "supabase/functions/preview-transactional-email/index.ts",
     ]) {
@@ -74,7 +72,6 @@ describe("supabase edge-function auth hardening", () => {
       { file: "supabase/functions/lead-intelligence/index.ts", sourceFunction: "lead-intelligence" },
       { file: "supabase/functions/odoo-sync-pull-contacts/index.ts", sourceFunction: "odoo-sync-pull-contacts" },
       { file: "supabase/functions/odoo-sync-push-contacts/index.ts", sourceFunction: "odoo-sync-push-contacts" },
-      { file: "supabase/functions/odoo-sync-scheduler/index.ts", sourceFunction: "odoo-sync-scheduler" },
       { file: "supabase/functions/send-transactional-email/index.ts", sourceFunction: "send-transactional-email" },
       { file: "supabase/functions/preview-transactional-email/index.ts", sourceFunction: "preview-transactional-email" },
     ];

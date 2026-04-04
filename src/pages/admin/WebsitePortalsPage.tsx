@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BellRing,
@@ -114,7 +115,11 @@ const WebsitePortalsPage = () => {
   const { users, resetPassword, isLoading: usersLoading } = useAdminUsers();
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [search, setSearch] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // selectedUserId is read from & written to the URL (?customer=<userId>)
+  const selectedUserId = searchParams.get("customer");
+  const setSelectedUserId = (id: string | null) =>
+    setSearchParams(id ? { customer: id } : {}, { replace: true });
   const [cutoffHours, setCutoffHours] = useState("24");
   const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
 
@@ -481,6 +486,7 @@ const WebsitePortalsPage = () => {
                 key={customer.userId}
                 type="button"
                 onClick={() => setSelectedUserId(customer.userId)}
+                aria-pressed={selectedUserId === customer.userId}
                 className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${selectedUserId === customer.userId ? "border-[hsl(var(--admin-accent))] bg-[hsl(var(--admin-accent)/0.08)]" : "border-border hover:border-[hsl(var(--admin-accent)/0.35)]"}`}
               >
                 <div className="flex items-start justify-between gap-3">
