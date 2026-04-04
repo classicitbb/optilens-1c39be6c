@@ -18,11 +18,11 @@ const AdminLayout = () => {
     <AdminRoleProvider>
       <div className="admin-tool dark flex flex-col h-screen w-full overflow-hidden rounded-none">
         <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
-        <div className="flex flex-1 min-h-0">
+        <div className="relative flex flex-1 min-h-0">
           {!hideSidebar && <AdminSidebar />}
           <div className="flex flex-1 min-w-0 min-h-0">
             <main className="admin-content flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden p-4">
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                 <Outlet />
               </div>
             </main>

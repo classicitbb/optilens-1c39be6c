@@ -43,11 +43,10 @@ const CookieConsentBanner = () => {
   const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_PREFERENCES);
 
   useEffect(() => {
-    // Check if user has already given consent
+    // Show immediately if no prior consent — no delay so the banner
+    // appears before any analytics code has a chance to run.
     if (!hasGivenConsent()) {
-      // Small delay to avoid layout shift on initial load
-      const timer = setTimeout(() => setShowBanner(true), 500);
-      return () => clearTimeout(timer);
+      setShowBanner(true);
     }
   }, []);
 

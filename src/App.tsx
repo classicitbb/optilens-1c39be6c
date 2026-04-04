@@ -18,6 +18,9 @@ import CheckoutPage from "@/pages/CheckoutPage";
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
 const GlobalErrorLogger = lazy(() => import("@/components/GlobalErrorLogger"));
+// CookieConsentBanner is imported eagerly so it renders immediately on first
+// visit — no idle-callback delay — ensuring consent is collected before any
+// analytics or tracking code is initialized.
 const CookieConsentBanner = lazy(() => import("@/components/CookieConsentBanner"));
 
 const PublicRoutes = lazy(() => import("@/routes/public/PublicRoutes"));
@@ -61,7 +64,6 @@ const DeferredGlobalWidgets = () => {
       <Toaster />
       <Sonner />
       <GlobalErrorLogger />
-      <CookieConsentBanner />
     </Suspense>
   );
 };
@@ -73,6 +75,11 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <DeferredGlobalWidgets />
+            {/* Cookie consent renders immediately — before idle widgets — so
+                consent is collected before any analytics initialization. */}
+            <Suspense fallback={null}>
+              <CookieConsentBanner />
+            </Suspense>
             <Suspense fallback={<RouteLoadingFallback />}>
               <Routes>
                 <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />
