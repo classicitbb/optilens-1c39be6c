@@ -65,6 +65,18 @@ const getContentBoxDimensionsPx = (settings: PrintSettings) => {
   };
 };
 
+const PAGE_GAP = 16; // px between pages in preview
+
+const getContentAreaPx = (settings: PrintSettings) => {
+  const area = getPrintableContentAreaMm(settings);
+  return {
+    marginX: area.marginX * MM_TO_PX,
+    marginY: area.marginY * MM_TO_PX,
+    contentWidth: area.contentWidth * MM_TO_PX,
+    contentHeight: area.contentHeight * MM_TO_PX,
+  };
+};
+
 const getQuoteStyleMetrics = (settings: PrintSettings) => {
   const sectionGapPx = settings.sectionGapPx ?? settings.sectionSpacing ?? 24;
   const headingGapPx = settings.headingGapPx ?? 8;
@@ -172,7 +184,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       printWindow.document.close();
       setTimeout(() => {
         printWindow.print();
-      }, 300);
+      }, 600);
     };
 
     useImperativeHandle(ref, () => ({ triggerPrint: doPrint }));
@@ -699,7 +711,9 @@ export const QuotePreviewPanel = ({
     resolvePrintSettings(printSettings),
   );
   const paneRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
 
   useEffect(() => {
     const pane = paneRef.current;
@@ -707,16 +721,32 @@ export const QuotePreviewPanel = ({
 
     const updateScale = () => {
       const page = getPageDimensionsPx(localPrintSettings);
+      const rawStackHeight = page.height * pageCount + PAGE_GAP * Math.max(0, pageCount - 1);
       const availableWidth = Math.max(1, pane.clientWidth - 24);
       const availableHeight = Math.max(1, pane.clientHeight - 24);
       setPreviewScale(
-        Math.min(availableWidth / page.width, availableHeight / page.height),
+        Math.min(availableWidth / page.width, availableHeight / rawStackHeight),
       );
     };
 
     updateScale();
     const observer = new ResizeObserver(updateScale);
     observer.observe(pane);
+    return () => observer.disconnect();
+  }, [localPrintSettings, pageCount]);
+
+  useEffect(() => {
+    const updatePageCount = () => {
+      const el = measureRef.current;
+      if (!el) return;
+      const area = getContentAreaPx(localPrintSettings);
+      setPageCount(Math.max(1, Math.ceil(el.scrollHeight / area.contentHeight)));
+    };
+    updatePageCount();
+    const el = measureRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(updatePageCount);
+    observer.observe(el);
     return () => observer.disconnect();
   }, [localPrintSettings]);
 
@@ -812,45 +842,30 @@ export const QuotePreviewPanel = ({
       </div>
 
       <div className="px-3 py-1 text-[10px] text-muted-foreground border-b border-border bg-muted/10">
-        Preview content area: {Math.round(previewArea.contentWidth)}×{Math.round(previewArea.contentHeight)}mm
+        {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(previewArea.contentWidth)}×{Math.round(previewArea.contentHeight)}mm · {Math.round(previewScale * 100)}%
       </div>
 
       <div
         ref={paneRef}
-        className="bg-muted/10 overflow-auto p-3 flex-1"
+        className="bg-muted/10 overflow-hidden p-3 flex-1"
         style={{ minHeight: "360px" }}
       >
         {(() => {
           const page = getPageDimensionsPx(localPrintSettings);
-          const content = getContentBoxDimensionsPx(localPrintSettings);
+          const area = getContentAreaPx(localPrintSettings);
+          const totalStackHeight = (page.height * pageCount + PAGE_GAP * (pageCount - 1)) * previewScale;
 
           return (
-            <div
-              className="mx-auto"
-              style={{
-                width: page.width * previewScale,
-                height: page.height * previewScale,
-              }}
-            >
-              <div
-                className="relative bg-white shadow-md"
-                style={{
-                  width: page.width,
-                  height: page.height,
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: "top left",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: content.margin,
-                    right: content.margin,
-                    bottom: content.margin,
-                    left: content.margin,
-                    overflowY: "auto",
-                  }}
-                >
+            <div className="mx-auto" style={{ width: page.width * previewScale, height: totalStackHeight }}>
+              <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: page.width }}>
+                {Array.from({ length: pageCount }).map((_, i) => (
+                  <div key={i} className="relative bg-white shadow-md" style={{ width: page.width, height: page.height, marginBottom: i < pageCount - 1 ? PAGE_GAP / previewScale : 0, overflow: "hidden" }}>
+                    <span className="absolute font-mono select-none pointer-events-none text-muted-foreground" style={{ bottom: area.marginY * 0.3, right: area.marginX, fontSize: "9px", opacity: 0.5 }}>
+                      Page {i + 1} of {pageCount}
+                    </span>
+                    <div style={{ position: "absolute", top: area.marginY, left: area.marginX, width: area.contentWidth, height: area.contentHeight, overflow: "hidden" }}>
+                      <div style={{ transform: `translateY(-${i * area.contentHeight}px)` }}>
+                        <div ref={i === 0 ? measureRef : undefined}>
                   <div
                     className="print-root"
                     style={{
@@ -1591,7 +1606,11 @@ export const QuotePreviewPanel = ({
                       Classic Visions — Precision Optics & Lens Solutions
                     </div>
                   </div>
-                </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           );
