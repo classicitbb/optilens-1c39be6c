@@ -111,7 +111,7 @@ const PdfPreviewShell = ({
       const availableHeight = Math.max(1, pane.clientHeight - 24);
       const widthScale = availableWidth / page.width;
       const heightScale = availableHeight / rawStackHeight;
-      setPreviewScale(Math.min(1, widthScale, heightScale));
+      setPreviewScale(Math.min(widthScale, heightScale));
     };
 
     updateScale();
@@ -146,7 +146,7 @@ const PdfPreviewShell = ({
     printWindow.document.close();
     setTimeout(() => {
       printWindow.print();
-    }, 300);
+    }, 600);
   };
 
   const updateMargin = (field: "marginXMm" | "marginYMm", value: string) => {
@@ -239,7 +239,7 @@ const PdfPreviewShell = ({
           {/* Right: info + actions */}
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-              {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm
+              {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm · {Math.round(previewScale * 100)}%
             </span>
             {showPrint && visible && (
               <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handlePrint}>
