@@ -122,10 +122,10 @@ export const ADMIN_APPS = {
     defaultRoute: '/admin/website/content',
     featurePrefix: 'website',
     sidebarItems: [
+      { label: 'Website Portals', route: '/admin/website/portals', icon: UserCircle },
+      { label: 'Store / Products', route: '/admin/website/store', icon: Store },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
       { label: 'Feature Pages', route: '/admin/website/features', icon: Palette },
-      { label: 'Patient Portals', route: '/admin/website/portals', icon: UserCircle },
-      { label: 'Store / Products', route: '/admin/website/store', icon: Store },
     ] satisfies SidebarItem[],
   },
   knowledge: {
