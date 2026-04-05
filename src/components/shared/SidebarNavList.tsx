@@ -87,7 +87,7 @@ const SidebarNavList = ({
               )}
             >
               {Icon ? <Icon className={cn("h-4 w-4", iconClassName)} /> : null}
-              <span className={cn("truncate text-sidebar-foreground", labelClassName)}>{label}</span>
+              <span className={cn("truncate", labelClassName)}>{label}</span>
               {badge}
             </Link>
           );

@@ -2,13 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCatalogTemplates } from "@/hooks/useCatalogTemplates";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCanvasEditor } from "../hooks/useCanvasEditor";
+import { generateCatalogPdf } from "../utils/generateCatalogPdf";
 import CanvasToolbar from "./CanvasToolbar";
 import PageThumbnailsSidebar from "./PageThumbnailsSidebar";
 import EditorCanvas from "./EditorCanvas";
 import PropertiesPanel from "./PropertiesPanel";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Download } from "lucide-react";
 import type { CanvasObject, CanvasObjectType } from "../types";
 
 type CatalogSection = {
@@ -136,13 +141,18 @@ const buildCanvasObjectFromSection = (
 const CanvasEditorShell = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromPublisher = searchParams.get("from") === "publisher";
   const qc = useQueryClient();
   const { toast } = useToast();
   const templateId = Number(id);
   const bootstrappedRef = useRef(false);
   const [status, setStatus] = useState<"draft" | "published">("draft");
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const { data: templates = [], updateMutation } = useCatalogTemplates();
+  const { data: settings } = useCompanySettings();
   const template = templates.find((item) => item.id === templateId) ?? null;
 
   const sectionsQuery = useQuery({
@@ -249,7 +259,7 @@ const CanvasEditorShell = () => {
   useEffect(() => {
     if (!templateId || pagesLoading || sectionsQuery.isLoading || objectCountQuery.isLoading) return;
 
-    if ((pages.length > 0 && (objectCountQuery.data ?? 0) > 0) || bootstrappedRef.current) {
+    if (!fromPublisher && ((pages.length > 0 && (objectCountQuery.data ?? 0) > 0) || bootstrappedRef.current)) {
       return;
     }
 
@@ -293,6 +303,11 @@ const CanvasEditorShell = () => {
           qc.invalidateQueries({ queryKey: [BOOTSTRAP_QUERY_KEY_PREFIX, templateId] }),
         ]);
 
+        // Strip the ?from=publisher query param after bootstrap
+        if (fromPublisher) {
+          navigate(`/admin/pricing/publisher/${templateId}/canvas`, { replace: true });
+        }
+
         toast({
           title: "Canvas ready",
           description: "Imported your current catalog sections into the canvas editor.",
@@ -308,6 +323,8 @@ const CanvasEditorShell = () => {
     })();
   }, [
     addPage,
+    fromPublisher,
+    navigate,
     objectCountQuery.data,
     objectCountQuery.isLoading,
     pages,
@@ -404,6 +421,19 @@ const CanvasEditorShell = () => {
       });
     }
   }, [saveTemplate, toast, validatePublish]);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!template) return;
+    setIsExportingPdf(true);
+    try {
+      await generateCatalogPdf(template, settings);
+      toast({ title: "PDF downloaded" });
+    } catch (e: unknown) {
+      toast({ title: "Export failed", description: getErrorMessage(e), variant: "destructive" });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [template, settings, toast]);
 
   const createCatalogSection = useCallback(async (sectionType: string, content: Record<string, unknown>) => {
     const lastSection = sections.length > 0 ? sections[sections.length - 1] : undefined;
@@ -634,6 +664,7 @@ const CanvasEditorShell = () => {
         onSave={handleSave}
         onSaveAndExit={handleSaveAndExit}
         onPublish={handlePublish}
+        onExport={() => setPdfModalOpen(true)}
       />
       <div className="flex flex-1 overflow-hidden">
         <PageThumbnailsSidebar
@@ -676,6 +707,34 @@ const CanvasEditorShell = () => {
           Syncing editor…
         </div>
       )}
+
+      <Dialog open={pdfModalOpen} onOpenChange={setPdfModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Export Catalog PDF</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 text-sm text-muted-foreground">
+            <p>Generate a high-quality PDF of <strong>{template?.name}</strong> using the current catalog sections and pricing data.</p>
+            <ul className="mt-3 space-y-1 text-xs list-disc list-inside">
+              <li>Cover page with catalog title and company details</li>
+              <li>Table of contents</li>
+              <li>Pricing sections with all assigned pricelist data</li>
+              <li>Add-ons &amp; extras (if available)</li>
+            </ul>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <Button variant="outline" onClick={() => setPdfModalOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => { void handleExportPdf(); setPdfModalOpen(false); }}
+              disabled={isExportingPdf}
+              className="gap-1.5"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {isExportingPdf ? "Generating…" : "Export 600 DPI PDF"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
