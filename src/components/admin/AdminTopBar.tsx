@@ -285,9 +285,9 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   className="rounded-full border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-topbar-bg))] shadow-sm transition-all hover:bg-[hsl(var(--admin-muted))] hover:ring-2 hover:ring-[hsl(var(--admin-accent))]/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--admin-accent))]/40"
                   aria-label={`Open admin account menu for ${displayName}`}
                 >
-                  <Avatar className="h-8 w-8 border border-border/60 text-[11px]">
+                  <Avatar className="h-8 w-8 border border-[hsl(var(--admin-border))] text-[11px]">
                     <AvatarImage src={avatarUrl || undefined} alt={displayName} />
-                    <AvatarFallback className="bg-primary/15 font-medium text-foreground">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-[hsl(var(--admin-accent))]/15 font-medium text-[hsl(var(--admin-content-fg))]">{initials}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
