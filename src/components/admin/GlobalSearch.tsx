@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { fieldsMatch } from "@/lib/wildcardMatch";
 import { Search, BookOpen, ArrowRight } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";

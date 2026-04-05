@@ -2,7 +2,7 @@ import { Check, X } from "lucide-react";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
 import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 
 type CellValue = true | false | string;

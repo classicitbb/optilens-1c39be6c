@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import QuotePdfExport, { QuotePdfExportHandle, QuotePreviewPanel } from "@/components/admin/QuotePdfExport";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";

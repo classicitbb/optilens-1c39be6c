@@ -17,7 +17,7 @@ import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { writeMultiSheetWorkbook } from "@/lib/excelExport";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,

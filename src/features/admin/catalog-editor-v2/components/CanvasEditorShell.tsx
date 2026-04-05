@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCatalogTemplates } from "@/hooks/useCatalogTemplates";
 import { useCompanySettings } from "@/hooks/useCompanySettings";

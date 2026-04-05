@@ -1,4 +1,4 @@
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router";
 import type { PublisherPrefillContext, PublisherSource } from "../types";
 
 const SOURCE_VALUES: PublisherSource[] = ["leads_ai", "crm_opportunity", "manual"];

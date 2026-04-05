@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Columns3, ExternalLink, PlusCircle, Sprout, Target } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

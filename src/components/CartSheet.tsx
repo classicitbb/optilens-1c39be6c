@@ -11,7 +11,7 @@ import { ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartContext } from "@/contexts/CartContext";
 import { Separator } from "@/components/ui/separator";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 
 interface CartSheetProps {

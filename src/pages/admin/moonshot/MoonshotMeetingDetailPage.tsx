@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { Clock3, Plus } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

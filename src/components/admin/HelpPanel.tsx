@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense, useMemo, useRef } from "react";
 import { X, BookOpen, ChevronRight, ExternalLink } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

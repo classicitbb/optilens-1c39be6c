@@ -35,7 +35,7 @@ Applied non-breaking dependency updates where `Wanted > Current` and the major v
 ### Deferred known breaking-major tracks
 
 - React 19 (`react`, `react-dom`, and related typings)
-- React Router 7 (`react-router-dom`)
+- ~~React Router 7 (`react-router-dom`)~~ — **completed 2026-04-05**: `react-router-dom@6` removed; `react-router@7.14.0` installed (packages merged in v7). All 122 import sites updated from `"react-router-dom"` → `"react-router"`. `tsc --noEmit`, build, and 58/58 tests pass. No route logic changes required — JSX `<Routes>/<Route>` API is identical in v7.
 - Tailwind 4 (`tailwindcss`)
 - Zod 4 (`zod`)
 

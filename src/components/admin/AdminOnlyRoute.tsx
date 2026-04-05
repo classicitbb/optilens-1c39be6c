@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate } from "react-router";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 
 const AdminOnlyRoute = ({ children }: { children: ReactNode }) => {

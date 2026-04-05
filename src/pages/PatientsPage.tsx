@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { BookOpenText, Glasses, HeartHandshake, Laptop, MapPin, SunMedium, Stethoscope } from "lucide-react";
 

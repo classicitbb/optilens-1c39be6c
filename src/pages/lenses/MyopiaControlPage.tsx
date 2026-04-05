@@ -12,7 +12,7 @@ import {
   Microscope,
   ShieldCheck,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 const WHAT_IS_MYOPIA_CONTROL = [
   "Myopia control means slowing prescription progression and eye elongation in children and teens.",
