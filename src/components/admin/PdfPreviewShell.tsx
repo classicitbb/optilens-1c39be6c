@@ -101,6 +101,13 @@ const PdfPreviewShell = ({
     return () => observer.disconnect();
   }, [updatePageCount, visible, children]);
 
+  const autoScale = useMemo(() => {
+    // This will be recalculated via ResizeObserver below
+    return 1;
+  }, []);
+
+  const [fitScale, setFitScale] = useState(1);
+
   useEffect(() => {
     const pane = paneRef.current;
     if (!pane) return;
@@ -112,14 +119,18 @@ const PdfPreviewShell = ({
       const availableHeight = Math.max(1, pane.clientHeight - 24);
       const widthScale = availableWidth / page.width;
       const heightScale = availableHeight / rawStackHeight;
-      setPreviewScale(Math.min(widthScale, heightScale));
+      const fit = Math.min(widthScale, heightScale);
+      setFitScale(fit);
+      if (manualZoom == null) {
+        setPreviewScale(fit);
+      }
     };
 
     updateScale();
     const observer = new ResizeObserver(updateScale);
     observer.observe(pane);
     return () => observer.disconnect();
-  }, [resolvedSettings, visible, maxHeight, pageCount]);
+  }, [resolvedSettings, visible, maxHeight, pageCount, manualZoom]);
 
   const updatePrintSettings = (next: Partial<PrintSettings>) => {
     const resolved = resolvePrintSettings({ ...resolvedSettings, ...next });
