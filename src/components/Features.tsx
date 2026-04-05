@@ -9,7 +9,7 @@ const features = [
   {
     icon: Truck,
     title: "Fast Shipping",
-    description: "Same-day processing on orders placed before 2 PM with nationwide delivery.",
+    description: "Same-day processing on orders placed before 2 PM with regional delivery across the Caribbean.",
   },
   {
     icon: Clock,
