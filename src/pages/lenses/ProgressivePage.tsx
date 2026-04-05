@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router";
+import Seo from "@/components/seo/Seo";
 import {
   Eye,
   Focus,
@@ -186,6 +187,11 @@ const IDEAL_WEARERS = [
 const ProgressivePage = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Progressive Lenses — Wholesale B2B | Classic Visions"
+        description="Explore wholesale progressive lenses from Classic Visions, including personalized and digital free-form options for B2B optical practices across the Caribbean."
+        canonicalPath="/lenses/progressive"
+      />
       <Header />
 
       <main className="pb-20 pt-24">

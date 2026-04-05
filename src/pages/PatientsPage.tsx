@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Seo from "@/components/seo/Seo";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { BookOpenText, Glasses, HeartHandshake, Laptop, MapPin, SunMedium, Stethoscope } from "lucide-react";
@@ -87,6 +88,11 @@ const faqs = [
 const PatientsPage = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Patient Lens Education | Classic Visions"
+        description="Explore patient-friendly lens education from Classic Visions, including progressive guidance, digital-eye-strain tips, UV protection, and questions to ask your optician."
+        canonicalPath="/patients"
+      />
       <Header />
       <main className="pb-16 pt-24">
         <div className="container mx-auto max-w-6xl px-4 lg:px-8">

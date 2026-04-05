@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router";
+import Seo from "@/components/seo/Seo";
 import {
   Eye,
   Focus,
@@ -100,6 +101,11 @@ const MATERIALS = [
 const SingleVisionPage = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Single Vision Lenses — Rx Wholesale | Classic Visions"
+        description="Discover Rx wholesale single vision lenses from Classic Visions, with personalized free-form designs, material options, and digital-performance benefits for optical professionals."
+        canonicalPath="/lenses/single-vision"
+      />
       <Header />
 
       <main className="pb-20 pt-24">

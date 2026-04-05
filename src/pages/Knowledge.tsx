@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Seo from "@/components/seo/Seo";
 import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import { Badge } from "@/components/ui/badge";
@@ -217,6 +218,11 @@ const Knowledge = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Optical Knowledge Base | Classic Visions"
+        description="Search the Classic Visions optical knowledge base for lens education, coating guidance, patient support topics, trade resources, and curated help articles."
+        canonicalPath="/knowledge"
+      />
       <Header />
 
       <main id="main-content" className="pb-16 pt-24">

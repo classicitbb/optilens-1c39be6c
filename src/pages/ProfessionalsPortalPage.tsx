@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Seo from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +16,8 @@ import { LifeBuoy, LogIn } from "lucide-react";
 type PortalPage = {
   title: string;
   description: string;
+  seoTitle?: string;
+  seoDescription?: string;
   body: string[];
   isForm?: boolean;
   isCustomerService?: boolean;
@@ -24,6 +27,9 @@ const portalPages: Record<string, PortalPage> = {
   "trade-account": {
     title: "Apply for a Trade Account",
     description: "Lead form for optical stores and clinics.",
+    seoTitle: "Apply for a Trade Account | Classic Visions",
+    seoDescription:
+      "Apply for a Classic Visions trade account to request wholesale access, onboarding support, and account follow-up for your optical store or clinic.",
     body: [
       "Use this form to request wholesale access, account onboarding, and credit terms review.",
       "Submissions are routed to the CRM lead queue for professional account follow-up.",
@@ -254,6 +260,11 @@ const ProfessionalsPortalPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title={page.seoTitle ?? `${page.title} | Classic Visions`}
+        description={page.seoDescription ?? page.description}
+        canonicalPath={`/professionals/${slug}`}
+      />
       <Header />
       <main className="container mx-auto max-w-3xl px-4 pb-16 pt-24 lg:px-8">
         <div className="rounded-2xl border border-border bg-card p-8">

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
+import Seo from "@/components/seo/Seo";
 import {
   Eye,
   Shield,
@@ -275,6 +276,11 @@ const MaterialCard = ({ m, reversed }: { m: MaterialData; reversed: boolean }) =
 const MaterialsPage = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Lens Materials Guide: CR-39 to 1.74 | Classic Visions"
+        description="Compare lens materials from CR-39 and polycarbonate to 1.74 high index with guidance on thickness, weight, clarity, durability, and best-fit prescription ranges."
+        canonicalPath="/lenses/materials"
+      />
       <Header />
 
       {/* Hero */}

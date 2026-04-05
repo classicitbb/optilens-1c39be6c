@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router";
+import Seo from "@/components/seo/Seo";
 import {
   Eye,
   Layers,
@@ -88,6 +89,11 @@ const IDEAL_WEARERS = [
 const UltraClearARPage = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="UltraClear AR Coating — Premium Anti-Reflective | Classic Visions"
+        description="Learn how UltraClear AR improves lens transparency, night-driving comfort, cosmetic appearance, and cleaning performance with a premium multi-layer anti-reflective stack."
+        canonicalPath="/coatings/ultraclear-ar"
+      />
       <Header />
       <main className="pb-20 pt-24">
         {/* Hero */}

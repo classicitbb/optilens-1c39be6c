@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -113,6 +114,11 @@ const faqItems = [
 const PhotochromicGuidePage = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Photochromic Lenses — Transitions & Darkun | Classic Visions"
+        description="Compare photochromic lens families including Darkun and key Transitions options, with practical guidance on activation, in-car performance, polarization, and color choices."
+        canonicalPath="/photochromic"
+      />
       <Header />
       <section className="relative overflow-hidden bg-gradient-hero pb-16 pt-28">
         <div className="absolute -right-32 -top-32 h-72 w-72 rounded-full bg-accent/8 blur-3xl" />

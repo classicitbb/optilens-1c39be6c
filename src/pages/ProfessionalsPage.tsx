@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
 import { LABLINK_PORTAL_URL, LABLINK_TRACKING_URL } from "@/config/externalLinks";
+import Seo from "@/components/seo/Seo";
 
 const sections = [
   {
@@ -37,6 +38,11 @@ const sections = [
 const ProfessionalsPage = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Trade Account & Professional Resources | Classic Visions"
+        description="Access trade account onboarding, LabLink ordering, order tracking, pricing requests, and technical resources built for optical stores and clinics."
+        canonicalPath="/professionals"
+      />
       <Header />
       <main className="pt-24 pb-16">
         <div className="container mx-auto max-w-6xl px-4 lg:px-8">
