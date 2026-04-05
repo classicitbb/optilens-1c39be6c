@@ -3659,24 +3659,42 @@ export type Database = {
       }
       orders: {
         Row: {
+          billing_address: Json | null
+          checkout_method: string
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
+          customer_name: string | null
           id: string
+          shipping_address: Json | null
           status: string
           total_amount: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_address?: Json | null
+          checkout_method?: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          customer_name?: string | null
           id?: string
+          shipping_address?: Json | null
           status?: string
           total_amount: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_address?: Json | null
+          checkout_method?: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          customer_name?: string | null
           id?: string
+          shipping_address?: Json | null
           status?: string
           total_amount?: number
           updated_at?: string
@@ -4275,12 +4293,14 @@ export type Database = {
           crm_customer_id: number | null
           display_name: string | null
           email: string | null
+          email_verified_at: string | null
           full_name: string | null
           id: string
           organization_name: string | null
           phone: string | null
           portal_access_note: string | null
           portal_access_status: string | null
+          profile_completed_at: string | null
           shipping_address: Json | null
           updated_at: string
           user_id: string
@@ -4294,12 +4314,14 @@ export type Database = {
           crm_customer_id?: number | null
           display_name?: string | null
           email?: string | null
+          email_verified_at?: string | null
           full_name?: string | null
           id?: string
           organization_name?: string | null
           phone?: string | null
           portal_access_note?: string | null
           portal_access_status?: string | null
+          profile_completed_at?: string | null
           shipping_address?: Json | null
           updated_at?: string
           user_id: string
@@ -4313,12 +4335,14 @@ export type Database = {
           crm_customer_id?: number | null
           display_name?: string | null
           email?: string | null
+          email_verified_at?: string | null
           full_name?: string | null
           id?: string
           organization_name?: string | null
           phone?: string | null
           portal_access_note?: string | null
           portal_access_status?: string | null
+          profile_completed_at?: string | null
           shipping_address?: Json | null
           updated_at?: string
           user_id?: string
@@ -5928,6 +5952,21 @@ export type Database = {
         Returns: Json
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
+      sync_customer_portal_identity: {
+        Args: { p_user_id?: string }
+        Returns: {
+          assigned_pricelist_id: number
+          crm_contact_id: string
+          crm_customer_id: number
+          customer_name: string
+          email_verified: boolean
+          organization_name: string
+          portal_access_note: string
+          portal_access_status: string
+          profile_completed: boolean
+          profile_id: string
+        }[]
+      }
       timeout_stale_integration_sync_jobs: { Args: never; Returns: number }
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
