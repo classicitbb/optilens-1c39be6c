@@ -32,12 +32,12 @@ const OrderConfirmationEmail = ({
 }: OrderConfirmationProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your OptiLens order #{orderId} has been confirmed</Preview>
+    <Preview>Your Classic Visions order #{orderId} has been confirmed</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Order Confirmed</Heading>
         <Text style={text}>
-          Hi {customerName}, thanks for your order! We've received your purchase and it's being processed.
+          Hi {customerName}, thanks for your order! We&apos;ve received your purchase and it&apos;s being processed.
         </Text>
 
         <Section style={detailBox}>
@@ -52,7 +52,7 @@ const OrderConfirmationEmail = ({
             <Text style={sectionTitle}>Items Ordered</Text>
             {items.map((item, i) => (
               <Section key={i} style={itemRow}>
-                <Text style={itemName}>{item.product_name} × {item.quantity}</Text>
+                <Text style={itemName}>{item.product_name} x {item.quantity}</Text>
                 <Text style={itemPrice}>${(item.product_price * item.quantity).toFixed(2)}</Text>
               </Section>
             ))}
@@ -87,7 +87,7 @@ export default OrderConfirmationEmail
 
 export const template = {
   component: OrderConfirmationEmail,
-  subject: (data: any) => `Order Confirmed — #${data?.orderId ?? 'ORD-000000'}`,
+  subject: (data: any) => `Order Confirmed - #${data?.orderId ?? 'ORD-000000'}`,
   displayName: 'Order Confirmation',
   previewData: {
     customerName: 'Jane Doe',

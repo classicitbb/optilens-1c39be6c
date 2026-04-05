@@ -70,7 +70,7 @@ const DeferredGlobalWidgets = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="optilens-theme">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>

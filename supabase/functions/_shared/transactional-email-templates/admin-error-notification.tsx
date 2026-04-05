@@ -1,7 +1,7 @@
 /// <reference types="npm:@types/react@18.3.1" />
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Container, Head, Heading, Html, Preview, Section, Text, Button,
+  Body, Button, Container, Head, Heading, Html, Preview, Section, Text,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
@@ -28,11 +28,11 @@ const AdminErrorNotificationEmail = ({
 }: AdminErrorNotificationProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>{`${errorCount} runtime error(s) detected on OptiLens`}</Preview>
+    <Preview>{`${errorCount} runtime error(s) detected on Classic Visions`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={alertBanner}>
-          <Text style={alertIcon}>⚠️</Text>
+          <Text style={alertIcon}>!</Text>
           <Heading style={h1}>{errorCount} Error{errorCount !== 1 ? 's' : ''} Detected</Heading>
         </Section>
 
@@ -44,7 +44,7 @@ const AdminErrorNotificationEmail = ({
           <Section key={i} style={errorCard}>
             <Text style={errorTitle}>{err.title}</Text>
             <Text style={errorMeta}>
-              Source: {err.source}{err.route ? ` · Route: ${err.route}` : ''}
+              Source: {err.source}{err.route ? ` | Route: ${err.route}` : ''}
             </Text>
             {err.detail && <Text style={errorDetail}>{err.detail}</Text>}
             <Text style={errorTimestamp}>{new Date(err.timestamp).toLocaleString()}</Text>
@@ -56,7 +56,7 @@ const AdminErrorNotificationEmail = ({
         </Button>
 
         <Text style={footer}>
-          This is an automated notification from OptiLens monitoring. Errors are stored locally and cleared on review.
+          This is an automated notification from Classic Visions monitoring. Errors are stored locally and cleared on review.
         </Text>
       </Container>
     </Body>
@@ -67,7 +67,7 @@ export default AdminErrorNotificationEmail
 
 export const template = {
   component: AdminErrorNotificationEmail,
-  subject: (data: any) => `⚠️ ${data?.errorCount ?? 0} runtime error(s) on OptiLens`,
+  subject: (data: any) => `Alert: ${data?.errorCount ?? 0} runtime error(s) on Classic Visions`,
   displayName: 'Admin Error Notification',
   previewData: {
     errorCount: 2,

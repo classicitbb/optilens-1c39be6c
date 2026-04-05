@@ -16,26 +16,26 @@ const WelcomeEmail = ({
 }: WelcomeProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Welcome to OptiLens — let's get started</Preview>
+    <Preview>Welcome to Classic Visions - let's get started</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Welcome aboard!</Heading>
         <Text style={text}>
-          Hi {customerName}, we're glad to have you. Your OptiLens account is ready — browse our lens catalog, place orders, and track everything from your portal.
+          Hi {customerName}, we&apos;re glad to have you. Your Classic Visions account is ready - browse our lens catalog, place orders, and track everything from your portal.
         </Text>
         <Text style={text}>
-          Here's what you can do right away:
+          Here&apos;s what you can do right away:
         </Text>
-        <Text style={listItem}>🔍 Browse our full lens and supplies catalog</Text>
-        <Text style={listItem}>🛒 Place orders with fast checkout</Text>
-        <Text style={listItem}>📦 Track your order status in real time</Text>
+        <Text style={listItem}>Browse our full lens and supplies catalog</Text>
+        <Text style={listItem}>Place orders with fast checkout</Text>
+        <Text style={listItem}>Track your order status in real time</Text>
 
         <Button style={button} href={`${siteUrl}/store`}>
           Start Shopping
         </Button>
 
         <Text style={footer}>
-          Questions? Just reply to this email — we're here to help.
+          Questions? Just reply to this email - we&apos;re here to help.
         </Text>
       </Container>
     </Body>
@@ -46,7 +46,7 @@ export default WelcomeEmail
 
 export const template = {
   component: WelcomeEmail,
-  subject: 'Welcome to OptiLens!',
+  subject: 'Welcome to Classic Visions!',
   displayName: 'Welcome Message',
   previewData: {
     customerName: 'Jane',

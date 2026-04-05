@@ -502,7 +502,7 @@ export default function IntegrationsPage() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="prefer_odoo">Prefer Odoo</SelectItem>
-                <SelectItem value="prefer_optilens">Prefer OptiLens</SelectItem>
+                <SelectItem value="prefer_optilens">Prefer Classic Visions</SelectItem>
                 <SelectItem value="manual_review">Manual review</SelectItem>
               </SelectContent>
             </Select>

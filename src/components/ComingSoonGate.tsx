@@ -34,7 +34,7 @@ const ComingSoonGate = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-center">
-      <img src={cleanLogoSmooth} alt="OptiLens logo" className="mb-8 h-14 w-auto" />
+      <img src={cleanLogoSmooth} alt="Classic Visions logo" className="mb-8 h-14 w-auto" />
 
       <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
         Coming Soon
@@ -65,7 +65,7 @@ const ComingSoonGate = ({ children }: { children: React.ReactNode }) => {
       </form>
 
       <p className="mt-12 text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} OptiLens. All rights reserved.
+        &copy; {new Date().getFullYear()} Classic Visions. All rights reserved.
       </p>
     </main>
   );
