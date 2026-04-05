@@ -4265,6 +4265,7 @@ export type Database = {
           crm_contact_id: string | null
           crm_customer_id: number | null
           display_name: string | null
+          email: string | null
           full_name: string | null
           id: string
           organization_name: string | null
@@ -4283,6 +4284,7 @@ export type Database = {
           crm_contact_id?: string | null
           crm_customer_id?: number | null
           display_name?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
           organization_name?: string | null
@@ -4301,6 +4303,7 @@ export type Database = {
           crm_contact_id?: string | null
           crm_customer_id?: number | null
           display_name?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
           organization_name?: string | null
