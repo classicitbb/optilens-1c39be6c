@@ -2,14 +2,15 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
+import { LABLINK_PORTAL_URL, LABLINK_TRACKING_URL } from "@/config/externalLinks";
 
 const sections = [
   {
     title: "For Optical Stores & Clinics",
     links: [
       { label: "Apply for a Trade Account", to: "/professionals/trade-account" },
-      { label: "Online Ordering Portal (LabLink)", href: "https://lablink.com", external: true },
-      { label: "Order Tracking (LabLink)", href: "https://lablink.com/tracking", external: true },
+      { label: "Online Ordering Portal (LabLink)", href: LABLINK_PORTAL_URL, external: true },
+      { label: "Order Tracking (LabLink)", href: LABLINK_TRACKING_URL, external: true },
       { label: "Price List Request", to: "/professionals/price-list-request" },
     ],
   },
@@ -49,7 +50,7 @@ const ProfessionalsPage = () => {
                 <Link to="/professionals/trade-account">Apply for Trade Account</Link>
               </Button>
               <Button variant="outline" asChild>
-                <a href="https://lablink.com" target="_blank" rel="noopener noreferrer">Open LabLink (External)</a>
+                <a href={LABLINK_PORTAL_URL} target="_blank" rel="noopener noreferrer">Open LabLink (External)</a>
               </Button>
             </div>
           </div>

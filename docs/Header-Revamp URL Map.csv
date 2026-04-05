@@ -9,7 +9,7 @@ Header - Coatings,Blue Light,/coatings/blue-light,200,/coatings/blue-light,Keep,
 Header - Coatings,Photochromic,/coatings/photochromic,200,/coatings/photochromic,Keep,Product
 Header - Coatings,Mirror Coatings,/coatings/mirrors,404,/coatings/mirror,Redirect,Product
 Header - Professionals,Professionals,/professionals,404,/for-professionals,Create,Sales
-Header - Professionals,LabLink,https://lablink.classicvisions.net,200,https://lablink.classicvisions.net,Keep,Lab Ops
+Header - Professionals,LabLink,https://lablink.opticalonline.com/,200,https://lablink.opticalonline.com/,Keep,Lab Ops
 Header - Professionals,Order Tracking,https://tracking.classicvisions.net,200,https://tracking.classicvisions.net,Keep,Lab Ops
 Header - Patients,Patients,/patients,200,/patients,Keep,Marketing
 Header - Patients,Find a Provider,/patients/find-a-provider,200,/patients/find-a-provider,Keep,Marketing
@@ -23,7 +23,7 @@ Footer - Company,Professionals,/professionals,404,/for-professionals,Redirect,Sa
 Footer - Company,Patients,/patients,200,/patients,Keep,Marketing
 Footer - Support,Contact,/contact,200,/contact,Keep,Marketing
 Footer - Support,Tracking,https://tracking.classicvisions.net,200,https://tracking.classicvisions.net,Keep,Lab Ops
-Footer - Support,LabLink,https://lablink.classicvisions.net,200,https://lablink.classicvisions.net,Keep,Lab Ops
+Footer - Support,LabLink,https://lablink.opticalonline.com/,200,https://lablink.opticalonline.com/,Keep,Lab Ops
 Footer - Legal,Privacy Policy,/privacy-policy,200,/privacy-policy,Keep,Legal
 Footer - Legal,Terms of Use,/terms-of-use,404,/terms,Redirect,Legal
 Footer - Legal,Returns,/returns,200,/returns,Keep,Legal

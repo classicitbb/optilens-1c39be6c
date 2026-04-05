@@ -18,6 +18,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
+import { LABLINK_PORTAL_URL, LABLINK_TRACKING_URL } from "@/config/externalLinks";
 
 type MegaMenuLink = {
   label: string;
@@ -116,8 +117,8 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     title: "For Optical Stores & Clinics",
     links: [
     { label: "Apply for a Trade Account", description: "Lead form", to: "/professionals/trade-account" },
-    { label: "Online Ordering Portal", description: "Login to LabLink", href: "https://lablink.opticalonline.com/", externalLabel: "External" },
-    { label: "Order Tracking", description: "Track shipments and job status", href: "https://lablink.opticalonline.com/jobs#available", externalLabel: "External" },
+    { label: "Online Ordering Portal", description: "Login to LabLink", href: LABLINK_PORTAL_URL, externalLabel: "External" },
+    { label: "Order Tracking", description: "Track shipments and job status", href: LABLINK_TRACKING_URL, externalLabel: "External" },
     { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" }]
 
   },
