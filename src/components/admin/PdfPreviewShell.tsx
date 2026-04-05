@@ -65,6 +65,7 @@ const PdfPreviewShell = ({
     resolvePrintSettings(defaultPrintSettings),
   );
   const [previewScale, setPreviewScale] = useState(1);
+  const [manualZoom, setManualZoom] = useState<number | null>(null);
   const [pageCount, setPageCount] = useState(1);
   const [settingsVisible, setSettingsVisible] = useState(defaultSettingsVisible);
   const paneRef = useRef<HTMLDivElement>(null);
