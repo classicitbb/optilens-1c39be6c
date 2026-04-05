@@ -283,11 +283,11 @@ const PricingSettingsTab = () => {
         <p className="text-[10px] text-muted-foreground mb-1">Charge categories available on shipment cost allocation.</p>
         <div className="flex flex-wrap gap-2">
           {items.map((item) => (
-            <div key={item.id} className={`flex items-center gap-1 border px-2 py-1 ${item.is_active ? 'border-border bg-muted/50' : 'border-border/50 bg-muted/20 opacity-60'}`}>
+            <div key={item.id} className={`flex items-center gap-1 border px-2 py-1 min-h-[28px] ${item.is_active ? 'border-border bg-muted/50' : 'border-border/50 bg-muted/20 opacity-60'}`}>
               {editingId === item.id ? (
                 <Input
                   autoFocus
-                  className="h-5 min-w-[5rem] w-auto text-[10px] px-1 py-0"
+                  className="h-6 min-w-[6rem] w-auto text-[10px] px-1 py-0"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={() => commitEdit(item)}
