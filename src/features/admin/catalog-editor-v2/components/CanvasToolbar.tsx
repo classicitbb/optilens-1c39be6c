@@ -163,6 +163,13 @@ const CanvasToolbar = ({
 
       {/* Right side: status + actions */}
       <div className="ml-auto flex items-center gap-1.5">
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground px-2 border-r mr-1">
+          <span className="opacity-40">1. Structure</span>
+          <span className="opacity-30">›</span>
+          <span className="font-semibold text-foreground">2. Canvas</span>
+          <span className="opacity-30">›</span>
+          <span className="opacity-40">3. PDF</span>
+        </div>
         <div className="flex items-center rounded-md border border-border bg-muted/20 p-0.5">
           <Button
             variant="ghost"
@@ -196,8 +203,8 @@ const CanvasToolbar = ({
           <Upload className="h-3.5 w-3.5" />Publish
         </Button>
         <div className="w-px h-[18px] bg-border mx-1" />
-        <Button variant="outline" size="icon" className="h-7 w-7" onClick={onExport} disabled={!onExport}>
-          <Download className="h-3.5 w-3.5" />
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={onExport} disabled={!onExport}>
+          <Download className="h-3.5 w-3.5" />Preview PDF
         </Button>
       </div>
     </div>

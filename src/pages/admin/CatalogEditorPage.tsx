@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Trash2, BookOpen, Palette, FileText, Layers, ArrowUp, ArrowDown, GripVertical, Pencil, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import SectionContentDialog from "@/components/admin/SectionContentDialog";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
@@ -638,7 +639,7 @@ const EditorLivePreview = ({ template, sections, versions, articles, settings, c
 const CatalogEditorPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: templates = [], updateMutation } = useCatalogTemplates();
+  const { data: templates = [], updateMutation, publishToCanvasMutation } = useCatalogTemplates();
   const { data: versions = [] } = useAllPricelistVersions();
   const { data: articles = [] } = useHelpArticlesForCatalog();
   const { data: settings } = useCompanySettings();
@@ -660,6 +661,7 @@ const CatalogEditorPage = () => {
   const [gradStart, setGradStart] = useState("#1e4db7");
   const [gradEnd, setGradEnd] = useState("#0f2a5e");
   const [status, setStatus] = useState<"draft" | "published">("draft");
+  const [publishToCanvasDialogOpen, setPublishToCanvasDialogOpen] = useState(false);
 
   const { data: sections = [], addSection, updateSection, removeSection, reorderSections } = useCatalogSectionsEditor(template?.id);
 
@@ -783,6 +785,19 @@ const CatalogEditorPage = () => {
     await handlePublish();
   }, [handlePublish, handleSave, status]);
 
+  const handlePublishToCanvas = useCallback(async () => {
+    if (!template) return;
+    if (!validatePublish()) return;
+    const saved = await handleSave({ successTitle: "Saved" });
+    if (!saved) return;
+    try {
+      await publishToCanvasMutation.mutateAsync(template.id);
+      navigate(`/admin/pricing/publisher/${template.id}/canvas?from=publisher`);
+    } catch (e: unknown) {
+      toast({ title: "Error", description: getErrorMessage(e), variant: "destructive" });
+    }
+  }, [template, validatePublish, handleSave, publishToCanvasMutation, navigate, toast]);
+
   const handleUploadAsset = async (file: File, kind: "logo" | "background") => {
     if (!template) return;
     const validationError = validateImageFile(file);
@@ -884,6 +899,13 @@ const CatalogEditorPage = () => {
           </span>
         </button>
         <div className="ml-auto flex items-center gap-[5px]">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground px-2 border-r mr-1">
+            <span className="font-semibold text-foreground">1. Structure</span>
+            <span className="opacity-40">›</span>
+            <span className="opacity-40">2. Canvas</span>
+            <span className="opacity-40">›</span>
+            <span className="opacity-40">3. PDF</span>
+          </div>
           <div className="flex items-center rounded-md border border-border bg-muted/20 p-0.5">
             <Button
               variant="default"
@@ -955,6 +977,15 @@ const CatalogEditorPage = () => {
             disabled={updateMutation.isPending}
           >
             Save &amp; Publish
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 rounded-md px-[9px] text-xs font-normal bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+            onClick={() => setPublishToCanvasDialogOpen(true)}
+            disabled={updateMutation.isPending || publishToCanvasMutation.isPending}
+          >
+            <ArrowRight className="h-3 w-3" />
+            Send to Canvas
           </Button>
         </div>
       </div>
@@ -1159,6 +1190,23 @@ const CatalogEditorPage = () => {
         </ResizablePanelGroup>
         </div>
       </div>
+
+      <AlertDialog open={publishToCanvasDialogOpen} onOpenChange={setPublishToCanvasDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send to Canvas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This saves your current sections, clears any existing canvas layout, and opens the Canvas Editor with a fresh layout built from your sections. Any manual canvas adjustments will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { void handlePublishToCanvas(); }}>
+              {publishToCanvasMutation.isPending ? "Sending…" : "Send to Canvas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -71,6 +71,38 @@ export const useCatalogTemplates = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-templates"] }),
   });
 
+  const publishToCanvasMutation = useMutation({
+    mutationFn: async (templateId: number) => {
+      // 1. Get all page IDs for this template
+      const { data: pages, error: pagesError } = await supabase
+        .from("catalog_pages")
+        .select("id")
+        .eq("catalog_template_id", templateId);
+      if (pagesError) throw pagesError;
+
+      // 2. Delete all canvas objects across those pages
+      if (pages && pages.length > 0) {
+        const pageIds = pages.map((p: any) => p.id);
+        const { error: deleteError } = await supabase
+          .from("catalog_page_objects")
+          .delete()
+          .in("page_id", pageIds);
+        if (deleteError) throw deleteError;
+      }
+
+      // 3. Set status to canvas_ready
+      const { error: updateError } = await supabase
+        .from("catalog_templates")
+        .update({ status: "canvas_ready", updated_at: new Date().toISOString() } as any)
+        .eq("id", templateId);
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["catalog-templates"] });
+      qc.invalidateQueries({ queryKey: ["catalog-pages"] });
+    },
+  });
+
   const duplicateMutation = useMutation({
     mutationFn: async (template: CatalogTemplate) => {
       const { id, created_at, updated_at, ...rest } = template;
@@ -113,6 +145,7 @@ export const useCatalogTemplates = () => {
     updateMutation,
     deleteMutation,
     duplicateMutation,
+    publishToCanvasMutation,
   };
 };
 
