@@ -29,4 +29,34 @@ describe("public route accessibility", () => {
 
     expect(source).toContain('<Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />');
   });
+
+  it("registers canonical patient topic routes in the public route registry", () => {
+    const patientRouteIds = [
+      "public.patients",
+      "public.patients.lens-differences",
+      "public.patients.progressive-lenses",
+      "public.patients.anti-fatigue-lenses",
+      "public.patients.caring-for-glasses",
+      "public.patients.computer-mobile-use",
+      "public.patients.sunlight-protection",
+      "public.patients.regular-eye-exams",
+    ];
+
+    for (const routeId of patientRouteIds) {
+      expect(APP_ROUTE_REGISTRY.find((route) => route.id === routeId && route.status === "active")).toBeTruthy();
+    }
+  });
+
+  it("declares runtime routes for the canonical patient topic pages", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="patients/lens-differences" element={<LensDifferencesPage />} />');
+    expect(source).toContain('<Route path="patients/progressive-lenses" element={<ProgressiveLensesPage />} />');
+    expect(source).toContain('<Route path="patients/anti-fatigue-lenses" element={<AntiFatigueLensesPage />} />');
+    expect(source).toContain('<Route path="patients/caring-for-glasses" element={<CaringForGlassesPage />} />');
+    expect(source).toContain('<Route path="patients/computer-mobile-use" element={<ComputerMobileUsePage />} />');
+    expect(source).toContain('<Route path="patients/sunlight-protection" element={<SunlightProtectionPage />} />');
+    expect(source).toContain('<Route path="patients/regular-eye-exams" element={<RegularEyeExamsPage />} />');
+  });
 });

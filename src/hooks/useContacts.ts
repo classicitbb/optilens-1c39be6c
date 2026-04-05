@@ -109,11 +109,21 @@ export const useSaveContact = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (contact: Partial<Contact> & { id?: string }) => {
+      // Strip business-card fields when empty so the request succeeds even if
+      // the corresponding migration has not yet been applied to the database.
+      const { business_card_file_name, business_card_image_url, business_card_uploaded_at, ...rest } = contact;
+      const payload: Record<string, unknown> = { ...rest };
+      if (business_card_image_url) {
+        payload.business_card_image_url = business_card_image_url;
+        payload.business_card_uploaded_at = business_card_uploaded_at ?? null;
+        payload.business_card_file_name = business_card_file_name ?? null;
+      }
+
       if (contact.id) {
-        const { error } = await supabase.from("contacts").update(contact).eq("id", contact.id);
+        const { error } = await supabase.from("contacts").update(payload).eq("id", contact.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("contacts").insert(contact as any);
+        const { error } = await supabase.from("contacts").insert(payload as any);
         if (error) throw error;
       }
     },
