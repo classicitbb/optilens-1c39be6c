@@ -1,5 +1,5 @@
 TN:
-SF:src\components\admin\AdminProtectedRoute.tsx
+SF:src/components/admin/AdminProtectedRoute.tsx
 FN:6,(anonymous_0)
 FNF:1
 FNH:1
@@ -30,7 +30,7 @@ BRF:8
 BRH:8
 end_of_record
 TN:
-SF:src\features\admin\security\adminFunctionPolicy.ts
+SF:src/features/admin/security/adminFunctionPolicy.ts
 FN:13,(anonymous_0)
 FN:25,(anonymous_1)
 FN:32,(anonymous_2)
