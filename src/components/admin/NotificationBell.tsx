@@ -3,7 +3,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 const severityColor: Record<string, string> = {
   error: "text-destructive",

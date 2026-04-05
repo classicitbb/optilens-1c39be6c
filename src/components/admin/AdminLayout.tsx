@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router";
 import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
 import AdminSidebar from "./AdminSidebar";
 import AdminTopBar from "./AdminTopBar";

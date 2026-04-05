@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { LensChatbot } from "@/components/LensChatbot";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useStoreProducts, StoreProduct, getStableStoreProductCartId, getStoreProductRoute } from "@/hooks/useStoreProducts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";

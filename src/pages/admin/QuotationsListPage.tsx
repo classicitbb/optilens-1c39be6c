@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useQuotes, Quote, QUOTE_STATUSES } from "@/hooks/useQuotes";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router";
 import { Mail, Lock, User } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { lovable } from "@/integrations/lovable/index";

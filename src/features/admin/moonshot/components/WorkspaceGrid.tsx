@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ArrowUp, ExternalLink, GripVertical, Plus, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

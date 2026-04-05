@@ -4,7 +4,7 @@ import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";
 import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import type { ComponentType, ReactNode } from "react";
 
 const MATERIALS = [

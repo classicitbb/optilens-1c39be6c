@@ -3,7 +3,7 @@ import releaseNotesRaw from "../../../../docs/release-notes.md?raw";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 const IMPACT_TONE: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   low: "outline",

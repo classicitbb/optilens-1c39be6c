@@ -18,7 +18,7 @@ import { EMPTY_ADDRESS, ProfileAddress, resolveUserFullName } from "@/lib/profil
 import { cn } from "@/lib/utils";
 import { useCustomerAddresses, toProfileAddress } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 
 export interface CheckoutFormData {

@@ -11,7 +11,7 @@ import {
   Sparkles,
   Cpu,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 const WHY_PATIENTS_ASK = [
   "What exactly is a bifocal lens and who is it for?",

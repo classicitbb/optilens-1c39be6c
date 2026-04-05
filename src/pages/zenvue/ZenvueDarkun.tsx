@@ -1,5 +1,5 @@
 import { Moon, Zap, Clock, Shield, Eye, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import AvailabilityBanner from "@/components/zenvue/AvailabilityBanner";
 import ZenvueCTA from "@/components/zenvue/ZenvueCTA";

@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import AccountSidebar from "@/components/account/AccountSidebar";
 import AccountTopBar from "@/components/account/AccountTopBar";

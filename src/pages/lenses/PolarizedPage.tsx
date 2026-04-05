@@ -21,7 +21,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 const SECTIONS = [
   { id: "what-they-are", label: "What They Are", icon: <Sun className="h-4 w-4" /> },

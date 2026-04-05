@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { BookOpen, CalendarClock, ListTree, Search } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { useRolePermissions } from "@/hooks/useRolePermissions";

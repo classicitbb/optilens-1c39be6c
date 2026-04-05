@@ -1,6 +1,6 @@
 import { ExternalLink, MapPin, Phone } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useLegalPage } from "@/hooks/useContentArticles";
 
 type FooterLink = {

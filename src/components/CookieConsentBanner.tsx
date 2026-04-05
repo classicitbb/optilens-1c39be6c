@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Cookie, Settings, Check, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 const CONSENT_KEY = "cookie_consent";
 const CONSENT_PREFERENCES_KEY = "cookie_preferences";

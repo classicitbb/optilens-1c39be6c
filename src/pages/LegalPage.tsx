@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { useLegalPage } from "@/hooks/useContentArticles";
 import { Skeleton } from "@/components/ui/skeleton";
 import ReactMarkdown from "react-markdown";

@@ -1,5 +1,5 @@
 import { ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Rocket, Settings, ShoppingCart, Target, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

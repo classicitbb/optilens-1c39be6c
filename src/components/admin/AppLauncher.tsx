@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ArrowLeft, HelpCircle, LayoutDashboard, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";

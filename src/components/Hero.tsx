@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { ArrowRight, Shield, Zap, Award } from "lucide-react";
 import heroImage from "@/assets/hero-lenses.jpg";
 import heroImageSm from "@/assets/hero-lenses-sm.jpg";

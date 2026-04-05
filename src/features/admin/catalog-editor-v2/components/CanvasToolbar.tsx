@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ArrowLeft, Undo2, Redo2, Type, Image, Square, Table2, Layers, Minus, Plus, Download, Save, Upload, ChevronDown } from "lucide-react";

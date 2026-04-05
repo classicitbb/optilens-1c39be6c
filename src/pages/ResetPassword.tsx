@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router";
 import { Lock, ArrowLeft, CheckCircle } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { z } from "zod";

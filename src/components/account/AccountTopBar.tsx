@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { ArrowLeft, CircleHelp, LogOut, Menu, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import SidebarNavList from "@/components/shared/SidebarNavList";
 import { ACCOUNT_NAV_ITEMS } from "@/components/account/accountNav";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useSupportAvailability } from "@/hooks/useSupportAvailability";
 

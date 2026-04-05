@@ -22,7 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 /* ─── anchor sections ─── */
 const SECTIONS = [

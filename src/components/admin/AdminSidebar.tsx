@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

@@ -1,5 +1,5 @@
 import type { ComponentType, KeyboardEvent, ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 
 export interface SidebarNavItem {

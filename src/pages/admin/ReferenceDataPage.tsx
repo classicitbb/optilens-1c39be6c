@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ArrowLeft, Database } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ReferenceDataTable from "@/components/admin/ReferenceDataTable";

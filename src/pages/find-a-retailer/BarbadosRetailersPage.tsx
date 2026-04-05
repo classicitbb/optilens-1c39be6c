@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { barbadosFaqs, retailerMarketMap } from "@/data/retailers";
 import { Building2, ChevronRight, MapPin, Phone, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 const barbadosMarket = retailerMarketMap.get("barbados");
 

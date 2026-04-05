@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useShipments, useAllShipmentCharges, Shipment } from "@/hooks/useShipments";
 import { useShipmentTypes } from "@/hooks/useImportCostingRefs";
 import { useRolePermissions } from "@/hooks/useRolePermissions";

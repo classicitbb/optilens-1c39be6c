@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Pencil, Trash2, ArrowLeft, Tag } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 const ContactTagsConfigPage = () => {
   const { data: tags = [], isLoading } = useContactTags();

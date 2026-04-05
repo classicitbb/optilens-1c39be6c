@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
