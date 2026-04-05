@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -26,13 +27,12 @@ type PortalPage = {
 const portalPages: Record<string, PortalPage> = {
   "trade-account": {
     title: "Apply for a Trade Account",
-    description: "Lead form for optical stores and clinics.",
+    description: "Apply for a wholesale trade account to access competitive pricing, dedicated support, and our full product catalogue.",
     seoTitle: "Apply for a Trade Account | Classic Visions",
     seoDescription:
       "Apply for a Classic Visions trade account to request wholesale access, onboarding support, and account follow-up for your optical store or clinic.",
     body: [
-      "Use this form to request wholesale access, account onboarding, and credit terms review.",
-      "Submissions are routed to the CRM lead queue for professional account follow-up.",
+      "Complete the form below and our team will be in touch to discuss your account application.",
     ],
     isForm: true,
   },
@@ -240,7 +240,10 @@ const ProfessionalsPortalPage = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [honeypot, setHoneypot] = useState("");
+  const [businessType, setBusinessType] = useState("");
+  const [monthlyVolume, setMonthlyVolume] = useState("");
   const page = useMemo(() => (slug ? portalPages[slug] : undefined), [slug]);
+  const isTradeAccountPage = slug === "trade-account";
 
   if (!page) {
     return (
@@ -289,13 +292,22 @@ const ProfessionalsPortalPage = () => {
                 setLoading(true);
                 const formData = new FormData(event.currentTarget);
                 try {
+                  const website = (formData.get("website") as string)?.trim() || null;
+                  const notes = (formData.get("notes") as string)?.trim() || "";
+                  const supplementalNotes = [
+                    website ? `Website: ${website}` : null,
+                    isTradeAccountPage && monthlyVolume ? `Monthly Volume: ${monthlyVolume}` : null,
+                    isTradeAccountPage && businessType ? `Business Type: ${businessType}` : null,
+                    notes ? `Notes: ${notes}` : null,
+                  ].filter(Boolean).join("\n");
+
                   const { error } = await (supabase as any).from("public_inquiries").insert({
                     inquiry_type: slug === "trade-account" ? "trade_account" : "price_list",
                     name: formData.get("contactName") as string,
                     email: formData.get("email") as string,
                     phone: (formData.get("phone") as string) || null,
                     business_name: (formData.get("businessName") as string) || null,
-                    notes: (formData.get("notes") as string) || null,
+                    notes: supplementalNotes || null,
                     page_slug: `/professionals/${slug}`,
                     source_channel: "website",
                   });
@@ -304,9 +316,11 @@ const ProfessionalsPortalPage = () => {
 
                   toast({
                     title: "Request Submitted",
-                    description: "Your request has been captured and queued for the professional support team.",
+                    description: "Thanks for applying. Our team will review your details and follow up soon.",
                   });
                   (event.target as HTMLFormElement).reset();
+                  setBusinessType("");
+                  setMonthlyVolume("");
                 } catch {
                   toast({
                     title: "Submission failed",
@@ -352,9 +366,48 @@ const ProfessionalsPortalPage = () => {
                   <Input id="phone" name="phone" required placeholder="+1 ..." />
                 </div>
               </div>
+              {isTradeAccountPage && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="website">Website</Label>
+                      <Input id="website" name="website" type="url" placeholder="https://yourbusiness.com" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="monthlyVolume">Monthly Volume</Label>
+                      <Select value={monthlyVolume} onValueChange={setMonthlyVolume}>
+                        <SelectTrigger id="monthlyVolume">
+                          <SelectValue placeholder="Estimated monthly volume" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1-50 pairs">1-50 pairs</SelectItem>
+                          <SelectItem value="51-200 pairs">51-200 pairs</SelectItem>
+                          <SelectItem value="201-500 pairs">201-500 pairs</SelectItem>
+                          <SelectItem value="500+ pairs">500+ pairs</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="businessType">Business Type</Label>
+                    <Select value={businessType} onValueChange={setBusinessType}>
+                      <SelectTrigger id="businessType">
+                        <SelectValue placeholder="Select business type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Optical Shop">Optical Shop</SelectItem>
+                        <SelectItem value="Clinic">Clinic</SelectItem>
+                        <SelectItem value="Chain / Multi-location">Chain / Multi-location</SelectItem>
+                        <SelectItem value="Hospital">Hospital</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="notes">Additional Notes</Label>
-                <Textarea id="notes" name="notes" placeholder="Order volumes, product interests, or operational needs" rows={4} />
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea id="notes" name="notes" placeholder="Tell us a little about your business and what you're looking for." rows={4} />
               </div>
               <Button type="submit" disabled={loading}>{loading ? "Submitting..." : "Submit Request"}</Button>
             </form>
