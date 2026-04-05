@@ -67,6 +67,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         display_name: fullName || null,
         full_name: fullName || null,
         avatar_url: avatarUrl || null,
+        email: user.email || null,
       };
 
       if (phone) {

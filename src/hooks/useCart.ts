@@ -21,10 +21,7 @@ interface UseCartOptions {
   enabled?: boolean;
 }
 
-const getDefaultCartEnabled = () => {
-  if (typeof window === "undefined") return true;
-  return !window.location.pathname.startsWith("/admin");
-};
+const getDefaultCartEnabled = () => true;
 
 const getErrorField = (error: unknown, field: "message" | "details") => {
   if (typeof error !== "object" || error === null || !(field in error)) {

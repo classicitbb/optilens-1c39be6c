@@ -140,7 +140,7 @@ The operations console is split into admin domains with one canonical route per 
 
 - **Pages / Content** governs managed site content and article publishing
 - **Feature Pages** route exists for feature-page governance (current implementation is placeholder-backed)
-- **Patient Portals** manages patient portal content surfaces
+- **Website Portals** manages website portal content surfaces
 - **Store / Products** manages store-facing catalog experiences
 
 ## Knowledge application
