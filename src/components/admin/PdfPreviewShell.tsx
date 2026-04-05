@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Printer } from "lucide-react";
+import { Eye, EyeOff, Printer, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
