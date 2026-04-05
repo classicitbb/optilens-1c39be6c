@@ -4,7 +4,7 @@ import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 const stats = [
   { value: "Since 2006", label: "Serving Optical Professionals" },
   { value: "500+", label: "Optical Partners" },
-  { value: "1M+", label: "Lenses Delivered" },
+  { value: "500k+", label: "Lenses Delivered" },
   { value: "99.8%", label: "Quality Rate" },
 ];
 
