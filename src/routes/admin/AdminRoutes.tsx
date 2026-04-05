@@ -80,7 +80,7 @@ const AdminRoutes = () => (
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
       <Route path="pricing/legacy" element={<Navigate to="/admin/pricing/catalog" replace />} />
 
-      <Route path="sales" element={<Navigate to="/admin/sales/proposals" replace />} />
+      <Route path="sales" element={<Navigate to="/admin/sales/quotations" replace />} />
       <Route path="sales/proposals" element={<CatalogPublisherV2Page />} />
       <Route path="sales/quotations" element={<QuotationsListPage />} />
       <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />

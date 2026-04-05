@@ -183,7 +183,7 @@ const AdminSidebar = () => {
             itemClassName={linkBase}
             activeItemClassName="font-medium bg-[hsl(var(--admin-sidebar-active))]/20 text-[hsl(var(--admin-sidebar-active-fg))]"
             inactiveItemClassName="text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]"
-            labelClassName="text-sidebar-ring"
+            labelClassName="text-[hsl(var(--admin-sidebar-fg))]"
           />
         </div>
       </div>

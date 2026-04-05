@@ -49,11 +49,11 @@ export const ADMIN_APPS = {
     title: 'Sales',
     icon: ShoppingCart,
     baseRoute: '/admin/sales',
-    defaultRoute: '/admin/sales/proposals',
+    defaultRoute: '/admin/sales/quotations',
     featurePrefix: 'sales',
     sidebarItems: [
-      { label: 'Proposals', route: '/admin/sales/proposals', icon: FileEdit },
       { label: 'Quotations', route: '/admin/sales/quotations', icon: FileEdit },
+      { label: 'Proposals', route: '/admin/sales/proposals', icon: FileEdit },
     ] satisfies SidebarItem[],
   },
   contacts: {

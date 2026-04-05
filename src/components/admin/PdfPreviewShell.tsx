@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Printer } from "lucide-react";
+import { Eye, EyeOff, Printer, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
@@ -65,6 +65,7 @@ const PdfPreviewShell = ({
     resolvePrintSettings(defaultPrintSettings),
   );
   const [previewScale, setPreviewScale] = useState(1);
+  const [manualZoom, setManualZoom] = useState<number | null>(null);
   const [pageCount, setPageCount] = useState(1);
   const [settingsVisible, setSettingsVisible] = useState(defaultSettingsVisible);
   const paneRef = useRef<HTMLDivElement>(null);
@@ -100,6 +101,8 @@ const PdfPreviewShell = ({
     return () => observer.disconnect();
   }, [updatePageCount, visible, children]);
 
+  const [fitScale, setFitScale] = useState(1);
+
   useEffect(() => {
     const pane = paneRef.current;
     if (!pane) return;
@@ -111,14 +114,18 @@ const PdfPreviewShell = ({
       const availableHeight = Math.max(1, pane.clientHeight - 24);
       const widthScale = availableWidth / page.width;
       const heightScale = availableHeight / rawStackHeight;
-      setPreviewScale(Math.min(widthScale, heightScale));
+      const fit = Math.min(widthScale, heightScale);
+      setFitScale(fit);
+      if (manualZoom == null) {
+        setPreviewScale(fit);
+      }
     };
 
     updateScale();
     const observer = new ResizeObserver(updateScale);
     observer.observe(pane);
     return () => observer.disconnect();
-  }, [resolvedSettings, visible, maxHeight, pageCount]);
+  }, [resolvedSettings, visible, maxHeight, pageCount, manualZoom]);
 
   const updatePrintSettings = (next: Partial<PrintSettings>) => {
     const resolved = resolvePrintSettings({ ...resolvedSettings, ...next });
@@ -236,10 +243,25 @@ const PdfPreviewShell = ({
             </div>
           </div>
 
-          {/* Right: info + actions */}
+          {/* Right: zoom controls + info + actions */}
           <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { const next = Math.max(0.1, previewScale - 0.1); setManualZoom(next); setPreviewScale(next); }} title="Zoom out">
+                <ZoomOut className="h-3.5 w-3.5" />
+              </Button>
+              <span className="text-[10px] text-muted-foreground w-8 text-center tabular-nums">{Math.round(previewScale * 100)}%</span>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { const next = Math.min(3, previewScale + 0.1); setManualZoom(next); setPreviewScale(next); }} title="Zoom in">
+                <ZoomIn className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[10px]" onClick={() => { setManualZoom(1); setPreviewScale(1); }} title="Actual size (100%)">
+                <Maximize className="h-3 w-3 mr-0.5" />1:1
+              </Button>
+              <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[10px]" onClick={() => { setManualZoom(null); setPreviewScale(fitScale); }} title="Fit to view">
+                Fit
+              </Button>
+            </div>
             <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-              {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm · {Math.round(previewScale * 100)}%
+              {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(contentArea.contentWidth)}×{Math.round(contentArea.contentHeight)}mm
             </span>
             {showPrint && visible && (
               <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handlePrint}>
@@ -261,7 +283,7 @@ const PdfPreviewShell = ({
       </div>
 
       {visible && (
-        <div ref={paneRef} className="bg-muted/10 overflow-hidden" style={{ height: maxHeight, minHeight: "260px", padding: "12px" }}>
+        <div ref={paneRef} className="bg-muted/10 overflow-auto" style={{ height: maxHeight, minHeight: "260px", padding: "12px" }}>
           {/* Scaled page stack */}
           <div className="mx-auto" style={{ width: page.width * previewScale, height: totalStackHeight }}>
             <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: page.width }}>
