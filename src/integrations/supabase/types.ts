@@ -1178,6 +1178,9 @@ export type Database = {
           address: string | null
           ai_intent_score: number | null
           avatar_url: string | null
+          business_card_file_name: string | null
+          business_card_image_url: string | null
+          business_card_uploaded_at: string | null
           business_name: string | null
           city: string | null
           country: string
@@ -1216,6 +1219,9 @@ export type Database = {
           address?: string | null
           ai_intent_score?: number | null
           avatar_url?: string | null
+          business_card_file_name?: string | null
+          business_card_image_url?: string | null
+          business_card_uploaded_at?: string | null
           business_name?: string | null
           city?: string | null
           country?: string
@@ -1254,6 +1260,9 @@ export type Database = {
           address?: string | null
           ai_intent_score?: number | null
           avatar_url?: string | null
+          business_card_file_name?: string | null
+          business_card_image_url?: string | null
+          business_card_uploaded_at?: string | null
           business_name?: string | null
           city?: string | null
           country?: string
