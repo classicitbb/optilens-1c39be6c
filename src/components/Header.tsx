@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles, Settings, Palette } from "lucide-react";
+import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles, Settings, Palette, ShoppingCart } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -695,10 +695,10 @@ const Header = () => {
               {user ? (
                 <CartSheet triggerVariant="hero" triggerSize="sm" showLabel className="min-w-[7.5rem] justify-center" />
               ) : (
-                <Button variant="hero" size="sm" asChild>
+                <Button variant="hero" size="sm" className="min-w-[7.5rem] justify-center" asChild>
                   <Link to="/store">
-                    <span className="hidden sm:inline">Order Now</span>
-                    <span className="sm:hidden">Order</span>
+                    <ShoppingCart className="h-5 w-5" />
+                    <span>Shop</span>
                   </Link>
                 </Button>
               )}
