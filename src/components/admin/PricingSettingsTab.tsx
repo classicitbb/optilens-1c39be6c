@@ -377,7 +377,7 @@ const PricingSettingsTab = () => {
               {editingId === item.id && editField === "code" ? (
                 <Input
                   autoFocus
-                  className="h-5 min-w-[3rem] w-auto text-[8px] px-1 py-0"
+                  className="h-6 min-w-[4rem] w-auto text-[10px] px-1 py-0"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={() => commitEdit(item)}

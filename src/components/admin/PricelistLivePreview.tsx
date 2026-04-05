@@ -331,13 +331,11 @@ const PricelistLivePreview = ({ version, previewFormat, showUSD, fxRate, catalog
 
   return (
     <div className="print-preview-container space-y-4 p-6" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: "#1a202c", background: "#ffffff" }}>
-      <div className="flex items-start justify-between pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
-        <div className="flex-1 text-center">
-          <h1 className="font-bold tracking-wide uppercase print-keep-with-next" style={{ fontSize: "20px", letterSpacing: "1.8px", color: "#1a202c" }}>
-            {CATALOG_TITLES[catalogType] ?? "PRICE LIST"}
-          </h1>
-        </div>
-        <div className="text-right flex-shrink-0">
+      <div className="pb-4" style={{ borderBottom: "2px solid #e2e8f0" }}>
+        <h1 className="font-bold tracking-wide uppercase print-keep-with-next text-center" style={{ fontSize: "20px", letterSpacing: "1.8px", color: "#1a202c" }}>
+          {CATALOG_TITLES[catalogType] ?? "PRICE LIST"}
+        </h1>
+        <div className="text-right mt-1">
           <p className="text-xs" style={{ color: "#4a5568" }}>{previewFormat === "matrix" ? "Matrix Format" : "List Format"} · {today}</p>
           <p className="text-xs font-semibold" style={{ color: "#2d3748" }}>{currency}</p>
         </div>
