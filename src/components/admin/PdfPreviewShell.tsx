@@ -101,11 +101,6 @@ const PdfPreviewShell = ({
     return () => observer.disconnect();
   }, [updatePageCount, visible, children]);
 
-  const autoScale = useMemo(() => {
-    // This will be recalculated via ResizeObserver below
-    return 1;
-  }, []);
-
   const [fitScale, setFitScale] = useState(1);
 
   useEffect(() => {
