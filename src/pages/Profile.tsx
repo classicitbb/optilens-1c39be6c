@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { BookUser, BadgeDollarSign, FileSignature, LifeBuoy, LockKeyhole, Package, User, WalletCards } from "lucide-react";
+import { BookUser, BadgeDollarSign, FileSignature, LifeBuoy, LockKeyhole, Package, ShieldCheck, User, WalletCards } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,7 @@ const gatedSections = new Map<string, PortalFeature>([
 ]);
 
 const Profile = () => {
-  const { identity, canAccessFeature } = usePortalIdentity();
+  const { identity, canAccessFeature, isStaff } = usePortalIdentity();
   const { user } = useAuth();
   const { addresses } = useCustomerAddresses();
   const { data: profile } = useQuery({
@@ -100,15 +100,26 @@ const Profile = () => {
         <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="text-lg">Portal access status</CardTitle>
-            <CardDescription>{identity?.portalAccessNote || quoteReason.description}</CardDescription>
+            <CardDescription>
+              {isStaff
+                ? "You have full portal access as a staff member."
+                : identity?.portalAccessNote || quoteReason.description}
+            </CardDescription>
           </div>
-          <Badge variant="outline" className="w-fit gap-1.5">
-            <LockKeyhole className="h-3.5 w-3.5" />
-            {identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}
-          </Badge>
+          {isStaff ? (
+            <Badge variant="outline" className="w-fit gap-1.5 border-primary/40 text-primary">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Admin
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="w-fit gap-1.5">
+              <LockKeyhole className="h-3.5 w-3.5" />
+              {identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}
+            </Badge>
+          )}
         </CardHeader>
       </Card>
-      {missingRequirements.length ? (
+      {!isStaff && missingRequirements.length ? (
         <Card className="border-amber-300/60 bg-amber-50/30">
           <CardHeader>
             <CardTitle className="text-base">Complete your profile</CardTitle>

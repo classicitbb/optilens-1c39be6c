@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
 export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders";
@@ -107,6 +108,7 @@ export const getPortalFeatureBlockedReason = (identity: PortalIdentity | null, f
 
 export const usePortalIdentity = () => {
   const { user } = useAuth();
+  const { canEdit: isStaff } = useUserRole();
 
   const query = useQuery({
     queryKey: ["portal-identity", user?.id],
@@ -139,6 +141,8 @@ export const usePortalIdentity = () => {
   return {
     ...query,
     identity: query.data ?? null,
-    canAccessFeature: (feature: PortalFeature) => canAccessPortalFeature(query.data ?? null, feature),
+    isStaff,
+    canAccessFeature: (feature: PortalFeature) =>
+      isStaff || canAccessPortalFeature(query.data ?? null, feature),
   };
 };

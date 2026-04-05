@@ -8,7 +8,7 @@ interface PortalFeatureGateProps {
 }
 
 const PortalFeatureGate = ({ feature, children }: PortalFeatureGateProps) => {
-  const { canAccessFeature, isLoading } = usePortalIdentity();
+  const { canAccessFeature, isLoading, isStaff } = usePortalIdentity();
 
   if (isLoading) {
     return (
@@ -18,7 +18,7 @@ const PortalFeatureGate = ({ feature, children }: PortalFeatureGateProps) => {
     );
   }
 
-  if (!canAccessFeature(feature)) {
+  if (!isStaff && !canAccessFeature(feature)) {
     return <PortalAccessNotice feature={feature} />;
   }
 
