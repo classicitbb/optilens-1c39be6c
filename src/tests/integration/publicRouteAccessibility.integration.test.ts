@@ -4,10 +4,10 @@ import path from "node:path";
 import { APP_ROUTE_REGISTRY } from "@/config/routeRegistry";
 
 describe("public route accessibility", () => {
-  it("registers /v2 in the public route registry", () => {
+  it("does not register /v2 in the public route registry", () => {
     expect(
-      APP_ROUTE_REGISTRY.find((route) => route.id === "public.home-v2" && route.path === "/v2" && route.status === "active"),
-    ).toBeTruthy();
+      APP_ROUTE_REGISTRY.find((route) => route.path === "/v2"),
+    ).toBeFalsy();
   });
 
   it("registers /optical-retail-websites in the public route registry", () => {
@@ -16,11 +16,11 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
-  it("declares a runtime route for /v2", () => {
+  it("does not declare a runtime route for /v2", () => {
     const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
-    expect(source).toContain('<Route path="v2" element={<FrontPageV2 />} />');
+    expect(source).not.toContain('path="v2"');
   });
 
   it("declares a runtime route for /optical-retail-websites", () => {

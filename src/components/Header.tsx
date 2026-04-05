@@ -180,7 +180,6 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
   {
     title: "About Us",
     links: [
-    { label: "Front Page V2 Draft", description: "Marketing-first homepage concept and lean message flow", to: "/v2" },
     { label: "Our Story", description: "Learn how our company started", to: "/#about" },
     { label: "What Drives Us", description: "Our mission and values", to: "/#about" },
     { label: "Our Vision", description: "Where we are heading", to: "/#about" },
