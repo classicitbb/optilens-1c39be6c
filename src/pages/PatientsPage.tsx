@@ -7,21 +7,25 @@ import { BookOpenText, Glasses, HeartHandshake, Laptop, MapPin, SunMedium, Steth
 const understandingItems = [
   {
     title: "What’s the Difference Between Lenses?",
+    to: "/patients/lens-differences",
     description:
       "Single vision helps one focal range, while progressives support distance, intermediate, and near in one lens. Material and coatings also impact thickness, comfort, and durability.",
   },
   {
     title: "Why Choose Progressive?",
+    to: "/patients/progressive-lenses",
     description:
       "Progressive designs provide seamless transitions between visual zones, reducing the need to switch between multiple glasses for driving, computer work, and reading.",
   },
   {
     title: "Eye Strain & Anti-Fatigue Lenses",
+    to: "/patients/anti-fatigue-lenses",
     description:
       "Anti-fatigue lenses include gentle near support for frequent device users who notice tired eyes, headaches, or refocusing difficulty later in the day.",
   },
   {
     title: "Caring for Your Glasses",
+    to: "/patients/caring-for-glasses",
     description:
       "Rinse with lukewarm water, use approved lens cleaner, and dry with microfiber cloth. Avoid paper towels and high heat to preserve coating performance.",
   },
@@ -30,10 +34,12 @@ const understandingItems = [
 const careItems = [
   {
     title: "Find a Vision Expert Near You",
+    to: "/find-a-retailer",
     description: "Work with a licensed eye care professional to confirm your prescription, lens design, frame fit, and coating recommendations.",
   },
   {
     title: "Ask Your Optician About Classic Visions",
+    to: "/find-a-retailer",
     description:
       "Ask about Classic Visions options for progressive comfort, digital-eye-strain support, and UV-focused coatings matched to your daily routine.",
   },
@@ -42,16 +48,19 @@ const careItems = [
 const tipItems = [
   {
     title: "Computer & Mobile Use",
+    to: "/patients/computer-mobile-use",
     description:
       "Use the 20-20-20 habit, increase blink frequency, and keep screens an arm’s length away. Blue-light filtering and anti-reflective coatings may improve long-session comfort.",
   },
   {
     title: "Sunlight & Protection",
+    to: "/patients/sunlight-protection",
     description:
       "Choose full UV protection outdoors. Polarized and photochromic options can reduce glare and support comfortable contrast in bright conditions.",
   },
   {
     title: "Regular Eye Exams",
+    to: "/patients/regular-eye-exams",
     description:
       "Comprehensive eye exams support early detection and keep your prescription updated as your visual needs change over time.",
   },
@@ -105,7 +114,11 @@ const PatientsPage = () => {
               <div className="mt-4 space-y-4">
                 {understandingItems.map((item) => (
                   <div key={item.title}>
-                    <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      <Link to={item.to} className="hover:text-primary">
+                        {item.title}
+                      </Link>
+                    </h3>
                     <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
                   </div>
                 ))}
@@ -120,7 +133,11 @@ const PatientsPage = () => {
               <div className="mt-4 space-y-4">
                 {careItems.map((item) => (
                   <div key={item.title}>
-                    <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      <Link to={item.to} className="hover:text-primary">
+                        {item.title}
+                      </Link>
+                    </h3>
                     <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
                   </div>
                 ))}
@@ -144,7 +161,11 @@ const PatientsPage = () => {
               <div className="mt-4 space-y-4">
                 {tipItems.map((item) => (
                   <div key={item.title}>
-                    <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      <Link to={item.to} className="hover:text-primary">
+                        {item.title}
+                      </Link>
+                    </h3>
                     <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
                   </div>
                 ))}

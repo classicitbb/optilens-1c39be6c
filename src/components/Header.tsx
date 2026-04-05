@@ -149,10 +149,10 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
   {
     title: "Understanding Your Lenses",
     links: [
-    { label: "What’s the Difference Between Lenses?", description: "Single vision, progressives, and specialty options", to: "/patients#understanding-lenses" },
-    { label: "Why Choose Progressive?", description: "All-distance vision in one pair", to: "/patients#understanding-lenses" },
-    { label: "Eye Strain & Anti-Fatigue Lenses", description: "Support for screen-heavy days", to: "/patients#understanding-lenses" },
-    { label: "Caring for Your Glasses", description: "Simple habits that protect lens coatings", to: "/patients#understanding-lenses" }]
+    { label: "What’s the Difference Between Lenses?", description: "Single vision, progressives, and specialty options", to: "/patients/lens-differences" },
+    { label: "Why Choose Progressive?", description: "All-distance vision in one pair", to: "/patients/progressive-lenses" },
+    { label: "Eye Strain & Anti-Fatigue Lenses", description: "Support for screen-heavy days", to: "/patients/anti-fatigue-lenses" },
+    { label: "Caring for Your Glasses", description: "Simple habits that protect lens coatings", to: "/patients/caring-for-glasses" }]
 
   },
   {
@@ -166,9 +166,9 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
   {
     title: "Vision Tips",
     links: [
-    { label: "Computer & Mobile Use", description: "Reduce digital eye strain with practical habits", to: "/patients#vision-tips" },
-    { label: "Sunlight & Protection", description: "UV and glare guidance for outdoor comfort", to: "/patients#vision-tips" },
-    { label: "Regular Eye Exams", description: "Protect long-term vision health", to: "/patients#vision-tips" },
+    { label: "Computer & Mobile Use", description: "Reduce digital eye strain with practical habits", to: "/patients/computer-mobile-use" },
+    { label: "Sunlight & Protection", description: "UV and glare guidance for outdoor comfort", to: "/patients/sunlight-protection" },
+    { label: "Regular Eye Exams", description: "Protect long-term vision health", to: "/patients/regular-eye-exams" },
     { label: "Night Driving Aids", description: "Reduce glare and improve clarity after dark", to: "/patients/night-driving-aids" }]
 
   }]
@@ -222,6 +222,13 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "blueblock-ar": "BlueBlock AR",
   "uv-shield": "UV Shield",
   "hydrophobic-oleophobic": "Hydrophobic & Oleophobic",
+  "lens-differences": "Lens Differences",
+  "progressive-lenses": "Progressive Lenses",
+  "anti-fatigue-lenses": "Anti-Fatigue Lenses",
+  "caring-for-glasses": "Caring for Glasses",
+  "computer-mobile-use": "Computer & Mobile Use",
+  "sunlight-protection": "Sunlight & Protection",
+  "regular-eye-exams": "Regular Eye Exams",
   "night-driving-aids": "Night Driving Aids",
   "chemistrie-lens-system": "Chemistrie Lens System",
   "dispensing-tips": "Dispensing Tips",

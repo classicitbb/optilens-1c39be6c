@@ -21,6 +21,13 @@ const UVShieldPage = lazy(() => import("@/pages/coatings/UVShieldPage"));
 const HydrophobicOleophobicPage = lazy(() => import("@/pages/coatings/HydrophobicOleophobicPage"));
 const ProfessionalsPage = lazy(() => import("@/pages/ProfessionalsPage"));
 const PatientsPage = lazy(() => import("@/pages/PatientsPage"));
+const LensDifferencesPage = lazy(() => import("@/pages/patients/LensDifferencesPage"));
+const ProgressiveLensesPage = lazy(() => import("@/pages/patients/ProgressiveLensesPage"));
+const AntiFatigueLensesPage = lazy(() => import("@/pages/patients/AntiFatigueLensesPage"));
+const CaringForGlassesPage = lazy(() => import("@/pages/patients/CaringForGlassesPage"));
+const ComputerMobileUsePage = lazy(() => import("@/pages/patients/ComputerMobileUsePage"));
+const SunlightProtectionPage = lazy(() => import("@/pages/patients/SunlightProtectionPage"));
+const RegularEyeExamsPage = lazy(() => import("@/pages/patients/RegularEyeExamsPage"));
 const NightDrivingAidsPage = lazy(() => import("@/pages/patients/NightDrivingAidsPage"));
 const ProfessionalsPortalPage = lazy(() => import("@/pages/ProfessionalsPortalPage"));
 const ProfessionalsChemistriePage = lazy(() => import("@/pages/ProfessionalsChemistriePage"));
@@ -95,6 +102,13 @@ const PublicRoutes = () => (
 
       <Route path="professionals" element={<ProfessionalsPage />} />
       <Route path="patients" element={<PatientsPage />} />
+      <Route path="patients/lens-differences" element={<LensDifferencesPage />} />
+      <Route path="patients/progressive-lenses" element={<ProgressiveLensesPage />} />
+      <Route path="patients/anti-fatigue-lenses" element={<AntiFatigueLensesPage />} />
+      <Route path="patients/caring-for-glasses" element={<CaringForGlassesPage />} />
+      <Route path="patients/computer-mobile-use" element={<ComputerMobileUsePage />} />
+      <Route path="patients/sunlight-protection" element={<SunlightProtectionPage />} />
+      <Route path="patients/regular-eye-exams" element={<RegularEyeExamsPage />} />
       <Route path="find-a-retailer" element={<FindARetailerPage />} />
       <Route path="find-a-retailer/barbados" element={<BarbadosRetailersPage />} />
       <Route path="patients/find-a-retailer" element={<Navigate to="/find-a-retailer" replace />} />

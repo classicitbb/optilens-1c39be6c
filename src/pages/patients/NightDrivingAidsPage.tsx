@@ -118,7 +118,7 @@ const NightDrivingAidsPage = () => {
             </div>
             <div className="flex gap-3">
               <Button variant="outline" asChild>
-                <Link to="/patients#vision-tips">Back to Vision Tips</Link>
+                <Link to="/patients">Back to Patients Hub</Link>
               </Button>
               <Button asChild>
                 <Link to="/professionals/chemistrie-lens-system">
