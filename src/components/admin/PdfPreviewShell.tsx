@@ -283,7 +283,7 @@ const PdfPreviewShell = ({
       </div>
 
       {visible && (
-        <div ref={paneRef} className="bg-muted/10 overflow-hidden" style={{ height: maxHeight, minHeight: "260px", padding: "12px" }}>
+        <div ref={paneRef} className="bg-muted/10 overflow-auto" style={{ height: maxHeight, minHeight: "260px", padding: "12px" }}>
           {/* Scaled page stack */}
           <div className="mx-auto" style={{ width: page.width * previewScale, height: totalStackHeight }}>
             <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: page.width }}>
