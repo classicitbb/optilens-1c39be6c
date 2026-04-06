@@ -71,6 +71,10 @@ vi.mock("@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket", () => ({
   }),
 }));
 
+vi.mock("@/features/assistant/assistantGeneration", () => ({
+  generateAssistantAnswer: vi.fn(async () => null),
+}));
+
 const RetailerPromptHarness = () => {
   const openRetailerPrompt = useRetailerAssistantPrompt();
 

@@ -7,6 +7,8 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = false
   [functions.contact-inquiry]
     verify_jwt = false
+  [functions.companion-assistant]
+    verify_jwt = false
   [functions.lens-assistant]
     verify_jwt = true
   [functions.lead-intelligence]

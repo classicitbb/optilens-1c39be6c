@@ -16,6 +16,12 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers /assistant/window in the public route registry", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.assistant.window" && route.path === "/assistant/window" && route.status === "active"),
+    ).toBeTruthy();
+  });
+
   it("registers /professionals/freight-delivery-policy in the public route registry", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.professionals.freight-delivery-policy" && route.path === "/professionals/freight-delivery-policy" && route.status === "active"),
@@ -46,6 +52,13 @@ describe("public route accessibility", () => {
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />');
+  });
+
+  it("declares a runtime route for /assistant/window", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="assistant/window" element={<CompanionAssistantWindowPage />} />');
   });
 
   it("declares a runtime route for /professionals/freight-delivery-policy", () => {

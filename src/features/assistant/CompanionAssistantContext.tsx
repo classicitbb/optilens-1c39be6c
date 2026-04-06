@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { resolveUserFullName } from "@/lib/profileData";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
+import { generateAssistantAnswer } from "./assistantGeneration";
 import {
   buildAssistantCorpus,
   buildRetailerPrompt,
@@ -43,6 +44,7 @@ export type AssistantMessage =
       role: "assistant";
       kind: "result";
       result: AssistantQueryResult;
+      isEnhancing?: boolean;
       feedback?: "helpful" | "not_helpful";
     }
   | {
@@ -82,6 +84,7 @@ type OpenAssistantOptions = {
 
 interface CompanionAssistantContextValue {
   isOpen: boolean;
+  isDetachedRoute: boolean;
   messages: AssistantMessage[];
   activeProfile: AssistantProfile;
   currentQuery: string;
@@ -94,6 +97,7 @@ interface CompanionAssistantContextValue {
   nudge: { message: string; query?: string } | null;
   dismissNudge: () => void;
   isSubmitting: boolean;
+  openDetachedWindow: () => void;
   formState: AssistantFormState | null;
   openForm: (profile?: AssistantProfile) => void;
   closeForm: () => void;
@@ -104,6 +108,7 @@ interface CompanionAssistantContextValue {
 const CompanionAssistantContext = createContext<CompanionAssistantContextValue | undefined>(undefined);
 
 const createId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+const POPOUT_SNAPSHOT_KEY = "companion-assistant-popout";
 
 const getProfileForRoute = (pathname: string): AssistantProfile => {
   if (pathname.startsWith("/profile")) return "portal_support";
@@ -194,6 +199,7 @@ const createInitialFormState = ({
 export const CompanionAssistantProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const pathname = location.pathname;
+  const isDetachedRoute = pathname === "/assistant/window";
   const { user } = useAuth();
   const { identity } = usePortalIdentity();
   const { data: products = [] } = useStoreProducts();
@@ -215,6 +221,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const lastQueryRef = useRef<string | null>(null);
   const negativeFeedbackRef = useRef(false);
   const nudgeTimerRef = useRef<number | null>(null);
+  const hasRestoredPopoutRef = useRef(false);
 
   const resetConversation = useCallback(() => {
     setMessages([
@@ -235,6 +242,38 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       resetConversation();
     }
   }, [messages.length, resetConversation]);
+
+  useEffect(() => {
+    if (!isDetachedRoute || hasRestoredPopoutRef.current) return;
+    hasRestoredPopoutRef.current = true;
+
+    try {
+      const raw = window.sessionStorage.getItem(POPOUT_SNAPSHOT_KEY);
+      if (!raw) {
+        setIsOpen(true);
+        return;
+      }
+
+      const snapshot = JSON.parse(raw) as {
+        messages?: AssistantMessage[];
+        currentQuery?: string;
+        formState?: AssistantFormState | null;
+      };
+
+      if (Array.isArray(snapshot.messages) && snapshot.messages.length > 0) {
+        setMessages(snapshot.messages);
+      }
+      if (typeof snapshot.currentQuery === "string") {
+        setCurrentQuery(snapshot.currentQuery);
+      }
+      if (snapshot.formState) {
+        setFormState(snapshot.formState);
+      }
+      setIsOpen(true);
+    } catch {
+      setIsOpen(true);
+    }
+  }, [isDetachedRoute]);
 
   useEffect(() => {
     if (isOpen) return;
@@ -268,9 +307,17 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const dismissNudge = useCallback(() => setNudge(null), []);
 
   const closeAssistant = useCallback(() => {
+    if (isDetachedRoute) {
+      if (window.opener && !window.opener.closed) {
+        window.close();
+        return;
+      }
+      window.location.href = "/";
+      return;
+    }
     setIsOpen(false);
     setNudge(null);
-  }, []);
+  }, [isDetachedRoute]);
 
   const openForm = useCallback((profile?: AssistantProfile) => {
     setIsOpen(true);
@@ -383,7 +430,14 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       return;
     }
 
-    setIsSubmitting(true);
+    const conversation = messages
+      .filter((message): message is Extract<AssistantMessage, { kind: "text" | "user" }> => message.kind === "text" || message.kind === "user")
+      .slice(-5)
+      .map((message) => ({
+        role: message.role,
+        text: message.kind === "user" ? message.text : message.text,
+      }));
+
     try {
       const result = runAssistantQuery({
         query: trimmedQuery,
@@ -394,20 +448,45 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
       lastQueryRef.current = trimmedQuery;
       negativeFeedbackRef.current = false;
+      const resultMessageId = createId("assistant");
 
       setMessages((current) => [
         ...current,
         {
-          id: createId("assistant"),
+          id: resultMessageId,
           role: "assistant",
           kind: "result",
           result,
+          isEnhancing: true,
         },
       ]);
+
+      setIsSubmitting(true);
+      const generatedAnswer = await generateAssistantAnswer({
+        query: trimmedQuery,
+        route: pathname,
+        profile,
+        result,
+        conversation: [...conversation, { role: "user", text: trimmedQuery }],
+      });
+
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === resultMessageId && message.kind === "result"
+            ? {
+                ...message,
+                result: generatedAnswer
+                  ? { ...message.result, answer: generatedAnswer }
+                  : message.result,
+                isEnhancing: false,
+              }
+            : message,
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
-  }, [corpus, pathname]);
+  }, [corpus, messages, pathname]);
 
   const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile) => {
     await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile);
@@ -428,6 +507,31 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       }, 0);
     }
   }, [activeProfile, messages.length, resetConversation, submitQueryInternal]);
+
+  const openDetachedWindow = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(POPOUT_SNAPSHOT_KEY, JSON.stringify({
+        messages,
+        currentQuery,
+        formState,
+      }));
+    } catch {
+      // Ignore storage failures for pop-out handoff.
+    }
+
+    const popup = window.open(
+      `${window.location.origin}/assistant/window`,
+      "classic-visions-assistant",
+      "popup=yes,width=460,height=760,resizable=yes,scrollbars=no",
+    );
+
+    if (popup) {
+      popup.focus();
+      return;
+    }
+
+    window.location.href = "/assistant/window";
+  }, [currentQuery, formState, messages]);
 
   const submitQuickAction = useCallback((action: AssistantQuickAction) => {
     if (action.type === "query") {
@@ -543,6 +647,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,
+    isDetachedRoute,
     messages,
     activeProfile,
     currentQuery,
@@ -555,6 +660,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     nudge,
     dismissNudge,
     isSubmitting,
+    openDetachedWindow,
     formState,
     openForm,
     closeForm,
@@ -567,11 +673,13 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     dismissNudge,
     formState,
     isOpen,
+    isDetachedRoute,
     isSubmitting,
     markFeedback,
     messages,
     nudge,
     openAssistant,
+    openDetachedWindow,
     openForm,
     submitForm,
     submitQuickAction,
