@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { retailerMarkets, retailerCountries, retailerSearchIndex, type RetailerMarket } from "@/data/retailers";
 import { cn } from "@/lib/utils";
 import { Building2, ExternalLink, MapPin, Phone, Search, Sparkles } from "lucide-react";
+import { useRetailerAssistantPrompt } from "@/features/assistant/CompanionAssistantContext";
 
 type RetailerDirectoryProps = {
   featuredMarketSlug?: string;
 };
 
 const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirectoryProps) => {
+  const openRetailerAssistant = useRetailerAssistantPrompt();
   const [query, setQuery] = useState("");
   const [activeMarketSlug, setActiveMarketSlug] = useState<string>("all");
 
@@ -146,8 +148,8 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
             <Button variant="outline" onClick={() => {setQuery("");setActiveMarketSlug("all");}}>
               Reset search
             </Button>
-            <Button asChild>
-              <Link to="/#contact">Contact Classic Visions</Link>
+            <Button onClick={() => openRetailerAssistant({ marketSlug: activeMarketSlug !== "all" ? activeMarketSlug : undefined, query })}>
+              Ask for help
             </Button>
           </div>
         </section> :
@@ -167,6 +169,7 @@ const RetailerDirectory = ({ featuredMarketSlug = "barbados" }: RetailerDirector
 };
 
 const MarketSection = ({ market, isFiltered }: {market: RetailerMarket;isFiltered: boolean;}) => {
+  const openRetailerAssistant = useRetailerAssistantPrompt();
   const hasEntries = market.entries.length > 0;
 
   return (
@@ -222,8 +225,13 @@ const MarketSection = ({ market, isFiltered }: {market: RetailerMarket;isFiltere
                       </a>
                     </Button> :
 
-              <Button size="sm" variant="outline" asChild>
-                      <Link to="/#contact">Request help</Link>
+              <Button size="sm" variant="outline" onClick={() => openRetailerAssistant({
+                marketSlug: market.slug,
+                marketName: market.name,
+                retailerName: entry.name,
+                location: entry.location,
+              })}>
+                      Request help
                     </Button>
               }
                 </div>
@@ -240,8 +248,12 @@ const MarketSection = ({ market, isFiltered }: {market: RetailerMarket;isFiltere
           <p className="mt-2 max-w-3xl">
             If you don&apos;t see the retailer you need, contact Classic Visions and we&apos;ll help route you to the closest partner, specialist clinic, or suitable alternative.
           </p>
-          <Button className="mt-4" variant="outline" asChild>
-            <Link to="/#contact">Contact Classic Visions</Link>
+          <Button
+            className="mt-4"
+            variant="outline"
+            onClick={() => openRetailerAssistant({ marketSlug: market.slug, marketName: market.name })}
+          >
+            Ask for help
           </Button>
         </div>
       }
