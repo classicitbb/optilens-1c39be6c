@@ -80,11 +80,12 @@ const portalPages: Record<string, PortalPage> = {
   },
   "customer-service": {
     title: "Customer Service",
-    description: "Professional support channels for order and account assistance.",
+    description: "Professional support for trade accounts — order enquiries, billing, returns, and account management.",
     body: [
-      "Phone: +1 246 433-4928",
-      "Email: support @ classicvisions .net",
-      "Hours: Mon–Fri, 8:00 AM–5:00 PM (AST)",
+      "Phone: +1 246 433-4928 (trade accounts and general enquiries, Mon–Fri 8:00 AM–5:00 PM AST)",
+      "Email: support@classicvisions.net",
+      "Hours: Monday – Friday, 8:00 AM – 5:00 PM (AST)",
+      "We aim to respond to all support tickets within 1 business day (8 business hours).",
     ],
     isCustomerService: true,
   },
@@ -262,6 +263,17 @@ const ProfessionalsPortalPage = () => {
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
+
+          {page.isCustomerService && (
+            <div className="mt-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 space-y-1">
+              <p className="text-sm font-semibold text-amber-400">Urgent / Time-Sensitive Lab Orders</p>
+              <p className="text-sm text-muted-foreground">
+                For active lab orders requiring immediate attention (e.g. rush jobs, same-day dispatch, incorrect Rx), call{" "}
+                <span className="font-medium text-foreground">+1 246 433-4928</span> directly. We target a 4-hour response during business hours for active lab order issues. You may also email{" "}
+                <span className="font-medium text-foreground">support@classicvisions.net</span> with your job/order number in the subject line.
+              </p>
+            </div>
+          )}
 
           {page.isCustomerService && <CustomerServiceTicketForm />}
 

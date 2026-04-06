@@ -11,6 +11,7 @@ const AddressBookSection = lazy(() => import("@/components/account/sections/Addr
 const PaymentMethodsSection = lazy(() => import("@/components/account/sections/PaymentMethodsSection"));
 const QuoteFormSection = lazy(() => import("@/components/account/sections/QuoteFormSection"));
 const HelpdeskTicketsSection = lazy(() => import("@/components/account/sections/HelpdeskTicketsSection"));
+const HelpdeskTicketDetailSection = lazy(() => import("@/components/account/sections/HelpdeskTicketDetailSection"));
 const AssignedPricelistsSection = lazy(() => import("@/components/account/sections/AssignedPricelistsSection"));
 
 const PortalRoutes = () => {
@@ -30,6 +31,7 @@ const PortalRoutes = () => {
         <Route path="payment-methods" element={<PaymentMethodsSection />} />
         <Route path="quotes" element={<PortalFeatureGate feature="quotes"><QuoteFormSection /></PortalFeatureGate>} />
         <Route path="helpdesk" element={<PortalFeatureGate feature="helpdesk"><HelpdeskTicketsSection /></PortalFeatureGate>} />
+        <Route path="helpdesk/:ticketId" element={<PortalFeatureGate feature="helpdesk"><HelpdeskTicketDetailSection /></PortalFeatureGate>} />
         <Route path="pricelists" element={<PortalFeatureGate feature="pricelists"><AssignedPricelistsSection /></PortalFeatureGate>} />
       </Route>
       <Route path="*" element={<Navigate to="/profile" replace />} />

@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useRef, useEffect, DragEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil, ChevronRight, ChevronDown, Plus, Clock3 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
@@ -338,6 +339,8 @@ const HelpdeskOverviewPage = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editTicket, setEditTicket] = useState<OverviewTicket | null>(null);
   const [activeNow, setActiveNow] = useState(() => new Date());
+  const navigate = useNavigate();
+  const handleOpenTicket = useCallback((t: OverviewTicket) => navigate(`/admin/helpdesk/tickets/${t.id}`), [navigate]);
 
   const updateStage = useUpdateHelpdeskTicketStage();
   const createTicket = useCreateHelpdeskTicket();
@@ -572,9 +575,9 @@ const HelpdeskOverviewPage = () => {
           <p className="text-sm text-muted-foreground">Loading tickets…</p>
         </div> :
       viewMode === "kanban" ?
-      <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCreatorName={getCreatorName} onDrop={canEdit ? handleDrop : undefined} onEdit={canEdit ? setEditTicket : undefined} canCreate={canEdit} isCreating={createTicket.isPending} onCreateInStage={handleCreateInStage} teams={teams} priorities={priorities} ticketTypes={ticketTypes} /> :
+      <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCreatorName={getCreatorName} onDrop={canEdit ? handleDrop : undefined} onEdit={handleOpenTicket} canCreate={canEdit} isCreating={createTicket.isPending} onCreateInStage={handleCreateInStage} teams={teams} priorities={priorities} ticketTypes={ticketTypes} /> :
 
-      <ListView columns={stageColumns} getOwnerName={getOwnerName} stages={stages} canEdit={canEdit} onStageChange={handleListStageChange} onEdit={canEdit ? setEditTicket : undefined} />
+      <ListView columns={stageColumns} getOwnerName={getOwnerName} stages={stages} canEdit={canEdit} onStageChange={handleListStageChange} onEdit={handleOpenTicket} />
       }
 
       {/* Edit dialog */}

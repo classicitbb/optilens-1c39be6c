@@ -25,3 +25,8 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = true
   [functions.odoo-sync-webhook]
     verify_jwt = false
+  [functions.helpdesk-email]
+    verify_jwt = false
+  [functions.helpdesk-followup]
+    verify_jwt = false
+    schedule = "*/15 * * * *"

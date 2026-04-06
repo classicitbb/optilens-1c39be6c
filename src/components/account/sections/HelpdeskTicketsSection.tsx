@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { LifeBuoy, Plus } from "lucide-react";
+import { useNavigate } from "react-router";
+import { LifeBuoy, Plus, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 const HelpdeskTicketsSection = () => {
   const { identity } = usePortalIdentity();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
@@ -82,10 +84,17 @@ const HelpdeskTicketsSection = () => {
         <div className="space-y-2">
           {!tickets.length ? <p className="text-sm text-muted-foreground">No tickets yet.</p> : null}
           {tickets.map((ticket) => (
-            <div key={ticket.id} className="rounded-lg border p-3 text-sm">
-              <p className="font-medium">{ticket.ticket_number} · {ticket.title}</p>
-              <p className="text-muted-foreground">{ticket.closed_at ? "Closed" : "Open"} · {new Date(ticket.created_at).toLocaleString()}</p>
-            </div>
+            <button
+              key={ticket.id}
+              className="w-full rounded-lg border p-3 text-sm text-left hover:bg-muted/40 transition-colors flex items-center justify-between gap-2"
+              onClick={() => navigate(`/profile/helpdesk/${ticket.id}`)}
+            >
+              <div>
+                <p className="font-medium">{ticket.ticket_number} · {ticket.title}</p>
+                <p className="text-muted-foreground">{ticket.closed_at ? "Closed" : "Open"} · {new Date(ticket.created_at).toLocaleString()}</p>
+              </div>
+              <ChevronRight size={14} className="shrink-0 text-muted-foreground" />
+            </button>
           ))}
         </div>
       </CardContent>

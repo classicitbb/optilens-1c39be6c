@@ -52,6 +52,7 @@ const HelpdeskSlaPoliciesPage = lazy(() => import("@/pages/admin/helpdesk/Helpde
 const HelpdeskStagesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskStagesPage"));
 const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskConfigPage"));
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
+const HelpdeskTicketDetailPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketDetailPage"));
 const WebsitePortalsPage = lazy(() => import("@/pages/admin/WebsitePortalsPage"));
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
@@ -111,6 +112,7 @@ const AdminRoutes = () => (
       <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/overview" replace />} />
       <Route path="helpdesk/overview" element={<HelpdeskOverviewPage />} />
       <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
+      <Route path="helpdesk/tickets/:id" element={<HelpdeskTicketDetailPage />} />
       <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
       <Route path="helpdesk/sla" element={<HelpdeskSlaPoliciesPage />} />
       <Route path="helpdesk/stages" element={<HelpdeskStagesPage />} />

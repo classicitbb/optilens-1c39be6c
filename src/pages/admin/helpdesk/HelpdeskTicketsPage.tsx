@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useCallback, useEffect, KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 import { Ticket, Plus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +66,7 @@ function consistentDefault(field: keyof CreateSnapshot): string | undefined {
 
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
@@ -422,7 +424,7 @@ const HelpdeskTicketsPage = () => {
                         className="cursor-pointer hover:bg-muted/40"
                         onClick={(e) => {
                           if ((e.target as HTMLElement).closest('[data-no-row-click]')) return;
-                          openEdit(ticket);
+                          navigate(`/admin/helpdesk/tickets/${ticket.id}`);
                         }}
                         style={{ borderLeft: `3px solid ${prioColor}` }}
                       >
