@@ -1713,6 +1713,44 @@ export type Database = {
           },
         ]
       }
+      helpdesk_followup_queue: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          followup_type: string
+          id: string
+          scheduled_for: string
+          sent_at: string | null
+          ticket_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          followup_type: string
+          id?: string
+          scheduled_for: string
+          sent_at?: string | null
+          ticket_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          followup_type?: string
+          id?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_followup_queue_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_priorities: {
         Row: {
           color: string
@@ -1893,6 +1931,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "helpdesk_ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helpdesk_ticket_messages: {
+        Row: {
+          body: string
+          created_at: string
+          direction: string
+          id: string
+          sender_email: string | null
+          sender_name: string | null
+          sender_user_id: string | null
+          sent_at: string
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          direction: string
+          id?: string
+          sender_email?: string | null
+          sender_name?: string | null
+          sender_user_id?: string | null
+          sent_at?: string
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          sender_email?: string | null
+          sender_name?: string | null
+          sender_user_id?: string | null
+          sent_at?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ticket_messages_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "helpdesk_tickets"
@@ -2115,18 +2197,70 @@ export type Database = {
         }
         Relationships: []
       }
+      helpdesk_ticket_watchers: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          id: string
+          is_permanent: boolean
+          staff_email: string | null
+          staff_name: string | null
+          ticket_id: string
+          user_id: string | null
+          watcher_type: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          is_permanent?: boolean
+          staff_email?: string | null
+          staff_name?: string | null
+          ticket_id: string
+          user_id?: string | null
+          watcher_type: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          is_permanent?: boolean
+          staff_email?: string | null
+          staff_name?: string | null
+          ticket_id?: string
+          user_id?: string | null
+          watcher_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ticket_watchers_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_tickets: {
         Row: {
           assigned_at: string | null
           closed_at: string | null
+          contact_token: string
           created_at: string
+          customer_email: string | null
           deadline: string | null
           description: string
+          first_response_at: string | null
           id: string
           opened_at: string | null
           owner_user_id: string | null
           partner_contact_id: string | null
           priority: number
+          sla_paused_at: string | null
+          sla_paused_duration_seconds: number
           source_authentication_required: boolean | null
           source_channel: string
           source_metadata: Json | null
@@ -2144,14 +2278,19 @@ export type Database = {
         Insert: {
           assigned_at?: string | null
           closed_at?: string | null
+          contact_token?: string
           created_at?: string
+          customer_email?: string | null
           deadline?: string | null
           description?: string
+          first_response_at?: string | null
           id?: string
           opened_at?: string | null
           owner_user_id?: string | null
           partner_contact_id?: string | null
           priority?: number
+          sla_paused_at?: string | null
+          sla_paused_duration_seconds?: number
           source_authentication_required?: boolean | null
           source_channel?: string
           source_metadata?: Json | null
@@ -2169,14 +2308,19 @@ export type Database = {
         Update: {
           assigned_at?: string | null
           closed_at?: string | null
+          contact_token?: string
           created_at?: string
+          customer_email?: string | null
           deadline?: string | null
           description?: string
+          first_response_at?: string | null
           id?: string
           opened_at?: string | null
           owner_user_id?: string | null
           partner_contact_id?: string | null
           priority?: number
+          sla_paused_at?: string | null
+          sla_paused_duration_seconds?: number
           source_authentication_required?: boolean | null
           source_channel?: string
           source_metadata?: Json | null
@@ -5773,6 +5917,10 @@ export type Database = {
       cancel_integration_sync_job: {
         Args: { p_sync_job_id: string }
         Returns: undefined
+      }
+      close_helpdesk_ticket_by_token: {
+        Args: { p_token: string }
+        Returns: boolean
       }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
       get_addons_safe: {
