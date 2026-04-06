@@ -332,10 +332,9 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         id: createId("assistant"),
         role: "assistant",
         kind: "text",
-        text: "If the website answer missed the mark, the next best step is human help. You can call, email, or let me turn this into a request form with the context I already have.",
+        text: "If that still was not useful, I can try a tighter digital path next or turn this into a guided request form with the context I already have.",
         quickActions: [
-          { type: "link", label: "Call Classic Visions", href: "tel:+12464334928", external: true },
-          { type: "link", label: "Email Classic Visions", href: "mailto:russell@classicvisions.net", external: true },
+          { type: "query", label: "Refine the answer", query: "Give me a more specific optical answer based on the site." },
           { type: "form", label: "Open request form", profile: pathname.startsWith("/profile") ? "portal_support" : "customer_support" },
         ],
       },
