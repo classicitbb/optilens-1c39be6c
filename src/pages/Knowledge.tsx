@@ -13,6 +13,7 @@ import {
   KNOWLEDGE_CATEGORY_META,
   KNOWLEDGE_CATEGORY_ORDER,
   KNOWLEDGE_FEATURED_IDS,
+  dedupeKnowledgeListings,
   type KnowledgeAudience,
   type KnowledgeCategoryId,
   formatKnowledgeCategoryTitle,
@@ -147,7 +148,10 @@ const Knowledge = () => {
     [articles],
   );
 
-  const allEntries = useMemo<KnowledgeEntry[]>(() => [...linkedEntries, ...cmsEntries], [cmsEntries, linkedEntries]);
+  const allEntries = useMemo<KnowledgeEntry[]>(
+    () => dedupeKnowledgeListings([...linkedEntries, ...cmsEntries]),
+    [cmsEntries, linkedEntries],
+  );
 
   const featuredEntries = useMemo(
     () => allEntries.filter((entry) => KNOWLEDGE_FEATURED_IDS.includes(entry.id)).slice(0, 6),

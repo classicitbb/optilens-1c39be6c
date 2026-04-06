@@ -41,6 +41,11 @@ export interface CuratedKnowledgeArticle {
   featured?: boolean;
 }
 
+export interface KnowledgeListingEntry {
+  categoryId: KnowledgeCategoryId;
+  title: string;
+}
+
 export const KNOWLEDGE_CATEGORY_ORDER: KnowledgeCategoryId[] = [
   "start-here",
   "lens-guides",
@@ -406,6 +411,17 @@ export const normalizeKnowledgeCategory = (value?: string | null): string =>
 export const resolveKnowledgeCategoryId = (category?: string | null): KnowledgeCategoryId => {
   const normalized = normalizeKnowledgeCategory(category);
   return CMS_CATEGORY_TO_KNOWLEDGE_CATEGORY[normalized] ?? "start-here";
+};
+
+export const dedupeKnowledgeListings = <T extends KnowledgeListingEntry>(entries: T[]): T[] => {
+  const seen = new Set<string>();
+
+  return entries.filter((entry) => {
+    const key = `${entry.categoryId}::${entry.title.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 export const formatKnowledgeCategoryTitle = (value: string): string =>
