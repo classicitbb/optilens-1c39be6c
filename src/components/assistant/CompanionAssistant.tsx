@@ -4,10 +4,10 @@ import { Bot, Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkl
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import type { AssistantQuickAction } from "@/features/assistant/CompanionAssistantContext";
 
 const AssistantForm = () => {
   const { formState, updateForm, closeForm, submitForm, isSubmitting } = useCompanionAssistant();
@@ -110,6 +110,68 @@ const AssistantForm = () => {
   );
 };
 
+const MessageQuickActions = ({
+  quickActions,
+  isStarter,
+  onAction,
+}: {
+  quickActions: AssistantQuickAction[];
+  isStarter: boolean;
+  onAction: (action: AssistantQuickAction) => void;
+}) => {
+  if (isStarter) {
+    return (
+      <div className="grid gap-2">
+        {quickActions.map((action) => (
+          <Button
+            key={action.label}
+            size="sm"
+            variant="outline"
+            className="justify-start rounded-2xl border-slate-600/80 bg-slate-950/65 px-4 py-5 text-left text-slate-100 hover:bg-slate-800"
+            onClick={() => onAction(action)}
+          >
+            {action.label}
+          </Button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1 text-sm leading-6">
+      {quickActions.map((action) => (
+        <p key={action.label}>
+          {action.type === "link" ? (
+            action.external ? (
+              <a
+                href={action.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sky-300 underline underline-offset-2 hover:text-sky-200"
+              >
+                {action.label}
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            ) : (
+              <Link to={action.href} className="text-sky-300 underline underline-offset-2 hover:text-sky-200">
+                {action.label}
+              </Link>
+            )
+          ) : (
+            <button
+              type="button"
+              className="p-0 text-left text-sky-300 underline underline-offset-2 hover:text-sky-200"
+              onClick={() => onAction(action)}
+            >
+              {action.label}
+            </button>
+          )}
+        </p>
+      ))}
+    </div>
+  );
+};
+
 const AssistantResultCard = ({
   result,
   isEnhancing,
@@ -189,9 +251,9 @@ const AssistantMessageList = () => {
 
   return (
     <div className="min-h-0 flex-1">
-      <ScrollArea className="h-full px-4 py-4">
-        <div className="space-y-4">
-          {messages.map((message) => (
+      <div className="h-full overflow-y-auto px-4 py-4">
+        <div className="space-y-4 pb-2">
+          {messages.map((message, index) => (
             <div
               key={message.id}
               className={cn("flex gap-3", message.role === "user" ? "justify-end" : "justify-start")}
@@ -213,19 +275,7 @@ const AssistantMessageList = () => {
                   <div className="space-y-3 rounded-[20px] border border-slate-700/80 bg-slate-900/90 px-4 py-3 text-sm text-slate-50 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
                     <p className="leading-6 text-slate-100">{message.text}</p>
                     {message.quickActions?.length ? (
-                      <div className="grid gap-2">
-                        {message.quickActions.map((action) => (
-                          <Button
-                            key={`${message.id}-${action.label}`}
-                            size="sm"
-                            variant="outline"
-                            className="justify-start rounded-2xl border-slate-600/80 bg-slate-950/65 px-4 py-5 text-left text-slate-100 hover:bg-slate-800"
-                            onClick={() => submitQuickAction(action)}
-                          >
-                            {action.label}
-                          </Button>
-                        ))}
-                      </div>
+                      <MessageQuickActions quickActions={message.quickActions} isStarter={index === 0} onAction={submitQuickAction} />
                     ) : null}
                   </div>
                 ) : null}
@@ -244,19 +294,7 @@ const AssistantMessageList = () => {
                       <p className="mt-1 leading-6">{message.text}</p>
                     </div>
                     {message.quickActions?.length ? (
-                      <div className="grid gap-2">
-                        {message.quickActions.map((action) => (
-                          <Button
-                            key={`${message.id}-${action.label}`}
-                            size="sm"
-                            variant="outline"
-                            className="justify-start rounded-2xl border-emerald-300/35 bg-emerald-950/25 px-4 py-5 text-left text-emerald-50 hover:bg-emerald-950/40"
-                            onClick={() => submitQuickAction(action)}
-                          >
-                            {action.label}
-                          </Button>
-                        ))}
-                      </div>
+                      <MessageQuickActions quickActions={message.quickActions} isStarter={false} onAction={submitQuickAction} />
                     ) : null}
                   </div>
                 ) : null}
@@ -265,7 +303,7 @@ const AssistantMessageList = () => {
           ))}
           <div ref={bottomRef} />
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

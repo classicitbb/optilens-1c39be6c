@@ -199,7 +199,7 @@ const scoreEntry = (entry: CorpusEntry, query: string, route: string, profile: A
 
 const preferUsefulLinks = (links: AssistantLinkResult[], intent: AssistantQueryResult["intent"]) => {
   const withoutHome = links.filter((link) => link.path !== HOME_PATH);
-  if (withoutHome.length === 0) return links.slice(0, 1);
+  if (withoutHome.length === 0) return [];
   if (intent === "general") return withoutHome;
   return withoutHome.sort((left, right) => {
     const leftBonus = left.kind === intentToKind(intent) ? 1 : 0;

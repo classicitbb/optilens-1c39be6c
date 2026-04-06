@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router";
 import { Bot, BookOpen, FileText, Link2, Package, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,10 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [dropdownRect, setDropdownRect] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number>(typeof window !== "undefined" ? window.innerHeight : 0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const { data: products = [] } = useStoreProducts();
   const { data: knowledge = [] } = usePublicKnowledge();
 
@@ -62,7 +66,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
 
   const filtered = useMemo<SearchResult[]>(() => {
     if (!query.trim()) return [];
-    return (searchResult?.topLinks ?? []).slice(0, compact ? 6 : 10).map((item) => ({
+    const mapped = (searchResult?.topLinks ?? []).slice(0, compact ? 6 : 10).map((item) => ({
       id: item.id,
       title: item.title,
       description: item.description,
@@ -76,10 +80,36 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
               ? "Retailers"
               : "Pages",
     }));
+    const nonHome = mapped.filter((entry) => entry.path !== "/" && entry.title.trim().toLowerCase() !== "home");
+    if (nonHome.length > 0) return nonHome;
+    const homeQuery = /\b(home|homepage|main|landing)\b/i.test(query);
+    return homeQuery ? mapped : [];
   }, [compact, query, searchResult?.topLinks]);
 
+  useEffect(() => {
+    const updatePosition = () => {
+      if (!panelRef.current) return;
+      const rect = panelRef.current.getBoundingClientRect();
+      setDropdownRect({
+        left: rect.left,
+        top: rect.bottom + 8,
+        width: rect.width,
+      });
+      setViewportHeight(window.innerHeight);
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, []);
+
   return (
-    <div className={`relative z-[120] isolate ${compact ? "w-[280px]" : "w-full"}`}>
+    <div ref={panelRef} className={`relative z-[120] isolate ${compact ? "w-[280px]" : "w-full"}`}>
       <div
         className={`relative rounded-[20px] border bg-background/95 p-2 transition ${
           showPrompt && !focused ? "animate-pulse border-primary/60 shadow-[0_0_0_1px_rgba(56,189,248,0.18)]" : "border-border/80"
@@ -116,8 +146,17 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
         </div>
       )}
 
-      {focused && query && (
-        <div className="absolute left-0 top-full z-[130] mt-2 max-h-[30rem] w-full overflow-y-auto rounded-[22px] border border-border/80 bg-popover/98 p-2 shadow-[0_30px_90px_rgba(2,6,23,0.32)]">
+      {focused && query && dropdownRect && typeof document !== "undefined" && createPortal(
+        <div
+          className="z-[9999] overflow-y-auto rounded-[22px] border border-border/80 bg-popover/98 p-2 shadow-[0_30px_90px_rgba(2,6,23,0.32)]"
+          style={{
+            position: "fixed",
+            left: dropdownRect.left,
+            top: dropdownRect.top,
+            width: dropdownRect.width,
+            maxHeight: Math.max(220, viewportHeight - dropdownRect.top - 16),
+          }}
+        >
           {filtered.length === 0 ? (
             <div className="space-y-3 p-3 text-sm text-muted-foreground">
               <p>No direct results for "{query}".</p>
@@ -174,7 +213,8 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
               </div>
             </>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
