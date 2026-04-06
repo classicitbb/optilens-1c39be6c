@@ -103,8 +103,8 @@ The operations console is split into admin domains with one canonical route per 
 - **Proposals** builds consultative proposal documents
 - **Quotations** handles formal quote creation/editing
 - **Quotation Print Preview** provides print-ready output for signed or shared quotes
-- **Web Orders** route exists but is currently placeholder-backed
-- **RX Orders** route exists but is currently placeholder-backed
+- **Web Orders** processes orders submitted through the public website store
+- **RX Orders** handles prescription lens orders submitted via the RX order form
 
 ## Contacts application
 
@@ -139,7 +139,7 @@ The operations console is split into admin domains with one canonical route per 
 ## Website application
 
 - **Pages / Content** governs managed site content and article publishing
-- **Feature Pages** route exists for feature-page governance (current implementation is placeholder-backed)
+- **Feature Pages** governs feature-page content surfaces
 - **Website Portals** manages website portal content surfaces
 - **Store / Products** manages store-facing catalog experiences
 
@@ -164,7 +164,21 @@ The operations console is split into admin domains with one canonical route per 
 
 ## Ops domain
 
-- \`/ops/*\` routes currently redirect to \`/admin/dashboard\` and do not expose a separate active UI surface yet.`,
+- \`/ops/*\` routes currently redirect to \`/admin/dashboard\` and do not expose a separate active UI surface yet.
+
+## Public site routes
+
+Key active public-facing pages managed through this platform:
+
+- **Lens guides** — \`/lenses/lens-types\`, \`/lenses/single-vision\`, \`/lenses/progressive\`, \`/lenses/anti-fatigue\`, \`/lenses/office-occupational\`, \`/lenses/bifocals\`, \`/lenses/myopia-control\`, \`/lenses/blue-filter\`, \`/lenses/polarized\`, \`/lenses/tints-fashion-colors\`, \`/lenses/materials\`, \`/lenses/thickness-chart\`
+- **Coatings** — \`/coatings/ultraclear-ar\`, \`/coatings/blueblock-ar\`, \`/coatings/scratch-resistant\`, \`/coatings/uv-shield\`, \`/coatings/hydrophobic-oleophobic\`, \`/coatings/mirror\`
+- **Photochromic** — \`/photochromic\`
+- **Patient hub** — \`/patients\` with sub-pages for lens differences, progressive, anti-fatigue, caring for glasses, computer/mobile use, sunlight protection, regular eye exams, and night driving aids
+- **Professional hub** — \`/professionals\` with sub-pages for dispensing tips, lens ordering tips, lab process overview, tracing/cutting guide, customer-supplied frames policy, freight/delivery policy, repairs policy, returns/replacements, and Chemistrie lens system
+- **ZenVue collection** — \`/zenvue\`, \`/zenvue/brilliance\`, \`/zenvue/single-vision\`, \`/zenvue/darkun\`, \`/zenvue/compare\`, \`/zenvue/wholesale\`
+- **Retailer directory** — \`/find-a-retailer\`, \`/find-a-retailer/barbados\`
+- **Knowledge base** — \`/knowledge\`
+- **Legal** — \`/legal/:slug\` (privacy-policy, terms, cookie-policy, disclaimer, accessibility)`,
       },
       {
         id: "daily-rhythm",
