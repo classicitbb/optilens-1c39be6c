@@ -33,7 +33,7 @@ export const retailerMarkets: RetailerMarket[] = [
       { name: "Anka Optical", category: "Optical retailer", location: "Speightstown, Saint Peter, Barbados", phone: "+1 246-422-1775" },
       { name: "Belleville Optical Inc.", category: "Optical retailer", location: "8th Ave, Belleville, Barbados", phone: "+1 246-437-3564" },
       { name: "ClearVision Optical", category: "Optical retailer", location: "14 Sky Mall, Barbados", phone: "+1 246-537-3636" },
-      { name: "Courts Optical Sunset Crest", category: "Optical retailer", location: "Sunset Mall, Sunset Crest, St. James, Barbados", phone: "+1 246-622-1712" },
+      { name: "Courts Optical Welches", category: "Optical retailer", location: "W Plaza, Welches, St. Thomas, Barbados", phone: "+1 246-622-1712" },
       {
         name: "Enhance Vision Optical Inc.",
         category: "Optical retailer",
