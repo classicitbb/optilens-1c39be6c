@@ -48,6 +48,14 @@ type CorpusEntry = {
 export interface AssistantEngineInput {
   products: StoreProduct[];
   knowledge: ContentArticle[];
+  runtimeHeadings?: RuntimeHeadingEntry[];
+}
+
+export interface RuntimeHeadingEntry {
+  id: string;
+  title: string;
+  description?: string;
+  path: string;
 }
 
 const RETAILER_WORDS = ["retailer", "optical", "optician", "clinic", "doctor", "ophthalmology", "barbados", "caribbean", "island"];
@@ -89,7 +97,7 @@ const buildRetailerPath = (marketSlug: string) =>
 const buildRetailerDescription = (entry: RetailerEntry, marketName: string) =>
   [marketName, entry.category, entry.location, entry.notes].filter(Boolean).join(" • ");
 
-export const buildAssistantCorpus = ({ products, knowledge }: AssistantEngineInput): CorpusEntry[] => {
+export const buildAssistantCorpus = ({ products, knowledge, runtimeHeadings = [] }: AssistantEngineInput): CorpusEntry[] => {
   const siteEntries: CorpusEntry[] = SITE_SEARCH_INDEX.map((entry) => ({
     id: entry.id,
     title: entry.title,
@@ -135,7 +143,17 @@ export const buildAssistantCorpus = ({ products, knowledge }: AssistantEngineInp
     external: Boolean(entry.website?.startsWith("http")),
   }));
 
-  return [...siteEntries, ...productEntries, ...knowledgeEntries, ...retailerEntries];
+  const headingEntries: CorpusEntry[] = runtimeHeadings.map((heading) => ({
+    id: heading.id,
+    title: heading.title,
+    description: heading.description || "Relevant heading from this page.",
+    path: heading.path,
+    label: "Heading",
+    text: `${heading.title} ${heading.description ?? ""}`,
+    kind: "site",
+  }));
+
+  return [...siteEntries, ...productEntries, ...knowledgeEntries, ...retailerEntries, ...headingEntries];
 };
 
 const inferIntent = (query: string, route: string, profile: AssistantProfile): AssistantQueryResult["intent"] => {
@@ -329,3 +347,33 @@ export const shouldAskClarifier = ({
   return last === next || last.includes(next) || next.includes(last);
 };
 
+export const collectRuntimeHeadings = (route: string): RuntimeHeadingEntry[] => {
+  if (typeof document === "undefined") return [];
+
+  const nodes = Array.from(document.querySelectorAll<HTMLElement>("h1, h2, h3, [data-search-heading]"));
+  const seen = new Set<string>();
+  const entries: RuntimeHeadingEntry[] = [];
+
+  for (const node of nodes) {
+    const rawTitle = node.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    if (!rawTitle || rawTitle.length < 3) continue;
+
+    const normalized = normalizeText(rawTitle);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+
+    const anchorSource = node.id
+      ? node
+      : node.closest<HTMLElement>("[id]");
+    const path = anchorSource?.id ? `${route}#${anchorSource.id}` : route;
+
+    entries.push({
+      id: `heading-${normalized.slice(0, 48).replace(/\s+/g, "-")}`,
+      title: rawTitle,
+      description: "Heading topic on this page",
+      path,
+    });
+  }
+
+  return entries.slice(0, 40);
+};

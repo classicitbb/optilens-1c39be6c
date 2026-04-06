@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "react-router";
-import { Bot, Check, Expand, ExternalLink, Loader2, MessageCircle, Phone, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Bot, Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -111,18 +111,28 @@ const AssistantForm = () => {
 };
 
 const AssistantResultCard = ({
-  messageId,
   result,
   isEnhancing,
-  feedback,
 }: {
-  messageId: string;
   result: Extract<ReturnType<typeof useCompanionAssistant>["messages"][number], { kind: "result" }>["result"];
   isEnhancing?: boolean;
-  feedback?: "helpful" | "not_helpful";
 }) => {
-  const { markFeedback, openForm } = useCompanionAssistant();
-  const firstLink = result.topLinks[0];
+  const renderLink = (path: string, title: string, external?: boolean, website?: string) => {
+    if (external) {
+      return (
+        <a href={website || path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-300 underline underline-offset-2 hover:text-sky-200">
+          {title}
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      );
+    }
+
+    return (
+      <Link to={path} className="text-sky-300 underline underline-offset-2 hover:text-sky-200">
+        {title}
+      </Link>
+    );
+  };
 
   return (
     <div className="space-y-3 rounded-[22px] border border-slate-700/80 bg-slate-900/95 p-4 shadow-[0_20px_60px_rgba(2,6,23,0.42)]">
@@ -147,91 +157,21 @@ const AssistantResultCard = ({
       {result.topLinks.length > 0 ? (
         <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Website context</p>
-          {result.topLinks.map((link) => (
-            <div key={link.path} className="rounded-[18px] border border-slate-700/70 bg-slate-950/70 p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-50">{link.title}</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-400">{link.description}</p>
-                </div>
-                <Badge variant="outline" className="border-slate-600/80 text-slate-300">{link.label}</Badge>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {link.external ? (
-                  <Button size="sm" className="rounded-full" asChild>
-                    <a href={link.website || link.path} target="_blank" rel="noopener noreferrer">
-                      Visit website
-                      <ExternalLink className="ml-2 h-4 w-4" />
-                    </a>
-                  </Button>
-                ) : (
-                  <Button size="sm" className="rounded-full" asChild>
-                    <Link to={link.path}>Open page</Link>
-                  </Button>
-                )}
-                {link.kind === "retailer" && link.phone ? (
-                  <Button size="sm" variant="outline" className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800" asChild>
-                    <a href={`tel:${link.phone.replace(/[^+\d]/g, "")}`}>
-                      <Phone className="mr-2 h-4 w-4" />
-                      Call retailer
-                    </a>
-                  </Button>
-                ) : null}
-                {link.kind === "retailer" ? (
-                  <Button size="sm" variant="outline" className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800" onClick={() => openForm("retailer_help")}>
-                    Request help
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          ))}
+          <ul className="space-y-3 rounded-[18px] border border-slate-700/70 bg-slate-950/70 p-3 text-sm">
+            {result.topLinks.map((link) => (
+              <li key={link.path} className="space-y-1">
+                <p className="font-semibold text-slate-50">
+                  {renderLink(link.path, link.title, link.external, link.website)}
+                </p>
+                <p className="text-xs leading-5 text-slate-400">{link.description}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 
-      <div className="space-y-2 border-t border-slate-700/80 pt-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Next actions</p>
-        <div className="flex flex-wrap gap-2">
-          {firstLink ? (
-            firstLink.external ? (
-              <Button size="sm" variant="outline" className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800" asChild>
-                <a href={firstLink.website || firstLink.path} target="_blank" rel="noopener noreferrer">
-                  Open source page
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-            ) : (
-              <Button size="sm" variant="outline" className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800" asChild>
-                <Link to={firstLink.path}>Open source page</Link>
-              </Button>
-            )
-          ) : null}
-
-          <Button
-            size="sm"
-            variant={feedback === "helpful" ? "default" : "outline"}
-            className={cn(
-              "rounded-full",
-              feedback === "helpful" ? "" : "border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800",
-            )}
-            onClick={() => markFeedback(messageId, "helpful")}
-          >
-            {feedback === "helpful" ? <Check className="mr-2 h-4 w-4" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
-            This was useful
-          </Button>
-
-          <Button
-            size="sm"
-            variant={feedback === "not_helpful" ? "default" : "outline"}
-            className={cn(
-              "rounded-full",
-              feedback === "not_helpful" ? "" : "border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800",
-            )}
-            onClick={() => markFeedback(messageId, "not_helpful")}
-          >
-            <ThumbsDown className="mr-2 h-4 w-4" />
-            This was not helpful
-          </Button>
-        </div>
+      <div className="border-t border-slate-700/80 pt-3 text-xs leading-5 text-slate-400">
+        Ask a follow-up in plain language for a tighter answer or a different topic.
       </div>
     </div>
   );
@@ -292,10 +232,8 @@ const AssistantMessageList = () => {
 
                 {message.kind === "result" ? (
                   <AssistantResultCard
-                    messageId={message.id}
                     result={message.result}
                     isEnhancing={message.isEnhancing}
-                    feedback={message.feedback}
                   />
                 ) : null}
 
@@ -360,7 +298,7 @@ const CompanionAssistant = () => {
         "flex flex-col overflow-hidden border shadow-[0_35px_120px_rgba(2,6,23,0.68)]",
         isDetachedRoute
           ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px] border-slate-700/80 bg-[#09111d]"
-          : "max-h-[78vh] min-h-[34rem] rounded-[28px] border-slate-700/80 bg-[#09111d]",
+          : "h-full rounded-[28px] border-slate-700/80 bg-[#09111d]",
       )}
     >
       <div className="flex items-start justify-between gap-3 border-b border-slate-700/90 bg-[linear-gradient(135deg,rgba(20,28,43,0.98),rgba(59,29,74,0.92))] px-4 py-4">
@@ -466,7 +404,7 @@ const CompanionAssistant = () => {
         </div>
       ) : null}
 
-      {!isDetachedRoute ? (
+      {!isDetachedRoute && !isOpen ? (
         <Button
           type="button"
           onClick={() => (isOpen ? closeAssistant() : openAssistant())}
@@ -483,7 +421,7 @@ const CompanionAssistant = () => {
             {assistantWindow}
           </div>
         ) : (
-          <div className="fixed inset-x-3 bottom-20 z-50 sm:inset-x-auto sm:right-6 sm:w-[28rem]">
+          <div className="fixed inset-x-3 bottom-20 top-20 z-50 sm:inset-x-auto sm:right-6 sm:top-24 sm:h-[calc(100vh-8.5rem)] sm:w-[28rem]">
             {assistantWindow}
           </div>
         )
