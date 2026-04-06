@@ -3,6 +3,7 @@ import type { AssistantProfile, AssistantQueryResult } from "./companionAssistan
 
 export type AssistantQuickAction =
   | { type: "query"; label: string; query: string; profile?: AssistantProfile }
+  | { type: "web_search"; label: string; query: string }
   | { type: "form"; label: string; profile?: AssistantProfile }
   | { type: "link"; label: string; href: string; external?: boolean };
 
