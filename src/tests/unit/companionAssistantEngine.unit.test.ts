@@ -64,7 +64,9 @@ describe("companion assistant engine", () => {
 
     expect(result.intent).toBe("product");
     expect(result.topLinks.some((link) => link.title.includes("Progressive"))).toBe(true);
-    expect(result.answer).toContain("website matches");
+    expect(result.answer.length).toBeGreaterThanOrEqual(120);
+    expect(result.answer.length).toBeLessThanOrEqual(200);
+    expect(result.answer.toLowerCase()).toContain("progressive");
   });
 
   it("asks for a clarifier after a repeated unsatisfying query", () => {
@@ -81,4 +83,3 @@ describe("companion assistant engine", () => {
     })).toBe(false);
   });
 });
-

@@ -70,8 +70,8 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
   return (
     <div className={`relative ${compact ? "w-[280px]" : "w-full"}`}>
       <div
-        className={`relative rounded-xl border bg-background/95 p-2 transition ${
-          showPrompt && !focused ? "animate-pulse border-primary/60" : "border-border"
+        className={`relative rounded-xl border bg-card/95 p-2 transition ${
+          showPrompt && !focused ? "animate-pulse border-primary/70 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]" : "border-border/80"
         }`}
       >
         <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -90,7 +90,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
       </div>
 
       {showPrompt && !focused && !query && !compact && (
-        <div className="mt-3 flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+        <div className="mt-3 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm shadow-sm">
           <span>Not finding what you need? Can we help?</span>
           <Button
             size="sm"
@@ -105,7 +105,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
       )}
 
       {focused && query && (
-        <div className="absolute left-0 top-full z-40 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border bg-background p-2 shadow-xl">
+        <div className="absolute left-0 top-full z-40 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border border-border/80 bg-card p-2 shadow-2xl">
           {filtered.length === 0 ? (
             <div className="space-y-3 p-3 text-sm text-muted-foreground">
               <p>No direct results for "{query}".</p>
@@ -126,7 +126,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
                   <Link
                     key={result.id}
                     to={result.path}
-                    className="flex items-start gap-3 rounded-lg p-3 transition hover:bg-muted"
+                  className="flex items-start gap-3 rounded-lg border border-transparent p-3 transition hover:border-primary/20 hover:bg-muted/70"
                   >
                     <Icon className="mt-0.5 h-4 w-4 text-primary" />
                     <div>
@@ -137,7 +137,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
                   </Link>
                 );
               })}
-              <div className="border-t px-3 pt-3">
+              <div className="border-t border-border/70 px-3 pt-3">
                 <Button
                   size="sm"
                   variant="outline"
@@ -156,4 +156,3 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
 };
 
 export default PublicSearchPanel;
-

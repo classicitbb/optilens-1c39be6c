@@ -4,7 +4,6 @@ import { SITE_SEARCH_INDEX } from "@/lib/siteSearchIndex";
 import { retailerMarketMap, retailerMarkets, retailerSearchIndex, type RetailerEntry } from "@/data/retailers";
 
 export type AssistantProfile = "general_search" | "retailer_help" | "customer_support" | "portal_support";
-
 export type AssistantLinkKind = "site" | "product" | "knowledge" | "retailer";
 
 export interface AssistantLinkResult {
@@ -54,6 +53,10 @@ export interface AssistantEngineInput {
 const RETAILER_WORDS = ["retailer", "optical", "optician", "clinic", "doctor", "ophthalmology", "barbados", "caribbean", "island"];
 const PRODUCT_WORDS = ["lens", "lenses", "coating", "progressive", "single vision", "anti-fatigue", "photochromic", "polarized", "blue filter"];
 const SUPPORT_WORDS = ["support", "help", "ticket", "contact", "email", "call", "order", "account", "portal", "customer service"];
+const HOME_PATH = "/";
+const MIN_ANSWER_LENGTH = 150;
+const MAX_ANSWER_LENGTH = 200;
+const INDUSTRY_FALLBACK = "I can help with lenses, coatings, eyewear care, retailer search, and optical support across Barbados and the Caribbean. Ask within that context and I will guide you.";
 
 const normalizeText = (value: string) =>
   value
@@ -65,8 +68,20 @@ const normalizeText = (value: string) =>
     .trim();
 
 const tokenize = (value: string) => normalizeText(value).split(" ").filter(Boolean);
-
 const includesAny = (text: string, words: string[]) => words.some((word) => text.includes(normalizeText(word)));
+const sentenceCase = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+
+const limitLength = (value: string) => {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= MAX_ANSWER_LENGTH && normalized.length >= MIN_ANSWER_LENGTH) return normalized;
+  if (normalized.length > MAX_ANSWER_LENGTH) {
+    const shortened = normalized.slice(0, MAX_ANSWER_LENGTH - 1);
+    const pivot = Math.max(shortened.lastIndexOf("."), shortened.lastIndexOf(","), shortened.lastIndexOf(" "));
+    return `${shortened.slice(0, pivot > 120 ? pivot : MAX_ANSWER_LENGTH - 4).trim()}...`;
+  }
+
+  return `${normalized} Ask another optical question and I will keep the answer concise and useful.`;
+};
 
 const buildRetailerPath = (marketSlug: string) =>
   marketSlug === "barbados" ? "/find-a-retailer/barbados" : `/find-a-retailer#${marketSlug}`;
@@ -123,31 +138,6 @@ export const buildAssistantCorpus = ({ products, knowledge }: AssistantEngineInp
   return [...siteEntries, ...productEntries, ...knowledgeEntries, ...retailerEntries];
 };
 
-const scoreEntry = (entry: CorpusEntry, query: string, route: string, profile: AssistantProfile) => {
-  const normalizedQuery = normalizeText(query);
-  const tokens = tokenize(query);
-  const haystack = normalizeText(entry.text);
-  let score = 0;
-
-  if (!normalizedQuery) return 0;
-  if (haystack.includes(normalizedQuery)) score += 20;
-  if (normalizeText(entry.title).includes(normalizedQuery)) score += 12;
-  if (entry.path === route) score += 8;
-
-  for (const token of tokens) {
-    if (normalizeText(entry.title).includes(token)) score += 6;
-    if (normalizeText(entry.description).includes(token)) score += 4;
-    if (haystack.includes(token)) score += 2;
-  }
-
-  if (profile === "retailer_help" && entry.kind === "retailer") score += 10;
-  if (profile === "portal_support" && (entry.path.startsWith("/profile") || entry.kind === "site")) score += 6;
-  if (route.startsWith("/find-a-retailer") && entry.kind === "retailer") score += 8;
-  if (route.startsWith("/profile") && entry.path.startsWith("/profile")) score += 8;
-
-  return score;
-};
-
 const inferIntent = (query: string, route: string, profile: AssistantProfile): AssistantQueryResult["intent"] => {
   const text = normalizeText(query);
   if (profile === "retailer_help" || route.startsWith("/find-a-retailer") || includesAny(text, RETAILER_WORDS)) return "retailer";
@@ -162,57 +152,89 @@ const inferConfidence = (topScore: number): AssistantQueryResult["confidence"] =
   return "low";
 };
 
+const scoreEntry = (entry: CorpusEntry, query: string, route: string, profile: AssistantProfile) => {
+  const normalizedQuery = normalizeText(query);
+  const tokens = tokenize(query);
+  const haystack = normalizeText(entry.text);
+  let score = 0;
+
+  if (!normalizedQuery) return 0;
+  if (haystack.includes(normalizedQuery)) score += 24;
+  if (normalizeText(entry.title).includes(normalizedQuery)) score += 14;
+  if (entry.path === route) score += 8;
+
+  for (const token of tokens) {
+    if (normalizeText(entry.title).includes(token)) score += 7;
+    if (normalizeText(entry.description).includes(token)) score += 4;
+    if (haystack.includes(token)) score += 2;
+  }
+
+  if (profile === "retailer_help" && entry.kind === "retailer") score += 12;
+  if (profile === "portal_support" && entry.path.startsWith("/profile")) score += 10;
+  if (route.startsWith("/find-a-retailer") && entry.kind === "retailer") score += 8;
+  if (entry.kind === "knowledge") score += 4;
+  if (entry.path === HOME_PATH) score -= 12;
+  if (entry.title.toLowerCase() === "home") score -= 10;
+
+  return score;
+};
+
+const preferUsefulLinks = (links: AssistantLinkResult[], intent: AssistantQueryResult["intent"]) => {
+  const withoutHome = links.filter((link) => link.path !== HOME_PATH);
+  if (withoutHome.length === 0) return links.slice(0, 1);
+  if (intent === "general") return withoutHome;
+  return withoutHome.sort((left, right) => {
+    const leftBonus = left.kind === intentToKind(intent) ? 1 : 0;
+    const rightBonus = right.kind === intentToKind(intent) ? 1 : 0;
+    return rightBonus - leftBonus || right.score - left.score;
+  });
+};
+
+const intentToKind = (intent: AssistantQueryResult["intent"]): AssistantLinkKind | null => {
+  if (intent === "retailer") return "retailer";
+  if (intent === "product") return "product";
+  if (intent === "general" || intent === "support") return null;
+  return null;
+};
+
 const getNearbyRetailerMarkets = (query: string) => {
   const normalized = normalizeText(query);
   const exactMarket = retailerMarkets.find((market) => normalized.includes(normalizeText(market.name)));
-  if (exactMarket) {
-    return [exactMarket.name];
-  }
-
+  if (exactMarket) return [exactMarket.name];
   return retailerMarkets.slice(0, 3).map((market) => market.name);
 };
 
-const buildRetailerAnswer = (topLinks: AssistantLinkResult[], query: string) => {
-  if (topLinks.length > 0) {
-    const [first, second] = topLinks;
-    const leading = second
-      ? `I found strong website matches for ${first.title} and ${second.title}.`
-      : `I found a strong website match for ${first.title}.`;
-    return `${leading} Start with the retailer links above, then use Request help if you want Classic Visions to guide you to the best fit or nearby alternative.`;
+const buildAnswerFromLink = (lead: AssistantLinkResult, intent: AssistantQueryResult["intent"]) => {
+  if (intent === "retailer") {
+    return limitLength(`${lead.title} is a relevant ${lead.marketName ?? "Caribbean"} provider match from the website. Use the result for location context, then open the page or request guided retailer help if needed.`);
   }
 
-  const markets = getNearbyRetailerMarkets(query).join(", ");
-  return `I couldn't find a strong retailer listing from the website for that exact request yet. Try a nearby market such as ${markets}, or use the help path so Classic Visions can route you to a suitable partner or clinic.`;
+  if (intent === "product") {
+    return limitLength(`${lead.title} is the strongest on-site match. ${sentenceCase(lead.description)} Open the page for details, then ask a follow-up if you want a quicker comparison or recommendation.`);
+  }
+
+  if (intent === "support") {
+    return limitLength(`${lead.title} is the best support-related match on the site. ${sentenceCase(lead.description)} If it still falls short, I can keep guiding you digitally before we move to direct contact.`);
+  }
+
+  return limitLength(`${lead.title} is the closest fit on the website. ${sentenceCase(lead.description)} Open it for context, or ask a more specific optical question and I will refine the answer.`);
 };
 
-const buildProductAnswer = (topLinks: AssistantLinkResult[]) => {
-  if (topLinks.length === 0) {
-    return "I couldn't find a strong product or article match from the website yet. Try a more specific lens, coating, or use-case so I can narrow the results.";
+const buildNoMatchAnswer = (intent: AssistantQueryResult["intent"], query: string) => {
+  if (intent === "retailer") {
+    const markets = getNearbyRetailerMarkets(query).join(", ");
+    return limitLength(`I do not see an exact website listing for that request yet, but I can still guide you toward retailers or clinics in ${markets} and help narrow the best next digital option.`);
   }
 
-  const titles = topLinks.slice(0, 3).map((link) => link.title).join(", ");
-  return `The strongest website matches for your question are ${titles}. Open those links first, then use the summary here to compare options before you decide what to read next.`;
-};
-
-const buildSupportAnswer = (topLinks: AssistantLinkResult[], route: string) => {
-  if (route.startsWith("/profile")) {
-    return topLinks.length > 0
-      ? "I found the most relevant portal and support pages from your account area. Open those first, and if you still need help I can turn this into a support request with your portal context attached."
-      : "I can help with account-aware support here in the portal. If the existing pages don't solve it, I can turn this into a support request with your account context attached.";
+  if (intent === "product") {
+    return limitLength("I do not see an exact page for that question, but I can still help compare lenses, coatings, care guidance, and likely use cases if you rephrase it in optical terms.");
   }
 
-  return topLinks.length > 0
-    ? "I found the closest support and contact pages on the website. Open the best match above, and if it still doesn't solve it I can guide you to call, email, or a request form."
-    : "I couldn't find a strong support article for that exact question. I can still guide you to call, email, or a request form from here.";
-};
-
-const buildGeneralAnswer = (topLinks: AssistantLinkResult[]) => {
-  if (topLinks.length === 0) {
-    return "I couldn't find a strong website match for that wording yet. Try rephrasing your question, or tell me whether you need retailer help, product guidance, or direct support.";
+  if (intent === "support") {
+    return limitLength("I do not see a direct support page for that exact question yet, but I can still guide you through the closest on-site help paths before escalating to direct contact.");
   }
 
-  const leading = topLinks[0];
-  return `The top website match is ${leading.title}. I also pulled the strongest related links above so you can open the official page first and keep browsing from there.`;
+  return limitLength(INDUSTRY_FALLBACK);
 };
 
 export const runAssistantQuery = ({
@@ -228,16 +250,13 @@ export const runAssistantQuery = ({
 }): AssistantQueryResult => {
   const intent = inferIntent(query, route, profile);
   const filteredCorpus = intent === "retailer"
-    ? corpus.filter((entry) => entry.kind === "retailer" || entry.path.startsWith("/find-a-retailer") || entry.path === "/#contact")
+    ? corpus.filter((entry) => entry.kind === "retailer" || entry.path.startsWith("/find-a-retailer"))
     : intent === "product"
       ? corpus.filter((entry) => entry.kind !== "retailer")
       : corpus;
 
   const ranked = filteredCorpus
-    .map((entry) => ({
-      ...entry,
-      score: scoreEntry(entry, query, route, profile),
-    }))
+    .map((entry) => ({ ...entry, score: scoreEntry(entry, query, route, profile) }))
     .filter((entry) => entry.score > 0)
     .sort((left, right) => right.score - left.score || left.title.localeCompare(right.title));
 
@@ -259,14 +278,9 @@ export const runAssistantQuery = ({
     });
   }
 
-  const topLinks = Array.from(uniqueLinks.values()).slice(0, 4);
+  const topLinks = preferUsefulLinks(Array.from(uniqueLinks.values()), intent).slice(0, 4);
   const confidence = inferConfidence(topLinks[0]?.score ?? 0);
-
-  let answer = "";
-  if (intent === "retailer") answer = buildRetailerAnswer(topLinks, query);
-  if (intent === "product") answer = buildProductAnswer(topLinks);
-  if (intent === "support") answer = buildSupportAnswer(topLinks, route);
-  if (intent === "general") answer = buildGeneralAnswer(topLinks);
+  const answer = topLinks[0] ? buildAnswerFromLink(topLinks[0], intent) : buildNoMatchAnswer(intent, query);
 
   return {
     query,
@@ -275,7 +289,7 @@ export const runAssistantQuery = ({
     topLinks,
     answer,
     confidence,
-    suggestsHumanHelp: intent === "support" || confidence === "low",
+    suggestsHumanHelp: topLinks.length === 0 && confidence === "low",
   };
 };
 
@@ -293,19 +307,10 @@ export const buildRetailerPrompt = ({
   query?: string;
 }) => {
   const marketLabel = marketName ?? (marketSlug ? retailerMarketMap.get(marketSlug)?.name : null) ?? "the Caribbean";
-  if (retailerName) {
-    return `Help me with ${retailerName} in ${marketLabel}. I want the best next step based only on the website.`;
-  }
-
-  if (query) {
-    return `Help me find a retailer in ${marketLabel} for ${query}. Show website results first, then guide me if nothing fits.`;
-  }
-
-  if (location) {
-    return `Help me find a retailer near ${location} in ${marketLabel}. Show website results first and then suggest the right help path.`;
-  }
-
-  return `Help me find a retailer in ${marketLabel}. Show the best website results first, then tell me what to do next if no listing fits.`;
+  if (retailerName) return `Help me with ${retailerName} in ${marketLabel}.`;
+  if (query) return `Help me find a retailer in ${marketLabel} for ${query}.`;
+  if (location) return `Help me find a retailer near ${location} in ${marketLabel}.`;
+  return `Help me find a retailer in ${marketLabel}.`;
 };
 
 export const shouldAskClarifier = ({

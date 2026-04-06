@@ -121,6 +121,6 @@ describe("CompanionAssistant", () => {
       expect(screen.getByText(/help me find a retailer in barbados/i)).toBeInTheDocument();
     });
 
-    expect(await screen.findByText(/top website results/i)).toBeInTheDocument();
+    expect(await screen.findByText(/website context/i)).toBeInTheDocument();
   });
 });

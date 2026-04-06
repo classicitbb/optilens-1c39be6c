@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { ArrowRight, Shield, Zap, Award } from "lucide-react";
 import heroImage from "@/assets/hero-lenses.jpg";
 import heroImageSm from "@/assets/hero-lenses-sm.jpg";
+import PublicSearchPanel from "@/components/PublicSearchPanel";
 
 const Hero = () => {
   return (
@@ -55,6 +56,17 @@ const Hero = () => {
                 <span className="text-xs font-medium text-foreground sm:text-sm">{label}</span>
               </div>
             ))}
+          </div>
+
+          <div id="site-search" className="mt-8 scroll-mt-24 opacity-0 animate-fade-in [animation-delay:500ms]">
+            <div className="max-w-2xl rounded-[28px] border border-border/80 bg-card/95 p-5 shadow-soft backdrop-blur dark:border-primary/20 dark:bg-slate-950/95">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary">Intelligent Site Search</p>
+              <h2 className="mb-2 text-2xl font-bold text-foreground">Find anything instantly</h2>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Ask about products, coatings, care, retailers, and support to get a short answer first, then the best page for context.
+              </p>
+              <PublicSearchPanel />
+            </div>
           </div>
         </div>
 
