@@ -52,6 +52,11 @@ export const ASSISTANT_MODULE_MAP: AssistantModuleCard[] = [
     responsibility: "Tracks answer modes, source tiers, escalation rate, and handoff conversion.",
     ownership: "server-service",
   },
+  {
+    module: "Web Search (AI-Curated)",
+    responsibility: "Accepts a visitor query, generates a curated text response via Lovable AI gateway without external search APIs.",
+    ownership: "server-service",
+  },
 ];
 
 export const SUPPORTED_ROLES: AssistantRole[] = ["public", "customer", "staff", "admin"];
