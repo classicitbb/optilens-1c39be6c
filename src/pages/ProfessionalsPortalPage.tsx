@@ -88,15 +88,6 @@ const portalPages: Record<string, PortalPage> = {
     ],
     isCustomerService: true,
   },
-  "freight-delivery-policy": {
-    title: "Freight & Delivery Policy",
-    description: "Shipping methods, service levels, and delivery expectations.",
-    body: [
-      "Standard and priority freight options are available based on destination and order type.",
-      "Transit times are estimates and may vary due to carrier constraints, customs, or weather.",
-      "Tracking events are provided through the external carrier and LabLink portal.",
-    ],
-  },
   "returns-replacements": {
     title: "Returns / Replacements",
     description: "RMA and remake policy for approved issues and warranty coverage.",

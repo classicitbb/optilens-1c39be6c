@@ -16,6 +16,12 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers /professionals/freight-delivery-policy in the public route registry", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.professionals.freight-delivery-policy" && route.path === "/professionals/freight-delivery-policy" && route.status === "active"),
+    ).toBeTruthy();
+  });
+
   it("does not declare a runtime route for /v2", () => {
     const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
     const source = fs.readFileSync(publicRoutesPath, "utf8");
@@ -28,6 +34,13 @@ describe("public route accessibility", () => {
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />');
+  });
+
+  it("declares a runtime route for /professionals/freight-delivery-policy", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="professionals/freight-delivery-policy" element={<FreightDeliveryPolicyPage />} />');
   });
 
   it("registers canonical patient topic routes in the public route registry", () => {
