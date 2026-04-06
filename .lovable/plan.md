@@ -1,231 +1,62 @@
-## Admin Experience Plan (Updated to Current Codebase)
+## Change Assistant Source Precedence Order
 
-### Plan intent
+The user wants the assistant's context/source precedence to follow this order:
 
-This plan is now aligned with the **current modular admin architecture** (`/admin/<app>/...`) and the work that already exists in the repository.
+1. **Website** — published site content (pages, products, articles) +`internal_policy` — company policy docs (authoritative
+2. **Knowledge base** — internal wiki/knowledge articles
+3. **Internet / Web** — external/controlled sources
+4. **Helpdesk** — ticket offer, phone, or email escalation 
 
----
+### Current State
 
-## Here is proof we are connected.
+The `SOURCE_PRECEDENCE` in `src/features/assistant/knowledgeAssistantArchitecture.ts` currently has 3 tiers:
 
-## 1) Current state snapshot (what is already done)
+1. )`internal_policy` — company policy docs (authoritative
+2. `internal_site` — published site/wiki knowledge
+3. `external_controlled` — external retrieval as fallback
 
-### 1.1 Admin shell and navigation foundation
+The companion assistant edge function system prompt says "Prefer grounded website context first" but doesn't explicitly encode a 4-tier hierarchy that includes helpdesk escalation as a final tier.
 
-- ✅ `ADMIN_APPS` registry is implemented and drives app metadata, default routes, and sidebar items.
-- ✅ App Launcher and Sidebar are dynamic and role-filtered.
-- ✅ Admin route groups are modularized by app domain:
-  - Pricing (`/admin/pricing/*`)
-  - Sales (`/admin/sales/*`)
-  - Contacts (`/admin/contacts/*`)
-  - Leads (`/admin/leads/*`)
-  - CRM (`/admin/crm/*`)
-  - Helpdesk (`/admin/helpdesk/*`)
-  - Website (`/admin/website/*`)
-  - Knowledge (`/admin/knowledge/*`)
-  - Settings (`/admin/settings/*`)
-- ✅ Legacy routes are redirected to the new structure.
+### Plan
 
-### 1.2 Admin Top Bar redesign status
+**1. Update source precedence types and data** (`src/features/assistant/knowledgeAssistantArchitecture.ts`)
 
-- ✅ Top bar exists with the intended structure:
-  - Apps toggle
-  - `OpticAdmin` brand label
-  - Page label
-  - Global search
-  - Bell placeholder
-  - Help toggle
-  - Lovable external link (admin-only)
-  - User display name + avatar dropdown
-- ✅ User display name resolves from `profiles.display_name` with email fallback.
-- ✅ Avatar dropdown includes:
-  - Helpdesk / Wiki
-  - My Profile
-  - Install App
-  - Logout
+- Change `AssistantSourceTier` to: `"website_content" | "knowledge_base" | "external_web" | "helpdesk_escalation"`
+- Rewrite `SOURCE_PRECEDENCE` array to 4 tiers:
+  1. Website content — live site pages, product catalog, retailer data
+  2. Knowledge base — internal wiki articles, policy docs, approved guides
+  3. Internet / Web — controlled external sources, industry references
+  4. Helpdesk — offer ticket creation, phone, or email when above sources cannot resolve
 
-### 1.3 Branding updates
+**2. Update retrieval service types** (`src/features/admin/leads/assistant/types.ts`)
 
-- ✅ `OpticAdmin` branding is present in top bar and wiki content.
+- Update `SourceTier` type to match: `"website_content" | "knowledge_base" | "external_web" | "helpdesk_escalation"`
 
----
+**3. Update retrieval logic** (`src/features/admin/leads/assistant/retrieval/retrievalService.ts`)
 
-## 2) Gaps to close (next actions)
+- Adjust the mock knowledge base entries to use the new tier names (`website_content`, `knowledge_base`, `external_web`)
+- Add a helpdesk escalation fallback when no other sources satisfy
 
-### 2.1 Route label map in `AdminTopBar`
+**4. Update source attribution** (`src/features/admin/leads/assistant/source-attribution/sourceAttribution.ts`)
 
-The route label map should prioritize **new canonical paths** (`/admin/pricing/...`, `/admin/sales/...`, etc.) first, then include legacy fallbacks only if needed.
+- Update the `precedence` array to reflect the new 4-tier order
 
-**Action**
+**5. Update edge function system prompt** (`supabase/functions/companion-assistant/index.ts`)
 
-- Update `ROUTE_LABELS` in `src/components/admin/AdminTopBar.tsx` to match active canonical route paths.
+- Revise the system prompt to explicitly encode the 4-tier priority: website first → knowledge base → web/internet → helpdesk/phone/email escalation
 
-### 2.2 Sidebar/header interaction cleanup
+**6. Update admin UI module map** (`src/features/admin/leads/assistant/ui/assistantModuleMap.ts`)
 
-The previous note about removing the sidebar header is not currently implemented.
+- Update any references to the old tier names so the admin page renders correctly
 
-**Action options (pick one explicitly)**
+### Files Changed
 
-1. Keep sidebar header + collapse button (document as intentional), or
-2. Move collapse behavior to hover/flyout interaction and remove static header row.
 
-### 2.3 Copy consistency for placeholder screens
-
-Current placeholder message is: **"Coming in a future phase."**
-
-**Action**
-
-- Standardize placeholder copy strategy per module (friendly/neutral/enterprise tone), with optional module-specific variants.
-
----
-
-## 3) Placeholder Pages Delivery Backlog (description-ready)
-
-> Purpose: every placeholder route gets a stable slot so full feature descriptions can be added later.
-
-Use this template for each page as details are discovered:
-
-- **Purpose**
-- **Primary users / roles**
-- **Core workflows**
-- **Data entities**
-- **Permissions**
-- **Integrations**
-- **MVP acceptance criteria**
-- **Future phase notes**
-
-### 3.1 Sales app placeholders
-
-1. `/admin/sales/web-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-2. `/admin/sales/rx-orders`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.2 Leads app placeholders
-
-3. `/admin/leads/finder`
-   - Status: Placeholder
-   - Description: _TBD_
-4. `/admin/leads/campaigns`
-   - Status: Placeholder
-   - Description: _TBD_
-5. `/admin/leads/reports`
-   - Status: Placeholder
-   - Description: _TBD_
-6. `/admin/leads/ai`
-   - Status: Placeholder
-   - Description: _TBD_
-7. `/admin/leads/settings`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.3 CRM app placeholders
-
-8. `/admin/crm/pipeline`
-   - Status: Placeholder
-   - Description: _TBD_
-9. `/admin/crm/activities`
-   - Status: Placeholder
-   - Description: _TBD_
-
-### 3.4 Helpdesk app placeholders
-
-10. `/admin/helpdesk/tickets`
-    - Status: Placeholder
-    - Description: _TBD_
-11. `/admin/helpdesk/teams`
-    - Status: Placeholder
-    - Description: _TBD_
-12. `/admin/helpdesk/sla`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.5 Website app placeholders
-
-13. `/admin/website/microsites`
-    - Status: Placeholder
-    - Description: _TBD_
-14. `/admin/website/portals`
-    - Status: Placeholder
-    - Description: _TBD_
-15. `/admin/website/store`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.6 Knowledge app placeholders
-
-16. `/admin/knowledge/help`
-    - Status: Placeholder
-    - Description: _TBD_
-
-### 3.7 Settings app placeholders
-
-17. `/admin/settings/integrations`
-    - Status: Placeholder
-    - Description: _TBD_
-
----
-
-## 4) Suggested micro-copy change (quick win)
-
-### Proposal
-
-For `/admin/crm/pipeline`, change placeholder text from:
-
-- **"Coming in a future phase."**
-
-to:
-
-- **"See you soon."**
-
-### Why
-
-- Warmer and less formal tone for a customer-facing-feeling CRM surface.
-- Good as an experiment for module-specific placeholder messaging.
-
-### Implementation approach
-
-- Preferred: add an optional copy override map in `PlaceholderPage` keyed by route.
-- Fallback: global replacement if we want one message everywhere.
-
----
-
-## 5) UI Rule: Admin Page Headers (still active)
-
-Every admin page with a heading **must** use the shared:
-`<AdminPageHeader icon={Icon} title="Page Title" />`
-from `src/components/admin/AdminPageHeader.tsx`.
-
-- Always pass a relevant Lucide icon and a properly capitalized title.
-- Optional `children` slot renders right-aligned actions.
-- Do not use ad hoc inline `<h1>` patterns on admin pages.
-
----
-
-## 6) Preview Template Rules (binding)
-
-All document preview templates — pricelists, quotations, proposals, and any
-future PdfPreviewShell consumer — must follow these rules.
-
-### 6.1 Narrow margins by default
-- `DEFAULT_PRINT_SETTINGS.marginPreset` is `"narrow"` (8 mm).
-- Users may override per-document, but the starting state is always narrow.
-
-### 6.2 Dark-mode immune
-- Preview content always renders with a fixed white background and dark text.
-- The preview iframe / container must never inherit dark-mode CSS variables.
-- Branded header colors (e.g. `#1e4db7`) are hardcoded, not token-based.
-
-### 6.3 Consistent template structure
-- Every preview uses `PdfPreviewShell` with the shared toolbar (paper size,
-  orientation, scale, print button).
-- Branded header, date, format label, and page numbering layout must not vary
-  between preview types.
-
-### 6.4 Responsive table contents and page breaks
-- `thead` uses `display: table-header-group` so headers repeat on every page.
-- Long table bodies allow row-level breaks (`break-inside: auto`).
-- Section headings use `break-after: avoid` to stay with following content.
-- Standalone grid/card sections use `break-inside: avoid`.
+| File                                                                         | Change                                             |
+| ---------------------------------------------------------------------------- | -------------------------------------------------- |
+| `src/features/assistant/knowledgeAssistantArchitecture.ts`                   | New tier type, 4-tier precedence                   |
+| `src/features/admin/leads/assistant/types.ts`                                | Update `SourceTier`                                |
+| `src/features/admin/leads/assistant/retrieval/retrievalService.ts`           | Update mock data tier names, add helpdesk fallback |
+| `src/features/admin/leads/assistant/source-attribution/sourceAttribution.ts` | Update precedence array                            |
+| `supabase/functions/companion-assistant/index.ts`                            | Update system prompt with 4-tier context           |
+| `src/features/admin/leads/assistant/ui/assistantModuleMap.ts`                | Sync tier labels                                   |
