@@ -11,6 +11,7 @@ import { generateAssistantAnswer } from "./assistantGeneration";
 import {
   buildAssistantCorpus,
   buildRetailerPrompt,
+  collectRuntimeHeadings,
   runAssistantQuery,
   shouldAskClarifier,
   type AssistantProfile,
@@ -137,7 +138,6 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const userEmail = user?.email?.trim() || "";
   const activeProfile = getProfileForRoute(pathname);
   const starterActions = useMemo(() => getStarterActions(pathname), [pathname]);
-  const corpus = useMemo(() => buildAssistantCorpus({ products, knowledge }), [products, knowledge]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
@@ -149,6 +149,15 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const negativeFeedbackRef = useRef(false);
   const nudgeTimerRef = useRef<number | null>(null);
   const hasRestoredPopoutRef = useRef(false);
+  const runtimeHeadings = useMemo(
+    () => collectRuntimeHeadings(pathname),
+    [pathname, currentQuery],
+  );
+
+  const corpus = useMemo(
+    () => buildAssistantCorpus({ products, knowledge, runtimeHeadings }),
+    [knowledge, products, runtimeHeadings],
+  );
 
   const resetConversation = useCallback(() => {
     setMessages([

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router";
 import { Bot, BookOpen, FileText, Link2, Package, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { usePublicKnowledge } from "@/hooks/useContentArticles";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
-import { buildAssistantCorpus, runAssistantQuery } from "@/features/assistant/companionAssistantEngine";
+import { buildAssistantCorpus, collectRuntimeHeadings, runAssistantQuery } from "@/features/assistant/companionAssistantEngine";
 
 type SearchResult = {
   id: string;
@@ -31,7 +32,10 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [dropdownRect, setDropdownRect] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number>(typeof window !== "undefined" ? window.innerHeight : 0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const { data: products = [] } = useStoreProducts();
   const { data: knowledge = [] } = usePublicKnowledge();
 
@@ -40,7 +44,15 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
     return () => window.clearTimeout(timer);
   }, [compact]);
 
-  const corpus = useMemo(() => buildAssistantCorpus({ products, knowledge }), [products, knowledge]);
+  const runtimeHeadings = useMemo(
+    () => collectRuntimeHeadings(location.pathname),
+    [location.pathname, query],
+  );
+
+  const corpus = useMemo(
+    () => buildAssistantCorpus({ products, knowledge, runtimeHeadings }),
+    [knowledge, products, runtimeHeadings],
+  );
 
   const searchResult = useMemo(() => {
     if (!query.trim()) return null;
@@ -54,7 +66,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
 
   const filtered = useMemo<SearchResult[]>(() => {
     if (!query.trim()) return [];
-    return (searchResult?.topLinks ?? []).slice(0, compact ? 6 : 10).map((item) => ({
+    const mapped = (searchResult?.topLinks ?? []).slice(0, compact ? 6 : 10).map((item) => ({
       id: item.id,
       title: item.title,
       description: item.description,
@@ -68,17 +80,43 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
               ? "Retailers"
               : "Pages",
     }));
+    const nonHome = mapped.filter((entry) => entry.path !== "/" && entry.title.trim().toLowerCase() !== "home");
+    if (nonHome.length > 0) return nonHome;
+    const homeQuery = /\b(home|homepage|main|landing)\b/i.test(query);
+    return homeQuery ? mapped : [];
   }, [compact, query, searchResult?.topLinks]);
 
+  useEffect(() => {
+    const updatePosition = () => {
+      if (!panelRef.current) return;
+      const rect = panelRef.current.getBoundingClientRect();
+      setDropdownRect({
+        left: rect.left,
+        top: rect.bottom + 8,
+        width: rect.width,
+      });
+      setViewportHeight(window.innerHeight);
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, []);
+
   return (
-    <div className={`relative ${compact ? "w-[280px]" : "w-full"}`}>
+    <div ref={panelRef} className={`relative z-[120] isolate ${compact ? "w-[280px]" : "w-full"}`}>
       <div
-        className={`relative rounded-[20px] border bg-slate-950/90 p-2 transition ${
-          showPrompt && !focused ? "animate-pulse border-sky-400/65 shadow-[0_0_0_1px_rgba(56,189,248,0.18)]" : "border-slate-700/80"
+        className={`relative rounded-[20px] border bg-background/95 p-2 transition ${
+          showPrompt && !focused ? "animate-pulse border-primary/60 shadow-[0_0_0_1px_rgba(56,189,248,0.18)]" : "border-border/80"
         }`}
       >
-        <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-        <Sparkles className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-300" />
+        <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Sparkles className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
         <Input
           ref={inputRef}
           value={query}
@@ -88,12 +126,12 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
             window.setTimeout(() => setFocused(false), 150);
           }}
           placeholder={compact ? "AI Search: pages, products, FAQs..." : "Ask anything - pages, products, FAQs, forms, and anchors"}
-          className={`border-0 bg-transparent pl-10 pr-10 text-slate-50 placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0 ${compact ? "h-9 text-sm" : "h-12 text-base"}`}
+          className={`border-0 bg-transparent pl-10 pr-10 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 ${compact ? "h-9 text-sm" : "h-12 text-base"}`}
         />
       </div>
 
       {showPrompt && !focused && !query && !compact && (
-        <div className="mt-3 flex items-center justify-between rounded-[18px] border border-sky-400/20 bg-sky-500/10 p-3 text-sm text-slate-100 shadow-[0_16px_40px_rgba(2,6,23,0.22)]">
+        <div className="mt-3 flex items-center justify-between rounded-[18px] border border-primary/25 bg-primary/10 p-3 text-sm text-foreground shadow-[0_16px_40px_rgba(2,6,23,0.16)]">
           <span>Not finding what you need? Can we help?</span>
           <Button
             size="sm"
@@ -108,15 +146,24 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
         </div>
       )}
 
-      {focused && query && (
-        <div className="absolute left-0 top-full z-40 mt-2 max-h-[30rem] w-full overflow-y-auto rounded-[22px] border border-slate-700/80 bg-slate-950/97 p-2 shadow-[0_30px_90px_rgba(2,6,23,0.58)]">
+      {focused && query && dropdownRect && typeof document !== "undefined" && createPortal(
+        <div
+          className="z-[9999] overflow-y-auto rounded-[22px] border border-border/80 bg-popover/98 p-2 shadow-[0_30px_90px_rgba(2,6,23,0.32)]"
+          style={{
+            position: "fixed",
+            left: dropdownRect.left,
+            top: dropdownRect.top,
+            width: dropdownRect.width,
+            maxHeight: Math.max(220, viewportHeight - dropdownRect.top - 16),
+          }}
+        >
           {filtered.length === 0 ? (
-            <div className="space-y-3 p-3 text-sm text-slate-400">
+            <div className="space-y-3 p-3 text-sm text-muted-foreground">
               <p>No direct results for "{query}".</p>
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800"
+                className="rounded-full"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => openAssistant({ query, autoSubmit: true })}
               >
@@ -128,12 +175,12 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
               {!compact && searchResult ? (
                 <button
                   type="button"
-                  className="mb-2 w-full rounded-[18px] border border-sky-400/18 bg-sky-500/10 p-3 text-left transition hover:border-sky-400/30 hover:bg-sky-500/14"
+                  className="mb-2 w-full rounded-[18px] border border-primary/20 bg-primary/10 p-3 text-left transition hover:border-primary/35 hover:bg-primary/15"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => openAssistant({ query, autoSubmit: true })}
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-200">Quick answer</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-50">{searchResult.answer}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Quick answer</p>
+                  <p className="mt-2 text-sm leading-6 text-foreground">{searchResult.answer}</p>
                 </button>
               ) : null}
               {filtered.map((result) => {
@@ -142,22 +189,22 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
                   <Link
                     key={result.id}
                     to={result.path}
-                    className="flex items-start gap-3 rounded-[16px] border border-transparent p-3 transition hover:border-sky-400/20 hover:bg-slate-900"
+                    className="flex items-start gap-3 rounded-[16px] border border-transparent p-3 transition hover:border-primary/25 hover:bg-muted/70"
                   >
-                    <Icon className="mt-0.5 h-4 w-4 text-sky-300" />
+                    <Icon className="mt-0.5 h-4 w-4 text-primary" />
                     <div>
-                      <p className="text-sm font-medium text-slate-50">{result.title}</p>
-                      <p className="text-xs text-slate-400">{result.description}</p>
-                      <p className="text-[11px] text-slate-500">{result.group}</p>
+                      <p className="text-sm font-medium text-foreground">{result.title}</p>
+                      <p className="text-xs text-muted-foreground">{result.description}</p>
+                      <p className="text-[11px] text-muted-foreground">{result.group}</p>
                     </div>
                   </Link>
                 );
               })}
-              <div className="border-t border-slate-800/80 px-3 pt-3">
+              <div className="border-t border-border/70 px-3 pt-3">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800"
+                  className="rounded-full"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => openAssistant({ query, autoSubmit: true })}
                 >
@@ -166,7 +213,8 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
               </div>
             </>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
