@@ -88,14 +88,6 @@ const portalPages: Record<string, PortalPage> = {
     ],
     isCustomerService: true,
   },
-  "returns-replacements": {
-    title: "Returns / Replacements",
-    description: "RMA and remake policy for approved issues and warranty coverage.",
-    body: [
-      "Report breakage, surfacing defects, or Rx discrepancies within policy windows for review.",
-      "Include order number, photos, and issue notes to accelerate replacement authorization.",
-    ],
-  },
 };
 
 const CustomerServiceTicketForm = () => {

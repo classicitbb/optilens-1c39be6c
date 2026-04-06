@@ -31,8 +31,11 @@ const RegularEyeExamsPage = lazy(() => import("@/pages/patients/RegularEyeExamsP
 const NightDrivingAidsPage = lazy(() => import("@/pages/patients/NightDrivingAidsPage"));
 const ProfessionalsPortalPage = lazy(() => import("@/pages/ProfessionalsPortalPage"));
 const ProfessionalsChemistriePage = lazy(() => import("@/pages/ProfessionalsChemistriePage"));
+const CustomerSuppliedFramesPolicyPage = lazy(() => import("@/pages/professionals/CustomerSuppliedFramesPolicyPage"));
 const DispensingTipsPage = lazy(() => import("@/pages/professionals/DispensingTipsPage"));
 const FreightDeliveryPolicyPage = lazy(() => import("@/pages/professionals/FreightDeliveryPolicyPage"));
+const RepairsPolicyPage = lazy(() => import("@/pages/professionals/RepairsPolicyPage"));
+const ReturnsReplacementsPage = lazy(() => import("@/pages/professionals/ReturnsReplacementsPage"));
 const FindARetailerPage = lazy(() => import("@/pages/find-a-retailer/FindARetailerPage"));
 const BarbadosRetailersPage = lazy(() => import("@/pages/find-a-retailer/BarbadosRetailersPage"));
 const TracingCuttingGuidePage = lazy(() => import("@/pages/professionals/TracingCuttingGuidePage"));
@@ -116,8 +119,11 @@ const PublicRoutes = () => (
       <Route path="patients/night-driving-aids" element={<NightDrivingAidsPage />} />
       <Route path="dispensing-tips" element={<DispensingTipsPage />} />
       <Route path="professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
+      <Route path="professionals/customer-supplied-frames-policy" element={<CustomerSuppliedFramesPolicyPage />} />
       <Route path="professionals/dispensing-tips" element={<Navigate to="/dispensing-tips" replace />} />
       <Route path="professionals/freight-delivery-policy" element={<FreightDeliveryPolicyPage />} />
+      <Route path="professionals/repairs-policy" element={<RepairsPolicyPage />} />
+      <Route path="professionals/returns-replacements" element={<ReturnsReplacementsPage />} />
       <Route path="professionals/tracing-cutting-guide" element={<TracingCuttingGuidePage />} />
       <Route path="professionals/lab-process-overview" element={<LabProcessOverviewPage />} />
       <Route path="professionals/lens-ordering-tips" element={<LensOrderingTipsPage />} />

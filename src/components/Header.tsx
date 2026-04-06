@@ -138,8 +138,10 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Knowledge Hub", description: "Browse guides, FAQs, and support articles", to: "/knowledge", isCta: true },
     { label: "Customer Service", description: "Contact channels and service hours", to: "/professionals/customer-service" },
-    { label: "Freight & Delivery Policy", description: "Shipping methods and SLAs", to: "/professionals/freight-delivery-policy" },
-    { label: "Returns / Replacements", description: "RMA and remake policy", to: "/professionals/returns-replacements" }]
+    { label: "Freight & Delivery Policy", description: "Transit times, customs, tracking, and delivery support", to: "/professionals/freight-delivery-policy" },
+    { label: "Returns / Replacements", description: "Eligibility, reporting windows, and remake requests", to: "/professionals/returns-replacements" },
+    { label: "Repairs Policy", description: "Repair assessment, risk, and liability terms", to: "/professionals/repairs-policy" },
+    { label: "Customer-Supplied Frames", description: "At-risk glazing terms for customer-owned frames", to: "/professionals/customer-supplied-frames-policy" }]
 
   }]
 

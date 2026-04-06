@@ -22,6 +22,18 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers the professional support policy routes in the public route registry", () => {
+    const routeIds = [
+      "public.professionals.returns-replacements",
+      "public.professionals.repairs-policy",
+      "public.professionals.customer-supplied-frames-policy",
+    ];
+
+    for (const routeId of routeIds) {
+      expect(APP_ROUTE_REGISTRY.find((route) => route.id === routeId && route.status === "active")).toBeTruthy();
+    }
+  });
+
   it("does not declare a runtime route for /v2", () => {
     const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
     const source = fs.readFileSync(publicRoutesPath, "utf8");
@@ -41,6 +53,15 @@ describe("public route accessibility", () => {
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="professionals/freight-delivery-policy" element={<FreightDeliveryPolicyPage />} />');
+  });
+
+  it("declares runtime routes for the professional support policy pages", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="professionals/returns-replacements" element={<ReturnsReplacementsPage />} />');
+    expect(source).toContain('<Route path="professionals/repairs-policy" element={<RepairsPolicyPage />} />');
+    expect(source).toContain('<Route path="professionals/customer-supplied-frames-policy" element={<CustomerSuppliedFramesPolicyPage />} />');
   });
 
   it("registers canonical patient topic routes in the public route registry", () => {

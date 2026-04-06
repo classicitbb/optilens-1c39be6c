@@ -52,6 +52,8 @@ const sections = [
       { label: "Customer Service", to: "/professionals/customer-service" },
       { label: "Freight & Delivery Policy", to: "/professionals/freight-delivery-policy" },
       { label: "Returns / Replacements", to: "/professionals/returns-replacements" },
+      { label: "Repairs Policy", to: "/professionals/repairs-policy" },
+      { label: "Customer-Supplied Frames Policy", to: "/professionals/customer-supplied-frames-policy" },
     ],
   },
 ];
