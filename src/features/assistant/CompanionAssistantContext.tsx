@@ -16,6 +16,7 @@ import {
   type AssistantProfile,
 } from "./companionAssistantEngine";
 import {
+  type AssistantFormKind,
   CompanionAssistantContext,
   type AssistantFormState,
   type AssistantMessage,
@@ -606,6 +607,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     nudge,
     openAssistant,
     openDetachedWindow,
+    closeForm,
     openForm,
     submitForm,
     submitQuickAction,
