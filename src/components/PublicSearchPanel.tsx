@@ -1,18 +1,19 @@
-import { useMemo, useRef, useState, useEffect } from "react";
-import { Link } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation } from "react-router";
+import { Bot, BookOpen, FileText, Link2, Package, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SITE_SEARCH_INDEX } from "@/lib/siteSearchIndex";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { usePublicKnowledge } from "@/hooks/useContentArticles";
-import { Bot, Search, FileText, Package, BookOpen, Link2, Sparkles } from "lucide-react";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import { buildAssistantCorpus, runAssistantQuery } from "@/features/assistant/companionAssistantEngine";
 
 type SearchResult = {
   id: string;
   title: string;
   description: string;
   path: string;
-  group: "Pages" | "Forms" | "Anchors" | "Products" | "Knowledge Base";
+  group: "Pages" | "Forms" | "Anchors" | "Products" | "Knowledge Base" | "Retailers";
 };
 
 const GROUP_ICON: Record<SearchResult["group"], React.ElementType> = {
@@ -21,9 +22,12 @@ const GROUP_ICON: Record<SearchResult["group"], React.ElementType> = {
   Anchors: Link2,
   Products: Package,
   "Knowledge Base": BookOpen,
+  Retailers: Bot,
 };
 
 export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) => {
+  const location = useLocation();
+  const { openAssistant } = useCompanionAssistant();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -36,49 +40,32 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
     return () => window.clearTimeout(timer);
   }, [compact]);
 
-  const dynamicResults = useMemo<SearchResult[]>(() => {
-    const productResults: SearchResult[] = products.map((product) => ({
-      id: `product-${product.id}`,
-      title: product.name,
-      description: `${product.category} • ${product.description}`,
-      path: "/store",
-      group: "Products",
-    }));
+  const corpus = useMemo(() => buildAssistantCorpus({ products, knowledge }), [products, knowledge]);
 
-    const knowledgeResults: SearchResult[] = knowledge.map((article) => ({
-      id: `kb-${article.id}`,
-      title: article.title,
-      description: article.description || article.content.slice(0, 120),
-      path: `/knowledge#${article.category?.toLowerCase().replace(/\s+/g, "-") || "general"}`,
-      group: "Knowledge Base",
-    }));
+  const filtered = useMemo<SearchResult[]>(() => {
+    if (!query.trim()) return [];
+    const result = runAssistantQuery({
+      query,
+      route: location.pathname,
+      profile: location.pathname.startsWith("/find-a-retailer") ? "retailer_help" : "general_search",
+      corpus,
+    });
 
-    return [...productResults, ...knowledgeResults];
-  }, [products, knowledge]);
-
-  const allResults = useMemo<SearchResult[]>(() => {
-    const indexed: SearchResult[] = SITE_SEARCH_INDEX.map((item) => ({
+    return result.topLinks.slice(0, compact ? 6 : 10).map((item) => ({
       id: item.id,
       title: item.title,
-      description: `${item.description} ${(item.keywords || []).join(" ")}`.trim(),
+      description: item.description,
       path: item.path,
-      group: item.group,
+      group:
+        item.kind === "product"
+          ? "Products"
+          : item.kind === "knowledge"
+            ? "Knowledge Base"
+            : item.kind === "retailer"
+              ? "Retailers"
+              : "Pages",
     }));
-
-    return [...indexed, ...dynamicResults];
-  }, [dynamicResults]);
-
-  const filtered = useMemo(() => {
-    if (!query.trim()) return [];
-    const needle = query.toLowerCase();
-
-    return allResults
-      .filter((item) => {
-        const haystack = [item.title, item.description].join(" ").toLowerCase();
-        return haystack.includes(needle);
-      })
-      .slice(0, compact ? 6 : 10);
-  }, [allResults, compact, query]);
+  }, [compact, corpus, location.pathname, query]);
 
   return (
     <div className={`relative ${compact ? "w-[280px]" : "w-full"}`}>
@@ -97,7 +84,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
           onBlur={() => {
             window.setTimeout(() => setFocused(false), 150);
           }}
-          placeholder={compact ? "AI Search: pages, products, FAQs..." : "Ask anything — pages, products, FAQs, forms, and anchors"}
+          placeholder={compact ? "AI Search: pages, products, FAQs..." : "Ask anything - pages, products, FAQs, forms, and anchors"}
           className={`border-0 bg-transparent pl-10 pr-10 ${compact ? "h-9 text-sm" : "h-12 text-base"}`}
         />
       </div>
@@ -120,25 +107,47 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
       {focused && query && (
         <div className="absolute left-0 top-full z-40 mt-2 max-h-96 w-full overflow-y-auto rounded-xl border bg-background p-2 shadow-xl">
           {filtered.length === 0 ? (
-            <div className="p-3 text-sm text-muted-foreground">No results for “{query}”.</div>
+            <div className="space-y-3 p-3 text-sm text-muted-foreground">
+              <p>No direct results for "{query}".</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => openAssistant({ query, autoSubmit: true })}
+              >
+                Ask the companion assistant
+              </Button>
+            </div>
           ) : (
-            filtered.map((result) => {
-              const Icon = GROUP_ICON[result.group];
-              return (
-                <Link
-                  key={result.id}
-                  to={result.path}
-                  className="flex items-start gap-3 rounded-lg p-3 transition hover:bg-muted"
+            <>
+              {filtered.map((result) => {
+                const Icon = GROUP_ICON[result.group];
+                return (
+                  <Link
+                    key={result.id}
+                    to={result.path}
+                    className="flex items-start gap-3 rounded-lg p-3 transition hover:bg-muted"
+                  >
+                    <Icon className="mt-0.5 h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">{result.title}</p>
+                      <p className="text-xs text-muted-foreground">{result.description}</p>
+                      <p className="text-[11px] text-muted-foreground">{result.group}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+              <div className="border-t px-3 pt-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => openAssistant({ query, autoSubmit: true })}
                 >
-                  <Icon className="mt-0.5 h-4 w-4 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">{result.title}</p>
-                    <p className="text-xs text-muted-foreground">{result.description}</p>
-                    <p className="text-[11px] text-muted-foreground">{result.group}</p>
-                  </div>
-                </Link>
-              );
-            })
+                  Ask the companion assistant
+                </Button>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -147,3 +156,4 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
 };
 
 export default PublicSearchPanel;
+

@@ -14,6 +14,8 @@ import Store from "@/pages/Store";
 import StoreProductPage from "@/pages/StoreProductPage";
 import Unsubscribe from "@/pages/Unsubscribe";
 import CheckoutPage from "@/pages/CheckoutPage";
+import CompanionAssistant from "@/components/assistant/CompanionAssistant";
+import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
 
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
@@ -40,7 +42,10 @@ const queryClient = new QueryClient({
 
 const CustomerShell = () => (
   <CartProvider>
-    <Outlet />
+    <CompanionAssistantProvider>
+      <Outlet />
+      <CompanionAssistant />
+    </CompanionAssistantProvider>
   </CartProvider>
 );
 
