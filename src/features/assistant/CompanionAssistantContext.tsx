@@ -49,12 +49,14 @@ const getStarterActions = (pathname: string): AssistantQuickAction[] =>
     ? [
         { type: "query", label: "Find a retailer", query: "Help me find a retailer in the Caribbean.", profile: "retailer_help" },
         { type: "query", label: "Compare lenses", query: "Help me compare lens options for different routines." },
+        { type: "web_search", label: "Search the web", query: "Latest trends in progressive lens technology" },
         { type: "form", label: "Get support", profile: "portal_support" },
         { type: "link", label: "Track an order", href: "/profile/orders" },
       ]
     : [
         { type: "query", label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" },
         { type: "query", label: "Compare lenses", query: "Help me compare Classic Visions lens options." },
+        { type: "web_search", label: "Search the web", query: "Best lens coatings for digital screen use" },
         { type: "form", label: "Get support", profile: "customer_support" },
         { type: "link", label: "Contact us", href: "/#contact" },
       ];
@@ -469,9 +471,60 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     window.location.href = "/assistant/window";
   }, [currentQuery, formState, messages]);
 
+  const submitWebSearch = useCallback(async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    setIsOpen(true);
+    setNudge(null);
+    setCurrentQuery("");
+
+    setMessages((current) => [
+      ...current,
+      { id: createId("user"), role: "user", kind: "user", text: `🔍 ${trimmed}` },
+    ]);
+
+    setIsSubmitting(true);
+    try {
+      const conversation = messages
+        .filter((m): m is Extract<AssistantMessage, { kind: "text" | "user" }> => m.kind === "text" || m.kind === "user")
+        .slice(-4)
+        .map((m) => ({ role: m.role, text: m.kind === "user" ? m.text : m.text }));
+
+      const { data, error } = await supabase.functions.invoke("companion-web-search", {
+        body: { query: trimmed, route: pathname, conversation },
+      });
+
+      const answer = !error && typeof data?.answer === "string" && data.answer.trim()
+        ? data.answer.trim()
+        : "I could not complete the web search right now. Please try again or contact support.";
+
+      setMessages((current) => [
+        ...current,
+        {
+          id: createId("assistant"),
+          role: "assistant",
+          kind: "text",
+          text: answer,
+          quickActions: [
+            { type: "web_search", label: "Search again", query: trimmed },
+            { type: "form", label: "Get support", profile: pathname.startsWith("/profile") ? "portal_support" : "customer_support" },
+          ],
+        },
+      ]);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [messages, pathname]);
+
   const submitQuickAction = useCallback((action: AssistantQuickAction) => {
     if (action.type === "query") {
       void submitQuery(action.query, action.profile ?? activeProfile);
+      return;
+    }
+
+    if (action.type === "web_search") {
+      void submitWebSearch(action.query);
       return;
     }
 
@@ -489,7 +542,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         window.location.href = action.href;
       }
     }
-  }, [activeProfile, openForm, submitQuery]);
+  }, [activeProfile, openForm, submitQuery, submitWebSearch]);
 
   const submitForm = useCallback(async () => {
     if (!formState) return;
