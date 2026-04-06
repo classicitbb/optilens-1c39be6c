@@ -597,9 +597,9 @@ export default function ProfessionalsChemistriePage() {
                 <Phone className="h-4 w-4" />
                 +1 246 433-4928
               </a>
-              <a href="mailto:support@classicvisions.com" className="flex items-center gap-2 hover:text-primary-foreground transition-colors">
+              <a href="mailto:support@classicvisions.net" className="flex items-center gap-2 hover:text-primary-foreground transition-colors">
                 <Mail className="h-4 w-4" />
-                support@classicvisions.com
+                support @ classicvisions .net
               </a>
             </div>
           </div>
