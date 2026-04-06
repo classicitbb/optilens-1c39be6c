@@ -4,6 +4,30 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-04-06 — Companion Assistant (Public AI Floating Assistant)
+
+### Plan
+- Add a floating AI companion assistant accessible from all public pages.
+- Back the assistant with a dedicated Supabase Edge Function (`companion-assistant`) using Claude as the model.
+- Expose a full-screen assistant window page and integrate context sharing across public routes.
+
+### Release Notes
+- A floating companion assistant is now available on all public pages, providing AI-powered help for visitors.
+- The assistant is model-backed via the new `companion-assistant` Edge Function.
+- A dedicated full-screen assistant window is accessible at `/assistant`.
+- Public search panel updated with improved assistant integration.
+
+### Technical Changelog
+- Added `src/components/assistant/CompanionAssistant.tsx` — floating assistant UI component.
+- Added `src/features/assistant/CompanionAssistantContext.tsx` and `CompanionAssistantContext.shared.ts` — context and shared state.
+- Added `src/features/assistant/companionAssistantEngine.ts` — assistant orchestration and engine logic.
+- Added `src/features/assistant/assistantGeneration.ts` — model generation helpers.
+- Added `src/pages/assistant/CompanionAssistantWindowPage.tsx` — full-screen assistant page.
+- Added `supabase/functions/companion-assistant/index.ts` — Claude-backed Edge Function.
+- Updated `src/routes/public/PublicRoutes.tsx` to register `/assistant` route.
+- Updated `src/config/routeRegistry.ts` to include assistant window route.
+- Added unit tests: `CompanionAssistant.test.tsx`, `companionAssistantEngine.unit.test.ts`.
+
 ## 2026-03-31 — PR Doc Symmetry Guardrail
 
 ### Plan

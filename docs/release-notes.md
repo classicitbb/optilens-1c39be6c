@@ -2,6 +2,14 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-04-06 — Companion Assistant (Public AI Floating Assistant)
+
+### Release Notes
+- A floating companion assistant is now available on all public pages, providing AI-powered help for visitors.
+- The assistant is model-backed via the new `companion-assistant` Edge Function.
+- A dedicated full-screen assistant window is accessible at `/assistant`.
+- Public search panel updated with improved assistant integration.
+
 ## 2026-03-31 — PR Doc Symmetry Guardrail
 
 ### Release Notes
