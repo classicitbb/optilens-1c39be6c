@@ -169,24 +169,7 @@ const BarbadosRetailersPage = () => {
             </div>
           </section>
 
-          <section className="mt-10 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-            <Card className="rounded-3xl border-border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-2xl">Why this Barbados page is stronger for SEO</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm text-muted-foreground sm:text-base">
-                <p>
-                  Instead of burying Barbados inside a generic global directory, this page gives search engines and AI assistants a Barbados-specific destination with clear topic relevance, internal linking, and enough local context to answer patient questions reliably.
-                </p>
-                <p>
-                  That makes it more useful for searches like <span className="font-medium text-foreground">optical in Barbados</span>, <span className="font-medium text-foreground">eye clinic Barbados</span>, or <span className="font-medium text-foreground">where to buy progressive lenses in Barbados</span>.
-                </p>
-                <p>
-                  It also provides a stronger conversion path by pairing search visibility with direct patient actions: explore listings, call a retailer, or request routing help.
-                </p>
-              </CardContent>
-            </Card>
-
+          <section className="mt-10">
             <Card className="rounded-3xl border-border shadow-sm">
               <CardHeader>
                 <CardTitle className="text-2xl">Barbados FAQ</CardTitle>
