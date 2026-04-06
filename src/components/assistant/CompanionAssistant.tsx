@@ -250,8 +250,8 @@ const AssistantMessageList = () => {
   }, [messages]);
 
   return (
-    <div className="min-h-0 flex-1">
-      <div className="h-full overflow-y-auto px-4 py-4">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="space-y-4 pb-2">
           {messages.map((message, index) => (
             <div
@@ -380,7 +380,7 @@ const CompanionAssistant = () => {
         Search, products, retailers, support
       </div>
 
-      <div className="min-h-0 flex-1 bg-[radial-gradient(circle_at_top,rgba(30,41,59,0.35),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))]">
+      <div className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top,rgba(30,41,59,0.35),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))]">
         <AssistantMessageList />
       </div>
 

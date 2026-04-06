@@ -66,19 +66,20 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
 
   const filtered = useMemo<SearchResult[]>(() => {
     if (!query.trim()) return [];
-    const mapped = (searchResult?.topLinks ?? []).slice(0, compact ? 6 : 10).map((item) => ({
+    const mapped: SearchResult[] = (searchResult?.topLinks ?? []).slice(0, compact ? 6 : 10).map((item) => ({
       id: item.id,
       title: item.title,
       description: item.description,
       path: item.path,
-      group:
+      group: (
         item.kind === "product"
           ? "Products"
           : item.kind === "knowledge"
             ? "Knowledge Base"
             : item.kind === "retailer"
               ? "Retailers"
-              : "Pages",
+              : "Pages"
+      ) as SearchResult["group"],
     }));
     const nonHome = mapped.filter((entry) => entry.path !== "/" && entry.title.trim().toLowerCase() !== "home");
     if (nonHome.length > 0) return nonHome;
