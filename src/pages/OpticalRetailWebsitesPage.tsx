@@ -45,6 +45,27 @@ const featureCatalog = [
 
 const baseWebsitePrice = 1200;
 
+const promisePoints = [
+  "Showcase frames, lens categories, services, and promotions without looking like a generic template.",
+  "Turn more website traffic into appointments, quote requests, and walk-in conversations your staff can close.",
+  "Start with a live demo, then submit a scoped intake with an instant budget estimate.",
+];
+
+const workflowSteps = [
+  {
+    title: "Review the live demo",
+    description: "Preview the retail website on desktop and mobile so you can evaluate layout, merchandising, and conversion flow before committing.",
+  },
+  {
+    title: "Scope your intake",
+    description: "Tell us about your store, launch timeline, and must-have features so the build reflects how your optical business actually sells.",
+  },
+  {
+    title: "Get an instant estimate",
+    description: "As you choose features, the page updates the estimate immediately so you can plan budget before final scoping.",
+  },
+];
+
 const quoteSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   businessName: z
@@ -181,23 +202,31 @@ const OpticalRetailWebsitesPage = () => {
           <div className="container mx-auto max-w-6xl">
             <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-primary">Optician Website Design</p>
             <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-              Launch a modern optical website that brings in appointment-ready leads.
+              Build an optical retail website that looks credible, books appointments, and helps shoppers choose you faster.
             </h1>
             <p className="mt-5 max-w-3xl text-base text-muted-foreground sm:text-lg">
-              This page expands the website design tile with a live demo preview and a custom intake flow so optical retailers can request a similar site with an instant estimate.
+              We design focused websites for optical retailers, dispensaries, and clinics that need more than a brochure page. Use the live demo to inspect the experience, then submit a custom intake with an instant estimate for a similar build.
             </p>
+            <ul className="mt-6 grid max-w-5xl gap-3 text-sm text-muted-foreground sm:grid-cols-3">
+              {promisePoints.map((point) => (
+                <li key={point} className="flex items-start gap-2 rounded-2xl border border-border/60 bg-background/70 p-4">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
             <div className="mt-8 flex flex-wrap gap-3">
               <Dialog>
                 <DialogTrigger asChild>
                   <Button size="lg">
-                    View Demo in Popup <ArrowRight className="ml-2 h-4 w-4" />
+                    Preview Live Demo <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] w-[95vw] max-w-6xl overflow-hidden p-0">
                   <DialogHeader className="border-b px-6 py-4">
                     <DialogTitle>Optician Website Demo</DialogTitle>
                     <DialogDescription>
-                      Preview the live demo without leaving this site. Use desktop/mobile tabs to inspect responsiveness.
+                      Review the live demo without leaving this page. Switch between desktop and mobile views to evaluate how the site would feel for optical shoppers.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="px-4 pb-4">
@@ -232,13 +261,25 @@ const OpticalRetailWebsitesPage = () => {
           </div>
         </section>
 
+        <section className="px-4 py-10 lg:px-8">
+          <div className="container mx-auto grid max-w-6xl gap-4 md:grid-cols-3">
+            {workflowSteps.map((step, index) => (
+              <div key={step.title} className="rounded-3xl border border-border/60 bg-card/80 p-6">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Step {index + 1}</p>
+                <h2 className="mt-3 text-xl font-semibold text-foreground">{step.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="px-4 py-12 lg:px-8 lg:py-16">
           <div className="container mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <Card>
               <CardHeader>
-                <CardTitle>Build your package</CardTitle>
+                <CardTitle>Build your optical website package</CardTitle>
                 <CardDescription>
-                  Pick the features you want. We estimate instantly and send your intake to our team for final scoping.
+                  Choose the features your store actually needs. We update the estimate instantly and send the intake to our team for final scoping.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -324,7 +365,7 @@ const OpticalRetailWebsitesPage = () => {
                         <FormItem>
                           <FormLabel>Desired launch timeline</FormLabel>
                           <FormControl>
-                            <Input placeholder="Within 30 days" {...field} />
+                            <Input placeholder="Before summer campaign" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -381,7 +422,7 @@ const OpticalRetailWebsitesPage = () => {
                           <FormLabel>Anything else we should know? (optional)</FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder="Tell us about your current website, target markets, and required integrations."
+                              placeholder="Tell us about your current website, brands you carry, services to highlight, and any booking, WhatsApp, or CRM integrations you need."
                               rows={4}
                               className="resize-none"
                               {...field}
@@ -404,7 +445,7 @@ const OpticalRetailWebsitesPage = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Instant estimate</CardTitle>
-                  <CardDescription>Indicative project pricing based on your selected features.</CardDescription>
+                  <CardDescription>Fast budget guidance based on the scope you selected on this page.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
@@ -423,7 +464,7 @@ const OpticalRetailWebsitesPage = () => {
                       <span>{currency.format(instantQuote)}</span>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      Estimate shown in USD. Final quote depends on integrations, content migration, and launch scope.
+                      Estimate shown in USD. Final pricing depends on integrations, number of pages, content migration, and launch readiness.
                     </p>
                   </div>
                 </CardContent>
@@ -432,16 +473,17 @@ const OpticalRetailWebsitesPage = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>What&apos;s included in every build</CardTitle>
-                  <CardDescription>Core deliverables for professional optical retail websites.</CardDescription>
+                  <CardDescription>Baseline deliverables for optical retailers who want a polished, conversion-ready site.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     {[
-                      "Responsive layouts for desktop, tablet, and mobile",
-                      "Conversion-focused contact and appointment CTA placement",
-                      "Performance-first page structure and technical SEO basics",
-                      "Brand-consistent visual styling for your optical practice",
-                      "Lead intake route that can be integrated with CRM workflows",
+                      "Responsive layouts that hold up on desktop, tablet, and mobile",
+                      "Strong appointment, quote, and contact call-to-actions across the site",
+                      "Service and product positioning for eye exams, frames, lenses, coatings, and promotions",
+                      "Performance-first page structure with local SEO foundations",
+                      "Brand-consistent visual styling for your practice, store, or clinic",
+                      "Lead intake routing that can plug into booking or CRM workflows",
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-2">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
