@@ -124,6 +124,30 @@ const HelpdeskSlaPoliciesPage = () => {
     });
   }, [policies, search, statusFilter]);
 
+  const activeStages = useMemo(() => {
+    const stageIdsInPolicies = new Set(
+      policies
+        .map((policy) => policy.target_stage?.id ?? policy.target_stage_id)
+        .filter((value): value is string => Boolean(value)),
+    );
+
+    return stages.filter((stage) => stageIdsInPolicies.has(stage.id));
+  }, [policies, stages]);
+
+  const editStageOptions = useMemo(() => {
+    if (!editForm.targetStageId) {
+      return stages;
+    }
+
+    const selectedStage = stages.find((stage) => stage.id === editForm.targetStageId);
+    if (selectedStage) {
+      return stages;
+    }
+
+    const fallbackStage = activeStages.find((stage) => stage.id === editForm.targetStageId);
+    return fallbackStage ? [fallbackStage, ...stages] : stages;
+  }, [activeStages, editForm.targetStageId, stages]);
+
   if (!canViewPolicies) return <p className="text-sm text-muted-foreground">You do not have access to SLA policies.</p>;
 
   return (
@@ -240,32 +264,43 @@ const HelpdeskSlaPoliciesPage = () => {
 
       {/* Edit dialog */}
       <Dialog open={!!editPolicy} onOpenChange={(open) => { if (!open) setEditPolicy(null); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Edit SLA Policy</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Name" className="h-8 text-xs" />
-            <div className="grid grid-cols-2 gap-2">
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader className="space-y-2"><DialogTitle>Edit SLA Policy</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-2 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-medium text-muted-foreground">Policy name</label>
+              <Input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Name" className="h-10 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Team</label>
               <Select value={editForm.teamId || "__none"} onValueChange={(v) => setEditForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="Team" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none" className="text-xs">Select team</SelectItem>
                   {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Target stage</label>
               <Select value={editForm.targetStageId || "__none"} onValueChange={(v) => setEditForm((p) => ({ ...p, targetStageId: v === "__none" ? "" : v }))}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stage" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="Stage" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none" className="text-xs">Select stage</SelectItem>
-                  {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
+                  {editStageOptions.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Input value={editForm.targetHours} onChange={(e) => setEditForm((p) => ({ ...p, targetHours: e.target.value }))} placeholder="Target hours" className="h-8 text-xs" />
-              <Input value={editForm.priorityFilter} onChange={(e) => setEditForm((p) => ({ ...p, priorityFilter: e.target.value }))} placeholder="Priority filter" className="h-8 text-xs" />
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Target hours</label>
+              <Input value={editForm.targetHours} onChange={(e) => setEditForm((p) => ({ ...p, targetHours: e.target.value }))} placeholder="Target hours" className="h-10 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Priority filter</label>
+              <Input value={editForm.priorityFilter} onChange={(e) => setEditForm((p) => ({ ...p, priorityFilter: e.target.value }))} placeholder="Priority filter" className="h-10 text-sm" />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Button variant="outline" size="sm" onClick={() => setEditPolicy(null)}>Cancel</Button>
             <Button size="sm" onClick={saveEdit} disabled={updatePolicy.isPending}>Save</Button>
           </DialogFooter>

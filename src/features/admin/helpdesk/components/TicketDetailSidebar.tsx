@@ -23,7 +23,7 @@ export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSideb
   const qc = useQueryClient();
   const updateStage = useUpdateHelpdeskTicketStage();
   const updateTicket = useUpdateHelpdeskTicket();
-  const { data: stages = [] } = useHelpdeskStages(ticket.team_id ?? undefined);
+  const { data: stages = [], isLoading: areStagesLoading } = useHelpdeskStages();
 
   const handleStageChange = (stageId: string) => {
     updateStage.mutate({ ticketId: ticket.id, stageId });
@@ -41,9 +41,14 @@ export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSideb
         <Label className="text-xs text-muted-foreground">Stage</Label>
         <Select value={ticket.stage_id ?? undefined} onValueChange={handleStageChange}>
           <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder="Select stage" />
+            <SelectValue placeholder={areStagesLoading ? "Loading stages..." : "Select stage"} />
           </SelectTrigger>
           <SelectContent>
+            {!areStagesLoading && stages.length === 0 && (
+              <SelectItem value="__no_stages" disabled className="text-sm">
+                No stages available
+              </SelectItem>
+            )}
             {stages.map((s) => (
               <SelectItem key={s.id} value={s.id} className="text-sm">
                 {s.name}

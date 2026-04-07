@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Check, ChevronDown, Eye, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { X, Plus, Eye } from "lucide-react";
-import { useTicketWatchers, useAddTicketWatcher, useRemoveTicketWatcher } from "../hooks/useTicketWatchers";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useAdminUsers } from "@/hooks/useAdminUsers";
+import { cn } from "@/lib/utils";
+import { useAddTicketWatcher, useRemoveTicketWatcher, useTicketWatchers } from "../hooks/useTicketWatchers";
 
 interface WatcherManagerProps {
   ticketId: string;
@@ -20,10 +24,12 @@ const watcherTypeLabel: Record<WatcherType, string> = {
 
 export const WatcherManager = ({ ticketId }: WatcherManagerProps) => {
   const { data: watchers = [] } = useTicketWatchers(ticketId);
+  const { users: knownUsers = [], isLoading: areUsersLoading } = useAdminUsers();
   const addWatcher = useAddTicketWatcher();
   const removeWatcher = useRemoveTicketWatcher();
 
   const [showForm, setShowForm] = useState(false);
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [watcherType, setWatcherType] = useState<WatcherType>("non_user_staff");
   const [userId, setUserId] = useState("");
   const [staffName, setStaffName] = useState("");
@@ -32,9 +38,34 @@ export const WatcherManager = ({ ticketId }: WatcherManagerProps) => {
   const [contactName, setContactName] = useState("");
   const [isPermanent, setIsPermanent] = useState(false);
 
+  const internalUserOptions = useMemo(
+    () =>
+      knownUsers
+        .filter((user) => Boolean(user.user_id))
+        .map((user) => {
+          const primaryLabel = user.display_name?.trim() || user.email || user.user_id;
+          const secondaryLabel = user.email && user.email !== primaryLabel ? user.email : user.user_id;
+
+          return {
+            id: user.user_id,
+            primaryLabel,
+            secondaryLabel,
+          };
+        }),
+    [knownUsers],
+  );
+
+  const selectedInternalUser = internalUserOptions.find((user) => user.id === userId) ?? null;
+
   const resetForm = () => {
-    setUserId(""); setStaffName(""); setStaffEmail("");
-    setContactEmail(""); setContactName("");
+    setUserId("");
+    setStaffName("");
+    setStaffEmail("");
+    setContactEmail("");
+    setContactName("");
+    setIsPermanent(false);
+    setWatcherType("non_user_staff");
+    setUserPickerOpen(false);
     setShowForm(false);
   };
 
@@ -50,7 +81,10 @@ export const WatcherManager = ({ ticketId }: WatcherManagerProps) => {
   };
 
   const displayLabel = (w: (typeof watchers)[0]) => {
-    if (w.watcher_type === "internal_user") return w.user_id?.slice(0, 8) ?? "User";
+    if (w.watcher_type === "internal_user") {
+      const matchedUser = internalUserOptions.find((user) => user.id === w.user_id);
+      return matchedUser?.primaryLabel ?? w.user_id?.slice(0, 8) ?? "User";
+    }
     if (w.watcher_type === "non_user_staff") return w.staff_name ?? w.staff_email ?? "Staff";
     return w.contact_name ?? w.contact_email ?? "Contact";
   };
@@ -73,7 +107,7 @@ export const WatcherManager = ({ ticketId }: WatcherManagerProps) => {
           {watchers.map((w) => (
             <Badge key={w.id} variant="secondary" className="text-xs gap-1 pr-1 group">
               {displayLabel(w)}
-              {w.is_permanent && <span title="Permanent watcher">★</span>}
+              {w.is_permanent && <span title="Permanent watcher">*</span>}
               <button
                 className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5"
                 onClick={() => removeWatcher.mutate({ watcherId: w.id, ticketId })}
@@ -108,8 +142,59 @@ export const WatcherManager = ({ ticketId }: WatcherManagerProps) => {
 
           {watcherType === "internal_user" && (
             <div className="space-y-1">
-              <Label className="text-xs">User ID</Label>
-              <Input className="h-7 text-xs" placeholder="UUID" value={userId} onChange={(e) => setUserId(e.target.value)} />
+              <Label className="text-xs">Internal user</Label>
+              <Popover open={userPickerOpen} onOpenChange={setUserPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={userPickerOpen}
+                    className="h-8 w-full justify-between text-xs font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedInternalUser
+                        ? selectedInternalUser.primaryLabel
+                        : areUsersLoading
+                          ? "Loading users..."
+                          : "Select an internal user"}
+                    </span>
+                    <ChevronDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search users..." className="h-9 text-xs" />
+                    <CommandList>
+                      <CommandEmpty className="py-3 text-xs text-muted-foreground">
+                        {areUsersLoading ? "Loading users..." : "No matching users found."}
+                      </CommandEmpty>
+                      {internalUserOptions.map((user) => (
+                        <CommandItem
+                          key={user.id}
+                          value={`${user.primaryLabel} ${user.secondaryLabel} ${user.id}`}
+                          onSelect={() => {
+                            setUserId(user.id);
+                            setUserPickerOpen(false);
+                          }}
+                          className="flex items-start gap-2 py-2 text-xs"
+                        >
+                          <Check
+                            className={cn(
+                              "mt-0.5 h-3.5 w-3.5 shrink-0",
+                              user.id === userId ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          <div className="min-w-0">
+                            <div className="truncate font-medium">{user.primaryLabel}</div>
+                            <div className="truncate text-[11px] text-muted-foreground">{user.secondaryLabel}</div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
