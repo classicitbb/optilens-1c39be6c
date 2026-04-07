@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/dom";
+import { render } from "@testing-library/react";
 import LensVariantGrid from "@/components/lenses/LensVariantGrid";
 
 describe("LensVariantGrid", () => {
