@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/dom";
+import { render } from "@testing-library/react";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
 
 const authState = vi.hoisted(() => ({ user: { id: "admin-1" } as null | { id: string }, loading: false }));
