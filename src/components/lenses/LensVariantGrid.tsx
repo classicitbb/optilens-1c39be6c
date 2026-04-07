@@ -66,7 +66,7 @@ export const LensVariantGrid = ({
 
   return (
     <div className="space-y-3">
-      <div className="max-h-[360px] overflow-auto rounded-lg border border-border">
+      <div className="overflow-auto rounded-lg border border-border">
         <table className="border-collapse text-xs">
           <thead className="sticky top-0 z-10 bg-background">
             <tr>

@@ -98,8 +98,9 @@ const StoreProductPage = () => {
               </div>
 
               <Card variant="feature">
-                <CardContent className="grid gap-8 p-6 md:grid-cols-[380px_1fr]">
-                  {/* Left column: image + description + variant grid */}
+                <CardContent className="p-6 space-y-6">
+                  <div className="grid gap-8 md:grid-cols-[380px_1fr]">
+                  {/* Left column: image + description */}
                   <div className="space-y-3">
                     <div className="relative flex h-[280px] items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/20">
                       {product.image_url ? (
@@ -127,22 +128,6 @@ const StoreProductPage = () => {
 
                     {product.description && (
                       <p className="whitespace-normal break-words text-sm text-muted-foreground">{product.description}</p>
-                    )}
-
-                    {product.has_variants && product.product_type === "lens" && variants.length > 0 && (
-                      <div className="flex justify-center">
-                        <Card className="w-full border-border/70 bg-muted/20">
-                          <CardContent className="p-3">
-                            <LensVariantGrid
-                              variants={variants}
-                              isChiral={isChiralLens}
-                              rowLabel={rowLabel}
-                              columnLabel={columnLabel}
-                              onAddSelected={handleAddVariantSelection}
-                            />
-                          </CardContent>
-                        </Card>
-                      </div>
                     )}
                   </div>
 
@@ -191,6 +176,21 @@ const StoreProductPage = () => {
                       </div>
                     )}
                   </div>
+                  </div>
+
+                  {product.has_variants && product.product_type === "lens" && variants.length > 0 && (
+                    <Card className="w-full border-border/70 bg-muted/20">
+                      <CardContent className="p-3">
+                        <LensVariantGrid
+                          variants={variants}
+                          isChiral={isChiralLens}
+                          rowLabel={rowLabel}
+                          columnLabel={columnLabel}
+                          onAddSelected={handleAddVariantSelection}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
                 </CardContent>
               </Card>
             </div>
