@@ -14,6 +14,7 @@ import Store from "@/pages/Store";
 import StoreProductPage from "@/pages/StoreProductPage";
 import Unsubscribe from "@/pages/Unsubscribe";
 import CheckoutPage from "@/pages/CheckoutPage";
+import RuntimeAnalytics from "@/components/analytics/RuntimeAnalytics";
 
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
@@ -80,6 +81,7 @@ const App = () => (
             <Suspense fallback={null}>
               <CookieConsentBanner />
             </Suspense>
+            <RuntimeAnalytics />
             <Suspense fallback={<RouteLoadingFallback />}>
               <Routes>
                 <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />

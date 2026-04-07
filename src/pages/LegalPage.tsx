@@ -87,7 +87,7 @@ We implement appropriate technical and organizational measures to protect your p
 We may share your information with:
 - Payment processors (for transaction processing)
 - Shipping carriers (for order delivery)
-- Analytics providers (for website improvement)
+- Analytics providers such as Vercel Web Analytics and Speed Insights (for website improvement)
 
 All third parties are required to maintain the confidentiality and security of your data and may only process it in accordance with our instructions.
 
@@ -219,7 +219,7 @@ Note that blocking certain cookies may impact website functionality.
 
 ## Third-Party Cookies
 We may use third-party services that set their own cookies, including:
-- Google Analytics (analytics)
+- Vercel Web Analytics and Speed Insights (analytics and performance)
 - Social media platforms (sharing features)
 - Payment processors (transaction security)
 

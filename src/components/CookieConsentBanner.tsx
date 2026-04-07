@@ -5,42 +5,19 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Cookie, Settings, Check, X } from "lucide-react";
 import { Link } from "react-router";
-
-const CONSENT_KEY = "cookie_consent";
-const CONSENT_PREFERENCES_KEY = "cookie_preferences";
-
-export type CookiePreferences = {
-  necessary: boolean; // Always true, cannot be disabled
-  analytics: boolean;
-  marketing: boolean;
-  functional: boolean;
-};
-
-const DEFAULT_PREFERENCES: CookiePreferences = {
-  necessary: true,
-  analytics: false,
-  marketing: false,
-  functional: false,
-};
-
-export const getCookiePreferences = (): CookiePreferences | null => {
-  const stored = localStorage.getItem(CONSENT_PREFERENCES_KEY);
-  if (!stored) return null;
-  try {
-    return JSON.parse(stored);
-  } catch {
-    return null;
-  }
-};
-
-export const hasGivenConsent = (): boolean => {
-  return localStorage.getItem(CONSENT_KEY) !== null;
-};
+import {
+  CONSENT_KEY,
+  CONSENT_PREFERENCES_KEY,
+  DEFAULT_COOKIE_PREFERENCES,
+  type CookiePreferences,
+  hasGivenConsent,
+  notifyCookiePreferencesChanged,
+} from "@/lib/cookieConsent";
 
 const CookieConsentBanner = () => {
   const [showBanner, setShowBanner] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
-  const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_PREFERENCES);
+  const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_COOKIE_PREFERENCES);
 
   useEffect(() => {
     // Show immediately if no prior consent — no delay so the banner
@@ -53,6 +30,7 @@ const CookieConsentBanner = () => {
   const saveConsent = (prefs: CookiePreferences) => {
     localStorage.setItem(CONSENT_KEY, new Date().toISOString());
     localStorage.setItem(CONSENT_PREFERENCES_KEY, JSON.stringify(prefs));
+    notifyCookiePreferencesChanged();
     setShowBanner(false);
     setShowPreferences(false);
   };
