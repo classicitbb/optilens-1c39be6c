@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ProductVariant } from "@/hooks/useProductVariants";
 
 interface LensVariantGridProps {
@@ -64,14 +65,16 @@ export const LensVariantGrid = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="max-h-[420px] overflow-auto rounded-xl border border-border">
-        <table className="w-full border-collapse text-sm">
+    <div className="space-y-3">
+      <div className="max-h-[360px] overflow-auto rounded-lg border border-border">
+        <table className="border-collapse text-xs">
           <thead className="sticky top-0 z-10 bg-background">
             <tr>
-              <th className="sticky left-0 z-20 border-b border-r bg-background px-3 py-2 text-left">{rowLabel} \ {columnLabel}</th>
+              <th className="sticky left-0 z-20 border-b border-r bg-background px-2 py-1 text-left text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
+                {rowLabel} \ {columnLabel}
+              </th>
               {cylinders.map((cylinder) => (
-                <th key={cylinder} className="border-b border-r px-3 py-2 text-center font-semibold">
+                <th key={cylinder} className="border-b border-r px-1 py-1 text-center text-[10px] font-semibold min-w-[44px]">
                   {cylinder.toFixed(2)}
                 </th>
               ))}
@@ -80,36 +83,63 @@ export const LensVariantGrid = ({
           <tbody>
             {spheres.map((sphere) => (
               <tr key={sphere}>
-                <th className="sticky left-0 z-10 border-r bg-background px-3 py-2 text-left font-semibold">{sphere.toFixed(2)}</th>
+                <th className="sticky left-0 z-10 border-r bg-background px-2 py-0.5 text-left text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
+                  {sphere.toFixed(2)}
+                </th>
                 {cylinders.map((cylinder) => {
                   const variant = variantByCell.get(`${sphere}:${cylinder}`);
                   const availableQty = (variant?.stock_qty ?? 0) - (variant?.reserved_qty ?? 0);
-                  const isUnavailable = !variant || !variant.is_active || (!variant.allow_backorder && availableQty <= 0);
-                  const isLowStock = !isUnavailable && availableQty <= (variant?.low_stock_threshold ?? 0);
+                  const noVariant = !variant || !variant.is_active;
+                  const isOutOfStock = !noVariant && !variant.allow_backorder && availableQty <= 0;
+
+                  if (noVariant) {
+                    return (
+                      <td key={`${sphere}:${cylinder}`} className="border-r border-t p-0.5 align-middle">
+                        <div className="flex h-6 w-11 items-center justify-center text-[9px] text-muted-foreground/40">—</div>
+                      </td>
+                    );
+                  }
 
                   return (
-                    <td key={`${sphere}:${cylinder}`} className="border-r border-t p-2 align-top">
-                      {variant ? (
-                        <div className={cn("space-y-1 rounded-md p-2", isUnavailable && "bg-muted/40", isLowStock && "ring-1 ring-amber-500/40")}>
-                          <div className="text-[10px] text-muted-foreground">${variant.price.toFixed(2)}</div>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={quantities[variant.id] ?? ""}
-                            onChange={(event) => {
-                              const next = Math.max(0, Number(event.target.value || 0));
-                              setQuantities((prev) => ({ ...prev, [variant.id]: next }));
-                            }}
-                            className="h-8"
-                            disabled={isUnavailable || readOnly}
-                            aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
-                          />
-                          <div className="text-[10px] text-muted-foreground">
-                            {isUnavailable ? "Unavailable" : `Stock ${Math.max(availableQty, 0)}`}
-                          </div>
-                        </div>
+                    <td key={`${sphere}:${cylinder}`} className="border-r border-t p-0.5 align-middle">
+                      {isOutOfStock ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="relative flex items-center">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={quantities[variant.id] ?? ""}
+                                  onChange={(event) => {
+                                    const next = Math.max(0, Number(event.target.value || 0));
+                                    setQuantities((prev) => ({ ...prev, [variant.id]: next }));
+                                  }}
+                                  className="h-6 w-11 px-1 text-center text-[10px] ring-1 ring-amber-400/70"
+                                  disabled={readOnly}
+                                  aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
+                                />
+                                <AlertTriangle className="absolute -right-1 -top-1 h-2.5 w-2.5 text-amber-500" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[180px] text-xs">
+                              Out of stock — this order may not be fulfilled
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       ) : (
-                        <div className="rounded-md bg-muted/30 p-2 text-[10px] text-muted-foreground">N/A</div>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={quantities[variant.id] ?? ""}
+                          onChange={(event) => {
+                            const next = Math.max(0, Number(event.target.value || 0));
+                            setQuantities((prev) => ({ ...prev, [variant.id]: next }));
+                          }}
+                          className="h-6 w-11 px-1 text-center text-[10px]"
+                          disabled={readOnly}
+                          aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
+                        />
                       )}
                     </td>
                   );
