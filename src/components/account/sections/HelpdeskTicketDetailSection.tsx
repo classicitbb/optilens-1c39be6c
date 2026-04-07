@@ -81,7 +81,7 @@ const HelpdeskTicketDetailSection = () => {
           direction: "inbound",
           body,
           sender_user_id: user?.id ?? null,
-          sender_name: identity?.displayName ?? null,
+          sender_name: identity?.customerName ?? identity?.organizationName ?? null,
           sender_email: user?.email ?? null,
         });
       if (error) throw error;

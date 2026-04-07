@@ -11,5 +11,5 @@ export const buildAssistantAnalyticsEvent = (response: AssistantResponse): Assis
   feature: "knowledge_assistant",
   mode: response.answer.mode,
   citationCount: response.attribution.appliedSources.length,
-  usedExternalFallback: response.attribution.appliedSources.some((source) => source.source === "controlled_external"),
+  usedExternalFallback: response.attribution.appliedSources.some((source) => source.source === "external_web"),
 });

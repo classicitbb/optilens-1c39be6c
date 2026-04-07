@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { barbadosFaqs, retailerMarketMap } from "@/data/retailers";
 import { Building2, ChevronRight, MapPin, Phone, Sparkles } from "lucide-react";
 import { Link } from "react-router";
+import { useRetailerAssistantPrompt } from "@/features/assistant/CompanionAssistantContext";
 
 const barbadosMarket = retailerMarketMap.get("barbados");
 
 const BarbadosRetailersPage = () => {
+  const openRetailerAssistant = useRetailerAssistantPrompt();
   if (!barbadosMarket) {
     return null;
   }
@@ -65,8 +67,11 @@ const BarbadosRetailersPage = () => {
                   <Button asChild>
                     <Link to="/find-a-retailer">Browse all islands</Link>
                   </Button>
-                  <Button variant="outline" asChild>
-                    <Link to="/#contact">Need help choosing a retailer?</Link>
+                  <Button
+                    variant="outline"
+                    onClick={() => openRetailerAssistant({ marketSlug: "barbados", marketName: "Barbados" })}
+                  >
+                    Need help choosing a retailer?
                   </Button>
                 </div>
               </div>
@@ -159,8 +164,17 @@ const BarbadosRetailersPage = () => {
                           <a href={entry.website} target="_blank" rel="noopener noreferrer">Visit website</a>
                         </Button> :
                     null}
-                      <Button size="sm" variant="outline" asChild>
-                        <Link to="/#contact">Request help</Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openRetailerAssistant({
+                          marketSlug: "barbados",
+                          marketName: "Barbados",
+                          retailerName: entry.name,
+                          location: entry.location,
+                        })}
+                      >
+                        Request help
                       </Button>
                     </div>
                   </CardContent>

@@ -1,5 +1,18 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return value as Record<string, unknown>
+}
+
+const asNestedRecord = (value: unknown): Record<string, unknown> | null => {
+  if (Array.isArray(value)) {
+    return asRecord(value[0] ?? null)
+  }
+
+  return asRecord(value)
+}
+
 /**
  * helpdesk-followup edge function
  *
@@ -58,9 +71,9 @@ Deno.serve(async (req) => {
       results.checked++
 
       // Skip tickets in closed stages (SLA excluded per spec)
-      const ticket = sla.ticket as Record<string, unknown>
-      const stage = ticket?.stage as Record<string, unknown> | null
-      if (stage?.is_closed) continue
+      const ticket = asNestedRecord(sla.ticket)
+      const stage = asNestedRecord(ticket?.stage)
+      if (stage?.is_closed === true) continue
 
       const ticketId = sla.ticket_id
       const followupType = 'resolution_breach'
@@ -142,9 +155,9 @@ Deno.serve(async (req) => {
 
     if (!unansweredError) {
       for (const ticket of unanswered ?? []) {
-        const ticketData = ticket as Record<string, unknown>
-        const stage = ticketData.stage as Record<string, unknown> | null
-        if (stage?.is_closed) continue
+        const ticketData = asRecord(ticket)
+        const stage = asNestedRecord(ticketData?.stage)
+        if (stage?.is_closed === true) continue
 
         const followupType = 'first_response_breach'
 

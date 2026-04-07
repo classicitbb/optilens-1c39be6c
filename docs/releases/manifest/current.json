@@ -1,27 +1,43 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-03-31T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-04-06T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Added a module documentation index and PR guard to enforce code/doc companion updates.",
-    "CI PR checks now run doc symmetry validation as a required gate.",
-    "Exception handling now supports explicit rationale-backed overrides via bug exception files or PR metadata labels."
+    "A floating companion assistant is now available on all public pages, providing AI-powered help for visitors.",
+    "The assistant is model-backed via the new `companion-assistant` Edge Function.",
+    "A dedicated full-screen assistant window is accessible at `/assistant`.",
+    "Public search panel updated with improved assistant integration."
   ],
   "moduleImpact": [
     {
-      "module": "docs/ai",
+      "module": "src/components/assistant",
       "impact": "medium",
-      "notes": "Updated as part of PR Doc Symmetry Guardrail."
+      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
     },
     {
-      "module": "scripts/check_doc_symmetry.mjs",
+      "module": "src/features/assistant",
       "impact": "medium",
-      "notes": "Updated as part of PR Doc Symmetry Guardrail."
+      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
     },
     {
-      "module": "scripts/pr_checks.mjs",
+      "module": "src/pages/assistant",
       "impact": "medium",
-      "notes": "Updated as part of PR Doc Symmetry Guardrail."
+      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
+    },
+    {
+      "module": "supabase/functions",
+      "impact": "medium",
+      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
+    },
+    {
+      "module": "src/routes/public",
+      "impact": "medium",
+      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
+    },
+    {
+      "module": "src/config/routeRegistry.ts",
+      "impact": "medium",
+      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
     }
   ],
   "migrationNotes": [

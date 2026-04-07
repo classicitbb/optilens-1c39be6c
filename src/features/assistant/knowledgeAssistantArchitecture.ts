@@ -9,7 +9,7 @@ export type AssistantAnswerMode =
   | "ticket_offer"
   | "escalate_unknown";
 
-export type AssistantSourceTier = "internal_policy" | "internal_site" | "external_controlled";
+export type AssistantSourceTier = "website_content" | "knowledge_base" | "external_web" | "helpdesk_escalation";
 
 export type AssistantModuleId =
   | "assistant_ui_shell"
@@ -189,18 +189,23 @@ const MODULE_BOUNDARIES: AssistantModuleBoundary[] = [
 const SOURCE_PRECEDENCE: AssistantSourcePrecedenceRule[] = [
   {
     priority: 1,
-    tier: "internal_policy",
-    rule: "Approved company policy and controlled internal docs are authoritative and cannot be overridden.",
+    tier: "website_content",
+    rule: "Published website pages, product catalog, retailer data, and company policy docs are the primary authoritative source.",
   },
   {
     priority: 2,
-    tier: "internal_site",
-    rule: "Published site/wiki knowledge can answer when it does not conflict with internal policy.",
+    tier: "knowledge_base",
+    rule: "Internal wiki articles, approved guides, and knowledge-base entries supplement when website content is insufficient.",
   },
   {
     priority: 3,
-    tier: "external_controlled",
-    rule: "External retrieval is optional, audited, and only used to fill clearly identified internal gaps.",
+    tier: "external_web",
+    rule: "Controlled external/internet sources fill clearly identified gaps that internal content cannot resolve.",
+  },
+  {
+    priority: 4,
+    tier: "helpdesk_escalation",
+    rule: "When no source tier can confidently resolve the query, offer helpdesk ticket creation, phone, or email escalation.",
   },
 ];
 

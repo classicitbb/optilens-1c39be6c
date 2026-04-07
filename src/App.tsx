@@ -41,7 +41,10 @@ const queryClient = new QueryClient({
 
 const CustomerShell = () => (
   <CartProvider>
-    <Outlet />
+    <CompanionAssistantProvider>
+      <Outlet />
+      <CompanionAssistant />
+    </CompanionAssistantProvider>
   </CartProvider>
 );
 

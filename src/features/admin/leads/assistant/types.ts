@@ -14,7 +14,7 @@ export type AnswerMode =
   | "ticket_offer"
   | "escalate_unknown";
 
-export type SourceTier = "approved_internal" | "site_knowledge" | "controlled_external";
+export type SourceTier = "website_content" | "knowledge_base" | "external_web" | "helpdesk_escalation";
 
 export interface AssistantRequest {
   message: string;
