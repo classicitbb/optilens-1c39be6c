@@ -4,6 +4,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useWebsiteAnalyticsOverview } from "@/features/admin/dashboard/hooks/useWebsiteAnalyticsOverview";
 
 const appTiles = [
   {
@@ -68,16 +70,9 @@ const appTiles = [
   },
 ];
 
-const metrics = [
-  { label: "Visitors", value: "48,302", trend: "+12.6% vs last week" },
-  { label: "Bounce Rate", value: "34.2%", trend: "-3.1% improvement" },
-  { label: "Abandoned Carts", value: "219", trend: "-8.4% vs last week" },
-  { label: "Conversion Rate", value: "4.9%", trend: "+0.7% uplift" },
-  { label: "Avg. Session Time", value: "3m 42s", trend: "+18 seconds" },
-  { label: "Returning Users", value: "11,804", trend: "+9.2% growth" },
-];
-
 const AdminDashboardHomePage = () => {
+  const analyticsOverview = useWebsiteAnalyticsOverview();
+
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 px-1 pb-4 pt-1 md:space-y-6">
       <section className="relative overflow-hidden rounded-xl border border-border/70 bg-gradient-to-br from-primary/15 via-background to-slate-500/10 p-5 shadow-sm md:p-6">
@@ -88,7 +83,7 @@ const AdminDashboardHomePage = () => {
         <h1 className="mt-1.5 text-3xl font-bold tracking-tight md:text-4xl">OpticAdmin</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-base">
           Your ERP command center for managing sales, customer relationships, service operations, and website performance in one unified workspace.
-          This dashboard is a placeholder that will evolve into live operational and analytics insights.
+          This dashboard now includes live website telemetry, cart recovery signals, and Core Web Vitals collection.
         </p>
       </section>
 
@@ -98,23 +93,61 @@ const AdminDashboardHomePage = () => {
             <AccordionTrigger className="py-4 text-left hover:no-underline">
               <span className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-primary" />
-                <span className="text-lg font-semibold tracking-tight">Website Analytics (Placeholder Metrics)</span>
+                <span className="text-lg font-semibold tracking-tight">Website Analytics</span>
               </span>
             </AccordionTrigger>
             <AccordionContent className="pb-4">
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
-                {metrics.map((metric) => (
-                  <Card key={metric.label} className="border-border/70">
-                    <CardHeader className="space-y-1 p-4 pb-1.5">
-                      <CardDescription className="text-xs">{metric.label}</CardDescription>
-                      <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400">{metric.trend}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {analyticsOverview.isLoading ? (
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <Card key={index} className="border-border/70">
+                      <CardHeader className="space-y-2 p-4 pb-1.5">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-8 w-24" />
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <Skeleton className="h-3 w-28" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : analyticsOverview.error ? (
+                <Card className="border-border/70">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-destructive">{analyticsOverview.error.message}</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
+                    {analyticsOverview.data?.metrics.map((metric) => (
+                      <Card key={metric.label} className="border-border/70">
+                        <CardHeader className="space-y-1 p-4 pb-1.5">
+                          <CardDescription className="text-xs">{metric.label}</CardDescription>
+                          <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400">{metric.trend}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {analyticsOverview.data?.webVitals.map((metric) => (
+                      <Card key={metric.label} className="border-border/70">
+                        <CardHeader className="space-y-1 p-4 pb-1.5">
+                          <CardDescription className="text-xs">{metric.label}</CardDescription>
+                          <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <p className="text-xs text-muted-foreground">{metric.trend}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </AccordionContent>
           </AccordionItem>
         </Accordion>
