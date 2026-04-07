@@ -5770,6 +5770,145 @@ export type Database = {
         }
         Relationships: []
       }
+      website_analytics_pageviews: {
+        Row: {
+          device_type: string
+          id: number
+          occurred_at: string
+          pathname: string
+          referrer_host: string
+          session_id: string
+          visitor_id: string
+        }
+        Insert: {
+          device_type?: string
+          id?: number
+          occurred_at?: string
+          pathname: string
+          referrer_host?: string
+          session_id: string
+          visitor_id: string
+        }
+        Update: {
+          device_type?: string
+          id?: number
+          occurred_at?: string
+          pathname?: string
+          referrer_host?: string
+          session_id?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_analytics_pageviews_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "website_analytics_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_analytics_sessions: {
+        Row: {
+          created_at: string
+          device_type: string
+          duration_seconds: number
+          engaged: boolean
+          id: string
+          is_returning_visitor: boolean
+          landing_path: string
+          last_seen_at: string
+          pageview_count: number
+          referrer_host: string
+          started_at: string
+          updated_at: string
+          user_agent: string | null
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_type?: string
+          duration_seconds?: number
+          engaged?: boolean
+          id?: string
+          is_returning_visitor?: boolean
+          landing_path?: string
+          last_seen_at?: string
+          pageview_count?: number
+          referrer_host?: string
+          started_at?: string
+          updated_at?: string
+          user_agent?: string | null
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          device_type?: string
+          duration_seconds?: number
+          engaged?: boolean
+          id?: string
+          is_returning_visitor?: boolean
+          landing_path?: string
+          last_seen_at?: string
+          pageview_count?: number
+          referrer_host?: string
+          started_at?: string
+          updated_at?: string
+          user_agent?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
+      }
+      website_analytics_web_vitals: {
+        Row: {
+          device_type: string
+          id: number
+          metric_delta: number
+          metric_id: string
+          metric_name: string
+          metric_rating: string
+          metric_value: number
+          occurred_at: string
+          pathname: string
+          session_id: string
+          visitor_id: string
+        }
+        Insert: {
+          device_type?: string
+          id?: number
+          metric_delta?: number
+          metric_id: string
+          metric_name: string
+          metric_rating?: string
+          metric_value: number
+          occurred_at?: string
+          pathname: string
+          session_id: string
+          visitor_id: string
+        }
+        Update: {
+          device_type?: string
+          id?: number
+          metric_delta?: number
+          metric_id?: string
+          metric_name?: string
+          metric_rating?: string
+          metric_value?: number
+          occurred_at?: string
+          pathname?: string
+          session_id?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_analytics_web_vitals_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "website_analytics_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wholesale_inquiries: {
         Row: {
           business_name: string
