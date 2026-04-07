@@ -176,6 +176,21 @@ const StoreProductPage = () => {
                       </div>
                     )}
                   </div>
+                  </div>
+
+                  {product.has_variants && product.product_type === "lens" && variants.length > 0 && (
+                    <Card className="w-full border-border/70 bg-muted/20">
+                      <CardContent className="p-3">
+                        <LensVariantGrid
+                          variants={variants}
+                          isChiral={isChiralLens}
+                          rowLabel={rowLabel}
+                          columnLabel={columnLabel}
+                          onAddSelected={handleAddVariantSelection}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
                 </CardContent>
               </Card>
             </div>
