@@ -98,7 +98,8 @@ const StoreProductPage = () => {
               </div>
 
               <Card variant="feature">
-                <CardContent className="grid gap-8 p-6 md:grid-cols-[280px_1fr]">
+                <CardContent className="grid gap-8 p-6 md:grid-cols-[380px_1fr]">
+                  {/* Left column: image + description + variant grid */}
                   <div className="space-y-3">
                     <div className="relative flex h-[280px] items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/20">
                       {product.image_url ? (
@@ -123,11 +124,31 @@ const StoreProductPage = () => {
                         </DialogContent>
                       </Dialog>
                     )}
+
+                    {product.description && (
+                      <p className="whitespace-normal break-words text-sm text-muted-foreground">{product.description}</p>
+                    )}
+
+                    {product.has_variants && product.product_type === "lens" && variants.length > 0 && (
+                      <div className="flex justify-center">
+                        <Card className="w-full border-border/70 bg-muted/20">
+                          <CardContent className="p-3">
+                            <LensVariantGrid
+                              variants={variants}
+                              isChiral={isChiralLens}
+                              rowLabel={rowLabel}
+                              columnLabel={columnLabel}
+                              onAddSelected={handleAddVariantSelection}
+                            />
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
                   </div>
 
+                  {/* Right column: name, tags, price, cart */}
                   <div className="space-y-4">
                     <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
-                    <p className="whitespace-normal break-words text-muted-foreground">{product.description}</p>
 
                     {product.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2">
@@ -146,20 +167,6 @@ const StoreProductPage = () => {
                       </div>
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</div>
                     </div>
-
-                    {product.has_variants && product.product_type === "lens" && variants.length > 0 && (
-                      <Card className="border-border/70 bg-muted/20">
-                        <CardContent className="p-4">
-                          <LensVariantGrid
-                            variants={variants}
-                            isChiral={isChiralLens}
-                            rowLabel={rowLabel}
-                            columnLabel={columnLabel}
-                            onAddSelected={handleAddVariantSelection}
-                          />
-                        </CardContent>
-                      </Card>
-                    )}
 
                     {product.has_variants && !(product.product_type === "lens" && variants.length > 0) && (
                       <Card className="border-border/70 bg-muted/30">
