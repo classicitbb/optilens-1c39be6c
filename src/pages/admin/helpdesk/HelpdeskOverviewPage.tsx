@@ -844,6 +844,7 @@ const ListView = ({
                   <th className="text-left py-1.5 px-2 font-medium w-20">ID</th>
                   <th className="text-left py-1.5 px-2 font-medium">Priority</th>
                   <th className="text-left py-1.5 px-2 font-medium text-2xl">Name</th>
+                  <th className="text-left py-1.5 px-2 font-medium">Contact</th>
                   <th className="text-left py-1.5 px-2 font-medium">Assigned to</th>
                   <th className="text-left py-1.5 px-2 font-medium">SLA Deadline</th>
                   <th className="text-left py-1.5 px-2 font-medium">Stage</th>
@@ -858,6 +859,9 @@ const ListView = ({
                       <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{ticket.ticket_number}</td>
                       <td className="py-2 px-2"><PriorityStars priority={ticket.priority} /></td>
                       <td className="py-2 px-2 font-medium text-foreground">{ticket.title}</td>
+                      <td className="py-2 px-2 text-xs text-foreground">
+                        {ticket.partner_contact?.name ?? <span className="text-muted-foreground">—</span>}
+                      </td>
                       <td className="py-2 px-2">
                         {owner ?
                   <div className="flex items-center gap-1.5">

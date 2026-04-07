@@ -405,6 +405,7 @@ const HelpdeskTicketsPage = () => {
                     <TableHead>Ticket</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Title</TableHead>
+                    <TableHead className="hidden md:table-cell">Contact</TableHead>
                     <TableHead className="hidden md:table-cell">Team</TableHead>
                     <TableHead>Priority</TableHead>
                     <TableHead className="hidden md:table-cell">SLA</TableHead>
@@ -431,6 +432,7 @@ const HelpdeskTicketsPage = () => {
                         <TableCell className="font-mono text-xs">{ticket.ticket_number}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{ticket.ticket_type?.name ?? "—"}</TableCell>
                         <TableCell className="font-medium">{ticket.title}</TableCell>
+                        <TableCell className="hidden md:table-cell text-xs">{ticket.partner_contact?.name ?? "—"}</TableCell>
                         <TableCell className="hidden md:table-cell">{ticket.team?.name ?? "—"}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-[9px] px-1 py-0" style={{ borderColor: prioColor, color: prioColor }}>{getPrioLabel(ticket.priority)}</Badge>
