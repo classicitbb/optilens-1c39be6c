@@ -15,6 +15,8 @@ import StoreProductPage from "@/pages/StoreProductPage";
 import Unsubscribe from "@/pages/Unsubscribe";
 import CheckoutPage from "@/pages/CheckoutPage";
 import RuntimeAnalytics from "@/components/analytics/RuntimeAnalytics";
+import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
+import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
