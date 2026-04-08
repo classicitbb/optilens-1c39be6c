@@ -26,6 +26,7 @@ export interface AssistantQueryResult {
   intent: "retailer" | "product" | "support" | "general";
   topLinks: AssistantLinkResult[];
   answer: string;
+  citations?: AssistantLinkResult[];
   confidence: "high" | "medium" | "low";
   suggestsHumanHelp: boolean;
 }
@@ -121,7 +122,7 @@ export const buildAssistantCorpus = ({ products, knowledge, runtimeHeadings = []
   const knowledgeEntries: CorpusEntry[] = knowledge.map((article) => ({
     id: `knowledge-${article.id}`,
     title: article.title,
-    description: article.description || article.content.slice(0, 160),
+    description: article.description || article.content.slice(0, 400),
     path: `/knowledge#${article.category?.toLowerCase().replace(/\s+/g, "-") || article.page_slug || article.id}`,
     label: "Knowledge Base",
     text: `${article.title} ${article.description} ${article.content} ${article.category}`,

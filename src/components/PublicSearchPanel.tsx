@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
 import { Bot, BookOpen, FileText, Link2, Package, Search, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -174,15 +175,49 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
           ) : (
             <>
               {!compact && searchResult ? (
-                <button
-                  type="button"
-                  className="mb-2 w-full rounded-[18px] border border-primary/20 bg-primary/10 p-3 text-left transition hover:border-primary/35 hover:bg-primary/15"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => openAssistant({ query, autoSubmit: true })}
-                >
+                <div className="mb-2 w-full rounded-[18px] border border-primary/20 bg-primary/10 p-3 space-y-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Quick answer</p>
-                  <p className="mt-2 text-sm leading-6 text-foreground">{searchResult.answer}</p>
-                </button>
+                  <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5 [&_strong]:font-semibold [&_strong]:text-foreground">
+                    <ReactMarkdown>{searchResult.answer}</ReactMarkdown>
+                  </div>
+                  {searchResult.topLinks.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {searchResult.topLinks.slice(0, 3).map((link, i) => (
+                        link.external ? (
+                          <a
+                            key={link.path}
+                            href={link.website || link.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onMouseDown={(e) => e.preventDefault()}
+                            className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/60 px-2.5 py-0.5 text-[11px] text-muted-foreground hover:text-primary hover:border-primary/40 transition"
+                          >
+                            <span className="text-muted-foreground/60">[{i + 1}]</span>
+                            {link.title}
+                          </a>
+                        ) : (
+                          <Link
+                            key={link.path}
+                            to={link.path}
+                            onMouseDown={(e) => e.preventDefault()}
+                            className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/60 px-2.5 py-0.5 text-[11px] text-muted-foreground hover:text-primary hover:border-primary/40 transition"
+                          >
+                            <span className="text-muted-foreground/60">[{i + 1}]</span>
+                            {link.title}
+                          </Link>
+                        )
+                      ))}
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="text-[11px] text-primary hover:text-primary/80 transition block pt-0.5"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => openAssistant({ query, autoSubmit: true })}
+                  >
+                    Ask follow-up questions →
+                  </button>
+                </div>
               ) : null}
               {filtered.map((result) => {
                 const Icon = GROUP_ICON[result.group];
