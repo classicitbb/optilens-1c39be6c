@@ -232,20 +232,20 @@ const Knowledge = () => {
       <main id="main-content" className="pb-16 pt-24">
         <div className="container mx-auto px-4 lg:px-8">
           <section className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/95 shadow-soft">
-            <div className="grid gap-10 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.18),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.14),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.95),rgba(255,255,255,0.82))] px-6 py-8 sm:px-8 sm:py-10 lg:grid-cols-[minmax(0,1.1fr)_22rem] lg:px-10 lg:py-12 dark:bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.16),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_30%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.9))]">
+            <div className="grid gap-6 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.18),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.14),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.95),rgba(255,255,255,0.82))] px-6 py-5 sm:px-8 sm:py-6 lg:grid-cols-[minmax(0,1.1fr)_20rem] lg:px-10 lg:py-8 dark:bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.16),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_30%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.9))]">
               <div className="max-w-3xl">
-                <Badge variant="secondary" className="mb-4 w-fit rounded-full px-3 py-1 text-xs uppercase tracking-[0.24em]">
+                <Badge variant="secondary" className="mb-2 w-fit rounded-full px-3 py-0.5 text-xs uppercase tracking-[0.24em]">
                   Help Center
                 </Badge>
-                <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                   Find answers fast, then dive into the right article.
                 </h1>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
                   Browse a cleaner, better organized knowledge base with lens education, coating guidance,
                   patient support, trade resources, and linked product pages already used across the site.
                 </p>
 
-                <div className="mt-8 max-w-3xl rounded-2xl border border-border/60 bg-background/90 p-3 shadow-sm backdrop-blur">
+                <div className="mt-4 max-w-3xl rounded-2xl border border-border/60 bg-background/90 p-2 shadow-sm backdrop-blur">
                   <label htmlFor="knowledge-search" className="sr-only">
                     Search the knowledge base
                   </label>
