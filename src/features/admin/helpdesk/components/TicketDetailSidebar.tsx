@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { X, CheckCircle2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useUpdateHelpdeskTicketStage } from "../hooks/useUpdateHelpdeskTicketStage";
-import { useUpdateHelpdeskTicket } from "../hooks/useHelpdeskMutations";
+import { useUpdateHelpdeskTicket, useCloseHelpdeskTicket } from "../hooks/useHelpdeskMutations";
 import { useHelpdeskStages } from "../hooks/useHelpdeskStages";
 import { helpdeskTicketQueryKeys } from "../hooks/useHelpdeskTickets";
 import { normalizeHelpdeskPriorityLabel } from "../utils/normalization";
@@ -44,7 +46,10 @@ export const TicketDetailSidebar = ({ ticket }: TicketDetailSidebarProps) => {
   const qc = useQueryClient();
   const updateStage = useUpdateHelpdeskTicketStage();
   const updateTicket = useUpdateHelpdeskTicket();
-  const { data: stages = [], isLoading: areStagesLoading } = useHelpdeskStages();
+  const closeTicket = useCloseHelpdeskTicket();
+  const { data: stages = [], isLoading: areStagesLoading, isError: stagesError } = useHelpdeskStages();
+
+  const isAlreadyClosed = !!ticket.closed_at || ticket.stage?.is_closed;
 
   // SLA data
   const { data: slaStatuses = [], isLoading: areSlaLoading } = useHelpdeskTicketSlaStatuses(ticket.id);
@@ -123,25 +128,53 @@ export const TicketDetailSidebar = ({ ticket }: TicketDetailSidebarProps) => {
       <Separator />
 
       {/* Stage */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">Stage</Label>
-        <Select value={ticket.stage_id ?? undefined} onValueChange={handleStageChange}>
-          <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder={areStagesLoading ? "Loading…" : "Select stage"} />
-          </SelectTrigger>
-          <SelectContent>
-            {!areStagesLoading && selectableStages.length === 0 && (
-              <SelectItem value="__no_stages" disabled className="text-sm">
-                No stages available
-              </SelectItem>
-            )}
-            {selectableStages.map((s) => (
-              <SelectItem key={s.id} value={s.id} className="text-sm">
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        {/* Current stage badge — always visible from ticket data */}
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="secondary"
+            className={ticket.stage?.is_closed ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : ""}
+          >
+            {ticket.stage?.name ?? "Unstaged"}
+          </Badge>
+          {isAlreadyClosed && (
+            <span className="text-xs text-emerald-600 flex items-center gap-1">
+              <CheckCircle2 size={12} /> Closed
+            </span>
+          )}
+        </div>
+
+        {/* Forward-progression dropdown — shown when stages are loaded */}
+        {!stagesError && selectableStages.length > 0 && (
+          <Select value={ticket.stage_id ?? undefined} onValueChange={handleStageChange} disabled={updateStage.isPending}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Move to stage…" />
+            </SelectTrigger>
+            <SelectContent>
+              {selectableStages.map((s) => (
+                <SelectItem key={s.id} value={s.id} className="text-sm">
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {/* Close ticket button — works independently, always available */}
+        {!isAlreadyClosed && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
+            onClick={() => closeTicket.mutate({ ticketId: ticket.id })}
+            disabled={closeTicket.isPending}
+          >
+            <CheckCircle2 size={13} />
+            {closeTicket.isPending ? "Closing…" : "Close Ticket"}
+          </Button>
+        )}
       </div>
 
       {/* Priority */}

@@ -21,12 +21,20 @@ export const useUpdateHelpdeskTicketStage = () => {
 
       if (getError) throw getError;
 
+      // Check if the target stage is a closed stage so we can set closed_at correctly
+      const { data: targetStage } = await (supabase as any)
+        .from("helpdesk_ticket_stages")
+        .select("is_closed")
+        .eq("id", stageId)
+        .maybeSingle();
+
+      const now = new Date().toISOString();
       const { error: updateError } = await (supabase as any)
         .from("helpdesk_tickets")
         .update({
           stage_id: stageId,
-          closed_at: null,
-          updated_at: new Date().toISOString(),
+          closed_at: targetStage?.is_closed ? now : null,
+          updated_at: now,
         })
         .eq("id", ticketId);
 
