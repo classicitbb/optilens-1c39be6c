@@ -90,9 +90,12 @@ const RepairsPolicyPage = () => {
               <p>Where the item has significant value, the customer is expected to arrange appropriate insurance cover before transit and during handling.</p>
               <p>If the condition of the item makes repair unsuitable, we may decline the work and return it without further processing.</p>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Button variant="outline" asChild>
-                <a href="mailto:info@classicvisions.net">Contact Customer Service</a>
+                <a href="/#contact">Contact Us</a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href="mailto:support@classicvisions.net">Email Support</a>
               </Button>
             </div>
           </section>
