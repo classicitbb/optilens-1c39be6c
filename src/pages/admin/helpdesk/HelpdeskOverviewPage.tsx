@@ -340,7 +340,7 @@ const HelpdeskOverviewPage = () => {
   const [editTicket, setEditTicket] = useState<OverviewTicket | null>(null);
   const [activeNow, setActiveNow] = useState(() => new Date());
   const navigate = useNavigate();
-  const handleOpenTicket = useCallback((t: OverviewTicket) => navigate(`/admin/helpdesk/tickets/${t.id}`), [navigate]);
+  const handleOpenTicket = useCallback((t: OverviewTicket) => navigate(`/admin/helpdesk/tickets/${t.id}`, { state: { returnTo: "/admin/helpdesk/overview" } }), [navigate]);
 
   const updateStage = useUpdateHelpdeskTicketStage();
   const createTicket = useCreateHelpdeskTicket();
@@ -772,20 +772,27 @@ const KanbanView = ({
 
                             {/* Contact info */}
                             {ticket.partner_contact && (
-                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground truncate">
-                                <div className={cn("h-4 w-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0", getAvatarColor(ticket.partner_contact.name))}>
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground truncate">
+                                <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0", getAvatarColor(ticket.partner_contact.name))}>
                                   {getInitial(ticket.partner_contact.name)}
                                 </div>
-                                <span className="truncate">{ticket.partner_contact.name}</span>
-                                {ticket.partner_contact.email && <span className="truncate hidden sm:inline">· {ticket.partner_contact.email}</span>}
+                                <span className="truncate font-medium">{ticket.partner_contact.name}</span>
+                                {ticket.partner_contact.email && <span className="truncate hidden sm:inline text-xs">· {ticket.partner_contact.email}</span>}
                               </div>
                             )}
 
                             {/* Bottom row */}
                             <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <PriorityStars priority={ticket.priority} />
-                                {ticket.deadline && <span className="text-[10px] text-muted-foreground">⏱ {new Date(ticket.deadline).toLocaleDateString()}</span>}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <PriorityStars priority={ticket.priority} />
+                                  {ticket.priority > 1 && (
+                                    <span className="text-xs font-medium" style={{ color: ["","","#b45309","#c2410c","#dc2626","#991b1b"][ticket.priority] }}>
+                                      {["Low","Normal","Medium","High","Urgent","Critical"][ticket.priority]}
+                                    </span>
+                                  )}
+                                </div>
+                                {ticket.deadline && <span className="text-sm text-muted-foreground">⏱ {new Date(ticket.deadline).toLocaleDateString()}</span>}
                               </div>
                               <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                                 <span className="truncate">Support team: {ticket.team?.name ?? "Unassigned"}</span>

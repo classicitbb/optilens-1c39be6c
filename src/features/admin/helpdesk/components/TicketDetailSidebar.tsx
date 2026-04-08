@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useUpdateHelpdeskTicketStage } from "../hooks/useUpdateHelpdeskTicketStage";
@@ -9,6 +11,7 @@ import { helpdeskTicketQueryKeys } from "../hooks/useHelpdeskTickets";
 import { normalizeHelpdeskPriorityLabel } from "../utils/normalization";
 import { SlaStatusBadge } from "./SlaStatusBadge";
 import { WatcherManager } from "./WatcherManager";
+import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { format } from "date-fns";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
@@ -25,6 +28,15 @@ export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSideb
   const updateTicket = useUpdateHelpdeskTicket();
   const { data: stages = [], isLoading: areStagesLoading } = useHelpdeskStages();
 
+  // Local deadline state (YYYY-MM-DD) synced from ticket prop
+  const [deadlineLocal, setDeadlineLocal] = useState(() =>
+    ticket.deadline ? new Date(ticket.deadline).toISOString().slice(0, 10) : ""
+  );
+
+  useEffect(() => {
+    setDeadlineLocal(ticket.deadline ? new Date(ticket.deadline).toISOString().slice(0, 10) : "");
+  }, [ticket.id, ticket.deadline]);
+
   const handleStageChange = (stageId: string) => {
     updateStage.mutate({ ticketId: ticket.id, stageId });
   };
@@ -34,8 +46,36 @@ export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSideb
     qc.invalidateQueries({ queryKey: helpdeskTicketQueryKeys.detail(ticket.id) });
   };
 
+  const handleContactChange = (contactId: string) => {
+    updateTicket.mutate({ id: ticket.id, partner_contact_id: contactId || null });
+    qc.invalidateQueries({ queryKey: helpdeskTicketQueryKeys.detail(ticket.id) });
+  };
+
+  const handleDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setDeadlineLocal(val);
+    const iso = val ? new Date(val + "T00:00:00").toISOString() : null;
+    updateTicket.mutate({ id: ticket.id, deadline: iso });
+    qc.invalidateQueries({ queryKey: helpdeskTicketQueryKeys.detail(ticket.id) });
+  };
+
   return (
     <aside className="flex flex-col gap-5 p-4 border-l border-border bg-card h-full overflow-y-auto">
+      {/* Contact */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Contact</Label>
+        <ContactPickerSelect
+          value={ticket.partner_contact_id ?? ""}
+          onValueChange={handleContactChange}
+          placeholder="Assign contact"
+        />
+        {ticket.partner_contact?.email && (
+          <span className="text-xs text-muted-foreground block truncate">{ticket.partner_contact.email}</span>
+        )}
+      </div>
+
+      <Separator />
+
       {/* Stage */}
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Stage</Label>
@@ -73,6 +113,17 @@ export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSideb
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Due Date */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Due Date</Label>
+        <Input
+          type="date"
+          value={deadlineLocal}
+          onChange={handleDeadlineChange}
+          className="h-8 text-sm"
+        />
       </div>
 
       <Separator />
