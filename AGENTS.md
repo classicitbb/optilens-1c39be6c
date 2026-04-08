@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Environment
-- Use Node 20
+- Use a Node LTS release supported by `package.json#engines` (currently `20.x` or `22.x`)
 - Install dependencies with `npm ci` when `package-lock.json` exists
 - Do not switch package managers
 - Assume the repo must work from a clean checkout

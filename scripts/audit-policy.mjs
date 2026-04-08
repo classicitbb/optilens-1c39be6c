@@ -65,8 +65,9 @@ function loadExceptions() {
 }
 
 function runNpmAuditJson() {
+  const command = resolveNpmCommand();
   try {
-    const output = execFileSync("npm", ["audit", "--json"], { encoding: "utf8" });
+    const output = execFileSync(command.file, command.args, { encoding: "utf8" });
     return JSON.parse(output);
   } catch (error) {
     const stdout = error.stdout?.toString() ?? "";
@@ -75,6 +76,21 @@ function runNpmAuditJson() {
     }
     return JSON.parse(stdout);
   }
+}
+
+function resolveNpmCommand() {
+  const npmExecPath = process.env.npm_execpath?.trim();
+  if (npmExecPath) {
+    return {
+      file: process.execPath,
+      args: [npmExecPath, "audit", "--json"],
+    };
+  }
+
+  return {
+    file: process.platform === "win32" ? "npm.cmd" : "npm",
+    args: ["audit", "--json"],
+  };
 }
 
 function buildFindings(vulnerabilityMap) {

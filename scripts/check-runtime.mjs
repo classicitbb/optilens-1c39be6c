@@ -34,7 +34,7 @@ function fail(message) {
   console.error("Expected runtime:");
   console.error(`- Node: ${ALLOWED_NODE_MAJORS.map(v => v + ".x").join(" or ")}`);
   console.error(`- npm: ${REQUIRED_NPM_MAJOR}.x\n`);
-  console.error("Please run 'nvm use' (or install the pinned versions) and try again.\n");
+  console.error("Please run 'nvm use' (or install a supported Node/npm version) and try again.\n");
   process.exit(1);
 }
 

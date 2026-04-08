@@ -6,7 +6,7 @@ This repository uses a strict single-lockfile policy with **npm as the source of
 - **Forbidden lockfile:** `bun.lockb`
 - **Required installer:** `npm ci`
 - **Canonical build check:** `npm run build`
-- **Canonical CI runtime:** Node 20 (`actions/setup-node`)
+- **Supported CI runtimes:** Node `20.x` and `22.x`
 
 ## When to refresh lock state
 
@@ -36,4 +36,4 @@ npm run build
 
 - `package-lock.json` fully represents dependency resolution for automation.
 - `bun.lockb` is absent from the repository.
-- `npm ci` and `npm run build` pass consistently under Node 20.
+- `npm ci` and `npm run build` pass consistently under the supported Node LTS majors.
