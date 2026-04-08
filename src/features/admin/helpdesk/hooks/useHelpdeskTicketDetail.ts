@@ -40,6 +40,12 @@ export interface HelpdeskTicketDetail {
     id: string;
     name: string;
   } | null;
+  partner_contact: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+  } | null;
 }
 
 export const useHelpdeskTicketDetail = (ticketId: string | undefined) => {
@@ -56,7 +62,8 @@ export const useHelpdeskTicketDetail = (ticketId: string | undefined) => {
           sla_paused_at,sla_paused_duration_seconds,created_at,updated_at,
           stage:helpdesk_ticket_stages(id,name,is_closed,is_folded,sequence),
           team:helpdesk_teams(id,name),
-          ticket_type:helpdesk_ticket_types(id,name)`
+          ticket_type:helpdesk_ticket_types(id,name),
+          partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,email,phone)`
         )
         .eq("id", ticketId)
         .single();

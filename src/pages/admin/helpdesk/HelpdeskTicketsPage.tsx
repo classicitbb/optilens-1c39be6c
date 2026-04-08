@@ -79,7 +79,7 @@ const HelpdeskTicketsPage = () => {
   const [onlyOpen, setOnlyOpen] = useState(true);
 
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "" });
+  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "", dueDate: "" });
 
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
@@ -87,7 +87,7 @@ const HelpdeskTicketsPage = () => {
 
   // Refs for sequential keyboard navigation inside popover
   const fieldRefs = useRef<(HTMLElement | null)[]>([]);
-  const FIELD_COUNT = 8; // title, description, type, contact, team, priority, stage, submit
+  const FIELD_COUNT = 9; // type, title, contact, description, team, priority, stage, due date, submit
 
   const setFieldRef = useCallback((index: number) => (el: HTMLElement | null) => { fieldRefs.current[index] = el; }, []);
 
@@ -178,6 +178,7 @@ const HelpdeskTicketsPage = () => {
       priority: consistentDefault("priority") ?? defaultPriority,
       contactId: "",
       ticketTypeId: consistentDefault("ticketTypeId") ?? "",
+      dueDate: "",
     });
   }, [stages, priorities]);
 
@@ -201,6 +202,7 @@ const HelpdeskTicketsPage = () => {
         ownerUserId: user?.id ?? null,
         partnerContactId: form.contactId || null,
         ticketTypeId: form.ticketTypeId || null,
+        deadline: form.dueDate ? new Date(form.dueDate + "T00:00:00").toISOString() : null,
         sourceChannel: "manual",
       });
       // Save to history for smart defaults
@@ -362,13 +364,26 @@ const HelpdeskTicketsPage = () => {
                     </Select>
                   </div>
 
-                  {/* 7: Submit */}
+                  {/* 7: Due Date */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Due Date</Label>
+                    <Input
+                      ref={setFieldRef(7) as any}
+                      type="date"
+                      value={form.dueDate}
+                      onChange={(e) => setForm((p) => ({ ...p, dueDate: e.target.value }))}
+                      className="h-8 text-xs"
+                      onKeyDown={handleFieldKeyDown(7) as any}
+                    />
+                  </div>
+
+                  {/* 8: Submit */}
                   <Button
-                    ref={setFieldRef(7) as any}
+                    ref={setFieldRef(8) as any}
                     size="sm"
                     className="w-full h-9 text-xs"
                     onClick={handleCreate}
-                    onKeyDown={handleFieldKeyDown(7) as any}
+                    onKeyDown={handleFieldKeyDown(8) as any}
                     disabled={createTicket.isPending}
                   >
                     {createTicket.isPending ? "Creating…" : "Create Ticket"}
@@ -409,6 +424,7 @@ const HelpdeskTicketsPage = () => {
                     <TableHead className="hidden md:table-cell">Team</TableHead>
                     <TableHead>Priority</TableHead>
                     <TableHead className="hidden md:table-cell">SLA</TableHead>
+                    <TableHead className="hidden md:table-cell">Due Date</TableHead>
                     <TableHead>Stage</TableHead>
                     <TableHead className="hidden lg:table-cell">Owner</TableHead>
                     <TableHead className="hidden lg:table-cell">Updated</TableHead>
@@ -425,7 +441,7 @@ const HelpdeskTicketsPage = () => {
                         className="cursor-pointer hover:bg-muted/40"
                         onClick={(e) => {
                           if ((e.target as HTMLElement).closest('[data-no-row-click]')) return;
-                          navigate(`/admin/helpdesk/tickets/${ticket.id}`);
+                          navigate(`/admin/helpdesk/tickets/${ticket.id}`, { state: { returnTo: "/admin/helpdesk/tickets" } });
                         }}
                         style={{ borderLeft: `3px solid ${prioColor}` }}
                       >
@@ -438,6 +454,9 @@ const HelpdeskTicketsPage = () => {
                           <Badge variant="outline" className="text-[9px] px-1 py-0" style={{ borderColor: prioColor, color: prioColor }}>{getPrioLabel(ticket.priority)}</Badge>
                         </TableCell>
                         <TableCell className="capitalize hidden md:table-cell">{slaStatus.replace("_", " ")}</TableCell>
+                        <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                          {ticket.deadline ? new Date(ticket.deadline).toLocaleDateString() : "—"}
+                        </TableCell>
                         <TableCell data-no-row-click>
                           {canEditTickets ? (
                             <Select value={ticket.stage_id ?? "__none"} onValueChange={(v) => { if (v !== "__none" && v !== ticket.stage_id) updateStage.mutate({ ticketId: ticket.id, stageId: v, actorUserId: user?.id }); }}>

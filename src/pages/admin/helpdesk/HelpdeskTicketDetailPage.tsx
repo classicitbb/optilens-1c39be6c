@@ -1,5 +1,5 @@
-import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useParams, useNavigate, useLocation } from "react-router";
+import { ArrowLeft, Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useHelpdeskTicketDetail } from "@/features/admin/helpdesk/hooks/useHelpdeskTicketDetail";
@@ -41,6 +41,10 @@ const priorityColors: Record<number, string> = {
 const HelpdeskTicketDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Return to where we came from (overview or tickets list)
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? "/admin/helpdesk/tickets";
 
   const { data: ticket, isLoading, error } = useHelpdeskTicketDetail(id);
   const { data: slaStatus } = useTicketSlaStatus(id);
@@ -58,7 +62,7 @@ const HelpdeskTicketDetailPage = () => {
     return (
       <div className="p-8 text-center text-muted-foreground text-sm">
         Ticket not found.{" "}
-        <button className="underline" onClick={() => navigate("/admin/helpdesk/tickets")}>
+        <button className="underline" onClick={() => navigate(returnTo)}>
           Back to tickets
         </button>
       </div>
@@ -73,11 +77,11 @@ const HelpdeskTicketDetailPage = () => {
           variant="ghost"
           size="sm"
           className="shrink-0 h-8 w-8 p-0 mt-0.5"
-          onClick={() => navigate("/admin/helpdesk/tickets")}
+          onClick={() => navigate(returnTo)}
         >
           <ArrowLeft size={15} />
         </Button>
-        <div className="flex flex-col gap-1 min-w-0">
+        <div className="flex flex-col gap-1 min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-mono text-muted-foreground">{ticket.ticket_number}</span>
             {ticket.stage && (
@@ -95,6 +99,18 @@ const HelpdeskTicketDetailPage = () => {
           <h1 className="text-lg font-semibold leading-tight truncate">{ticket.title}</h1>
           {ticket.description && (
             <p className="text-sm text-muted-foreground line-clamp-2">{ticket.description}</p>
+          )}
+          {/* Contact display */}
+          {ticket.partner_contact && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <User size={13} className="text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                {ticket.partner_contact.name}
+                {ticket.partner_contact.email && (
+                  <span className="ml-1.5 text-xs">· {ticket.partner_contact.email}</span>
+                )}
+              </span>
+            </div>
           )}
         </div>
       </div>
