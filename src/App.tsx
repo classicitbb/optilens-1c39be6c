@@ -15,6 +15,7 @@ import StoreProductPage from "@/pages/StoreProductPage";
 import Unsubscribe from "@/pages/Unsubscribe";
 import CheckoutPage from "@/pages/CheckoutPage";
 import RuntimeAnalytics from "@/components/analytics/RuntimeAnalytics";
+import ScrollToTop from "@/components/ScrollToTop";
 import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 
