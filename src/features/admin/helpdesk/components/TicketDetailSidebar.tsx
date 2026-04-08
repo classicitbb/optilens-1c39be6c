@@ -56,6 +56,13 @@ export const TicketDetailSidebar = ({ ticket }: TicketDetailSidebarProps) => {
   const appliedPolicyIds = new Set(slaStatuses.map((s) => s.policy_id));
   const unappliedPolicies = teamPolicies.filter((p) => !appliedPolicyIds.has(p.id));
 
+  // Forward-only stage progression: hide stages earlier than the current stage.
+  // Always show is_closed stages (Cancelled, Resolved, etc.) regardless of sequence.
+  const currentSequence = ticket.stage?.sequence ?? -1;
+  const selectableStages = stages.filter(
+    (s) => s.is_closed || s.sequence >= currentSequence
+  );
+
   // Local deadline state (YYYY-MM-DD) synced from ticket prop
   const [deadlineLocal, setDeadlineLocal] = useState(() =>
     ticket.deadline ? new Date(ticket.deadline).toISOString().slice(0, 10) : ""
@@ -120,15 +127,15 @@ export const TicketDetailSidebar = ({ ticket }: TicketDetailSidebarProps) => {
         <Label className="text-xs text-muted-foreground">Stage</Label>
         <Select value={ticket.stage_id ?? undefined} onValueChange={handleStageChange}>
           <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder={areStagesLoading ? "Loading stages..." : "Select stage"} />
+            <SelectValue placeholder={areStagesLoading ? "Loading…" : "Select stage"} />
           </SelectTrigger>
           <SelectContent>
-            {!areStagesLoading && stages.length === 0 && (
+            {!areStagesLoading && selectableStages.length === 0 && (
               <SelectItem value="__no_stages" disabled className="text-sm">
                 No stages available
               </SelectItem>
             )}
-            {stages.map((s) => (
+            {selectableStages.map((s) => (
               <SelectItem key={s.id} value={s.id} className="text-sm">
                 {s.name}
               </SelectItem>

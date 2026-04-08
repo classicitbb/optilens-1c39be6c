@@ -7,23 +7,21 @@ export interface HelpdeskStage {
   is_closed: boolean;
   is_folded: boolean;
   sequence: number;
-  team_id: string | null;
 }
 
-export const useHelpdeskStages = (teamId?: string) => {
+/**
+ * Fetches all helpdesk ticket stages ordered by sequence.
+ * Note: the active schema uses tenant_key (not team_id), so no team filter is applied.
+ */
+export const useHelpdeskStages = () => {
   return useQuery({
-    queryKey: ["helpdesk-stages", teamId ?? "all"],
+    queryKey: ["helpdesk-stages"],
     queryFn: async () => {
-      let query = (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("helpdesk_ticket_stages")
-        .select("id,name,is_closed,is_folded,sequence,team_id")
+        .select("id,name,is_closed,is_folded,sequence")
         .order("sequence", { ascending: true });
 
-      if (teamId) {
-        query = query.or(`team_id.eq.${teamId},team_id.is.null`);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as HelpdeskStage[];
     },
