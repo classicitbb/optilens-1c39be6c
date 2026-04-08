@@ -90,9 +90,12 @@ const CustomerSuppliedFramesPolicyPage = () => {
               <p>Where the frame has significant retail or sentimental value, the customer should arrange suitable insurance cover before it enters transit or production.</p>
               <p>If the work cannot be completed safely, we may stop processing and return the frame without finishing the job.</p>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Button variant="outline" asChild>
-                <a href="mailto:info@classicvisions.net">Contact Customer Service</a>
+                <a href="/#contact">Contact Us</a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href="mailto:support@classicvisions.net">Email Support</a>
               </Button>
             </div>
           </section>
