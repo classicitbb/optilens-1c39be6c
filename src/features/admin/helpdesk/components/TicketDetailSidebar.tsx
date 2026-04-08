@@ -1,32 +1,72 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { X, CheckCircle2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useUpdateHelpdeskTicketStage } from "../hooks/useUpdateHelpdeskTicketStage";
-import { useUpdateHelpdeskTicket } from "../hooks/useHelpdeskMutations";
+import { useUpdateHelpdeskTicket, useCloseHelpdeskTicket } from "../hooks/useHelpdeskMutations";
 import { useHelpdeskStages } from "../hooks/useHelpdeskStages";
 import { helpdeskTicketQueryKeys } from "../hooks/useHelpdeskTickets";
 import { normalizeHelpdeskPriorityLabel } from "../utils/normalization";
 import { SlaStatusBadge } from "./SlaStatusBadge";
 import { WatcherManager } from "./WatcherManager";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
+import {
+  useHelpdeskTicketSlaStatuses,
+  useHelpdeskTeamSlaPolicies,
+  useAssignHelpdeskSlaPolicy,
+  useRemoveHelpdeskSlaPolicy,
+} from "../hooks/useHelpdeskTicketSla";
 import { format } from "date-fns";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
 interface TicketDetailSidebarProps {
   ticket: HelpdeskTicketDetail;
-  slaDeadlineAt?: string | null;
 }
 
 const priorities = [0, 1, 2, 3, 4, 5] as const;
 
-export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSidebarProps) => {
+const SLA_STATUS_LABEL: Record<string, string> = {
+  in_progress: "Active",
+  reached: "Reached",
+  failed: "Failed",
+};
+
+const SLA_STATUS_COLOR: Record<string, string> = {
+  reached: "text-emerald-500",
+  failed: "text-red-500",
+  in_progress: "text-muted-foreground",
+};
+
+export const TicketDetailSidebar = ({ ticket }: TicketDetailSidebarProps) => {
   const qc = useQueryClient();
   const updateStage = useUpdateHelpdeskTicketStage();
   const updateTicket = useUpdateHelpdeskTicket();
-  const { data: stages = [], isLoading: areStagesLoading } = useHelpdeskStages();
+  const closeTicket = useCloseHelpdeskTicket();
+  const { data: stages = [], isLoading: areStagesLoading, isError: stagesError } = useHelpdeskStages();
+
+  const isAlreadyClosed = !!ticket.closed_at || ticket.stage?.is_closed;
+
+  // SLA data
+  const { data: slaStatuses = [], isLoading: areSlaLoading } = useHelpdeskTicketSlaStatuses(ticket.id);
+  const { data: teamPolicies = [] } = useHelpdeskTeamSlaPolicies(ticket.team_id);
+  const assignSla = useAssignHelpdeskSlaPolicy();
+  const removeSla = useRemoveHelpdeskSlaPolicy();
+
+  // Policies not yet applied
+  const appliedPolicyIds = new Set(slaStatuses.map((s) => s.policy_id));
+  const unappliedPolicies = teamPolicies.filter((p) => !appliedPolicyIds.has(p.id));
+
+  // Forward-only stage progression: hide stages earlier than the current stage.
+  // Always show is_closed stages (Cancelled, Resolved, etc.) regardless of sequence.
+  const currentSequence = ticket.stage?.sequence ?? -1;
+  const selectableStages = stages.filter(
+    (s) => s.is_closed || s.sequence >= currentSequence
+  );
 
   // Local deadline state (YYYY-MM-DD) synced from ticket prop
   const [deadlineLocal, setDeadlineLocal] = useState(() =>
@@ -59,6 +99,17 @@ export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSideb
     qc.invalidateQueries({ queryKey: helpdeskTicketQueryKeys.detail(ticket.id) });
   };
 
+  const handleAssignPolicy = (policyId: string) => {
+    const policy = teamPolicies.find((p) => p.id === policyId);
+    if (!policy) return;
+    assignSla.mutate({
+      ticketId: ticket.id,
+      policyId,
+      targetHours: policy.target_hours,
+      openedAt: ticket.opened_at,
+    });
+  };
+
   return (
     <aside className="flex flex-col gap-5 p-4 border-l border-border bg-card h-full overflow-y-auto">
       {/* Contact */}
@@ -77,25 +128,53 @@ export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSideb
       <Separator />
 
       {/* Stage */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">Stage</Label>
-        <Select value={ticket.stage_id ?? undefined} onValueChange={handleStageChange}>
-          <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder={areStagesLoading ? "Loading stages..." : "Select stage"} />
-          </SelectTrigger>
-          <SelectContent>
-            {!areStagesLoading && stages.length === 0 && (
-              <SelectItem value="__no_stages" disabled className="text-sm">
-                No stages available
-              </SelectItem>
-            )}
-            {stages.map((s) => (
-              <SelectItem key={s.id} value={s.id} className="text-sm">
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        {/* Current stage badge — always visible from ticket data */}
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="secondary"
+            className={ticket.stage?.is_closed ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : ""}
+          >
+            {ticket.stage?.name ?? "Unstaged"}
+          </Badge>
+          {isAlreadyClosed && (
+            <span className="text-xs text-emerald-600 flex items-center gap-1">
+              <CheckCircle2 size={12} /> Closed
+            </span>
+          )}
+        </div>
+
+        {/* Forward-progression dropdown — shown when stages are loaded */}
+        {!stagesError && selectableStages.length > 0 && (
+          <Select value={ticket.stage_id ?? undefined} onValueChange={handleStageChange} disabled={updateStage.isPending}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Move to stage…" />
+            </SelectTrigger>
+            <SelectContent>
+              {selectableStages.map((s) => (
+                <SelectItem key={s.id} value={s.id} className="text-sm">
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {/* Close ticket button — works independently, always available */}
+        {!isAlreadyClosed && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
+            onClick={() => closeTicket.mutate({ ticketId: ticket.id })}
+            disabled={closeTicket.isPending}
+          >
+            <CheckCircle2 size={13} />
+            {closeTicket.isPending ? "Closing…" : "Close Ticket"}
+          </Button>
+        )}
       </div>
 
       {/* Priority */}
@@ -129,29 +208,84 @@ export const TicketDetailSidebar = ({ ticket, slaDeadlineAt }: TicketDetailSideb
       <Separator />
 
       {/* SLA */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">SLA</Label>
-        <div className="flex flex-col gap-1.5">
-          <SlaStatusBadge
-            deadlineAt={slaDeadlineAt}
-            closedAt={ticket.closed_at}
-            slaPausedAt={ticket.sla_paused_at}
-            slaPausedDurationSeconds={ticket.sla_paused_duration_seconds}
-          />
-          {ticket.sla_paused_at && (
-            <span className="text-xs text-muted-foreground">SLA paused (on hold)</span>
-          )}
-          {ticket.first_response_at && (
-            <span className="text-xs text-muted-foreground">
-              First response: {format(new Date(ticket.first_response_at), "MMM d, h:mm a")}
-            </span>
-          )}
-          {slaDeadlineAt && (
-            <span className="text-xs text-muted-foreground">
-              Due: {format(new Date(slaDeadlineAt), "MMM d, h:mm a")}
-            </span>
-          )}
-        </div>
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">SLA Policies</Label>
+
+        {areSlaLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : slaStatuses.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No SLA policies active</p>
+        ) : (
+          <div className="space-y-2">
+            {slaStatuses.map((sla) => (
+              <div
+                key={sla.id}
+                className="rounded-md border border-border p-2 space-y-1"
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-medium truncate">{sla.policy.name}</span>
+                  <button
+                    onClick={() => removeSla.mutate({ slaStatusId: sla.id, ticketId: ticket.id })}
+                    className="shrink-0 h-4 w-4 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    title="Remove this SLA policy"
+                    disabled={removeSla.isPending}
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <SlaStatusBadge
+                    deadlineAt={sla.deadline_at}
+                    closedAt={ticket.closed_at}
+                    slaPausedAt={ticket.sla_paused_at}
+                    slaPausedDurationSeconds={ticket.sla_paused_duration_seconds}
+                  />
+                  {sla.status !== "in_progress" && (
+                    <span className={`text-xs font-medium ${SLA_STATUS_COLOR[sla.status] ?? ""}`}>
+                      {SLA_STATUS_LABEL[sla.status] ?? sla.status}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  ⏱ {format(new Date(sla.deadline_at), "MMM d, yyyy h:mm a")}
+                </span>
+                {sla.reached_at && (
+                  <span className="text-xs text-emerald-500 block">
+                    Reached {format(new Date(sla.reached_at), "MMM d, h:mm a")}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Assign additional policy */}
+        {unappliedPolicies.length > 0 && (
+          <Select
+            value=""
+            onValueChange={handleAssignPolicy}
+          >
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Apply a policy…" />
+            </SelectTrigger>
+            <SelectContent>
+              {unappliedPolicies.map((p) => (
+                <SelectItem key={p.id} value={p.id} className="text-xs">
+                  {p.name} ({p.target_hours}h)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {ticket.sla_paused_at && (
+          <span className="text-xs text-muted-foreground">SLA paused (on hold)</span>
+        )}
+        {ticket.first_response_at && (
+          <span className="text-xs text-muted-foreground">
+            First response: {format(new Date(ticket.first_response_at), "MMM d, h:mm a")}
+          </span>
+        )}
       </div>
 
       <Separator />

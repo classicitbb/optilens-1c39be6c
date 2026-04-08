@@ -7,27 +7,6 @@ import { TicketTimeline } from "@/features/admin/helpdesk/components/TicketTimel
 import { TicketReplyComposer } from "@/features/admin/helpdesk/components/TicketReplyComposer";
 import { TicketDetailSidebar } from "@/features/admin/helpdesk/components/TicketDetailSidebar";
 import { normalizeHelpdeskPriorityLabel } from "@/features/admin/helpdesk/utils/normalization";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-
-const useTicketSlaStatus = (ticketId: string | undefined) =>
-  useQuery({
-    queryKey: ["helpdesk-ticket-sla-status", ticketId],
-    enabled: !!ticketId,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("helpdesk_ticket_sla_status")
-        .select("deadline_at,status,policy_id")
-        .eq("ticket_id", ticketId)
-        .eq("status", "in_progress")
-        .order("deadline_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as { deadline_at: string; status: string; policy_id: string } | null;
-    },
-  });
 
 const priorityColors: Record<number, string> = {
   0: "bg-slate-500/15 text-slate-400 border-slate-500/30",
@@ -43,11 +22,10 @@ const HelpdeskTicketDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Return to where we came from (overview or tickets list)
+  // Return to wherever the user navigated from
   const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? "/admin/helpdesk/tickets";
 
   const { data: ticket, isLoading, error } = useHelpdeskTicketDetail(id);
-  const { data: slaStatus } = useTicketSlaStatus(id);
 
   if (isLoading) {
     return (
@@ -100,7 +78,7 @@ const HelpdeskTicketDetailPage = () => {
           {ticket.description && (
             <p className="text-sm text-muted-foreground line-clamp-2">{ticket.description}</p>
           )}
-          {/* Contact display */}
+          {/* Contact / customer */}
           {ticket.partner_contact && (
             <div className="flex items-center gap-1.5 mt-0.5">
               <User size={13} className="text-muted-foreground shrink-0" />
@@ -129,10 +107,7 @@ const HelpdeskTicketDetailPage = () => {
 
         {/* Right: sidebar */}
         <div className="w-72 shrink-0 overflow-y-auto border-l border-border">
-          <TicketDetailSidebar
-            ticket={ticket}
-            slaDeadlineAt={slaStatus?.deadline_at ?? null}
-          />
+          <TicketDetailSidebar ticket={ticket} />
         </div>
       </div>
     </div>

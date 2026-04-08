@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { helpdeskTicketQueryKeys } from "./useHelpdeskTickets";
 
 const db = () => supabase as any;
 
@@ -58,6 +59,53 @@ export const useArchiveHelpdeskTicket = () => {
       toast({ title: "Ticket archived" });
     },
     onError: (err: Error) => toast({ title: "Archive failed", description: err.message, variant: "destructive" }),
+  });
+};
+
+/**
+ * Closes a ticket by fetching the first is_closed stage directly.
+ * Works independently of any cached stage list.
+ */
+export const useCloseHelpdeskTicket = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ ticketId, actorUserId }: { ticketId: string; actorUserId?: string | null }) => {
+      // Fetch the closed stage directly — no dependency on cached stages list
+      const { data: closedStage, error: stageError } = await db()
+        .from("helpdesk_ticket_stages")
+        .select("id,name")
+        .eq("is_closed", true)
+        .order("sequence", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (stageError) throw stageError;
+      if (!closedStage) throw new Error("No closed stage configured. Add one at /admin/helpdesk/stages.");
+
+      const now = new Date().toISOString();
+      const { error: updateError } = await db()
+        .from("helpdesk_tickets")
+        .update({ stage_id: closedStage.id, closed_at: now, updated_at: now })
+        .eq("id", ticketId);
+      if (updateError) throw updateError;
+
+      // Log the stage change event
+      await db().from("helpdesk_ticket_events").insert({
+        ticket_id: ticketId,
+        event_type: "stage_updated",
+        actor_user_id: actorUserId ?? null,
+        payload: { next_stage_id: closedStage.id, closed: true },
+      });
+    },
+    onSuccess: (_, { ticketId }) => {
+      qc.invalidateQueries({ queryKey: helpdeskTicketQueryKeys.all });
+      qc.invalidateQueries({ queryKey: helpdeskTicketQueryKeys.detail(ticketId) });
+      qc.invalidateQueries({ queryKey: helpdeskTicketQueryKeys.timeline(ticketId) });
+      qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
+      toast({ title: "Ticket closed" });
+    },
+    onError: (err: Error) => toast({ title: "Failed to close ticket", description: err.message, variant: "destructive" }),
   });
 };
 
