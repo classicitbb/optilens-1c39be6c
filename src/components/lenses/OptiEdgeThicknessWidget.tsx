@@ -133,7 +133,7 @@ const OptiEdgeThicknessWidget = () => {
   return (
     <section className="space-y-6" id="optiedge-widget">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-foreground">Interactive OptiEdge Thickness Estimator</h2>
+        <h2 className="text-2xl font-bold text-foreground">Interactive Thickness Estimator</h2>
         <p className="mx-auto mt-2 max-w-3xl text-muted-foreground">
           Enter binocular Rx and frame details to estimate finished thickness and compare how much thinner higher-index
           lenses can be in your selected shape.
