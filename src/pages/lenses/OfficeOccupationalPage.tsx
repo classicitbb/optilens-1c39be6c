@@ -3,7 +3,9 @@ import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Link } from "react-router";
+import { useMemo, useState } from "react";
 import {
   Eye,
   Monitor,
@@ -16,6 +18,14 @@ import {
   Layers,
   Move,
 } from "lucide-react";
+import {
+  buildAddOptions,
+  buildSphOptions,
+  calculateOfficeLensValues,
+  formatMeters,
+  formatSignedDiopters,
+  OFFICE_RANGE_OPTIONS,
+} from "@/features/lenses/officeRangeCalculator";
 
 /* ------------------------------------------------------------------ */
 /*  Static data                                                        */
@@ -113,6 +123,24 @@ const TECHNOLOGIES = [
 /* ------------------------------------------------------------------ */
 
 const OfficeOccupationalPage = () => {
+  const sphOptions = useMemo(() => buildSphOptions(), []);
+  const addOptions = useMemo(() => buildAddOptions(), []);
+  const [distanceSphRight, setDistanceSphRight] = useState(0);
+  const [distanceSphLeft, setDistanceSphLeft] = useState(0);
+  const [addPower, setAddPower] = useState(1.5);
+  const [selectedRangeId, setSelectedRangeId] = useState<(typeof OFFICE_RANGE_OPTIONS)[number]["id"]>("6m_plus");
+
+  const calculator = useMemo(
+    () =>
+      calculateOfficeLensValues({
+        distanceSphRight,
+        distanceSphLeft,
+        addPower,
+        rangeId: selectedRangeId,
+      }),
+    [addPower, distanceSphLeft, distanceSphRight, selectedRangeId],
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -187,6 +215,124 @@ const OfficeOccupationalPage = () => {
               </Card>
             ))}
           </div>
+        </section>
+
+        <section className="container mx-auto mt-16 max-w-6xl px-4 lg:px-8">
+          <Card className="border-border">
+            <CardContent className="p-6 sm:p-8">
+              <h2 className="text-2xl font-bold text-foreground">Office Range Calculator (Prototype)</h2>
+              <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+                Replicated calculator workflow for Optilux & Essential Office / Start Office:
+                select distance sphere, ADD power, and a far distance range to generate shift guidance and pupil-centre references.
+              </p>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="distance-sph-right">Distance SPH (R)</Label>
+                  <select
+                    id="distance-sph-right"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={distanceSphRight}
+                    onChange={(event) => setDistanceSphRight(Number(event.target.value))}
+                  >
+                    {sphOptions.map((option) => (
+                      <option key={`r-${option}`} value={option}>
+                        {formatSignedDiopters(option)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="distance-sph-left">Distance SPH (L)</Label>
+                  <select
+                    id="distance-sph-left"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={distanceSphLeft}
+                    onChange={(event) => setDistanceSphLeft(Number(event.target.value))}
+                  >
+                    {sphOptions.map((option) => (
+                      <option key={`l-${option}`} value={option}>
+                        {formatSignedDiopters(option)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="add-power">ADD</Label>
+                  <select
+                    id="add-power"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={addPower}
+                    onChange={(event) => setAddPower(Number(event.target.value))}
+                  >
+                    {addOptions.map((option) => (
+                      <option key={`add-${option}`} value={option}>
+                        {option.toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <p className="text-sm font-medium text-foreground">Choose far distance range</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                  {OFFICE_RANGE_OPTIONS.map((option) => (
+                    <button
+                      type="button"
+                      key={option.id}
+                      className={`rounded-md border px-3 py-2 text-sm transition ${
+                        selectedRangeId === option.id
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-foreground hover:bg-muted"
+                      }`}
+                      onClick={() => setSelectedRangeId(option.id)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="rounded-lg border border-border p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shift</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {calculator.shift === null ? "—" : formatSignedDiopters(calculator.shift)}
+                  </p>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shift at Pupil Centre</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {calculator.shiftAtPupilCenter === null ? "—" : formatSignedDiopters(calculator.shiftAtPupilCenter)}
+                  </p>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Range at Pupil Centre</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {calculator.rangeAtPupilCenterMeters === null ? "—" : formatMeters(calculator.rangeAtPupilCenterMeters)}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-border p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rx at Pupil Centre</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    R: {calculator.rxAtPupilCenterRight === null ? "—" : formatSignedDiopters(calculator.rxAtPupilCenterRight)}
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    L: {calculator.rxAtPupilCenterLeft === null ? "—" : formatSignedDiopters(calculator.rxAtPupilCenterLeft)}
+                  </p>
+
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Final Office Lens Rx (reference)</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    R: {formatSignedDiopters(distanceSphRight)} / SHIFT {calculator.shift === null ? "—" : formatSignedDiopters(calculator.shift)}
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    L: {formatSignedDiopters(distanceSphLeft)} / SHIFT {calculator.shift === null ? "—" : formatSignedDiopters(calculator.shift)}
+                  </p>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Near reference from distance + ADD: R {formatSignedDiopters(calculator.nearReferenceRight)}, L {formatSignedDiopters(calculator.nearReferenceLeft)}.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </section>
 
         {/* ── Key Benefits ───────────────────────────────── */}
