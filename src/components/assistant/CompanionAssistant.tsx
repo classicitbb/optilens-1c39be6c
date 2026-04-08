@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
 import { Bot, Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -211,21 +212,31 @@ const AssistantResultCard = ({
 
       <div className="space-y-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Assistant response</p>
-        <p className="rounded-[20px] border border-sky-400/15 bg-sky-500/10 px-4 py-3 text-sm leading-6 text-slate-50">
-          {result.answer}
-        </p>
+        <div className="rounded-[20px] border border-sky-400/15 bg-sky-500/10 px-4 py-3">
+          <div className="prose prose-invert prose-sm max-w-none text-slate-50 leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
+            <ReactMarkdown>{result.answer}</ReactMarkdown>
+          </div>
+        </div>
       </div>
 
-      {result.topLinks.length > 0 ? (
+      {(result.citations ?? result.topLinks).length > 0 ? (
         <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Website context</p>
-          <ul className="space-y-3 rounded-[18px] border border-slate-700/70 bg-slate-950/70 p-3 text-sm">
-            {result.topLinks.map((link) => (
-              <li key={link.path} className="space-y-1">
-                <p className="font-semibold text-slate-50">
-                  {renderLink(link.path, link.title, link.external, link.website)}
-                </p>
-                <p className="text-xs leading-5 text-slate-400">{link.description}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Sources</p>
+          <ul className="space-y-1.5">
+            {(result.citations ?? result.topLinks).map((link, i) => (
+              <li key={link.path}>
+                {link.external ? (
+                  <a href={link.website || link.path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300">
+                    <span className="text-slate-500">[{i + 1}]</span>
+                    {link.title}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  <Link to={link.path} className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300">
+                    <span className="text-slate-500">[{i + 1}]</span>
+                    {link.title}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -273,7 +284,9 @@ const AssistantMessageList = () => {
 
                 {message.kind === "text" ? (
                   <div className="space-y-3 rounded-[20px] border border-slate-700/80 bg-slate-900/90 px-4 py-3 text-sm text-slate-50 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
-                    <p className="leading-6 text-slate-100">{message.text}</p>
+                    <div className="prose prose-invert prose-sm max-w-none leading-6 text-slate-100 [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
+                      <ReactMarkdown>{message.text}</ReactMarkdown>
+                    </div>
                     {message.quickActions?.length ? (
                       <MessageQuickActions quickActions={message.quickActions} isStarter={index === 0} onAction={submitQuickAction} />
                     ) : null}

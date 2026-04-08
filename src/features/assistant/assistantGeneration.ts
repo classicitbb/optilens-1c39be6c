@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { AssistantProfile, AssistantQueryResult } from "./companionAssistantEngine";
+import type { AssistantProfile, AssistantLinkResult, AssistantQueryResult } from "./companionAssistantEngine";
 
 type ConversationTurn = {
   role: "user" | "assistant";
@@ -14,7 +14,12 @@ export interface AssistantGenerationPayload {
   conversation: ConversationTurn[];
 }
 
-export async function generateAssistantAnswer(payload: AssistantGenerationPayload): Promise<string | null> {
+export interface AssistantGenerationResult {
+  answer: string;
+  citations: AssistantLinkResult[];
+}
+
+export async function generateAssistantAnswer(payload: AssistantGenerationPayload): Promise<AssistantGenerationResult | null> {
   try {
     const { data, error } = await supabase.functions.invoke("companion-assistant", {
       body: {
@@ -37,11 +42,12 @@ export async function generateAssistantAnswer(payload: AssistantGenerationPayloa
       },
     });
 
-    if (error) return null;
+    if (error || !data?.answer?.trim()) return null;
 
-    return typeof data?.answer === "string" && data.answer.trim()
-      ? data.answer.trim()
-      : null;
+    return {
+      answer: data.answer.trim(),
+      citations: Array.isArray(data.citations) ? data.citations : [],
+    };
   } catch {
     return null;
   }

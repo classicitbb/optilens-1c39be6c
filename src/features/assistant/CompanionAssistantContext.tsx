@@ -414,7 +414,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
             ? {
                 ...message,
                 result: generatedAnswer
-                  ? { ...message.result, answer: generatedAnswer }
+                  ? { ...message.result, answer: generatedAnswer.answer, citations: generatedAnswer.citations }
                   : message.result,
                 isEnhancing: false,
               }

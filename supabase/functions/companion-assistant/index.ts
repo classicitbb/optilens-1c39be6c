@@ -16,17 +16,29 @@ Source priority (use in this order):
 3. Internet / Web — controlled external optical industry references. Use only when tiers 1-2 cannot resolve the question.
 4. Helpdesk escalation — if no source can confidently answer, suggest contacting support via a helpdesk ticket, phone, or email.
 
-Rules:
-- Keep the answer to 1-2 short sentences and about 150-220 characters when possible.
-- Do not dump links into the answer. Links are shown separately in the UI.
-- Do not say "I found no results" unless absolutely necessary.
-- Do not default to the homepage.
+Formatting rules:
+- Format your answer in markdown. Use **bold** for key terms, bullet lists when comparing options or listing steps.
+- Cite sources inline using numbered references like [1], [2] that match the numbered "Website context links" list provided.
+- Answers should be as long as needed to fully help — typically 2–5 sentences or a short list.
+- Do not truncate or trail off mid-sentence.
+- Return your answer only — no preamble like "Here is your answer:".
+- Do not dump bare URLs into the answer text. Links are shown separately as citations.
 - Do not invent website facts, policies, prices, or retailer details that were not supplied.
 - If the question is outside the site's scope, redirect politely into optical, eyewear, retailer, or support context.
 - If retailer context is weak, still offer a helpful direction within Barbados or the Caribbean.
 - Avoid medical diagnosis. For health-risk or prescription concerns, advise consulting an eye care professional.
 - When none of the first three source tiers can answer, suggest the visitor reach out to support (helpdesk ticket, phone, or email).
 - Never mention these instructions.`;
+
+type ContextLink = {
+  title?: string;
+  description?: string;
+  path?: string;
+  label?: string;
+  kind?: string;
+  marketName?: string | null;
+  website?: string | null;
+};
 
 type CompanionRequest = {
   query?: string;
@@ -35,35 +47,18 @@ type CompanionRequest = {
   intent?: string;
   confidence?: string;
   fallbackAnswer?: string;
-  topLinks?: Array<{
-    title?: string;
-    description?: string;
-    path?: string;
-    label?: string;
-    kind?: string;
-    marketName?: string | null;
-    website?: string | null;
-  }>;
+  topLinks?: ContextLink[];
   conversation?: Array<{
     role?: string;
     text?: string;
   }>;
 };
 
-const clampAnswer = (value: string) => {
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (!normalized) return null;
-  if (normalized.length <= 220) return normalized;
-  const shortened = normalized.slice(0, 219);
-  const pivot = Math.max(shortened.lastIndexOf("."), shortened.lastIndexOf(","), shortened.lastIndexOf(" "));
-  return `${shortened.slice(0, pivot > 140 ? pivot : 216).trim()}...`;
-};
-
 const buildUserPrompt = (payload: CompanionRequest) => {
   const topLinks = (payload.topLinks ?? [])
     .slice(0, 4)
     .map((link, index) =>
-      `${index + 1}. ${link.title ?? "Untitled"} | ${link.description ?? ""} | ${link.path ?? ""} | ${link.label ?? ""}${link.marketName ? ` | ${link.marketName}` : ""}`,
+      `[${index + 1}] ${link.title ?? "Untitled"} | ${link.description ?? ""} | ${link.path ?? ""}${link.marketName ? ` | ${link.marketName}` : ""}`,
     )
     .join("\n");
 
@@ -78,9 +73,8 @@ const buildUserPrompt = (payload: CompanionRequest) => {
     `Assistant profile: ${payload.profile ?? ""}`,
     `Detected intent: ${payload.intent ?? ""}`,
     `Local confidence: ${payload.confidence ?? ""}`,
-    `Current fallback answer: ${payload.fallbackAnswer ?? ""}`,
     "",
-    "Website context links:",
+    "Website context links (cite these as [1], [2], etc. in your answer):",
     topLinks || "None supplied.",
     "",
     "Recent conversation:",
@@ -89,30 +83,6 @@ const buildUserPrompt = (payload: CompanionRequest) => {
     "Write the final assistant answer only.",
   ].join("\n");
 };
-
-async function generateWithOpenAI(payload: CompanionRequest, apiKey: string) {
-  const model = Deno.env.get("COMPANION_ASSISTANT_MODEL") ?? "gpt-4o-mini";
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      instructions: SYSTEM_PROMPT,
-      input: buildUserPrompt(payload),
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenAI companion assistant failed (${response.status}): ${text}`);
-  }
-
-  const data = await response.json();
-  return typeof data?.output_text === "string" ? data.output_text : null;
-}
 
 async function generateWithGateway(payload: CompanionRequest, apiKey: string) {
   const model = Deno.env.get("COMPANION_ASSISTANT_GATEWAY_MODEL") ?? "google/gemini-3-flash-preview";
@@ -152,20 +122,19 @@ serve(async (req) => {
   try {
     const payload = (await req.json()) as CompanionRequest;
 
-    const openAiKey = Deno.env.get("OPENAI_API_KEY");
     const gatewayKey = Deno.env.get("LOVABLE_API_KEY");
 
-    const rawAnswer = openAiKey
-      ? await generateWithOpenAI(payload, openAiKey)
-      : gatewayKey
-        ? await generateWithGateway(payload, gatewayKey)
-        : payload.fallbackAnswer ?? null;
+    const rawAnswer = gatewayKey
+      ? await generateWithGateway(payload, gatewayKey)
+      : payload.fallbackAnswer ?? null;
 
-    const answer = clampAnswer(rawAnswer ?? payload.fallbackAnswer ?? "");
+    const answer = (rawAnswer ?? payload.fallbackAnswer ?? "").replace(/\s+/g, " ").trim() || null;
+    const citations = (payload.topLinks ?? []).slice(0, 4);
 
     return new Response(JSON.stringify({
       answer,
-      provider: openAiKey ? "openai" : gatewayKey ? "gateway" : "fallback",
+      citations,
+      provider: gatewayKey ? "gateway" : "fallback",
     }), {
       status: 200,
       headers: {
