@@ -74,8 +74,7 @@ const LineOverrideDialog = ({
     if (!open || !versionId) return;
     (async () => {
       // Find child section id
-      const { data: sections } = await (supabase
-        .from("pricelist_child_sections") as any)
+      const { data: sections } = await (supabase.from("pricelist_child_sections") as any)
         .select("id")
         .eq("pricelist_version_id", versionId)
         .eq("section_type", sectionType);
@@ -83,8 +82,7 @@ const LineOverrideDialog = ({
       if (!sections?.length) return;
       const sectionIds = (sections as any[]).map((s: any) => s.id);
 
-      const { data: existing } = await (supabase
-        .from("pricelist_line_overrides") as any)
+      const { data: existing } = await (supabase.from("pricelist_line_overrides") as any)
         .select("*")
         .eq("reference_type", referenceType)
         .eq("reference_id", referenceId)
@@ -114,8 +112,7 @@ const LineOverrideDialog = ({
     setSaving(true);
     try {
       // Ensure child section exists
-      const { data: sections } = await (supabase
-        .from("pricelist_child_sections") as any)
+      const { data: sections } = await (supabase.from("pricelist_child_sections") as any)
         .select("id")
         .eq("pricelist_version_id", versionId)
         .eq("section_type", sectionType);
@@ -124,8 +121,7 @@ const LineOverrideDialog = ({
       if (sections && sections.length > 0) {
         childSectionId = (sections as any[])[0].id;
       } else {
-        const { data: newSec, error: secErr } = await (supabase
-          .from("pricelist_child_sections") as any)
+        const { data: newSec, error: secErr } = await (supabase.from("pricelist_child_sections") as any)
           .insert({
             pricelist_version_id: versionId,
             section_type: sectionType,
@@ -139,8 +135,7 @@ const LineOverrideDialog = ({
       }
 
       if (existingId) {
-        const { error } = await (supabase
-          .from("pricelist_line_overrides") as any)
+        const { error } = await (supabase.from("pricelist_line_overrides") as any)
           .update({
             overridden_price_bbd: parsedPrice,
             reason: reason || null,
@@ -149,8 +144,7 @@ const LineOverrideDialog = ({
           .eq("id", existingId);
         if (error) throw error;
       } else {
-        const { error } = await (supabase
-          .from("pricelist_line_overrides") as any)
+        const { error } = await (supabase.from("pricelist_line_overrides") as any)
           .insert({
             child_section_id: childSectionId,
             reference_type: referenceType,
@@ -175,8 +169,7 @@ const LineOverrideDialog = ({
     if (!existingId) return;
     setSaving(true);
     try {
-      const { error } = await (supabase
-        .from("pricelist_line_overrides") as any)
+      const { error } = await (supabase.from("pricelist_line_overrides") as any)
         .delete()
         .eq("id", existingId);
       if (error) throw error;

@@ -23,8 +23,7 @@ export const useActivities = () => {
   return useQuery({
     queryKey: ["crm-activities"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("activities") as any)
+      const { data, error } = await (supabase.from("activities") as any)
         .select("id,activity_type,status,due_at,opportunity_id,contact_id,created_at")
         .order("created_at", { ascending: false })
         .limit(300);
@@ -47,8 +46,7 @@ export const useCreateActivity = () => {
         payload: {},
       };
 
-      const { error } = await supabase
-        .from("activities") as any)
+      const { error } = await (supabase.from("activities") as any)
         .insert(payload as any);
       if (error) throw error;
     },
@@ -63,8 +61,7 @@ export const useCompleteActivity = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("activities") as any)
+      const { error } = await (supabase.from("activities") as any)
         .update({ status: "completed", completed_at: new Date().toISOString() } as any)
         .eq("id", id);
       if (error) throw error;

@@ -80,8 +80,7 @@ export const useShipments = (typeFilter?: "lens" | "non-lens") => {
   const query = useQuery({
     queryKey: ["shipments", typeFilter],
     queryFn: async () => {
-      let q = supabase
-        .from("shipments") as any)
+      let q = (supabase.from("shipments") as any)
         .select("*, suppliers(name)")
         .order("created_at", { ascending: false });
       if (typeFilter) q = q.eq("type", typeFilter);

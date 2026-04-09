@@ -137,8 +137,7 @@ const WebsiteStorePage = () => {
   const { data: mediaRows = [] } = useQuery({
     queryKey: ["store-product-media"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("store_product_media") as any)
+      const { data, error } = await (supabase.from("store_product_media") as any)
         .select("id, product_type, product_id, image_url, sort_order, is_active")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
@@ -151,8 +150,7 @@ const WebsiteStorePage = () => {
   const { data: productOverrides = [] } = useQuery({
     queryKey: ["store-product-overrides"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("store_product_overrides") as any)
+      const { data, error } = await (supabase.from("store_product_overrides") as any)
         .select("id, product_type, product_id, is_vat_taxable, quantity_label, website_badges");
 
       if (error) return [] as ProductOverride[];

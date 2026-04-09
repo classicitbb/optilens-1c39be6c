@@ -7,12 +7,10 @@ export const usePricelistUsedItems = () => {
     queryKey: ["pricelist-used-items"],
     queryFn: async () => {
       const [catalogRes, matrixRes] = await Promise.all([
-        supabase
-          .from("pricelist_catalog_rows") as any)
+        (supabase.from("pricelist_catalog_rows") as any)
           .select("item_id")
           .not("item_id", "is", null),
-        supabase
-          .from("matrix_allocations") as any)
+        (supabase.from("matrix_allocations") as any)
           .select("lens_id")
           .not("lens_id", "is", null),
       ]);

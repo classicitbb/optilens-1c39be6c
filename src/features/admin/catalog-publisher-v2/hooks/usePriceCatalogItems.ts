@@ -6,8 +6,7 @@ export const usePriceCatalogItems = () => {
   return useQuery({
     queryKey: ["price-catalog-v2"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("price_catalog") as any)
+      const { data, error } = await (supabase.from("price_catalog") as any)
         .select("id, sku, name, category, description, unit_price, web_enabled, wspl_enabled")
         .order("name");
       if (error) throw error;

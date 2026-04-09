@@ -15,8 +15,7 @@ export const useDashboardOverdueActivities = () => {
     queryKey: ["admin-dashboard", "overdue-activities"],
     queryFn: async (): Promise<OverdueActivity[]> => {
       const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("activities") as any)
+      const { data, error } = await (supabase.from("activities") as any)
         .select("id,activity_type,status,due_at,opportunities(title),contacts(name)")
         .lt("due_at", now)
         .neq("status", "completed")

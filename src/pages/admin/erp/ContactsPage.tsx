@@ -313,8 +313,7 @@ const ContactsPage = () => {
   const { data: opportunities = [] } = useQuery({
     queryKey: ["contact-opportunity-links"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("opportunities") as any)
+      const { data, error } = await (supabase.from("opportunities") as any)
         .select("id,contact_id,title")
         .limit(3000);
       if (error) throw error;
