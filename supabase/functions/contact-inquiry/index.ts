@@ -8,7 +8,7 @@ const corsPolicy = createCorsPolicy({
   allowMethods: "POST, OPTIONS",
 });
 
-const CONTACT_RECIPIENT = "russell@classicvisions.net";
+const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
 const MIN_FORM_FILL_MS = 2500;
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
@@ -21,7 +21,9 @@ const inquirySchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
   phone: z.string().trim().max(20).nullable().optional(),
+  businessName: z.string().trim().max(200).nullable().optional(),
   message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+  notes: z.string().trim().max(MAX_MESSAGE_LENGTH).nullable().optional(),
   pageSlug: z.string().trim().min(1).max(255).default("/"),
   sourceChannel: z.string().trim().min(1).max(50).default("website"),
   honeypot: z.string().optional().default(""),
@@ -110,6 +112,15 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const { data: companySettings, error: companySettingsError } = await supabase
+      .from("company_settings")
+      .select("feedback_email")
+      .limit(1)
+      .maybeSingle();
+
+    if (companySettingsError) throw companySettingsError;
+
+    const resolvedRecipient = companySettings?.feedback_email?.trim() || FEEDBACK_EMAIL_FALLBACK;
 
     const rateLimitSince = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
     if (ipHint) {
@@ -171,12 +182,13 @@ Deno.serve(async (req) => {
         name: payload.name,
         email: payload.email,
         phone: payload.phone || null,
+        business_name: payload.businessName || null,
         message: payload.message,
         page_slug: payload.pageSlug,
         source_channel: payload.sourceChannel,
         honeypot: null,
         ip_hint: ipHint,
-        notes: JSON.stringify({ userAgent, delivered_to: CONTACT_RECIPIENT }),
+        notes: payload.notes || JSON.stringify({ userAgent, delivered_to: resolvedRecipient }),
       })
       .select("id, created_at")
       .single();
@@ -191,7 +203,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: fromEmail,
-        to: [CONTACT_RECIPIENT],
+        to: [resolvedRecipient],
         reply_to: payload.email,
         subject: `${payload.inquiryType === "website-design-lead" ? "Website design lead" : "Website contact inquiry"} from ${payload.name}`,
         text: [
@@ -200,12 +212,18 @@ Deno.serve(async (req) => {
           `Name: ${payload.name}`,
           `Email: ${payload.email}`,
           `Phone: ${payload.phone || "Not provided"}`,
+          `Business: ${payload.businessName || "Not provided"}`,
           `Page: ${payload.pageSlug}`,
+          `Channel: ${payload.sourceChannel}`,
           `Submitted: ${insertedInquiry.created_at}`,
+          `Deliver to: ${resolvedRecipient}`,
+          payload.notes ? "" : null,
+          payload.notes ? "Additional notes:" : null,
+          payload.notes || null,
           "",
           "Message:",
           payload.message,
-        ].join("\n"),
+        ].filter(Boolean).join("\n"),
       }),
     });
 

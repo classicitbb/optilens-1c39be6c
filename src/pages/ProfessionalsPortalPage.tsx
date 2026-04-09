@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { createStructuredHelpdeskTicket } from "@/features/admin/helpdesk/utils/structuredTicketing";
+import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { LifeBuoy, LogIn } from "lucide-react";
 
 type PortalPage = {
@@ -224,10 +225,15 @@ const ProfessionalsPortalPage = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [honeypot, setHoneypot] = useState("");
+  const [startedAt, setStartedAt] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [monthlyVolume, setMonthlyVolume] = useState("");
   const page = useMemo(() => (slug ? portalPages[slug] : undefined), [slug]);
   const isTradeAccountPage = slug === "trade-account";
+
+  useEffect(() => {
+    setStartedAt(new Date().toISOString());
+  }, [slug]);
 
   if (!page) {
     return (
@@ -296,18 +302,19 @@ const ProfessionalsPortalPage = () => {
                     notes ? `Notes: ${notes}` : null,
                   ].filter(Boolean).join("\n");
 
-                  const { error } = await (supabase as any).from("public_inquiries").insert({
-                    inquiry_type: slug === "trade-account" ? "trade_account" : "price_list",
-                    name: formData.get("contactName") as string,
-                    email: formData.get("email") as string,
+                  await submitPublicInquiry({
+                    inquiryType: slug === "trade-account" ? "trade_account" : "price_list",
+                    name: (formData.get("contactName") as string) || "",
+                    email: (formData.get("email") as string) || "",
                     phone: (formData.get("phone") as string) || null,
-                    business_name: (formData.get("businessName") as string) || null,
+                    businessName: (formData.get("businessName") as string) || null,
+                    message: notes || `New ${isTradeAccountPage ? "trade account" : "price list"} request submitted.`,
                     notes: supplementalNotes || null,
-                    page_slug: `/professionals/${slug}`,
-                    source_channel: "website",
+                    pageSlug: `/professionals/${slug}`,
+                    sourceChannel: "website",
+                    honeypot,
+                    startedAt,
                   });
-
-                  if (error) throw error;
 
                   toast({
                     title: "Request Submitted",
@@ -316,6 +323,8 @@ const ProfessionalsPortalPage = () => {
                   (event.target as HTMLFormElement).reset();
                   setBusinessType("");
                   setMonthlyVolume("");
+                  setHoneypot("");
+                  setStartedAt(new Date().toISOString());
                 } catch {
                   toast({
                     title: "Submission failed",
@@ -332,13 +341,15 @@ const ProfessionalsPortalPage = () => {
                 <label htmlFor="company_website">Website</label>
                 <input
                   id="company_website"
-                  name="company_website"
+                  name="website_url"
                   type="text"
                   autoComplete="off"
                   value={honeypot}
                   onChange={(e) => setHoneypot(e.target.value)}
                   tabIndex={-1}
                 />
+                <label htmlFor="started_at">Started at</label>
+                <input id="started_at" name="started_at" type="text" value={startedAt} readOnly tabIndex={-1} />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

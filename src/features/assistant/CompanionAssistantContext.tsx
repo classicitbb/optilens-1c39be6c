@@ -6,6 +6,7 @@ import { usePublicKnowledge } from "@/hooks/useContentArticles";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { resolveUserFullName } from "@/lib/profileData";
+import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
 import { generateAssistantAnswer } from "./assistantGeneration";
 import {
@@ -588,21 +589,17 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           `Assistant context: ${JSON.stringify(contextNotes)}`,
         ].filter(Boolean).join("\n");
 
-        const { error } = await supabase.functions.invoke("contact-inquiry", {
-          body: {
-            inquiryType: "assistant_request",
-            name: formState.name.trim(),
-            email: formState.email.trim(),
-            phone: formState.phone.trim() || null,
-            message,
-            pageSlug: `${pathname}${location.search}${location.hash}`,
-            sourceChannel: "ai_assistant",
-            honeypot: "",
-            startedAt: formState.startedAt,
-          },
+        await submitPublicInquiry({
+          inquiryType: "assistant_request",
+          name: formState.name.trim(),
+          email: formState.email.trim(),
+          phone: formState.phone.trim() || null,
+          message,
+          pageSlug: `${pathname}${location.search}${location.hash}`,
+          sourceChannel: "ai_assistant",
+          honeypot: "",
+          startedAt: formState.startedAt,
         });
-
-        if (error) throw error;
       }
 
       setFormState(null);

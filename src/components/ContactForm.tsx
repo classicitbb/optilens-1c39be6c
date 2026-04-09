@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, User, MessageSquare, Send } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { submitPublicInquiry } from "@/lib/publicInquiry";
 
 const contactSchema = z.object({
   name: z
@@ -73,21 +73,17 @@ const ContactForm = () => {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke("contact-inquiry", {
-        body: {
-          inquiryType: "contact",
-          name: data.name,
-          email: data.email,
-          phone: data.phone || null,
-          message: data.message,
-          pageSlug: sourcePage || "/",
-          sourceChannel: "website",
-          honeypot,
-          startedAt,
-        },
+      await submitPublicInquiry({
+        inquiryType: "contact",
+        name: data.name,
+        email: data.email,
+        phone: data.phone || null,
+        message: data.message,
+        pageSlug: sourcePage || "/",
+        sourceChannel: "website",
+        honeypot,
+        startedAt,
       });
-
-      if (error) throw error;
 
       toast({
         title: "Message Sent!",
@@ -99,7 +95,7 @@ const ContactForm = () => {
     } catch {
       toast({
         title: "Submission failed",
-        description: "Please try again or contact russell@classicvisions.net directly.",
+        description: "Please try again or contact the Classic Visions team directly.",
         variant: "destructive",
       });
     } finally {

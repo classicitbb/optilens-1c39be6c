@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { submitPublicInquiry } from "@/lib/publicInquiry";
 
 const demoUrl = "https://optician-site.lovable.app";
 
@@ -188,21 +188,18 @@ const OpticalRetailWebsitesPage = () => {
         .filter(Boolean)
         .join("\n");
 
-      const { error } = await supabase.functions.invoke("contact-inquiry", {
-        body: {
-          inquiryType: "website-design-lead",
-          name: values.name,
-          email: values.email,
-          phone: values.phone || null,
-          message: payloadMessage,
-          pageSlug: sourcePage,
-          sourceChannel: "website",
-          honeypot,
-          startedAt,
-        },
+      await submitPublicInquiry({
+        inquiryType: "website-design-lead",
+        name: values.name,
+        email: values.email,
+        phone: values.phone || null,
+        businessName: values.businessName,
+        message: payloadMessage,
+        pageSlug: sourcePage,
+        sourceChannel: "website",
+        honeypot,
+        startedAt,
       });
-
-      if (error) throw error;
 
       toast({
         title: "Quote request sent",
@@ -224,7 +221,7 @@ const OpticalRetailWebsitesPage = () => {
     } catch {
       toast({
         title: "Submission failed",
-        description: "Please try again or email russell@classicvisions.net directly.",
+        description: "Please try again or contact the Classic Visions team directly.",
         variant: "destructive",
       });
     } finally {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Send, CheckCircle, FileText, PhoneCall, Package, AlertCircle } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import ZenvueHero from "@/components/zenvue/ZenvueHero";
 import ZenvueFeatureShell from "@/components/zenvue/ZenvueFeatureShell";
+import { submitPublicInquiry } from "@/lib/publicInquiry";
 
 const inquirySchema = z.object({
   business_name: z.string().trim().min(1, "Business name is required").max(200),
@@ -47,7 +47,16 @@ const ZenvueWholesale = () => {
   });
   // Honeypot field — must remain empty for real submissions
   const [honeypot, setHoneypot] = useState("");
+  const [startedAt, setStartedAt] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const sourcePage = useMemo(() => {
+    if (typeof window === "undefined") return "/zenvue/wholesale";
+    return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  }, []);
+
+  useEffect(() => {
+    setStartedAt(new Date().toISOString());
+  }, []);
 
   const update = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }));
@@ -73,13 +82,44 @@ const ZenvueWholesale = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.from("wholesale_inquiries").insert(result.data as any);
-    setLoading(false);
-    if (error) {
+    try {
+      const message = [
+        "ZenVue wholesale application submitted.",
+        `Business type: ${result.data.business_type || "Not provided"}`,
+        `Monthly volume: ${result.data.monthly_volume || "Not provided"}`,
+        `Location: ${result.data.location || "Not provided"}`,
+        `Referral source: ${result.data.referral_source || "Not provided"}`,
+        "",
+        "Comments:",
+        result.data.comments?.trim() || "No additional comments provided.",
+      ].join("\n");
+
+      await submitPublicInquiry({
+        inquiryType: "zenvue_wholesale",
+        name: result.data.contact_name,
+        email: result.data.email,
+        phone: result.data.phone || null,
+        businessName: result.data.business_name,
+        message,
+        notes: [
+          result.data.location ? `Location: ${result.data.location}` : null,
+          result.data.business_type ? `Business Type: ${result.data.business_type}` : null,
+          result.data.monthly_volume ? `Monthly Volume: ${result.data.monthly_volume}` : null,
+          result.data.referral_source ? `Referral Source: ${result.data.referral_source}` : null,
+        ].filter(Boolean).join("\n") || null,
+        pageSlug: sourcePage,
+        sourceChannel: "website",
+        honeypot,
+        startedAt,
+      });
+    } catch {
+      setLoading(false);
       toast({ title: "Submission failed", description: "Please try again later.", variant: "destructive" });
       return;
     }
+    setLoading(false);
     setSubmitted(true);
+    setStartedAt(new Date().toISOString());
     toast({ title: "Application received!", description: "We'll be in touch within 2 business days." });
   };
 
