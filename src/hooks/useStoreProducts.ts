@@ -53,7 +53,7 @@ export const useStoreProducts = () => {
           .eq("is_active", true)
           .order("name"),
         supabase
-          .from("supplies_public" as any)
+          .from("supplies_public") as any)
           .select("id, name, description, sell_price, category, unit, quantity_per_unit, image_url")
           .order("name"),
         (supabase.from("addons") as any)
@@ -62,15 +62,15 @@ export const useStoreProducts = () => {
           .eq("is_active", true)
           .order("name"),
         supabase
-          .from("store_product_media" as any)
+          .from("store_product_media") as any)
           .select("product_type, product_id, image_url, sort_order, is_active")
           .eq("is_active", true)
           .order("sort_order"),
         supabase
-          .from("store_product_overrides" as any)
+          .from("store_product_overrides") as any)
           .select("product_type, product_id, quantity_label, is_vat_taxable, website_badges"),
         supabase
-          .from("store_product_variant_summary" as any)
+          .from("store_product_variant_summary") as any)
           .select("product_type, product_id, active_variants"),
       ]);
 

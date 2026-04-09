@@ -78,7 +78,7 @@ async function fetchRefMap(table: string): Promise<RefMap> {
 /** Load saved mappings from import_ref_mappings and inject into ref maps */
 async function loadSavedMappings(maps: Record<string, RefMap>): Promise<void> {
   const { data, error } = await supabase
-    .from("import_ref_mappings" as any)
+    .from("import_ref_mappings") as any)
     .select("ref_table, csv_value, mapped_id") as any;
   if (error || !data) return;
 

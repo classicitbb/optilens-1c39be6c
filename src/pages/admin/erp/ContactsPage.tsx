@@ -315,7 +315,7 @@ const ContactsPage = () => {
     queryKey: ["contact-opportunity-links"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("opportunities" as any)
+        .from("opportunities") as any)
         .select("id,contact_id,title")
         .limit(3000);
       if (error) throw error;

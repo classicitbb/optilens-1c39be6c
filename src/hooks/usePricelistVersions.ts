@@ -73,14 +73,14 @@ export const usePricelistVersions = () => {
       const seedRxStructureForVersion = async (sourceVersionId?: number) => {
         if (sourceVersionId) {
           const { data: srcGroupingVersions, error: groupingVersionError } = await supabase
-            .from("rx_price_grouping_versions" as any)
+            .from("rx_price_grouping_versions") as any)
             .select("grouping_id, display_name, sort_order, is_enabled")
             .eq("pricelist_version_id", sourceVersionId);
           if (groupingVersionError) throw groupingVersionError;
 
           if ((srcGroupingVersions ?? []).length > 0) {
             const { error: insertGroupingVersionsError } = await supabase
-              .from("rx_price_grouping_versions" as any)
+              .from("rx_price_grouping_versions") as any)
               .insert((srcGroupingVersions ?? []).map((row: any) => ({
                 pricelist_version_id: newVersion.id,
                 grouping_id: row.grouping_id,
@@ -92,14 +92,14 @@ export const usePricelistVersions = () => {
           }
 
           const { data: srcCategoryVersions, error: categoryVersionError } = await supabase
-            .from("rx_price_category_versions" as any)
+            .from("rx_price_category_versions") as any)
             .select("category_id, display_name, sort_order, is_enabled")
             .eq("pricelist_version_id", sourceVersionId);
           if (categoryVersionError) throw categoryVersionError;
 
           if ((srcCategoryVersions ?? []).length > 0) {
             const { error: insertCategoryVersionsError } = await supabase
-              .from("rx_price_category_versions" as any)
+              .from("rx_price_category_versions") as any)
               .insert((srcCategoryVersions ?? []).map((row: any) => ({
                 pricelist_version_id: newVersion.id,
                 category_id: row.category_id,
@@ -113,7 +113,7 @@ export const usePricelistVersions = () => {
         }
 
         const { data: allGroupings, error: groupingError } = await supabase
-          .from("rx_price_groupings" as any)
+          .from("rx_price_groupings") as any)
           .select("id, sort_order")
           .eq("is_active", true)
           .order("sort_order");
@@ -121,7 +121,7 @@ export const usePricelistVersions = () => {
 
         if ((allGroupings ?? []).length > 0) {
           const { error: insertGroupingVersionsError } = await supabase
-            .from("rx_price_grouping_versions" as any)
+            .from("rx_price_grouping_versions") as any)
             .insert((allGroupings ?? []).map((row: any) => ({
               pricelist_version_id: newVersion.id,
               grouping_id: row.id,
@@ -132,7 +132,7 @@ export const usePricelistVersions = () => {
         }
 
         const { data: allCategories, error: categoryError } = await supabase
-          .from("rx_price_categories" as any)
+          .from("rx_price_categories") as any)
           .select("id, sort_order")
           .eq("is_active", true)
           .order("sort_order");
@@ -140,7 +140,7 @@ export const usePricelistVersions = () => {
 
         if ((allCategories ?? []).length > 0) {
           const { error: insertCategoryVersionsError } = await supabase
-            .from("rx_price_category_versions" as any)
+            .from("rx_price_category_versions") as any)
             .insert((allCategories ?? []).map((row: any) => ({
               pricelist_version_id: newVersion.id,
               category_id: row.id,
@@ -322,13 +322,13 @@ export const usePricelistVersions = () => {
       if (delAllocErr) throw delAllocErr;
 
       const { error: delGroupVersionErr } = await supabase
-        .from("rx_price_grouping_versions" as any)
+        .from("rx_price_grouping_versions") as any)
         .delete()
         .eq("pricelist_version_id", id);
       if (delGroupVersionErr) throw delGroupVersionErr;
 
       const { error: delCategoryVersionErr } = await supabase
-        .from("rx_price_category_versions" as any)
+        .from("rx_price_category_versions") as any)
         .delete()
         .eq("pricelist_version_id", id);
       if (delCategoryVersionErr) throw delCategoryVersionErr;

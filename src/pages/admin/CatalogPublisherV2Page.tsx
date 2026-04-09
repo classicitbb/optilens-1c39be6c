@@ -43,7 +43,7 @@ const CatalogPublisherV2Page = () => {
         total,
       };
       const { error } = await supabase
-        .from("opportunity_attachments" as any)
+        .from("opportunity_attachments") as any)
         .insert({ opportunity_id: context.opportunityId, attachment_type: "proposal", payload } as any);
       if (error) throw error;
     },
