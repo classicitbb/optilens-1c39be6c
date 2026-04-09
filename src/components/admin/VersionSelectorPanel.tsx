@@ -148,10 +148,10 @@ const VersionSelectorPanel = ({
     setMasterDiscountPct(String(v.master_discount_percent ?? 0));
 
     // Fetch child sections
-    const { data: children } = await supabase.
-    from("pricelist_child_sections").
-    select("*").
-    eq("pricelist_version_id", v.id);
+    const { data: children } = await (supabase
+      .from("pricelist_child_sections") as any)
+      .select("*")
+      .eq("pricelist_version_id", v.id);
 
     const newChildState: Record<string, {markup: string;discount: string;}> = {
       "RX Lens Prices": { markup: "0", discount: "0" },
