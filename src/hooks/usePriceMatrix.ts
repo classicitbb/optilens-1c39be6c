@@ -29,8 +29,7 @@ export const usePriceMatrix = () => {
   const query = useQuery<PriceMatrixRow[]>({
     queryKey: ["price-matrix"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("price_matrix")
+      const { data, error } = await (supabase.from("price_matrix") as any)
         .select("*")
         .order("id");
       if (error) throw error;
@@ -53,8 +52,7 @@ export const usePriceMatrix = () => {
       }));
 
       for (const u of updates) {
-        const { error } = await supabase
-          .from("price_matrix")
+        const { error } = await (supabase.from("price_matrix") as any)
           .update(u as any)
           .eq("id", u.id);
         if (error) throw error;

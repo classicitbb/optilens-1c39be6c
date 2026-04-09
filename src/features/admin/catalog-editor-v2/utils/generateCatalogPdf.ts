@@ -35,13 +35,11 @@ export const generateCatalogPdf = async (template: CatalogTemplate, settings: an
     if (settings.email) doc.text(settings.email, pw / 2, ph - 18, { align: "center" });
   }
 
-  const { data: versions } = await supabase
-    .from("pricelist_versions").select("id, name").order("id", { ascending: true }).limit(1);
+  const { data: versions } = await (supabase.from("pricelist_versions") as any).select("id, name").order("id", { ascending: true }).limit(1);
   const vId = versions?.[0]?.id;
 
   if (vId) {
-    const { data: rows } = await supabase
-      .from("pricelist_catalog_rows")
+    const { data: rows } = await (supabase.from("pricelist_catalog_rows") as any)
       .select("section, display_description, bbd_price, row_type, catalog_type")
       .eq("pricelist_version_id", vId)
       .order("sort_order");

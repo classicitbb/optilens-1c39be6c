@@ -47,8 +47,7 @@ export const usePricelistVersions = () => {
   const query = useQuery<PricelistVersion[]>({
     queryKey: ["pricelist-versions"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricelist_versions")
+      const { data, error } = await (supabase.from("pricelist_versions") as any)
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -59,8 +58,7 @@ export const usePricelistVersions = () => {
   const createMutation = useMutation({
     mutationFn: async (input: CreateVersionInput) => {
       // 1. Insert the new version
-      const { data: newVersion, error } = await supabase
-        .from("pricelist_versions")
+      const { data: newVersion, error } = await (supabase.from("pricelist_versions") as any)
         .insert({
           name: input.name,
           base_currency: input.base_currency,
@@ -161,8 +159,7 @@ export const usePricelistVersions = () => {
       // 2. Copy prices
       if (input.copyFrom === "matrix") {
         // New blank pricelist — seed from price_matrix (legacy overrides only)
-        const { data: matrixRows, error: mErr } = await supabase
-          .from("price_matrix")
+        const { data: matrixRows, error: mErr } = await (supabase.from("price_matrix") as any)
           .select("*");
         if (mErr) throw mErr;
 
@@ -181,8 +178,7 @@ export const usePricelistVersions = () => {
           }
         }
         if (overrides.length > 0) {
-          const { error: insErr } = await supabase
-            .from("pricelist_overrides")
+          const { error: insErr } = await (supabase.from("pricelist_overrides") as any)
             .insert(overrides);
           if (insErr) throw insErr;
         }
@@ -190,8 +186,7 @@ export const usePricelistVersions = () => {
         // New pricelist: do NOT copy matrix_allocations or catalog_rows
       } else {
         // Duplicate from an existing version — copy overrides
-        const { data: srcOverrides, error: soErr } = await supabase
-          .from("pricelist_overrides")
+        const { data: srcOverrides, error: soErr } = await (supabase.from("pricelist_overrides") as any)
           .select("*")
           .eq("pricelist_version_id", input.copyFrom);
         if (soErr) throw soErr;
@@ -204,8 +199,7 @@ export const usePricelistVersions = () => {
             overridden_price: applyAdjustment(o.overridden_price),
             reason: null,
           }));
-          const { error: insErr } = await supabase
-            .from("pricelist_overrides")
+          const { error: insErr } = await (supabase.from("pricelist_overrides") as any)
             .insert(copies);
           if (insErr) throw insErr;
         }
@@ -213,8 +207,7 @@ export const usePricelistVersions = () => {
         await seedRxStructureForVersion(input.copyFrom);
 
         // Copy matrix_allocations
-        const { data: srcAllocs, error: saErr } = await supabase
-          .from("matrix_allocations")
+        const { data: srcAllocs, error: saErr } = await (supabase.from("matrix_allocations") as any)
           .select("*")
           .eq("pricelist_version_id", input.copyFrom);
         if (saErr) throw saErr;
@@ -229,15 +222,13 @@ export const usePricelistVersions = () => {
             allocated_price_bbd: applyAdjustment(a.allocated_price_bbd),
             is_active: a.is_active,
           }));
-          const { error: insErr } = await supabase
-            .from("matrix_allocations")
+          const { error: insErr } = await (supabase.from("matrix_allocations") as any)
             .insert(allocCopies);
           if (insErr) throw insErr;
         }
 
         // Copy pricelist_catalog_rows
-        const { data: srcCatalog, error: scErr } = await supabase
-          .from("pricelist_catalog_rows")
+        const { data: srcCatalog, error: scErr } = await (supabase.from("pricelist_catalog_rows") as any)
           .select("*")
           .eq("pricelist_version_id", input.copyFrom);
         if (scErr) throw scErr;
@@ -254,8 +245,7 @@ export const usePricelistVersions = () => {
             item_id: r.item_id,
             sort_order: r.sort_order,
           }));
-          const { error: insErr } = await supabase
-            .from("pricelist_catalog_rows")
+          const { error: insErr } = await (supabase.from("pricelist_catalog_rows") as any)
             .insert(catCopies);
           if (insErr) throw insErr;
         }
@@ -276,8 +266,7 @@ export const usePricelistVersions = () => {
       updates: Partial<Pick<PricelistVersion, "name" | "markup_percent" | "discount_percent" | "is_template" | "base_currency" | "format_type" | "master_markup_percent" | "master_discount_percent">>;
       childSections?: ChildSection[];
     }) => {
-      const { error } = await supabase
-        .from("pricelist_versions")
+      const { error } = await (supabase.from("pricelist_versions") as any)
         .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq("id", id);
       if (error) throw error;
@@ -285,16 +274,14 @@ export const usePricelistVersions = () => {
       // Upsert child sections
       if (childSections && childSections.length > 0) {
         for (const cs of childSections) {
-          const { data: existing } = await supabase
-            .from("pricelist_child_sections")
+          const { data: existing } = await (supabase.from("pricelist_child_sections") as any)
             .select("id")
             .eq("pricelist_version_id", id)
             .eq("section_type", cs.section_type)
             .maybeSingle();
 
           if (existing) {
-            const { error: uErr } = await supabase
-              .from("pricelist_child_sections")
+            const { error: uErr } = await (supabase.from("pricelist_child_sections") as any)
               .update({
                 child_markup_percent: cs.child_markup_percent,
                 child_discount_percent: cs.child_discount_percent,
@@ -303,8 +290,7 @@ export const usePricelistVersions = () => {
               .eq("id", existing.id);
             if (uErr) throw uErr;
           } else {
-            const { error: iErr } = await supabase
-              .from("pricelist_child_sections")
+            const { error: iErr } = await (supabase.from("pricelist_child_sections") as any)
               .insert({
                 pricelist_version_id: id,
                 section_type: cs.section_type,
@@ -325,14 +311,12 @@ export const usePricelistVersions = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       // Delete all dependent rows first (no cascade on FK)
-      const { error: delCatErr } = await supabase
-        .from("pricelist_catalog_rows")
+      const { error: delCatErr } = await (supabase.from("pricelist_catalog_rows") as any)
         .delete()
         .eq("pricelist_version_id", id);
       if (delCatErr) throw delCatErr;
 
-      const { error: delAllocErr } = await supabase
-        .from("matrix_allocations")
+      const { error: delAllocErr } = await (supabase.from("matrix_allocations") as any)
         .delete()
         .eq("pricelist_version_id", id);
       if (delAllocErr) throw delAllocErr;
@@ -349,14 +333,12 @@ export const usePricelistVersions = () => {
         .eq("pricelist_version_id", id);
       if (delCategoryVersionErr) throw delCategoryVersionErr;
 
-      const { error: delOverErr } = await supabase
-        .from("pricelist_overrides")
+      const { error: delOverErr } = await (supabase.from("pricelist_overrides") as any)
         .delete()
         .eq("pricelist_version_id", id);
       if (delOverErr) throw delOverErr;
 
-      const { error } = await supabase
-        .from("pricelist_versions")
+      const { error } = await (supabase.from("pricelist_versions") as any)
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -371,8 +353,7 @@ export const useBBDUSDRate = () => {
   return useQuery<number>({
     queryKey: ["fx-rate-bbd-usd"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("legacy_rates")
+      const { data } = await (supabase.from("legacy_rates") as any)
         .select("value")
         .eq("rate_code", "BBD_USD")
         .eq("is_active", true)

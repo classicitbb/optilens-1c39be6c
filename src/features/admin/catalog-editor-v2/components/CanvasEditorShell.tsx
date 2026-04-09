@@ -158,8 +158,7 @@ const CanvasEditorShell = () => {
   const sectionsQuery = useQuery({
     queryKey: [SECTIONS_QUERY_KEY_PREFIX, templateId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_sections")
+      const { data, error } = await (supabase.from("catalog_sections") as any)
         .select("*")
         .eq("catalog_template_id", templateId)
         .order("sort_order");
@@ -172,8 +171,7 @@ const CanvasEditorShell = () => {
   const articlesQuery = useQuery({
     queryKey: ["catalog-canvas-articles"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("help_articles")
+      const { data, error } = await (supabase.from("help_articles") as any)
         .select("id, title, category")
         .eq("is_active", true)
         .in("content_type", ["knowledge", "faq"])
@@ -454,8 +452,7 @@ const CanvasEditorShell = () => {
       custom_title: normalizeString(content.custom_title),
     };
 
-    const { data, error } = await supabase
-      .from("catalog_sections")
+    const { data, error } = await (supabase.from("catalog_sections") as any)
       .insert(payload)
       .select("*")
       .single();
@@ -539,8 +536,7 @@ const CanvasEditorShell = () => {
       custom_title: normalizeString(mergedContent.custom_title),
     };
 
-    const { error } = await supabase
-      .from("catalog_sections")
+    const { error } = await (supabase.from("catalog_sections") as any)
       .update(updates)
       .eq("id", sourceSectionId);
     if (error) throw error;

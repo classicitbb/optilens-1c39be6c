@@ -58,8 +58,7 @@ export const useContacts = () => {
   return useQuery({
     queryKey: ["contacts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contacts")
+      const { data, error } = await (supabase.from("contacts") as any)
         .select("*")
         .order("name");
       if (error) throw error;
@@ -84,8 +83,7 @@ export const useContactTagLinks = (contactId?: string) => {
     queryKey: ["contact_tag_links", contactId],
     enabled: !!contactId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contact_tag_links")
+      const { data, error } = await (supabase.from("contact_tag_links") as any)
         .select("tag_id")
         .eq("contact_id", contactId!);
       if (error) throw error;

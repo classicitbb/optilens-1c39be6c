@@ -46,8 +46,7 @@ export const useSaveLeadToCrm = () => {
         lead_segment: lead.lead_segment ?? segment,
       };
 
-      const { data: contact, error: contactErr } = await supabase
-        .from("contacts")
+      const { data: contact, error: contactErr } = await (supabase.from("contacts") as any)
         .upsert(contactPayload as any, { onConflict: "name" })
         .select("id")
         .single();

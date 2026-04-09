@@ -47,8 +47,7 @@ export const useAddons = () => {
       if (safeErr) throw safeErr;
       if (!safeRows || (safeRows as any[]).length === 0) return [];
       const safeMap = new Map((safeRows as any[]).map((r: any) => [r.id, r.cost]));
-      const { data, error } = await supabase
-        .from("addons")
+      const { data, error } = await (supabase.from("addons") as any)
         .select("*, supplier:suppliers(id, name)")
         .order("sort_order")
         .order("name");
@@ -64,8 +63,7 @@ export const useAddons = () => {
 
   const createMutation = useMutation({
     mutationFn: async (form: AddonFormData) => {
-      const { data, error } = await supabase
-        .from("addons")
+      const { data, error } = await (supabase.from("addons") as any)
         .insert(form as any)
         .select("id")
         .single();
@@ -77,8 +75,7 @@ export const useAddons = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, form }: { id: string; form: AddonFormData }) => {
-      const { error } = await supabase
-        .from("addons")
+      const { error } = await (supabase.from("addons") as any)
         .update(form as any)
         .eq("id", id);
       if (error) throw error;
@@ -88,8 +85,7 @@ export const useAddons = () => {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
-        .from("addons")
+      const { error } = await (supabase.from("addons") as any)
         .update({ is_active } as any)
         .eq("id", id);
       if (error) throw error;
@@ -99,8 +95,7 @@ export const useAddons = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("addons")
+      const { error } = await (supabase.from("addons") as any)
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -124,8 +119,7 @@ export const useAddons = () => {
         sort_order: addon.sort_order,
         supplier_id: addon.supplier_id,
       };
-      const { data, error } = await supabase
-        .from("addons")
+      const { data, error } = await (supabase.from("addons") as any)
         .insert(form as any)
         .select("id")
         .single();

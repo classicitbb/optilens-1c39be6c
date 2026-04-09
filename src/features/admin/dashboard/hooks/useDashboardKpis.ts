@@ -19,8 +19,7 @@ export const useDashboardKpis = () => {
       const [totalResult, activeResult, wonThisMonthResult, pipelineValueResult] = await Promise.all([
         (supabase.from("opportunities") as any).select("id", { count: "exact", head: true }),
         (supabase.from("opportunities") as any).select("id", { count: "exact", head: true }).not("stage", "in", "(won,lost)"),
-        supabase
-          .from("opportunities")
+        (supabase.from("opportunities") as any)
           .select("id", { count: "exact", head: true })
           .eq("stage", "won")
           .gte("updated_at", monthStart.toISOString()),

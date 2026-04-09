@@ -25,8 +25,7 @@ export const useLeadBusinessSuggestions = (query: string) => {
         supabase.functions.invoke("lead-intelligence", {
           body: { query: trimmed, cities: [], country: null },
         }),
-        supabase
-          .from("contacts")
+        (supabase.from("contacts") as any)
           .select("id,name,city,country,website,ai_intent_score")
           .ilike("name", `%${trimmed}%`)
           .order("updated_at", { ascending: false })

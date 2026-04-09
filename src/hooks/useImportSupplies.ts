@@ -91,8 +91,7 @@ export const useImportSupplies = () => {
   const { data: pricingSettings } = useQuery<PricingSettings>({
     queryKey: ["pricing_settings_active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings")
+      const { data, error } = await (supabase.from("pricing_settings") as any)
         .select("*")
         .eq("is_active", true)
         .order("version", { ascending: false })
@@ -135,8 +134,7 @@ export const useImportSupplies = () => {
       // Fetch active pricing settings for computation
       let settings = pricingSettings;
       if (!settings) {
-        const { data } = await supabase
-          .from("pricing_settings").select("*").eq("is_active", true)
+        const { data } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
           .order("version", { ascending: false }).limit(1).single();
         settings = data as unknown as PricingSettings;
       }

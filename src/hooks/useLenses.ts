@@ -86,8 +86,7 @@ export const useLenses = () => {
       if (error) throw error;
       if (!lensRows || lensRows.length === 0) return [];
       // Fetch related data for joined fields
-      const { data: joinedData, error: joinError } = await supabase
-        .from("lenses")
+      const { data: joinedData, error: joinError } = await (supabase.from("lenses") as any)
         .select(SELECT_QUERY)
         .order("name");
       if (joinError) throw joinError;
@@ -103,8 +102,7 @@ export const useLenses = () => {
   const createMutation = useMutation({
     mutationFn: async (form: LensFormData) => {
       const { option, ...lensData } = form;
-      const { data, error } = await supabase
-        .from("lenses")
+      const { data, error } = await (supabase.from("lenses") as any)
         .insert(lensData as any)
         .select("id")
         .single();
@@ -121,8 +119,7 @@ export const useLenses = () => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, form }: { id: string; form: LensFormData }) => {
       const { option, ...lensData } = form;
-      const { error } = await supabase
-        .from("lenses")
+      const { error } = await (supabase.from("lenses") as any)
         .update(lensData as any)
         .eq("id", id);
       if (error) throw error;

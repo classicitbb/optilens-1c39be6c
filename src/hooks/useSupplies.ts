@@ -73,8 +73,7 @@ export const useSupplies = () => {
       if (safeErr) throw safeErr;
       if (!safeRows || (safeRows as any[]).length === 0) return [];
       const safeMap = new Map((safeRows as any[]).map((r: any) => [r.id, r.base_price]));
-      const { data, error } = await supabase
-        .from("supplies")
+      const { data, error } = await (supabase.from("supplies") as any)
         .select("*, supplier:suppliers(id, name), brand:brands(id, name)")
         .order("name");
       if (error) throw error;
@@ -91,8 +90,7 @@ export const useSupplies = () => {
 
   const createMutation = useMutation({
     mutationFn: async (form: SupplyFormData) => {
-      const { data, error } = await supabase
-        .from("supplies")
+      const { data, error } = await (supabase.from("supplies") as any)
         .insert(form as any)
         .select("id")
         .single();
@@ -104,8 +102,7 @@ export const useSupplies = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, form }: { id: string; form: SupplyFormData }) => {
-      const { error } = await supabase
-        .from("supplies")
+      const { error } = await (supabase.from("supplies") as any)
         .update(form as any)
         .eq("id", id);
       if (error) throw error;
@@ -115,8 +112,7 @@ export const useSupplies = () => {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
-        .from("supplies")
+      const { error } = await (supabase.from("supplies") as any)
         .update({ is_active } as any)
         .eq("id", id);
       if (error) throw error;

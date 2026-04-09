@@ -17,8 +17,7 @@ export const usePricingSheets = () => {
   const query = useQuery<PricingSheet[]>({
     queryKey: ["pricing-sheets"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_sheets")
+      const { data, error } = await (supabase.from("pricing_sheets") as any)
         .select("*")
         .order("sort_order")
         .order("name");
@@ -29,8 +28,7 @@ export const usePricingSheets = () => {
 
   const createMutation = useMutation({
     mutationFn: async (values: { name: string; description?: string }) => {
-      const { data, error } = await supabase
-        .from("pricing_sheets")
+      const { data, error } = await (supabase.from("pricing_sheets") as any)
         .insert(values as any)
         .select()
         .single();
@@ -42,8 +40,7 @@ export const usePricingSheets = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Pick<PricingSheet, "name" | "description" | "is_active" | "sort_order">> }) => {
-      const { error } = await supabase
-        .from("pricing_sheets")
+      const { error } = await (supabase.from("pricing_sheets") as any)
         .update(updates as any)
         .eq("id", id);
       if (error) throw error;
@@ -53,8 +50,7 @@ export const usePricingSheets = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("pricing_sheets")
+      const { error } = await (supabase.from("pricing_sheets") as any)
         .delete()
         .eq("id", id);
       if (error) throw error;

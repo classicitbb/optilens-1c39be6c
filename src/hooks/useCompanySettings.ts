@@ -133,8 +133,7 @@ export const useCompanySettings = () => {
   const query = useQuery<CompanySettings>({
     queryKey: ["company_settings"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("company_settings")
+      const { data, error } = await (supabase.from("company_settings") as any)
         .select("*")
         .limit(1)
         .single();
@@ -145,14 +144,12 @@ export const useCompanySettings = () => {
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<Omit<CompanySettings, "id" | "updated_at">>) => {
-      const { data: existing } = await supabase
-        .from("company_settings")
+      const { data: existing } = await (supabase.from("company_settings") as any)
         .select("id")
         .limit(1)
         .single();
       if (!existing) throw new Error("No company settings row found");
-      const { error } = await supabase
-        .from("company_settings")
+      const { error } = await (supabase.from("company_settings") as any)
         .update(updates as any)
         .eq("id", existing.id);
       if (error) throw error;

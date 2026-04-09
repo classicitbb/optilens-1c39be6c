@@ -59,16 +59,14 @@ const SectionContentDialog = ({
 
         if (articleId) {
           // Knowledge article by ID
-          const { data: row } = await supabase
-            .from("help_articles")
+          const { data: row } = await (supabase.from("help_articles") as any)
             .select("id, title, content, description")
             .eq("id", articleId)
             .maybeSingle();
           data = row;
         } else {
           // Fixed section by page_slug
-          const { data: row } = await supabase
-            .from("help_articles")
+          const { data: row } = await (supabase.from("help_articles") as any)
             .select("id, title, content, description")
             .eq("page_slug", sectionType)
             .eq("content_type", "knowledge")
@@ -101,8 +99,7 @@ const SectionContentDialog = ({
     setSaving(true);
     try {
       if (recordId) {
-        const { error } = await supabase
-          .from("help_articles")
+        const { error } = await (supabase.from("help_articles") as any)
           .update({
             title,
             content,

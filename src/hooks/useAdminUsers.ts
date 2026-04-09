@@ -20,11 +20,9 @@ export const useAdminUsers = () => {
     queryKey: ["admin-users"],
     queryFn: async () => {
       const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
-        supabase
-          .from("profiles")
+        (supabase.from("profiles") as any)
           .select("user_id, display_name"),
-        supabase
-          .from("user_roles")
+        (supabase.from("user_roles") as any)
           .select("id, user_id, role"),
       ]);
       if (pErr) throw pErr;
@@ -74,14 +72,12 @@ export const useAdminUsers = () => {
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
       const existing = users.find((u) => u.user_id === userId);
       if (existing?.role_id) {
-        const { error } = await supabase
-          .from("user_roles")
+        const { error } = await (supabase.from("user_roles") as any)
           .update({ role })
           .eq("id", existing.role_id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("user_roles")
+        const { error } = await (supabase.from("user_roles") as any)
           .insert({ user_id: userId, role });
         if (error) throw error;
       }
@@ -91,8 +87,7 @@ export const useAdminUsers = () => {
 
   const removeRole = useMutation({
     mutationFn: async (roleId: string) => {
-      const { error } = await supabase
-        .from("user_roles")
+      const { error } = await (supabase.from("user_roles") as any)
         .delete()
         .eq("id", roleId);
       if (error) throw error;

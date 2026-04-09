@@ -42,8 +42,7 @@ export const useMatrixAllocations = (versionId: number | null) => {
     queryKey: ["matrix-allocations", versionId],
     queryFn: async () => {
       if (!versionId) return [];
-      const { data, error } = await supabase
-        .from("matrix_allocations")
+      const { data, error } = await (supabase.from("matrix_allocations") as any)
         .select("*")
         .eq("pricelist_version_id", versionId)
         .order("id");
@@ -64,8 +63,7 @@ export const useMatrixAllocations = (versionId: number | null) => {
       if (!versionId) throw new Error("No version selected");
 
       // Try to find existing record
-      const { data: existing } = await supabase
-        .from("matrix_allocations")
+      const { data: existing } = await (supabase.from("matrix_allocations") as any)
         .select("id")
         .eq("pricelist_version_id", versionId)
         .eq("category", record.category)
@@ -74,8 +72,7 @@ export const useMatrixAllocations = (versionId: number | null) => {
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
-          .from("matrix_allocations")
+        const { error } = await (supabase.from("matrix_allocations") as any)
           .update({
             lens_id: record.lens_id,
             allocated_price_bbd: record.allocated_price_bbd,
@@ -84,8 +81,7 @@ export const useMatrixAllocations = (versionId: number | null) => {
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("matrix_allocations")
+        const { error } = await (supabase.from("matrix_allocations") as any)
           .insert({
             pricelist_version_id: versionId,
             category: record.category,
@@ -104,8 +100,7 @@ export const useMatrixAllocations = (versionId: number | null) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase
-        .from("matrix_allocations")
+      const { error } = await (supabase.from("matrix_allocations") as any)
         .delete()
         .eq("id", id);
       if (error) throw error;

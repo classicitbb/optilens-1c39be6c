@@ -80,8 +80,7 @@ export const useImportAddons = () => {
   const { data: pricingSettings } = useQuery<PricingSettings>({
     queryKey: ["pricing_settings_active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings").select("*").eq("is_active", true)
+      const { data, error } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
         .order("version", { ascending: false }).limit(1).single();
       if (error) throw error;
       return data as unknown as PricingSettings;
@@ -119,8 +118,7 @@ export const useImportAddons = () => {
 
       let settings = pricingSettings;
       if (!settings) {
-        const { data } = await supabase
-          .from("pricing_settings").select("*").eq("is_active", true)
+        const { data } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
           .order("version", { ascending: false }).limit(1).single();
         settings = data as unknown as PricingSettings;
       }

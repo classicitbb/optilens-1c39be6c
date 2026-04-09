@@ -204,8 +204,7 @@ export const useImportLenses = () => {
   const { data: pricingSettings } = useQuery<PricingSettings>({
     queryKey: ["pricing_settings_active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings").select("*").eq("is_active", true)
+      const { data, error } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
         .order("version", { ascending: false }).limit(1).single();
       if (error) throw error;
       return data as unknown as PricingSettings;
@@ -289,8 +288,7 @@ export const useImportLenses = () => {
 
   /** Fetch existing lenses and build composite key map */
   const fetchExistingCompositeKeys = useCallback(async (): Promise<Map<string, string>> => {
-    const { data } = await supabase
-      .from("lenses")
+    const { data } = await (supabase.from("lenses") as any)
       .select("id, supplier_id, brand_id, material_id, mftype_id, lenstype_id, finishtype_id");
     const map = new Map<string, string>();
     ((data as any[]) ?? []).forEach((l: any) => {
@@ -339,8 +337,7 @@ export const useImportLenses = () => {
 
       let settings = pricingSettings;
       if (!settings) {
-        const { data } = await supabase
-          .from("pricing_settings").select("*").eq("is_active", true)
+        const { data } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
           .order("version", { ascending: false }).limit(1).single();
         settings = data as unknown as PricingSettings;
       }
@@ -414,8 +411,7 @@ export const useImportLenses = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data: batch, error: batchErr } = await supabase
-        .from("import_batches")
+      const { data: batch, error: batchErr } = await (supabase.from("import_batches") as any)
         .insert({ user_id: user.id, file_name: fileName ?? "unknown.csv", status: "processing", total_rows: importable.length } as any)
         .select("id").single();
       if (batchErr) throw batchErr;

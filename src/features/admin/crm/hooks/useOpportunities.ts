@@ -62,8 +62,7 @@ const upsertOpportunity = async (input: CreateOpportunityInput) => {
     status: "lead",
   };
 
-  const { data: contact, error: contactErr } = await supabase
-    .from("contacts")
+  const { data: contact, error: contactErr } = await (supabase.from("contacts") as any)
     .upsert(contactPayload as any, { onConflict: "name" })
     .select("id")
     .single();

@@ -178,8 +178,7 @@ export const usePricingEngine = () => {
   const { data: settings, isLoading } = useQuery<PricingSettings>({
     queryKey: ["pricing_settings_active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings")
+      const { data, error } = await (supabase.from("pricing_settings") as any)
         .select("*")
         .eq("is_active", true)
         .order("version", { ascending: false })

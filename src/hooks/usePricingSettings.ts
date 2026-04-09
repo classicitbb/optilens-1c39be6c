@@ -40,8 +40,7 @@ export const usePricingSettings = () => {
   const versionsQuery = useQuery<PricingSettings[]>({
     queryKey: ["pricing_settings_versions"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings")
+      const { data, error } = await (supabase.from("pricing_settings") as any)
         .select("*")
         .order("version", { ascending: false });
       if (error) throw error;
@@ -52,8 +51,7 @@ export const usePricingSettings = () => {
   const saveNewVersion = useMutation({
     mutationFn: async (draft: Omit<PricingSettings, "id" | "created_at" | "created_by" | "version" | "is_active">) => {
       // Get current max version
-      const { data: existing } = await supabase
-        .from("pricing_settings")
+      const { data: existing } = await (supabase.from("pricing_settings") as any)
         .select("version")
         .order("version", { ascending: false })
         .limit(1)
@@ -62,8 +60,7 @@ export const usePricingSettings = () => {
       const nextVersion = (existing?.version ?? 0) + 1;
 
       // Deactivate all previous
-      await supabase
-        .from("pricing_settings")
+      await (supabase.from("pricing_settings") as any)
         .update({ is_active: false } as any)
         .eq("is_active", true);
 
@@ -71,8 +68,7 @@ export const usePricingSettings = () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       // Insert new version
-      const { error } = await supabase
-        .from("pricing_settings")
+      const { error } = await (supabase.from("pricing_settings") as any)
         .insert({
           ...draft,
           version: nextVersion,
@@ -86,8 +82,7 @@ export const usePricingSettings = () => {
 
   const saveInPlace = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Omit<PricingSettings, "id" | "created_at" | "created_by" | "version" | "is_active"> }) => {
-      const { error } = await supabase
-        .from("pricing_settings")
+      const { error } = await (supabase.from("pricing_settings") as any)
         .update(data as any)
         .eq("id", id);
       if (error) throw error;
