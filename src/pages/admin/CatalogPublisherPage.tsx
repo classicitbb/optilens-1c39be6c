@@ -28,7 +28,7 @@ const useAssignmentCounts = () => {
   return useQuery({
     queryKey: ["catalog-assignment-counts"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("catalog_assignments").select("catalog_template_id");
+      const { data, error } = await (supabase.from("catalog_assignments") as any).select("catalog_template_id");
       if (error) throw error;
       const counts: Record<number, number> = {};
       (data ?? []).forEach((r: any) => {
@@ -43,7 +43,7 @@ const useSectionCounts = () => {
   return useQuery({
     queryKey: ["catalog-section-counts"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("catalog_sections").select("catalog_template_id");
+      const { data, error } = await (supabase.from("catalog_sections") as any).select("catalog_template_id");
       if (error) throw error;
       const counts: Record<number, number> = {};
       (data ?? []).forEach((row: any) => {

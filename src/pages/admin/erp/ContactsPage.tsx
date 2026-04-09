@@ -300,8 +300,7 @@ const ContactsPage = () => {
     queryKey: ["contacts-by-parent", editContact?.id],
     queryFn: async () => {
       if (!editContact?.id) return [];
-      const { data, error } = await supabase
-        .from("contacts")
+      const { data, error } = await (supabase.from("contacts") as any)
         .select("*")
         .eq("parent_id", editContact.id as any)
         .order("name");
@@ -326,8 +325,7 @@ const ContactsPage = () => {
   const { data: quotePriceProfiles = [] } = useQuery({
     queryKey: ["contact-quote-price-profile-links"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quotes")
+      const { data, error } = await (supabase.from("quotes") as any)
         .select("id,customer_name,contact_name,price_profile_id")
         .not("price_profile_id", "is", null)
         .limit(3000);
@@ -1114,8 +1112,7 @@ const ContactsPage = () => {
       const existingCompanyId = existingCompanyByName.get(lookupKey);
       if (existingCompanyId) return existingCompanyId;
 
-      const { data: inserted, error } = await supabase
-        .from("contacts")
+      const { data: inserted, error } = await (supabase.from("contacts") as any)
         .insert({
           name: companyName,
           is_company: true,
@@ -1171,7 +1168,7 @@ const ContactsPage = () => {
             continue;
           }
 
-          const { error } = await supabase.from("contacts").insert(personRow as any);
+          const { error } = await (supabase.from("contacts") as any).insert(personRow as any);
           if (error) {
             errors += 1;
             issues.push(`Row ${previewRow.rowNumber}: ${error.message}`);
@@ -1204,7 +1201,7 @@ const ContactsPage = () => {
         continue;
       }
 
-      const { error } = await supabase.from("contacts").insert(row as any);
+      const { error } = await (supabase.from("contacts") as any).insert(row as any);
       if (error) {
         errors += 1;
         issues.push(`Row ${previewRow.rowNumber}: ${error.message}`);
@@ -1243,8 +1240,7 @@ const ContactsPage = () => {
       // If new contact, insert and get id back
       let contactId = editContact.id;
       if (!contactId) {
-        const { data: inserted, error: insErr } = await supabase
-          .from("contacts")
+        const { data: inserted, error: insErr } = await (supabase.from("contacts") as any)
           .insert({
             name: editContact.name,
             is_company: editContact.is_company ?? true,
@@ -1289,13 +1285,12 @@ const ContactsPage = () => {
       // Auto-create/sync customer record when is_customer is true
       if (editContact.is_customer && contactId) {
         // Check if customer already linked
-        const { data: existing } = await supabase
-          .from("customers")
+        const { data: existing } = await (supabase.from("customers") as any)
           .select("id")
           .eq("contact_id", contactId as any)
           .maybeSingle();
         if (!existing) {
-          await supabase.from("customers").insert({
+          await (supabase.from("customers") as any).insert({
             name: editContact.name,
             email: editContact.email ?? null,
             phone: editContact.phone ?? null,
@@ -1339,11 +1334,11 @@ const ContactsPage = () => {
     if (!bulkAction || selectedContactIds.length === 0) return;
     try {
       if (bulkAction === "archive") {
-        const { error } = await supabase.from("contacts").update({ is_archived: true }).in("id", selectedContactIds as any);
+        const { error } = await (supabase.from("contacts") as any).update({ is_archived: true }).in("id", selectedContactIds as any);
         if (error) throw error;
         toast({ title: `Archived ${selectedContactIds.length} contacts` });
       } else {
-        const { error } = await supabase.from("contacts").delete().in("id", selectedContactIds as any);
+        const { error } = await (supabase.from("contacts") as any).delete().in("id", selectedContactIds as any);
         if (error) throw error;
         toast({ title: `Deleted ${selectedContactIds.length} contacts` });
       }
@@ -1357,7 +1352,7 @@ const ContactsPage = () => {
 
   const purgeArchivedContacts = async () => {
     try {
-      const { error } = await supabase.from("contacts").delete().eq("is_archived", true as any);
+      const { error } = await (supabase.from("contacts") as any).delete().eq("is_archived", true as any);
       if (error) throw error;
       setIsPurgeDialogOpen(false);
       toast({ title: "Archived contacts purged" });
@@ -1371,8 +1366,7 @@ const ContactsPage = () => {
     if (!contact.id) return;
     try {
       const nextArchived = !(contact.is_archived ?? false);
-      const { error } = await supabase
-        .from("contacts")
+      const { error } = await (supabase.from("contacts") as any)
         .update({ is_archived: nextArchived })
         .eq("id", contact.id as any);
       if (error) throw error;

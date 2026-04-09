@@ -107,8 +107,7 @@ export default function IntegrationsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["integration-connection", "odoo"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("integration_connections")
+      const { data, error } = await (supabase.from("integration_connections") as any)
         .select("*")
         .eq("provider", "odoo")
         .eq("tenant_key", "default")
@@ -122,8 +121,7 @@ export default function IntegrationsPage() {
   const { data: healthMetrics, isLoading: metricsLoading } = useQuery({
     queryKey: ["integration-health-metrics", "odoo"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("integration_health_metrics_dashboard")
+      const { data, error } = await (supabase.from("integration_health_metrics_dashboard") as any)
         .select("*")
         .eq("provider", "odoo")
         .eq("tenant_key", "default");
@@ -137,8 +135,7 @@ export default function IntegrationsPage() {
     queryKey: ["integration-latest-sync-job", data?.id],
     queryFn: async () => {
       if (!data?.id) return null as IntegrationSyncJob | null;
-      const { data: rows, error } = await supabase
-        .from("integration_sync_jobs")
+      const { data: rows, error } = await (supabase.from("integration_sync_jobs") as any)
         .select("id,sync_kind,status,requested_at,started_at,completed_at,error_message")
         .eq("integration_connection_id", data.id)
         .order("requested_at", { ascending: false })
@@ -153,8 +150,7 @@ export default function IntegrationsPage() {
     queryKey: ["integration-recent-sync-jobs", data?.id],
     queryFn: async () => {
       if (!data?.id) return [] as IntegrationSyncJobRow[];
-      const { data: rows, error } = await supabase
-        .from("integration_sync_jobs")
+      const { data: rows, error } = await (supabase.from("integration_sync_jobs") as any)
         .select("id,integration_connection_id,sync_kind,status,requested_at,started_at,completed_at,error_message")
         .eq("integration_connection_id", data.id)
         .order("requested_at", { ascending: false })
@@ -169,8 +165,7 @@ export default function IntegrationsPage() {
     queryKey: ["integration-odoo-error-logs", data?.id],
     queryFn: async () => {
       if (!data?.id) return [] as IntegrationStructuredLog[];
-      const { data: rows, error } = await supabase
-        .from("integration_structured_logs")
+      const { data: rows, error } = await (supabase.from("integration_structured_logs") as any)
         .select("id,event_name,log_level,redacted_payload,created_at")
         .eq("integration_connection_id", data.id)
         .eq("provider", "odoo")
@@ -189,8 +184,7 @@ export default function IntegrationsPage() {
     queryKey: ["integration-sync-errors", data?.id, syncErrorStatusFilter],
     queryFn: async () => {
       if (!data?.id) return [] as IntegrationSyncError[];
-      let query = supabase
-        .from("integration_sync_errors")
+      let query = (supabase.from("integration_sync_errors") as any)
         .select("id,integration_connection_id,source_model,source_identifier,error_code,error_message,status,retry_count,first_seen_at,last_seen_at,resolved_at")
         .eq("integration_connection_id", data.id)
         .order("last_seen_at", { ascending: false })

@@ -117,8 +117,7 @@ const WebsiteStorePage = () => {
   const { data: pricingSettings } = useQuery({
     queryKey: ["pricing-settings-active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings")
+      const { data, error } = await (supabase.from("pricing_settings") as any)
         .select("fx_rates, fx_risk_buffer")
         .eq("is_active", true)
         .order("version", { ascending: false })

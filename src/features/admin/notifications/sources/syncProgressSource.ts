@@ -17,8 +17,7 @@ type IntegrationSyncJob = {
 };
 
 export async function getSyncProgressNotifications(): Promise<AdminNotificationEvent[]> {
-  const { data: connection } = await supabase
-    .from("integration_connections")
+  const { data: connection } = await (supabase.from("integration_connections") as any)
     .select("id,status,updated_at")
     .eq("provider", "odoo")
     .eq("tenant_key", "default")
@@ -27,8 +26,7 @@ export async function getSyncProgressNotifications(): Promise<AdminNotificationE
   const typedConnection = (connection ?? null) as IntegrationConnection | null;
   if (!typedConnection) return [];
 
-  const { data: jobs } = await supabase
-    .from("integration_sync_jobs")
+  const { data: jobs } = await (supabase.from("integration_sync_jobs") as any)
     .select("id,sync_kind,status,requested_at,completed_at,error_message")
     .eq("integration_connection_id", typedConnection.id)
     .order("requested_at", { ascending: false })

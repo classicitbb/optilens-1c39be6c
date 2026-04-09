@@ -87,11 +87,10 @@ const ensureUserContact = async (user: NonNullable<ReturnType<typeof useAuth>["u
   const userEmail = user.email;
   if (!userEmail) return null;
 
-  const { data: existing } = await supabase.from("contacts").select("id").eq("email", userEmail).maybeSingle();
+  const { data: existing } = await (supabase.from("contacts") as any).select("id").eq("email", userEmail).maybeSingle();
   if (existing?.id) return existing.id as string;
 
-  const { data: created } = await supabase
-    .from("contacts")
+  const { data: created } = await (supabase.from("contacts") as any)
     .insert({
       name: user.user_metadata?.full_name || userEmail,
       email: userEmail,

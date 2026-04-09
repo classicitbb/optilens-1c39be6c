@@ -60,8 +60,7 @@ const useAllPricelistVersions = () => {
   return useQuery<PricelistVersion[]>({
     queryKey: ["all-pricelist-versions-full"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricelist_versions")
+      const { data, error } = await (supabase.from("pricelist_versions") as any)
         .select("*")
         .order("name");
       if (error) throw error;
@@ -74,8 +73,7 @@ const useHelpArticlesForCatalog = () => {
   return useQuery({
     queryKey: ["help-articles-catalog-public"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("help_articles")
+      const { data, error } = await (supabase.from("help_articles") as any)
         .select("id, title, category, visibility, content, description, page_slug")
         .eq("is_active", true)
         .in("content_type", ["knowledge", "faq"])
@@ -93,8 +91,7 @@ const useCatalogSectionsEditor = (templateId?: number) => {
   const query = useQuery({
     queryKey: ["catalog-sections-editor", templateId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_sections")
+      const { data, error } = await (supabase.from("catalog_sections") as any)
         .select("*")
         .eq("catalog_template_id", templateId!)
         .order("sort_order");
@@ -106,7 +103,7 @@ const useCatalogSectionsEditor = (templateId?: number) => {
 
   const addSection = useMutation({
     mutationFn: async (section: Omit<CatalogSection, "id">) => {
-      const { error } = await supabase.from("catalog_sections").insert([section]);
+      const { error } = await (supabase.from("catalog_sections") as any).insert([section]);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
@@ -114,7 +111,7 @@ const useCatalogSectionsEditor = (templateId?: number) => {
 
   const updateSection = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<CatalogSection> & { id: number }) => {
-      const { error } = await supabase.from("catalog_sections").update(updates).eq("id", id);
+      const { error } = await (supabase.from("catalog_sections") as any).update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
@@ -122,7 +119,7 @@ const useCatalogSectionsEditor = (templateId?: number) => {
 
   const removeSection = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from("catalog_sections").delete().eq("id", id);
+      const { error } = await (supabase.from("catalog_sections") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
@@ -131,7 +128,7 @@ const useCatalogSectionsEditor = (templateId?: number) => {
   const reorderSections = useMutation({
     mutationFn: async (sections: { id: number; sort_order: number }[]) => {
       for (const s of sections) {
-        await supabase.from("catalog_sections").update({ sort_order: s.sort_order }).eq("id", s.id);
+        await (supabase.from("catalog_sections") as any).update({ sort_order: s.sort_order }).eq("id", s.id);
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-sections-editor", templateId] }),
