@@ -26,8 +26,8 @@ export const useReferenceData = (table: string, enabled = true) => {
     queryKey: ["reference-data", safeTable],
     queryFn: async () => {
       if (!safeTable) throw new Error("Invalid table");
-      const { data, error } = await supabase
-        .from(safeTable)
+      const { data, error } = await (supabase
+        .from(safeTable) as any)
         .select("*")
         .order("name");
       if (error) throw error;
