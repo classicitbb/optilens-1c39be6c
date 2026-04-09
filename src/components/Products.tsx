@@ -8,7 +8,7 @@ const products = [
     icon: Layers,
     title: "Semi-Finished Lenses",
     description: "Custom-surfaced prescription lenses tailored to your exact specifications. Available in single vision, bifocal, and progressive designs.",
-    features: ["Custom prescriptions", "Multiple materials", "AR coatings available"],
+    features: ["Custom prescriptions", "Multiple materials", "Custom-surfaced prescription lenses tailored to your exact specifications. Available in single vision, bifocal, and progressive designs."],
     link: "/store?category=surfaced",
   },
   {
