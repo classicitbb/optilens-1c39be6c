@@ -111,10 +111,10 @@ export const useWebsiteAnalyticsOverview = () => {
         previousAlertsResult,
         currentVitalsResult,
       ] = await Promise.all([
-        (supabase.from("website_analytics_sessions" as any) as any)
+        (supabase.from("website_analytics_sessions") as any)
           .select("visitor_id,pageview_count,duration_seconds,is_returning_visitor")
           .gte("started_at", currentStart),
-        (supabase.from("website_analytics_sessions" as any) as any)
+        (supabase.from("website_analytics_sessions") as any)
           .select("visitor_id,pageview_count,duration_seconds,is_returning_visitor")
           .gte("started_at", previousStart)
           .lt("started_at", currentStart),
@@ -122,7 +122,7 @@ export const useWebsiteAnalyticsOverview = () => {
         (supabase.from("orders") as any).select("id", { count: "exact", head: true }).gte("created_at", previousStart).lt("created_at", currentStart),
         (supabase.from("abandoned_cart_alerts") as any).select("id", { count: "exact", head: true }).gte("last_detected_at", currentStart),
         (supabase.from("abandoned_cart_alerts") as any).select("id", { count: "exact", head: true }).gte("last_detected_at", previousStart).lt("last_detected_at", currentStart),
-        (supabase.from("website_analytics_web_vitals" as any) as any)
+        (supabase.from("website_analytics_web_vitals") as any)
           .select("metric_name,metric_value")
           .gte("occurred_at", currentStart),
       ]);

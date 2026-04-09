@@ -139,7 +139,7 @@ const toSessionRow = (session: SessionState) => {
 };
 
 const upsertSession = async (session: SessionState) => {
-  await (supabase.from("website_analytics_sessions" as any) as any).upsert(toSessionRow(session), { onConflict: "id" });
+  await (supabase.from("website_analytics_sessions") as any).upsert(toSessionRow(session), { onConflict: "id" });
 };
 
 export const trackPageView = async (pathname: string) => {
@@ -156,7 +156,7 @@ export const trackPageView = async (pathname: string) => {
 
   await Promise.allSettled([
     upsertSession(session),
-    (supabase.from("website_analytics_pageviews" as any) as any).insert({
+    (supabase.from("website_analytics_pageviews") as any).insert({
       session_id: session.id,
       visitor_id: session.visitorId,
       pathname,
@@ -187,7 +187,7 @@ export const trackWebVital = async ({ id, name, value, delta, rating, pathname }
 
   await Promise.allSettled([
     upsertSession(session),
-    (supabase.from("website_analytics_web_vitals" as any) as any).insert({
+    (supabase.from("website_analytics_web_vitals") as any).insert({
       session_id: session.id,
       visitor_id: session.visitorId,
       pathname,

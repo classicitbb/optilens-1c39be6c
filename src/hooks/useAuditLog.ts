@@ -96,7 +96,7 @@ export const useAuditLogQuery = (filters: AuditLogFilters) => {
     staleTime: 0,
     refetchOnMount: "always" as const,
     queryFn: async () => {
-      let query = (supabase.from("audit_log" as any) as any)
+      let query = (supabase.from("audit_log") as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(filters.limit ?? 100);
