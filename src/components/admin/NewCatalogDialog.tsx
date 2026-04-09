@@ -146,7 +146,7 @@ const usePricelistAssignments = () =>
     queryFn: async () => {
       const [{ data: versions, error: versionsError }, { data: rows, error: rowsError }] = await Promise.all([
         supabase.from("pricelist_versions").select("*").order("created_at", { ascending: false }),
-        supabase.from("pricelist_catalog_rows").select("pricelist_version_id, catalog_type"),
+        (supabase.from("pricelist_catalog_rows") as any).select("pricelist_version_id, catalog_type"),
       ]);
 
       if (versionsError) throw versionsError;
@@ -158,13 +158,13 @@ const usePricelistAssignments = () =>
         buysell: new Set<number>(),
       };
 
-      (rows ?? []).forEach((row) => {
+      ((rows ?? []) as any[]).forEach((row: any) => {
         if (row.catalog_type === "rx" || row.catalog_type === "stock" || row.catalog_type === "buysell") {
           seenByType[row.catalog_type].add(row.pricelist_version_id);
         }
       });
 
-      const versionList = (versions ?? []) as PricelistVersion[];
+      const versionList = ((versions ?? []) as unknown) as PricelistVersion[];
       const defaults: Record<SectionType, string> = {
         rx_prices: "",
         stock_prices: "",
@@ -233,8 +233,8 @@ const NewCatalogDialog = ({
       custom_title: null,
     };
 
-    const { data: created, error } = await supabase
-      .from("catalog_sections")
+    const { data: created, error } = await (supabase
+      .from("catalog_sections") as any)
       .insert(payload)
       .select("*")
       .single();
@@ -244,7 +244,7 @@ const NewCatalogDialog = ({
   };
 
   const handleUpdateSection = async (id: number, updates: Partial<CatalogSectionInsert>) => {
-    const { error } = await supabase.from("catalog_sections").update(updates).eq("id", id);
+    const { error } = await (supabase.from("catalog_sections") as any).update(updates).eq("id", id);
     if (error) throw error;
   };
 
