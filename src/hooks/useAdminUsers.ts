@@ -39,8 +39,8 @@ export const useAdminUsers = () => {
         // Edge function may not be deployed yet; continue without emails
       }
 
-      const profileMap = new Map((profiles ?? []).map((profile) => [profile.user_id, profile]));
-      const roleMap = new Map(roles?.map((r) => [r.user_id, r]) ?? []);
+      const profileMap = new Map((profiles ?? []).map((profile: any) => [profile.user_id, profile]));
+      const roleMap = new Map((roles ?? []).map((r: any) => [r.user_id, r]) ?? []);
       const authMap = new Map(authUsers.map((user) => [user.id, user]));
       const userIds = new Set<string>([
         ...Array.from(profileMap.keys()),

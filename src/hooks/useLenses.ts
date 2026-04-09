@@ -82,9 +82,9 @@ export const useLenses = () => {
     queryKey: ["lenses"],
     queryFn: async () => {
       // Use server-side safe RPC that strips base_price for viewer/customer roles
-      const { data: lensRows, error } = await supabase.rpc("get_lenses_safe" as any);
+      const { data: lensRows, error } = await (supabase.rpc as any)("get_lenses_safe");
       if (error) throw error;
-      if (!lensRows || lensRows.length === 0) return [];
+      if (!lensRows || (lensRows as any[]).length === 0) return [];
       // Fetch related data for joined fields
       const { data: joinedData, error: joinError } = await (supabase.from("lenses") as any)
         .select(SELECT_QUERY)

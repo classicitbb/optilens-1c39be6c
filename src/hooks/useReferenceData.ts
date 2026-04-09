@@ -53,8 +53,8 @@ export const useReferenceData = (table: string, enabled = true) => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Pick<ReferenceItem, "name" | "abbrev" | "code" | "is_active">> }) => {
       if (!safeTable) throw new Error("Invalid table");
-      const { data, error } = await supabase
-        .from(safeTable)
+      const { data, error } = await (supabase
+        .from(safeTable) as any)
         .update(updates as any)
         .eq("id", id)
         .select()
@@ -68,8 +68,8 @@ export const useReferenceData = (table: string, enabled = true) => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!safeTable) throw new Error("Invalid table");
-      const { error } = await supabase
-        .from(safeTable)
+      const { error } = await (supabase
+        .from(safeTable) as any)
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -80,8 +80,8 @@ export const useReferenceData = (table: string, enabled = true) => {
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<Pick<ReferenceItem, "is_active">> }) => {
       if (!safeTable) throw new Error("Invalid table");
-      const { error } = await supabase
-        .from(safeTable)
+      const { error } = await (supabase
+        .from(safeTable) as any)
         .update(updates as any)
         .in("id", ids);
       if (error) throw error;
@@ -92,8 +92,8 @@ export const useReferenceData = (table: string, enabled = true) => {
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       if (!safeTable) throw new Error("Invalid table");
-      const { error } = await supabase
-        .from(safeTable)
+      const { error } = await (supabase
+        .from(safeTable) as any)
         .delete()
         .in("id", ids);
       if (error) throw error;
