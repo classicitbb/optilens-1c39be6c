@@ -41,7 +41,7 @@ export const useCreateCampaignActivationProfiles = () => {
         };
       });
 
-      const { error } = await supabase.from("campaign_activation_profiles" as never).insert(payload as never);
+      const { error } = await supabase.from("campaign_activation_profiles").insert(payload as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -67,7 +67,7 @@ export const useLogCampaignPerformance = () => {
       spend: number;
       revenue: number;
     }) => {
-      const { error } = await supabase.from("campaign_activation_performance" as never).insert({
+      const { error } = await supabase.from("campaign_activation_performance").insert({
         profile_id: payload.profileId ?? null,
         contact_id: payload.contactId ?? null,
         lead_source: payload.leadSource,
