@@ -148,8 +148,7 @@ const VersionSelectorPanel = ({
     setMasterDiscountPct(String(v.master_discount_percent ?? 0));
 
     // Fetch child sections
-    const { data: children } = await (supabase
-      .from("pricelist_child_sections") as any)
+    const { data: children } = await (supabase.from("pricelist_child_sections") as any)
       .select("*")
       .eq("pricelist_version_id", v.id);
 

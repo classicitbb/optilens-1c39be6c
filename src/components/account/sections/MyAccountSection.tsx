@@ -54,8 +54,7 @@ const MyAccountSection = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
-      const { data, error } = await (supabase
-        .from("profiles") as any)
+      const { data, error } = await (supabase.from("profiles") as any)
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle() as { data: Record<string, any> | null; error: any };
@@ -98,8 +97,7 @@ const MyAccountSection = () => {
     if (!user) return;
 
     setSaving(true);
-    const { error } = await (supabase
-      .from("profiles") as any)
+    const { error } = await (supabase.from("profiles") as any)
       .upsert({
         user_id: user.id,
         full_name: values.full_name.trim(),

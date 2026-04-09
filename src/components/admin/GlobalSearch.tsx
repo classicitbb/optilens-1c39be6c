@@ -66,8 +66,7 @@ const GlobalSearch = () => {
           }))
         );
 
-      const { data, error } = await (supabase
-        .from("help_articles") as any)
+      const { data, error } = await (supabase.from("help_articles") as any)
         .select("*, help_article_contexts(context_slug)")
         .eq("is_active", true)
         .order("sort_order");

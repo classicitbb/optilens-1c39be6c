@@ -233,8 +233,7 @@ const NewCatalogDialog = ({
       custom_title: null,
     };
 
-    const { data: created, error } = await (supabase
-      .from("catalog_sections") as any)
+    const { data: created, error } = await (supabase.from("catalog_sections") as any)
       .insert(payload)
       .select("*")
       .single();

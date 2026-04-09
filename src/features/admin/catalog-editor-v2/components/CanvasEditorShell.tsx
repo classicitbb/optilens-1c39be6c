@@ -235,8 +235,7 @@ const CanvasEditorShell = () => {
     queryKey: [BOOTSTRAP_QUERY_KEY_PREFIX, templateId, pages.map((page) => page.id).join(",")],
     queryFn: async () => {
       if (pages.length === 0) return 0;
-      const { count, error } = await (supabase
-        .from("catalog_page_objects") as any)
+      const { count, error } = await (supabase.from("catalog_page_objects") as any)
         .select("id", { count: "exact", head: true })
         .in("page_id", pages.map((page: any) => page.id));
       if (error) throw error;
