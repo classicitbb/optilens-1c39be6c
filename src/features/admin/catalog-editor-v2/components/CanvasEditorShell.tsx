@@ -292,7 +292,7 @@ const CanvasEditorShell = () => {
           y += PRICING_SECTION_TYPES.has(section.section_type) ? 204 : 144;
         });
 
-        const { error } = await supabase.from("catalog_page_objects" as any).insert(bootstrapObjects as any[]);
+        const { error } = await (supabase.from("catalog_page_objects") as any).insert(bootstrapObjects as any[]);
         if (error) throw error;
 
         await Promise.all([

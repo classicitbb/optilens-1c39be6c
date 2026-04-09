@@ -102,7 +102,7 @@ async function loadSavedMappings(maps: Record<string, RefMap>): Promise<void> {
 
 /** Persist a mapping to import_ref_mappings (upsert) */
 async function persistMapping(refTable: string, csvValue: string, mappedId: string): Promise<void> {
-  await supabase.from("import_ref_mappings" as any).upsert(
+  await (supabase.from("import_ref_mappings") as any).upsert(
     { ref_table: refTable, csv_value: csvValue.toLowerCase().trim(), mapped_id: mappedId } as any,
     { onConflict: "ref_table,csv_value" } as any,
   );

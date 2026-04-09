@@ -36,13 +36,13 @@ export const useRxPricingStructure = (versionId: number | null) => {
     queryKey: [...STRUCTURE_QUERY_KEY, versionId],
     queryFn: async () => {
       const [groupingsResult, categoriesResult, groupingVersionsResult, categoryVersionsResult] = await Promise.all([
-        supabase.from("rx_price_groupings" as any).select("*").order("sort_order").order("id"),
-        supabase.from("rx_price_categories" as any).select("*").order("sort_order").order("id"),
+        (supabase.from("rx_price_groupings") as any).select("*").order("sort_order").order("id"),
+        (supabase.from("rx_price_categories") as any).select("*").order("sort_order").order("id"),
         versionId
-          ? supabase.from("rx_price_grouping_versions" as any).select("grouping_id, display_name, sort_order, is_enabled").eq("pricelist_version_id", versionId)
+          ? (supabase.from("rx_price_grouping_versions") as any).select("grouping_id, display_name, sort_order, is_enabled").eq("pricelist_version_id", versionId)
           : Promise.resolve({ data: [], error: null }),
         versionId
-          ? supabase.from("rx_price_category_versions" as any).select("category_id, display_name, sort_order, is_enabled").eq("pricelist_version_id", versionId)
+          ? (supabase.from("rx_price_category_versions") as any).select("category_id, display_name, sort_order, is_enabled").eq("pricelist_version_id", versionId)
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -115,7 +115,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         insertedCategories = (newCategoryRows ?? []) as unknown as Array<{ id: number; key: string }>;
       }
 
-      const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
+      const { data: versions, error: versionsError } = await (supabase.from("pricelist_versions") as any).select("id").order("id");
       if (versionsError) throw versionsError;
       const versionsList = (versions ?? []) as unknown as Array<{ id: number }>;
 
@@ -126,7 +126,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
           sort_order: grouping.sort_order,
           is_enabled: true,
         }));
-        const { error: groupingVersionError } = await supabase.from("rx_price_grouping_versions" as any).upsert(groupingVersionRows, { onConflict: "pricelist_version_id,grouping_id" });
+        const { error: groupingVersionError } = await (supabase.from("rx_price_grouping_versions") as any).upsert(groupingVersionRows, { onConflict: "pricelist_version_id,grouping_id" });
         if (groupingVersionError) throw groupingVersionError;
       }
 
@@ -180,7 +180,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
           )
         );
 
-        const { error: allocationError } = await supabase.from("matrix_allocations" as any).upsert(allocationRows, {
+        const { error: allocationError } = await (supabase.from("matrix_allocations") as any).upsert(allocationRows, {
           onConflict: "pricelist_version_id,category,material_index,treatment_type",
         });
         if (allocationError) throw allocationError;
@@ -216,7 +216,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         .select("id, grouping_id, key");
       if (categoryInsertError) throw categoryInsertError;
 
-      const { data: versions2, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id").order("id");
+      const { data: versions2, error: versionsError } = await (supabase.from("pricelist_versions") as any).select("id").order("id");
       if (versionsError) throw versionsError;
       const versionsList2 = (versions2 ?? []) as unknown as Array<{ id: number }>;
 
@@ -231,7 +231,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
           }))
         );
 
-        const { error: categoryVersionError } = await supabase.from("rx_price_category_versions" as any).insert(categoryVersionRows);
+        const { error: categoryVersionError } = await (supabase.from("rx_price_category_versions") as any).insert(categoryVersionRows);
         if (categoryVersionError) throw categoryVersionError;
 
         const groupingKeyMap = new Map(activeGroupings.map((grouping) => [grouping.id, grouping.key]));
@@ -249,7 +249,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
           )
         );
 
-        const { error: allocationError } = await supabase.from("matrix_allocations" as any).upsert(allocationRows, {
+        const { error: allocationError } = await (supabase.from("matrix_allocations") as any).upsert(allocationRows, {
           onConflict: "pricelist_version_id,category,material_index,treatment_type",
         });
         if (allocationError) throw allocationError;
@@ -300,7 +300,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         is_enabled: true,
       }));
 
-      const { error } = await supabase.from("rx_price_category_versions" as any).upsert(payload, {
+      const { error } = await (supabase.from("rx_price_category_versions") as any).upsert(payload, {
         onConflict: "pricelist_version_id,category_id",
       });
       if (error) throw error;
@@ -318,19 +318,19 @@ export const useRxPricingStructure = (versionId: number | null) => {
       const current = groupings[currentIndex];
       const target = groupings[targetIndex];
       const now = new Date().toISOString();
-      const { error } = await supabase.from("rx_price_groupings" as any).upsert([
+      const { error } = await (supabase.from("rx_price_groupings") as any).upsert([
         { id: current.id, key: current.key, default_name: current.defaultName, sort_order: target.sortOrder, is_active: true, updated_at: now },
         { id: target.id, key: target.key, default_name: target.defaultName, sort_order: current.sortOrder, is_active: true, updated_at: now },
       ]);
       if (error) throw error;
 
-      const { data: versions, error: versionsError } = await supabase.from("pricelist_versions" as any).select("id");
+      const { data: versions, error: versionsError } = await (supabase.from("pricelist_versions") as any).select("id");
       if (versionsError) throw versionsError;
       const versionPayload = (versions ?? []).flatMap((version: any) => ([
         { pricelist_version_id: version.id, grouping_id: current.id, sort_order: target.sortOrder, display_name: null, is_enabled: true, updated_at: now },
         { pricelist_version_id: version.id, grouping_id: target.id, sort_order: current.sortOrder, display_name: null, is_enabled: true, updated_at: now },
       ]));
-      const { error: groupingVersionError } = await supabase.from("rx_price_grouping_versions" as any).upsert(versionPayload, { onConflict: "pricelist_version_id,grouping_id" });
+      const { error: groupingVersionError } = await (supabase.from("rx_price_grouping_versions") as any).upsert(versionPayload, { onConflict: "pricelist_version_id,grouping_id" });
       if (groupingVersionError) throw groupingVersionError;
     },
     onSuccess: invalidate,
@@ -358,7 +358,7 @@ export const useRxPricingStructure = (versionId: number | null) => {
         ...targetIds.map((id) => ({ pricelist_version_id: versionId, category_id: id, sort_order: current.sortOrder, updated_at: now, is_enabled: true })),
       ];
 
-      const { error } = await supabase.from("rx_price_category_versions" as any).upsert(payload, {
+      const { error } = await (supabase.from("rx_price_category_versions") as any).upsert(payload, {
         onConflict: "pricelist_version_id,category_id",
       });
       if (error) throw error;
@@ -369,18 +369,18 @@ export const useRxPricingStructure = (versionId: number | null) => {
   const archiveGrouping = useMutation({
     mutationFn: async ({ groupingId, groupingKey }: { groupingId: number; groupingKey: string }) => {
       const [allocationsResult, catalogRowsResult] = await Promise.all([
-        supabase.from("matrix_allocations" as any).select("id", { count: "exact", head: true }).eq("treatment_type", groupingKey),
-        supabase.from("pricelist_catalog_rows" as any).select("id", { count: "exact", head: true }).like("row_key", `matrix::${groupingKey}::%`),
+        (supabase.from("matrix_allocations") as any).select("id", { count: "exact", head: true }).eq("treatment_type", groupingKey),
+        (supabase.from("pricelist_catalog_rows") as any).select("id", { count: "exact", head: true }).like("row_key", `matrix::${groupingKey}::%`),
       ]);
       if (allocationsResult.error) throw allocationsResult.error;
       if (catalogRowsResult.error) throw catalogRowsResult.error;
 
       const isUsed = Boolean((allocationsResult.count ?? 0) > 0 || (catalogRowsResult.count ?? 0) > 0);
       if (isUsed) {
-        const { error } = await supabase.from("rx_price_groupings" as any).update({ is_active: false, updated_at: new Date().toISOString() }).eq("id", groupingId);
+        const { error } = await (supabase.from("rx_price_groupings") as any).update({ is_active: false, updated_at: new Date().toISOString() }).eq("id", groupingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rx_price_groupings" as any).delete().eq("id", groupingId);
+        const { error } = await (supabase.from("rx_price_groupings") as any).delete().eq("id", groupingId);
         if (error) throw error;
       }
     },
@@ -393,8 +393,8 @@ export const useRxPricingStructure = (versionId: number | null) => {
       if (!targetCategory) throw new Error("Category not found.");
 
       const [allocationsResult, catalogRowsResult] = await Promise.all([
-        supabase.from("matrix_allocations" as any).select("id", { count: "exact", head: true }).eq("category", targetCategory.key),
-        supabase.from("pricelist_catalog_rows" as any).select("id", { count: "exact", head: true }).like("row_key", `matrix::%::${targetCategory.key}::%`),
+        (supabase.from("matrix_allocations") as any).select("id", { count: "exact", head: true }).eq("category", targetCategory.key),
+        (supabase.from("pricelist_catalog_rows") as any).select("id", { count: "exact", head: true }).like("row_key", `matrix::%::${targetCategory.key}::%`),
       ]);
       if (allocationsResult.error) throw allocationsResult.error;
       if (catalogRowsResult.error) throw catalogRowsResult.error;
@@ -403,10 +403,10 @@ export const useRxPricingStructure = (versionId: number | null) => {
       const isUsed = Boolean((allocationsResult.count ?? 0) > 0 || (catalogRowsResult.count ?? 0) > 0);
 
       if (isUsed) {
-        const { error } = await supabase.from("rx_price_categories" as any).update({ is_active: false, updated_at: new Date().toISOString() }).in("id", categoryIds);
+        const { error } = await (supabase.from("rx_price_categories") as any).update({ is_active: false, updated_at: new Date().toISOString() }).in("id", categoryIds);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rx_price_categories" as any).delete().in("id", categoryIds);
+        const { error } = await (supabase.from("rx_price_categories") as any).delete().in("id", categoryIds);
         if (error) throw error;
       }
     },
