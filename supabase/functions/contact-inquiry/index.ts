@@ -9,12 +9,14 @@ const corsPolicy = createCorsPolicy({
 });
 
 const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
+const SITE_NAME = "Classic Visions";
+const SENDER_DOMAIN = "notify.giancarloferrucci.com";
+const FROM_DOMAIN = "notify.giancarloferrucci.com";
 const MIN_FORM_FILL_MS = 2500;
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_MESSAGE_LENGTH = 4000;
-const DEFAULT_FROM_EMAIL = "Classic Visions <noreply@notify.classicvisions.net>";
 
 const inquirySchema = z.object({
   inquiryType: z.string().trim().min(1).max(50).default("contact"),
@@ -56,15 +58,9 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const fromEmail = Deno.env.get("CONTACT_FORM_FROM_EMAIL") ?? DEFAULT_FROM_EMAIL;
 
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error("Missing Supabase server configuration");
-    }
-
-    if (!resendApiKey) {
-      throw new Error("Missing RESEND_API_KEY for contact email delivery");
     }
 
     const payload = inquirySchema.parse(await req.json());
@@ -195,41 +191,70 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [resolvedRecipient],
-        reply_to: payload.email,
-        subject: `${payload.inquiryType === "website-design-lead" ? "Website design lead" : "Website contact inquiry"} from ${payload.name}`,
-        text: [
-          "New contact inquiry received.",
-          "",
-          `Name: ${payload.name}`,
-          `Email: ${payload.email}`,
-          `Phone: ${payload.phone || "Not provided"}`,
-          `Business: ${payload.businessName || "Not provided"}`,
-          `Page: ${payload.pageSlug}`,
-          `Channel: ${payload.sourceChannel}`,
-          `Submitted: ${insertedInquiry.created_at}`,
-          `Deliver to: ${resolvedRecipient}`,
-          payload.notes ? "" : null,
-          payload.notes ? "Additional notes:" : null,
-          payload.notes || null,
-          "",
-          "Message:",
-          payload.message,
-        ].filter(Boolean).join("\n"),
-      }),
+    // Render notification email via React Email template and enqueue it
+    const { renderAsync } = await import("npm:@react-email/components@0.0.22");
+    const React = await import("npm:react@18.3.1");
+    const { template } = await import("../_shared/transactional-email-templates/contact-inquiry-notification.tsx");
+
+    const templateData = {
+      inquiryType: payload.inquiryType,
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone || "",
+      businessName: payload.businessName || "",
+      message: payload.message,
+      pageSlug: payload.pageSlug,
+      sourceChannel: payload.sourceChannel,
+      submittedAt: insertedInquiry.created_at,
+      notes: payload.notes || "",
+    };
+
+    const html = await renderAsync(
+      React.createElement(template.component, templateData)
+    );
+    const plainText = await renderAsync(
+      React.createElement(template.component, templateData),
+      { plainText: true }
+    );
+
+    const resolvedSubject =
+      typeof template.subject === "function"
+        ? template.subject(templateData)
+        : template.subject;
+
+    const messageId = crypto.randomUUID();
+    const idempotencyKey = `contact-inquiry-${insertedInquiry.id}`;
+
+    // Log pending
+    await supabase.from("email_send_log").insert({
+      message_id: messageId,
+      template_name: "contact-inquiry-notification",
+      recipient_email: resolvedRecipient,
+      status: "pending",
     });
 
-    if (!emailResponse.ok) {
-      const emailErrorText = await emailResponse.text();
-      throw new Error(`Failed to send notification email: ${emailErrorText}`);
+    // Enqueue directly via RPC (same mechanism as send-transactional-email)
+    const { error: enqueueError } = await supabase.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: {
+        message_id: messageId,
+        to: resolvedRecipient,
+        from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+        sender_domain: SENDER_DOMAIN,
+        subject: resolvedSubject,
+        html,
+        text: plainText,
+        reply_to: payload.email,
+        purpose: "transactional",
+        label: "contact-inquiry-notification",
+        idempotency_key: idempotencyKey,
+        queued_at: new Date().toISOString(),
+      },
+    });
+
+    if (enqueueError) {
+      console.error("Failed to enqueue notification email", { error: enqueueError });
+      // Non-fatal: inquiry was saved, just email failed to queue
     }
 
     return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id }), {
