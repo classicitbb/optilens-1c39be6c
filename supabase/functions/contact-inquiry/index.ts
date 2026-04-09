@@ -13,13 +13,15 @@ const MIN_FORM_FILL_MS = 2500;
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const MAX_MESSAGE_LENGTH = 4000;
+const DEFAULT_FROM_EMAIL = "Classic Visions <noreply@notify.classicvisions.net>";
 
 const inquirySchema = z.object({
   inquiryType: z.string().trim().min(1).max(50).default("contact"),
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
   phone: z.string().trim().max(20).nullable().optional(),
-  message: z.string().trim().min(1).max(1000),
+  message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
   pageSlug: z.string().trim().min(1).max(255).default("/"),
   sourceChannel: z.string().trim().min(1).max(50).default("website"),
   honeypot: z.string().optional().default(""),
@@ -53,7 +55,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const fromEmail = Deno.env.get("CONTACT_FORM_FROM_EMAIL") ?? "Classic Visions <no-reply@classicvisions.net>";
+    const fromEmail = Deno.env.get("CONTACT_FORM_FROM_EMAIL") ?? DEFAULT_FROM_EMAIL;
 
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error("Missing Supabase server configuration");
@@ -191,7 +193,7 @@ Deno.serve(async (req) => {
         from: fromEmail,
         to: [CONTACT_RECIPIENT],
         reply_to: payload.email,
-        subject: `Website contact inquiry from ${payload.name}`,
+        subject: `${payload.inquiryType === "website-design-lead" ? "Website design lead" : "Website contact inquiry"} from ${payload.name}`,
         text: [
           "New contact inquiry received.",
           "",
