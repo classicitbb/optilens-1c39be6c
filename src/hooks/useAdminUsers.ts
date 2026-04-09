@@ -43,8 +43,8 @@ export const useAdminUsers = () => {
       const roleMap = new Map((roles ?? []).map((r: any) => [r.user_id, r]) ?? []);
       const authMap = new Map(authUsers.map((user) => [user.id, user]));
       const userIds = new Set<string>([
-        ...Array.from(profileMap.keys()),
-        ...Array.from(roleMap.keys()),
+        ...Array.from(profileMap.keys() as Iterable<string>),
+        ...Array.from(roleMap.keys() as Iterable<string>),
         ...Array.from(authMap.keys()),
       ]);
 
