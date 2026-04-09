@@ -220,7 +220,7 @@ const OfficeOccupationalPage = () => {
         <section className="container mx-auto mt-16 max-w-6xl px-4 lg:px-8">
           <Card className="border-border">
             <CardContent className="p-6 sm:p-8">
-              <h2 className="text-2xl font-bold text-foreground">Office Range Calculator (Prototype)</h2>
+              <h2 className="text-2xl font-bold text-foreground">Office Range Calculator</h2>
               <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
                 Replicated calculator workflow for Optilux & Essential Office / Start Office:
                 select distance sphere, ADD power, and a far distance range to generate shift guidance and pupil-centre references.
