@@ -84,7 +84,7 @@ export const useHelpArticles = (pageSlug?: string) => {
   const allArticlesQuery = useQuery({
     queryKey: ["help_articles_all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("help_articles").select("*, help_article_contexts(context_slug)").order("sort_order");
+      const { data, error } = await (supabase.from("help_articles") as any).select("*, help_article_contexts(context_slug)").order("sort_order");
       if (error) throw error;
       return ((data ?? []) as HelpArticleRow[]).map(normalizeArticle);
     },
@@ -127,9 +127,9 @@ export const useHelpArticles = (pageSlug?: string) => {
         if (error) throw error;
 
         if (article.context_slugs && article.context_slugs.length > 0) {
-          const { error: deleteContextError } = await supabase.from("help_article_contexts").delete().eq("article_id", article.id);
+          const { error: deleteContextError } = await (supabase.from("help_article_contexts") as any).delete().eq("article_id", article.id);
           if (deleteContextError) throw deleteContextError;
-          const { error: insertContextError } = await supabase.from("help_article_contexts").insert(contexts.map((context_slug) => ({ article_id: article.id as string, context_slug })));
+          const { error: insertContextError } = await (supabase.from("help_article_contexts") as any).insert(contexts.map((context_slug) => ({ article_id: article.id as string, context_slug })));
           if (insertContextError) throw insertContextError;
         }
 
@@ -140,7 +140,7 @@ export const useHelpArticles = (pageSlug?: string) => {
         const { data, error } = await (supabase as any).from("help_articles").insert(payload).select("id").single();
         if (error) throw error;
 
-        const { error: insertContextError } = await supabase.from("help_article_contexts").insert(contexts.map((context_slug) => ({ article_id: data.id, context_slug })));
+        const { error: insertContextError } = await (supabase.from("help_article_contexts") as any).insert(contexts.map((context_slug) => ({ article_id: data.id, context_slug })));
         if (insertContextError) throw insertContextError;
 
         await saveVersionSnapshot(data.id, article.title, article.content as any, 1, article.change_note ?? "Initial draft");
@@ -170,7 +170,7 @@ export const useHelpArticles = (pageSlug?: string) => {
       const { data: current, error: fetchError } = await (supabase as any).from("help_articles").select("version_number").eq("id", articleId).single();
       if (fetchError) throw fetchError;
       const nextVersion = ((current as any)?.version_number ?? 1) + 1;
-      const { error } = await supabase.from("help_articles").update({
+      const { error } = await (supabase.from("help_articles") as any).update({
         title: version.title_snapshot,
         body_json: version.body_snapshot,
         content: canonicalToHtml(version.body_snapshot),
@@ -188,7 +188,7 @@ export const useHelpArticles = (pageSlug?: string) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("help_articles").delete().eq("id", id);
+      const { error } = await (supabase.from("help_articles") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

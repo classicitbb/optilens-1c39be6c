@@ -113,7 +113,7 @@ export const useImportAddons = () => {
         return;
       }
 
-      const { data: existing } = await supabase.from("addons").select("id, name");
+      const { data: existing } = await (supabase.from("addons") as any).select("id, name");
       const nameMap = new Map<string, string>();
       ((existing as any[]) ?? []).forEach((a: any) => nameMap.set(a.name.toLowerCase().trim(), a.id));
 
@@ -158,7 +158,7 @@ export const useImportAddons = () => {
     setIsImporting(true);
 
     try {
-      const { data: suppliers } = await supabase.from("suppliers").select("id, name").eq("is_active", true);
+      const { data: suppliers } = await (supabase.from("suppliers") as any).select("id, name").eq("is_active", true);
       const supplierMap = new Map<string, string>();
       ((suppliers as any[]) ?? []).forEach((s: any) => supplierMap.set(s.name.toLowerCase().trim(), s.id));
 
@@ -182,9 +182,9 @@ export const useImportAddons = () => {
           };
 
           if (row.existingId) {
-            await supabase.from("addons").update(data).eq("id", row.existingId);
+            await (supabase.from("addons") as any).update(data).eq("id", row.existingId);
           } else {
-            await supabase.from("addons").insert(data);
+            await (supabase.from("addons") as any).insert(data);
           }
 
           const idx = updatedRows.findIndex((r) => r.rowNumber === row.rowNumber);

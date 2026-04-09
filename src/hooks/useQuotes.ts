@@ -205,7 +205,7 @@ export const useQuotes = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("quotes").delete().eq("id", id);
+      const { error } = await (supabase.from("quotes") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["quotes"] }),
@@ -258,7 +258,7 @@ export const useQuoteLines = (quoteId: string | undefined) => {
 
   const deleteLineMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("quote_lines").delete().eq("id", id);
+      const { error } = await (supabase.from("quote_lines") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["quote-lines", quoteId] }),

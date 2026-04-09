@@ -17,14 +17,14 @@ export const useDashboardKpis = () => {
       monthStart.setHours(0, 0, 0, 0);
 
       const [totalResult, activeResult, wonThisMonthResult, pipelineValueResult] = await Promise.all([
-        supabase.from("opportunities").select("id", { count: "exact", head: true }),
-        supabase.from("opportunities").select("id", { count: "exact", head: true }).not("stage", "in", "(won,lost)"),
+        (supabase.from("opportunities") as any).select("id", { count: "exact", head: true }),
+        (supabase.from("opportunities") as any).select("id", { count: "exact", head: true }).not("stage", "in", "(won,lost)"),
         supabase
           .from("opportunities")
           .select("id", { count: "exact", head: true })
           .eq("stage", "won")
           .gte("updated_at", monthStart.toISOString()),
-        supabase.from("opportunities").select("estimated_value").not("stage", "in", "(won,lost)"),
+        (supabase.from("opportunities") as any).select("estimated_value").not("stage", "in", "(won,lost)"),
       ]);
 
       if (totalResult.error) throw totalResult.error;

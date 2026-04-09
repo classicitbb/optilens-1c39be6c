@@ -82,7 +82,7 @@ export const useContentArticles = (contentType?: ContentType) => {
           .eq("id", article.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("help_articles").insert(payload);
+        const { error } = await (supabase.from("help_articles") as any).insert(payload);
         if (error) throw error;
       }
     },
@@ -94,7 +94,7 @@ export const useContentArticles = (contentType?: ContentType) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("help_articles").delete().eq("id", id);
+      const { error } = await (supabase.from("help_articles") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

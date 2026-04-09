@@ -450,23 +450,23 @@ export const useImportLenses = () => {
 
           let lensId: string;
           if (row.existingLensId) {
-            const { error } = await supabase.from("lenses").update(lensData as any).eq("id", row.existingLensId);
+            const { error } = await (supabase.from("lenses") as any).update(lensData as any).eq("id", row.existingLensId);
             if (error) throw error;
             lensId = row.existingLensId;
           } else {
-            const { data: newLens, error } = await supabase.from("lenses").insert(lensData as any).select("id").single();
+            const { data: newLens, error } = await (supabase.from("lenses") as any).insert(lensData as any).select("id").single();
             if (error) throw error;
             lensId = newLens.id;
           }
 
-          await supabase.from("lens_lens_options").delete().eq("lens_id", lensId);
+          await (supabase.from("lens_lens_options") as any).delete().eq("lens_id", lensId);
           if (row.resolved.lens_option_id) {
-            await supabase.from("lens_lens_options").insert({
+            await (supabase.from("lens_lens_options") as any).insert({
               lens_id: lensId, lens_option_id: row.resolved.lens_option_id, extra_cost: 0,
             } as any);
           }
 
-          await supabase.from("pricing_input_rows").insert({
+          await (supabase.from("pricing_input_rows") as any).insert({
             batch_id: batch.id, row_number: row.rowNumber,
             raw_data: raw, status: "imported",
             resolved_data: { lens_id: lensId }, lens_id: lensId,
@@ -477,7 +477,7 @@ export const useImportLenses = () => {
           successCount++;
         } catch (err: any) {
           try {
-            await supabase.from("pricing_input_rows").insert({
+            await (supabase.from("pricing_input_rows") as any).insert({
               batch_id: batch.id, row_number: row.rowNumber,
               raw_data: row.raw, status: "error",
               error_messages: [err.message || "Unknown error"],
@@ -496,7 +496,7 @@ export const useImportLenses = () => {
       }
 
       setRows(updatedRows);
-      await supabase.from("import_batches").update({
+      await (supabase.from("import_batches") as any).update({
         status: "completed", success_count: successCount, error_count: errorCount,
       } as any).eq("id", batch.id);
 

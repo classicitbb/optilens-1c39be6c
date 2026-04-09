@@ -113,7 +113,7 @@ const SectionContentDialog = ({
         if (error) throw error;
       } else {
         // Create new article for this fixed section
-        const { error } = await supabase.from("help_articles").insert({
+        const { error } = await (supabase.from("help_articles") as any).insert({
           title,
           content,
           description,

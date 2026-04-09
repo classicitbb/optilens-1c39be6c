@@ -145,8 +145,8 @@ const usePricelistAssignments = () =>
     queryKey: ["new-catalog-pricelist-options"],
     queryFn: async () => {
       const [{ data: versions, error: versionsError }, { data: rows, error: rowsError }] = await Promise.all([
-        supabase.from("pricelist_versions").select("*").order("created_at", { ascending: false }),
-        (supabase.from("pricelist_catalog_rows") as any).select("pricelist_version_id, catalog_type"),
+        (supabase.from("pricelist_versions") as any).select("*").order("created_at", { ascending: false }),
+        ((supabase.from("pricelist_catalog_rows") as any)as any).select("pricelist_version_id, catalog_type"),
       ]);
 
       if (versionsError) throw versionsError;
@@ -244,7 +244,7 @@ const NewCatalogDialog = ({
   };
 
   const handleUpdateSection = async (id: number, updates: Partial<CatalogSectionInsert>) => {
-    const { error } = await (supabase.from("catalog_sections") as any).update(updates).eq("id", id);
+    const { error } = await ((supabase.from("catalog_sections") as any)as any).update(updates).eq("id", id);
     if (error) throw error;
   };
 

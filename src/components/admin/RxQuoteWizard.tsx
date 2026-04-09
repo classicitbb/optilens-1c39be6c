@@ -495,7 +495,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   useEffect(() => {
     if (lensLines.length === 0) { setRxMap({}); return; }
     const ids = lensLines.map(l => l.id);
-    supabase.from("rx_details").select("*").in("quote_line_id", ids).then(({ data }) => {
+    (supabase.from("rx_details") as any).select("*").in("quote_line_id", ids).then(({ data }) => {
       if (data) {
         const map: Record<string, RxDetail> = {};
         data.forEach((r: any) => { map[r.quote_line_id] = r as RxDetail; });

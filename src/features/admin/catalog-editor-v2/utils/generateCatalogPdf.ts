@@ -80,7 +80,7 @@ export const generateCatalogPdf = async (template: CatalogTemplate, settings: an
       });
     }
 
-    const { data: addons } = await supabase.from("addons").select("name, price").eq("is_active", true).order("sort_order");
+    const { data: addons } = await (supabase.from("addons") as any).select("name, price").eq("is_active", true).order("sort_order");
     if (addons && addons.length > 0) {
       doc.addPage();
       doc.setFillColor(30, 77, 183);

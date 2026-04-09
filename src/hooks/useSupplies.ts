@@ -126,7 +126,7 @@ export const useSupplies = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("supplies").delete().eq("id", id);
+      const { error } = await (supabase.from("supplies") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["supplies"] }),
@@ -136,7 +136,7 @@ export const useSupplies = () => {
     mutationFn: async (supply: Supply) => {
       const { id, created_at, updated_at, supplier_name, brand_name, ...rest } = supply;
       const newSupply = { ...rest, name: `${supply.name} (Copy)` };
-      const { data, error } = await supabase.from("supplies").insert(newSupply as any).select("id").single();
+      const { data, error } = await (supabase.from("supplies") as any).insert(newSupply as any).select("id").single();
       if (error) throw error;
       return data;
     },

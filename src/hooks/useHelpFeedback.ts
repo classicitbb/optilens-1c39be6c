@@ -138,7 +138,7 @@ export const useHelpFeedback = () => {
         pageSlug,
       });
 
-      const { error } = await supabase.from("help_feedback").insert({
+      const { error } = await (supabase.from("help_feedback") as any).insert({
         article_id: resolvedArticleId,
         user_id: user.id,
         feedback_type: feedbackType,

@@ -14,7 +14,7 @@ export const useCustomerPricingAccess = (userId?: string) => {
   const { data: access = [], isLoading } = useQuery({
     queryKey: ["customer-pricing-access", userId],
     queryFn: async () => {
-      const query = supabase.from("customer_pricing_access").select("*");
+      const query = (supabase.from("customer_pricing_access") as any).select("*");
       if (userId) query.eq("user_id", userId);
       const { data, error } = await query;
       if (error) throw error;

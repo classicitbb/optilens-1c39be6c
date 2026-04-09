@@ -189,8 +189,8 @@ const CanvasEditorShell = () => {
     queryKey: ["catalog-canvas-pricing-versions"],
     queryFn: async () => {
       const [{ data: versions, error: versionsError }, { data: rows, error: rowsError }] = await Promise.all([
-        supabase.from("pricelist_versions").select("id, name").order("created_at", { ascending: false }),
-        supabase.from("pricelist_catalog_rows").select("pricelist_version_id, catalog_type"),
+        (supabase.from("pricelist_versions") as any).select("id, name").order("created_at", { ascending: false }),
+        (supabase.from("pricelist_catalog_rows") as any).select("pricelist_version_id, catalog_type"),
       ]);
 
       if (versionsError) throw versionsError;
@@ -577,7 +577,7 @@ const CanvasEditorShell = () => {
     try {
       const sourceSectionId = normalizeNumber(existingObject.content.source_section_id);
       if (sourceSectionId) {
-        const { error } = await supabase.from("catalog_sections").delete().eq("id", sourceSectionId);
+        const { error } = await (supabase.from("catalog_sections") as any).delete().eq("id", sourceSectionId);
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: [SECTIONS_QUERY_KEY_PREFIX, templateId] });
       }

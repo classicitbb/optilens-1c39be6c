@@ -72,7 +72,7 @@ export const useContactTags = () => {
   return useQuery({
     queryKey: ["contact_tags"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("contact_tags").select("*").order("name");
+      const { data, error } = await (supabase.from("contact_tags") as any).select("*").order("name");
       if (error) throw error;
       return data as ContactTag[];
     },
@@ -98,7 +98,7 @@ export const useIndustries = () => {
   return useQuery({
     queryKey: ["industries"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("industries").select("*").eq("is_active", true).order("name");
+      const { data, error } = await (supabase.from("industries") as any).select("*").eq("is_active", true).order("name");
       if (error) throw error;
       return data as Industry[];
     },
@@ -120,10 +120,10 @@ export const useSaveContact = () => {
       }
 
       if (contact.id) {
-        const { error } = await supabase.from("contacts").update(payload).eq("id", contact.id);
+        const { error } = await (supabase.from("contacts") as any).update(payload).eq("id", contact.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("contacts").insert(payload as any);
+        const { error } = await (supabase.from("contacts") as any).insert(payload as any);
         if (error) throw error;
       }
     },
@@ -135,7 +135,7 @@ export const useDeleteContact = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("contacts").delete().eq("id", id);
+      const { error } = await (supabase.from("contacts") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
@@ -147,10 +147,10 @@ export const useSaveContactTag = () => {
   return useMutation({
     mutationFn: async (tag: Partial<ContactTag> & { id?: string }) => {
       if (tag.id) {
-        const { error } = await supabase.from("contact_tags").update(tag).eq("id", tag.id);
+        const { error } = await (supabase.from("contact_tags") as any).update(tag).eq("id", tag.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("contact_tags").insert(tag as any);
+        const { error } = await (supabase.from("contact_tags") as any).insert(tag as any);
         if (error) throw error;
       }
     },
@@ -162,7 +162,7 @@ export const useDeleteContactTag = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("contact_tags").delete().eq("id", id);
+      const { error } = await (supabase.from("contact_tags") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contact_tags"] }),
@@ -174,10 +174,10 @@ export const useSaveIndustry = () => {
   return useMutation({
     mutationFn: async (ind: Partial<Industry> & { id?: string }) => {
       if (ind.id) {
-        const { error } = await supabase.from("industries").update(ind).eq("id", ind.id);
+        const { error } = await (supabase.from("industries") as any).update(ind).eq("id", ind.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("industries").insert(ind as any);
+        const { error } = await (supabase.from("industries") as any).insert(ind as any);
         if (error) throw error;
       }
     },
@@ -190,11 +190,11 @@ export const useSetContactTags = () => {
   return useMutation({
     mutationFn: async ({ contactId, tagIds }: { contactId: string; tagIds: string[] }) => {
       // Delete existing
-      await supabase.from("contact_tag_links").delete().eq("contact_id", contactId);
+      await (supabase.from("contact_tag_links") as any).delete().eq("contact_id", contactId);
       // Insert new
       if (tagIds.length > 0) {
         const rows = tagIds.map((tag_id) => ({ contact_id: contactId, tag_id }));
-        const { error } = await supabase.from("contact_tag_links").insert(rows);
+        const { error } = await (supabase.from("contact_tag_links") as any).insert(rows);
         if (error) throw error;
       }
     },

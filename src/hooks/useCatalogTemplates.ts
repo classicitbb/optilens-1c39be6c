@@ -63,9 +63,9 @@ export const useCatalogTemplates = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       // Delete assignments first
-      await supabase.from("catalog_assignments").delete().eq("catalog_template_id", id);
-      await supabase.from("catalog_sections").delete().eq("catalog_template_id", id);
-      const { error } = await supabase.from("catalog_templates").delete().eq("id", id);
+      await (supabase.from("catalog_assignments") as any).delete().eq("catalog_template_id", id);
+      await (supabase.from("catalog_sections") as any).delete().eq("catalog_template_id", id);
+      const { error } = await (supabase.from("catalog_templates") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-templates"] }),
@@ -168,14 +168,14 @@ export const useCatalogAssignments = (templateId?: number) => {
   const setAssignments = useMutation({
     mutationFn: async ({ templateId, customerIds }: { templateId: number; customerIds: number[] }) => {
       // Remove existing
-      await supabase.from("catalog_assignments").delete().eq("catalog_template_id", templateId);
+      await (supabase.from("catalog_assignments") as any).delete().eq("catalog_template_id", templateId);
       // Insert new
       if (customerIds.length > 0) {
         const rows = customerIds.map((cid) => ({
           catalog_template_id: templateId,
           customer_id: cid,
         }));
-        const { error } = await supabase.from("catalog_assignments").insert(rows);
+        const { error } = await (supabase.from("catalog_assignments") as any).insert(rows);
         if (error) throw error;
       }
     },
