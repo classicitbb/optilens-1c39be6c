@@ -49,8 +49,8 @@ export const useAdminUsers = () => {
       ]);
 
       return Array.from(userIds).map((userId) => {
-        const profile = profileMap.get(userId);
-        const role = roleMap.get(userId);
+        const profile = profileMap.get(userId) as any;
+        const role = roleMap.get(userId) as any;
         const auth = authMap.get(userId);
         return {
           user_id: userId,
