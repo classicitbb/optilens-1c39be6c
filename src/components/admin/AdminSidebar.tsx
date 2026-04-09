@@ -36,13 +36,13 @@ const AdminSidebar = () => {
     queryKey: ["integration-connection-status", "odoo"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("integration_connections" as never)
+        .from("integration_connections" as any)
         .select("status")
         .eq("provider", "odoo")
         .eq("tenant_key", "default")
         .maybeSingle();
       if (error) throw error;
-      return (data as IntegrationConnectionRow | null)?.status ?? "not_configured";
+      return ((data as any) as IntegrationConnectionRow | null)?.status ?? "not_configured";
     },
     enabled: activeAppKey === "settings",
   });
