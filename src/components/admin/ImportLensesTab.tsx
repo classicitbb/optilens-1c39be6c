@@ -165,10 +165,10 @@ const ImportLensesTab = () => {
   const handlePurge = async () => {
     setIsPurging(true);
     try {
-      await supabase.from("lens_lens_options").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      await supabase.from("pricing_input_rows").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      await supabase.from("import_batches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      await supabase.from("lenses").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await (supabase.from("lens_lens_options") as any).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await (supabase.from("pricing_input_rows") as any).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await (supabase.from("import_batches") as any).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await (supabase.from("lenses") as any).delete().neq("id", "00000000-0000-0000-0000-000000000000");
       reset();
       toast({ title: "Purged", description: "All lenses and import data cleared." });
     } catch (err: any) {

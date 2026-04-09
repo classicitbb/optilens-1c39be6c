@@ -134,12 +134,12 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
     queryKey: ["profile-name", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.
-      from("profiles").
+      const { data } = await (supabase.
+      from("profiles") as any).
       select("display_name, avatar_url").
       eq("user_id", user.id).
       maybeSingle();
-      return data;
+      return data as { display_name: string | null; avatar_url: string | null } | null;
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000
