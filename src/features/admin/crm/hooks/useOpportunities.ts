@@ -152,7 +152,7 @@ export const useUpdateOpportunityStage = () => {
 
       const lifecycleStage = toLifecycleStage(stage);
       if (lifecycleStage) {
-        const { error: outcomeErr } = await (supabase.from("lead_search_outcomes") as any)
+        const { error: outcomeErr } = await (supabase as any).from("lead_search_outcomes")
           .upsert({
             opportunity_id: id,
             contact_id: opp.contact_id,
