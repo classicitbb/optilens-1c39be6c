@@ -32,3 +32,5 @@ project_id = "xstmeirxhfbiyayrrsob"
   [functions.helpdesk-followup]
     verify_jwt = false
     schedule = "*/15 * * * *"
+  [functions.process-email-queue]
+    verify_jwt = true
