@@ -24,6 +24,8 @@ import {
   ChevronDown,
   ChevronRight,
   Link2Off,
+  Lock,
+  LockOpen,
   Loader2,
   Pencil,
   Plus,
@@ -39,6 +41,7 @@ import { fieldsMatch } from "@/lib/wildcardMatch";
 import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixRowKey, buildMatrixSectionLabel } from "@/features/admin/rx-pricing/structure";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
+import { useAdminRole } from "@/contexts/AdminRoleContext";
 
 interface TreatmentMatricesAccordionProps {
   versionId: number;
@@ -231,6 +234,7 @@ const LensPickerModal = ({
 
 const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChange }: TreatmentMatricesAccordionProps) => {
   const { toast } = useToast();
+  const { isAdmin } = useAdminRole();
   const { data: allocations = [], isLoading: allocLoading, upsertMutation, deleteMutation } = useMatrixAllocations(versionId);
   const { data: catalogRows = [] } = usePricelistCatalogRows(versionId, "rx");
   const { upsertRow: upsertCatalogRow, deleteRow: deleteCatalogRow } = usePricelistCatalogRowUpsert(versionId, "rx");
@@ -251,6 +255,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
 
   const [pendingRowKeys, setPendingRowKeys] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set(["clear"]));
+  const [structureLocked, setStructureLocked] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<{ groupKey: string; groupName: string; categoryKey: string; categoryName: string; materialIndex: string } | null>(null);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
@@ -279,6 +284,8 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     if (!pickerTarget) return null;
     return allocationMap.get(`${pickerTarget.groupKey}::${pickerTarget.categoryKey}::${pickerTarget.materialIndex}`)?.lens_id ?? null;
   }, [allocationMap, pickerTarget]);
+
+  const showStructureControls = isAdmin && !structureLocked;
 
   const markPending = (rowKey: string) => {
     setPendingRowKeys((previous) => {
@@ -450,10 +457,26 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setNameDialog({ mode: "create-group", title: "Add Grouping", value: "" })}>
-            <Plus className="h-3.5 w-3.5" />
-            Add Grouping
-          </Button>
+          {isAdmin && (
+            <>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                onClick={() => setStructureLocked((current) => !current)}
+                title={structureLocked ? "Unlock structure editing" : "Lock structure editing"}
+                aria-label={structureLocked ? "Unlock structure editing" : "Lock structure editing"}
+              >
+                {structureLocked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
+              </Button>
+              {showStructureControls && (
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setNameDialog({ mode: "create-group", title: "Add Grouping", value: "" })}>
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Grouping
+                </Button>
+              )}
+            </>
+          )}
           <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => toast({ title: "Deltas recalculated", description: "All delta rows updated." })}>
             <RefreshCw className="h-3.5 w-3.5" />
             Recalculate All Deltas
@@ -499,24 +522,26 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
               <div className="p-3 space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="text-[11px] text-muted-foreground">Grouping names and order are global across all price list versions.</div>
-                  <div className="flex items-center gap-1.5">
-                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => bumpGrouping.mutate({ groupingId: grouping.id, direction: -1 })} disabled={groupingIndex === 0 || bumpGrouping.isPending} title="Move grouping up">
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => bumpGrouping.mutate({ groupingId: grouping.id, direction: 1 })} disabled={groupingIndex === structure.length - 1 || bumpGrouping.isPending} title="Move grouping down">
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setNameDialog({ mode: "rename-group", title: "Rename Grouping", value: grouping.name, groupingId: grouping.id })} title="Rename grouping">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setNameDialog({ mode: "create-category", title: `Add Category (All Groups) to ${grouping.name}`, value: "", groupingId: grouping.id, groupingKey: grouping.key })}>
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Category (All Groups)
-                    </Button>
-                    <Button size="icon" variant="outline" className="h-7 w-7 text-destructive" onClick={() => setArchiveDialog({ type: "group", id: grouping.id, key: grouping.key, name: grouping.name, protected: grouping.key === "clear" })} title="Remove grouping">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {showStructureControls && (
+                    <div className="flex items-center gap-1.5">
+                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => bumpGrouping.mutate({ groupingId: grouping.id, direction: -1 })} disabled={groupingIndex === 0 || bumpGrouping.isPending} title="Move grouping up">
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => bumpGrouping.mutate({ groupingId: grouping.id, direction: 1 })} disabled={groupingIndex === structure.length - 1 || bumpGrouping.isPending} title="Move grouping down">
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setNameDialog({ mode: "rename-group", title: "Rename Grouping", value: grouping.name, groupingId: grouping.id })} title="Rename grouping">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setNameDialog({ mode: "create-category", title: `Add Category (All Groups) to ${grouping.name}`, value: "", groupingId: grouping.id, groupingKey: grouping.key })}>
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Category (All Groups)
+                      </Button>
+                      <Button size="icon" variant="outline" className="h-7 w-7 text-destructive" onClick={() => setArchiveDialog({ type: "group", id: grouping.id, key: grouping.key, name: grouping.name, protected: grouping.key === "clear" })} title="Remove grouping">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="overflow-auto border border-border rounded-md">
@@ -537,20 +562,22 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                           <td className="px-3 py-1.5 border-r border-border align-top">
                             <div className="flex items-start justify-between gap-2">
                               <div className="font-semibold text-foreground whitespace-nowrap">{category.name}</div>
-                              <div className="flex items-center gap-1 no-print">
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => bumpCategory.mutate({ categoryId: category.id, direction: -1 })} disabled={categoryIndex === 0 || bumpCategory.isPending} title="Move category up">
-                                  <ArrowUp className="h-3 w-3" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => bumpCategory.mutate({ categoryId: category.id, direction: 1 })} disabled={categoryIndex === grouping.categories.length - 1 || bumpCategory.isPending} title="Move category down">
-                                  <ArrowDown className="h-3 w-3" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setNameDialog({ mode: "rename-category", title: "Rename Category", value: category.name, categoryId: category.id })} title="Rename category">
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => setArchiveDialog({ type: "category", id: category.id, groupingKey: grouping.key, key: category.key, name: category.name })} title="Remove category">
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
+                              {showStructureControls && (
+                                <div className="flex items-center gap-1 no-print">
+                                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => bumpCategory.mutate({ categoryId: category.id, direction: -1 })} disabled={categoryIndex === 0 || bumpCategory.isPending} title="Move category up">
+                                    <ArrowUp className="h-3 w-3" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => bumpCategory.mutate({ categoryId: category.id, direction: 1 })} disabled={categoryIndex === grouping.categories.length - 1 || bumpCategory.isPending} title="Move category down">
+                                    <ArrowDown className="h-3 w-3" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setNameDialog({ mode: "rename-category", title: "Rename Category", value: category.name, categoryId: category.id })} title="Rename category">
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => setArchiveDialog({ type: "category", id: category.id, groupingKey: grouping.key, key: category.key, name: category.name })} title="Remove category">
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </td>
                           {MATERIAL_COLUMNS.map((column) => {
