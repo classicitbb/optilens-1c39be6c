@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,28 +67,66 @@ const NumberField = ({
   label,
   value,
   step,
+  debounceMs = 220,
   onChange,
 }: {
   id: string;
   label: string;
   value: number;
   step: number;
+  debounceMs?: number;
   onChange: (value: number) => void;
-}) => (
-  <div>
-    <Label htmlFor={id}>{label}</Label>
-    <Input
-      id={id}
-      type="number"
-      step={step}
-      value={Number.isFinite(value) ? value : ""}
-      onChange={(event) => {
-        const parsed = Number.parseFloat(event.target.value);
-        onChange(Number.isFinite(parsed) ? parsed : 0);
-      }}
-    />
-  </div>
-);
+}) => {
+  const [draftValue, setDraftValue] = useState(() => (Number.isFinite(value) ? String(value) : ""));
+  const timeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setDraftValue(Number.isFinite(value) ? String(value) : "");
+  }, [value]);
+
+  useEffect(() => () => {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+    }
+  }, []);
+
+  const commitValue = (nextRawValue: string) => {
+    const parsed = Number.parseFloat(nextRawValue);
+    if (Number.isFinite(parsed)) {
+      onChange(parsed);
+    }
+  };
+
+  return (
+    <div>
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type="number"
+        step={step}
+        value={draftValue}
+        onChange={(event) => {
+          const nextRawValue = event.target.value;
+          setDraftValue(nextRawValue);
+
+          if (timeoutRef.current !== null) {
+            window.clearTimeout(timeoutRef.current);
+          }
+
+          timeoutRef.current = window.setTimeout(() => {
+            commitValue(nextRawValue);
+          }, debounceMs);
+        }}
+        onBlur={(event) => {
+          if (timeoutRef.current !== null) {
+            window.clearTimeout(timeoutRef.current);
+          }
+          commitValue(event.target.value);
+        }}
+      />
+    </div>
+  );
+};
 
 const OptiEdgeThicknessWidget = () => {
   const [right, setRight] = useState<EyeInput>({ sph: -2.5, cyl: -0.75, axis: 90, pd: 31 });
