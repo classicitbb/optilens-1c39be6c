@@ -17,8 +17,8 @@ export const useDashboardTrends = () => {
       startDate.setHours(0, 0, 0, 0);
 
       const [opportunitiesResult, activitiesResult] = await Promise.all([
-        supabase.from("opportunities").select("created_at").gte("created_at", startDate.toISOString()),
-        supabase.from("activities").select("created_at").gte("created_at", startDate.toISOString()),
+        (supabase.from("opportunities") as any).select("created_at").gte("created_at", startDate.toISOString()),
+        (supabase.from("activities") as any).select("created_at").gte("created_at", startDate.toISOString()),
       ]);
 
       if (opportunitiesResult.error) throw opportunitiesResult.error;

@@ -22,8 +22,7 @@ const PLACEHOLDER_ROUTES = [
 export async function getTaskReminderNotifications(): Promise<AdminNotificationEvent[]> {
   const reminders: AdminNotificationEvent[] = [];
 
-  const { data: draftQuotes } = await supabase
-    .from("quotes")
+  const { data: draftQuotes } = await (supabase.from("quotes") as any)
     .select("id,updated_at")
     .eq("status", "draft")
     .order("updated_at", { ascending: false })

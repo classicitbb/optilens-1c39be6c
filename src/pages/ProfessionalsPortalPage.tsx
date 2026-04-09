@@ -126,8 +126,7 @@ const CustomerServiceTicketForm = () => {
       let contactId: string | null = null;
 
       if (userEmail) {
-        const { data: existing } = await supabase
-          .from("contacts")
+        const { data: existing } = await (supabase.from("contacts") as any)
           .select("id")
           .eq("email", userEmail)
           .maybeSingle();
@@ -135,8 +134,7 @@ const CustomerServiceTicketForm = () => {
         if (existing?.id) {
           contactId = existing.id;
         } else {
-          const { data: created } = await supabase
-            .from("contacts")
+          const { data: created } = await (supabase.from("contacts") as any)
             .insert({
               name: user.user_metadata?.full_name || userEmail,
               email: userEmail,

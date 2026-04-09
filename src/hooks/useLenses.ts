@@ -86,8 +86,7 @@ export const useLenses = () => {
       if (error) throw error;
       if (!lensRows || lensRows.length === 0) return [];
       // Fetch related data for joined fields
-      const { data: joinedData, error: joinError } = await supabase
-        .from("lenses")
+      const { data: joinedData, error: joinError } = await (supabase.from("lenses") as any)
         .select(SELECT_QUERY)
         .order("name");
       if (joinError) throw joinError;
@@ -103,14 +102,13 @@ export const useLenses = () => {
   const createMutation = useMutation({
     mutationFn: async (form: LensFormData) => {
       const { option, ...lensData } = form;
-      const { data, error } = await supabase
-        .from("lenses")
+      const { data, error } = await (supabase.from("lenses") as any)
         .insert(lensData as any)
         .select("id")
         .single();
       if (error) throw error;
       if (option) {
-        const { error: optErr } = await supabase.from("lens_lens_options").insert({ lens_id: data.id, lens_option_id: option.lens_option_id, extra_cost: option.extra_cost } as any);
+        const { error: optErr } = await (supabase.from("lens_lens_options") as any).insert({ lens_id: data.id, lens_option_id: option.lens_option_id, extra_cost: option.extra_cost } as any);
         if (optErr) throw optErr;
       }
       return data;
@@ -121,16 +119,15 @@ export const useLenses = () => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, form }: { id: string; form: LensFormData }) => {
       const { option, ...lensData } = form;
-      const { error } = await supabase
-        .from("lenses")
+      const { error } = await (supabase.from("lenses") as any)
         .update(lensData as any)
         .eq("id", id);
       if (error) throw error;
       // Replace option
-      const { error: delErr } = await supabase.from("lens_lens_options").delete().eq("lens_id", id);
+      const { error: delErr } = await (supabase.from("lens_lens_options") as any).delete().eq("lens_id", id);
       if (delErr) throw delErr;
       if (option) {
-        const { error: optErr } = await supabase.from("lens_lens_options").insert({ lens_id: id, lens_option_id: option.lens_option_id, extra_cost: option.extra_cost } as any);
+        const { error: optErr } = await (supabase.from("lens_lens_options") as any).insert({ lens_id: id, lens_option_id: option.lens_option_id, extra_cost: option.extra_cost } as any);
         if (optErr) throw optErr;
       }
     },
@@ -139,7 +136,7 @@ export const useLenses = () => {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase.from("lenses").update({ is_active } as any).eq("id", id);
+      const { error } = await (supabase.from("lenses") as any).update({ is_active } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lenses"] }),
@@ -148,9 +145,9 @@ export const useLenses = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       // Delete join rows first to be safe
-      const { error: joinErr } = await supabase.from("lens_lens_options").delete().eq("lens_id", id);
+      const { error: joinErr } = await (supabase.from("lens_lens_options") as any).delete().eq("lens_id", id);
       if (joinErr) throw joinErr;
-      const { error } = await supabase.from("lenses").delete().eq("id", id);
+      const { error } = await (supabase.from("lenses") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lenses"] }),
@@ -160,12 +157,12 @@ export const useLenses = () => {
     mutationFn: async (lens: Lens) => {
       const { id, created_at, updated_at, supplier, brand, material, mftype, lenstype, finishtype, lens_lens_options, ...rest } = lens;
       const newLens = { ...rest, name: `${lens.name} (Copy)` };
-      const { data, error } = await supabase.from("lenses").insert(newLens as any).select("id").single();
+      const { data, error } = await (supabase.from("lenses") as any).insert(newLens as any).select("id").single();
       if (error) throw error;
       // Duplicate lens options
       if (lens_lens_options?.length) {
         const optRows = lens_lens_options.map((o) => ({ lens_id: data.id, lens_option_id: o.lens_option_id, extra_cost: o.extra_cost }));
-        const { error: optErr } = await supabase.from("lens_lens_options").insert(optRows as any);
+        const { error: optErr } = await (supabase.from("lens_lens_options") as any).insert(optRows as any);
         if (optErr) throw optErr;
       }
       return data;

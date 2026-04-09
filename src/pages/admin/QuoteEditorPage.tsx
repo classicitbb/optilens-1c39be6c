@@ -95,8 +95,7 @@ const QuoteEditorPage = () => {
   useEffect(() => {
     if (lensLineIds.length === 0) { setRxMap({}); return; }
     const fetchAll = async () => {
-      const { data, error } = await (await import("@/integrations/supabase/client")).supabase
-        .from("rx_details").select("*").in("quote_line_id", lensLineIds);
+      const { data, error } = await (await import("@/integrations/supabase/client")).(supabase.from("rx_details") as any).select("*").in("quote_line_id", lensLineIds);
       if (!error && data) {
         const map: Record<string, RxDetail> = {};
         data.forEach((r: any) => { map[r.quote_line_id] = r as RxDetail; });

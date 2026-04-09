@@ -149,8 +149,7 @@ export const useRolePermissions = () => {
   const { data: allPermissions = [], isLoading } = useQuery({
     queryKey: ["role-permissions"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("role_permissions")
+      const { data, error } = await (supabase.from("role_permissions") as any)
         .select("*")
         .order("role")
         .order("feature");
@@ -176,8 +175,7 @@ export const useRolePermissions = () => {
       can_view: boolean;
       can_edit: boolean;
     }) => {
-      const { error } = await supabase
-        .from("role_permissions")
+      const { error } = await (supabase.from("role_permissions") as any)
         .update({ can_view, can_edit })
         .eq("id", id);
       if (error) throw error;

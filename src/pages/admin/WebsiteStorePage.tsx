@@ -117,8 +117,7 @@ const WebsiteStorePage = () => {
   const { data: pricingSettings } = useQuery({
     queryKey: ["pricing-settings-active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings")
+      const { data, error } = await (supabase.from("pricing_settings") as any)
         .select("fx_rates, fx_risk_buffer")
         .eq("is_active", true)
         .order("version", { ascending: false })
@@ -139,7 +138,7 @@ const WebsiteStorePage = () => {
     queryKey: ["store-product-media"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("store_product_media" as any)
+        .from("store_product_media") as any)
         .select("id, product_type, product_id, image_url, sort_order, is_active")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
@@ -153,7 +152,7 @@ const WebsiteStorePage = () => {
     queryKey: ["store-product-overrides"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("store_product_overrides" as any)
+        .from("store_product_overrides") as any)
         .select("id, product_type, product_id, is_vat_taxable, quantity_label, website_badges");
 
       if (error) return [] as ProductOverride[];
@@ -431,10 +430,10 @@ const WebsiteStorePage = () => {
     };
 
     if (existing?.id) {
-      const { error } = await supabase.from("store_product_overrides" as any).update(payload).eq("id", existing.id);
+      const { error } = await supabase.from("store_product_overrides") as any).update(payload).eq("id", existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from("store_product_overrides" as any).insert(payload as any);
+      const { error } = await supabase.from("store_product_overrides") as any).insert(payload as any);
       if (error) throw error;
     }
 
@@ -450,13 +449,13 @@ const WebsiteStorePage = () => {
 
     const target = list[swapIndex];
 
-    await supabase.from("store_product_media" as any).update({ sort_order: target.sort_order } as any).eq("id", media.id);
-    await supabase.from("store_product_media" as any).update({ sort_order: media.sort_order } as any).eq("id", target.id);
+    await supabase.from("store_product_media") as any).update({ sort_order: target.sort_order } as any).eq("id", media.id);
+    await supabase.from("store_product_media") as any).update({ sort_order: media.sort_order } as any).eq("id", target.id);
     await queryClient.invalidateQueries({ queryKey: ["store-product-media"] });
   };
 
   const removeMedia = async (media: ProductMedia) => {
-    await supabase.from("store_product_media" as any).update({ is_active: false } as any).eq("id", media.id);
+    await supabase.from("store_product_media") as any).update({ is_active: false } as any).eq("id", media.id);
     await queryClient.invalidateQueries({ queryKey: ["store-product-media"] });
   };
 
@@ -480,7 +479,7 @@ const WebsiteStorePage = () => {
       }
       const { data: urlData } = supabase.storage.from(PRODUCT_IMAGE_BUCKET).getPublicUrl(path);
 
-      await supabase.from("store_product_media" as any).insert({
+      await supabase.from("store_product_media") as any).insert({
         product_type: selected.type,
         product_id: selected.id,
         image_url: urlData.publicUrl,

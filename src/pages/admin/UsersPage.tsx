@@ -107,8 +107,7 @@ const UsersPage = () => {
   const saveDisplayName = async (userId: string) => {
     setSavingName(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
+      const { error } = await (supabase.from("profiles") as any)
         .upsert({ user_id: userId, display_name: nameValue || null }, { onConflict: "user_id" });
       if (error) throw error;
       toast({ title: "Name updated" });

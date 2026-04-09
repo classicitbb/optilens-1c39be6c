@@ -73,8 +73,7 @@ export const useSupplies = () => {
       if (safeErr) throw safeErr;
       if (!safeRows || (safeRows as any[]).length === 0) return [];
       const safeMap = new Map((safeRows as any[]).map((r: any) => [r.id, r.base_price]));
-      const { data, error } = await supabase
-        .from("supplies")
+      const { data, error } = await (supabase.from("supplies") as any)
         .select("*, supplier:suppliers(id, name), brand:brands(id, name)")
         .order("name");
       if (error) throw error;
@@ -91,8 +90,7 @@ export const useSupplies = () => {
 
   const createMutation = useMutation({
     mutationFn: async (form: SupplyFormData) => {
-      const { data, error } = await supabase
-        .from("supplies")
+      const { data, error } = await (supabase.from("supplies") as any)
         .insert(form as any)
         .select("id")
         .single();
@@ -104,8 +102,7 @@ export const useSupplies = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, form }: { id: string; form: SupplyFormData }) => {
-      const { error } = await supabase
-        .from("supplies")
+      const { error } = await (supabase.from("supplies") as any)
         .update(form as any)
         .eq("id", id);
       if (error) throw error;
@@ -115,8 +112,7 @@ export const useSupplies = () => {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
-        .from("supplies")
+      const { error } = await (supabase.from("supplies") as any)
         .update({ is_active } as any)
         .eq("id", id);
       if (error) throw error;
@@ -126,7 +122,7 @@ export const useSupplies = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("supplies").delete().eq("id", id);
+      const { error } = await (supabase.from("supplies") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["supplies"] }),
@@ -136,7 +132,7 @@ export const useSupplies = () => {
     mutationFn: async (supply: Supply) => {
       const { id, created_at, updated_at, supplier_name, brand_name, ...rest } = supply;
       const newSupply = { ...rest, name: `${supply.name} (Copy)` };
-      const { data, error } = await supabase.from("supplies").insert(newSupply as any).select("id").single();
+      const { data, error } = await (supabase.from("supplies") as any).insert(newSupply as any).select("id").single();
       if (error) throw error;
       return data;
     },

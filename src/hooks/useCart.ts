@@ -65,8 +65,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("cart_items")
+      const { data, error } = await (supabase.from("cart_items") as any)
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: true });
@@ -123,8 +122,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
       if (existingItem) {
         const newQuantity = existingItem.quantity + quantityToAdd;
 
-        const { error } = await supabase
-          .from("cart_items")
+        const { error } = await (supabase.from("cart_items") as any)
           .update({ quantity: newQuantity })
           .eq("id", existingItem.id)
           .eq("user_id", user.id);
@@ -150,8 +148,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
           variant_metadata: (product.variantMetadata ?? {}) as unknown as import("@/integrations/supabase/types").Json,
         };
 
-        const { data, error } = await supabase
-          .from("cart_items")
+        const { data, error } = await (supabase.from("cart_items") as any)
           .insert([cartInsertPayload])
           .select()
           .single();
@@ -189,7 +186,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     }
 
     try {
-      const { error } = await supabase.from("cart_items").update({ quantity }).eq("id", itemId).eq("user_id", user.id);
+      const { error } = await (supabase.from("cart_items") as any).update({ quantity }).eq("id", itemId).eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -215,7 +212,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     }
 
     try {
-      const { error } = await supabase.from("cart_items").delete().eq("id", itemId).eq("user_id", user.id);
+      const { error } = await (supabase.from("cart_items") as any).delete().eq("id", itemId).eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -239,7 +236,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     if (!user) return;
 
     try {
-      const { error } = await supabase.from("cart_items").delete().eq("user_id", user.id);
+      const { error } = await (supabase.from("cart_items") as any).delete().eq("user_id", user.id);
 
       if (error) throw error;
 

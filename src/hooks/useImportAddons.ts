@@ -80,8 +80,7 @@ export const useImportAddons = () => {
   const { data: pricingSettings } = useQuery<PricingSettings>({
     queryKey: ["pricing_settings_active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings").select("*").eq("is_active", true)
+      const { data, error } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
         .order("version", { ascending: false }).limit(1).single();
       if (error) throw error;
       return data as unknown as PricingSettings;
@@ -113,14 +112,13 @@ export const useImportAddons = () => {
         return;
       }
 
-      const { data: existing } = await supabase.from("addons").select("id, name");
+      const { data: existing } = await (supabase.from("addons") as any).select("id, name");
       const nameMap = new Map<string, string>();
       ((existing as any[]) ?? []).forEach((a: any) => nameMap.set(a.name.toLowerCase().trim(), a.id));
 
       let settings = pricingSettings;
       if (!settings) {
-        const { data } = await supabase
-          .from("pricing_settings").select("*").eq("is_active", true)
+        const { data } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
           .order("version", { ascending: false }).limit(1).single();
         settings = data as unknown as PricingSettings;
       }
@@ -158,7 +156,7 @@ export const useImportAddons = () => {
     setIsImporting(true);
 
     try {
-      const { data: suppliers } = await supabase.from("suppliers").select("id, name").eq("is_active", true);
+      const { data: suppliers } = await (supabase.from("suppliers") as any).select("id, name").eq("is_active", true);
       const supplierMap = new Map<string, string>();
       ((suppliers as any[]) ?? []).forEach((s: any) => supplierMap.set(s.name.toLowerCase().trim(), s.id));
 
@@ -182,9 +180,9 @@ export const useImportAddons = () => {
           };
 
           if (row.existingId) {
-            await supabase.from("addons").update(data).eq("id", row.existingId);
+            await (supabase.from("addons") as any).update(data).eq("id", row.existingId);
           } else {
-            await supabase.from("addons").insert(data);
+            await (supabase.from("addons") as any).insert(data);
           }
 
           const idx = updatedRows.findIndex((r) => r.rowNumber === row.rowNumber);

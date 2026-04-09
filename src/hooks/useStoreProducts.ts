@@ -47,32 +47,30 @@ export const useStoreProducts = () => {
     queryKey: ["store-products"],
     queryFn: async () => {
       const [lensRes, supplyRes, addonRes, mediaRes, overrideRes, variantSummaryRes] = await Promise.all([
-        supabase
-          .from("lenses")
+        (supabase.from("lenses") as any)
           .select("id, name, sell_price, show_on_website, notes, lenstype:lenstypes(name), material:materials(name), mftype:mftypes(name)")
           .eq("show_on_website", true)
           .eq("is_active", true)
           .order("name"),
         supabase
-          .from("supplies_public" as any)
+          .from("supplies_public") as any)
           .select("id, name, description, sell_price, category, unit, quantity_per_unit, image_url")
           .order("name"),
-        supabase
-          .from("addons")
+        (supabase.from("addons") as any)
           .select("id, name, description, category, price, show_on_website, is_active")
           .eq("show_on_website", true)
           .eq("is_active", true)
           .order("name"),
         supabase
-          .from("store_product_media" as any)
+          .from("store_product_media") as any)
           .select("product_type, product_id, image_url, sort_order, is_active")
           .eq("is_active", true)
           .order("sort_order"),
         supabase
-          .from("store_product_overrides" as any)
+          .from("store_product_overrides") as any)
           .select("product_type, product_id, quantity_label, is_vat_taxable, website_badges"),
         supabase
-          .from("store_product_variant_summary" as any)
+          .from("store_product_variant_summary") as any)
           .select("product_type, product_id, active_variants"),
       ]);
 
@@ -83,8 +81,7 @@ export const useStoreProducts = () => {
       const mediaRows = Array.isArray(mediaRes.data) ? mediaRes.data as any[] : [];
       const overrideRows = Array.isArray(overrideRes.data) ? overrideRes.data as any[] : [];
 
-      const { data: pricingSettings } = await supabase
-        .from("pricing_settings")
+      const { data: pricingSettings } = await (supabase.from("pricing_settings") as any)
         .select("fx_rates, fx_risk_buffer")
         .eq("is_active", true)
         .order("version", { ascending: false })

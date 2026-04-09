@@ -158,8 +158,7 @@ const CanvasEditorShell = () => {
   const sectionsQuery = useQuery({
     queryKey: [SECTIONS_QUERY_KEY_PREFIX, templateId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_sections")
+      const { data, error } = await (supabase.from("catalog_sections") as any)
         .select("*")
         .eq("catalog_template_id", templateId)
         .order("sort_order");
@@ -172,8 +171,7 @@ const CanvasEditorShell = () => {
   const articlesQuery = useQuery({
     queryKey: ["catalog-canvas-articles"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("help_articles")
+      const { data, error } = await (supabase.from("help_articles") as any)
         .select("id, title, category")
         .eq("is_active", true)
         .in("content_type", ["knowledge", "faq"])
@@ -189,8 +187,8 @@ const CanvasEditorShell = () => {
     queryKey: ["catalog-canvas-pricing-versions"],
     queryFn: async () => {
       const [{ data: versions, error: versionsError }, { data: rows, error: rowsError }] = await Promise.all([
-        supabase.from("pricelist_versions").select("id, name").order("created_at", { ascending: false }),
-        supabase.from("pricelist_catalog_rows").select("pricelist_version_id, catalog_type"),
+        (supabase.from("pricelist_versions") as any).select("id, name").order("created_at", { ascending: false }),
+        (supabase.from("pricelist_catalog_rows") as any).select("pricelist_version_id, catalog_type"),
       ]);
 
       if (versionsError) throw versionsError;
@@ -237,10 +235,10 @@ const CanvasEditorShell = () => {
     queryKey: [BOOTSTRAP_QUERY_KEY_PREFIX, templateId, pages.map((page) => page.id).join(",")],
     queryFn: async () => {
       if (pages.length === 0) return 0;
-      const { count, error } = await supabase
-        .from("catalog_page_objects" as any)
+      const { count, error } = await (supabase
+        .from("catalog_page_objects") as any)
         .select("id", { count: "exact", head: true })
-        .in("page_id", pages.map((page) => page.id));
+        .in("page_id", pages.map((page: any) => page.id));
       if (error) throw error;
       return count ?? 0;
     },
@@ -294,7 +292,7 @@ const CanvasEditorShell = () => {
           y += PRICING_SECTION_TYPES.has(section.section_type) ? 204 : 144;
         });
 
-        const { error } = await supabase.from("catalog_page_objects" as any).insert(bootstrapObjects as any[]);
+        const { error } = await (supabase.from("catalog_page_objects") as any).insert(bootstrapObjects as any[]);
         if (error) throw error;
 
         await Promise.all([
@@ -454,8 +452,7 @@ const CanvasEditorShell = () => {
       custom_title: normalizeString(content.custom_title),
     };
 
-    const { data, error } = await supabase
-      .from("catalog_sections")
+    const { data, error } = await (supabase.from("catalog_sections") as any)
       .insert(payload)
       .select("*")
       .single();
@@ -539,8 +536,7 @@ const CanvasEditorShell = () => {
       custom_title: normalizeString(mergedContent.custom_title),
     };
 
-    const { error } = await supabase
-      .from("catalog_sections")
+    const { error } = await (supabase.from("catalog_sections") as any)
       .update(updates)
       .eq("id", sourceSectionId);
     if (error) throw error;
@@ -577,7 +573,7 @@ const CanvasEditorShell = () => {
     try {
       const sourceSectionId = normalizeNumber(existingObject.content.source_section_id);
       if (sourceSectionId) {
-        const { error } = await supabase.from("catalog_sections").delete().eq("id", sourceSectionId);
+        const { error } = await (supabase.from("catalog_sections") as any).delete().eq("id", sourceSectionId);
         if (error) throw error;
         await qc.invalidateQueries({ queryKey: [SECTIONS_QUERY_KEY_PREFIX, templateId] });
       }

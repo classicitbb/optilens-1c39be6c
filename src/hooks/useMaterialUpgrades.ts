@@ -17,8 +17,7 @@ export const useMaterialUpgrades = () => {
   const query = useQuery<MaterialUpgrade[]>({
     queryKey: ["material-upgrades"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("material_upgrades")
+      const { data, error } = await (supabase.from("material_upgrades") as any)
         .select("*")
         .order("upgrade_name");
       if (error) throw error;
@@ -29,8 +28,7 @@ export const useMaterialUpgrades = () => {
   const saveMutation = useMutation({
     mutationFn: async (rows: MaterialUpgrade[]) => {
       for (const row of rows) {
-        const { error } = await supabase
-          .from("material_upgrades")
+        const { error } = await (supabase.from("material_upgrades") as any)
           .update({
             full_price_bbd: row.full_price_bbd,
             delta_bbd: row.delta_bbd,
@@ -46,8 +44,7 @@ export const useMaterialUpgrades = () => {
 
   const createMutation = useMutation({
     mutationFn: async (row: Omit<MaterialUpgrade, "id" | "updated_at">) => {
-      const { data, error } = await supabase
-        .from("material_upgrades")
+      const { data, error } = await (supabase.from("material_upgrades") as any)
         .insert(row as any)
         .select()
         .single();
@@ -64,8 +61,7 @@ export const usePricelistNotes = () => {
   return useQuery<{ id: number; section: string | null; content: string | null; sort_order: number | null }[]>({
     queryKey: ["pricelist-notes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricelist_notes")
+      const { data, error } = await (supabase.from("pricelist_notes") as any)
         .select("*")
         .order("sort_order");
       if (error) throw error;

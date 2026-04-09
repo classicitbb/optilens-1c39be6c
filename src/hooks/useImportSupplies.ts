@@ -91,8 +91,7 @@ export const useImportSupplies = () => {
   const { data: pricingSettings } = useQuery<PricingSettings>({
     queryKey: ["pricing_settings_active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings")
+      const { data, error } = await (supabase.from("pricing_settings") as any)
         .select("*")
         .eq("is_active", true)
         .order("version", { ascending: false })
@@ -128,15 +127,14 @@ export const useImportSupplies = () => {
         return;
       }
 
-      const { data: existing } = await supabase.from("supplies").select("id, name");
+      const { data: existing } = await (supabase.from("supplies") as any).select("id, name");
       const nameMap = new Map<string, string>();
       ((existing as any[]) ?? []).forEach((s: any) => nameMap.set(s.name.toLowerCase().trim(), s.id));
 
       // Fetch active pricing settings for computation
       let settings = pricingSettings;
       if (!settings) {
-        const { data } = await supabase
-          .from("pricing_settings").select("*").eq("is_active", true)
+        const { data } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
           .order("version", { ascending: false }).limit(1).single();
         settings = data as unknown as PricingSettings;
       }
@@ -174,11 +172,11 @@ export const useImportSupplies = () => {
     setIsImporting(true);
 
     try {
-      const { data: suppliers } = await supabase.from("suppliers").select("id, name").eq("is_active", true);
+      const { data: suppliers } = await (supabase.from("suppliers") as any).select("id, name").eq("is_active", true);
       const supplierMap = new Map<string, string>();
       ((suppliers as any[]) ?? []).forEach((s: any) => supplierMap.set(s.name.toLowerCase().trim(), s.id));
 
-      const { data: brands } = await supabase.from("brands").select("id, name").eq("is_active", true);
+      const { data: brands } = await (supabase.from("brands") as any).select("id, name").eq("is_active", true);
       const brandMap = new Map<string, string>();
       ((brands as any[]) ?? []).forEach((b: any) => brandMap.set(b.name.toLowerCase().trim(), b.id));
 
@@ -216,9 +214,9 @@ export const useImportSupplies = () => {
           };
 
           if (row.existingId) {
-            await supabase.from("supplies").update(data).eq("id", row.existingId);
+            await (supabase.from("supplies") as any).update(data).eq("id", row.existingId);
           } else {
-            await supabase.from("supplies").insert(data);
+            await (supabase.from("supplies") as any).insert(data);
           }
 
           const idx = updatedRows.findIndex((r) => r.rowNumber === row.rowNumber);

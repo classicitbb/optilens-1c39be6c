@@ -8,8 +8,7 @@ export const useCampaignActivationProfiles = (contactIds: string[]) => {
     queryKey: ["campaign-activation-profiles", contactIds.join(",")],
     enabled: contactIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("campaign_activation_profiles" as never)
+      const { data, error } = await (supabase.from("campaign_activation_profiles") as any)
         .select("id,contact_id,lead_source,lead_segment,packet,created_at")
         .in("contact_id", contactIds)
         .order("created_at", { ascending: false })
@@ -41,7 +40,7 @@ export const useCreateCampaignActivationProfiles = () => {
         };
       });
 
-      const { error } = await supabase.from("campaign_activation_profiles" as never).insert(payload as never);
+      const { error } = await (supabase.from("campaign_activation_profiles") as any).insert(payload as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -67,7 +66,7 @@ export const useLogCampaignPerformance = () => {
       spend: number;
       revenue: number;
     }) => {
-      const { error } = await supabase.from("campaign_activation_performance" as never).insert({
+      const { error } = await (supabase.from("campaign_activation_performance") as any).insert({
         profile_id: payload.profileId ?? null,
         contact_id: payload.contactId ?? null,
         lead_source: payload.leadSource,

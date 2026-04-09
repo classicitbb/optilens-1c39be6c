@@ -53,8 +53,7 @@ const upsertLead = async (lead: CreateLeadInput) => {
     notes: lead.notes ?? null,
   };
 
-  const { error } = await supabase
-    .from("contacts")
+  const { error } = await (supabase.from("contacts") as any)
     .upsert(payload as any, { onConflict: "name" });
 
   if (error) throw error;
@@ -64,8 +63,7 @@ export const useLeads = () => {
   return useQuery({
     queryKey: ["leads-v1"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contacts")
+      const { data, error } = await (supabase.from("contacts") as any)
         .select("id,name,country,city,website,instagram_handle,facebook_page,google_rating,google_reviews_count,ai_intent_score,status,notes,lead_source,lead_segment")
         .in("status", ["lead", "contacted", "meeting", "proposal"])
         .order("updated_at", { ascending: false })

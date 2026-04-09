@@ -35,8 +35,8 @@ const AdminSidebar = () => {
   const { data: integrationStatus } = useQuery({
     queryKey: ["integration-connection-status", "odoo"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("integration_connections" as never)
+      const { data, error } = await (supabase
+        .from("integration_connections") as any)
         .select("status")
         .eq("provider", "odoo")
         .eq("tenant_key", "default")

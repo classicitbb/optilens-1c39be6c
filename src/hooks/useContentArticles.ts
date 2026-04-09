@@ -43,8 +43,7 @@ export const useContentArticles = (contentType?: ContentType) => {
   const query = useQuery({
     queryKey: ["content_articles", contentType],
     queryFn: async () => {
-      let q = supabase
-        .from("help_articles")
+      let q = (supabase.from("help_articles") as any)
         .select("*")
         .order("category")
         .order("sort_order");
@@ -76,13 +75,12 @@ export const useContentArticles = (contentType?: ContentType) => {
       };
 
       if (article.id) {
-        const { error } = await supabase
-          .from("help_articles")
+        const { error } = await (supabase.from("help_articles") as any)
           .update(payload)
           .eq("id", article.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("help_articles").insert(payload);
+        const { error } = await (supabase.from("help_articles") as any).insert(payload);
         if (error) throw error;
       }
     },
@@ -94,7 +92,7 @@ export const useContentArticles = (contentType?: ContentType) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("help_articles").delete().eq("id", id);
+      const { error } = await (supabase.from("help_articles") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -117,8 +115,7 @@ export const usePublicKnowledge = () => {
   return useQuery({
     queryKey: ["public_knowledge"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("help_articles")
+      const { data, error } = await (supabase.from("help_articles") as any)
         .select("*")
         .in("content_type", ["knowledge", "faq"])
         .eq("is_active", true)
@@ -143,8 +140,7 @@ export const useKnowledgeDocumentEntities = () => {
   return useQuery({
     queryKey: ["knowledge_document_entities"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("help_articles")
+      const { data, error } = await (supabase.from("help_articles") as any)
         .select("*")
         .in("content_type", ["knowledge", "faq", "wiki"]);
 

@@ -25,7 +25,7 @@ export const usePricelistCatalogRows = (
     queryFn: async () => {
       if (!versionId) return [];
       const { data, error } = await supabase
-        .from("pricelist_catalog_rows" as any)
+        .from("pricelist_catalog_rows") as any)
         .select("*")
         .eq("pricelist_version_id", versionId)
         .eq("catalog_type", catalogType)
@@ -41,7 +41,7 @@ export const usePricelistCatalogRows = (
       if (!versionId) return;
       // Delete all existing rows for this version + catalog_type
       const { error: delErr } = await supabase
-        .from("pricelist_catalog_rows" as any)
+        .from("pricelist_catalog_rows") as any)
         .delete()
         .eq("pricelist_version_id", versionId)
         .eq("catalog_type", catalogType);
@@ -50,7 +50,7 @@ export const usePricelistCatalogRows = (
       // Insert current rows
       if (rows.length > 0) {
         const { error: insErr } = await supabase
-          .from("pricelist_catalog_rows" as any)
+          .from("pricelist_catalog_rows") as any)
           .insert(rows as any[]);
         if (insErr) throw insErr;
       }

@@ -23,7 +23,7 @@ export const useDashboardFunnel = () => {
   return useQuery({
     queryKey: ["admin-dashboard", "funnel"],
     queryFn: async (): Promise<FunnelStagePoint[]> => {
-      const { data, error } = await supabase.from("opportunities").select("stage");
+      const { data, error } = await (supabase.from("opportunities") as any).select("stage");
       if (error) throw error;
 
       const counts = new Map<Opportunity["stage"], number>();

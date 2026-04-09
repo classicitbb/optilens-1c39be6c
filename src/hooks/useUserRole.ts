@@ -11,8 +11,7 @@ export const useUserRole = () => {
     queryKey: ["user-role", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase
-        .from("user_roles")
+      const { data, error } = await (supabase.from("user_roles") as any)
         .select("role")
         .eq("user_id", user.id)
         .maybeSingle();

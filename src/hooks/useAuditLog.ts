@@ -32,7 +32,7 @@ export const useAuditLog = () => {
   const logMutation = useMutation({
     mutationFn: async (input: LogChangeInput) => {
       if (!user) return;
-      const { error } = await supabase.from("audit_log" as any).insert({
+      const { error } = await (supabase.from("audit_log") as any).insert({
         table_name: input.table_name,
         record_id: input.record_id,
         action: input.action,
@@ -96,7 +96,7 @@ export const useAuditLogQuery = (filters: AuditLogFilters) => {
     staleTime: 0,
     refetchOnMount: "always" as const,
     queryFn: async () => {
-      let query = (supabase.from("audit_log" as any) as any)
+      let query = (supabase.from("audit_log") as any)
         .select("*")
         .order("created_at", { ascending: false })
         .limit(filters.limit ?? 100);

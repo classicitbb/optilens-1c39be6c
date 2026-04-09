@@ -78,7 +78,7 @@ async function fetchRefMap(table: string): Promise<RefMap> {
 /** Load saved mappings from import_ref_mappings and inject into ref maps */
 async function loadSavedMappings(maps: Record<string, RefMap>): Promise<void> {
   const { data, error } = await supabase
-    .from("import_ref_mappings" as any)
+    .from("import_ref_mappings") as any)
     .select("ref_table, csv_value, mapped_id") as any;
   if (error || !data) return;
 
@@ -102,7 +102,7 @@ async function loadSavedMappings(maps: Record<string, RefMap>): Promise<void> {
 
 /** Persist a mapping to import_ref_mappings (upsert) */
 async function persistMapping(refTable: string, csvValue: string, mappedId: string): Promise<void> {
-  await supabase.from("import_ref_mappings" as any).upsert(
+  await (supabase.from("import_ref_mappings") as any).upsert(
     { ref_table: refTable, csv_value: csvValue.toLowerCase().trim(), mapped_id: mappedId } as any,
     { onConflict: "ref_table,csv_value" } as any,
   );
@@ -204,8 +204,7 @@ export const useImportLenses = () => {
   const { data: pricingSettings } = useQuery<PricingSettings>({
     queryKey: ["pricing_settings_active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_settings").select("*").eq("is_active", true)
+      const { data, error } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
         .order("version", { ascending: false }).limit(1).single();
       if (error) throw error;
       return data as unknown as PricingSettings;
@@ -289,8 +288,7 @@ export const useImportLenses = () => {
 
   /** Fetch existing lenses and build composite key map */
   const fetchExistingCompositeKeys = useCallback(async (): Promise<Map<string, string>> => {
-    const { data } = await supabase
-      .from("lenses")
+    const { data } = await (supabase.from("lenses") as any)
       .select("id, supplier_id, brand_id, material_id, mftype_id, lenstype_id, finishtype_id");
     const map = new Map<string, string>();
     ((data as any[]) ?? []).forEach((l: any) => {
@@ -339,8 +337,7 @@ export const useImportLenses = () => {
 
       let settings = pricingSettings;
       if (!settings) {
-        const { data } = await supabase
-          .from("pricing_settings").select("*").eq("is_active", true)
+        const { data } = await (supabase.from("pricing_settings") as any).select("*").eq("is_active", true)
           .order("version", { ascending: false }).limit(1).single();
         settings = data as unknown as PricingSettings;
       }
@@ -414,8 +411,7 @@ export const useImportLenses = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data: batch, error: batchErr } = await supabase
-        .from("import_batches")
+      const { data: batch, error: batchErr } = await (supabase.from("import_batches") as any)
         .insert({ user_id: user.id, file_name: fileName ?? "unknown.csv", status: "processing", total_rows: importable.length } as any)
         .select("id").single();
       if (batchErr) throw batchErr;
@@ -450,23 +446,23 @@ export const useImportLenses = () => {
 
           let lensId: string;
           if (row.existingLensId) {
-            const { error } = await supabase.from("lenses").update(lensData as any).eq("id", row.existingLensId);
+            const { error } = await (supabase.from("lenses") as any).update(lensData as any).eq("id", row.existingLensId);
             if (error) throw error;
             lensId = row.existingLensId;
           } else {
-            const { data: newLens, error } = await supabase.from("lenses").insert(lensData as any).select("id").single();
+            const { data: newLens, error } = await (supabase.from("lenses") as any).insert(lensData as any).select("id").single();
             if (error) throw error;
             lensId = newLens.id;
           }
 
-          await supabase.from("lens_lens_options").delete().eq("lens_id", lensId);
+          await (supabase.from("lens_lens_options") as any).delete().eq("lens_id", lensId);
           if (row.resolved.lens_option_id) {
-            await supabase.from("lens_lens_options").insert({
+            await (supabase.from("lens_lens_options") as any).insert({
               lens_id: lensId, lens_option_id: row.resolved.lens_option_id, extra_cost: 0,
             } as any);
           }
 
-          await supabase.from("pricing_input_rows").insert({
+          await (supabase.from("pricing_input_rows") as any).insert({
             batch_id: batch.id, row_number: row.rowNumber,
             raw_data: raw, status: "imported",
             resolved_data: { lens_id: lensId }, lens_id: lensId,
@@ -477,7 +473,7 @@ export const useImportLenses = () => {
           successCount++;
         } catch (err: any) {
           try {
-            await supabase.from("pricing_input_rows").insert({
+            await (supabase.from("pricing_input_rows") as any).insert({
               batch_id: batch.id, row_number: row.rowNumber,
               raw_data: row.raw, status: "error",
               error_messages: [err.message || "Unknown error"],
@@ -496,7 +492,7 @@ export const useImportLenses = () => {
       }
 
       setRows(updatedRows);
-      await supabase.from("import_batches").update({
+      await (supabase.from("import_batches") as any).update({
         status: "completed", success_count: successCount, error_count: errorCount,
       } as any).eq("id", batch.id);
 

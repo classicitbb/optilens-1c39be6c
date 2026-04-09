@@ -237,7 +237,7 @@ const ShipmentDetailPage = () => {
   useEffect(() => {
     if (isNew || !id) return;
     (async () => {
-      const { data, error } = await (supabase.from("shipments" as any) as any).select("*").eq("id", id).single();
+      const { data, error } = await (supabase.from("shipments") as any).select("*").eq("id", id).single();
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
       const s = data as Shipment;
       setShipment(s);
@@ -279,7 +279,7 @@ const ShipmentDetailPage = () => {
     try {
       if (isNew) {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
-        const { data, error } = await (supabase.from("shipments" as any) as any)
+        const { data, error } = await (supabase.from("shipments") as any)
           .insert({ ...form, created_by: user?.id })
           .select()
           .single();
@@ -289,7 +289,7 @@ const ShipmentDetailPage = () => {
         navigate(`/admin/pricing/costings/${data.id}`, { replace: true });
       } else {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
-        const { error } = await (supabase.from("shipments" as any) as any).update(form).eq("id", id);
+        const { error } = await (supabase.from("shipments") as any).update(form).eq("id", id);
         if (error) throw error;
         logChange({ table_name: "shipments", record_id: id!, action: "update", new_data: form });
         toast({ title: "Saved" });
@@ -305,7 +305,7 @@ const ShipmentDetailPage = () => {
     if (!shipment || !id || isNew) return;
     const oldStatus = shipment.status;
     try {
-      const { error } = await (supabase.from("shipments" as any) as any).update({ status: newStatus }).eq("id", id);
+      const { error } = await (supabase.from("shipments") as any).update({ status: newStatus }).eq("id", id);
       if (error) throw error;
       setShipment({ ...shipment, status: newStatus as any });
       logChange({ table_name: "shipments", record_id: id, action: "update", change_summary: { status: { old: oldStatus, new: newStatus } } });

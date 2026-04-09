@@ -24,7 +24,7 @@ export const useCanvasEditor = (templateId: number) => {
     queryKey: ["catalog-pages", templateId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("catalog_pages" as any)
+        .from("catalog_pages") as any)
         .select("*")
         .eq("catalog_template_id", templateId)
         .order("page_number");
@@ -39,7 +39,7 @@ export const useCanvasEditor = (templateId: number) => {
     queryKey: ["catalog-page-objects", editorState.activePageId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("catalog_page_objects" as any)
+        .from("catalog_page_objects") as any)
         .select("*")
         .eq("page_id", editorState.activePageId!)
         .order("z_index");
@@ -62,7 +62,7 @@ export const useCanvasEditor = (templateId: number) => {
   const createPageMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
-        .from("catalog_pages" as any)
+        .from("catalog_pages") as any)
         .insert({ catalog_template_id: templateId, page_number: (pages.length || 0) + 1 } as any)
         .select()
         .single();
@@ -80,7 +80,7 @@ export const useCanvasEditor = (templateId: number) => {
     mutationFn: async (obj: Partial<CanvasObject> & { id: string }) => {
       const { id, ...updates } = obj;
       const { error } = await supabase
-        .from("catalog_page_objects" as any)
+        .from("catalog_page_objects") as any)
         .update(updates as any)
         .eq("id", id);
       if (error) throw error;
@@ -109,7 +109,7 @@ export const useCanvasEditor = (templateId: number) => {
   const addObjectMutation = useMutation({
     mutationFn: async (obj: Omit<CanvasObject, "id">) => {
       const { data, error } = await supabase
-        .from("catalog_page_objects" as any)
+        .from("catalog_page_objects") as any)
         .insert(obj as any)
         .select()
         .single();
@@ -141,7 +141,7 @@ export const useCanvasEditor = (templateId: number) => {
   const deleteObjectMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("catalog_page_objects" as any)
+        .from("catalog_page_objects") as any)
         .delete()
         .eq("id", id);
       if (error) throw error;

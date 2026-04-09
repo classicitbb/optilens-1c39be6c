@@ -72,7 +72,7 @@ const QuotePrintPreviewPage = () => {
     queryKey: ["quote-print-preview-rx", id, lensLineIds.join(",")],
     queryFn: async () => {
       if (!lensLineIds.length) return {} as Record<string, RxDetail>;
-      const { data, error } = await supabase.from("rx_details").select("*").in("quote_line_id", lensLineIds);
+      const { data, error } = await (supabase.from("rx_details") as any).select("*").in("quote_line_id", lensLineIds);
       if (error) throw error;
       return (data ?? []).reduce((acc, rx) => {
         acc[rx.quote_line_id] = rx as RxDetail;

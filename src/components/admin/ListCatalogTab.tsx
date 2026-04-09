@@ -405,8 +405,8 @@ const ListCatalogTab = ({
     if (overridePrice == null || !versionId) return;
 
     const sectionType = CATALOG_TO_SECTION_LABEL[catalogType] ?? "RX Lens Prices";
-    const { data: existingSection, error: sectionLookupError } = await supabase
-      .from("pricelist_child_sections")
+    const { data: existingSection, error: sectionLookupError } = await (supabase
+      .from("pricelist_child_sections") as any)
       .select("id")
       .eq("pricelist_version_id", versionId)
       .eq("section_type", sectionType)
@@ -414,10 +414,10 @@ const ListCatalogTab = ({
       .maybeSingle();
     if (sectionLookupError) throw sectionLookupError;
 
-    let childSectionId = existingSection?.id;
+    let childSectionId = (existingSection as any)?.id;
     if (!childSectionId) {
-      const { data: createdSection, error: createSectionError } = await supabase
-        .from("pricelist_child_sections")
+      const { data: createdSection, error: createSectionError } = await (supabase
+        .from("pricelist_child_sections") as any)
         .insert({
           pricelist_version_id: versionId,
           section_type: sectionType,
@@ -427,12 +427,12 @@ const ListCatalogTab = ({
         .select("id")
         .single();
       if (createSectionError) throw createSectionError;
-      childSectionId = createdSection.id;
+      childSectionId = (createdSection as any).id;
     }
 
     const refId = String(allocationId);
-    const { data: existingOverride, error: overrideLookupError } = await supabase
-      .from("pricelist_line_overrides")
+    const { data: existingOverride, error: overrideLookupError } = await (supabase
+      .from("pricelist_line_overrides") as any)
       .select("id")
       .eq("child_section_id", childSectionId)
       .eq("reference_type", "matrix_allocation")
@@ -441,18 +441,18 @@ const ListCatalogTab = ({
       .maybeSingle();
     if (overrideLookupError) throw overrideLookupError;
 
-    if (existingOverride?.id) {
-      const { error: updateOverrideError } = await supabase
-        .from("pricelist_line_overrides")
+    if ((existingOverride as any)?.id) {
+      const { error: updateOverrideError } = await (supabase
+        .from("pricelist_line_overrides") as any)
         .update({
           overridden_price_bbd: overridePrice,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", existingOverride.id);
+        .eq("id", (existingOverride as any).id);
       if (updateOverrideError) throw updateOverrideError;
     } else {
-      const { error: createOverrideError } = await supabase
-        .from("pricelist_line_overrides")
+      const { error: createOverrideError } = await (supabase
+        .from("pricelist_line_overrides") as any)
         .insert({
           child_section_id: childSectionId,
           reference_type: "matrix_allocation",

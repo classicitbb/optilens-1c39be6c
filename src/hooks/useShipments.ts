@@ -81,7 +81,7 @@ export const useShipments = (typeFilter?: "lens" | "non-lens") => {
     queryKey: ["shipments", typeFilter],
     queryFn: async () => {
       let q = supabase
-        .from("shipments" as any)
+        .from("shipments") as any)
         .select("*, suppliers(name)")
         .order("created_at", { ascending: false });
       if (typeFilter) q = q.eq("type", typeFilter);
@@ -96,7 +96,7 @@ export const useShipments = (typeFilter?: "lens" | "non-lens") => {
 
   const createMutation = useMutation({
     mutationFn: async (form: Partial<ShipmentFormData>) => {
-      const { data, error } = await (supabase.from("shipments" as any) as any)
+      const { data, error } = await (supabase.from("shipments") as any)
         .insert({ ...form, created_by: user?.id })
         .select()
         .single();
@@ -108,7 +108,7 @@ export const useShipments = (typeFilter?: "lens" | "non-lens") => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...form }: { id: string } & Partial<ShipmentFormData>) => {
-      const { error } = await (supabase.from("shipments" as any) as any)
+      const { error } = await (supabase.from("shipments") as any)
         .update(form)
         .eq("id", id);
       if (error) throw error;
@@ -118,7 +118,7 @@ export const useShipments = (typeFilter?: "lens" | "non-lens") => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from("shipments" as any) as any).delete().eq("id", id);
+      const { error } = await (supabase.from("shipments") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["shipments"] }),
@@ -130,7 +130,7 @@ export const useShipments = (typeFilter?: "lens" | "non-lens") => {
 export const useAllShipmentCharges = () => useQuery({
   queryKey: ["shipment-charges-all"],
   queryFn: async () => {
-    const { data, error } = await (supabase.from("shipment_charges" as any) as any)
+    const { data, error } = await (supabase.from("shipment_charges") as any)
       .select("*");
     if (error) throw error;
     return (data ?? []) as ShipmentCharge[];
@@ -143,7 +143,7 @@ export const useShipmentCharges = (shipmentId: string | null) => {
     queryKey: ["shipment-charges", shipmentId],
     enabled: !!shipmentId,
     queryFn: async () => {
-      const { data, error } = await (supabase.from("shipment_charges" as any) as any)
+      const { data, error } = await (supabase.from("shipment_charges") as any)
         .select("*")
         .eq("shipment_id", shipmentId)
         .order("sort_order");
@@ -156,10 +156,10 @@ export const useShipmentCharges = (shipmentId: string | null) => {
     mutationFn: async (charge: Partial<ShipmentCharge>) => {
       if (charge.id) {
         const { id, ...rest } = charge;
-        const { error } = await (supabase.from("shipment_charges" as any) as any).update(rest).eq("id", id);
+        const { error } = await (supabase.from("shipment_charges") as any).update(rest).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase.from("shipment_charges" as any) as any).insert(charge);
+        const { error } = await (supabase.from("shipment_charges") as any).insert(charge);
         if (error) throw error;
       }
     },
@@ -171,7 +171,7 @@ export const useShipmentCharges = (shipmentId: string | null) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from("shipment_charges" as any) as any).delete().eq("id", id);
+      const { error } = await (supabase.from("shipment_charges") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -189,7 +189,7 @@ export const useShipmentLines = (shipmentId: string | null) => {
     queryKey: ["shipment-lines", shipmentId],
     enabled: !!shipmentId,
     queryFn: async () => {
-      const { data, error } = await (supabase.from("shipment_lines" as any) as any)
+      const { data, error } = await (supabase.from("shipment_lines") as any)
         .select("*")
         .eq("shipment_id", shipmentId)
         .order("sort_order");
@@ -202,10 +202,10 @@ export const useShipmentLines = (shipmentId: string | null) => {
     mutationFn: async (line: Partial<ShipmentLine>) => {
       if (line.id) {
         const { id, ...rest } = line;
-        const { error } = await (supabase.from("shipment_lines" as any) as any).update(rest).eq("id", id);
+        const { error } = await (supabase.from("shipment_lines") as any).update(rest).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await (supabase.from("shipment_lines" as any) as any).insert(line);
+        const { error } = await (supabase.from("shipment_lines") as any).insert(line);
         if (error) throw error;
       }
     },
@@ -214,7 +214,7 @@ export const useShipmentLines = (shipmentId: string | null) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from("shipment_lines" as any) as any).delete().eq("id", id);
+      const { error } = await (supabase.from("shipment_lines") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["shipment-lines", shipmentId] }),

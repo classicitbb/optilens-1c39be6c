@@ -31,8 +31,7 @@ export const usePriceHierarchy = (versionId: number | null) => {
     queryKey: ["pricelist-child-sections", versionId],
     enabled: !!versionId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricelist_child_sections")
+      const { data, error } = await (supabase.from("pricelist_child_sections") as any)
         .select("section_type, child_markup_percent, child_discount_percent")
         .eq("pricelist_version_id", versionId!);
       if (error) throw error;
@@ -45,16 +44,14 @@ export const usePriceHierarchy = (versionId: number | null) => {
     enabled: !!versionId,
     queryFn: async () => {
       // Get child section IDs for this version first
-      const { data: sections } = await supabase
-        .from("pricelist_child_sections")
+      const { data: sections } = await (supabase.from("pricelist_child_sections") as any)
         .select("id")
         .eq("pricelist_version_id", versionId!);
       
       if (!sections || sections.length === 0) return [];
       
       const sectionIds = sections.map((s) => s.id);
-      const { data, error } = await supabase
-        .from("pricelist_line_overrides")
+      const { data, error } = await (supabase.from("pricelist_line_overrides") as any)
         .select("reference_type, reference_id, overridden_price_bbd, reason, child_section_id")
         .in("child_section_id", sectionIds);
       if (error) throw error;

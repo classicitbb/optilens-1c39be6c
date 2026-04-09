@@ -165,8 +165,7 @@ export const useQuotes = () => {
   const query = useQuery<Quote[]>({
     queryKey: ["quotes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quotes")
+      const { data, error } = await (supabase.from("quotes") as any)
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -176,8 +175,7 @@ export const useQuotes = () => {
 
   const createMutation = useMutation({
     mutationFn: async (params: { quote_type: "STOCK" | "RX"; customer_name?: string }) => {
-      const { data, error } = await supabase
-        .from("quotes")
+      const { data, error } = await (supabase.from("quotes") as any)
         .insert({
           quote_type: params.quote_type,
           customer_name: params.customer_name || "",
@@ -194,8 +192,7 @@ export const useQuotes = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Quote> }) => {
-      const { error } = await supabase
-        .from("quotes")
+      const { error } = await (supabase.from("quotes") as any)
         .update(updates as any)
         .eq("id", id);
       if (error) throw error;
@@ -205,7 +202,7 @@ export const useQuotes = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("quotes").delete().eq("id", id);
+      const { error } = await (supabase.from("quotes") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["quotes"] }),
@@ -221,8 +218,7 @@ export const useQuoteLines = (quoteId: string | undefined) => {
     queryKey: ["quote-lines", quoteId],
     queryFn: async () => {
       if (!quoteId) return [];
-      const { data, error } = await supabase
-        .from("quote_lines")
+      const { data, error } = await (supabase.from("quote_lines") as any)
         .select("*")
         .eq("quote_id", quoteId)
         .order("sort_order");
@@ -234,8 +230,7 @@ export const useQuoteLines = (quoteId: string | undefined) => {
 
   const addLineMutation = useMutation({
     mutationFn: async (line: Partial<QuoteLine> & { quote_id: string }) => {
-      const { data, error } = await supabase
-        .from("quote_lines")
+      const { data, error } = await (supabase.from("quote_lines") as any)
         .insert(line as any)
         .select("*")
         .single();
@@ -247,8 +242,7 @@ export const useQuoteLines = (quoteId: string | undefined) => {
 
   const updateLineMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<QuoteLine> }) => {
-      const { error } = await supabase
-        .from("quote_lines")
+      const { error } = await (supabase.from("quote_lines") as any)
         .update(updates as any)
         .eq("id", id);
       if (error) throw error;
@@ -258,7 +252,7 @@ export const useQuoteLines = (quoteId: string | undefined) => {
 
   const deleteLineMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("quote_lines").delete().eq("id", id);
+      const { error } = await (supabase.from("quote_lines") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["quote-lines", quoteId] }),
@@ -274,8 +268,7 @@ export const useRxDetails = (quoteLineId: string | undefined) => {
     queryKey: ["rx-details", quoteLineId],
     queryFn: async () => {
       if (!quoteLineId) return null;
-      const { data, error } = await supabase
-        .from("rx_details")
+      const { data, error } = await (supabase.from("rx_details") as any)
         .select("*")
         .eq("quote_line_id", quoteLineId)
         .maybeSingle();
@@ -288,20 +281,17 @@ export const useRxDetails = (quoteLineId: string | undefined) => {
   const upsertMutation = useMutation({
     mutationFn: async (detail: Partial<RxDetail> & { quote_line_id: string }) => {
       // Check if exists
-      const { data: existing } = await supabase
-        .from("rx_details")
+      const { data: existing } = await (supabase.from("rx_details") as any)
         .select("id")
         .eq("quote_line_id", detail.quote_line_id)
         .maybeSingle();
       if (existing) {
-        const { error } = await supabase
-          .from("rx_details")
+        const { error } = await (supabase.from("rx_details") as any)
           .update(detail as any)
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("rx_details")
+        const { error } = await (supabase.from("rx_details") as any)
           .insert(detail as any);
         if (error) throw error;
       }

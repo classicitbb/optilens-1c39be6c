@@ -22,8 +22,7 @@ const ensureArticleId = async ({
   if (isUuid(articleId)) return articleId;
 
   const slug = `static-${articleId}`;
-  const { data: existing, error: existingError } = await supabase
-    .from("help_articles")
+  const { data: existing, error: existingError } = await (supabase.from("help_articles") as any)
     .select("id")
     .eq("slug", slug)
     .maybeSingle();
@@ -34,8 +33,7 @@ const ensureArticleId = async ({
   const contextSlugs = articleContextSlugs?.length ? articleContextSlugs : [pageSlug ?? "knowledge/wiki"];
   const primarySlug = contextSlugs[0] ?? "knowledge/wiki";
 
-  const { data: created, error: createError } = await supabase
-    .from("help_articles")
+  const { data: created, error: createError } = await (supabase.from("help_articles") as any)
     .insert({
       title: articleTitle ?? articleId,
       content: articleContent ?? "",
@@ -52,8 +50,7 @@ const ensureArticleId = async ({
 
   if (createError) throw createError;
 
-  const { error: contextError } = await supabase
-    .from("help_article_contexts")
+  const { error: contextError } = await (supabase.from("help_article_contexts") as any)
     .insert(contextSlugs.map((context_slug) => ({ article_id: created.id, context_slug })));
 
   if (contextError) throw contextError;
@@ -138,7 +135,7 @@ export const useHelpFeedback = () => {
         pageSlug,
       });
 
-      const { error } = await supabase.from("help_feedback").insert({
+      const { error } = await (supabase.from("help_feedback") as any).insert({
         article_id: resolvedArticleId,
         user_id: user.id,
         feedback_type: feedbackType,

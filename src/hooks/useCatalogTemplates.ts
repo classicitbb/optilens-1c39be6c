@@ -27,8 +27,7 @@ export const useCatalogTemplates = () => {
   const query = useQuery({
     queryKey: ["catalog-templates"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_templates")
+      const { data, error } = await (supabase.from("catalog_templates") as any)
         .select("*")
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -38,8 +37,7 @@ export const useCatalogTemplates = () => {
 
   const createMutation = useMutation({
     mutationFn: async (template: Partial<CatalogTemplate>) => {
-      const { data, error } = await supabase
-        .from("catalog_templates")
+      const { data, error } = await (supabase.from("catalog_templates") as any)
         .insert(template as any)
         .select()
         .single();
@@ -51,8 +49,7 @@ export const useCatalogTemplates = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<CatalogTemplate> & { id: number }) => {
-      const { error } = await supabase
-        .from("catalog_templates")
+      const { error } = await (supabase.from("catalog_templates") as any)
         .update({ ...updates, updated_at: new Date().toISOString() } as any)
         .eq("id", id);
       if (error) throw error;
@@ -63,9 +60,9 @@ export const useCatalogTemplates = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       // Delete assignments first
-      await supabase.from("catalog_assignments").delete().eq("catalog_template_id", id);
-      await supabase.from("catalog_sections").delete().eq("catalog_template_id", id);
-      const { error } = await supabase.from("catalog_templates").delete().eq("id", id);
+      await (supabase.from("catalog_assignments") as any).delete().eq("catalog_template_id", id);
+      await (supabase.from("catalog_sections") as any).delete().eq("catalog_template_id", id);
+      const { error } = await (supabase.from("catalog_templates") as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["catalog-templates"] }),
@@ -74,8 +71,7 @@ export const useCatalogTemplates = () => {
   const publishToCanvasMutation = useMutation({
     mutationFn: async (templateId: number) => {
       // 1. Get all page IDs for this template
-      const { data: pages, error: pagesError } = await supabase
-        .from("catalog_pages")
+      const { data: pages, error: pagesError } = await (supabase.from("catalog_pages") as any)
         .select("id")
         .eq("catalog_template_id", templateId);
       if (pagesError) throw pagesError;
@@ -83,16 +79,14 @@ export const useCatalogTemplates = () => {
       // 2. Delete all canvas objects across those pages
       if (pages && pages.length > 0) {
         const pageIds = pages.map((p: any) => p.id);
-        const { error: deleteError } = await supabase
-          .from("catalog_page_objects")
+        const { error: deleteError } = await (supabase.from("catalog_page_objects") as any)
           .delete()
           .in("page_id", pageIds);
         if (deleteError) throw deleteError;
       }
 
       // 3. Set status to canvas_ready
-      const { error: updateError } = await supabase
-        .from("catalog_templates")
+      const { error: updateError } = await (supabase.from("catalog_templates") as any)
         .update({ status: "canvas_ready", updated_at: new Date().toISOString() } as any)
         .eq("id", templateId);
       if (updateError) throw updateError;
@@ -106,8 +100,7 @@ export const useCatalogTemplates = () => {
   const duplicateMutation = useMutation({
     mutationFn: async (template: CatalogTemplate) => {
       const { id, created_at, updated_at, ...rest } = template;
-      const { data, error } = await supabase
-        .from("catalog_templates")
+      const { data, error } = await (supabase.from("catalog_templates") as any)
         .insert({ ...rest, name: `${template.name} (Copy)` } as any)
         .select()
         .single();
@@ -115,8 +108,7 @@ export const useCatalogTemplates = () => {
 
       const duplicatedTemplate = data as CatalogTemplate;
 
-      const { data: sections, error: sectionsError } = await supabase
-        .from("catalog_sections")
+      const { data: sections, error: sectionsError } = await (supabase.from("catalog_sections") as any)
         .select("*")
         .eq("catalog_template_id", template.id)
         .order("sort_order");
@@ -128,8 +120,7 @@ export const useCatalogTemplates = () => {
           catalog_template_id: duplicatedTemplate.id,
         }));
 
-        const { error: insertSectionsError } = await supabase
-          .from("catalog_sections")
+        const { error: insertSectionsError } = await (supabase.from("catalog_sections") as any)
           .insert(sectionCopies as any[]);
         if (insertSectionsError) throw insertSectionsError;
       }
@@ -155,8 +146,7 @@ export const useCatalogAssignments = (templateId?: number) => {
   const query = useQuery({
     queryKey: ["catalog-assignments", templateId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_assignments")
+      const { data, error } = await (supabase.from("catalog_assignments") as any)
         .select("*")
         .eq("catalog_template_id", templateId!);
       if (error) throw error;
@@ -168,14 +158,14 @@ export const useCatalogAssignments = (templateId?: number) => {
   const setAssignments = useMutation({
     mutationFn: async ({ templateId, customerIds }: { templateId: number; customerIds: number[] }) => {
       // Remove existing
-      await supabase.from("catalog_assignments").delete().eq("catalog_template_id", templateId);
+      await (supabase.from("catalog_assignments") as any).delete().eq("catalog_template_id", templateId);
       // Insert new
       if (customerIds.length > 0) {
         const rows = customerIds.map((cid) => ({
           catalog_template_id: templateId,
           customer_id: cid,
         }));
-        const { error } = await supabase.from("catalog_assignments").insert(rows);
+        const { error } = await (supabase.from("catalog_assignments") as any).insert(rows);
         if (error) throw error;
       }
     },
@@ -189,8 +179,7 @@ export const useCustomersList = () => {
   return useQuery({
     queryKey: ["customers-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("customers")
+      const { data, error } = await (supabase.from("customers") as any)
         .select("id, name")
         .order("name");
       if (error) throw error;

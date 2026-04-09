@@ -12,7 +12,7 @@ const logLeadEvent = async (payload: {
   provider_diagnostics_summary?: Record<string, unknown>;
 }) => {
   try {
-    await supabase.from("lead_events" as any).insert({
+    await (supabase.from("lead_events") as any).insert({
       event_type: payload.event_type,
       contact_id: payload.contact_id ?? null,
       opportunity_id: payload.opportunity_id ?? null,
@@ -46,15 +46,14 @@ export const useSaveLeadToCrm = () => {
         lead_segment: lead.lead_segment ?? segment,
       };
 
-      const { data: contact, error: contactErr } = await supabase
-        .from("contacts")
+      const { data: contact, error: contactErr } = await (supabase.from("contacts") as any)
         .upsert(contactPayload as any, { onConflict: "name" })
         .select("id")
         .single();
       if (contactErr) throw contactErr;
 
       const { data: oppRaw, error: oppErr } = await supabase
-        .from("opportunities" as any)
+        .from("opportunities") as any)
         .upsert({
           contact_id: contact.id,
           title: `${lead.name} Opportunity`,
@@ -69,7 +68,7 @@ export const useSaveLeadToCrm = () => {
       const opportunity = oppRaw as unknown as { id: string } | null;
 
       const { error: noteErr } = await supabase
-        .from("notes" as any)
+        .from("notes") as any)
         .insert({
           contact_id: contact.id,
           source: "lead_finder",
@@ -79,7 +78,7 @@ export const useSaveLeadToCrm = () => {
 
 
       try {
-        await supabase.from("lead_scoring_outcomes" as any).insert({
+        await (supabase.from("lead_scoring_outcomes") as any).insert({
           contact_id: contact.id,
           opportunity_id: opportunity?.id ?? null,
           outcome_stage: "imported_to_crm",
@@ -143,7 +142,7 @@ export const useRunLeadSequence = () => {
         for (const step of DEFAULT_SEQUENCE) {
           const dueAt = new Date(now + step.delayHours * 60 * 60 * 1000).toISOString();
           const { error: activityErr } = await supabase
-            .from("activities" as any)
+            .from("activities") as any)
             .insert({
               contact_id: contactId,
               activity_type: `Sequence step ${step.step}: ${step.channel}`,
@@ -155,7 +154,7 @@ export const useRunLeadSequence = () => {
         }
 
         const { error: noteErr } = await supabase
-          .from("notes" as any)
+          .from("notes") as any)
           .insert({
             contact_id: contactId,
             source: "sequence_runner",
@@ -185,7 +184,7 @@ export const useGenerateLeadAuditReport = () => {
   return useMutation({
     mutationFn: async ({ opportunityId, score = 70 }: { opportunityId: string; score?: number }) => {
       const { data: oppRaw, error: oppErr } = await supabase
-        .from("opportunities" as any)
+        .from("opportunities") as any)
         .select("id,contact_id,title")
         .eq("id", opportunityId)
         .single();
@@ -194,7 +193,7 @@ export const useGenerateLeadAuditReport = () => {
 
       const generatedAt = new Date().toISOString();
       const { data: auditRaw, error: auditErr } = await supabase
-        .from("lead_audits" as any)
+        .from("lead_audits") as any)
         .insert({
           contact_id: opp.contact_id,
           opportunity_id: opp.id,
@@ -209,7 +208,7 @@ export const useGenerateLeadAuditReport = () => {
       const audit = auditRaw as unknown as { id: string; score: number; ai_summary: string; created_at: string };
 
       const { error: attachErr } = await supabase
-        .from("opportunity_attachments" as any)
+        .from("opportunity_attachments") as any)
         .insert({
           opportunity_id: opp.id,
           attachment_type: "audit_report",
