@@ -2,7 +2,7 @@ import { ExternalLink, MapPin, Phone } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link } from "react-router";
 import { useLegalPage } from "@/hooks/useContentArticles";
-import { LABLINK_PORTAL_URL } from "@/config/externalLinks";
+import { LABLINK_PORTAL_URL, LABLINK_TRACKING_URL } from "@/config/externalLinks";
 
 type FooterLink = {
   label: string;
@@ -24,7 +24,7 @@ const footerColumns = [
     title: "Support",
     links: [
       { label: "Contact", to: "/#contact" },
-      { label: "Tracking", href: "https://tracking.classicvisions.net" },
+      { label: "Tracking", href: LABLINK_TRACKING_URL },
       { label: "LabLink", href: LABLINK_PORTAL_URL },
     ],
   },
