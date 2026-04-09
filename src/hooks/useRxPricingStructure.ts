@@ -17,7 +17,7 @@ const ensureUniqueKey = async (table: string, baseKey: string, extraFilter?: { c
   let candidate = baseKey;
 
   while (attempt < 50) {
-    let query = supabase.from(table as any).select("id", { count: "exact", head: true }).eq("key", candidate);
+    let query = (supabase.from(table as any) as any).select("id", { count: "exact", head: true }).eq("key", candidate);
     if (extraFilter) query = query.eq(extraFilter.column, extraFilter.value);
     const { count, error } = await query;
     if (error) throw error;

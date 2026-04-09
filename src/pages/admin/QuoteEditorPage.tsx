@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   useQuotes, useQuoteLines, useRxDetails, Quote, QuoteLine, RxDetail,
@@ -7,6 +7,7 @@ import {
 import { useLenses, Lens } from "@/hooks/useLenses";
 import { useAddons, Addon } from "@/hooks/useAddons";
 import { useSupplies, Supply } from "@/hooks/useSupplies";
+import { supabase } from "@/integrations/supabase/client";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useToast } from "@/hooks/use-toast";
@@ -95,7 +96,7 @@ const QuoteEditorPage = () => {
   useEffect(() => {
     if (lensLineIds.length === 0) { setRxMap({}); return; }
     const fetchAll = async () => {
-      const { data, error } = await (await import("@/integrations/supabase/client")).(supabase.from("rx_details") as any).select("*").in("quote_line_id", lensLineIds);
+      const { data, error } = await (supabase.from("rx_details") as any).select("*").in("quote_line_id", lensLineIds);
       if (!error && data) {
         const map: Record<string, RxDetail> = {};
         data.forEach((r: any) => { map[r.quote_line_id] = r as RxDetail; });

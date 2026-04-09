@@ -69,7 +69,7 @@ export const useSupplies = () => {
     queryKey: ["supplies"],
     queryFn: async () => {
       // Use server-side safe RPC that strips base_price for viewer/customer roles
-      const { data: safeRows, error: safeErr } = await supabase.rpc("get_supplies_safe" as any);
+      const { data: safeRows, error: safeErr } = await (supabase.rpc as any)("get_supplies_safe");
       if (safeErr) throw safeErr;
       if (!safeRows || (safeRows as any[]).length === 0) return [];
       const safeMap = new Map((safeRows as any[]).map((r: any) => [r.id, r.base_price]));
