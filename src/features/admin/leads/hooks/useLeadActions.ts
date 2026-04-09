@@ -12,7 +12,7 @@ const logLeadEvent = async (payload: {
   provider_diagnostics_summary?: Record<string, unknown>;
 }) => {
   try {
-    await (supabase.from("lead_events") as any).insert({
+    await (supabase as any).from("lead_events").insert({
       event_type: payload.event_type,
       contact_id: payload.contact_id ?? null,
       opportunity_id: payload.opportunity_id ?? null,
@@ -76,7 +76,7 @@ export const useSaveLeadToCrm = () => {
 
 
       try {
-        await (supabase.from("lead_scoring_outcomes") as any).insert({
+        await (supabase as any).from("lead_scoring_outcomes").insert({
           contact_id: contact.id,
           opportunity_id: opportunity?.id ?? null,
           outcome_stage: "imported_to_crm",
@@ -201,7 +201,7 @@ export const useGenerateLeadAuditReport = () => {
       if (auditErr) throw auditErr;
       const audit = auditRaw as unknown as { id: string; score: number; ai_summary: string; created_at: string };
 
-      const { error: attachErr } = await (supabase.from("opportunity_attachments") as any)
+      const { error: attachErr } = await (supabase as any).from("opportunity_attachments")
         .insert({
           opportunity_id: opp.id,
           attachment_type: "audit_report",

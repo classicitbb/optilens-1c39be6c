@@ -24,7 +24,7 @@ const resolvedStorage = (() => {
     return createMemoryStorage();
   }
 
-  const candidate = window.localStorage as Partial<Storage>;
+  const candidate = window.localStorage;
   if (
     typeof candidate.getItem === "function" &&
     typeof candidate.setItem === "function" &&
