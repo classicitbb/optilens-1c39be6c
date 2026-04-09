@@ -428,10 +428,10 @@ const WebsiteStorePage = () => {
     };
 
     if (existing?.id) {
-      const { error } = await supabase.from("store_product_overrides") as any).update(payload).eq("id", existing.id);
+      const { error } = await (supabase.from("store_product_overrides") as any).update(payload).eq("id", existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from("store_product_overrides") as any).insert(payload as any);
+      const { error } = await (supabase.from("store_product_overrides") as any).insert(payload as any);
       if (error) throw error;
     }
 
@@ -447,13 +447,13 @@ const WebsiteStorePage = () => {
 
     const target = list[swapIndex];
 
-    await supabase.from("store_product_media") as any).update({ sort_order: target.sort_order } as any).eq("id", media.id);
-    await supabase.from("store_product_media") as any).update({ sort_order: media.sort_order } as any).eq("id", target.id);
+    await (supabase.from("store_product_media") as any).update({ sort_order: target.sort_order } as any).eq("id", media.id);
+    await (supabase.from("store_product_media") as any).update({ sort_order: media.sort_order } as any).eq("id", target.id);
     await queryClient.invalidateQueries({ queryKey: ["store-product-media"] });
   };
 
   const removeMedia = async (media: ProductMedia) => {
-    await supabase.from("store_product_media") as any).update({ is_active: false } as any).eq("id", media.id);
+    await (supabase.from("store_product_media") as any).update({ is_active: false } as any).eq("id", media.id);
     await queryClient.invalidateQueries({ queryKey: ["store-product-media"] });
   };
 
@@ -477,7 +477,7 @@ const WebsiteStorePage = () => {
       }
       const { data: urlData } = supabase.storage.from(PRODUCT_IMAGE_BUCKET).getPublicUrl(path);
 
-      await supabase.from("store_product_media") as any).insert({
+      await (supabase.from("store_product_media") as any).insert({
         product_type: selected.type,
         product_id: selected.id,
         image_url: urlData.publicUrl,
