@@ -9,7 +9,7 @@ export const useCampaignActivationProfiles = (contactIds: string[]) => {
     enabled: contactIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("campaign_activation_profiles" as never)
+        .from("campaign_activation_profiles")
         .select("id,contact_id,lead_source,lead_segment,packet,created_at")
         .in("contact_id", contactIds)
         .order("created_at", { ascending: false })

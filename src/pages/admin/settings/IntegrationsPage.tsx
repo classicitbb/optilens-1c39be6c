@@ -108,7 +108,7 @@ export default function IntegrationsPage() {
     queryKey: ["integration-connection", "odoo"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("integration_connections" as never)
+        .from("integration_connections")
         .select("*")
         .eq("provider", "odoo")
         .eq("tenant_key", "default")
@@ -123,7 +123,7 @@ export default function IntegrationsPage() {
     queryKey: ["integration-health-metrics", "odoo"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("integration_health_metrics_dashboard" as never)
+        .from("integration_health_metrics_dashboard")
         .select("*")
         .eq("provider", "odoo")
         .eq("tenant_key", "default");
@@ -138,7 +138,7 @@ export default function IntegrationsPage() {
     queryFn: async () => {
       if (!data?.id) return null as IntegrationSyncJob | null;
       const { data: rows, error } = await supabase
-        .from("integration_sync_jobs" as never)
+        .from("integration_sync_jobs")
         .select("id,sync_kind,status,requested_at,started_at,completed_at,error_message")
         .eq("integration_connection_id", data.id)
         .order("requested_at", { ascending: false })
@@ -154,7 +154,7 @@ export default function IntegrationsPage() {
     queryFn: async () => {
       if (!data?.id) return [] as IntegrationSyncJobRow[];
       const { data: rows, error } = await supabase
-        .from("integration_sync_jobs" as never)
+        .from("integration_sync_jobs")
         .select("id,integration_connection_id,sync_kind,status,requested_at,started_at,completed_at,error_message")
         .eq("integration_connection_id", data.id)
         .order("requested_at", { ascending: false })
@@ -170,7 +170,7 @@ export default function IntegrationsPage() {
     queryFn: async () => {
       if (!data?.id) return [] as IntegrationStructuredLog[];
       const { data: rows, error } = await supabase
-        .from("integration_structured_logs" as never)
+        .from("integration_structured_logs")
         .select("id,event_name,log_level,redacted_payload,created_at")
         .eq("integration_connection_id", data.id)
         .eq("provider", "odoo")
@@ -190,7 +190,7 @@ export default function IntegrationsPage() {
     queryFn: async () => {
       if (!data?.id) return [] as IntegrationSyncError[];
       let query = supabase
-        .from("integration_sync_errors" as never)
+        .from("integration_sync_errors")
         .select("id,integration_connection_id,source_model,source_identifier,error_code,error_message,status,retry_count,first_seen_at,last_seen_at,resolved_at")
         .eq("integration_connection_id", data.id)
         .order("last_seen_at", { ascending: false })
