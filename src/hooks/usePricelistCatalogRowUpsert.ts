@@ -28,8 +28,7 @@ export const usePricelistCatalogRowUpsert = (
       sort_order?: number;
     }) => {
       if (!versionId) throw new Error("No version selected");
-      const { error } = await supabase
-        .from("pricelist_catalog_rows") as any)
+      const { error } = await (supabase.from("pricelist_catalog_rows") as any)
         .upsert(
           {
             pricelist_version_id: versionId,
@@ -87,8 +86,7 @@ export const usePricelistCatalogRowUpsert = (
   const deleteRow = useMutation({
     mutationFn: async (rowKey: string) => {
       if (!versionId) throw new Error("No version selected");
-      const { error } = await supabase
-        .from("pricelist_catalog_rows") as any)
+      const { error } = await (supabase.from("pricelist_catalog_rows") as any)
         .delete()
         .eq("row_key", rowKey)
         .eq("pricelist_version_id", versionId);

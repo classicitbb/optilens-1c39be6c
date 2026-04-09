@@ -16,8 +16,7 @@ export const useAddonPricingSheets = (addonId: string | null) => {
     queryKey: ["addon-pricing-sheets", addonId],
     enabled: !!addonId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("addon_pricing_sheets") as any)
+      const { data, error } = await (supabase.from("addon_pricing_sheets") as any)
         .select("*")
         .eq("addon_id", addonId!);
       if (error) throw error;
@@ -34,8 +33,7 @@ export const useAddonPricingSheets = (addonId: string | null) => {
       assignments: { pricing_sheet_id: string; price_override: number | null }[];
     }) => {
       // Delete existing
-      const { error: delErr } = await supabase
-        .from("addon_pricing_sheets") as any)
+      const { error: delErr } = await (supabase.from("addon_pricing_sheets") as any)
         .delete()
         .eq("addon_id", addonId);
       if (delErr) throw delErr;
@@ -47,8 +45,7 @@ export const useAddonPricingSheets = (addonId: string | null) => {
         pricing_sheet_id: a.pricing_sheet_id,
         price_override: a.price_override,
       }));
-      const { error: insErr } = await supabase
-        .from("addon_pricing_sheets") as any)
+      const { error: insErr } = await (supabase.from("addon_pricing_sheets") as any)
         .insert(rows as any);
       if (insErr) throw insErr;
     },
