@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -40,10 +41,21 @@ const featureCatalog = [
   { id: "seo-foundation", label: "Local SEO foundation", price: 300 },
   { id: "analytics", label: "Analytics & conversion tracking", price: 250 },
   { id: "lead-capture", label: "Lead capture automation", price: 300 },
-  { id: "support-plan", label: "Monthly support plan (first month)", price: 200 },
 ] as const;
 
 const baseWebsitePrice = 1200;
+
+const subscriptionCatalog = [
+  { id: "domain", label: "Domain registration & DNS management", monthlyPrice: 20 },
+  { id: "maintenance", label: "Website maintenance & updates", monthlyPrice: 80 },
+  { id: "support", label: "Ongoing support", monthlyPrice: 200 },
+] as const;
+
+const subscriptionTerms = [
+  { value: "1", label: "1 year", description: "Good for launch-year budgeting and annual review." },
+  { value: "2", label: "2 years", description: "Keeps the recurring plan visible across a longer rollout." },
+  { value: "3", label: "3 years", description: "Shows a fuller ownership picture before you commit." },
+] as const;
 
 const promisePoints = [
   "Showcase frames, lens categories, services, and promotions without looking like a generic template.",
@@ -78,6 +90,7 @@ const quoteSchema = z.object({
   timeline: z.string().trim().min(1, "Timeline is required").max(100, "Timeline must be less than 100 characters"),
   notes: z.string().trim().max(1000, "Notes must be less than 1000 characters").optional().or(z.literal("")),
   features: z.array(z.string()).min(1, "Select at least one feature"),
+  subscriptionTermYears: z.enum(["1", "2", "3"]),
 });
 
 type QuoteFormData = z.infer<typeof quoteSchema>;
@@ -113,20 +126,32 @@ const OpticalRetailWebsitesPage = () => {
       timeline: "Within 30 days",
       notes: "",
       features: ["custom-branding", "appointment-booking", "product-showcase"],
+      subscriptionTermYears: "1",
     },
   });
 
   const selectedFeatures = form.watch("features");
+  const selectedSubscriptionTermYears = Number(form.watch("subscriptionTermYears"));
 
   const selectedFeatureItems = useMemo(
     () => featureCatalog.filter((feature) => selectedFeatures?.includes(feature.id)),
     [selectedFeatures],
   );
 
-  const instantQuote = useMemo(() => {
+  const upfrontQuote = useMemo(() => {
     const featuresTotal = selectedFeatureItems.reduce((sum, feature) => sum + feature.price, 0);
     return baseWebsitePrice + featuresTotal;
   }, [selectedFeatureItems]);
+
+  const subscriptionMonthlyTotal = useMemo(
+    () => subscriptionCatalog.reduce((sum, item) => sum + item.monthlyPrice, 0),
+    [],
+  );
+
+  const subscriptionAnnualTotal = subscriptionMonthlyTotal * 12;
+  const subscriptionTermTotal = subscriptionAnnualTotal * selectedSubscriptionTermYears;
+  const firstYearTotal = upfrontQuote + subscriptionAnnualTotal;
+  const selectedTermTotal = upfrontQuote + subscriptionTermTotal;
 
   const onSubmit = async (values: QuoteFormData) => {
     if (honeypot) return;
@@ -135,6 +160,9 @@ const OpticalRetailWebsitesPage = () => {
 
     try {
       const featureSummary = selectedFeatureItems.map((feature) => `- ${feature.label} (${currency.format(feature.price)})`).join("\n");
+      const subscriptionSummary = subscriptionCatalog
+        .map((item) => `- ${item.label} (${currency.format(item.monthlyPrice)}/month)`)
+        .join("\n");
       const payloadMessage = [
         "Website design intake submitted.",
         `Business: ${values.businessName}`,
@@ -143,7 +171,16 @@ const OpticalRetailWebsitesPage = () => {
         "Selected features:",
         featureSummary,
         "",
-        `Instant quote: ${currency.format(instantQuote)} (USD estimate)`,
+        `Upfront website estimate: ${currency.format(upfrontQuote)} (USD estimate)`,
+        "",
+        `Subscription term selected: ${values.subscriptionTermYears} year(s)`,
+        "Monthly recurring plan:",
+        subscriptionSummary,
+        "",
+        `Recurring total per month: ${currency.format(subscriptionMonthlyTotal)}`,
+        `Recurring total per year: ${currency.format(subscriptionAnnualTotal)}`,
+        `Recurring total over ${values.subscriptionTermYears} year(s): ${currency.format(subscriptionAnnualTotal * Number(values.subscriptionTermYears))}`,
+        `Combined first-year estimate: ${currency.format(firstYearTotal)}`,
         values.notes ? "" : null,
         values.notes ? "Additional notes:" : null,
         values.notes || null,
@@ -180,6 +217,7 @@ const OpticalRetailWebsitesPage = () => {
         timeline: "Within 30 days",
         notes: "",
         features: ["custom-branding", "appointment-booking", "product-showcase"],
+        subscriptionTermYears: "1",
       });
       setHoneypot("");
       setStartedAt(new Date().toISOString());
@@ -416,6 +454,52 @@ const OpticalRetailWebsitesPage = () => {
 
                     <FormField
                       control={form.control}
+                      name="subscriptionTermYears"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Domains, maintenance, and support plan</FormLabel>
+                          <div className="rounded-2xl border border-border/60 bg-muted/10 p-4">
+                            <p className="text-sm text-muted-foreground">
+                              This recurring quote is shown separately from the build cost so you can see the upfront investment and the annual operating cost clearly.
+                            </p>
+                            <div className="mt-4 grid gap-2">
+                              {subscriptionCatalog.map((item) => (
+                                <div key={item.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-3 py-2 text-sm">
+                                  <span className="text-muted-foreground">{item.label}</span>
+                                  <span className="font-medium">{currency.format(item.monthlyPrice)}/mo</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-5">
+                              <p className="text-sm font-medium text-foreground">Choose subscription term</p>
+                              <RadioGroup
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                className="mt-3 grid gap-3 sm:grid-cols-3"
+                              >
+                                {subscriptionTerms.map((term) => (
+                                  <label
+                                    key={term.value}
+                                    htmlFor={`subscription-term-${term.value}`}
+                                    className="flex cursor-pointer gap-3 rounded-xl border border-border/70 bg-background p-4 transition-colors hover:border-primary/50"
+                                  >
+                                    <RadioGroupItem id={`subscription-term-${term.value}`} value={term.value} className="mt-0.5" />
+                                    <span className="space-y-1">
+                                      <span className="block text-sm font-medium text-foreground">{term.label}</span>
+                                      <span className="block text-xs leading-5 text-muted-foreground">{term.description}</span>
+                                    </span>
+                                  </label>
+                                ))}
+                              </RadioGroup>
+                            </div>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
                       name="notes"
                       render={({ field }) => (
                         <FormItem>
@@ -445,7 +529,7 @@ const OpticalRetailWebsitesPage = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Instant estimate</CardTitle>
-                  <CardDescription>Fast budget guidance based on the scope you selected on this page.</CardDescription>
+                <CardDescription>Fast budget guidance based on the scope you selected on this page.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
@@ -460,12 +544,47 @@ const OpticalRetailWebsitesPage = () => {
                   ))}
                   <div className="border-t pt-4">
                     <div className="flex items-center justify-between text-lg font-semibold">
-                      <span>Estimated total</span>
-                      <span>{currency.format(instantQuote)}</span>
+                      <span>Upfront website estimate</span>
+                      <span>{currency.format(upfrontQuote)}</span>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
                       Estimate shown in USD. Final pricing depends on integrations, number of pages, content migration, and launch readiness.
                     </p>
+                  </div>
+                  <div className="rounded-2xl border border-border/60 bg-muted/10 p-4">
+                    <p className="text-sm font-semibold text-foreground">Recurring subscription quote</p>
+                    <div className="mt-3 space-y-2">
+                      {subscriptionCatalog.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{item.label}</span>
+                          <span className="font-medium">{currency.format(item.monthlyPrice)}/mo</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 space-y-2 border-t pt-4 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Monthly recurring total</span>
+                        <span className="font-medium">{currency.format(subscriptionMonthlyTotal)}/mo</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Yearly recurring total</span>
+                        <span className="font-medium">{currency.format(subscriptionAnnualTotal)}/yr</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Recurring total for selected {selectedSubscriptionTermYears}-year term</span>
+                        <span className="font-medium">{currency.format(subscriptionTermTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Upfront + first year</span>
+                      <span className="font-semibold text-foreground">{currency.format(firstYearTotal)}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Upfront + selected term total</span>
+                      <span className="font-semibold text-foreground">{currency.format(selectedTermTotal)}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

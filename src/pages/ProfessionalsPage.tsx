@@ -31,6 +31,7 @@ const sections = [
     title: "For Optical Stores & Clinics",
     links: [
       { label: "Apply for a Trade Account", to: "/professionals/trade-account" },
+      { label: "Optician Website Design", to: "/optical-retail-websites" },
       { label: "Online Ordering Portal (LabLink)", href: LABLINK_PORTAL_URL, external: true },
       { label: "Order Tracking (LabLink)", href: LABLINK_TRACKING_URL, external: true },
       { label: "Price List Request", to: "/professionals/price-list-request" },
