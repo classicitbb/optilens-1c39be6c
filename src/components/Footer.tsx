@@ -39,8 +39,9 @@ const footerColumns = [
   {
     title: "Social",
     links: [
-      { label: "Facebook", href: "https://facebook.com/classicvisions" },
-      { label: "Instagram", href: "https://instagram.com/classicvisions" },
+      { label: "Facebook", href: "https://www.facebook.com/classicvisionscb" },
+      { label: "Instagram", href: "https://www.instagram.com/classicvisionscb" },
+      { label: "LinkedIn", href: "https://www.linkedin.com/company/classic-visions/" },
     ],
   },
   {
