@@ -23,8 +23,7 @@ export const useCanvasEditor = (templateId: number) => {
   const pagesQuery = useQuery({
     queryKey: ["catalog-pages", templateId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_pages") as any)
+      const { data, error } = await (supabase.from("catalog_pages") as any)
         .select("*")
         .eq("catalog_template_id", templateId)
         .order("page_number");
@@ -38,8 +37,7 @@ export const useCanvasEditor = (templateId: number) => {
   const objectsQuery = useQuery({
     queryKey: ["catalog-page-objects", editorState.activePageId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_page_objects") as any)
+      const { data, error } = await (supabase.from("catalog_page_objects") as any)
         .select("*")
         .eq("page_id", editorState.activePageId!)
         .order("z_index");
@@ -61,8 +59,7 @@ export const useCanvasEditor = (templateId: number) => {
   // Create initial page if none exist
   const createPageMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("catalog_pages") as any)
+      const { data, error } = await (supabase.from("catalog_pages") as any)
         .insert({ catalog_template_id: templateId, page_number: (pages.length || 0) + 1 } as any)
         .select()
         .single();
@@ -79,8 +76,7 @@ export const useCanvasEditor = (templateId: number) => {
   const updateObjectMutation = useMutation({
     mutationFn: async (obj: Partial<CanvasObject> & { id: string }) => {
       const { id, ...updates } = obj;
-      const { error } = await supabase
-        .from("catalog_page_objects") as any)
+      const { error } = await (supabase.from("catalog_page_objects") as any)
         .update(updates as any)
         .eq("id", id);
       if (error) throw error;
@@ -108,8 +104,7 @@ export const useCanvasEditor = (templateId: number) => {
   // Add new object
   const addObjectMutation = useMutation({
     mutationFn: async (obj: Omit<CanvasObject, "id">) => {
-      const { data, error } = await supabase
-        .from("catalog_page_objects") as any)
+      const { data, error } = await (supabase.from("catalog_page_objects") as any)
         .insert(obj as any)
         .select()
         .single();
@@ -140,8 +135,7 @@ export const useCanvasEditor = (templateId: number) => {
   // Delete object
   const deleteObjectMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("catalog_page_objects") as any)
+      const { error } = await (supabase.from("catalog_page_objects") as any)
         .delete()
         .eq("id", id);
       if (error) throw error;

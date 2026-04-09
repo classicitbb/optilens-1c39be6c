@@ -78,8 +78,7 @@ const upsertOpportunity = async (input: CreateOpportunityInput) => {
     estimated_value: input.estimatedValue ?? null,
   };
 
-  const { error: oppErr } = await supabase
-    .from("opportunities") as any)
+  const { error: oppErr } = await (supabase.from("opportunities") as any)
     .upsert(opportunityPayload as any, { onConflict: "contact_id,title" });
 
   if (oppErr) throw oppErr;
@@ -107,8 +106,7 @@ export const useOpportunities = () => {
   return useQuery({
     queryKey: ["crm-opportunities"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("opportunities") as any)
+      const { data, error } = await (supabase.from("opportunities") as any)
         .select("id,title,stage,country,volume_tier,estimated_value,contact_id,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -121,8 +119,7 @@ export const useUpdateOpportunityStage = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: Opportunity["stage"] }) => {
-      const { data: oppRaw, error: oppGetErr } = await supabase
-        .from("opportunities") as any)
+      const { data: oppRaw, error: oppGetErr } = await (supabase.from("opportunities") as any)
         .select("id,contact_id,title,estimated_value,source_search_run_id")
         .eq("id", id)
         .single();
@@ -135,16 +132,14 @@ export const useUpdateOpportunityStage = () => {
         source_search_run_id: string | null;
       };
 
-      const { error } = await supabase
-        .from("opportunities") as any)
+      const { error } = await (supabase.from("opportunities") as any)
         .update({ stage, updated_at: new Date().toISOString() } as any)
         .eq("id", id);
       if (error) throw error;
 
       const dueAt = new Date();
       dueAt.setDate(dueAt.getDate() + 2);
-      const { error: activityErr } = await supabase
-        .from("activities") as any)
+      const { error: activityErr } = await (supabase.from("activities") as any)
         .insert({
           opportunity_id: id,
           contact_id: opp.contact_id,
@@ -157,8 +152,7 @@ export const useUpdateOpportunityStage = () => {
 
       const lifecycleStage = toLifecycleStage(stage);
       if (lifecycleStage) {
-        const { error: outcomeErr } = await supabase
-          .from("lead_search_outcomes") as any)
+        const { error: outcomeErr } = await (supabase.from("lead_search_outcomes") as any)
           .upsert({
             opportunity_id: id,
             contact_id: opp.contact_id,
