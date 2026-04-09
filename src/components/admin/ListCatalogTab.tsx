@@ -979,7 +979,12 @@ const ListCatalogTab = ({
           <table className="w-full text-xs border-collapse">
               <thead>
                 <tr>
-                  <th className="w-8 no-print border border-border" style={{ background: "hsl(var(--admin-table-subheader))" }} />
+                  <th
+                    className="w-8 no-print border border-border px-1 py-2 text-center font-semibold"
+                    style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}
+                  >
+                    Position
+                  </th>
                   <th className="px-2 py-2 text-center font-semibold border border-border min-w-[72px] max-w-[140px]" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
                   <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-fg))" }}>Description <SortIcon section={title} col="description" /></th>
                   <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>
@@ -1078,6 +1083,12 @@ const ListCatalogTab = ({
                     <table className="w-full text-xs border-collapse">
                       <thead>
                         <tr>
+                          <th
+                            className="w-8 no-print border border-border px-1 py-2 text-center font-semibold"
+                            style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}
+                          >
+                            Position
+                          </th>
                           <th className="px-2 py-2 text-center font-semibold border border-border min-w-[72px] max-w-[140px]" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Supp.</th>
                           <th className="px-3 py-2 text-left font-semibold border border-border" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-fg))" }}>Description <SortIcon section={primarySectionKey} col="description" /></th>
                           <th className="px-2 py-2 text-left font-semibold border border-border w-40 no-print" style={{ background: "hsl(var(--admin-table-subheader))", color: "hsl(var(--admin-table-subheader-fg))", fontSize: "10px" }}>Matrix Cell</th>
