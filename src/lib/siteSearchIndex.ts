@@ -236,13 +236,13 @@ export const SITE_SEARCH_INDEX: SiteSearchEntry[] = [
   // ─── Coating pages ────────────────────────────────────────────────────────────
   {
     id: "page-coatings-ultraclear-ar",
-    title: "UltraClear AR — Anti-Reflective Coating",
+    title: "Super AR — Anti-Reflective Coating",
     description: "Premium multi-layer anti-reflective coating that virtually eliminates glare, improves cosmetic clarity, and enhances night-driving comfort.",
     path: "/coatings/ultraclear-ar",
     group: "Pages",
     keywords: [
       "anti-reflective", "anti-reflective coating", "AR coating", "Super AR",
-      "UltraClear AR", "glare reduction", "night driving", "reflections",
+      "Super AR", "glare reduction", "night driving", "reflections",
       "lens clarity", "multi-layer AR", "hydrophobic top coat",
       "oleophobic", "premium coating", "cosmetic appearance",
       "reduce glare", "AR lens",
@@ -250,12 +250,12 @@ export const SITE_SEARCH_INDEX: SiteSearchEntry[] = [
   },
   {
     id: "page-coatings-blueblock-ar",
-    title: "BlueBlock AR — Blue Light AR Coating",
+    title: "Blue Defense AR+ — Blue Light AR Coating",
     description: "Anti-reflective coating with selective blue-violet light filtering — reduces screen glare while preserving natural color balance for everyday wear.",
     path: "/coatings/blueblock-ar",
     group: "Pages",
     keywords: [
-      "blue light coating", "BlueBlock AR", "Blue Defense AR",
+      "blue light coating", "Blue Defense AR+", "BlueBlock AR",
       "blue filter coating", "blue AR", "anti-reflective blue",
       "screen glare", "digital eye strain coating", "blue-violet",
       "computer glasses coating", "LED protection", "office coating",

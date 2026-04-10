@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router";
+import { LABLINK_PORTAL_URL } from "@/config/externalLinks";
 import {
   Monitor,
   Shield,
@@ -92,7 +93,7 @@ const BlueBlockARPage = () => {
         {/* Hero */}
         <section className="container mx-auto max-w-6xl px-4 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-accent">Premium Performance</p>
-          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">BlueBlock AR (Blue Defense&nbsp;AR+)</h1>
+          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">Blue Defense&nbsp;AR+ (BlueBlock&nbsp;AR)</h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
             Combines anti-reflective performance with selective blue-violet light management, helping reduce harsh glare from digital screens while preserving color balance for daily wear.
           </p>
@@ -117,7 +118,7 @@ const BlueBlockARPage = () => {
         {/* How It Works */}
         <section className="mt-20 bg-muted/40 py-16">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
-            <h2 className="text-2xl font-bold text-foreground">How BlueBlock AR Works</h2>
+            <h2 className="text-2xl font-bold text-foreground">How Blue Defense AR+ Works</h2>
             <p className="mt-1 max-w-2xl text-muted-foreground">
               A dual-purpose coating system that manages blue-violet exposure while delivering full anti-reflective performance.
             </p>
@@ -157,17 +158,23 @@ const BlueBlockARPage = () => {
           <Card className="border-none bg-primary text-primary-foreground">
             <CardContent className="flex flex-col items-center gap-4 p-8 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
-                <h2 className="text-xl font-bold">Add BlueBlock AR to any lens</h2>
+                <h2 className="text-xl font-bold">Add Blue Defense AR+ to any lens</h2>
                 <p className="mt-1 text-sm text-primary-foreground/80">Blue management helps comfort and glare — pair with progressive or single vision for best results.</p>
               </div>
               <div className="flex gap-3">
                 <Button variant="secondary" asChild><Link to="/#contact">Contact Us</Link></Button>
                 <Button variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10" asChild>
-                  <Link to="/store">Shop Coatings <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <a href={LABLINK_PORTAL_URL} target="_blank" rel="noopener noreferrer">Shop Coatings <ArrowRight className="ml-2 h-4 w-4" /></a>
                 </Button>
               </div>
             </CardContent>
           </Card>
+          <div className="mt-4 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
+            <p className="font-semibold">Special-request coating</p>
+            <p className="mt-1">
+              Blue Defense AR+ is still available, but it is no longer stocked as a high-volume everyday coating because demand has cooled. If it is the right fit for a patient, request it through LabLink and our team will confirm availability and handling before production.
+            </p>
+          </div>
         </section>
       </main>
       <Footer />

@@ -215,7 +215,7 @@ export const CURATED_KNOWLEDGE_ARTICLES: CuratedKnowledgeArticle[] = [
   },
   {
     id: "coatings-ultraclear",
-    title: "UltraClear AR coating guide",
+    title: "Super AR coating guide",
     description: "A premium anti-reflective overview covering clarity, appearance, and daily-wear benefits.",
     href: "/coatings/ultraclear-ar",
     categoryId: "coatings-care",
@@ -226,7 +226,7 @@ export const CURATED_KNOWLEDGE_ARTICLES: CuratedKnowledgeArticle[] = [
   },
   {
     id: "coatings-blueblock",
-    title: "BlueBlock AR guide",
+    title: "Blue Defense AR+ guide",
     description: "See how blue-violet management combines with anti-reflective performance for screen-heavy routines.",
     href: "/coatings/blueblock-ar",
     categoryId: "coatings-care",

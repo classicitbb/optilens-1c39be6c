@@ -88,8 +88,8 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
   {
     title: "Premium Performance",
     links: [
-    { label: "UltraClear AR (Super AR)", description: "Multi-layer anti-reflective for maximum clarity", to: "/coatings/ultraclear-ar" },
-    { label: "BlueBlock AR (Blue Defense)", description: "Blue-violet management with AR clarity", to: "/coatings/blueblock-ar" },
+    { label: "Super AR", description: "Multi-layer anti-reflective for maximum clarity", to: "/coatings/ultraclear-ar" },
+    { label: "Blue Defense AR+ (BlueBlock AR)", description: "Blue-violet management with AR clarity", to: "/coatings/blueblock-ar" },
     { label: "Mirror Finish", description: "Fashion and sport mirror coatings", to: "/coatings/mirror" }]
 
   },
@@ -222,8 +222,8 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   polarized: "Polarized",
   "tints-fashion-colors": "Tints & Fashion Colors",
   "thickness-chart": "Thickness Chart",
-  "ultraclear-ar": "UltraClear AR",
-  "blueblock-ar": "BlueBlock AR",
+  "ultraclear-ar": "Super AR",
+  "blueblock-ar": "Blue Defense AR+",
   "uv-shield": "UV Shield",
   "hydrophobic-oleophobic": "Hydrophobic & Oleophobic",
   "lens-differences": "Lens Differences",

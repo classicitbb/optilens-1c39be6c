@@ -109,12 +109,12 @@ const careTips = [
 
 const relatedGuides = [
   {
-    title: "UltraClear AR coating",
+    title: "Super AR coating",
     description: "Pair mirror fronts with backside anti-reflective performance for cleaner optics.",
     to: "/coatings/ultraclear-ar",
   },
   {
-    title: "BlueBlock AR coating",
+    title: "Blue Defense AR+ coating",
     description: "Compare reflective color behavior with blue-light management and AR stacks.",
     to: "/coatings/blueblock-ar",
   },

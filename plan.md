@@ -52,8 +52,8 @@ Establish a single, production-grade routing strategy for the entire frontend (`
 
 ### Coatings
 - Mirror → `/coatings/mirror`
-- UltraClear AR → `/coatings/ultraclear-ar`
-- BlueBlock AR → `/coatings/blueblock-ar`
+- Super AR → `/coatings/ultraclear-ar`
+- Blue Defense AR+ (BlueBlock AR) → `/coatings/blueblock-ar`
 - Scratch Resistant → `/coatings/scratch-resistant`
 - UV Shield → `/coatings/uv-shield`
 - Hydrophobic / Oleophobic → `/coatings/hydrophobic-oleophobic`
