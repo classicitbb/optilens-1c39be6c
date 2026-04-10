@@ -5,8 +5,8 @@ import { requireAuthenticatedUser, requireUserRole } from '../_shared/http/auth.
 import { template } from '../_shared/transactional-email-templates/order-confirmation.tsx'
 
 const SITE_NAME = 'Classic Visions'
-const SENDER_DOMAIN = 'notify.giancarloferrucci.com'
-const FROM_DOMAIN = 'notify.giancarloferrucci.com'
+const SENDER_DOMAIN = 'support.classicvisions.net'
+const FROM_DOMAIN = 'classicvisions.net'
 const SITE_URL = Deno.env.get('APP_BASE_URL') ?? 'https://classicvisions.net'
 
 const corsPolicy = createCorsPolicy({
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
     payload: {
       message_id: messageId,
       to: recipientEmail,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+      from: `${SITE_NAME} Orders <orders@${FROM_DOMAIN}>`,
       sender_domain: SENDER_DOMAIN,
       subject,
       html,

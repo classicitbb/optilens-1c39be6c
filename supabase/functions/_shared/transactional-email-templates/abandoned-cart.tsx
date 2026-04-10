@@ -24,7 +24,7 @@ const AbandonedCartEmail = ({
   totalItems = 0,
   totalAmount = 0,
   cartSnapshot = [],
-  siteUrl = 'https://optilens.lovable.app',
+  siteUrl = 'https://classicvisions.lovable.app',
 }: AbandonedCartProps) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -78,7 +78,7 @@ export const template = {
       { product_name: 'Progressive Lens 1.67', quantity: 2, product_price: 89.99 },
       { product_name: 'Blue Light Filter', quantity: 1, product_price: 74.99 },
     ],
-    siteUrl: 'https://optilens.lovable.app',
+    siteUrl: 'https://classicvisions.lovable.app',
   },
 } satisfies TemplateEntry
 

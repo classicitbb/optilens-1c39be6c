@@ -10,8 +10,8 @@ const corsPolicy = createCorsPolicy({
 
 const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
 const SITE_NAME = "Classic Visions";
-const SENDER_DOMAIN = "notify.giancarloferrucci.com";
-const FROM_DOMAIN = "notify.giancarloferrucci.com";
+const SENDER_DOMAIN = "support.classicvisions.net";
+const FROM_DOMAIN = "classicvisions.net";
 const MIN_FORM_FILL_MS = 2500;
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
       payload: {
         message_id: messageId,
         to: [resolvedRecipient],
-        from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+        from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
         sender_domain: SENDER_DOMAIN,
         subject: resolvedSubject,
         html,
@@ -255,6 +255,58 @@ Deno.serve(async (req) => {
     if (enqueueError) {
       console.error("Failed to enqueue notification email", { error: enqueueError });
       // Non-fatal: inquiry was saved, just email failed to queue
+    }
+
+    // --- Send confirmation email to the person who submitted the inquiry ---
+    const { template: confirmationTemplate } = await import("../_shared/transactional-email-templates/inquiry-confirmation.tsx");
+
+    const confirmationData = {
+      name: payload.name,
+      inquiryType: payload.inquiryType,
+      siteUrl: "https://classicvisions.lovable.app",
+    };
+
+    const confirmationHtml = await renderAsync(
+      React.createElement(confirmationTemplate.component, confirmationData)
+    );
+    const confirmationText = await renderAsync(
+      React.createElement(confirmationTemplate.component, confirmationData),
+      { plainText: true }
+    );
+    const confirmationSubject =
+      typeof confirmationTemplate.subject === "function"
+        ? confirmationTemplate.subject(confirmationData)
+        : confirmationTemplate.subject;
+
+    const confirmationMessageId = crypto.randomUUID();
+    const confirmationIdempotencyKey = `inquiry-confirm-${insertedInquiry.id}`;
+
+    await supabase.from("email_send_log").insert({
+      message_id: confirmationMessageId,
+      template_name: "inquiry-confirmation",
+      recipient_email: payload.email,
+      status: "pending",
+    });
+
+    const { error: confirmEnqueueError } = await supabase.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: {
+        message_id: confirmationMessageId,
+        to: [payload.email],
+        from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
+        sender_domain: SENDER_DOMAIN,
+        subject: confirmationSubject,
+        html: confirmationHtml,
+        text: confirmationText,
+        purpose: "transactional",
+        label: "inquiry-confirmation",
+        idempotency_key: confirmationIdempotencyKey,
+        queued_at: new Date().toISOString(),
+      },
+    });
+
+    if (confirmEnqueueError) {
+      console.error("Failed to enqueue inquiry confirmation email", { error: confirmEnqueueError });
     }
 
     return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id }), {

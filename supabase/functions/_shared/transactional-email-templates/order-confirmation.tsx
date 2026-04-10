@@ -28,7 +28,7 @@ const OrderConfirmationEmail = ({
   items = [],
   totalAmount = 0,
   shippingAddress = '',
-  siteUrl = 'https://optilens.lovable.app',
+  siteUrl = 'https://classicvisions.lovable.app',
 }: OrderConfirmationProps) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -99,7 +99,7 @@ export const template = {
     ],
     totalAmount: 229.98,
     shippingAddress: '123 Optical Lane, Cape Town, 8001',
-    siteUrl: 'https://optilens.lovable.app',
+    siteUrl: 'https://classicvisions.lovable.app',
   },
 } satisfies TemplateEntry
 

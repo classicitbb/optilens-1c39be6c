@@ -12,7 +12,7 @@ interface WelcomeProps {
 
 const WelcomeEmail = ({
   customerName = 'there',
-  siteUrl = 'https://optilens.lovable.app',
+  siteUrl = 'https://classicvisions.lovable.app',
 }: WelcomeProps) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -50,7 +50,7 @@ export const template = {
   displayName: 'Welcome Message',
   previewData: {
     customerName: 'Jane',
-    siteUrl: 'https://optilens.lovable.app',
+    siteUrl: 'https://classicvisions.lovable.app',
   },
 } satisfies TemplateEntry
 
