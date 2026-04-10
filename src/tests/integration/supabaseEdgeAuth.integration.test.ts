@@ -44,7 +44,7 @@ describe("supabase edge-function auth hardening", () => {
   it("keeps only explicitly public webhook/form endpoints unauthenticated", () => {
     const config = read("supabase/config.toml");
 
-    for (const fn of explicitPublicFunctions) {
+    for (const fn of [...explicitPublicFunctions, ...codeAuthFunctions]) {
       expect(config).toMatch(
         new RegExp(`\\[functions\\.${fn.replace(/-/g, "\\-")}\\]\\s+verify_jwt = false`),
       );
