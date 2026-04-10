@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { Link } from "react-router";
-import mirrorFinishTextureImage from "@/assets/mirror-finish-texture.jpg";
+import mirrorFinishTextureImage from "@/assets/mirror-sunglasses.png";
 import mirrorLensApplicationImage from "@/assets/mirror-lens-application.jpg";
 
 const highlights = [
