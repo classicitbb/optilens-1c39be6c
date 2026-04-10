@@ -249,10 +249,13 @@ Deno.serve(async (req) => {
       }
 
       try {
+        // Normalize `to` — older enqueue calls may have passed an array
+        const toValue = Array.isArray(payload.to) ? payload.to[0] : payload.to
+
         await sendLovableEmail(
           {
             run_id: payload.run_id,
-            to: payload.to,
+            to: toValue,
             from: payload.from,
             sender_domain: payload.sender_domain,
             subject: payload.subject,
@@ -263,6 +266,7 @@ Deno.serve(async (req) => {
             idempotency_key: payload.idempotency_key,
             unsubscribe_token: payload.unsubscribe_token,
             message_id: payload.message_id,
+            reply_to: payload.reply_to,
           },
           // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
           // falls back to the default Lovable API endpoint (https://api.lovable.dev).

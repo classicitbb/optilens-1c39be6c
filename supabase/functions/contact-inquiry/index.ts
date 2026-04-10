@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
       queue_name: "transactional_emails",
       payload: {
         message_id: messageId,
-        to: [resolvedRecipient],
+        to: resolvedRecipient,
         from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
         sender_domain: SENDER_DOMAIN,
         subject: resolvedSubject,
@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
       queue_name: "transactional_emails",
       payload: {
         message_id: confirmationMessageId,
-        to: [payload.email],
+        to: payload.email,
         from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
         sender_domain: SENDER_DOMAIN,
         subject: confirmationSubject,
