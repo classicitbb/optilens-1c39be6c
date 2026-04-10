@@ -10,8 +10,8 @@ const corsPolicy = createCorsPolicy({
 
 const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
 const SITE_NAME = "Classic Visions";
-const SENDER_DOMAIN = "notify.giancarloferrucci.com";
-const FROM_DOMAIN = "notify.giancarloferrucci.com";
+const SENDER_DOMAIN = "support.classicvisions.net";
+const FROM_DOMAIN = "classicvisions.net";
 const MIN_FORM_FILL_MS = 2500;
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
