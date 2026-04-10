@@ -20,7 +20,7 @@ const INQUIRY_LABELS: Record<string, { heading: string; description: string }> =
   },
   trade_account: {
     heading: 'Trade account application received',
-    description: 'We've received your trade account application. Our sales team will review your details and be in touch within 1–2 business days.',
+    description: 'We have received your trade account application. Our sales team will review your details and be in touch within 1\u20132 business days.',
   },
   price_list: {
     heading: 'Price list request received',
@@ -28,15 +28,15 @@ const INQUIRY_LABELS: Record<string, { heading: string; description: string }> =
   },
   zenvue_wholesale: {
     heading: 'Wholesale application received',
-    description: 'Thank you for your ZenVue wholesale application. We'll review your details and follow up within 1–2 business days.',
+    description: 'Thank you for your ZenVue wholesale application. We will review your details and follow up within 1\u20132 business days.',
   },
   'website-design-lead': {
     heading: 'Quote request received',
-    description: 'We've received your optical website design inquiry. Our team will prepare a detailed quote and get back to you shortly.',
+    description: 'We have received your optical website design inquiry. Our team will prepare a detailed quote and get back to you shortly.',
   },
   assistant_request: {
     heading: 'Support request received',
-    description: 'Thank you for reaching out. We've logged your request and our support team will follow up soon.',
+    description: 'Thank you for reaching out. We have logged your request and our support team will follow up soon.',
   },
 }
 
