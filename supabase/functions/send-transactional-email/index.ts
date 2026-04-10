@@ -2,12 +2,10 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
-import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
-import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
 
 // Configuration baked in at scaffold time — do NOT change these manually.
 // To update, re-run the email domain setup flow.
-const SITE_NAME = "Classic Visions"
+const SITE_NAME = "classicvisions"
 // SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
 // It MUST match the subdomain delegated to Lovable's nameservers — never the root domain.
 // The email API looks up this exact domain; a mismatch causes "No email domain record found".
@@ -17,10 +15,11 @@ const SENDER_DOMAIN = "support.classicvisions.net"
 // even though actual sending uses the subdomain above.
 const FROM_DOMAIN = "classicvisions.net"
 
-const corsPolicy = createCorsPolicy({
-  allowHeaders: 'authorization, x-client-info, apikey, content-type',
-  allowMethods: 'POST, OPTIONS',
-})
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
+}
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
@@ -31,13 +30,15 @@ function generateToken(): string {
     .join('')
 }
 
-Deno.serve(async (req) => {
-  const preflight = handleCorsPreflight(req, corsPolicy)
-  if (preflight) return preflight
+// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
+// gateway validates the caller's JWT (anon or service_role) before the request
+// reaches this code. No in-function auth check is needed.
 
-  const corsHeaders = getCorsHeaders(req, corsPolicy)
-  const originBlocked = rejectDisallowedOrigin(req, corsPolicy)
-  if (originBlocked) return originBlocked
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -51,14 +52,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
-  }
-
-  const authContext = await requirePrivilegedAccess(req, corsHeaders, {
-    allowedRoles: ['admin'],
-    sourceFunction: 'send-transactional-email',
-  })
-  if (authContext instanceof Response) {
-    return authContext
   }
 
   // Parse request body

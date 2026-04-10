@@ -1,20 +1,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { z } from 'npm:zod@3.25.76'
-import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
 
-const corsPolicy = createCorsPolicy({
-  allowHeaders: 'authorization, x-client-info, apikey, content-type',
-  allowMethods: 'GET, POST, OPTIONS',
-})
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
+}
 
-const tokenSchema = z.string().trim().regex(/^[a-f0-9]{64}$/i, 'Invalid token format')
-
-function jsonResponse(
-  req: Request,
-  data: Record<string, unknown>,
-  status = 200,
-): Response {
-  const corsHeaders = getCorsHeaders(req, corsPolicy)
+function jsonResponse(data: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -22,36 +14,36 @@ function jsonResponse(
 }
 
 Deno.serve(async (req) => {
-  const preflight = handleCorsPreflight(req, corsPolicy)
-  if (preflight) return preflight
-
-  const originBlocked = rejectDisallowedOrigin(req, corsPolicy)
-  if (originBlocked) return originBlocked
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
 
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return jsonResponse(req, { error: 'Method not allowed' }, 405)
+    return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    return jsonResponse(req, { error: 'Server configuration error' }, 500)
+    return jsonResponse({ error: 'Server configuration error' }, 500)
   }
 
+  // Extract token from query params (GET) or body (POST)
   const url = new URL(req.url)
   let token: string | null = url.searchParams.get('token')
 
   if (req.method === 'POST') {
+    // Detect RFC 8058 one-click unsubscribe: POST with form-encoded body
+    // containing "List-Unsubscribe=One-Click". Email clients (Gmail, Apple Mail,
+    // etc.) send this when the user clicks "Unsubscribe" in the mail UI.
     const contentType = req.headers.get('content-type') ?? ''
-    const contentLength = Number(req.headers.get('content-length') ?? 0)
-    if (Number.isFinite(contentLength) && contentLength > 10_000) {
-      return jsonResponse(req, { error: 'Payload too large' }, 413)
-    }
-
     if (contentType.includes('application/x-www-form-urlencoded')) {
       const formText = await req.text()
       const params = new URLSearchParams(formText)
+      // For one-click, token comes from query param (already set above).
+      // Otherwise, token may be in the form body.
       if (!params.get('List-Unsubscribe')) {
         const formToken = params.get('token')
         if (formToken) {
@@ -59,6 +51,7 @@ Deno.serve(async (req) => {
         }
       }
     } else {
+      // JSON body (from the app's unsubscribe page)
       try {
         const body = await req.json()
         if (body.token) {
@@ -71,51 +64,51 @@ Deno.serve(async (req) => {
   }
 
   if (!token) {
-    return jsonResponse(req, { error: 'Token is required' }, 400)
-  }
-
-  const parsedToken = tokenSchema.safeParse(token)
-  if (!parsedToken.success) {
-    return jsonResponse(req, { error: parsedToken.error.issues[0]?.message ?? 'Invalid token format' }, 400)
+    return jsonResponse({ error: 'Token is required' }, 400)
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+  // Look up the token
   const { data: tokenRecord, error: lookupError } = await supabase
     .from('email_unsubscribe_tokens')
     .select('*')
-    .eq('token', parsedToken.data)
+    .eq('token', token)
     .maybeSingle()
 
   if (lookupError || !tokenRecord) {
-    return jsonResponse(req, { error: 'Invalid or expired token' }, 404)
+    return jsonResponse({ error: 'Invalid or expired token' }, 404)
   }
 
   if (tokenRecord.used_at) {
-    return jsonResponse(req, { valid: false, reason: 'already_unsubscribed' })
+    return jsonResponse({ valid: false, reason: 'already_unsubscribed' })
   }
 
+  // GET: Validate token (the app's unsubscribe page calls this on load)
   if (req.method === 'GET') {
-    return jsonResponse(req, { valid: true })
+    return jsonResponse({ valid: true })
   }
 
+  // POST: Process the unsubscribe
+  // Atomic check-and-update to avoid TOCTOU race
   const { data: updated, error: updateError } = await supabase
     .from('email_unsubscribe_tokens')
     .update({ used_at: new Date().toISOString() })
-    .eq('token', parsedToken.data)
+    .eq('token', token)
     .is('used_at', null)
     .select()
     .maybeSingle()
 
   if (updateError) {
-    console.error('Failed to mark token as used', { error: updateError })
-    return jsonResponse(req, { error: 'Failed to process unsubscribe' }, 500)
+    console.error('Failed to mark token as used', { error: updateError, token })
+    return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
   if (!updated) {
-    return jsonResponse(req, { success: false, reason: 'already_unsubscribed' })
+    return jsonResponse({ success: false, reason: 'already_unsubscribed' })
   }
 
+  // Add email to suppressed list (upsert to handle duplicates)
   const { error: suppressError } = await supabase
     .from('suppressed_emails')
     .upsert(
@@ -128,10 +121,10 @@ Deno.serve(async (req) => {
       error: suppressError,
       email: tokenRecord.email,
     })
-    return jsonResponse(req, { error: 'Failed to process unsubscribe' }, 500)
+    return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
   console.log('Email unsubscribed', { email: tokenRecord.email })
 
-  return jsonResponse(req, { success: true })
+  return jsonResponse({ success: true })
 })
