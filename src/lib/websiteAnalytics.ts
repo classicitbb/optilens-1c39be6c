@@ -7,6 +7,7 @@ const EXCLUDED_PREFIXES = ["/admin", "/ops", "/profile", "/auth", "/portal", "/r
 
 type SessionState = {
   id: string;
+  writeToken: string;
   visitorId: string;
   startedAt: string;
   lastSeenAt: string;
@@ -90,6 +91,7 @@ const buildSession = (): SessionState => {
 
   return {
     id: crypto.randomUUID(),
+    writeToken: crypto.randomUUID() + crypto.randomUUID(),
     visitorId,
     startedAt: timestamp,
     lastSeenAt: timestamp,
@@ -103,7 +105,7 @@ const buildSession = (): SessionState => {
 
 const getOrCreateSession = () => {
   const stored = getStoredSession();
-  if (stored && !sessionIsExpired(stored)) return stored;
+  if (stored && stored.writeToken && !sessionIsExpired(stored)) return stored;
 
   const session = buildSession();
   persistSession(session);
@@ -123,6 +125,7 @@ const toSessionRow = (session: SessionState) => {
 
   return {
     id: session.id,
+    write_token: session.writeToken,
     visitor_id: session.visitorId,
     started_at: session.startedAt,
     last_seen_at: session.lastSeenAt,
@@ -139,7 +142,7 @@ const toSessionRow = (session: SessionState) => {
 };
 
 const upsertSession = async (session: SessionState) => {
-  await (supabase.from("website_analytics_sessions") as any).upsert(toSessionRow(session), { onConflict: "id" });
+  await (supabase.rpc as any)("upsert_website_analytics_session", { p_session: toSessionRow(session) });
 };
 
 export const trackPageView = async (pathname: string) => {
@@ -171,7 +174,7 @@ export const flushTrackedSession = async () => {
   if (typeof window === "undefined") return;
 
   const session = getStoredSession();
-  if (!session || !session.lastTrackedPath) return;
+  if (!session || !session.writeToken || !session.lastTrackedPath) return;
 
   session.lastSeenAt = nowIso();
   persistSession(session);
