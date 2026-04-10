@@ -9,7 +9,6 @@ const read = (relativePath: string) =>
 
 describe("supabase edge-function auth hardening", () => {
   const privilegedFunctions = [
-    "admin-user-management",
     "lead-intelligence",
     "lens-assistant",
     "order-confirmation",
@@ -17,6 +16,11 @@ describe("supabase edge-function auth hardening", () => {
     "odoo-sync-push-contacts",
     "preview-transactional-email",
     "send-transactional-email",
+  ] as const;
+
+  /** Functions that set verify_jwt = false but enforce auth in code */
+  const codeAuthFunctions = [
+    "admin-user-management",
   ] as const;
 
   const explicitPublicFunctions = [
