@@ -664,8 +664,8 @@ const KanbanView = ({
   };
 
   return (
-    <div className="flex-1 overflow-x-auto">
-      <div className="flex gap-3 p-4 min-h-0 h-full">
+    <div className="flex-1 min-w-0 overflow-x-auto overscroll-x-contain">
+      <div className="flex w-max gap-3 p-4 min-h-0 h-full">
         {columns.map((col) => {
           const isCollapsed = collapsedCols.has(col.id);
 
@@ -674,7 +674,7 @@ const KanbanView = ({
               key={col.id}
               className={cn(
                 "flex flex-col shrink-0 rounded-lg transition-colors",
-                isCollapsed ? "min-w-[56px] max-w-[56px]" : "min-w-[320px] max-w-[420px] flex-1",
+                isCollapsed ? "min-w-[56px] max-w-[56px]" : "min-w-[125vw] max-w-[125vw] sm:min-w-[320px] sm:max-w-[420px] sm:flex-1",
                 dragOverCol === col.id && "bg-primary/5 ring-2 ring-primary/30"
               )}
               onDragOver={onDrop ? (e) => handleDragOver(e, col.id) : undefined}
@@ -751,13 +751,13 @@ const KanbanView = ({
                             onDragStart={onDrop ? (e) => handleDragStart(e, ticket.id) : undefined}
                             onClick={() => onEdit?.(ticket)}
                             className={cn(
-                              "rounded-lg border border-border bg-card p-3 space-y-2 shadow-sm hover:shadow-md transition-shadow group",
+                              "min-w-0 rounded-lg border border-border bg-card p-3 space-y-2 shadow-sm hover:shadow-md transition-shadow group",
                               onDrop && "cursor-grab active:cursor-grabbing",
                               onEdit && "cursor-pointer"
                             )}>
                             {/* Title row */}
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+                            <div className="flex min-w-0 items-start justify-between gap-2">
+                              <p className="min-w-0 text-sm font-medium text-foreground leading-snug break-words">
                                 {ticket.title}
                                 <span className="text-muted-foreground font-normal"> (#{ticket.ticket_number})</span>
                               </p>
@@ -772,31 +772,31 @@ const KanbanView = ({
 
                             {/* Contact info */}
                             {ticket.partner_contact && (
-                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground truncate">
+                              <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
                                 <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0", getAvatarColor(ticket.partner_contact.name))}>
                                   {getInitial(ticket.partner_contact.name)}
                                 </div>
-                                <span className="truncate font-medium">{ticket.partner_contact.name}</span>
-                                {ticket.partner_contact.email && <span className="truncate hidden sm:inline text-xs">· {ticket.partner_contact.email}</span>}
+                                <span className="min-w-0 font-medium break-words">{ticket.partner_contact.name}</span>
+                                {ticket.partner_contact.email && <span className="min-w-0 break-all text-xs">· {ticket.partner_contact.email}</span>}
                               </div>
                             )}
 
                             {/* Bottom row */}
                             <div className="space-y-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                                   <PriorityStars priority={ticket.priority} />
                                   {ticket.priority > 1 && (
-                                    <span className="text-xs font-medium" style={{ color: ["","","#b45309","#c2410c","#dc2626","#991b1b"][ticket.priority] }}>
+                                    <span className="text-xs font-medium break-words" style={{ color: ["","","#b45309","#c2410c","#dc2626","#991b1b"][ticket.priority] }}>
                                       {["Low","Normal","Medium","High","Urgent","Critical"][ticket.priority]}
                                     </span>
                                   )}
                                 </div>
-                                {ticket.deadline && <span className="text-sm text-muted-foreground">⏱ {new Date(ticket.deadline).toLocaleDateString()}</span>}
+                                {ticket.deadline && <span className="text-sm text-muted-foreground whitespace-nowrap">⏱ {new Date(ticket.deadline).toLocaleDateString()}</span>}
                               </div>
-                              <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-                                <span className="truncate">Support team: {ticket.team?.name ?? "Unassigned"}</span>
-                                <span className="truncate">Created by: {getCreatorName(ticket)}</span>
+                              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                                <span className="min-w-0 break-words">Support team: {ticket.team?.name ?? "Unassigned"}</span>
+                                <span className="min-w-0 break-words">Created by: {getCreatorName(ticket)}</span>
                               </div>
                             </div>
                           </div>
