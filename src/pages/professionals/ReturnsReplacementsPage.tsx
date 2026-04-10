@@ -312,7 +312,7 @@ const ReturnsReplacementsPage = () => {
                 </a>
               </Button>
               <Button variant="outline" asChild>
-                <a href={`mailto:${SUPPORT_EMAIL}`}>Email {SUPPORT_EMAIL}</a>
+                <a href={`mailto:${SUPPORT_EMAIL}`}>Email Us</a>
               </Button>
             </div>
           </section>
