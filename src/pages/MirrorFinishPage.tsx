@@ -3,8 +3,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { Link } from "react-router";
-import heroLensesImage from "@/assets/hero-lenses.jpg";
-import chemistrieHeroImage from "@/assets/chemistrie-hero.jpg";
+import mirrorFinishTextureImage from "@/assets/mirror-finish-texture.jpg";
+import mirrorLensApplicationImage from "@/assets/mirror-lens-application.jpg";
 
 const highlights = [
   "Enhances cosmetic appeal with fashion-forward reflective color options.",
@@ -165,9 +165,9 @@ const MirrorFinishPage = () => {
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <figure className="overflow-hidden rounded-lg border border-border/80 bg-muted/20">
                   <img
-                    src={heroLensesImage}
+                    src={mirrorLensApplicationImage}
                     alt="Lifestyle eyewear with mirrored sun lenses worn outdoors in bright light"
-                    className="h-56 w-full object-cover"
+                    className="h-56 w-full object-cover object-center"
                     loading="lazy"
                   />
                   <figcaption className="px-4 py-3 text-sm text-muted-foreground">Lifestyle mirror lens application</figcaption>
@@ -175,9 +175,9 @@ const MirrorFinishPage = () => {
 
                 <figure className="overflow-hidden rounded-lg border border-border/80 bg-muted/20">
                   <img
-                    src={chemistrieHeroImage}
+                    src={mirrorFinishTextureImage}
                     alt="Close-up of mirrored lens surface showing high-reflection color and sheen"
-                    className="h-56 w-full object-cover"
+                    className="h-56 w-full object-cover object-bottom"
                     loading="lazy"
                   />
                   <figcaption className="px-4 py-3 text-sm text-muted-foreground">
