@@ -177,7 +177,7 @@ const MirrorFinishPage = () => {
                   <img
                     src={mirrorFinishTextureImage}
                     alt="Close-up of mirrored lens surface showing high-reflection color and sheen"
-                    className="h-56 w-full object-bottom object-contain"
+                    className="h-56 w-full object-center object-contain"
                     loading="lazy"
                   />
                   <figcaption className="px-4 py-3 text-sm text-muted-foreground">
