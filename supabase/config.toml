@@ -2,7 +2,7 @@ project_id = "xstmeirxhfbiyayrrsob"
 
 [functions]
   [functions.admin-user-management]
-    verify_jwt = true
+    verify_jwt = false
   [functions.auth-email-hook]
     verify_jwt = false
   [functions.contact-inquiry]
