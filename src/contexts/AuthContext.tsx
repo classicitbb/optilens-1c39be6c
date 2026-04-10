@@ -95,24 +95,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       }
     });
-
-    // Queue welcome email (non-blocking, best-effort)
-    if (!error) {
-      supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "welcome",
-          recipientEmail: email,
-          idempotencyKey: `welcome-${email}-${Date.now()}`,
-          templateData: {
-            customerName: details?.fullName?.trim() || "there",
-            siteUrl: window.location.origin,
-          },
-        },
-      }).catch((emailError) => {
-        console.error("Failed to queue welcome email:", emailError);
-      });
-    }
-
     return { error };
   }, []);
 
