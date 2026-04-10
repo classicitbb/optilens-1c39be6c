@@ -12,6 +12,7 @@ describe("supabase edge-function auth hardening", () => {
     "admin-user-management",
     "lead-intelligence",
     "lens-assistant",
+    "order-confirmation",
     "odoo-sync-pull-contacts",
     "odoo-sync-push-contacts",
     "preview-transactional-email",

@@ -156,6 +156,12 @@ export const useOrders = (targetUserId?: string) => {
         payments: payments || [],
       });
 
+      supabase.functions.invoke("order-confirmation", {
+        body: { orderId },
+      }).catch((emailError) => {
+        console.error("Failed to queue order confirmation email:", emailError);
+      });
+
       setOrders((prev) => [newOrder, ...prev]);
       return newOrder;
     } catch (error) {

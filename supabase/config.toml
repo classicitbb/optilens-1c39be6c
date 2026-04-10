@@ -11,6 +11,8 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = false
   [functions.lens-assistant]
     verify_jwt = true
+  [functions.order-confirmation]
+    verify_jwt = true
   [functions.lead-intelligence]
     verify_jwt = true
   [functions.send-transactional-email]
