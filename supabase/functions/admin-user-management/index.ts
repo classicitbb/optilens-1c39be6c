@@ -3,7 +3,7 @@ import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowed
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
 const corsPolicy = createCorsPolicy({
-  allowHeaders: "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   allowMethods: "POST, OPTIONS",
 });
 

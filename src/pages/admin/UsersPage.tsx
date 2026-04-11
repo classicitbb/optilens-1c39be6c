@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from "react";
+import { callAdminUserManagement } from "@/features/admin/api/adminUserManagement";
 import { useAdminUsers, type AdminUser } from "@/hooks/useAdminUsers";
 import type { AppRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,11 +129,11 @@ const UsersPage = () => {
     }
     setSettingPw(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-user-management", {
-        body: { action: "set-password", userId: pwDialogUser.user_id, password: newPassword },
+      await callAdminUserManagement({
+        action: "set-password",
+        userId: pwDialogUser.user_id,
+        password: newPassword,
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       toast({ title: "Password set", description: `Password updated for ${pwDialogUser.email || pwDialogUser.display_name}.` });
       setPwDialogUser(null);
       setNewPassword("");
