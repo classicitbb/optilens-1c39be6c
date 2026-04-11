@@ -76,10 +76,14 @@ export const useHelpArticles = (pageSlug?: string) => {
       const { data, error } = await query;
       if (error) throw error;
 
-      return ((data ?? []) as unknown as HelpArticleRow[])
+      const all = ((data ?? []) as unknown as HelpArticleRow[])
         .map(normalizeArticle)
-        .filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)))
-        .filter((article) => !pageSlug || article.context_slugs.includes(pageSlug) || article.context_slugs.includes("all"));
+        .filter((article) => article.context_slugs.some((contextSlug) => canViewContextSlug(contextSlug, canView)));
+
+      // When used as the wiki CMS (knowledge/wiki), show ALL articles so admins can manage everything
+      if (pageSlug === "knowledge/wiki") return all;
+
+      return all.filter((article) => !pageSlug || article.context_slugs.includes(pageSlug) || article.context_slugs.includes("all"));
     },
     enabled: canView("wiki"),
   });
