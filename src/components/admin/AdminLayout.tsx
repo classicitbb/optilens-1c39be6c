@@ -12,7 +12,7 @@ const AdminLayout = () => {
   const location = useLocation();
   usePresenceHeartbeat("admin");
   const contextSlug = pathnameToContextSlug(location.pathname);
-  const hideSidebar = location.pathname === "/admin/dashboard";
+  const hideSidebar = location.pathname === "/admin/dashboard" || location.pathname.startsWith("/admin/knowledge/wiki");
 
   return (
     <AdminRoleProvider>
