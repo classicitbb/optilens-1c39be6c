@@ -14,6 +14,8 @@ const toSlug = (title: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const EMPTY_HEADINGS: WikiHeading[] = [];
+
 export const useWikiHeadings = () => {
   const queryClient = useQueryClient();
 
@@ -62,7 +64,7 @@ export const useWikiHeadings = () => {
   });
 
   return {
-    headings: query.data ?? [],
+    headings: query.data ?? EMPTY_HEADINGS,
     isLoading: query.isLoading,
     createHeading: createMutation.mutateAsync,
     refetch: query.refetch,
