@@ -71,6 +71,7 @@ const PublicRoutes = () => (
       <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
       <Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />
       <Route path="knowledge" element={<Knowledge />} />
+      <Route path="knowledge/:articleSlug" element={<Knowledge />} />
       <Route path="legal/:slug" element={<LegalPage />} />
 
       {PUBLIC_MISC_REDIRECTS.map((route) => (

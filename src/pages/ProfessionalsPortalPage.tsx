@@ -16,6 +16,15 @@ import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { LifeBuoy, LogIn } from "lucide-react";
 import { createAuthHref } from "@/lib/authFlow";
 
+type RequestFormValues = {
+  businessName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  website: string;
+  notes: string;
+};
+
 type PortalPage = {
   title: string;
   description: string;
@@ -221,18 +230,96 @@ const CustomerServiceTicketForm = () => {
 
 const ProfessionalsPortalPage = () => {
   const { slug } = useParams();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [startedAt, setStartedAt] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [monthlyVolume, setMonthlyVolume] = useState("");
+  const [formValues, setFormValues] = useState<RequestFormValues>({
+    businessName: "",
+    contactName: "",
+    email: "",
+    phone: "",
+    website: "",
+    notes: "",
+  });
   const page = useMemo(() => (slug ? portalPages[slug] : undefined), [slug]);
   const isTradeAccountPage = slug === "trade-account";
 
   useEffect(() => {
     setStartedAt(new Date().toISOString());
   }, [slug]);
+
+  useEffect(() => {
+    if (!page?.isForm) return;
+
+    let active = true;
+
+    const prefillFromProfile = async () => {
+      if (!user) {
+        if (!active) return;
+        setFormValues({
+          businessName: "",
+          contactName: "",
+          email: "",
+          phone: "",
+          website: "",
+          notes: "",
+        });
+        return;
+      }
+
+      const { data } = await (supabase.from("profiles") as any)
+        .select("full_name,phone,organization_name,email")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!active) return;
+
+      const contactName =
+        typeof data?.full_name === "string" && data.full_name.trim()
+          ? data.full_name.trim()
+          : typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()
+            ? user.user_metadata.full_name.trim()
+            : "";
+      const businessName =
+        typeof data?.organization_name === "string" && data.organization_name.trim()
+          ? data.organization_name.trim()
+          : typeof user.user_metadata?.organization_name === "string" && user.user_metadata.organization_name.trim()
+            ? user.user_metadata.organization_name.trim()
+            : "";
+      const email =
+        typeof data?.email === "string" && data.email.trim()
+          ? data.email.trim()
+          : user.email?.trim() ?? "";
+      const phone =
+        typeof data?.phone === "string" && data.phone.trim()
+          ? data.phone.trim()
+          : typeof user.user_metadata?.phone === "string" && user.user_metadata.phone.trim()
+            ? user.user_metadata.phone.trim()
+            : "";
+
+      setFormValues((prev) => ({
+        ...prev,
+        businessName,
+        contactName,
+        email,
+        phone,
+      }));
+    };
+
+    prefillFromProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [page?.isForm, user]);
+
+  const updateFormValue = (field: keyof RequestFormValues, value: string) => {
+    setFormValues((prev) => ({ ...prev, [field]: value }));
+  };
 
   if (!page) {
     return (
@@ -290,10 +377,35 @@ const ProfessionalsPortalPage = () => {
                 if (honeypot) return; // spam bot
 
                 setLoading(true);
-                const formData = new FormData(event.currentTarget);
                 try {
-                  const website = (formData.get("website") as string)?.trim() || null;
-                  const notes = (formData.get("notes") as string)?.trim() || "";
+                  const businessName = formValues.businessName.trim();
+                  const contactName = formValues.contactName.trim();
+                  const email = formValues.email.trim();
+                  const phone = formValues.phone.trim() || null;
+                  const website = formValues.website.trim() || null;
+                  const notes = formValues.notes.trim();
+
+                  if (!businessName || !contactName || !email || !formValues.phone.trim()) {
+                    toast({
+                      title: "Missing details",
+                      description: "Please complete the required account details before submitting.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  if (user) {
+                    await (supabase.from("profiles") as any).upsert({
+                      user_id: user.id,
+                      full_name: contactName,
+                      organization_name: businessName,
+                      phone: formValues.phone.trim(),
+                      email,
+                    }, { onConflict: "user_id" });
+
+                    await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: user.id });
+                  }
+
                   const supplementalNotes = [
                     website ? `Website: ${website}` : null,
                     isTradeAccountPage && monthlyVolume ? `Monthly Volume: ${monthlyVolume}` : null,
@@ -303,10 +415,10 @@ const ProfessionalsPortalPage = () => {
 
                   await submitPublicInquiry({
                     inquiryType: slug === "trade-account" ? "trade_account" : "price_list",
-                    name: (formData.get("contactName") as string) || "",
-                    email: (formData.get("email") as string) || "",
-                    phone: (formData.get("phone") as string) || null,
-                    businessName: (formData.get("businessName") as string) || null,
+                    name: contactName,
+                    email,
+                    phone,
+                    businessName,
                     message: notes || `New ${isTradeAccountPage ? "trade account" : "price list"} request submitted.`,
                     notes: supplementalNotes || null,
                     pageSlug: `/professionals/${slug}`,
@@ -319,7 +431,11 @@ const ProfessionalsPortalPage = () => {
                     title: "Request Submitted",
                     description: "Thanks for applying. Our team will review your details and follow up soon.",
                   });
-                  (event.target as HTMLFormElement).reset();
+                  setFormValues((prev) => ({
+                    ...prev,
+                    website: "",
+                    notes: "",
+                  }));
                   setBusinessType("");
                   setMonthlyVolume("");
                   setHoneypot("");
@@ -354,21 +470,50 @@ const ProfessionalsPortalPage = () => {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="businessName">Business Name</Label>
-                  <Input id="businessName" name="businessName" required placeholder="Clinic or store name" />
+                  <Input
+                    id="businessName"
+                    name="businessName"
+                    required
+                    placeholder="Clinic or store name"
+                    value={formValues.businessName}
+                    onChange={(event) => updateFormValue("businessName", event.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contactName">Contact Name</Label>
-                  <Input id="contactName" name="contactName" required placeholder="Full name" />
+                  <Input
+                    id="contactName"
+                    name="contactName"
+                    required
+                    placeholder="Full name"
+                    value={formValues.contactName}
+                    onChange={(event) => updateFormValue("contactName", event.target.value)}
+                  />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="email">Business Email</Label>
-                  <Input id="email" name="email" type="email" required placeholder="name@business.com" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="name@business.com"
+                    value={formValues.email}
+                    onChange={(event) => updateFormValue("email", event.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" name="phone" required placeholder="+1 ..." />
+                  <Input
+                    id="phone"
+                    name="phone"
+                    required
+                    placeholder="+1 ..."
+                    value={formValues.phone}
+                    onChange={(event) => updateFormValue("phone", event.target.value)}
+                  />
                 </div>
               </div>
               {isTradeAccountPage && (
@@ -376,7 +521,14 @@ const ProfessionalsPortalPage = () => {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="website">Website</Label>
-                      <Input id="website" name="website" type="url" placeholder="https://yourbusiness.com" />
+                      <Input
+                        id="website"
+                        name="website"
+                        type="url"
+                        placeholder="https://yourbusiness.com"
+                        value={formValues.website}
+                        onChange={(event) => updateFormValue("website", event.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="monthlyVolume">Monthly Volume</Label>
@@ -412,7 +564,14 @@ const ProfessionalsPortalPage = () => {
               )}
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
-                <Textarea id="notes" name="notes" placeholder="Tell us a little about your business and what you're looking for." rows={4} />
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  placeholder="Tell us a little about your business and what you're looking for."
+                  rows={4}
+                  value={formValues.notes}
+                  onChange={(event) => updateFormValue("notes", event.target.value)}
+                />
               </div>
               <Button type="submit" disabled={loading}>{loading ? "Submitting..." : "Submit Request"}</Button>
             </form>

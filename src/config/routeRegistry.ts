@@ -24,6 +24,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.auth", path: "/auth", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-auth", status: "active" },
   { id: "public.reset-password", path: "/reset-password", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-auth", status: "active" },
   { id: "public.knowledge", path: "/knowledge", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
+  { id: "public.knowledge.article", path: "/knowledge/:articleSlug", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.professionals", path: "/professionals", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.patients", path: "/patients", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.patients.lens-differences", path: "/patients/lens-differences", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
