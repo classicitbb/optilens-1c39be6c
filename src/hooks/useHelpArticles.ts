@@ -51,10 +51,12 @@ const EMPTY_ARTICLES: HelpArticle[] = [];
 const normalizeArticle = (row: HelpArticleRow): HelpArticle => {
   const context_slugs = row.help_article_contexts?.map((ctx) => ctx.context_slug).filter(Boolean) ?? [];
   const deduped = context_slugs.length > 0 ? [...new Set(context_slugs)] : [row.page_slug || "all"];
+  const canonical = toCanonicalDocument((row as any).body_json ?? row.content);
   return {
     ...row,
     status: row.status ?? "published",
-    body_json: toCanonicalDocument((row as any).body_json ?? row.content),
+    content: canonicalToHtml(canonical),
+    body_json: canonical,
     context_slugs: deduped,
   };
 };
@@ -120,9 +122,13 @@ export const useHelpArticles = (pageSlug?: string) => {
     ) => {
       const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
       const primarySlug = contexts[0] ?? "all";
+      const canonical = toCanonicalDocument(article.content);
+      const contentHtml = canonicalToHtml(canonical);
       const payload: Record<string, any> = {
         title: article.title,
-        content: article.content,
+        content: contentHtml,
+        body_json: canonical,
+        body_html: contentHtml,
         page_slug: primarySlug,
         sort_order: article.sort_order ?? 0,
         category: article.category ?? "",
@@ -147,7 +153,7 @@ export const useHelpArticles = (pageSlug?: string) => {
           if (insertContextError) throw insertContextError;
         }
 
-        await saveVersionSnapshot(article.id, article.title, article.content as any, nextVersion, article.change_note);
+        await saveVersionSnapshot(article.id, article.title, canonical, nextVersion, article.change_note);
       } else {
         payload.version_number = 1;
         payload.published_at = payload.status === "published" ? new Date().toISOString() : null;
@@ -157,7 +163,7 @@ export const useHelpArticles = (pageSlug?: string) => {
         const { error: insertContextError } = await (supabase.from("help_article_contexts") as any).insert(contexts.map((context_slug) => ({ article_id: data.id, context_slug })));
         if (insertContextError) throw insertContextError;
 
-        await saveVersionSnapshot(data.id, article.title, article.content as any, 1, article.change_note ?? "Initial draft");
+        await saveVersionSnapshot(data.id, article.title, canonical, 1, article.change_note ?? "Initial draft");
       }
     },
     onSuccess: () => {
