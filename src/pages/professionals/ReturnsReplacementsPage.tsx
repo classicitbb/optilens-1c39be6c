@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createStructuredHelpdeskTicket } from "@/features/admin/helpdesk/utils/structuredTicketing";
 import { ExternalLink, LifeBuoy, LogIn, RotateCcw, ShieldAlert } from "lucide-react";
 import { LABLINK_PORTAL_URL } from "@/config/externalLinks";
+import { createAuthHref } from "@/lib/authFlow";
 
 const SUPPORT_EMAIL = "info@classicvisions.net";
 
@@ -129,7 +130,7 @@ const ReturnsWarrantyForm = () => {
           or open the case in LabLink.
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
-          <Button onClick={() => navigate(`/auth?redirect=${encodeURIComponent("/professionals/returns-replacements")}`)}>
+          <Button onClick={() => navigate(createAuthHref({ mode: "signin", audience: "professional", redirect: "/professionals/returns-replacements" }))}>
             <LogIn className="mr-2 h-4 w-4" />
             Sign In
           </Button>

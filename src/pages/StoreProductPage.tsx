@@ -13,6 +13,7 @@ import LensVariantGrid from "@/components/lenses/LensVariantGrid";
 import { useToast } from "@/hooks/use-toast";
 import { Expand, Lock, ShoppingCart } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
+import { createAuthHref } from "@/lib/authFlow";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -169,11 +170,11 @@ const StoreProductPage = () => {
                     ) : (
                       <div className="flex items-center gap-3 rounded-md border border-border/60 bg-card/60 p-4">
                         <Lock className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 text-sm text-muted-foreground">Sign in to add this product to your cart.</div>
-                        <Button asChild>
-                          <Link to={`/auth?redirect=${encodeURIComponent(`/store/product/${product.product_type}/${product.id}`)}`}>Sign In</Link>
-                        </Button>
-                      </div>
+                      <div className="flex-1 text-sm text-muted-foreground">Sign in to add this product to your cart.</div>
+                      <Button asChild>
+                          <Link to={createAuthHref({ mode: "signin", audience: "professional", redirect: `/store/product/${product.product_type}/${product.id}` })}>Sign In</Link>
+                      </Button>
+                    </div>
                     )}
                   </div>
                   </div>

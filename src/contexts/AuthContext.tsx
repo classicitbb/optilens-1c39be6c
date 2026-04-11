@@ -2,12 +2,22 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, R
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
+import type { AuthAudience, AuthIntent } from "@/lib/authFlow";
+
+export interface AuthSignupDetails {
+  fullName?: string;
+  phone?: string;
+  organizationName?: string;
+  audience?: AuthAudience | null;
+  interestIntent?: AuthIntent | null;
+  onboardingCompletedAt?: string | null;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, details?: { fullName?: string; phone?: string }) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, details?: AuthSignupDetails) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -61,6 +71,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone.trim() :
         typeof user.user_metadata?.phone_number === "string" ? user.user_metadata.phone_number.trim() :
         "";
+      const organizationName =
+        typeof user.user_metadata?.organization_name === "string" ? user.user_metadata.organization_name.trim() :
+        typeof user.user_metadata?.organizationName === "string" ? user.user_metadata.organizationName.trim() :
+        "";
+      const audience =
+        typeof user.user_metadata?.audience === "string" ? user.user_metadata.audience.trim() :
+        "";
+      const interestIntent =
+        typeof user.user_metadata?.interest_intent === "string" ? user.user_metadata.interest_intent.trim() :
+        typeof user.user_metadata?.interestIntent === "string" ? user.user_metadata.interestIntent.trim() :
+        "";
+      const onboardingCompletedAt =
+        typeof user.user_metadata?.onboarding_completed_at === "string" ? user.user_metadata.onboarding_completed_at.trim() :
+        typeof user.user_metadata?.onboardingCompletedAt === "string" ? user.user_metadata.onboardingCompletedAt.trim() :
+        "";
 
       const payload: Record<string, unknown> = {
         user_id: user.id,
@@ -68,6 +93,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         full_name: fullName || null,
         avatar_url: avatarUrl || null,
         email: user.email || null,
+        organization_name: organizationName || null,
+        audience: audience || null,
+        interest_intent: interestIntent || null,
+        onboarding_completed_at: onboardingCompletedAt || null,
       };
 
       if (phone) {
@@ -81,7 +110,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     syncProfileFromUser();
   }, [user]);
 
-  const signUp = useCallback(async (email: string, password: string, details?: { fullName?: string; phone?: string }) => {
+  const signUp = useCallback(async (email: string, password: string, details?: AuthSignupDetails) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -92,6 +121,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         data: {
           full_name: details?.fullName?.trim() || "",
           phone: details?.phone?.trim() || "",
+          organization_name: details?.organizationName?.trim() || "",
+          audience: details?.audience || "",
+          interest_intent: details?.interestIntent || "",
+          onboarding_completed_at: details?.onboardingCompletedAt || "",
         }
       }
     });

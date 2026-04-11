@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
+import { createAuthHref } from "@/lib/authFlow";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   if (!user) {
     const rawRedirect = location.pathname + location.search + location.hash;
     const safeRedirect = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/";
-    return <Navigate to={`/auth?redirect=${encodeURIComponent(safeRedirect)}`} replace />;
+    return <Navigate to={createAuthHref({ mode: "signin", redirect: safeRedirect })} replace />;
   }
 
   return <>{children}</>;

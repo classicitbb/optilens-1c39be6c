@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createStructuredHelpdeskTicket } from "@/features/admin/helpdesk/utils/structuredTicketing";
 import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { LifeBuoy, LogIn } from "lucide-react";
+import { createAuthHref } from "@/lib/authFlow";
 
 type PortalPage = {
   title: string;
@@ -107,7 +108,7 @@ const CustomerServiceTicketForm = () => {
         <p className="text-sm text-muted-foreground">
           Please sign in to submit a support ticket.
         </p>
-        <Button onClick={() => navigate(`/auth?redirect=${encodeURIComponent("/professionals/customer-service")}`)}>
+        <Button onClick={() => navigate(createAuthHref({ mode: "signin", audience: "professional", redirect: "/professionals/customer-service" }))}>
           <LogIn className="mr-2 h-4 w-4" />
           Sign In to Submit a Ticket
         </Button>

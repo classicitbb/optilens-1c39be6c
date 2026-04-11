@@ -2,6 +2,7 @@ import { Navigate, useLocation } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import NotAuthorized from "./NotAuthorized";
+import { createAuthHref } from "@/lib/authFlow";
 
 const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
@@ -18,7 +19,7 @@ const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     const redirect = location.pathname + location.search + location.hash;
-    return <Navigate to={`/auth?redirect=${encodeURIComponent(redirect)}`} replace />;
+    return <Navigate to={createAuthHref({ mode: "signin", redirect })} replace />;
   }
 
   if (!hasAccess) {

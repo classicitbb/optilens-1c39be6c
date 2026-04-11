@@ -7,6 +7,7 @@ import { useCartContext } from "@/contexts/CartContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { createAuthHref } from "@/lib/authFlow";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate("/auth?redirect=%2Fcheckout", { replace: true });
+      navigate(createAuthHref({ mode: "signin", redirect: "/checkout" }), { replace: true });
       return;
     }
 

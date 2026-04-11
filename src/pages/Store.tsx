@@ -12,6 +12,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useStoreProducts, StoreProduct, getStableStoreProductCartId, getStoreProductRoute } from "@/hooks/useStoreProducts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { createAuthHref } from "@/lib/authFlow";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -91,10 +92,10 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
             <div className="flex w-full items-center justify-between gap-3 md:w-auto md:min-w-[260px]">
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Lock className="h-4 w-4" />
-                <span className="text-sm font-medium">Sign up to see prices</span>
+                <span className="text-sm font-medium">Unlock trade pricing</span>
               </div>
               <Button variant="hero" size="sm" asChild>
-                <Link to="/auth?redirect=%2Fstore">Sign Up</Link>
+                <Link to={createAuthHref({ mode: "signup", audience: "professional", intent: "products", redirect: "/store" })}>Start Trade Signup</Link>
               </Button>
             </div>
           )}
@@ -187,10 +188,10 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Lock className="h-4 w-4" />
-              <span className="text-sm font-medium">Sign up to see prices</span>
+              <span className="text-sm font-medium">Unlock trade pricing</span>
             </div>
             <Button variant="hero" size="sm" asChild>
-              <Link to="/auth?redirect=%2Fstore">Sign Up</Link>
+              <Link to={createAuthHref({ mode: "signup", audience: "professional", intent: "products", redirect: "/store" })}>Start Trade Signup</Link>
             </Button>
           </div>
         )}

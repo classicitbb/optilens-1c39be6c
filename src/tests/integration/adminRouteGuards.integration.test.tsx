@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { screen } from "@testing-library/dom";
 import { render } from "@testing-library/react";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
+import { createAuthHref } from "@/lib/authFlow";
 
 const authState = vi.hoisted(() => ({ user: null as null | { id: string }, loading: false }));
 const roleState = vi.hoisted(() => ({ hasAccess: false, isLoading: false }));
@@ -85,7 +86,7 @@ describe("admin route authorization boundaries", () => {
       );
 
       expect(screen.getByText("Auth Screen")).toBeInTheDocument();
-      expect(screen.getByTestId("location").textContent).toContain(`/auth?redirect=${encodeURIComponent(path)}`);
+      expect(screen.getByTestId("location").textContent).toContain(createAuthHref({ mode: "signin", redirect: path }));
     }
   );
 

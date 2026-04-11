@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { LABLINK_PORTAL_URL, LABLINK_TRACKING_URL } from "@/config/externalLinks";
+import { createAuthHref } from "@/lib/authFlow";
 
 type MegaMenuLink = {
   label: string;
@@ -696,7 +697,7 @@ const Header = () => {
                 </DropdownMenu> :
 
             <Button variant="ghost" size="sm" asChild>
-                  <Link to={`/auth?redirect=${encodeURIComponent(`${location.pathname}${location.search}${location.hash}` || "/")}`}>
+                  <Link to={createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}${location.hash}` || "/" })}>
                     <User className="mr-2 h-4 w-4" />
                     Sign in
                   </Link>
