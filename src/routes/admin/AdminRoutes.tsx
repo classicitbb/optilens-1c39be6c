@@ -128,53 +128,7 @@ const AdminRoutes = () => (
 
       <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
       <Route path="knowledge/wiki" element={<AdminWikiPage />} />
-
-      <Route path="settings" element={<Navigate to="/admin/settings/company" replace />} />
-      <Route path="settings/company" element={<CompanySettingsPage />} />
-      <Route path="settings/users" element={<UsersPage />} />
-      <Route path="settings/roles" element={<RolesPermissionsPage />} />
-      <Route path="settings/audit" element={<AuditLogPage />} />
-      <Route path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>} />
-      <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
-      <Route path="settings/releases" element={<ReleasesPage />} />
-
-      <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
-      <Route path="reference" element={<Navigate to="/admin/pricing/reference" replace />} />
-      <Route path="lenses" element={<Navigate to="/admin/pricing/catalog" replace />} />
-      <Route path="supplies" element={<Navigate to="/admin/pricing/catalog" replace />} />
-      <Route path="addons" element={<Navigate to="/admin/pricing/catalog" replace />} />
-      <Route path="rx-lens-prices" element={<Navigate to="/admin/pricing/rx-lenses" replace />} />
-      <Route path="stock-lens-prices" element={<Navigate to="/admin/pricing/stock-lenses" replace />} />
-      <Route path="supplies-prices" element={<Navigate to="/admin/pricing/supplies" replace />} />
-      <Route path="imports" element={<Navigate to="/admin/pricing/imports" replace />} />
-      <Route path="catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
-      <Route path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher" replace />} />
-      <Route path="catalog-publisher/:id" element={<Navigate to="/admin/pricing/publisher" replace />} />
-      <Route path="quotations" element={<Navigate to="/admin/sales/quotations" replace />} />
-      <Route path="costings/shipments" element={<Navigate to="/admin/pricing/costings" replace />} />
-      <Route path="costings/reports" element={<Navigate to="/admin/pricing/costings/reports" replace />} />
-      <Route path="parameters" element={<Navigate to="/admin/settings/company" replace />} />
-      <Route path="users" element={<Navigate to="/admin/settings/users" replace />} />
-      <Route path="audit" element={<Navigate to="/admin/settings/audit" replace />} />
-      <Route path="wiki" element={<Navigate to="/admin/knowledge/wiki" replace />} />
-      <Route path="content" element={<Navigate to="/admin/website/content" replace />} />
-      <Route path="erp/contacts" element={<Navigate to="/admin/contacts" replace />} />
-      <Route path="erp/config/contact-tags" element={<Navigate to="/admin/contacts/config/tags" replace />} />
-      <Route path="erp/config/industries" element={<Navigate to="/admin/contacts/config/industries" replace />} />
-      <Route path="erp/crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
-      <Route path="erp/helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
-      <Route path="erp/web-orders" element={<Navigate to="/admin/sales/web-orders" replace />} />
-      <Route path="erp/rx-orders" element={<Navigate to="/admin/sales/rx-orders" replace />} />
-      <Route path="erp/website" element={<Navigate to="/admin/website/content" replace />} />
-      <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
-      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-    </Route>
-
-    <Route element={<AdminDocsLayout />}>
-      <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
-      <Route path="knowledge/wiki" element={<AdminWikiPage />} />
       <Route path="knowledge/wiki/:articleSlug" element={<AdminWikiPage />} />
-    </Route>
   </Routes>
 );
 
