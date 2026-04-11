@@ -15,7 +15,8 @@ const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -24,12 +25,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Plus, Pencil, Trash2, Save, X, Search, Eye, EyeOff,
-  BookOpen, HelpCircle, FileText, Scale, Globe,
+  BookOpen, HelpCircle, FileText, Scale, Globe, LayoutList,
 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 
-const TAB_CONFIG: { value: ContentType; label: string; icon: React.ElementType; description: string }[] = [
+const TAB_CONFIG: { value: ContentType | "all"; label: string; icon: React.ElementType; description: string }[] = [
+  { value: "all", label: "All Articles", icon: LayoutList, description: "All content articles across every type" },
   { value: "knowledge", label: "Knowledge Base", icon: BookOpen, description: "Public-facing articles for the website knowledge base" },
   { value: "faq", label: "FAQ", icon: HelpCircle, description: "Frequently asked questions shown on the knowledge base page" },
   { value: "legal", label: "Legal Pages", icon: Scale, description: "Privacy policy, terms & conditions, copyright text, and other legal content" },
@@ -58,11 +66,12 @@ const KB_CATEGORIES = [
 const ContentManagerPage = () => {
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<ContentType>("knowledge");
+  const [activeTab, setActiveTab] = useState<ContentType | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [editing, setEditing] = useState<Partial<ContentArticle> | null>(null);
 
-  const { articles, upsertArticle, deleteArticle, isSaving } = useContentArticles(activeTab);
+  const contentTypeFilter = activeTab === "all" ? undefined : activeTab;
+  const { articles, upsertArticle, deleteArticle, isSaving } = useContentArticles(contentTypeFilter);
 
   const filtered = useMemo(() => {
     if (!searchTerm) return articles;
@@ -86,16 +95,18 @@ const ContentManagerPage = () => {
   }, [filtered]);
 
   const handleNew = () => {
+    const effectiveType = activeTab === "all" ? "wiki" : activeTab;
     setEditing({
       title: "",
       content: "",
       description: "",
-      page_slug: activeTab === "legal" ? "copyright" : activeTab === "wiki" ? "all" : "knowledge",
-      category: activeTab === "knowledge" ? "General" : activeTab === "faq" ? "FAQ" : "",
-      content_type: activeTab,
-      visibility: activeTab === "wiki" ? "internal" : "public",
+      page_slug: effectiveType === "legal" ? "copyright" : effectiveType === "wiki" ? "all" : "knowledge",
+      category: effectiveType === "knowledge" ? "General" : effectiveType === "faq" ? "FAQ" : "",
+      content_type: effectiveType,
+      visibility: effectiveType === "wiki" ? "internal" : "public",
       sort_order: 0,
       is_active: true,
+      context_slugs: [],
     });
   };
 
@@ -109,10 +120,11 @@ const ContentManagerPage = () => {
         description: editing.description || "",
         page_slug: editing.page_slug || "all",
         category: editing.category || "",
-        content_type: editing.content_type || activeTab,
+        content_type: editing.content_type || "wiki",
         visibility: editing.visibility || "internal",
         sort_order: editing.sort_order ?? 0,
         is_active: editing.is_active ?? true,
+        context_slugs: editing.context_slugs ?? [],
       });
       toast({ title: editing.id ? "Article updated" : "Article created" });
       setEditing(null);
@@ -153,8 +165,11 @@ const ContentManagerPage = () => {
     );
   };
 
+  const editingContextSlugs = editing?.context_slugs ?? [];
+
   // Editor form
   if (editing) {
+    const editContentType = editing.content_type || "wiki";
     return (
       <div className="flex flex-col h-full">
         <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
@@ -178,7 +193,7 @@ const ContentManagerPage = () => {
               </div>
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Category</label>
-                {activeTab === "knowledge" ? (
+                {editContentType === "knowledge" ? (
                   <Select
                     value={editing.category || "General"}
                     onValueChange={(v) => setEditing({ ...editing, category: v })}
@@ -197,7 +212,7 @@ const ContentManagerPage = () => {
                     value={editing.category || ""}
                     onChange={(e) => setEditing({ ...editing, category: e.target.value })}
                     className="h-8 text-xs"
-                    placeholder={activeTab === "faq" ? "FAQ" : "Category group"}
+                    placeholder="Category group"
                   />
                 )}
               </div>
@@ -230,7 +245,7 @@ const ContentManagerPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              {activeTab === "legal" ? (
+              {editContentType === "legal" ? (
                 <div>
                   <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Legal Page Type</label>
                   <Select
@@ -251,7 +266,7 @@ const ContentManagerPage = () => {
                 <div>
                   <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Content Type</label>
                   <Select
-                    value={editing.content_type || activeTab}
+                    value={editContentType}
                     onValueChange={(v) => setEditing({ ...editing, content_type: v as ContentType })}
                   >
                     <SelectTrigger className="h-8 text-xs">
@@ -284,6 +299,62 @@ const ContentManagerPage = () => {
               <span className="text-xs text-foreground">
                 {editing.is_active ? "Published (active)" : "Unpublished (inactive)"}
               </span>
+            </div>
+
+            {/* Help Assignment / Context Slugs */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-muted-foreground block">Help Assignments (context pages)</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-6 text-[10px]">
+                      Assign to pages
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 max-h-80 overflow-y-auto p-3" align="end">
+                    <div className="space-y-1">
+                      {ADMIN_CONTEXT_OPTIONS.map((option) => {
+                        const checked = editingContextSlugs.includes(option.value);
+                        return (
+                          <label
+                            key={option.value}
+                            className="flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40 cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(nextChecked) => {
+                                const current = editingContextSlugs;
+                                const updated = nextChecked
+                                  ? [...new Set([...current, option.value])]
+                                  : current.filter((v) => v !== option.value);
+                                setEditing({ ...editing, context_slugs: updated });
+                              }}
+                            />
+                            <div>
+                              <p className="text-xs font-medium text-foreground">{option.label}</p>
+                              <p className="text-[10px] text-muted-foreground">{option.path}</p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {editingContextSlugs.length > 0 ? (
+                  editingContextSlugs.map((slug) => {
+                    const opt = ADMIN_CONTEXT_OPTIONS.find((o) => o.value === slug);
+                    return (
+                      <Badge key={slug} variant="secondary" className="text-[10px]">
+                        {opt?.label ?? slug}
+                      </Badge>
+                    );
+                  })
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">No help assignments</span>
+                )}
+              </div>
             </div>
 
             <div>
@@ -322,14 +393,14 @@ const ContentManagerPage = () => {
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between mb-3">
-          <AdminPageHeader icon={Globe} title="Website Content" />
+          <AdminPageHeader icon={Globe} title="Content CMS" />
           {canEdit && (
             <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleNew}>
-              <Plus className="h-3 w-3" /> New {tabConfig.label.replace(/s$/, "")}
+              <Plus className="h-3 w-3" /> New Article
             </Button>
           )}
         </div>
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as ContentType); setSearchTerm(""); }}>
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as ContentType | "all"); setSearchTerm(""); }}>
           <TabsList className="h-8">
             {TAB_CONFIG.map((t) => (
               <TabsTrigger key={t.value} value={t.value} className="text-xs gap-1.5">
@@ -401,7 +472,17 @@ const ContentManagerPage = () => {
                           {a.title}
                         </p>
                         {visibilityBadge(a.visibility as ContentVisibility)}
+                        {activeTab === "all" && (
+                          <Badge variant="outline" className="text-[9px]">
+                            {CONTENT_TYPE_OPTIONS.find((o) => o.value === a.content_type)?.label ?? a.content_type}
+                          </Badge>
+                        )}
                         {!a.is_active && <Badge variant="secondary" className="text-[9px]">Draft</Badge>}
+                        {a.context_slugs.length > 0 && a.context_slugs[0] !== "all" && (
+                          <Badge variant="secondary" className="text-[9px]">
+                            {a.context_slugs.length} assignment{a.context_slugs.length !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
                       </div>
                       {a.description && (
                         <p className="text-[11px] text-muted-foreground truncate mt-0.5">{a.description}</p>
