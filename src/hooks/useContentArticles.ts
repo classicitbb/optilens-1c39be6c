@@ -12,10 +12,15 @@ export interface ContentArticle {
   content: string;
   body_json?: unknown;
   description: string;
+  summary?: string | null;
   page_slug: string;
   category: string;
   content_type: ContentType;
   visibility: ContentVisibility;
+  slug?: string | null;
+  parent_id?: string | null;
+  section_id?: string | null;
+  context_slugs?: string[];
   sort_order: number;
   is_active: boolean;
   created_at: string;

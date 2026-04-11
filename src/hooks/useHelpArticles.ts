@@ -102,7 +102,20 @@ export const useHelpArticles = (pageSlug?: string) => {
   };
 
   const upsertMutation = useMutation({
-    mutationFn: async (article: Partial<HelpArticle> & { title: string; content: string; page_slug?: string; category?: string; context_slugs?: string[]; change_note?: string }) => {
+    mutationFn: async (
+      article: Partial<HelpArticle> & {
+        title: string;
+        content: string;
+        page_slug?: string;
+        category?: string;
+        context_slugs?: string[];
+        change_note?: string;
+        summary?: string | null;
+        parent_id?: string | null;
+        section_id?: string | null;
+        slug?: string | null;
+      }
+    ) => {
       const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
       const primarySlug = contexts[0] ?? "all";
       const payload: Record<string, any> = {

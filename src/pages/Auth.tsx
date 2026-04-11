@@ -123,6 +123,7 @@ const Auth = () => {
 
   const selectedAudience = audience ?? "professional";
   const selectedCopy = audienceCopy[selectedAudience];
+  const isReturningVisitor = mode === "signin";
 
   const form = useForm<AuthFormData>({
     defaultValues: {
@@ -373,7 +374,8 @@ const Auth = () => {
       </div>
 
       <main id="main-content" className="relative z-10 mx-auto flex min-h-screen max-w-7xl items-center px-4 py-10 lg:px-8">
-        <div className="grid w-full gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className={`w-full ${isReturningVisitor ? "mx-auto max-w-xl" : "grid gap-6 lg:grid-cols-[1.05fr_0.95fr]"}`}>
+          {!isReturningVisitor ? (
           <section className="rounded-[2rem] border border-white/70 bg-white/80 p-6 shadow-soft backdrop-blur sm:p-8 lg:p-10">
             <div className="flex items-center justify-between gap-4">
               <Link to="/" className="inline-flex items-center gap-3 text-foreground">
@@ -386,7 +388,7 @@ const Auth = () => {
                 </span>
               </Link>
               <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs uppercase tracking-[0.18em]">
-                {mode === "signup" ? "New Visitor Flow" : "Secure Sign-In"}
+                New Visitor Flow
               </Badge>
             </div>
 
@@ -472,11 +474,23 @@ const Auth = () => {
               </div>
             </div>
           </section>
+          ) : null}
 
           <section className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-6 text-white shadow-medium sm:p-8">
             <div className="mx-auto flex max-w-lg flex-col">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <div>
+                  {isReturningVisitor ? (
+                    <Link to="/" className="inline-flex items-center gap-3 text-white">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
+                        <img src={cleanLogoSmooth} alt="Classic Visions" className="h-6 w-6" width={24} height={24} />
+                      </span>
+                      <span>
+                        <span className="block text-xs font-semibold uppercase tracking-[0.22em] text-white/55">Classic Visions</span>
+                        <span className="block text-lg font-semibold text-white">Visitor Sign-In</span>
+                      </span>
+                    </Link>
+                  ) : null}
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">
                     {mode === "signup" ? "Onboarding" : "Authentication"}
                   </p>
