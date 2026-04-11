@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
-const AdminDocsLayout = lazy(() => import("@/components/admin/AdminDocsLayout"));
+
 const AdminHomeRedirect = lazy(() => import("@/components/admin/AdminHomeRedirect"));
 const AdminDashboardHomePage = lazy(() => import("@/pages/admin/AdminDashboardHomePage"));
 const ReferenceDataPage = lazy(() => import("@/pages/admin/ReferenceDataPage"));
