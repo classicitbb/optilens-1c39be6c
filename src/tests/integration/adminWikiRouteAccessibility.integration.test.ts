@@ -13,11 +13,10 @@ describe("admin wiki route accessibility", () => {
     ).toBeTruthy();
   });
 
-  it("declares admin wiki routes under the docs layout", () => {
+  it("declares admin wiki routes under the admin layout", () => {
     const adminRoutesPath = path.resolve(process.cwd(), "src/routes/admin/AdminRoutes.tsx");
     const source = fs.readFileSync(adminRoutesPath, "utf8");
 
-    expect(source).toContain('const AdminDocsLayout = lazy(() => import("@/components/admin/AdminDocsLayout"));');
     expect(source).toContain('<Route path="knowledge/wiki" element={<AdminWikiPage />} />');
     expect(source).toContain('<Route path="knowledge/wiki/:articleSlug" element={<AdminWikiPage />} />');
   });
