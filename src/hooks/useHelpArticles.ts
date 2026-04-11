@@ -46,6 +46,8 @@ interface HelpArticleRow extends Omit<HelpArticle, "context_slugs" | "body_json"
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isUuid = (value?: string) => !!value && UUID_RE.test(value);
 
+const EMPTY_ARTICLES: HelpArticle[] = [];
+
 const normalizeArticle = (row: HelpArticleRow): HelpArticle => {
   const context_slugs = row.help_article_contexts?.map((ctx) => ctx.context_slug).filter(Boolean) ?? [];
   const deduped = context_slugs.length > 0 ? [...new Set(context_slugs)] : [row.page_slug || "all"];
@@ -210,12 +212,12 @@ export const useHelpArticles = (pageSlug?: string) => {
   });
 
   return {
-    articles: query.data ?? [],
+    articles: query.data ?? EMPTY_ARTICLES,
     isLoading: query.isLoading,
     upsertArticle: upsertMutation.mutateAsync,
     deleteArticle: deleteMutation.mutateAsync,
     refetchAll: allArticlesQuery.refetch,
-    allArticles: allArticlesQuery.data ?? [],
+    allArticles: allArticlesQuery.data ?? EMPTY_ARTICLES,
     fetchVersions: versionsQuery.mutateAsync,
     isFetchingVersions: versionsQuery.isPending,
     restoreVersion: restoreVersion.mutateAsync,
