@@ -22,6 +22,12 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers /knowledge/:articleSlug in the public route registry", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.knowledge.article" && route.path === "/knowledge/:articleSlug" && route.status === "active"),
+    ).toBeTruthy();
+  });
+
   it("registers /professionals/freight-delivery-policy in the public route registry", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.professionals.freight-delivery-policy" && route.path === "/professionals/freight-delivery-policy" && route.status === "active"),
@@ -59,6 +65,13 @@ describe("public route accessibility", () => {
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="assistant/window" element={<CompanionAssistantWindowPage />} />');
+  });
+
+  it("declares a runtime route for /knowledge/:articleSlug", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="knowledge/:articleSlug" element={<Knowledge />} />');
   });
 
   it("declares a runtime route for /professionals/freight-delivery-policy", () => {
