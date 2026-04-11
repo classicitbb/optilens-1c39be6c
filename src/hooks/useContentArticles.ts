@@ -20,7 +20,7 @@ export interface ContentArticle {
   slug?: string | null;
   parent_id?: string | null;
   section_id?: string | null;
-  context_slugs?: string[];
+  context_slugs: string[];
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -42,6 +42,18 @@ export const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string }[] = [
   { value: "legal", label: "Legal Page" },
 ];
 
+const EMPTY_ARTICLES: ContentArticle[] = [];
+
+const normalizeRow = (row: any): ContentArticle => {
+  const contextRows = row.help_article_contexts ?? [];
+  const slugs = contextRows.map((c: any) => c.context_slug).filter(Boolean);
+  return {
+    ...row,
+    context_slugs: slugs.length > 0 ? [...new Set(slugs)] : [row.page_slug || "all"],
+    help_article_contexts: undefined,
+  } as ContentArticle;
+};
+
 export const useContentArticles = (contentType?: ContentType) => {
   const qc = useQueryClient();
 
@@ -49,7 +61,7 @@ export const useContentArticles = (contentType?: ContentType) => {
     queryKey: ["content_articles", contentType],
     queryFn: async () => {
       let q = (supabase.from("help_articles") as any)
-        .select("*")
+        .select("*, help_article_contexts(context_slug)")
         .order("category")
         .order("sort_order");
 
@@ -59,7 +71,7 @@ export const useContentArticles = (contentType?: ContentType) => {
 
       const { data, error } = await q;
       if (error) throw error;
-      return data as ContentArticle[];
+      return (data as any[]).map(normalizeRow);
     },
   });
 
@@ -79,14 +91,30 @@ export const useContentArticles = (contentType?: ContentType) => {
         is_active: article.is_active ?? true,
       };
 
+      const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
+
       if (article.id) {
         const { error } = await (supabase.from("help_articles") as any)
           .update(payload)
           .eq("id", article.id);
         if (error) throw error;
+
+        // Sync context slugs
+        await (supabase.from("help_article_contexts") as any).delete().eq("article_id", article.id);
+        if (contexts.length > 0) {
+          const { error: ctxError } = await (supabase.from("help_article_contexts") as any)
+            .insert(contexts.map((slug) => ({ article_id: article.id, context_slug: slug })));
+          if (ctxError) throw ctxError;
+        }
       } else {
-        const { error } = await (supabase.from("help_articles") as any).insert(payload);
+        const { data, error } = await (supabase.from("help_articles") as any).insert(payload).select("id").single();
         if (error) throw error;
+
+        if (contexts.length > 0) {
+          const { error: ctxError } = await (supabase.from("help_article_contexts") as any)
+            .insert(contexts.map((slug) => ({ article_id: data.id, context_slug: slug })));
+          if (ctxError) throw ctxError;
+        }
       }
     },
     onSuccess: () => {
@@ -107,7 +135,7 @@ export const useContentArticles = (contentType?: ContentType) => {
   });
 
   return {
-    articles: query.data ?? [],
+    articles: query.data ?? EMPTY_ARTICLES,
     isLoading: query.isLoading,
     upsertArticle: upsertMutation.mutateAsync,
     deleteArticle: deleteMutation.mutateAsync,

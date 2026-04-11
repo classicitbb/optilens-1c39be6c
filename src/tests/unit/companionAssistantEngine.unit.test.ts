@@ -36,6 +36,7 @@ describe("companion assistant engine", () => {
         created_at: "",
         updated_at: "",
         status: "published",
+        context_slugs: [],
       },
     ],
   });
