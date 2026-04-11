@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { callAdminUserManagement } from "@/features/admin/api/adminUserManagement";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
 import { validateAdminFunctionRequest } from "@/features/admin/security/adminFunctionPolicy";
 
@@ -30,11 +31,10 @@ export const useAdminUsers = () => {
 
       let authUsers: { id: string; email: string; created_at: string }[] = [];
       try {
-        const { data, error: fnErr } = await supabase.functions.invoke(
-          "admin-user-management",
-          { body: validateAdminFunctionRequest({ actorRole: role, action: "list-users" }) }
+        const data = await callAdminUserManagement<{ id: string; email: string; created_at: string }[]>(
+          validateAdminFunctionRequest({ actorRole: role, action: "list-users" })
         );
-        if (!fnErr && Array.isArray(data)) authUsers = data;
+        if (Array.isArray(data)) authUsers = data;
       } catch {
         // Edge function may not be deployed yet; continue without emails
       }
@@ -97,36 +97,26 @@ export const useAdminUsers = () => {
 
   const resetPassword = useMutation({
     mutationFn: async (email: string) => {
-      const { data, error } = await supabase.functions.invoke(
-        "admin-user-management",
-        { body: validateAdminFunctionRequest({ actorRole: role, action: "reset-password", payload: { email } }) }
+      await callAdminUserManagement(
+        validateAdminFunctionRequest({ actorRole: role, action: "reset-password", payload: { email } })
       );
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
     },
   });
 
   const inviteUser = useMutation({
     mutationFn: async (email: string) => {
-      const { data, error } = await supabase.functions.invoke(
-        "admin-user-management",
-        { body: validateAdminFunctionRequest({ actorRole: role, action: "invite-user", payload: { email } }) }
+      await callAdminUserManagement(
+        validateAdminFunctionRequest({ actorRole: role, action: "invite-user", payload: { email } })
       );
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
   const createUser = useMutation({
     mutationFn: async ({ email, password, displayName }: { email: string; password: string; displayName?: string }) => {
-      const { data, error } = await supabase.functions.invoke(
-        "admin-user-management",
-        { body: validateAdminFunctionRequest({ actorRole: role, action: "create-user", payload: { email, password, displayName } }) }
+      return callAdminUserManagement<{ success: boolean; userId?: string }>(
+        validateAdminFunctionRequest({ actorRole: role, action: "create-user", payload: { email, password, displayName } })
       );
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });

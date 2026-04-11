@@ -4523,13 +4523,10 @@ export type Database = {
           crm_contact_id: string | null
           crm_customer_id: number | null
           display_name: string | null
-          audience: string | null
           email: string | null
           email_verified_at: string | null
           full_name: string | null
           id: string
-          interest_intent: string | null
-          onboarding_completed_at: string | null
           organization_name: string | null
           phone: string | null
           portal_access_note: string | null
@@ -4547,13 +4544,10 @@ export type Database = {
           crm_contact_id?: string | null
           crm_customer_id?: number | null
           display_name?: string | null
-          audience?: string | null
           email?: string | null
           email_verified_at?: string | null
           full_name?: string | null
           id?: string
-          interest_intent?: string | null
-          onboarding_completed_at?: string | null
           organization_name?: string | null
           phone?: string | null
           portal_access_note?: string | null
@@ -4571,13 +4565,10 @@ export type Database = {
           crm_contact_id?: string | null
           crm_customer_id?: number | null
           display_name?: string | null
-          audience?: string | null
           email?: string | null
           email_verified_at?: string | null
           full_name?: string | null
           id?: string
-          interest_intent?: string | null
-          onboarding_completed_at?: string | null
           organization_name?: string | null
           phone?: string | null
           portal_access_note?: string | null

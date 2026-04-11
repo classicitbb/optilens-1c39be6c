@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ArrowUpRight,
@@ -289,7 +289,7 @@ const AdminWikiPage = () => {
     toast({ title: `Restored v${target.version_number}` });
   };
 
-  const renderTreeNode = (node: HelpCenterNode, depth = 0): JSX.Element => {
+  const renderTreeNode = (node: HelpCenterNode, depth = 0): ReactElement => {
     const isArticle = node.kind !== "section";
     const isActive = selectedNode?.id === node.id;
     const paddingLeft = 12 + depth * 14;

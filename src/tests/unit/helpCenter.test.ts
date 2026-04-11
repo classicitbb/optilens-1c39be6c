@@ -119,16 +119,16 @@ describe("helpCenter", () => {
         {
           type: "heading",
           level: 1,
-          children: [{ type: "text", text: "Overview", bold: false, italic: false, underline: false }],
+          children: [{ type: "text", text: "Overview" }],
         },
         {
           type: "paragraph",
-          children: [{ type: "text", text: "Body copy", bold: false, italic: false, underline: false }],
+          children: [{ type: "text", text: "Body copy" }],
         },
         {
           type: "heading",
           level: 2,
-          children: [{ type: "text", text: "FAQs", bold: false, italic: false, underline: false }],
+          children: [{ type: "text", text: "FAQs" }],
         },
       ],
     });

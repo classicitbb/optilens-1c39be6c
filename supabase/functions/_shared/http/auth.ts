@@ -19,11 +19,21 @@ export function createAuthErrorResponse(message: string, status: 401 | 403, head
   });
 }
 
+const getRequestAuthHeader = (req: Request) => {
+  const authorization = req.headers.get("Authorization");
+  if (authorization) return authorization;
+
+  const forwardedToken = req.headers.get("x-admin-auth-token")?.trim();
+  if (!forwardedToken) return null;
+
+  return forwardedToken.startsWith("Bearer ") ? forwardedToken : `Bearer ${forwardedToken}`;
+};
+
 export async function requireAuthenticatedUser(req: Request, corsHeaders: Record<string, string>): Promise<AuthContext | Response> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const authHeader = req.headers.get("Authorization");
+  const authHeader = getRequestAuthHeader(req);
   const sourcePath = new URL(req.url).pathname;
   const requestId = req.headers.get("x-request-id") ?? undefined;
   const ipHint = getIpHintFromRequest(req);
