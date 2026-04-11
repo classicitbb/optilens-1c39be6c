@@ -47,6 +47,19 @@ if (
   });
 }
 
+if (typeof globalThis !== "undefined" && typeof globalThis.ResizeObserver === "undefined") {
+  class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    configurable: true,
+    value: ResizeObserverMock,
+  });
+}
+
 afterEach(() => {
   cleanup();
 });

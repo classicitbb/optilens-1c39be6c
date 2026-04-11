@@ -641,17 +641,17 @@ const Auth = () => {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-white/85">Full Name</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                              <div className="relative">
+                                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                                <FormControl>
                                   <Input
                                     {...field}
                                     autoComplete="name"
                                     placeholder="Jordan Smith…"
                                     className="border-white/15 bg-white/10 pl-10 text-white placeholder:text-white/35"
                                   />
-                                </div>
-                              </FormControl>
+                                </FormControl>
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -664,9 +664,9 @@ const Auth = () => {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className="text-white/85">Phone Number</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                                <div className="relative">
+                                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                                  <FormControl>
                                     <Input
                                       {...field}
                                       type="tel"
@@ -675,8 +675,8 @@ const Auth = () => {
                                       placeholder="+1 246 555 0101…"
                                       className="border-white/15 bg-white/10 pl-10 text-white placeholder:text-white/35"
                                     />
-                                  </div>
-                                </FormControl>
+                                  </FormControl>
+                                </div>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -690,17 +690,17 @@ const Auth = () => {
                                 <FormLabel className="text-white/85">
                                   {selectedAudience === "professional" ? "Business Name" : "Organization (optional)"}
                                 </FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                                <div className="relative">
+                                  <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                                  <FormControl>
                                     <Input
                                       {...field}
                                       autoComplete="organization"
                                       placeholder={selectedAudience === "professional" ? "Vision Center Ltd…" : "Optional…"}
                                       className="border-white/15 bg-white/10 pl-10 text-white placeholder:text-white/35"
                                     />
-                                  </div>
-                                </FormControl>
+                                  </FormControl>
+                                </div>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -715,9 +715,9 @@ const Auth = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-white/85">Email</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                            <FormControl>
                               <Input
                                 {...field}
                                 type="email"
@@ -726,8 +726,8 @@ const Auth = () => {
                                 placeholder="you@example.com…"
                                 className="border-white/15 bg-white/10 pl-10 text-white placeholder:text-white/35"
                               />
-                            </div>
-                          </FormControl>
+                            </FormControl>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -739,9 +739,9 @@ const Auth = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-white/85">Password</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" aria-hidden="true" />
+                            <FormControl>
                               <Input
                                 {...field}
                                 type="password"
@@ -749,8 +749,8 @@ const Auth = () => {
                                 placeholder="Create a secure password…"
                                 className="border-white/15 bg-white/10 pl-10 text-white placeholder:text-white/35"
                               />
-                            </div>
-                          </FormControl>
+                            </FormControl>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -777,7 +777,12 @@ const Auth = () => {
                                 intent === option.value ? "border-accent bg-white text-slate-950" : "border-white/10 bg-white/5 hover:bg-white/10"
                               }`}
                             >
-                              <RadioGroupItem id={`intent-${option.value}`} value={option.value} className={intent === option.value ? "border-primary text-primary" : "border-white/50 text-white"} />
+                              <RadioGroupItem
+                                id={`intent-${option.value}`}
+                                value={option.value}
+                                aria-label={option.label}
+                                className={intent === option.value ? "border-primary text-primary" : "border-white/50 text-white"}
+                              />
                               <div>
                                 <p className="font-semibold">{option.label}</p>
                                 <p className={`mt-1 text-sm leading-6 ${intent === option.value ? "text-slate-700" : "text-white/70"}`}>{option.description}</p>
