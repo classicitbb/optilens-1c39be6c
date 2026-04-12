@@ -126,8 +126,8 @@ const KnowledgeSidebar = ({
                   }
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{node.title}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-pretty font-medium leading-5">{node.title}</p>
                       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{node.summary}</p>
                     </div>
                     <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -476,7 +476,7 @@ const Knowledge = () => {
                                 to={getNodeHref(node)}
                                 className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                               >
-                                <span className="truncate font-medium">{node.title}</span>
+                                <span className="break-words text-pretty font-medium leading-5">{node.title}</span>
                                 <ChevronRight className="h-4 w-4 shrink-0" />
                               </Link>
                             ))}
