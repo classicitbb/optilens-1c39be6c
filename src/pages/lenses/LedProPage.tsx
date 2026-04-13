@@ -150,15 +150,13 @@ export default function LedProPage() {
 
             <div className="flex items-end justify-center lg:justify-end">
               <div className="w-full max-w-xl rounded-[2rem] border border-white/14 bg-black/30 p-3 shadow-2xl shadow-black/35 backdrop-blur-sm">
-                <iframe
+                <video
                   id="watch-demo"
                   className="aspect-video w-full rounded-[1.35rem] object-cover"
-                  src="https://www.youtube.com/embed/TvgOVaz6Xkc"
-                  title="LED Pro Lenses - Younger Optics"
-                  loading="lazy"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
+                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/video/LED-PRO-FULL-ANZ.mp4`}
+                  controls
+                  preload="metadata"
+                  playsInline
                 />
                 <div className="grid gap-4 px-2 pb-2 pt-4 text-sm text-white/72 sm:grid-cols-3">
                   <div>
