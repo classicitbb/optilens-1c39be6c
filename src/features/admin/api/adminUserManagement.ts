@@ -15,6 +15,21 @@ const getResponseErrorMessage = async (response: Response) => {
   }
 };
 
+const getFunctionErrorMessage = async (error: unknown) => {
+  if (error && typeof error === "object") {
+    const context = (error as { context?: Response }).context;
+    if (context instanceof Response) {
+      return getResponseErrorMessage(context);
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Request failed";
+};
+
 export async function callAdminUserManagement<T = unknown>(body: Record<string, unknown>): Promise<T> {
   const {
     data: { session },
@@ -29,20 +44,20 @@ export async function callAdminUserManagement<T = unknown>(body: Record<string, 
     throw new Error("No active session. Please sign in again.");
   }
 
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-management`, {
-    method: "POST",
+  const { data, error } = await supabase.functions.invoke("admin-user-management", {
+    body,
     headers: {
-      "Content-Type": "application/json",
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       "x-admin-auth-token": session.access_token,
     },
-    body: JSON.stringify(body),
   });
 
-  if (!response.ok) {
-    throw new Error(await getResponseErrorMessage(response));
+  if (error) {
+    throw new Error(await getFunctionErrorMessage(error));
   }
 
-  const raw = await response.text();
-  return (raw ? JSON.parse(raw) : null) as T;
+  if (data && typeof data === "object" && "error" in data && typeof (data as { error?: unknown }).error === "string") {
+    throw new Error((data as { error: string }).error);
+  }
+
+  return (data ?? null) as T;
 }

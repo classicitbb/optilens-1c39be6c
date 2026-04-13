@@ -43,24 +43,44 @@ const ResetPassword = () => {
   });
 
   useEffect(() => {
-    // Supabase puts the recovery token in the URL hash; onAuthStateChange fires
-    // with event "PASSWORD_RECOVERY" once the session is established from that token.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
+    let mounted = true;
+
+    const hydrateRecoverySession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (mounted && session) {
+        setReady(true);
+      }
+    };
+
+    void hydrateRecoverySession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && !!session)) {
         setReady(true);
       }
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     const { error } = await supabase.auth.updateUser({ password: data.password });
     setIsSubmitting(false);
+
     if (error) {
       toast({ title: "Reset failed", description: error.message, variant: "destructive" });
       return;
     }
+
     setDone(true);
     toast({ title: "Password updated!", description: "You can now sign in with your new password." });
     setTimeout(() => navigate("/auth"), 3000);
@@ -88,20 +108,22 @@ const ResetPassword = () => {
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-md space-y-8">
           {done ? (
-            <div className="rounded-xl border border-border bg-card p-8 text-center shadow-elegant space-y-4">
+            <div className="space-y-4 rounded-xl border border-border bg-card p-8 text-center shadow-elegant">
               <CheckCircle className="mx-auto h-12 w-12 text-primary" />
               <h2 className="text-2xl font-bold text-foreground">Password Updated</h2>
               <p className="text-muted-foreground">Redirecting you to sign in…</p>
             </div>
           ) : !ready ? (
-            <div className="rounded-xl border border-border bg-card p-8 text-center shadow-elegant space-y-4">
-              <Lock className="mx-auto h-12 w-12 text-muted-foreground animate-pulse" />
+            <div className="space-y-4 rounded-xl border border-border bg-card p-8 text-center shadow-elegant">
+              <Lock className="mx-auto h-12 w-12 animate-pulse text-muted-foreground" />
               <h2 className="text-2xl font-bold text-foreground">Verifying Reset Link</h2>
               <p className="text-muted-foreground">
-                Please wait while we verify your reset link. If nothing happens,{" "}
+                Please wait while we verify your reset link. If nothing happens,
+                {" "}
                 <Link to="/auth" className="text-primary hover:underline">
                   request a new link
-                </Link>.
+                </Link>
+                .
               </p>
             </div>
           ) : (

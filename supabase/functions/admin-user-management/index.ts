@@ -7,11 +7,22 @@ const corsPolicy = createCorsPolicy({
   allowMethods: "POST, OPTIONS",
 });
 
+const DEFAULT_PASSWORD_REDIRECT_ORIGIN = "https://classicvisions.lovable.app";
+
 const jsonResponse = (req: Request, status: number, payload: unknown) =>
   new Response(JSON.stringify(payload), {
     status,
     headers: { ...getCorsHeaders(req, corsPolicy), "Content-Type": "application/json" },
   });
+
+const getPasswordRedirectTo = (req: Request) => {
+  const requestOrigin = req.headers.get("origin")?.trim();
+  const origin = requestOrigin && corsPolicy.allowedOrigins.has(requestOrigin)
+    ? requestOrigin
+    : DEFAULT_PASSWORD_REDIRECT_ORIGIN;
+
+  return `${origin}/reset-password`;
+};
 
 const allowedActions = new Set([
   "list-users",
@@ -74,11 +85,12 @@ Deno.serve(async (req) => {
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
+
       const { error } = await adminClient.auth.admin.generateLink({
         type: "recovery",
         email,
         options: {
-          redirectTo: "https://optilens.lovable.app/reset-password",
+          redirectTo: getPasswordRedirectTo(req),
         },
       });
       if (error) throw error;
@@ -106,7 +118,7 @@ Deno.serve(async (req) => {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
       const { error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-        redirectTo: "https://optilens.lovable.app/reset-password",
+        redirectTo: getPasswordRedirectTo(req),
       });
       if (error) throw error;
       return jsonResponse(req, 200, { success: true });
