@@ -4,6 +4,26 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-04-13 — LED PRO Public Lens Page + Admin Rendering Safeguards
+
+### Plan
+- Publish a dedicated public-facing LED PRO lens page and wire it into the shared public route system.
+- Keep discovery surfaces synchronized so navigation, route metadata, knowledge-center content, and site search all resolve the same canonical URL.
+- Close two admin runtime issues by normalizing PDF preview zoom initialization and sanitizing stored SLA rich-text before rendering.
+
+### Release Notes
+- Added a new public LED PRO lifestyle-lens page at `/lenses/led-pro`.
+- LED PRO is now discoverable through public header navigation, the lens design guide, knowledge-center entries, and site search.
+- Admin SLA policy descriptions now render through the shared rich-text sanitizer, and PDF preview opens with an explicit 100% manual zoom baseline.
+
+### Technical Changelog
+- Added `src/pages/lenses/LedProPage.tsx` as the canonical public page for LED PRO lens marketing content and media.
+- Updated `src/routes/public/PublicRoutes.tsx` and `src/config/routeRegistry.ts` to register `/lenses/led-pro` through the centralized public routing system.
+- Updated `src/components/Header.tsx`, `src/pages/LensDesignGuidePage.tsx`, `src/data/knowledgeCenter.ts`, and `src/lib/siteSearchIndex.ts` so shared navigation and discovery surfaces point to the new LED PRO page.
+- Updated `src/tests/integration/publicRouteAccessibility.integration.test.ts` to enforce route-registry and runtime-route coverage for `/lenses/led-pro`.
+- Updated `src/pages/admin/helpdesk/HelpdeskSlaPoliciesPage.tsx` to sanitize policy-description HTML before `dangerouslySetInnerHTML` rendering.
+- Updated `src/components/admin/PdfPreviewShell.tsx` to initialize manual zoom at `1` instead of `null` for a stable preview baseline.
+
 ## 2026-04-06 — Companion Assistant (Public AI Floating Assistant)
 
 ### Plan

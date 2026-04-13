@@ -58,6 +58,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     title: "Lifestyle Lenses",
     links: [
     { label: "Photochromic", description: "Adaptive light-responsive lens technology", to: "/photochromic" },
+    { label: "LED PRO", description: "Selective LED filtering for glare-heavy modern lighting", to: "/lenses/led-pro" },
     { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
     { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/lenses/polarized" },
     { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
@@ -219,6 +220,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "single-vision": "Single Vision",
   bifocals: "Bifocals",
   "myopia-control": "Myopia Control",
+  "led-pro": "LED PRO",
   "blue-filter": "Blue Filter",
   polarized: "Polarized",
   "tints-fashion-colors": "Tints & Fashion Colors",

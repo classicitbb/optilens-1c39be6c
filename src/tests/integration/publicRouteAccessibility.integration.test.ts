@@ -34,6 +34,12 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers /lenses/led-pro in the public route registry", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.lenses.led-pro" && route.path === "/lenses/led-pro" && route.status === "active"),
+    ).toBeTruthy();
+  });
+
   it("registers the professional support policy routes in the public route registry", () => {
     const routeIds = [
       "public.professionals.returns-replacements",
@@ -72,6 +78,13 @@ describe("public route accessibility", () => {
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="knowledge/:articleSlug" element={<Knowledge />} />');
+  });
+
+  it("declares a runtime route for /lenses/led-pro", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="lenses/led-pro" element={<LedProPage />} />');
   });
 
   it("declares a runtime route for /professionals/freight-delivery-policy", () => {

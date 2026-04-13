@@ -54,6 +54,11 @@ const lensSections: LensGuideSection[] = [
         to: "/photochromic",
       },
       {
+        title: "LED PRO",
+        description: "Selective LED filtering for glare-heavy headlights, screens, stadiums, and bright indoor lighting.",
+        to: "/lenses/led-pro",
+      },
+      {
         title: "Blue Filter",
         description: "Lens options for screen-heavy routines and digital comfort preferences.",
         to: "/lenses/blue-filter",

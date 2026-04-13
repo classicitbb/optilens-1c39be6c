@@ -1,43 +1,67 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-04-06T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-04-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "A floating companion assistant is now available on all public pages, providing AI-powered help for visitors.",
-    "The assistant is model-backed via the new `companion-assistant` Edge Function.",
-    "A dedicated full-screen assistant window is accessible at `/assistant`.",
-    "Public search panel updated with improved assistant integration."
+    "Added a new public LED PRO lifestyle-lens page at `/lenses/led-pro`.",
+    "LED PRO now appears in public navigation, lens-guide discovery, knowledge-center content, and site search so every public entry point resolves to one canonical route.",
+    "Helpdesk SLA policy descriptions now render only after shared rich-text sanitization, and PDF preview starts from an explicit 100% manual zoom state."
   ],
   "moduleImpact": [
     {
-      "module": "src/components/assistant",
+      "module": "src/pages/lenses",
       "impact": "medium",
-      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
-    },
-    {
-      "module": "src/features/assistant",
-      "impact": "medium",
-      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
-    },
-    {
-      "module": "src/pages/assistant",
-      "impact": "medium",
-      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
-    },
-    {
-      "module": "supabase/functions",
-      "impact": "medium",
-      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
     },
     {
       "module": "src/routes/public",
       "impact": "medium",
-      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
     },
     {
       "module": "src/config/routeRegistry.ts",
       "impact": "medium",
-      "notes": "Updated as part of Companion Assistant (Public AI Floating Assistant)."
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+    },
+    {
+      "module": "lenses/led-pro",
+      "impact": "medium",
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+    },
+    {
+      "module": "src/components/Header.tsx",
+      "impact": "medium",
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+    },
+    {
+      "module": "src/pages/LensDesignGuidePage.tsx",
+      "impact": "medium",
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+    },
+    {
+      "module": "src/data/knowledgeCenter.ts",
+      "impact": "medium",
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+    },
+    {
+      "module": "src/lib/siteSearchIndex.ts",
+      "impact": "medium",
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+    },
+    {
+      "module": "src/tests/integration",
+      "impact": "medium",
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+    },
+    {
+      "module": "src/pages/admin",
+      "impact": "medium",
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+    },
+    {
+      "module": "src/components/admin",
+      "impact": "medium",
+      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
     }
   ],
   "migrationNotes": [
