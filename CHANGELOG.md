@@ -14,6 +14,7 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 ### Release Notes
 - Added a new public LED PRO lifestyle-lens page at `/lenses/led-pro`.
 - LED PRO is now discoverable through public header navigation, the lens design guide, knowledge-center entries, and site search.
+- The LED PRO hero now uses a live embedded demo at the watch section so the page does not depend on a locally merged video asset during runtime.
 - Admin SLA policy descriptions now render through the shared rich-text sanitizer, and PDF preview opens with an explicit 100% manual zoom baseline.
 
 ### Technical Changelog

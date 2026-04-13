@@ -18,3 +18,8 @@ Track frontend regressions and customer-facing issues.
 - Surface: public lens pages
 - Symptom: new lifestyle-lens content needed canonical routing, navigation discoverability, and route-accessibility coverage to avoid orphaned content.
 - Resolution: added `/lenses/led-pro` route registration, shared discovery references, and integration assertions for the public route registry plus runtime route declaration.
+
+### LED PRO page merge-conflict regression
+- Surface: `/lenses/led-pro`
+- Symptom: an interrupted merge left conflict markers in `src/pages/lenses/LedProPage.tsx`, which broke both lint and production build.
+- Resolution: resolved the page to a single embedded-demo implementation and restored the page to valid TSX so validation can complete.

@@ -7,6 +7,7 @@ Summarized release outcomes for each major date-stamped update.
 ### Release Notes
 - Added a new public LED PRO lifestyle-lens page at `/lenses/led-pro`.
 - LED PRO now appears in public navigation, lens-guide discovery, knowledge-center content, and site search so every public entry point resolves to one canonical route.
+- The LED PRO watch section now uses a live embedded demo instead of relying on a locally merged video file.
 - Helpdesk SLA policy descriptions now render only after shared rich-text sanitization, and PDF preview starts from an explicit 100% manual zoom state.
 
 ## 2026-04-06 — Companion Assistant (Public AI Floating Assistant)
