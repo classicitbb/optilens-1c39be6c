@@ -147,7 +147,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
     category: "lenses",
     sell_price: form.sell_price
   }), [form.base_price, form.sell_price, form.full_lab, calculate]);
-  const halfPairUsdList = form.sell_price > 0 ? form.sell_price / 2 : 0;
+  const halfPairUsdList = form.sell_price > 0 && calc ? (calc.sell_price_usd ?? form.sell_price) / 2 : 0;
 
   const governance = useMemo(() => checkGovernance(calc, settings, form.base_price), [calc, settings, form.base_price]);
 
@@ -294,7 +294,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto bg-[hsl(var(--admin-bg))] border-[hsl(var(--admin-border))] text-[hsl(var(--admin-fg))] [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-sm font-semibold text-foreground">
@@ -511,8 +511,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
 const ReadOnly = ({ label, value, highlight }: {label: string;value: string;highlight?: boolean;}) =>
 <div>
-    <span className="text-[10px] text-muted-foreground">{label}</span>
-    <div className={`h-7 flex items-center px-2 text-xs tabular-nums text-foreground ${highlight ? "bg-primary/10 font-semibold" : "bg-muted"}`}>
+    <span className="text-[10px] text-[hsl(var(--admin-muted-fg))]">{label}</span>
+    <div className={`h-7 flex items-center px-2 text-xs tabular-nums text-[hsl(var(--admin-fg))] ${highlight ? "bg-primary/10 font-semibold" : "bg-[hsl(var(--admin-surface))]"}`}>
       {value}
     </div>
   </div>;

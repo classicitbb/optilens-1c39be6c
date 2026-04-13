@@ -1,3 +1,5 @@
+import { fuzzyFieldsMatch } from "./fuzzyMatch";
+
 /**
  * Wildcard-aware string matching for search fields.
  * Supports `%` as a wildcard that matches any sequence of characters.
@@ -19,10 +21,21 @@ export function wildcardMatch(text: string, pattern: string): boolean {
 }
 
 /**
- * Helper: test if ANY of the given fields match the query (with wildcard support).
+ * Helper: test if ANY of the given fields match the query.
+ * If the query contains `%`, uses wildcard matching.
+ * Otherwise uses fuzzy matching (Fuse.js) with substring fallback.
  * All comparisons are case-insensitive.
  */
 export function fieldsMatch(query: string, ...fields: (string | undefined | null)[]): boolean {
   const q = query.toLowerCase();
-  return fields.some((f) => f != null && wildcardMatch(f.toLowerCase(), q));
+  // Explicit wildcard → use wildcard matcher
+  if (q.includes("%")) {
+    return fields.some((f) => f != null && wildcardMatch(f.toLowerCase(), q));
+  }
+  // Substring match first (fast path)
+  if (fields.some((f) => f != null && f.toLowerCase().includes(q))) {
+    return true;
+  }
+  // Fuzzy fallback
+  return fuzzyFieldsMatch(q, ...fields);
 }
