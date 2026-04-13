@@ -284,8 +284,7 @@ export default function LedProPage() {
                 The details patients and dispensers ask first.
               </h2>
               <p className="mt-5 text-base leading-7 text-muted-foreground sm:text-lg">
-                The booklet and current Australian/New Zealand LED PRO site tell a consistent story: LED PRO is meant to
-                feel like a clear everyday lens, just tuned for modern artificial light.
+                {"\n"}
               </p>
             </div>
 
