@@ -400,7 +400,7 @@ const Auth = () => {
                 {mode === "signup" ? selectedCopy.heading : "Sign in on-page and get back to what matters quickly."}
               </h1>
               <p className="mt-5 text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-                {mode === "signup" ? selectedCopy.subheading : "Secure access. Instant return to your personalised portal."}
+                {mode === "signup" ? selectedCopy.intro : "Secure access. Instant return to your personalised portal."}
               </p>
             </div>
 
@@ -410,8 +410,8 @@ const Auth = () => {
                   Your Progress
                 </p>
                 <div className="mt-3 flex gap-3">
-                  {STEP_ORDER.map((step, idx) => {
-                    const currentIdx = STEP_ORDER.findIndex((s) => s.key === currentStep);
+                  {signupSteps.map((step, idx) => {
+                    const currentIdx = signupSteps.findIndex((s) => s.key === currentStep);
                     const done = idx < currentIdx;
                     const active = idx === currentIdx;
                     return (
