@@ -336,6 +336,12 @@
   --admin-scrollbar-thumb: 30 20% 70%;
   --admin-scrollbar-thumb-hover: 30 24% 58%;
   --admin-radius: 4px;
+  --admin-overlay-surface-bg: 0 0% 100%;
+  --admin-overlay-surface-fg: 30 25% 15%;
+  --admin-overlay-surface-border: 30 12% 85%;
+  --admin-overlay-surface-muted: 30 25% 96%;
+  --admin-overlay-sidebar-surface-bg: 30 22% 12%;
+  --admin-overlay-sidebar-surface-fg: 30 15% 85%;
 
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 13px;
@@ -395,6 +401,12 @@
   --admin-scrollbar-track: 30 16% 14%;
   --admin-scrollbar-thumb: 30 14% 34%;
   --admin-scrollbar-thumb-hover: 30 16% 44%;
+  --admin-overlay-surface-bg: 30 20% 12%;
+  --admin-overlay-surface-fg: 30 20% 96%;
+  --admin-overlay-surface-border: 30 16% 19%;
+  --admin-overlay-surface-muted: 30 18% 16%;
+  --admin-overlay-sidebar-surface-bg: 30 22% 11%;
+  --admin-overlay-sidebar-surface-fg: 30 15% 88%;
 }
 
 .admin-tool * {
@@ -573,6 +585,24 @@
 
 .admin-tool table tr:hover td {
   background: hsl(var(--admin-muted));
+}
+
+.admin-overlay-surface {
+  background-color: hsl(var(--admin-overlay-surface-bg)) !important;
+  color: hsl(var(--admin-overlay-surface-fg)) !important;
+  border-color: hsl(var(--admin-overlay-surface-border)) !important;
+}
+
+.admin-overlay-surface-muted {
+  background-color: hsl(var(--admin-overlay-surface-muted)) !important;
+  color: hsl(var(--admin-overlay-surface-fg)) !important;
+  border-color: hsl(var(--admin-overlay-surface-border)) !important;
+}
+
+.admin-overlay-sidebar {
+  background-color: hsl(var(--admin-overlay-sidebar-surface-bg)) !important;
+  color: hsl(var(--admin-overlay-sidebar-surface-fg)) !important;
+  border-color: hsl(var(--admin-overlay-surface-border)) !important;
 }
 
 /* ──────────────────────────────────────────

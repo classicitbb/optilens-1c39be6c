@@ -123,7 +123,7 @@ const AdminSidebar = () => {
           "flex flex-col border-r border-[hsl(var(--admin-border))] transition-all duration-200",
           showFlyout
             ? // Flyout: absolute, full sidebar width, overlays main content
-              "absolute inset-y-0 left-0 w-60 z-50 shadow-xl bg-[hsl(var(--admin-bg))]"
+              "absolute inset-y-0 left-0 w-60 z-50 shadow-xl bg-[hsl(var(--admin-sidebar-bg))]"
             : // Inline: fill the aside's own width
               "h-full w-full",
         )}
