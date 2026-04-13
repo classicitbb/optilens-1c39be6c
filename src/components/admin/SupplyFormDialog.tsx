@@ -460,8 +460,8 @@ const ReadOnly = ({ label, value, highlight }: { label: string; value: string; h
     <span className="text-[10px] text-[hsl(var(--admin-muted-fg))]">{label}</span>
     <div
       className={cn(
-        "h-7 flex items-center px-2 rounded text-xs tabular-nums text-[hsl(var(--admin-fg))]",
-        highlight ? "bg-primary/10 font-semibold" : "bg-[hsl(var(--admin-surface))]"
+        "h-7 flex items-center px-2 rounded text-xs tabular-nums text-[hsl(var(--admin-overlay-surface-fg))]",
+        highlight ? "bg-primary/10 font-semibold" : "admin-overlay-surface-muted"
       )}
     >
       {value}
