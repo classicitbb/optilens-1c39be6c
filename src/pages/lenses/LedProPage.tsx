@@ -230,7 +230,7 @@ export default function LedProPage() {
                   Precision absorption instead of a blunt blue block.
                 </h2>
                 <p className="mt-5 text-base leading-7 text-white/74 sm:text-lg">
-                  The LED PRO booklet describes a selective absorption dye system engineered to reduce the LED emission
+                  The LED PRO uses a selective absorption dye system engineered to reduce the LED emission
                   peaks at 450 nm and 550 nm. That matters because white LED light is commonly produced by coupling a
                   narrow blue spectrum with a broad yellow-green spectrum.
                 </p>
