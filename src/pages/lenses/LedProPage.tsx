@@ -153,8 +153,8 @@ export default function LedProPage() {
                 <iframe
                   id="watch-demo"
                   className="aspect-video w-full rounded-[1.35rem] object-cover"
-                  src="https://www.youtube.com/embed/TvgOVaz6Xkc?rel=0"
-                  title="LED PRO product demo"
+                  src="https://www.youtube.com/embed/TvgOVaz6Xkc"
+                  title="LED Pro Lenses - Younger Optics"
                   loading="lazy"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   referrerPolicy="strict-origin-when-cross-origin"
@@ -162,8 +162,8 @@ export default function LedProPage() {
                 />
                 <div className="grid gap-4 px-2 pb-2 pt-4 text-sm text-white/72 sm:grid-cols-3">
                   <div>
-                    <p className="font-semibold text-white">Current demo embed</p>
-                    <p>YouTube is live now, and the supplied local video can be swapped in later.</p>
+                    <p className="font-semibold text-white">LED Pro Lenses</p>
+                    <p>Watch the Younger Optics LED PRO product overview.</p>
                   </div>
                   <div>
                     <p className="font-semibold text-white">Clear everyday wear</p>
