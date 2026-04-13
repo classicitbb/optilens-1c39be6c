@@ -217,22 +217,22 @@ const PricingComparePage = () => {
                             : "hsl(var(--foreground))";
                       return (
                         <TableRow key={`${column}-${lens.id}`}>
-                          <TableCell className="text-xs align-top">
-                            <p className="font-medium" style={{ color: supplierColor }}>{lens.name}</p>
-                            <p className="text-[11px] text-muted-foreground">{lens.supplier?.name ?? "—"}</p>
+                          <TableCell className="text-[11px] align-top py-1">
+                            <p className="font-medium leading-tight" style={{ color: supplierColor }}>{lens.name}</p>
+                            <p className="text-[10px] text-muted-foreground leading-tight">{lens.supplier?.name ?? "—"}</p>
                           </TableCell>
-                          <TableCell className="text-xs text-right align-top">{currency(lens.base_price)}</TableCell>
-                          <TableCell className="text-xs text-right align-top">{currency(sellUsd)}</TableCell>
-                          <TableCell className="text-xs text-right align-top">{currency(lens.sell_price)}</TableCell>
-                          <TableCell className="align-top">
+                          <TableCell className="text-[11px] text-right align-top py-1">{currency(lens.base_price)}</TableCell>
+                          <TableCell className="text-[11px] text-right align-top py-1">{currency(sellUsd)}</TableCell>
+                          <TableCell className="text-[11px] text-right align-top py-1">{currency(lens.sell_price)}</TableCell>
+                          <TableCell className="align-top py-1">
                             <div className="flex items-center justify-end gap-0.5">
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => addLensToCompare(column, lens)} title="Add to compare">
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => addLensToCompare(column, lens)} title="Add to compare">
                                 <Plus className="h-3 w-3" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPreference(lens.id, preference === "liked" ? null : "liked")} title="Like lens">
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setPreference(lens.id, preference === "liked" ? null : "liked")} title="Like lens">
                                 <ThumbsUp className="h-3 w-3" style={{ color: preference === "liked" ? "hsl(var(--admin-success))" : undefined }} />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPreference(lens.id, preference === "disliked" ? null : "disliked")} title="Dislike lens">
+                              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setPreference(lens.id, preference === "disliked" ? null : "disliked")} title="Dislike lens">
                                 <ThumbsDown className="h-3 w-3" style={{ color: preference === "disliked" ? "hsl(var(--admin-destructive))" : undefined }} />
                               </Button>
                             </div>

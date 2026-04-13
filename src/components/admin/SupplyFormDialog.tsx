@@ -190,7 +190,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto bg-[hsl(var(--admin-bg))] border-[hsl(var(--admin-border))] text-[hsl(var(--admin-fg))] [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-sm font-semibold text-foreground">
@@ -457,11 +457,11 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
 const ReadOnly = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
   <div>
-    <span className="text-[10px] text-muted-foreground">{label}</span>
+    <span className="text-[10px] text-[hsl(var(--admin-muted-fg))]">{label}</span>
     <div
       className={cn(
-        "h-7 flex items-center px-2 rounded text-xs tabular-nums text-foreground",
-        highlight ? "bg-primary/10 font-semibold" : "bg-muted"
+        "h-7 flex items-center px-2 rounded text-xs tabular-nums text-[hsl(var(--admin-fg))]",
+        highlight ? "bg-primary/10 font-semibold" : "bg-[hsl(var(--admin-surface))]"
       )}
     >
       {value}

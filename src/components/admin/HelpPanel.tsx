@@ -158,7 +158,7 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
   };
 
   return (
-    <aside className="h-full flex border-l border-border bg-background shrink-0 min-w-0" style={{ width }}>
+    <aside className="h-full flex border-l border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-bg))] shrink-0 min-w-0" style={{ width }}>
       <div
         className="w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors shrink-0"
         onMouseDown={() => setResizing(true)}
@@ -166,7 +166,7 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between px-4 h-11 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-4 h-11 border-b border-[hsl(var(--admin-border))] shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <BookOpen className="h-4 w-4 shrink-0 text-primary" />
             <span className="text-sm font-semibold text-foreground truncate">Help</span>
@@ -189,10 +189,10 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
               const isExactContext = article.context_slugs.includes(currentSlug);
 
               return (
-                <div key={article.id} className="border border-border overflow-hidden min-w-0">
+                <div key={article.id} className="border border-[hsl(var(--admin-border))] overflow-hidden min-w-0">
                   <button
                     onClick={() => toggleArticle(article.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors min-w-0"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-[hsl(var(--admin-sidebar-hover))] transition-colors min-w-0"
                   >
                     <ChevronRight
                       className="h-3.5 w-3.5 shrink-0 transition-transform text-muted-foreground"

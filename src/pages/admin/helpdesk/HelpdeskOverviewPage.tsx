@@ -486,6 +486,17 @@ const HelpdeskOverviewPage = () => {
     return () => window.clearInterval(interval);
   }, []);
 
+  // Sync fullscreen state with browser fullscreen change (e.g. user presses Escape)
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, [isFullscreen]);
+
   const handleCreateInStage = useCallback(async (stageId: string, payload: { title: string; description: string; teamId?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => {
     try {
       await createTicket.mutateAsync({
@@ -558,7 +569,17 @@ const HelpdeskOverviewPage = () => {
               <List className="h-3.5 w-3.5" /> List
             </Button>
           </div>
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsFullscreen((f) => !f)} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+            setIsFullscreen((f) => {
+              const next = !f;
+              if (next) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+              } else {
+                document.exitFullscreen?.().catch(() => {});
+              }
+              return next;
+            });
+          }} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
         </div>

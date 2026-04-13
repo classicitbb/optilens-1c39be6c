@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, ChevronDown, ChevronRight } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,13 @@ import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { useDeleteHelpdeskSlaPolicy, useUpdateHelpdeskSlaPolicy } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 interface TeamOption { id: string; name: string; }
 interface StageOption { id: string; name: string; }
 interface HelpdeskSlaPolicy {
   id: string; name: string; priority_filter: number | null; target_hours: number; active: boolean;
-  team_id: string; target_stage_id: string;
+  team_id: string; target_stage_id: string; description: string | null;
   team?: { id: string; name: string } | null;
   target_stage?: { id: string; name: string } | null;
 }
@@ -35,11 +36,12 @@ const HelpdeskSlaPoliciesPage = () => {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
-  const [form, setForm] = useState({ name: "", teamId: "", targetStageId: "", targetHours: "24", priorityFilter: "" });
+  const [form, setForm] = useState({ name: "", teamId: "", targetStageId: "", targetHours: "24", priorityFilter: "", description: "" });
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
 
   // Edit dialog
   const [editPolicy, setEditPolicy] = useState<HelpdeskSlaPolicy | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", teamId: "", targetStageId: "", targetHours: "", priorityFilter: "" });
+  const [editForm, setEditForm] = useState({ name: "", teamId: "", targetStageId: "", targetHours: "", priorityFilter: "", description: "" });
 
   const { data: teams = [] } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
@@ -67,7 +69,7 @@ const HelpdeskSlaPoliciesPage = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("helpdesk_sla_policies")
-        .select("id,name,priority_filter,target_hours,active,team_id,target_stage_id,team:helpdesk_teams(id,name),target_stage:helpdesk_ticket_stages(id,name)")
+        .select("id,name,priority_filter,target_hours,active,team_id,target_stage_id,description,team:helpdesk_teams(id,name),target_stage:helpdesk_ticket_stages(id,name)")
         .order("name");
       if (error) throw error;
       return (data ?? []) as HelpdeskSlaPolicy[];
@@ -82,11 +84,12 @@ const HelpdeskSlaPoliciesPage = () => {
       const { error } = await (supabase as any).from("helpdesk_sla_policies").insert({
         name: form.name.trim(), team_id: form.teamId, target_stage_id: form.targetStageId,
         target_hours: Number(form.targetHours), priority_filter: form.priorityFilter ? Number(form.priorityFilter) : null, active: true,
+        description: form.description.trim() || "",
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      setForm({ name: "", teamId: "", targetStageId: "", targetHours: "24", priorityFilter: "" });
+      setForm({ name: "", teamId: "", targetStageId: "", targetHours: "24", priorityFilter: "", description: "" });
       qc.invalidateQueries({ queryKey: ["helpdesk", "sla-policies"] });
       toast({ title: "SLA policy created" });
     },
@@ -106,13 +109,21 @@ const HelpdeskSlaPoliciesPage = () => {
 
   const openEdit = (policy: HelpdeskSlaPolicy) => {
     setEditPolicy(policy);
-    setEditForm({ name: policy.name, teamId: policy.team_id, targetStageId: policy.target_stage_id, targetHours: String(policy.target_hours), priorityFilter: policy.priority_filter != null ? String(policy.priority_filter) : "" });
+    setEditForm({ name: policy.name, teamId: policy.team_id, targetStageId: policy.target_stage_id, targetHours: String(policy.target_hours), priorityFilter: policy.priority_filter != null ? String(policy.priority_filter) : "", description: policy.description ?? "" });
   };
 
   const saveEdit = () => {
     if (!editPolicy) return;
-    updatePolicy.mutate({ id: editPolicy.id, name: editForm.name.trim(), team_id: editForm.teamId, target_stage_id: editForm.targetStageId, target_hours: Number(editForm.targetHours), priority_filter: editForm.priorityFilter ? Number(editForm.priorityFilter) : null });
+    updatePolicy.mutate({ id: editPolicy.id, name: editForm.name.trim(), team_id: editForm.teamId, target_stage_id: editForm.targetStageId, target_hours: Number(editForm.targetHours), priority_filter: editForm.priorityFilter ? Number(editForm.priorityFilter) : null, description: editForm.description.trim() || "" } as any);
     setEditPolicy(null);
+  };
+
+  const toggleDescription = (id: string) => {
+    setExpandedDescriptions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const filteredPolicies = useMemo(() => {
@@ -169,24 +180,35 @@ const HelpdeskSlaPoliciesPage = () => {
       {canEditPolicies && (
         <Card>
           <CardHeader className="py-3"><CardTitle className="text-sm">Create SLA Policy</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
-            <Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Policy name" className="h-8 text-xs md:col-span-2" />
-            <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none" className="text-xs">Select team</SelectItem>
-                {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={form.targetStageId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, targetStageId: v === "__none" ? "" : v }))}>
-              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Target stage" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none" className="text-xs">Select stage</SelectItem>
-                {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Input value={form.targetHours} onChange={(e) => setForm((p) => ({ ...p, targetHours: e.target.value }))} placeholder="Target hours" className="h-8 text-xs" />
-            <Input value={form.priorityFilter} onChange={(e) => setForm((p) => ({ ...p, priorityFilter: e.target.value }))} placeholder="Priority filter" className="h-8 text-xs" />
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+              <Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Policy name" className="h-8 text-xs md:col-span-2" />
+              <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v }))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Team" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none" className="text-xs">Select team</SelectItem>
+                  {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={form.targetStageId || "__none"} onValueChange={(v) => setForm((p) => ({ ...p, targetStageId: v === "__none" ? "" : v }))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Target stage" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none" className="text-xs">Select stage</SelectItem>
+                  {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Input value={form.targetHours} onChange={(e) => setForm((p) => ({ ...p, targetHours: e.target.value }))} placeholder="Target hours" className="h-8 text-xs" />
+              <Input value={form.priorityFilter} onChange={(e) => setForm((p) => ({ ...p, priorityFilter: e.target.value }))} placeholder="Priority filter" className="h-8 text-xs" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
+              <RichTextEditor
+                content={form.description}
+                onChange={(val) => setForm((p) => ({ ...p, description: val }))}
+                placeholder="SLA policy details…"
+                className="min-h-[80px]"
+              />
+            </div>
             <Button size="sm" className="h-8 text-xs" onClick={() => createPolicy.mutate()} disabled={createPolicy.isPending}>Create</Button>
           </CardContent>
         </Card>
@@ -222,39 +244,57 @@ const HelpdeskSlaPoliciesPage = () => {
               </TableHeader>
               <TableBody>
                 {filteredPolicies.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>{p.name}</TableCell>
-                    <TableCell>{p.team?.name ?? "—"}</TableCell>
-                    <TableCell>{p.target_stage?.name ?? "—"}</TableCell>
-                    <TableCell>{p.target_hours} hr</TableCell>
-                    <TableCell>{p.priority_filter ?? "—"}</TableCell>
-                    <TableCell>{p.active ? "Active" : "Inactive"}</TableCell>
-                    {canEditPolicies && (
-                      <TableCell className="flex gap-1">
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(p)}>Edit</Button>
-                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => togglePolicy.mutate({ id: p.id, active: p.active })}>
-                          {p.active ? "Disable" : "Enable"}
-                        </Button>
-                        {isAdmin && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive" className="h-7 text-xs">Delete</Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete policy "{p.name}"?</AlertDialogTitle>
-                                <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deletePolicy.mutate(p.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
+                  <>
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {p.description && (
+                            <button onClick={() => toggleDescription(p.id)} className="p-0.5 hover:bg-muted rounded" title="Toggle description">
+                              {expandedDescriptions.has(p.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                            </button>
+                          )}
+                          <span>{p.name}</span>
+                        </div>
                       </TableCell>
+                      <TableCell>{p.team?.name ?? "—"}</TableCell>
+                      <TableCell>{p.target_stage?.name ?? "—"}</TableCell>
+                      <TableCell>{p.target_hours} hr</TableCell>
+                      <TableCell>{p.priority_filter ?? "—"}</TableCell>
+                      <TableCell>{p.active ? "Active" : "Inactive"}</TableCell>
+                      {canEditPolicies && (
+                        <TableCell className="flex gap-1">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openEdit(p)}>Edit</Button>
+                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => togglePolicy.mutate({ id: p.id, active: p.active })}>
+                            {p.active ? "Disable" : "Enable"}
+                          </Button>
+                          {isAdmin && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive" className="h-7 text-xs">Delete</Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete policy "{p.name}"?</AlertDialogTitle>
+                                  <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deletePolicy.mutate(p.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                    {expandedDescriptions.has(p.id) && p.description && (
+                      <TableRow key={`${p.id}-desc`}>
+                        <TableCell colSpan={canEditPolicies ? 7 : 6} className="bg-muted/30 py-2 px-4">
+                          <div className="prose prose-sm max-w-none text-xs" dangerouslySetInnerHTML={{ __html: p.description }} />
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </TableRow>
+                  </>
                 ))}
               </TableBody>
             </Table>
@@ -298,6 +338,15 @@ const HelpdeskSlaPoliciesPage = () => {
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Priority filter</label>
               <Input value={editForm.priorityFilter} onChange={(e) => setEditForm((p) => ({ ...p, priorityFilter: e.target.value }))} placeholder="Priority filter" className="h-10 text-sm" />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-medium text-muted-foreground">Description</label>
+              <RichTextEditor
+                content={editForm.description}
+                onChange={(val) => setEditForm((p) => ({ ...p, description: val }))}
+                placeholder="SLA policy details…"
+                className="min-h-[120px]"
+              />
             </div>
           </div>
           <DialogFooter className="pt-2">
