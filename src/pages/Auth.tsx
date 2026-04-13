@@ -824,14 +824,38 @@ const Auth = () => {
                               : "Continue"}
                       </Button>
 
-                      {mode === "signup" ? (
+                    {mode === "signup" ? (
                         <p className="text-sm leading-6 text-white/60">
                           We only ask for what is needed to get you to the right next step quickly.
                         </p>
                       ) : (
-                        <p className="text-sm leading-6 text-white/60">
-                          Sign in on-page and return to <span className="font-medium text-white">{redirect}</span> right after.
-                        </p>
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            className="text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+                            onClick={async () => {
+                              const email = form.getValues("email").trim();
+                              if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                                toast({ title: "Enter your email", description: "Please enter your email address first, then click Forgot Password.", variant: "destructive" });
+                                return;
+                              }
+                              try {
+                                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                                  redirectTo: `${window.location.origin}/reset-password`,
+                                });
+                                if (error) throw error;
+                                toast({ title: "Reset email sent", description: `Check ${email} for a password reset link.` });
+                              } catch {
+                                toast({ title: "Error", description: "Failed to send reset email. Please try again.", variant: "destructive" });
+                              }
+                            }}
+                          >
+                            Forgot your password?
+                          </button>
+                          <p className="text-sm leading-6 text-white/60">
+                            Sign in on-page and return to <span className="font-medium text-white">{redirect}</span> right after.
+                          </p>
+                        </div>
                       )}
                     </div>
                   </form>

@@ -125,7 +125,7 @@ const MyAccountSection = () => {
 
     setResettingPw(true);
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: window.location.origin,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setResettingPw(false);
 
