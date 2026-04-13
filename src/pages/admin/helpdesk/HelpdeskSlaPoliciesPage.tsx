@@ -353,6 +353,8 @@ const HelpdeskSlaPoliciesPage = () => {
                 onChange={(value) => setForm((prev) => ({ ...prev, description: value }))}
                 placeholder="SLA policy details…"
                 className="min-h-[120px]"
+                minHeight="260px"
+                height="420px"
               />
             </div>
           </div>
@@ -406,6 +408,8 @@ const HelpdeskSlaPoliciesPage = () => {
                 onChange={(value) => setEditForm((prev) => ({ ...prev, description: value }))}
                 placeholder="SLA policy details…"
                 className="min-h-[120px]"
+                minHeight="260px"
+                height="420px"
               />
             </div>
           </div>

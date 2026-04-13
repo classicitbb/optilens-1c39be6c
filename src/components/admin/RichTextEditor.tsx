@@ -20,6 +20,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   minHeight?: string;
+  height?: string;
 }
 
 const RichTextEditor = ({
@@ -28,6 +29,7 @@ const RichTextEditor = ({
   placeholder = "Write a description...",
   className,
   minHeight = "200px",
+  height,
 }: RichTextEditorProps) => {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkOpen, setLinkOpen] = useState(false);
@@ -55,7 +57,7 @@ const RichTextEditor = ({
     editorProps: {
       attributes: {
         class: cn(
-          "prose prose-sm max-w-none focus:outline-none text-foreground",
+          "prose prose-sm max-w-none focus:outline-none overflow-y-auto text-foreground",
           "[&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2",
           "[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-1.5",
           "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1",
@@ -65,7 +67,7 @@ const RichTextEditor = ({
           "[&_li]:text-sm [&_li]:mb-0.5",
           "[&_.is-editor-empty:first-child::before]:text-muted-foreground/50 [&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.is-editor-empty:first-child::before]:float-left [&_.is-editor-empty:first-child::before]:h-0 [&_.is-editor-empty:first-child::before]:pointer-events-none",
         ),
-        style: `min-height: ${minHeight}; padding: 12px;`,
+        style: `min-height: ${minHeight};${height ? `height: ${height}; max-height: ${height};` : ""} padding: 12px; box-sizing: border-box;`,
       },
     },
   });
