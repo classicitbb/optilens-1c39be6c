@@ -265,7 +265,7 @@ export default function LedProPage() {
                 <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-6">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/50">Why not broad blue blockers?</p>
                   <p className="mt-4 text-base leading-7 text-white/78">
-                    The live LED PRO FAQ frames the difference clearly: many blue-light lenses block broad chunks of the
+                    LED PRO FAQ frames the difference clearly: many blue-light lenses block broad chunks of the
                     spectrum, which can dim vision and distort colour. LED PRO is positioned as the selective alternative.
                   </p>
                 </div>
