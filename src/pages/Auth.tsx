@@ -391,7 +391,85 @@ const Auth = () => {
                 New Visitor Flow
               </Badge>
             </div>
-...
+
+            <div className="mt-8 max-w-2xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+                {selectedCopy.badge}
+              </p>
+              <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground text-balance sm:text-5xl">
+                {mode === "signup" ? selectedCopy.heading : "Sign in on-page and get back to what matters quickly."}
+              </h1>
+              <p className="mt-5 text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
+                {mode === "signup" ? selectedCopy.subheading : "Secure access. Instant return to your personalised portal."}
+              </p>
+            </div>
+
+            {mode === "signup" && (
+              <div className="mt-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Your Progress
+                </p>
+                <div className="mt-3 flex gap-3">
+                  {STEP_ORDER.map((step, idx) => {
+                    const currentIdx = STEP_ORDER.findIndex((s) => s.key === currentStep);
+                    const done = idx < currentIdx;
+                    const active = idx === currentIdx;
+                    return (
+                      <div
+                        key={step.key}
+                        className={`flex-1 rounded-2xl border px-4 py-3 text-center transition-all ${
+                          done
+                            ? "border-success/30 bg-success/10 text-foreground"
+                            : active
+                              ? "border-primary/30 bg-primary/10 text-foreground"
+                              : "border-border/70 bg-background/70 text-muted-foreground"
+                        }`}
+                      >
+                        <p className="font-semibold">{step.label}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {selectedCopy.quickWins.map((item, index) => (
+                <Card key={item} className="border-border/70 bg-background/70 shadow-none">
+                  <CardContent className="p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Quick Win {index + 1}</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{item}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="mt-8 rounded-[1.75rem] border border-primary/15 bg-primary/[0.05] p-6">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">{selectedCopy.detailHeading}</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedCopy.detailBody}</p>
+                </div>
+              </div>
+              <div className="mt-5 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-2 rounded-full bg-background px-3 py-1.5">
+                  <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
+                  Reveal value quickly
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-background px-3 py-1.5">
+                  <Users className="h-4 w-4 text-primary" aria-hidden="true" />
+                  Minimize friction
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-background px-3 py-1.5">
+                  <ArrowRight className="h-4 w-4 text-primary" aria-hidden="true" />
+                  Reach the next best action faster
+                </span>
+              </div>
+            </div>
+          </section>
+          ) : null}
+
           <section className={`${isReturningVisitor ? "rounded-[1.75rem] p-4 sm:p-5" : "rounded-[2rem] p-6 sm:p-8"} border border-slate-950/10 bg-slate-950 text-white shadow-medium`}>
             <div className={`mx-auto flex ${isReturningVisitor ? "max-w-sm" : "max-w-lg"} flex-col`}>
               <div className="flex items-center justify-between gap-4">
