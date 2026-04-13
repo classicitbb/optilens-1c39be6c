@@ -1,0 +1,1 @@
+ALTER TABLE public.helpdesk_sla_policies ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
