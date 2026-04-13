@@ -122,14 +122,6 @@ export default function LedProPage() {
                     Ask About LED PRO <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white/30 bg-white/6 text-white hover:bg-white/14"
-                  asChild
-                >
-                  <a href="#watch-demo">Watch the Demo</a>
-                </Button>
               </div>
 
               <div className="mt-10 flex flex-wrap gap-6 text-sm text-white/74">
