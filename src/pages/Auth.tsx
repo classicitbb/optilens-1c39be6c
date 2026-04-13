@@ -374,7 +374,7 @@ const Auth = () => {
       </div>
 
       <main id="main-content" className="relative z-10 mx-auto flex min-h-screen max-w-7xl items-center px-4 py-10 lg:px-8">
-        <div className={`w-full ${isReturningVisitor ? "mx-auto max-w-xl" : "grid gap-6 lg:grid-cols-[1.05fr_0.95fr]"}`}>
+        <div className={`w-full ${isReturningVisitor ? "mx-auto max-w-[28rem]" : "grid gap-6 lg:grid-cols-[1.05fr_0.95fr]"}`}>
           {!isReturningVisitor ? (
           <section className="rounded-[2rem] border border-white/70 bg-white/80 p-6 shadow-soft backdrop-blur sm:p-8 lg:p-10">
             <div className="flex items-center justify-between gap-4">
@@ -391,110 +391,32 @@ const Auth = () => {
                 New Visitor Flow
               </Badge>
             </div>
-
-            <div className="mt-8 max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                {selectedCopy.badge}
-              </p>
-              <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground text-balance sm:text-5xl">
-                {mode === "signup" ? selectedCopy.heading : "Sign in on-page and get back to what matters quickly."}
-              </h1>
-              <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-                {mode === "signup"
-                  ? selectedCopy.intro
-                  : "The full sign-in flow stays on this page, so you can get back to your requested destination without a popup or a disconnected step."}
-              </p>
-            </div>
-
-            {mode === "signup" && (
-              <div className="mt-8 space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Progress</p>
-                    <p className="text-sm text-muted-foreground">A short, 4-step onboarding with quick wins built in.</p>
-                  </div>
-                  <span className="text-sm font-semibold text-primary">{Math.round(progressValue)}%</span>
-                </div>
-                <Progress value={progressValue} className="h-2 rounded-full bg-primary/10" />
-                <div className="grid gap-2 sm:grid-cols-4">
-                  {signupSteps.map((step) => {
-                    const isActive = step.key === currentStep;
-                    const isComplete = signupSteps.findIndex((entry) => entry.key === currentStep) > signupSteps.findIndex((entry) => entry.key === step.key);
-                    return (
-                      <div
-                        key={step.key}
-                        className={`rounded-2xl border px-3 py-3 text-sm transition-colors ${
-                          isActive
-                            ? "border-primary/40 bg-primary/10 text-foreground"
-                            : isComplete
-                              ? "border-success/30 bg-success/10 text-foreground"
-                              : "border-border/70 bg-background/70 text-muted-foreground"
-                        }`}
-                      >
-                        <p className="font-semibold">{step.label}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {selectedCopy.quickWins.map((item, index) => (
-                <Card key={item} className="border-border/70 bg-background/70 shadow-none">
-                  <CardContent className="p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Quick Win {index + 1}</p>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{item}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-8 rounded-[1.75rem] border border-primary/15 bg-primary/[0.05] p-6">
-              <div className="flex items-start gap-3">
-                <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">{selectedCopy.detailHeading}</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedCopy.detailBody}</p>
-                </div>
-              </div>
-              <div className="mt-5 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-2 rounded-full bg-background px-3 py-1.5">
-                  <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Reveal value quickly
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-background px-3 py-1.5">
-                  <Users className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Minimize friction
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-background px-3 py-1.5">
-                  <ArrowRight className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Reach the next best action faster
-                </span>
-              </div>
-            </div>
-          </section>
-          ) : null}
-
-          <section className="rounded-[2rem] border border-slate-900/10 bg-slate-950 p-6 text-white shadow-medium sm:p-8">
-            <div className="mx-auto flex max-w-lg flex-col">
+...
+          <section className={`${isReturningVisitor ? "rounded-[1.75rem] p-4 sm:p-5" : "rounded-[2rem] p-6 sm:p-8"} border border-slate-950/10 bg-slate-950 text-white shadow-medium`}>
+            <div className={`mx-auto flex ${isReturningVisitor ? "max-w-sm" : "max-w-lg"} flex-col`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   {isReturningVisitor ? (
                     <Link to="/" className="inline-flex items-center gap-3 text-white">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                        <img src={cleanLogoSmooth} alt="Classic Visions" className="h-6 w-6" width={24} height={24} />
+                      <span className={`flex items-center justify-center rounded-2xl bg-white/10 ${isReturningVisitor ? "h-9 w-9" : "h-11 w-11"}`}>
+                        <img
+                          src={cleanLogoSmooth}
+                          alt="Classic Visions"
+                          className={isReturningVisitor ? "h-5 w-5" : "h-6 w-6"}
+                          width={isReturningVisitor ? 20 : 24}
+                          height={isReturningVisitor ? 20 : 24}
+                        />
                       </span>
                       <span>
                         <span className="block text-xs font-semibold uppercase tracking-[0.22em] text-white/55">Classic Visions</span>
-                        <span className="block text-lg font-semibold text-white">Visitor Sign-In</span>
+                        <span className={`block font-semibold text-white ${isReturningVisitor ? "text-base" : "text-lg"}`}>Visitor Sign-In</span>
                       </span>
                     </Link>
                   ) : null}
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">
                     {mode === "signup" ? "Onboarding" : "Authentication"}
                   </p>
-                  <h2 className="mt-2 text-3xl font-bold text-balance">
+                  <h2 className={`mt-2 font-bold text-balance ${isReturningVisitor ? "text-2xl sm:text-3xl" : "text-3xl"}`}>
                     {mode === "signup"
                       ? currentStep === "welcome"
                         ? "Choose the path that fits you best."

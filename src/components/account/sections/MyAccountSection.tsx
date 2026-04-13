@@ -130,7 +130,13 @@ const MyAccountSection = () => {
     setResettingPw(false);
 
     if (error) {
-      toast({ title: "Error", description: "Failed to send reset email.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message.includes("security purposes")
+          ? "Please wait about a minute before requesting another reset email."
+          : error.message,
+        variant: "destructive",
+      });
       return;
     }
 
