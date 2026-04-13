@@ -147,7 +147,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
     category: "lenses",
     sell_price: form.sell_price
   }), [form.base_price, form.sell_price, form.full_lab, calculate]);
-  const halfPairUsdList = form.sell_price > 0 ? (calc?.sell_price_usd ?? 0) / 2 : 0;
+  const halfPairBbdList = form.sell_price > 0 ? form.sell_price / 2 : 0;
 
   const governance = useMemo(() => checkGovernance(calc, settings, form.base_price), [calc, settings, form.base_price]);
 
@@ -424,8 +424,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     <Input className={inputCls} type="number" step="0.01" min="0" value={form.sell_price} onChange={(e) => setNum("sell_price", e.target.value)} />
                   </div>
                   <div>
-                    <Label className={labelCls}>1/2 pair / USD List $</Label>
-                    <Input className={inputCls} value={fmt(halfPairUsdList)} readOnly tabIndex={-1} />
+                    <Label className={labelCls}>1/2 pair / BBD List $</Label>
+                    <Input className={inputCls} value={fmt(halfPairBbdList)} readOnly tabIndex={-1} />
                   </div>
                 </div>
               </div>
