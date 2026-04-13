@@ -429,6 +429,16 @@ export const CURATED_KNOWLEDGE_ARTICLES: CuratedKnowledgeArticle[] = [
     estimatedReadMinutes: 6,
   },
   {
+    id: "lens-led-pro-guide",
+    title: "LED PRO lens guide",
+    description: "A lifestyle-lens overview for patients bothered by LED headlights, gaming glare, harsh indoor lighting, and long screen-heavy days.",
+    href: "/lenses/led-pro",
+    categoryId: "lens-guides",
+    audience: "all",
+    keywords: ["led pro", "led glare", "headlight glare", "gaming lenses", "indoor lighting"],
+    estimatedReadMinutes: 5,
+  },
+  {
     id: "lens-blue-filter-guide",
     title: "Blue-filter lens guide",
     description: "Understand how blue-light management lenses work, the evidence behind them, and how to discuss options with patients who spend long hours on screens.",

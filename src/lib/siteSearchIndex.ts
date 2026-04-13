@@ -134,6 +134,18 @@ export const SITE_SEARCH_INDEX: SiteSearchEntry[] = [
     ],
   },
   {
+    id: "page-lenses-led-pro",
+    title: "LED PRO Lenses",
+    description: "Patented selective-filter lifestyle lenses designed for LED headlight glare, gaming, screens, and harsh indoor LED lighting.",
+    path: "/lenses/led-pro",
+    group: "Pages",
+    keywords: [
+      "led pro", "led lenses", "led glare", "headlight glare", "gaming lenses",
+      "screen glare", "indoor led lighting", "450 nm", "550 nm", "selective absorption",
+      "night driving", "younger optics", "led fatigue", "stadium lights",
+    ],
+  },
+  {
     id: "page-lenses-polarized",
     title: "Polarized Lenses",
     description: "Polarized lenses cut reflected glare from roads, water, windshields, and sand — sharper, calmer outdoor vision in bright Caribbean conditions.",

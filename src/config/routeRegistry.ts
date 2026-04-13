@@ -64,6 +64,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.lenses.office-occupational", path: "/lenses/office-occupational", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.lenses.bifocals", path: "/lenses/bifocals", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.lenses.myopia-control", path: "/lenses/myopia-control", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
+  { id: "public.lenses.led-pro", path: "/lenses/led-pro", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.lenses.blue-filter", path: "/lenses/blue-filter", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.lenses.polarized", path: "/lenses/polarized", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.lenses.tints-fashion-colors", path: "/lenses/tints-fashion-colors", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },

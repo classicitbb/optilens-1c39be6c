@@ -26,6 +26,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { useDeleteHelpdeskSlaPolicy, useUpdateHelpdeskSlaPolicy } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import RichTextEditor from "@/components/admin/RichTextEditor";
+import { sanitizeRichTextHtml } from "@/lib/sanitizeRichTextHtml";
 
 interface TeamOption {
   id: string;
@@ -262,7 +263,8 @@ const HelpdeskSlaPoliciesPage = () => {
                     <TableCell>{policy.name}</TableCell>
                     <TableCell className="align-top">
                       {policy.description ? (
-                        <div className={descriptionCellClassName} dangerouslySetInnerHTML={{ __html: policy.description }} />
+                        // eslint-disable-next-line no-restricted-syntax -- content is sanitized through the shared rich-text sanitizer before rendering.
+                        <div className={descriptionCellClassName} dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(policy.description) }} />
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}

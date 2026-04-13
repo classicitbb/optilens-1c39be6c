@@ -48,6 +48,7 @@ const AntiFatiguePage = lazy(() => import("@/pages/lenses/AntiFatiguePage"));
 const SingleVisionPage = lazy(() => import("@/pages/lenses/SingleVisionPage"));
 const BifocalsPage = lazy(() => import("@/pages/lenses/BifocalsPage"));
 const MyopiaControlPage = lazy(() => import("@/pages/lenses/MyopiaControlPage"));
+const LedProPage = lazy(() => import("@/pages/lenses/LedProPage"));
 const BlueFilterPage = lazy(() => import("@/pages/lenses/BlueFilterPage"));
 const PolarizedPage = lazy(() => import("@/pages/lenses/PolarizedPage"));
 const TintsFashionColorsPage = lazy(() => import("@/pages/lenses/TintsFashionColorsPage"));
@@ -91,6 +92,7 @@ const PublicRoutes = () => (
       <Route path="lenses/single-vision" element={<SingleVisionPage />} />
       <Route path="lenses/bifocals" element={<BifocalsPage />} />
       <Route path="lenses/myopia-control" element={<MyopiaControlPage />} />
+      <Route path="lenses/led-pro" element={<LedProPage />} />
       <Route path="lenses/blue-filter" element={<BlueFilterPage />} />
       <Route path="lenses/polarized" element={<PolarizedPage />} />
       <Route path="lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
