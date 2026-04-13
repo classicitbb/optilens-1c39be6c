@@ -486,6 +486,17 @@ const HelpdeskOverviewPage = () => {
     return () => window.clearInterval(interval);
   }, []);
 
+  // Sync fullscreen state with browser fullscreen change (e.g. user presses Escape)
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, [isFullscreen]);
+
   const handleCreateInStage = useCallback(async (stageId: string, payload: { title: string; description: string; teamId?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => {
     try {
       await createTicket.mutateAsync({
