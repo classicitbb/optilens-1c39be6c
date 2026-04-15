@@ -103,7 +103,7 @@ export const useLenses = () => {
         from += PAGE;
       }
       const joinedData = allJoined;
-      if (joinError) throw joinError;
+      // errors handled per-page above
       // Merge: use base_price from safe RPC, rest from joined query
       const safeMap = new Map((lensRows as any[]).map((r: any) => [r.id, r.base_price]));
       return (joinedData as unknown as Lens[]).map((l) => ({
