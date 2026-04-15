@@ -91,7 +91,7 @@ const BlogPostPage = () => {
               </div>
 
               <article className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
-                <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.16),transparent_26%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.14),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.9))] px-6 py-10 sm:px-8 sm:py-12">
+                <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.16),transparent_26%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.14),transparent_28%)] px-6 py-10 sm:px-8 sm:py-12">
                   <div className="max-w-4xl">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary">{post.category || "Blog Post"}</Badge>
