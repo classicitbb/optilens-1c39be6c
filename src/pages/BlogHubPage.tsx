@@ -70,22 +70,20 @@ const BlogHubPage = () => {
       <main id="main-content" className="pb-16 pt-24">
         <div className="container mx-auto px-4 lg:px-8">
           <section className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
-            <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.22),transparent_28%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.16),transparent_30%),linear-gradient(180deg,rgba(255,250,240,0.96),rgba(255,255,255,0.88))] px-6 py-12 sm:px-8 sm:py-16">
+            <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.22),transparent_28%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.16),transparent_30%),linear-gradient(180deg,rgba(255,250,240,0.96),rgba(255,255,255,0.88))] px-6 py-8 sm:px-8 sm:py-10">
               <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]">
                 Classic Visions Editorial
               </Badge>
-              <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
-                <div className="max-w-4xl">
-                  <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                    Our Blog: Stories, optical insight, and our newsletters.
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-                    Explore Caribbean-focused eyecare education, business guidance, patient-facing explainers, and published newsletters.
-                  </p>
-                </div>
+              <div className="mt-3 max-w-4xl">
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                  Our Blog: Stories, optical insight, and our newsletters.
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+                  Explore Caribbean-focused eyecare education, business guidance, patient-facing explainers, and published newsletters.
+                </p>
               </div>
 
-              <div className="mt-8 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-sm">
+              <div className="mt-5 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-sm">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input
