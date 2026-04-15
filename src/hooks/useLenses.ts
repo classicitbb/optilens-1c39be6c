@@ -86,10 +86,24 @@ export const useLenses = () => {
       if (error) throw error;
       if (!lensRows || (lensRows as any[]).length === 0) return [];
       // Fetch related data for joined fields
-      const { data: joinedData, error: joinError } = await (supabase.from("lenses") as any)
-        .select(SELECT_QUERY)
-        .order("name");
-      if (joinError) throw joinError;
+      // Fetch ALL rows – the default Supabase limit is 1000 which truncates
+      // lenses that sort late alphabetically (e.g. POLY…).
+      const PAGE = 1000;
+      let allJoined: any[] = [];
+      let from = 0;
+      while (true) {
+        const { data: page, error: pageErr } = await (supabase.from("lenses") as any)
+          .select(SELECT_QUERY)
+          .order("name")
+          .range(from, from + PAGE - 1);
+        if (pageErr) throw pageErr;
+        if (!page || page.length === 0) break;
+        allJoined = allJoined.concat(page);
+        if (page.length < PAGE) break;
+        from += PAGE;
+      }
+      const joinedData = allJoined;
+      // errors handled per-page above
       // Merge: use base_price from safe RPC, rest from joined query
       const safeMap = new Map((lensRows as any[]).map((r: any) => [r.id, r.base_price]));
       return (joinedData as unknown as Lens[]).map((l) => ({
