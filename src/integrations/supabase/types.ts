@@ -363,40 +363,70 @@ export type Database = {
       blog_posts: {
         Row: {
           author_id: string | null
+          author_name: string | null
+          body_json: Json | null
+          category: string | null
           content: string
+          cover_image_alt: string | null
           cover_image_url: string | null
           created_at: string
+          entry_type: string
           excerpt: string | null
           id: string
           published_at: string | null
+          related_post_slugs: string[] | null
+          seo_description: string | null
+          seo_title: string | null
           slug: string | null
+          source_url: string | null
           status: string
+          tags: string[] | null
           title: string
           updated_at: string
         }
         Insert: {
           author_id?: string | null
+          author_name?: string | null
+          body_json?: Json | null
+          category?: string | null
           content?: string
+          cover_image_alt?: string | null
           cover_image_url?: string | null
           created_at?: string
+          entry_type?: string
           excerpt?: string | null
           id?: string
           published_at?: string | null
+          related_post_slugs?: string[] | null
+          seo_description?: string | null
+          seo_title?: string | null
           slug?: string | null
+          source_url?: string | null
           status?: string
+          tags?: string[] | null
           title: string
           updated_at?: string
         }
         Update: {
           author_id?: string | null
+          author_name?: string | null
+          body_json?: Json | null
+          category?: string | null
           content?: string
+          cover_image_alt?: string | null
           cover_image_url?: string | null
           created_at?: string
+          entry_type?: string
           excerpt?: string | null
           id?: string
           published_at?: string | null
+          related_post_slugs?: string[] | null
+          seo_description?: string | null
+          seo_title?: string | null
           slug?: string | null
+          source_url?: string | null
           status?: string
+          tags?: string[] | null
           title?: string
           updated_at?: string
         }

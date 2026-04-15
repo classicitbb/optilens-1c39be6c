@@ -1,10 +1,11 @@
+import { Node, mergeAttributes } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useCallback, useState, useRef } from "react";
 import {
-  Bold, Italic, List, ListOrdered, Link as LinkIcon, Type, Plus, ChevronDown,
+  Bold, Italic, List, ListOrdered, Link as LinkIcon, Type, Plus, ChevronDown, ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +34,32 @@ const RichTextEditor = ({
 }: RichTextEditorProps) => {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkOpen, setLinkOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageAlt, setImageAlt] = useState("");
+  const [imageOpen, setImageOpen] = useState(false);
   const suppressUpdate = useRef(false);
+
+  const ImageNode = Node.create({
+    name: "image",
+    group: "block",
+    draggable: true,
+    selectable: true,
+    inline: false,
+    atom: true,
+    addAttributes() {
+      return {
+        src: { default: null },
+        alt: { default: null },
+        title: { default: null },
+      };
+    },
+    parseHTML() {
+      return [{ tag: "img[src]" }];
+    },
+    renderHTML({ HTMLAttributes }) {
+      return ["img", mergeAttributes(HTMLAttributes)];
+    },
+  });
 
   const editor = useEditor({
     extensions: [
@@ -47,6 +73,7 @@ const RichTextEditor = ({
         HTMLAttributes: { class: "text-primary underline cursor-pointer" },
       }),
       Placeholder.configure({ placeholder }),
+      ImageNode,
     ],
     content: content || "",
     onUpdate: ({ editor: ed }) => {
@@ -65,6 +92,7 @@ const RichTextEditor = ({
           "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2",
           "[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2",
           "[&_li]:text-sm [&_li]:mb-0.5",
+          "[&_img]:my-4 [&_img]:w-full [&_img]:rounded-xl [&_img]:border [&_img]:border-border",
           "[&_.is-editor-empty:first-child::before]:text-muted-foreground/50 [&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.is-editor-empty:first-child::before]:float-left [&_.is-editor-empty:first-child::before]:h-0 [&_.is-editor-empty:first-child::before]:pointer-events-none",
         ),
         style: `min-height: ${minHeight};${height ? `height: ${height}; max-height: ${height};` : ""} padding: 12px; box-sizing: border-box;`,
@@ -91,6 +119,24 @@ const RichTextEditor = ({
     setLinkOpen(false);
     setLinkUrl("");
   }, [editor, linkUrl]);
+
+  const insertImage = useCallback(() => {
+    if (!editor || !imageUrl.trim()) return;
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "image",
+        attrs: {
+          src: imageUrl.trim(),
+          alt: imageAlt.trim() || null,
+        },
+      })
+      .run();
+    setImageOpen(false);
+    setImageUrl("");
+    setImageAlt("");
+  }, [editor, imageAlt, imageUrl]);
 
   if (!editor) return null;
 
@@ -222,6 +268,33 @@ const RichTextEditor = ({
                 Set
               </Button>
             </div>
+          </PopoverContent>
+        </Popover>
+
+        <Popover open={imageOpen} onOpenChange={setImageOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" title="Insert image">
+              <ImagePlus className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 space-y-2 p-2" align="start">
+            <Input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Image URL"
+              className="h-8 text-xs"
+              onKeyDown={(e) => e.key === "Enter" && insertImage()}
+            />
+            <Input
+              value={imageAlt}
+              onChange={(e) => setImageAlt(e.target.value)}
+              placeholder="Alt text (optional)"
+              className="h-8 text-xs"
+              onKeyDown={(e) => e.key === "Enter" && insertImage()}
+            />
+            <Button size="sm" className="h-8 text-xs" onClick={insertImage}>
+              Insert image
+            </Button>
           </PopoverContent>
         </Popover>
 

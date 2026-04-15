@@ -189,7 +189,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Our Story", description: "Learn how our company started", to: "/#about" },
     { label: "What Drives Us", description: "Our mission and values", to: "/#about" },
     { label: "Our Vision", description: "Where we are heading", to: "/#about" },
-    { label: "News & Articles", description: "Latest updates and insights", to: "/knowledge" }]
+    { label: "News & Articles", description: "Latest updates and insights", to: "/blog" }]
 
   },
   {
@@ -197,7 +197,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Join Our Team", description: "Career opportunities and culture", to: "/#contact" },
     { label: "Become a Partner", description: "Work with our wholesale network", to: "/professionals" },
-    { label: "Media & Resources", description: "Press and informational materials", to: "/knowledge" }]
+    { label: "Media & Resources", description: "Press and informational materials", to: "/blog" }]
 
   },
   {

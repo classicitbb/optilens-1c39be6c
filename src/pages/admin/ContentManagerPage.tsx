@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
+const BlogPostsManager = lazy(() => import("@/components/admin/BlogPostsManager"));
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -32,13 +33,17 @@ import {
 import {
   Plus, Pencil, Trash2, Save, X, Search, Eye, EyeOff,
   BookOpen, HelpCircle, FileText, Scale, Globe, LayoutList,
+  Newspaper,
 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 
-const TAB_CONFIG: { value: ContentType | "all"; label: string; icon: React.ElementType; description: string }[] = [
+type ContentManagerTab = ContentType | "all" | "blog";
+
+const TAB_CONFIG: { value: ContentManagerTab; label: string; icon: React.ElementType; description: string }[] = [
   { value: "all", label: "All Articles", icon: LayoutList, description: "All content articles across every type" },
   { value: "knowledge", label: "Knowledge Base", icon: BookOpen, description: "Public-facing articles for the website knowledge base" },
+  { value: "blog", label: "Blog Posts", icon: Newspaper, description: "Editorial blog posts and newsletters for /blog and Knowledge Base discovery" },
   { value: "faq", label: "FAQ", icon: HelpCircle, description: "Frequently asked questions shown on the knowledge base page" },
   { value: "legal", label: "Legal Pages", icon: Scale, description: "Privacy policy, terms & conditions, copyright text, and other legal content" },
   { value: "wiki", label: "Internal Wiki", icon: FileText, description: "Internal help articles for admin panel contextual help" },
@@ -66,11 +71,11 @@ const KB_CATEGORIES = [
 const ContentManagerPage = () => {
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<ContentType | "all">("all");
+  const [activeTab, setActiveTab] = useState<ContentManagerTab>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [editing, setEditing] = useState<Partial<ContentArticle> | null>(null);
 
-  const contentTypeFilter = activeTab === "all" ? undefined : activeTab;
+  const contentTypeFilter = activeTab === "all" || activeTab === "blog" ? undefined : activeTab;
   const { articles, upsertArticle, deleteArticle, isSaving } = useContentArticles(contentTypeFilter);
 
   const filtered = useMemo(() => {
@@ -166,6 +171,31 @@ const ContentManagerPage = () => {
   };
 
   const editingContextSlugs = editing?.context_slugs ?? [];
+
+  if (activeTab === "blog" && !editing) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="border-b border-border bg-muted/30 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <AdminPageHeader icon={Globe} title="Content CMS" />
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ContentManagerTab)}>
+              <TabsList className="h-8">
+                {TAB_CONFIG.map((t) => (
+                  <TabsTrigger key={t.value} value={t.value} className="text-xs gap-1.5">
+                    <t.icon className="h-3 w-3" />
+                    {t.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        </div>
+        <Suspense fallback={<div className="flex-1 animate-pulse bg-muted/20" />}>
+          <BlogPostsManager canEdit={canEdit} isAdmin={isAdmin} />
+        </Suspense>
+      </div>
+    );
+  }
 
   // Editor form
   if (editing) {
@@ -400,7 +430,7 @@ const ContentManagerPage = () => {
             </Button>
           )}
         </div>
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as ContentType | "all"); setSearchTerm(""); }}>
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as ContentManagerTab); setSearchTerm(""); }}>
           <TabsList className="h-8">
             {TAB_CONFIG.map((t) => (
               <TabsTrigger key={t.value} value={t.value} className="text-xs gap-1.5">

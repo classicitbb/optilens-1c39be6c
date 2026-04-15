@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePublicBlogPosts } from "@/hooks/useBlogPosts";
 import { usePublicKnowledge } from "@/hooks/useContentArticles";
 import {
   buildPublicHelpCenterTree,
@@ -206,6 +207,7 @@ const Knowledge = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: articles = [], isLoading } = usePublicKnowledge();
+  const { data: blogPosts = [] } = usePublicBlogPosts("blog_post");
 
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearch = useDeferredValue(searchTerm.trim().toLowerCase());
@@ -486,6 +488,51 @@ const Knowledge = () => {
                     </Card>
                   ))}
                 </section>
+
+                {blogPosts.length > 0 ? (
+                  <section className="overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/85">
+                    <div className="px-6 py-5">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="max-w-2xl">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                            From The Blog
+                          </p>
+                          <h3 className="mt-2 text-2xl font-semibold text-foreground">
+                            Editorial stories that complement the Knowledge Base
+                          </h3>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            Browse practical eyecare articles, Caribbean optical-business commentary, and longer-form posts without leaving the Classic Visions content system.
+                          </p>
+                        </div>
+                        <Button asChild>
+                          <Link to="/blog">
+                            Open blog
+                            <ArrowRight data-icon="inline-end" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="grid gap-4 p-6 md:grid-cols-3">
+                      {blogPosts.slice(0, 3).map((post) => (
+                        <Link
+                          key={post.id}
+                          to={`/blog/${post.slug}`}
+                          className="rounded-[1.25rem] border border-border/60 bg-background/80 p-4 transition-colors hover:bg-muted/50"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary">{post.category || "Blog Post"}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {post.published_at ? new Date(post.published_at).toLocaleDateString() : "Draft"}
+                            </span>
+                          </div>
+                          <h4 className="mt-3 text-lg font-semibold text-foreground">{post.title}</h4>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
                 <section className="space-y-6">
                   {filteredSections.length > 0 ? (

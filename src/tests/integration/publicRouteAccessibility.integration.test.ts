@@ -28,6 +28,15 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers /blog and /blog/:slug in the public route registry", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.blog" && route.path === "/blog" && route.status === "active"),
+    ).toBeTruthy();
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.blog.article" && route.path === "/blog/:slug" && route.status === "active"),
+    ).toBeTruthy();
+  });
+
   it("registers /professionals/freight-delivery-policy in the public route registry", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.professionals.freight-delivery-policy" && route.path === "/professionals/freight-delivery-policy" && route.status === "active"),
@@ -78,6 +87,14 @@ describe("public route accessibility", () => {
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="knowledge/:articleSlug" element={<Knowledge />} />');
+  });
+
+  it("declares runtime routes for /blog and /blog/:slug", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="blog" element={<BlogHubPage />} />');
+    expect(source).toContain('<Route path="blog/:slug" element={<BlogPostPage />} />');
   });
 
   it("declares a runtime route for /lenses/led-pro", () => {

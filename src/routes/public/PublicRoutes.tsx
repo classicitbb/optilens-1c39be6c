@@ -9,6 +9,8 @@ import {
 } from "@/config/routeRegistry";
 
 const Index = lazy(() => import("@/pages/Index"));
+const BlogHubPage = lazy(() => import("@/pages/BlogHubPage"));
+const BlogPostPage = lazy(() => import("@/pages/BlogPostPage"));
 const CompanionAssistantWindowPage = lazy(() => import("@/pages/assistant/CompanionAssistantWindowPage"));
 const OpticalRetailWebsitesPage = lazy(() => import("@/pages/OpticalRetailWebsitesPage"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
@@ -69,6 +71,8 @@ const PublicRoutes = () => (
   <ComingSoonGate>
     <Routes>
       <Route index element={<Index />} />
+      <Route path="blog" element={<BlogHubPage />} />
+      <Route path="blog/:slug" element={<BlogPostPage />} />
       <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
       <Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />
       <Route path="knowledge" element={<Knowledge />} />
