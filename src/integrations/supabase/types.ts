@@ -374,13 +374,13 @@ export type Database = {
           excerpt: string | null
           id: string
           published_at: string | null
-          related_post_slugs: string[] | null
+          related_post_slugs: string[]
           seo_description: string | null
           seo_title: string | null
           slug: string | null
           source_url: string | null
           status: string
-          tags: string[] | null
+          tags: string[]
           title: string
           updated_at: string
         }
@@ -397,13 +397,13 @@ export type Database = {
           excerpt?: string | null
           id?: string
           published_at?: string | null
-          related_post_slugs?: string[] | null
+          related_post_slugs?: string[]
           seo_description?: string | null
           seo_title?: string | null
           slug?: string | null
           source_url?: string | null
           status?: string
-          tags?: string[] | null
+          tags?: string[]
           title: string
           updated_at?: string
         }
@@ -420,13 +420,13 @@ export type Database = {
           excerpt?: string | null
           id?: string
           published_at?: string | null
-          related_post_slugs?: string[] | null
+          related_post_slugs?: string[]
           seo_description?: string | null
           seo_title?: string | null
           slug?: string | null
           source_url?: string | null
           status?: string
-          tags?: string[] | null
+          tags?: string[]
           title?: string
           updated_at?: string
         }
