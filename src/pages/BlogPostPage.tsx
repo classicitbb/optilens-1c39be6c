@@ -1,4 +1,4 @@
-import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
+import BlogPostRenderer, { type BlogContentInput } from "@/components/blog/BlogPostRenderer";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Seo from "@/components/seo/Seo";
@@ -137,7 +137,7 @@ const BlogPostPage = () => {
                   <div className="min-w-0">
                     <div className="mx-auto max-w-3xl">
                       <BlogPostRenderer
-                        content={post.body_json || post.content}
+                        content={(post.body_json as BlogContentInput) || post.content}
                         className="text-base"
                         emptyMessage="This article has no content yet."
                       />

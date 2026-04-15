@@ -100,7 +100,7 @@ const ContentManagerPage = () => {
   }, [filtered]);
 
   const handleNew = () => {
-    const effectiveType = activeTab === "all" ? "wiki" : activeTab;
+    const effectiveType = (activeTab === "all" || activeTab === "blog") ? "wiki" : activeTab;
     setEditing({
       title: "",
       content: "",
