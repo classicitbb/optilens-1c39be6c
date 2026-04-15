@@ -83,14 +83,6 @@ const BlogHubPage = () => {
                     Explore Caribbean-focused eyecare education, business guidance, patient-facing explainers, and published newsletters.
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] border border-border/60 bg-background/80 p-5 shadow-sm">
-                  <p className="text-sm font-semibold text-foreground">Inside this hub</p>
-                  <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                    <p>Published blog posts from the new CMS</p>
-                    <p>Newsletter-ready filtering and layout support</p>
-                    <p>Tag-based discovery and related-content pathways</p>
-                  </div>
-                </div>
               </div>
 
               <div className="mt-8 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-sm">
