@@ -418,9 +418,9 @@ const Knowledge = () => {
                       </p>
                     </div>
 
-                    <div className="mt-8 max-w-3xl rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-sm">
+                    <div className="mt-4 max-w-3xl rounded-[1.4rem] border border-border/60 bg-background/90 p-2 shadow-sm">
                       <div className="relative">
-                        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           value={searchTerm}
                           onChange={(event) => {
@@ -430,7 +430,7 @@ const Knowledge = () => {
                             });
                           }}
                           placeholder="Search help articles, categories, and existing pages"
-                          className="h-14 border-0 bg-transparent pl-12 pr-12 text-base shadow-none focus-visible:ring-0"
+                          className="h-10 border-0 bg-transparent pl-10 pr-10 text-sm shadow-none focus-visible:ring-0"
                         />
                         <Sparkles className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
                       </div>
