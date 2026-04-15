@@ -76,8 +76,8 @@ const BlogHubPage = () => {
               </Badge>
               <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
                 <div className="max-w-4xl">
-                  <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
-                    Blog stories, optical insight, and newsletter-ready publishing in one place.
+                  <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+                    Our Blog: Stories, optical insight, and our newsletters.
                   </h1>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
                     Explore Caribbean-focused eyecare education, business guidance, patient-facing explainers, and the editorial foundation for future newsletters.
