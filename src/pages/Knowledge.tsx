@@ -437,7 +437,7 @@ const Knowledge = () => {
                     </div>
 
                     {popularSearches.length > 0 ? (
-                      <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium">Popular searches:</span>
                         {popularSearches.map((term) => (
                           <button
