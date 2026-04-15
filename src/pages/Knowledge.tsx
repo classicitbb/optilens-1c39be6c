@@ -405,15 +405,15 @@ const Knowledge = () => {
 
               <div className="min-w-0 space-y-8">
                 <section className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
-                  <div className="bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.88))] px-6 py-10 sm:px-8 sm:py-14 dark:bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.15),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.14),transparent_30%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.9))]">
+                  <div className="bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_30%)] px-6 py-5 sm:px-8 sm:py-6">
                     <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]">
                       Help Center
                     </Badge>
-                    <div className="mt-5 max-w-3xl">
-                      <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
+                    <div className="mt-2 max-w-3xl">
+                      <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                         {HOME_TITLE}
                       </h1>
-                      <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+                      <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                         {HOME_DESCRIPTION}
                       </p>
                     </div>
