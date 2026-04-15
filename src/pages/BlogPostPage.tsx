@@ -121,17 +121,6 @@ const BlogPostPage = () => {
                   </div>
                 </div>
 
-                {post.cover_image_url ? (
-                  <div className="px-6 pb-0 sm:px-8">
-                    <div className="overflow-hidden rounded-[1.5rem] border border-border/60 bg-muted">
-                      <img
-                        src={post.cover_image_url}
-                        alt={post.cover_image_alt || post.title}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </div>
-                ) : null}
 
                 <div className="grid gap-8 px-6 py-10 sm:px-8 xl:grid-cols-[minmax(0,1fr)_18rem]">
                   <div className="min-w-0">
