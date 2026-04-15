@@ -405,22 +405,22 @@ const Knowledge = () => {
 
               <div className="min-w-0 space-y-8">
                 <section className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
-                  <div className="bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.88))] px-6 py-10 sm:px-8 sm:py-14 dark:bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.15),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.14),transparent_30%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.9))]">
+                  <div className="bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_30%)] px-6 py-5 sm:px-8 sm:py-6">
                     <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]">
                       Help Center
                     </Badge>
-                    <div className="mt-5 max-w-3xl">
-                      <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
+                    <div className="mt-2 max-w-3xl">
+                      <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                         {HOME_TITLE}
                       </h1>
-                      <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+                      <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                         {HOME_DESCRIPTION}
                       </p>
                     </div>
 
-                    <div className="mt-8 max-w-3xl rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-sm">
+                    <div className="mt-4 max-w-3xl rounded-[1.4rem] border border-border/60 bg-background/90 p-2 shadow-sm">
                       <div className="relative">
-                        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           value={searchTerm}
                           onChange={(event) => {
@@ -430,14 +430,14 @@ const Knowledge = () => {
                             });
                           }}
                           placeholder="Search help articles, categories, and existing pages"
-                          className="h-14 border-0 bg-transparent pl-12 pr-12 text-base shadow-none focus-visible:ring-0"
+                          className="h-10 border-0 bg-transparent pl-10 pr-10 text-sm shadow-none focus-visible:ring-0"
                         />
                         <Sparkles className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
                       </div>
                     </div>
 
                     {popularSearches.length > 0 ? (
-                      <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium">Popular searches:</span>
                         {popularSearches.map((term) => (
                           <button
