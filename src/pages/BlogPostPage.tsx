@@ -1,4 +1,4 @@
-import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
+import BlogPostRenderer, { type BlogContentInput } from "@/components/blog/BlogPostRenderer";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Seo from "@/components/seo/Seo";
