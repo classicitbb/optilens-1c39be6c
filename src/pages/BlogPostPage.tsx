@@ -137,7 +137,7 @@ const BlogPostPage = () => {
                   <div className="min-w-0">
                     <div className="mx-auto max-w-3xl">
                       <BlogPostRenderer
-                        content={post.body_json || post.content}
+                        content={(post.body_json as BlogContentInput) || post.content}
                         className="text-base"
                         emptyMessage="This article has no content yet."
                       />
