@@ -70,7 +70,7 @@ const BlogHubPage = () => {
       <main id="main-content" className="pb-16 pt-24">
         <div className="container mx-auto px-4 lg:px-8">
           <section className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
-            <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.22),transparent_28%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.16),transparent_30%),linear-gradient(180deg,rgba(255,250,240,0.96),rgba(255,255,255,0.88))] px-6 py-8 sm:px-8 sm:py-10">
+            <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.22),transparent_28%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.16),transparent_30%)] px-6 py-8 sm:px-8 sm:py-10">
               <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]">
                 Classic Visions Editorial
               </Badge>
