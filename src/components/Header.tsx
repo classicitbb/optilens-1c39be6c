@@ -251,6 +251,7 @@ const BREADCRUMB_NAV_TARGETS = new Set<string>([
 "/",
 "/auth",
 "/reset-password",
+"/blog",
 "/store",
 "/knowledge",
 "/profile",
