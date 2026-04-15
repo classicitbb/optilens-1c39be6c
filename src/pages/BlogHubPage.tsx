@@ -80,7 +80,7 @@ const BlogHubPage = () => {
                     Our Blog: Stories, optical insight, and our newsletters.
                   </h1>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-                    Explore Caribbean-focused eyecare education, business guidance, patient-facing explainers, and the editorial foundation for future newsletters.
+                    Explore Caribbean-focused eyecare education, business guidance, patient-facing explainers, and published newsletters.
                   </p>
                 </div>
                 <div className="rounded-[1.5rem] border border-border/60 bg-background/80 p-5 shadow-sm">
