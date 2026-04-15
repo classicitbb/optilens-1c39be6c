@@ -83,7 +83,7 @@ const BlogHubPage = () => {
                 </p>
               </div>
 
-              <div className="mt-8 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-sm">
+              <div className="mt-5 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-sm">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input
