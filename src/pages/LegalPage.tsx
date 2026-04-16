@@ -1,3 +1,4 @@
+import AdminContentEditLink from "@/components/admin/AdminContentEditLink";
 import { lazy, Suspense } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -439,7 +440,12 @@ const LegalPage = () => {
             </div>
           ) : title ? (
             <>
-              <h1 className="text-3xl font-bold text-foreground mb-8">{title}</h1>
+              <div className="mb-8 flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+                {article?.id ? (
+                  <AdminContentEditLink mode="article" articleId={article.id} contentType="legal" />
+                ) : null}
+              </div>
               <article className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-headings:font-semibold prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3 prose-p:text-muted-foreground prose-p:leading-relaxed prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary">
                 <ReactMarkdown>{content}</ReactMarkdown>
               </article>

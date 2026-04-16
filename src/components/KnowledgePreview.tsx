@@ -1,30 +1,23 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import AdminContentEditLink from "@/components/admin/AdminContentEditLink";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePublicKnowledge } from "@/hooks/useContentArticles";
+import { buildPublicHelpCenterTree, toKnowledgeArticlePath } from "@/lib/helpCenter";
+import { ArrowRight, BookOpen } from "lucide-react";
+import { useMemo } from "react";
 import { Link } from "react-router";
-import { BookOpen, Lightbulb, HelpCircle, ArrowRight } from "lucide-react";
-
-const articles = [
-  {
-    icon: BookOpen,
-    title: "Lens Materials Guide",
-    description: "Understanding CR-39, polycarbonate, and high-index materials for optimal patient outcomes.",
-    category: "Materials",
-  },
-  {
-    icon: Lightbulb,
-    title: "Progressive Lens Design",
-    description: "A comprehensive overview of progressive lens technology and fitting considerations.",
-    category: "Technology",
-  },
-  {
-    icon: HelpCircle,
-    title: "Coating Options",
-    description: "Anti-reflective, blue light, and photochromic coatings explained for your customers.",
-    category: "Coatings",
-  },
-];
 
 const KnowledgePreview = () => {
+  const { data: articles = [], isLoading } = usePublicKnowledge();
+
+  const featuredArticles = useMemo(() => {
+    const tree = buildPublicHelpCenterTree(articles);
+    return tree.nodes
+      .filter((node) => node.kind === "article" && node.source === "cms")
+      .slice(0, 3);
+  }, [articles]);
+
   return (
     <section className="bg-background py-16 sm:py-24" aria-label="Knowledge base preview">
       <div className="container mx-auto px-4 lg:px-8">
@@ -45,36 +38,52 @@ const KnowledgePreview = () => {
           </Button>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
-          {articles.map((article, index) => (
-            <Card 
-              key={article.title}
-              variant="feature"
-              className="group cursor-pointer opacity-0 animate-fade-in"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <CardHeader>
-                <div className="mb-2 inline-flex w-fit items-center rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-                  {article.category}
-                </div>
-                <CardTitle className="flex items-center gap-2 text-base group-hover:text-accent transition-colors sm:text-lg">
-                  <article.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  {article.title}
-                </CardTitle>
-                <CardDescription>{article.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link 
-                  to="/knowledge" 
-                  className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
-                >
-                  Read about {article.title}
-                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+            <Skeleton className="h-60 rounded-xl" />
+            <Skeleton className="h-60 rounded-xl" />
+            <Skeleton className="h-60 rounded-xl" />
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+            {featuredArticles.map((article, index) => (
+              <Card
+                key={article.id}
+                variant="feature"
+                className="group opacity-0 animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <div className="inline-flex w-fit items-center rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                      {article.categoryId}
+                    </div>
+                    <AdminContentEditLink
+                      mode="article"
+                      articleId={article.id}
+                      contentType={article.categoryId === "faq" ? "faq" : "knowledge"}
+                      className="h-7 rounded-full px-2 text-[11px]"
+                    />
+                  </div>
+                  <CardTitle className="flex items-center gap-2 text-base group-hover:text-accent transition-colors sm:text-lg">
+                    <BookOpen className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    {article.title}
+                  </CardTitle>
+                  <CardDescription>{article.summary}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link
+                    to={toKnowledgeArticlePath(article.slug)}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+                  >
+                    Read article
+                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,3 +1,4 @@
+import AdminContentEditLink from "@/components/admin/AdminContentEditLink";
 import BlogPostRenderer, { type BlogContentInput } from "@/components/blog/BlogPostRenderer";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -100,6 +101,7 @@ const BlogPostPage = () => {
                         {formatPublishDate(post.published_at)}
                       </span>
                       <span className="text-sm text-muted-foreground">{post.author_name || "Classic Visions"}</span>
+                      <AdminContentEditLink mode="blog" blogId={post.id} />
                     </div>
                     <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
                       {post.title}

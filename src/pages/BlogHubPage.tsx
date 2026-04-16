@@ -1,3 +1,4 @@
+import AdminContentEditLink from "@/components/admin/AdminContentEditLink";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Seo from "@/components/seo/Seo";
@@ -165,10 +166,7 @@ const BlogHubPage = () => {
             <>
               {lead ? (
                 <section className="mt-8 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_24rem]">
-                  <Link
-                    to={`/blog/${lead.slug}`}
-                    className="group overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/90"
-                  >
+                  <article className="group overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/90">
                     <div className="aspect-[16/9] overflow-hidden bg-muted">
                       {lead.cover_image_url ? (
                         <img
@@ -187,6 +185,7 @@ const BlogHubPage = () => {
                           <CalendarDays className="h-4 w-4" />
                           {formatPublishDate(lead.published_at)}
                         </span>
+                        <AdminContentEditLink mode="blog" blogId={lead.id} />
                       </div>
                       <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                         {lead.title}
@@ -196,29 +195,38 @@ const BlogHubPage = () => {
                       </p>
                       <div className="flex items-center gap-3 text-sm font-medium text-foreground">
                         <span>{lead.author_name || "Classic Visions"}</span>
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        <Button asChild variant="ghost" className="h-auto px-0 py-0 text-sm font-medium">
+                          <Link to={`/blog/${lead.slug}`}>
+                            Read story
+                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                          </Link>
+                        </Button>
                       </div>
                     </div>
-                  </Link>
+                  </article>
 
                   <div className="grid gap-4">
                     {secondary.map((entry) => (
-                      <Link
+                      <article
                         key={entry.id}
-                        to={`/blog/${entry.slug}`}
                         className="group rounded-[1.5rem] border border-border/60 bg-card/90 p-5 transition-colors hover:bg-muted/30"
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline">{entry.entry_type === "newsletter" ? "Newsletter" : entry.category || "Article"}</Badge>
                           <span className="text-xs text-muted-foreground">{formatPublishDate(entry.published_at)}</span>
+                          <AdminContentEditLink mode="blog" blogId={entry.id} />
                         </div>
                         <h3 className="mt-4 text-xl font-semibold text-foreground">{entry.title}</h3>
                         <p className="mt-2 text-sm leading-6 text-muted-foreground">{entry.excerpt}</p>
                         <div className="mt-4 flex items-center gap-2 text-sm font-medium text-foreground">
-                          <span>Read story</span>
-                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                          <Button asChild variant="ghost" className="h-auto px-0 py-0 text-sm font-medium">
+                            <Link to={`/blog/${entry.slug}`}>
+                              Read story
+                              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                            </Link>
+                          </Button>
                         </div>
-                      </Link>
+                      </article>
                     ))}
                   </div>
                 </section>
@@ -237,8 +245,7 @@ const BlogHubPage = () => {
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {grid.map((entry) => (
-                    <Link key={entry.id} to={`/blog/${entry.slug}`} className="group">
-                      <Card className="h-full overflow-hidden border-border/60 bg-card/90 transition-colors group-hover:bg-muted/30">
+                    <Card key={entry.id} className="group h-full overflow-hidden border-border/60 bg-card/90 transition-colors group-hover:bg-muted/30">
                         {entry.cover_image_url ? (
                           <div className="aspect-[16/10] overflow-hidden bg-muted">
                             <img
@@ -252,6 +259,7 @@ const BlogHubPage = () => {
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="outline">{entry.category || "Article"}</Badge>
                             <span className="text-xs text-muted-foreground">{formatPublishDate(entry.published_at)}</span>
+                            <AdminContentEditLink mode="blog" blogId={entry.id} />
                           </div>
                           <h3 className="mt-4 text-xl font-semibold text-foreground">{entry.title}</h3>
                           <p className="mt-2 line-clamp-4 text-sm leading-6 text-muted-foreground">{entry.excerpt}</p>
@@ -264,9 +272,16 @@ const BlogHubPage = () => {
                               ))}
                             </div>
                           ) : null}
+                          <div className="mt-4">
+                            <Button asChild variant="ghost" className="h-auto px-0 py-0 text-sm font-medium">
+                              <Link to={`/blog/${entry.slug}`}>
+                                Read story
+                                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                              </Link>
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
-                    </Link>
                   ))}
                 </div>
               </section>

@@ -1,3 +1,4 @@
+import AdminContentEditLink from "@/components/admin/AdminContentEditLink";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
@@ -331,6 +332,13 @@ const Knowledge = () => {
                     <Badge variant="secondary">
                       {selectedNode.kind === "article" ? "Published" : "Existing page"}
                     </Badge>
+                    {selectedNode.kind === "article" && selectedNode.source === "cms" ? (
+                      <AdminContentEditLink
+                        mode="article"
+                        articleId={selectedNode.id}
+                        contentType={selectedNode.categoryId === "faq" ? "faq" : "knowledge"}
+                      />
+                    ) : null}
                   </div>
 
                   <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
@@ -473,14 +481,26 @@ const Knowledge = () => {
                           <p className="text-sm leading-6 text-muted-foreground">{section.summary}</p>
                           <div className="space-y-1">
                             {section.children.slice(0, 3).map((node) => (
-                              <Link
+                              <div
                                 key={node.id}
-                                to={getNodeHref(node)}
-                                className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                               >
-                                <span className="break-words text-pretty font-medium leading-5">{node.title}</span>
-                                <ChevronRight className="h-4 w-4 shrink-0" />
-                              </Link>
+                                <Link
+                                  to={getNodeHref(node)}
+                                  className="flex min-w-0 flex-1 items-center justify-between gap-3"
+                                >
+                                  <span className="break-words text-pretty font-medium leading-5">{node.title}</span>
+                                  <ChevronRight className="h-4 w-4 shrink-0" />
+                                </Link>
+                                {node.kind === "article" && node.source === "cms" ? (
+                                  <AdminContentEditLink
+                                    mode="article"
+                                    articleId={node.id}
+                                    contentType={node.categoryId === "faq" ? "faq" : "knowledge"}
+                                    className="h-7 rounded-full px-2 text-[11px]"
+                                  />
+                                ) : null}
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -515,9 +535,8 @@ const Knowledge = () => {
                     <Separator />
                     <div className="grid gap-4 p-6 md:grid-cols-3">
                       {blogPosts.slice(0, 3).map((post) => (
-                        <Link
+                        <div
                           key={post.id}
-                          to={`/blog/${post.slug}`}
                           className="rounded-[1.25rem] border border-border/60 bg-background/80 p-4 transition-colors hover:bg-muted/50"
                         >
                           <div className="flex flex-wrap items-center gap-2">
@@ -525,10 +544,19 @@ const Knowledge = () => {
                             <span className="text-xs text-muted-foreground">
                               {post.published_at ? new Date(post.published_at).toLocaleDateString() : "Draft"}
                             </span>
+                            <AdminContentEditLink mode="blog" blogId={post.id} className="h-7 rounded-full px-2 text-[11px]" />
                           </div>
                           <h4 className="mt-3 text-lg font-semibold text-foreground">{post.title}</h4>
                           <p className="mt-2 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
-                        </Link>
+                          <div className="mt-4">
+                            <Button asChild variant="ghost" className="h-auto px-0 py-0 text-sm font-medium">
+                              <Link to={`/blog/${post.slug}`}>
+                                Read article
+                                <ArrowRight data-icon="inline-end" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </section>
@@ -570,6 +598,14 @@ const Knowledge = () => {
                                     <Badge variant={node.kind === "article" ? "secondary" : "outline"}>
                                       {node.kind === "article" ? "Article" : "Existing page"}
                                     </Badge>
+                                    {node.kind === "article" && node.source === "cms" ? (
+                                      <AdminContentEditLink
+                                        mode="article"
+                                        articleId={node.id}
+                                        contentType={node.categoryId === "faq" ? "faq" : "knowledge"}
+                                        className="h-7 rounded-full px-2 text-[11px]"
+                                      />
+                                    ) : null}
                                   </div>
                                   <h4 className="mt-3 text-lg font-semibold text-foreground">{node.title}</h4>
                                   <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">

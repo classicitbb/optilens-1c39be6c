@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +37,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useSearchParams } from "react-router";
 
 const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
 
@@ -103,9 +104,11 @@ const BlogPostsManager = ({
   const { toast } = useToast();
   const { posts, upsertBlogPost, deleteBlogPost, seedBlogPosts, isSaving, isSeeding } =
     useAdminBlogPosts();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [editing, setEditing] = useState<BlogPostDraft | null>(null);
   const [tagInput, setTagInput] = useState("");
+  const requestedBlogId = searchParams.get("blogId");
 
   const filtered = useMemo(() => {
     if (!searchTerm.trim()) return posts;
@@ -157,6 +160,16 @@ const BlogPostsManager = ({
     setEditing({ ...post });
     setTagInput(asTagString(post.tags));
   };
+
+  useEffect(() => {
+    if (!requestedBlogId || editing) return;
+    const match = posts.find((post) => post.id === requestedBlogId);
+    if (!match) return;
+    openEditPost(match);
+    const next = new URLSearchParams(searchParams);
+    next.delete("blogId");
+    setSearchParams(next, { replace: true });
+  }, [editing, posts, requestedBlogId, searchParams, setSearchParams]);
 
   const handleSave = async () => {
     if (!editing?.title?.trim()) return;

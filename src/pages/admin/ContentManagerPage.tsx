@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense } from "react";
+import { useState, useMemo, lazy, Suspense, useEffect } from "react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import {
   useContentArticles,
@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
+import { useSearchParams } from "react-router";
 
 type ContentManagerTab = ContentType | "all" | "blog";
 
@@ -71,9 +72,12 @@ const KB_CATEGORIES = [
 const ContentManagerPage = () => {
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<ContentManagerTab>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [editing, setEditing] = useState<Partial<ContentArticle> | null>(null);
+  const requestedTab = searchParams.get("tab") as ContentManagerTab | null;
+  const requestedArticleId = searchParams.get("articleId");
 
   const contentTypeFilter = activeTab === "all" || activeTab === "blog" ? undefined : activeTab;
   const { articles, upsertArticle, deleteArticle, isSaving } = useContentArticles(contentTypeFilter);
@@ -171,6 +175,23 @@ const ContentManagerPage = () => {
   };
 
   const editingContextSlugs = editing?.context_slugs ?? [];
+
+  useEffect(() => {
+    if (!requestedTab) return;
+    if (TAB_CONFIG.some((tab) => tab.value === requestedTab) && requestedTab !== activeTab) {
+      setActiveTab(requestedTab);
+    }
+  }, [activeTab, requestedTab]);
+
+  useEffect(() => {
+    if (!requestedArticleId || editing || activeTab === "blog") return;
+    const match = articles.find((article) => article.id === requestedArticleId);
+    if (!match) return;
+    setEditing({ ...match });
+    const next = new URLSearchParams(searchParams);
+    next.delete("articleId");
+    setSearchParams(next, { replace: true });
+  }, [activeTab, articles, editing, requestedArticleId, searchParams, setSearchParams]);
 
   if (activeTab === "blog" && !editing) {
     return (
