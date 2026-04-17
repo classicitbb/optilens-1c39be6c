@@ -1,6 +1,6 @@
 import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
-import ComingSoonGate from "@/components/ComingSoonGate";
+
 import {
   PUBLIC_COATINGS_REDIRECTS,
   PUBLIC_LENSES_REDIRECTS,
