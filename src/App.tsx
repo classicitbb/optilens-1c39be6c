@@ -5,20 +5,21 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
-import Auth from "@/pages/Auth";
-import ResetPassword from "@/pages/ResetPassword";
-import NotFound from "@/pages/NotFound";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
 import RouteLoadingFallback from "@/routes/shared/RouteLoadingFallback";
-import Store from "@/pages/Store";
-import StoreProductPage from "@/pages/StoreProductPage";
-import Unsubscribe from "@/pages/Unsubscribe";
-import CheckoutPage from "@/pages/CheckoutPage";
+import PublicRoutes from "@/routes/public/PublicRoutes";
 import RuntimeAnalytics from "@/components/analytics/RuntimeAnalytics";
 import ScrollToTop from "@/components/ScrollToTop";
 import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 
+const Auth = lazy(() => import("@/pages/Auth"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Store = lazy(() => import("@/pages/Store"));
+const StoreProductPage = lazy(() => import("@/pages/StoreProductPage"));
+const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
+const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
 const GlobalErrorLogger = lazy(() => import("@/components/GlobalErrorLogger"));
@@ -27,7 +28,6 @@ const GlobalErrorLogger = lazy(() => import("@/components/GlobalErrorLogger"));
 // analytics or tracking code is initialized.
 const CookieConsentBanner = lazy(() => import("@/components/CookieConsentBanner"));
 
-const PublicRoutes = lazy(() => import("@/routes/public/PublicRoutes"));
 const PortalRoutes = lazy(() => import("@/routes/portal/PortalRoutes"));
 const OpsRoutes = lazy(() => import("@/routes/ops/OpsRoutes"));
 const AdminRoutes = lazy(() => import("@/routes/admin/AdminRoutes"));

@@ -7,8 +7,8 @@ import {
   PUBLIC_LEGAL_REDIRECTS,
   PUBLIC_MISC_REDIRECTS,
 } from "@/config/routeRegistry";
+import Index from "@/pages/Index";
 
-const Index = lazy(() => import("@/pages/Index"));
 const BlogHubPage = lazy(() => import("@/pages/BlogHubPage"));
 const BlogPostPage = lazy(() => import("@/pages/BlogPostPage"));
 const CompanionAssistantWindowPage = lazy(() => import("@/pages/assistant/CompanionAssistantWindowPage"));

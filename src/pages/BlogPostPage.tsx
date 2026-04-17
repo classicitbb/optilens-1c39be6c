@@ -84,37 +84,34 @@ const BlogPostPage = () => {
             </Card>
           ) : (
             <>
-              <div className="mb-4">
-                <Link to="/blog" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to blog
-                </Link>
-              </div>
-
-              <article className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
-                <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.16),transparent_26%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.14),transparent_28%)] px-6 py-10 sm:px-8 sm:py-12">
+              <article className="mt-3 overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
+                <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.16),transparent_26%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.14),transparent_28%)] px-6 py-5 sm:px-8 sm:py-6">
                   <div className="max-w-4xl">
+                    <Link to="/blog" className="mb-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      Back to blog
+                    </Link>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary">{post.category || "Blog Post"}</Badge>
-                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                        <CalendarDays className="h-4 w-4" />
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <CalendarDays className="h-3.5 w-3.5" />
                         {formatPublishDate(post.published_at)}
                       </span>
-                      <span className="text-sm text-muted-foreground">{post.author_name || "Classic Visions"}</span>
+                      <span className="text-xs text-muted-foreground">{post.author_name || "Classic Visions"}</span>
                       <AdminContentEditLink mode="blog" blogId={post.id} />
                     </div>
-                    <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
+                    <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
                       {post.title}
                     </h1>
                     {post.excerpt ? (
-                      <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
                         {post.excerpt}
                       </p>
                     ) : null}
                     {(post.tags ?? []).length > 0 ? (
-                      <div className="mt-5 flex flex-wrap gap-2">
+                      <div className="mt-3 flex flex-wrap gap-1.5">
                         {(post.tags ?? []).map((tag) => (
-                          <Badge key={tag} variant="outline">
+                          <Badge key={tag} variant="outline" className="text-xs">
                             #{tag}
                           </Badge>
                         ))}
