@@ -38,7 +38,8 @@ describe("public inquiry routing", () => {
     expect(source).toContain("feedback_email");
     expect(source).toContain("FEEDBACK_EMAIL_FALLBACK");
     expect(source).toContain("resolvedRecipient");
-    expect(source).toContain("recipient_email: resolvedRecipient");
-    expect(source).toContain("to: resolvedRecipient");
+    expect(source).toContain("recipientEmail: resolvedRecipient");
+    expect(source).toContain('templateName: "contact-inquiry-notification"');
+    expect(source).toContain('templateName: "inquiry-confirmation"');
   });
 });
