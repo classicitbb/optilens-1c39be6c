@@ -13,7 +13,25 @@ const normalizeReason = (reason: unknown) => {
 
 export default function GlobalErrorLogger() {
   useEffect(() => {
-    const onWindowError = (event: ErrorEvent) => {
+    const onError = (event: ErrorEvent) => {
+      // Resource load errors (img, video, script, link) don't have event.error
+      // and target is the element itself, not window.
+      if (event.target && event.target !== window) {
+        const el = event.target as HTMLElement;
+        const src =
+          (el as HTMLImageElement).src ||
+          (el as HTMLScriptElement).src ||
+          (el as HTMLLinkElement).href ||
+          el.tagName?.toLowerCase() ||
+          "unknown";
+        addRuntimeErrorLog({
+          source: "window.resource_error",
+          title: `Failed to load resource: ${el.tagName?.toLowerCase() ?? "element"}`,
+          detail: src,
+        });
+        return;
+      }
+
       addRuntimeErrorLog({
         source: "window.error",
         title: event.message || "Unhandled window error",
@@ -29,11 +47,12 @@ export default function GlobalErrorLogger() {
       });
     };
 
-    window.addEventListener("error", onWindowError);
+    // Use capture phase so resource load errors (which don't bubble) are caught too.
+    window.addEventListener("error", onError, true);
     window.addEventListener("unhandledrejection", onUnhandledRejection);
 
     return () => {
-      window.removeEventListener("error", onWindowError);
+      window.removeEventListener("error", onError, true);
       window.removeEventListener("unhandledrejection", onUnhandledRejection);
     };
   }, []);

@@ -68,10 +68,16 @@ export const useOrders = (targetUserId?: string) => {
       setOrders(ordersWithDetails.map(toOrderEntity));
     } catch (error) {
       console.error("Error fetching orders:", error);
+      setOrders([]);
+      toast({
+        title: "Could not load orders",
+        description: "Please refresh the page to try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  }, [effectiveUserId]);
+  }, [effectiveUserId, toast]);
 
   useEffect(() => {
     fetchOrders();

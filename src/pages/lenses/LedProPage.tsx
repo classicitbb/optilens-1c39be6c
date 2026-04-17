@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
@@ -82,6 +83,8 @@ const patientProfiles = [
 ];
 
 export default function LedProPage() {
+  const [videoDemoError, setVideoDemoError] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <Seo
@@ -142,14 +145,21 @@ export default function LedProPage() {
 
             <div className="flex items-end justify-center lg:justify-end">
               <div className="w-full max-w-xl rounded-[2rem] border border-white/14 bg-black/30 p-3 shadow-2xl shadow-black/35 backdrop-blur-sm">
-                <video
-                  id="watch-demo"
-                  className="aspect-video w-full rounded-[1.35rem] object-cover"
-                  src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/video/LED-PRO-FULL-ANZ.mp4`}
-                  controls
-                  preload="metadata"
-                  playsInline
-                />
+                {videoDemoError ? (
+                  <div className="aspect-video w-full rounded-[1.35rem] bg-black/40 flex items-center justify-center text-white/50 text-sm">
+                    Video preview unavailable
+                  </div>
+                ) : (
+                  <video
+                    id="watch-demo"
+                    className="aspect-video w-full rounded-[1.35rem] object-cover"
+                    src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/video/LED-PRO-FULL-ANZ.mp4`}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    onError={() => setVideoDemoError(true)}
+                  />
+                )}
                 <div className="grid gap-4 px-2 pb-2 pt-4 text-sm text-white/72 sm:grid-cols-3">
                   <div>
                     <p className="font-semibold text-white">LED Pro Lenses</p>

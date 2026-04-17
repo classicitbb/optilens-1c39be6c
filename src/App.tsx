@@ -18,6 +18,7 @@ import RuntimeAnalytics from "@/components/analytics/RuntimeAnalytics";
 import ScrollToTop from "@/components/ScrollToTop";
 import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
@@ -89,28 +90,30 @@ const App = () => (
               <CookieConsentBanner />
             </Suspense>
             <RuntimeAnalytics />
-            <Suspense fallback={<RouteLoadingFallback />}>
-              <Routes>
-                <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />
-                <Route path="/admin/moonshot/*" element={<AdminProtectedRoute><MoonshotRoutes /></AdminProtectedRoute>} />
-                <Route path="/admin/*" element={<AdminProtectedRoute><AdminRoutes /></AdminProtectedRoute>} />
+            <ErrorBoundary>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <Routes>
+                  <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />
+                  <Route path="/admin/moonshot/*" element={<AdminProtectedRoute><MoonshotRoutes /></AdminProtectedRoute>} />
+                  <Route path="/admin/*" element={<AdminProtectedRoute><AdminRoutes /></AdminProtectedRoute>} />
 
-                <Route element={<CustomerShell />}>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/unsubscribe" element={<Unsubscribe />} />
-                  <Route path="/store" element={<Store />} />
-                  <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
-                  <Route path="/checkout" element={<CheckoutPage />} />
-                  <Route path="/profile/*" element={<PortalRoutes />} />
-                  <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
-                  <Route path="/portal" element={<Navigate to="/profile" replace />} />
-                  <Route path="/*" element={<PublicRoutes />} />
-                </Route>
+                  <Route element={<CustomerShell />}>
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/unsubscribe" element={<Unsubscribe />} />
+                    <Route path="/store" element={<Store />} />
+                    <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
+                    <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/profile/*" element={<PortalRoutes />} />
+                    <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
+                    <Route path="/portal" element={<Navigate to="/profile" replace />} />
+                    <Route path="/*" element={<PublicRoutes />} />
+                  </Route>
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
