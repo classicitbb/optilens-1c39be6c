@@ -318,15 +318,9 @@ const Auth = () => {
         { label: "Explore Knowledge Hub", to: "/knowledge", variant: "outline" as const },
       ];
 
-  const oAuthRedirectHref = createAuthHref({
-    mode,
-    audience,
-    intent,
-    step: mode === "signup" ? "success" : null,
-    redirect,
-  });
-
-  const oAuthRedirectUri = `${window.location.origin}${oAuthRedirectHref}`;
+  // Use a clean origin redirect for OAuth — the Lovable broker allowlist matches origin only,
+  // and post-auth navigation is handled by the user-effect above (navigates to `redirect`).
+  const oAuthRedirectUri = window.location.origin;
 
   const headingText = mode === "signin"
     ? "Welcome back"
