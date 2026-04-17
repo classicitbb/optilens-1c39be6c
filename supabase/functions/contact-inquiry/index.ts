@@ -209,40 +209,53 @@ Deno.serve(async (req) => {
       siteUrl: "https://classicvisions.lovable.app",
     };
 
+    const sendTransactional = (body: Record<string, unknown>) =>
+      fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: serviceRoleKey,
+        },
+        body: JSON.stringify(body),
+      });
+
     const [notificationResult, confirmationResult] = await Promise.allSettled([
-      supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "contact-inquiry-notification",
-          recipientEmail: resolvedRecipient,
-          idempotencyKey: `contact-inquiry-${insertedInquiry.id}`,
-          templateData: notificationData,
-        },
+      sendTransactional({
+        templateName: "contact-inquiry-notification",
+        recipientEmail: resolvedRecipient,
+        idempotencyKey: `contact-inquiry-${insertedInquiry.id}`,
+        templateData: notificationData,
       }),
-      supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "inquiry-confirmation",
-          recipientEmail: payload.email,
-          idempotencyKey: `inquiry-confirm-${insertedInquiry.id}`,
-          templateData: confirmationData,
-        },
+      sendTransactional({
+        templateName: "inquiry-confirmation",
+        recipientEmail: payload.email,
+        idempotencyKey: `inquiry-confirm-${insertedInquiry.id}`,
+        templateData: confirmationData,
       }),
     ]);
 
-    if (notificationResult.status === "rejected" || notificationResult.value?.error) {
-      console.error("Failed to dispatch notification email", {
-        error: notificationResult.status === "rejected"
-          ? notificationResult.reason
-          : notificationResult.value?.error,
-      });
-      // Non-fatal: inquiry was saved
-    }
-    if (confirmationResult.status === "rejected" || confirmationResult.value?.error) {
-      console.error("Failed to dispatch inquiry confirmation email", {
-        error: confirmationResult.status === "rejected"
-          ? confirmationResult.reason
-          : confirmationResult.value?.error,
-      });
-    }
+    const reportEmailResult = async (
+      label: string,
+      result: PromiseSettledResult<Response>,
+    ) => {
+      if (result.status === "rejected") {
+        console.error(`Failed to dispatch ${label}`, { error: result.reason });
+        return;
+      }
+      if (!result.value.ok) {
+        const errorBody = await result.value.text().catch(() => "<unreadable>");
+        console.error(`Failed to dispatch ${label}`, {
+          status: result.value.status,
+          body: errorBody,
+        });
+      }
+    };
+
+    await Promise.all([
+      reportEmailResult("notification email", notificationResult),
+      reportEmailResult("inquiry confirmation email", confirmationResult),
+    ]);
 
     return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id }), {
       status: 200,
