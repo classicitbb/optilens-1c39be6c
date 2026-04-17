@@ -1,7 +1,7 @@
 export type RuntimeErrorLogEntry = {
   id: string;
   timestamp: string;
-  source: "toast" | "window.error" | "window.unhandledrejection";
+  source: "toast" | "window.error" | "window.unhandledrejection" | "window.resource_error" | "react.error_boundary";
   title: string;
   detail?: string;
   route?: string;
