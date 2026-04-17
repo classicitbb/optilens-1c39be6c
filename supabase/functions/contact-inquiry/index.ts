@@ -191,12 +191,9 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Render notification email via React Email template and enqueue it
-    const { renderAsync } = await import("npm:@react-email/components@0.0.22");
-    const React = await import("npm:react@18.3.1");
-    const { template } = await import("../_shared/transactional-email-templates/contact-inquiry-notification.tsx");
-
-    const templateData = {
+    // Delegate email sending to send-transactional-email so unsubscribe
+    // tokens, suppression checks, and queue handling are all consistent.
+    const notificationData = {
       inquiryType: payload.inquiryType,
       name: payload.name,
       email: payload.email,
@@ -209,104 +206,45 @@ Deno.serve(async (req) => {
       notes: payload.notes || "",
     };
 
-    const html = await renderAsync(
-      React.createElement(template.component, templateData)
-    );
-    const plainText = await renderAsync(
-      React.createElement(template.component, templateData),
-      { plainText: true }
-    );
-
-    const resolvedSubject =
-      typeof template.subject === "function"
-        ? template.subject(templateData)
-        : template.subject;
-
-    const messageId = crypto.randomUUID();
-    const idempotencyKey = `contact-inquiry-${insertedInquiry.id}`;
-
-    // Log pending
-    await supabase.from("email_send_log").insert({
-      message_id: messageId,
-      template_name: "contact-inquiry-notification",
-      recipient_email: resolvedRecipient,
-      status: "pending",
-    });
-
-    // Enqueue directly via RPC (same mechanism as send-transactional-email)
-    const { error: enqueueError } = await supabase.rpc("enqueue_email", {
-      queue_name: "transactional_emails",
-      payload: {
-        message_id: messageId,
-        to: resolvedRecipient,
-        from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
-        sender_domain: SENDER_DOMAIN,
-        subject: resolvedSubject,
-        html,
-        text: plainText,
-        reply_to: payload.email,
-        purpose: "transactional",
-        label: "contact-inquiry-notification",
-        idempotency_key: idempotencyKey,
-        queued_at: new Date().toISOString(),
-      },
-    });
-
-    if (enqueueError) {
-      console.error("Failed to enqueue notification email", { error: enqueueError });
-      // Non-fatal: inquiry was saved, just email failed to queue
-    }
-
-    // --- Send confirmation email to the person who submitted the inquiry ---
-    const { template: confirmationTemplate } = await import("../_shared/transactional-email-templates/inquiry-confirmation.tsx");
-
     const confirmationData = {
       name: payload.name,
       inquiryType: payload.inquiryType,
       siteUrl: "https://classicvisions.lovable.app",
     };
 
-    const confirmationHtml = await renderAsync(
-      React.createElement(confirmationTemplate.component, confirmationData)
-    );
-    const confirmationText = await renderAsync(
-      React.createElement(confirmationTemplate.component, confirmationData),
-      { plainText: true }
-    );
-    const confirmationSubject =
-      typeof confirmationTemplate.subject === "function"
-        ? confirmationTemplate.subject(confirmationData)
-        : confirmationTemplate.subject;
+    const [notificationResult, confirmationResult] = await Promise.allSettled([
+      supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "contact-inquiry-notification",
+          recipientEmail: resolvedRecipient,
+          idempotencyKey: `contact-inquiry-${insertedInquiry.id}`,
+          templateData: notificationData,
+        },
+      }),
+      supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "inquiry-confirmation",
+          recipientEmail: payload.email,
+          idempotencyKey: `inquiry-confirm-${insertedInquiry.id}`,
+          templateData: confirmationData,
+        },
+      }),
+    ]);
 
-    const confirmationMessageId = crypto.randomUUID();
-    const confirmationIdempotencyKey = `inquiry-confirm-${insertedInquiry.id}`;
-
-    await supabase.from("email_send_log").insert({
-      message_id: confirmationMessageId,
-      template_name: "inquiry-confirmation",
-      recipient_email: payload.email,
-      status: "pending",
-    });
-
-    const { error: confirmEnqueueError } = await supabase.rpc("enqueue_email", {
-      queue_name: "transactional_emails",
-      payload: {
-        message_id: confirmationMessageId,
-        to: payload.email,
-        from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
-        sender_domain: SENDER_DOMAIN,
-        subject: confirmationSubject,
-        html: confirmationHtml,
-        text: confirmationText,
-        purpose: "transactional",
-        label: "inquiry-confirmation",
-        idempotency_key: confirmationIdempotencyKey,
-        queued_at: new Date().toISOString(),
-      },
-    });
-
-    if (confirmEnqueueError) {
-      console.error("Failed to enqueue inquiry confirmation email", { error: confirmEnqueueError });
+    if (notificationResult.status === "rejected" || notificationResult.value?.error) {
+      console.error("Failed to dispatch notification email", {
+        error: notificationResult.status === "rejected"
+          ? notificationResult.reason
+          : notificationResult.value?.error,
+      });
+      // Non-fatal: inquiry was saved
+    }
+    if (confirmationResult.status === "rejected" || confirmationResult.value?.error) {
+      console.error("Failed to dispatch inquiry confirmation email", {
+        error: confirmationResult.status === "rejected"
+          ? confirmationResult.reason
+          : confirmationResult.value?.error,
+      });
     }
 
     return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id }), {
