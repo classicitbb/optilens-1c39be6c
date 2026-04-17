@@ -81,6 +81,7 @@ const Hero = () => {
               alt="Premium optical lenses with beautiful light refraction"
               className="relative z-10 w-full rounded-3xl shadow-medium animate-float"
               loading="eager"
+              fetchPriority="high"
               width={640}
               height={360}
             />
