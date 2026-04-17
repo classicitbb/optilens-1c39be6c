@@ -124,9 +124,9 @@ const ProfessionalsPage = () => {
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {sections.map((section) => (
-              <div key={section.title} className="rounded-xl border border-border bg-card p-5">
+              <div key={section.title} className="rounded-xl border border-border bg-card p-5 flex flex-col">
                 <h2 className="text-lg font-semibold text-foreground">{section.title}</h2>
-                <div className="mt-4 space-y-2">
+                <div className="mt-4 space-y-2 flex-1">
                   {section.links.map((link) => (
                     link.external ? (
                       <a
@@ -149,6 +149,15 @@ const ProfessionalsPage = () => {
                     )
                   ))}
                 </div>
+                {section.title === "For Optical Stores & Clinics" && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <a href="https://old.classicvisions.net" target="_blank" rel="noopener noreferrer">
+                        Visit Old Website
+                      </a>
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
