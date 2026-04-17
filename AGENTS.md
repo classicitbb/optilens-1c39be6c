@@ -1,17 +1,19 @@
 # AGENTS.md
 
 ## Environment
-- Use a Node LTS release supported by `package.json#engines` (currently `20.x` or `22.x`)
+
 - Install dependencies with `npm ci` when `package-lock.json` exists
 - Do not switch package managers
 - Assume the repo must work from a clean checkout
 
 ## Validation
+
 - Run `npm run lint`
 - Run `npm run test -- --runInBand`
 - Run `npm run build`
 
 ## Rules
+
 - Fix dependency and environment issues before changing app code
 - Do not bypass failing checks by removing scripts
 - Report exact failing command and root cause
