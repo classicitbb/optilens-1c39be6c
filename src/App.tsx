@@ -84,6 +84,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ScrollToTop />
+            <AdminHostRedirect />
             <DeferredGlobalWidgets />
             {/* Cookie consent renders immediately — before idle widgets — so
                 consent is collected before any analytics initialization. */}
