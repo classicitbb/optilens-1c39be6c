@@ -12,6 +12,46 @@ const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
 const SITE_NAME = "Classic Visions";
 const SENDER_DOMAIN = "support.classicvisions.net";
 const FROM_DOMAIN = "classicvisions.net";
+
+// Generate a cryptographically random 32-byte hex token (matches send-transactional-email)
+function generateToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Get or create a single unsubscribe token per email address
+async function getOrCreateUnsubscribeToken(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+): Promise<string> {
+  const normalized = email.toLowerCase();
+  const { data: existing } = await supabase
+    .from("email_unsubscribe_tokens")
+    .select("token, used_at")
+    .eq("email", normalized)
+    .maybeSingle();
+
+  if (existing && !existing.used_at) return existing.token as string;
+
+  const token = generateToken();
+  await supabase
+    .from("email_unsubscribe_tokens")
+    .upsert(
+      { token, email: normalized },
+      { onConflict: "email", ignoreDuplicates: true },
+    );
+
+  const { data: stored } = await supabase
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+
+  return (stored?.token as string) ?? token;
+}
 const MIN_FORM_FILL_MS = 2500;
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
@@ -191,12 +231,18 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Render notification email via React Email template and enqueue it
+    // Render templates and enqueue directly. Each transactional email needs
+    // its own unsubscribe_token (one per email address) so the Email API accepts it.
     const { renderAsync } = await import("npm:@react-email/components@0.0.22");
     const React = await import("npm:react@18.3.1");
-    const { template } = await import("../_shared/transactional-email-templates/contact-inquiry-notification.tsx");
+    const { template: notificationTemplate } = await import(
+      "../_shared/transactional-email-templates/contact-inquiry-notification.tsx"
+    );
+    const { template: confirmationTemplate } = await import(
+      "../_shared/transactional-email-templates/inquiry-confirmation.tsx"
+    );
 
-    const templateData = {
+    const notificationData = {
       inquiryType: payload.inquiryType,
       name: payload.name,
       email: payload.email,
@@ -209,105 +255,91 @@ Deno.serve(async (req) => {
       notes: payload.notes || "",
     };
 
-    const html = await renderAsync(
-      React.createElement(template.component, templateData)
-    );
-    const plainText = await renderAsync(
-      React.createElement(template.component, templateData),
-      { plainText: true }
-    );
-
-    const resolvedSubject =
-      typeof template.subject === "function"
-        ? template.subject(templateData)
-        : template.subject;
-
-    const messageId = crypto.randomUUID();
-    const idempotencyKey = `contact-inquiry-${insertedInquiry.id}`;
-
-    // Log pending
-    await supabase.from("email_send_log").insert({
-      message_id: messageId,
-      template_name: "contact-inquiry-notification",
-      recipient_email: resolvedRecipient,
-      status: "pending",
-    });
-
-    // Enqueue directly via RPC (same mechanism as send-transactional-email)
-    const { error: enqueueError } = await supabase.rpc("enqueue_email", {
-      queue_name: "transactional_emails",
-      payload: {
-        message_id: messageId,
-        to: resolvedRecipient,
-        from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
-        sender_domain: SENDER_DOMAIN,
-        subject: resolvedSubject,
-        html,
-        text: plainText,
-        reply_to: payload.email,
-        purpose: "transactional",
-        label: "contact-inquiry-notification",
-        idempotency_key: idempotencyKey,
-        queued_at: new Date().toISOString(),
-      },
-    });
-
-    if (enqueueError) {
-      console.error("Failed to enqueue notification email", { error: enqueueError });
-      // Non-fatal: inquiry was saved, just email failed to queue
-    }
-
-    // --- Send confirmation email to the person who submitted the inquiry ---
-    const { template: confirmationTemplate } = await import("../_shared/transactional-email-templates/inquiry-confirmation.tsx");
-
     const confirmationData = {
       name: payload.name,
       inquiryType: payload.inquiryType,
       siteUrl: "https://classicvisions.lovable.app",
     };
 
-    const confirmationHtml = await renderAsync(
-      React.createElement(confirmationTemplate.component, confirmationData)
-    );
-    const confirmationText = await renderAsync(
-      React.createElement(confirmationTemplate.component, confirmationData),
-      { plainText: true }
-    );
-    const confirmationSubject =
-      typeof confirmationTemplate.subject === "function"
-        ? confirmationTemplate.subject(confirmationData)
-        : confirmationTemplate.subject;
+    const enqueueRenderedEmail = async (
+      label: string,
+      recipient: string,
+      template: typeof notificationTemplate,
+      data: Record<string, unknown>,
+      idempotencyKey: string,
+      replyTo?: string,
+    ) => {
+      try {
+        const messageId = crypto.randomUUID();
+        const html = await renderAsync(
+          React.createElement(template.component, data),
+        );
+        const text = await renderAsync(
+          React.createElement(template.component, data),
+          { plainText: true },
+        );
+        const subject =
+          typeof template.subject === "function"
+            ? template.subject(data)
+            : template.subject;
+        const unsubscribeToken = await getOrCreateUnsubscribeToken(
+          supabase,
+          recipient,
+        );
 
-    const confirmationMessageId = crypto.randomUUID();
-    const confirmationIdempotencyKey = `inquiry-confirm-${insertedInquiry.id}`;
+        await supabase.from("email_send_log").insert({
+          message_id: messageId,
+          template_name: label,
+          recipient_email: recipient,
+          status: "pending",
+        });
 
-    await supabase.from("email_send_log").insert({
-      message_id: confirmationMessageId,
-      template_name: "inquiry-confirmation",
-      recipient_email: payload.email,
-      status: "pending",
-    });
+        const { error: enqueueError } = await supabase.rpc("enqueue_email", {
+          queue_name: "transactional_emails",
+          payload: {
+            message_id: messageId,
+            to: recipient,
+            from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
+            sender_domain: SENDER_DOMAIN,
+            subject,
+            html,
+            text,
+            ...(replyTo ? { reply_to: replyTo } : {}),
+            purpose: "transactional",
+            label,
+            idempotency_key: idempotencyKey,
+            unsubscribe_token: unsubscribeToken,
+            queued_at: new Date().toISOString(),
+          },
+        });
 
-    const { error: confirmEnqueueError } = await supabase.rpc("enqueue_email", {
-      queue_name: "transactional_emails",
-      payload: {
-        message_id: confirmationMessageId,
-        to: payload.email,
-        from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
-        sender_domain: SENDER_DOMAIN,
-        subject: confirmationSubject,
-        html: confirmationHtml,
-        text: confirmationText,
-        purpose: "transactional",
-        label: "inquiry-confirmation",
-        idempotency_key: confirmationIdempotencyKey,
-        queued_at: new Date().toISOString(),
-      },
-    });
+        if (enqueueError) {
+          console.error(`Failed to enqueue ${label}`, { error: enqueueError });
+        }
+      } catch (err) {
+        console.error(`Failed to render/enqueue ${label}`, {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    };
 
-    if (confirmEnqueueError) {
-      console.error("Failed to enqueue inquiry confirmation email", { error: confirmEnqueueError });
-    }
+    await Promise.all([
+      enqueueRenderedEmail(
+        "contact-inquiry-notification",
+        resolvedRecipient,
+        notificationTemplate,
+        notificationData,
+        `contact-inquiry-${insertedInquiry.id}`,
+        payload.email,
+      ),
+      enqueueRenderedEmail(
+        "inquiry-confirmation",
+        payload.email,
+        confirmationTemplate,
+        confirmationData,
+        `inquiry-confirm-${insertedInquiry.id}`,
+      ),
+    ]);
 
     return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id }), {
       status: 200,
