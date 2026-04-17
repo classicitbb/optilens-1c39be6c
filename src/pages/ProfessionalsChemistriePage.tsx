@@ -177,6 +177,7 @@ const SPECS = [
 
 export default function ProfessionalsChemistriePage() {
   const [tab, setTab] = useState("sun-colors");
+  const [heroBgVideoError, setHeroBgVideoError] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -186,15 +187,17 @@ export default function ProfessionalsChemistriePage() {
       <section className="relative min-h-[92vh] overflow-hidden">
         {/* Background image fills the entire section */}
         <div className="absolute inset-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="h-full w-full object-cover">
-            
-            <source src="https://www.forecps.com/wp-content/uploads/2025/06/chem-sun-short.mp4" type="video/mp4" />
-          </video>
+          {!heroBgVideoError && (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="h-full w-full object-cover"
+              src="https://www.forecps.com/wp-content/uploads/2025/06/chem-sun-short.mp4"
+              onError={() => setHeroBgVideoError(true)}
+            />
+          )}
           {/* Gradient overlay: transparent on right → dark on left */}
           <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-background/10" />
         </div>

@@ -11,7 +11,8 @@ type Message = {
   content: string;
 };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lens-assistant`;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const CHAT_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/lens-assistant` : null;
 
 export const LensChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,6 +61,8 @@ export const LensChatbot = () => {
     };
 
     try {
+      if (!CHAT_URL) throw new Error("Chat service is not configured.");
+
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {

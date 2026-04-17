@@ -3,8 +3,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { Link } from "react-router";
-import heroLensesImage from "@/assets/hero-lenses.jpg";
-import chemistrieHeroImage from "@/assets/chemistrie-hero.jpg";
+import tintLifestyleApplicationImage from "@/assets/tints-lifestyle-application.jpg";
+import tintGradientBehaviorImage from "@/assets/tints-gradient-behavior.jpg";
 
 const highlights = [
   "Offers cosmetic personalization with functional light-management benefits.",
@@ -230,7 +230,7 @@ const TintsFashionColorsPage = () => {
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <figure className="overflow-hidden rounded-lg border border-border/80 bg-muted/20">
                   <img
-                    src={heroLensesImage}
+                    src={tintLifestyleApplicationImage}
                     alt="Lifestyle eyewear showcasing tinted lenses in bright outdoor light"
                     className="h-56 w-full object-cover"
                     loading="lazy"
@@ -240,7 +240,7 @@ const TintsFashionColorsPage = () => {
 
                 <figure className="overflow-hidden rounded-lg border border-border/80 bg-muted/20">
                   <img
-                    src={chemistrieHeroImage}
+                    src={tintGradientBehaviorImage}
                     alt="Close-up view of lens tint color and gradient transitions"
                     className="h-56 w-full object-cover"
                     loading="lazy"
