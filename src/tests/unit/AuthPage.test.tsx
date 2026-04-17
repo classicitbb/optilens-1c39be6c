@@ -84,6 +84,7 @@ describe("Auth page onboarding flow", () => {
     fireEvent.change(screen.getByLabelText("Full Name"), { target: { value: "Jordan Smith" } });
     fireEvent.change(screen.getByLabelText("Phone Number"), { target: { value: "+1 246 555 0101" } });
     fireEvent.change(screen.getByLabelText("Business Name"), { target: { value: "Vision Center" } });
+    fireEvent.change(screen.getByLabelText("Tax / Business Registration #"), { target: { value: "TIN-12345" } });
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "jordan@example.com" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret12" } });
 
