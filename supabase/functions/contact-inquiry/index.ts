@@ -9,6 +9,49 @@ const corsPolicy = createCorsPolicy({
 });
 
 const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
+const SITE_NAME = "Classic Visions";
+const SENDER_DOMAIN = "support.classicvisions.net";
+const FROM_DOMAIN = "classicvisions.net";
+
+// Generate a cryptographically random 32-byte hex token (matches send-transactional-email)
+function generateToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Get or create a single unsubscribe token per email address
+async function getOrCreateUnsubscribeToken(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+): Promise<string> {
+  const normalized = email.toLowerCase();
+  const { data: existing } = await supabase
+    .from("email_unsubscribe_tokens")
+    .select("token, used_at")
+    .eq("email", normalized)
+    .maybeSingle();
+
+  if (existing && !existing.used_at) return existing.token as string;
+
+  const token = generateToken();
+  await supabase
+    .from("email_unsubscribe_tokens")
+    .upsert(
+      { token, email: normalized },
+      { onConflict: "email", ignoreDuplicates: true },
+    );
+
+  const { data: stored } = await supabase
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+
+  return (stored?.token as string) ?? token;
+}
 const MIN_FORM_FILL_MS = 2500;
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
