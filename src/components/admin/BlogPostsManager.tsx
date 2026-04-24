@@ -34,9 +34,11 @@ import {
   Save,
   Search,
   Sparkles,
+  Star,
   Trash2,
   X,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useSearchParams } from "react-router";
 
 const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
@@ -92,6 +94,7 @@ const buildNewDraft = (): BlogPostDraft => ({
   source_url: "",
   status: "draft",
   entry_type: "blog_post",
+  is_featured: false,
 });
 
 const BlogPostsManager = ({
@@ -194,6 +197,7 @@ const BlogPostsManager = ({
         source_url: editing.source_url?.trim() || null,
         status: (editing.status ?? "draft") as BlogPostStatus,
         entry_type: (editing.entry_type ?? "blog_post") as BlogEntryType,
+        is_featured: editing.is_featured ?? false,
       });
       toast({ title: editing.id ? "Blog entry updated" : "Blog entry created" });
       setEditing(null);
@@ -405,6 +409,22 @@ const BlogPostsManager = ({
                       {(editing.entry_type ?? "blog_post") === "newsletter" ? "Newsletter" : "Blog Post"}
                     </Badge>
                   </div>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-medium text-foreground">Feature on home page</p>
+                      <p className="text-xs text-muted-foreground">Shows in the blog carousel</p>
+                    </div>
+                    <Switch
+                      checked={editing.is_featured ?? false}
+                      onCheckedChange={(checked) => setEditing({ ...editing, is_featured: checked })}
+                    />
+                  </div>
+                  {editing.is_featured && (
+                    <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-2 text-xs text-accent">
+                      <Star className="h-3 w-3 fill-accent" />
+                      This post will appear in the home page carousel
+                    </div>
+                  )}
                   <p className="mt-3 text-xs leading-5 text-muted-foreground">
                     Published entries appear on `/blog`. Published blog posts can also surface from Knowledge Base without duplicating the canonical article route.
                   </p>
@@ -599,6 +619,9 @@ const BlogPostsManager = ({
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-[13px] font-medium text-foreground">{post.title}</p>
+                          {post.is_featured && (
+                            <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" aria-label="Featured" />
+                          )}
                           <Badge variant="outline" className="text-[9px]">
                             {post.entry_type === "newsletter" ? "Newsletter" : "Blog Post"}
                           </Badge>
