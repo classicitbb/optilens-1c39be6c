@@ -433,38 +433,50 @@ const CompanionAssistant = () => {
 
   return (
     <>
-      {!isDetachedRoute && nudge ? (
+      {!isDetachedRoute && nudge && consentGiven ? (
         <div className="fixed bottom-24 right-4 z-40 max-w-xs rounded-[22px] border border-slate-700/80 bg-slate-950/95 p-4 shadow-[0_30px_80px_rgba(2,6,23,0.5)] backdrop-blur sm:right-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-50">Need a hand?</p>
               <p className="mt-1 text-xs leading-5 text-slate-300">{nudge.message}</p>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={dismissNudge}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={handleNudgeDismiss}>
               <X className="h-4 w-4" />
             </Button>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" className="rounded-full" onClick={() => openAssistant({ query: nudge.query, autoSubmit: Boolean(nudge.query) })}>
+            <Button size="sm" className="rounded-full" onClick={() => { setIsCollapsed(false); openAssistant({ query: nudge.query, autoSubmit: Boolean(nudge.query) }); }}>
               <Sparkles className="mr-2 h-4 w-4" />
               Open assistant
             </Button>
-            <Button size="sm" variant="outline" className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800" onClick={dismissNudge}>
+            <Button size="sm" variant="outline" className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800" onClick={handleNudgeDismiss}>
               Not now
             </Button>
           </div>
         </div>
       ) : null}
 
-      {!isDetachedRoute && !isOpen ? (
-        <Button
-          type="button"
-          onClick={() => (isOpen ? closeAssistant() : openAssistant())}
-          className="fixed bottom-4 right-4 z-50 h-14 rounded-full border border-sky-400/20 bg-slate-950 text-slate-50 shadow-[0_24px_70px_rgba(2,6,23,0.52)] hover:bg-slate-900 sm:bottom-6 sm:right-6"
-        >
-          {isOpen ? <X className="mr-2 h-5 w-5" /> : <MessageCircle className="mr-2 h-5 w-5" />}
-          {isOpen ? "Close" : "Search & help"}
-        </Button>
+      {!isDetachedRoute && !isOpen && consentGiven ? (
+        isCollapsed ? (
+          <Button
+            type="button"
+            size="icon"
+            aria-label="Open search & help assistant"
+            onClick={() => { setIsCollapsed(false); openAssistant(); }}
+            className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-sky-400/20 bg-slate-950 text-slate-50 shadow-[0_24px_70px_rgba(2,6,23,0.52)] hover:bg-slate-900 sm:bottom-6 sm:right-6"
+          >
+            <Sparkles className="h-5 w-5" />
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            onClick={() => openAssistant()}
+            className="fixed bottom-4 right-4 z-50 h-14 rounded-full border border-sky-400/20 bg-slate-950 text-slate-50 shadow-[0_24px_70px_rgba(2,6,23,0.52)] hover:bg-slate-900 sm:bottom-6 sm:right-6"
+          >
+            <MessageCircle className="mr-2 h-5 w-5" />
+            Search & help
+          </Button>
+        )
       ) : null}
 
       {isOpen ? (
