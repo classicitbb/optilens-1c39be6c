@@ -212,6 +212,18 @@ const Store = () => {
   const { data: products, isLoading } = useStoreProducts();
 
   const filtered = useMemo(() => {
+    const categorySlug = initialCategory.toLowerCase();
+    // Map landing-page collection slugs to product_type so we never render an empty store.
+    const categoryToProductType: Record<string, StoreProduct["product_type"]> = {
+      surfaced: "lens",
+      finished: "lens",
+      lab: "supply",
+      optical: "supply",
+      accessories: "supply",
+      services: "addon",
+    };
+    const aliasedType = categoryToProductType[categorySlug];
+
     const result = (products || []).filter((p) => {
       const matchesSearch =
         !searchTerm ||
@@ -225,8 +237,12 @@ const Store = () => {
         (activeTab === "services" && p.product_type === "addon");
 
       const matchesCategory =
-        !initialCategory ||
-        p.category.toLowerCase() === initialCategory.toLowerCase();
+        !categorySlug ||
+        (aliasedType ? p.product_type === aliasedType : (
+          p.category.toLowerCase() === categorySlug ||
+          p.subcategory.toLowerCase() === categorySlug ||
+          p.tags.some((t) => t.toLowerCase() === categorySlug)
+        ));
 
       return matchesSearch && matchesTab && matchesCategory;
     });
