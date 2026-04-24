@@ -2,6 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
+type VercelAnalyticsBackup = {
+  visitors: number | null;
+  bounceRate: number | null;
+  avgSessionSeconds: number | null;
+  returningUsers: number | null;
+  lcp: number | null;
+  inp: number | null;
+  cls: number | null;
+};
+
 export interface WebsiteAnalyticsMetric {
   label: string;
   value: string;
@@ -94,6 +104,18 @@ const formatVitalValue = (metricName: string, value: number | null) => {
   return `${Math.round(value)}ms`;
 };
 
+// Fetch Vercel Analytics backup via the edge-function proxy.
+// Returns null when the proxy is unavailable or unconfigured.
+const fetchVercelBackup = async (): Promise<VercelAnalyticsBackup | null> => {
+  try {
+    const { data, error } = await (supabase.functions as any).invoke("vercel-analytics-proxy");
+    if (error || !data?.available) return null;
+    return (data.data as VercelAnalyticsBackup) ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export const useWebsiteAnalyticsOverview = () => {
   return useQuery({
     queryKey: ["admin-dashboard", "website-analytics-overview"],
@@ -147,21 +169,46 @@ export const useWebsiteAnalyticsOverview = () => {
       );
 
       const vitals = (currentVitalsResult.data ?? []) as WebVitalRow[];
-      const lcp = percentile(vitals.filter((row) => row.metric_name === "LCP").map((row) => Number(row.metric_value ?? 0)), 0.75);
-      const inp = percentile(vitals.filter((row) => row.metric_name === "INP").map((row) => Number(row.metric_value ?? 0)), 0.75);
-      const cls = percentile(vitals.filter((row) => row.metric_name === "CLS").map((row) => Number(row.metric_value ?? 0)), 0.75);
+      let lcp = percentile(vitals.filter((row) => row.metric_name === "LCP").map((row) => Number(row.metric_value ?? 0)), 0.75);
+      let inp = percentile(vitals.filter((row) => row.metric_name === "INP").map((row) => Number(row.metric_value ?? 0)), 0.75);
+      let cls = percentile(vitals.filter((row) => row.metric_name === "CLS").map((row) => Number(row.metric_value ?? 0)), 0.75);
+
+      // When Supabase has no session data yet, pull from Vercel Analytics as backup.
+      const primaryIsEmpty = currentSnapshot.visitorCount === 0;
+      const vitalsEmpty = lcp === null && inp === null && cls === null;
+
+      let vercel: VercelAnalyticsBackup | null = null;
+      if (primaryIsEmpty || vitalsEmpty) {
+        vercel = await fetchVercelBackup();
+      }
+
+      // Fill missing visitor-based metrics from Vercel when Supabase has no sessions.
+      const effectiveVisitors = primaryIsEmpty && vercel?.visitors != null ? vercel.visitors : currentSnapshot.visitorCount;
+      const effectiveBounceRate = primaryIsEmpty && vercel?.bounceRate != null ? vercel.bounceRate : currentSnapshot.bounceRate;
+      const effectiveAvgSession = primaryIsEmpty && vercel?.avgSessionSeconds != null ? vercel.avgSessionSeconds : currentSnapshot.averageSessionSeconds;
+      const effectiveReturning = primaryIsEmpty && vercel?.returningUsers != null ? vercel.returningUsers : currentSnapshot.returningUsers;
+
+      // Fill missing web vitals from Vercel when Supabase has no vitals rows.
+      if (vitalsEmpty && vercel) {
+        lcp = vercel.lcp;
+        inp = vercel.inp;
+        cls = vercel.cls;
+      }
+
+      const usingVercel = primaryIsEmpty && vercel !== null;
+      const vercelTrend = "Via Vercel Analytics";
 
       return {
         metrics: [
           {
             label: "Visitors",
-            value: numberFormatter.format(currentSnapshot.visitorCount),
-            trend: formatSignedPercent(currentSnapshot.visitorCount, previousSnapshot.visitorCount),
+            value: numberFormatter.format(effectiveVisitors),
+            trend: usingVercel && vercel?.visitors != null ? vercelTrend : formatSignedPercent(currentSnapshot.visitorCount, previousSnapshot.visitorCount),
           },
           {
             label: "Bounce Rate",
-            value: `${currentSnapshot.bounceRate.toFixed(1)}%`,
-            trend: formatSignedPercent(currentSnapshot.bounceRate, previousSnapshot.bounceRate, true),
+            value: `${effectiveBounceRate.toFixed(1)}%`,
+            trend: usingVercel && vercel?.bounceRate != null ? vercelTrend : formatSignedPercent(currentSnapshot.bounceRate, previousSnapshot.bounceRate, true),
           },
           {
             label: "Abandoned Carts",
@@ -175,19 +222,19 @@ export const useWebsiteAnalyticsOverview = () => {
           },
           {
             label: "Avg. Session Time",
-            value: formatDuration(currentSnapshot.averageSessionSeconds),
-            trend: formatDurationTrend(currentSnapshot.averageSessionSeconds, previousSnapshot.averageSessionSeconds),
+            value: formatDuration(effectiveAvgSession),
+            trend: usingVercel && vercel?.avgSessionSeconds != null ? vercelTrend : formatDurationTrend(currentSnapshot.averageSessionSeconds, previousSnapshot.averageSessionSeconds),
           },
           {
             label: "Returning Users",
-            value: numberFormatter.format(currentSnapshot.returningUsers),
-            trend: formatSignedPercent(currentSnapshot.returningUsers, previousSnapshot.returningUsers),
+            value: numberFormatter.format(effectiveReturning),
+            trend: usingVercel && vercel?.returningUsers != null ? vercelTrend : formatSignedPercent(currentSnapshot.returningUsers, previousSnapshot.returningUsers),
           },
         ],
         webVitals: [
-          { label: "LCP (p75)", value: formatVitalValue("LCP", lcp), trend: "Live web metric" },
-          { label: "INP (p75)", value: formatVitalValue("INP", inp), trend: "Live web metric" },
-          { label: "CLS (p75)", value: formatVitalValue("CLS", cls), trend: "Live web metric" },
+          { label: "LCP (p75)", value: formatVitalValue("LCP", lcp), trend: vitalsEmpty && vercel?.lcp != null ? vercelTrend : "Live web metric" },
+          { label: "INP (p75)", value: formatVitalValue("INP", inp), trend: vitalsEmpty && vercel?.inp != null ? vercelTrend : "Live web metric" },
+          { label: "CLS (p75)", value: formatVitalValue("CLS", cls), trend: vitalsEmpty && vercel?.cls != null ? vercelTrend : "Live web metric" },
         ],
       };
     },
