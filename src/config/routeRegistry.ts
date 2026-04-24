@@ -72,6 +72,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.lenses.tints-fashion-colors", path: "/lenses/tints-fashion-colors", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.lenses.materials", path: "/lenses/materials", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.lenses.thickness-chart", path: "/lenses/thickness-chart", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
+  { id: "public.coatings", path: "/coatings", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.coatings.mirror", path: "/coatings/mirror", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.coatings.ultraclear-ar", path: "/coatings/ultraclear-ar", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.coatings.blueblock-ar", path: "/coatings/blueblock-ar", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
