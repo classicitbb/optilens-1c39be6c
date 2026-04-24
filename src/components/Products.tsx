@@ -37,7 +37,9 @@ const products = [
     title: "Rx Lab Services",
     description: "Professional prescription laboratory services including surfacing, edging, tinting, and specialty coatings.",
     features: ["Custom surfacing", "Precision edging", "Specialty coatings"],
-    link: "/store?category=services",
+    link: "/rx-lab-services",
+    cta: true,
+    ctaLabel: "Learn More & Sign Up",
   },
   {
     icon: Globe,
@@ -95,7 +97,7 @@ const Products = () => {
                   asChild
                 >
                   <Link to={product.link}>
-                    {product.cta ? "View Demo & Quote" : "View Products"}
+                    {product.ctaLabel ?? (product.cta ? "View Demo & Quote" : "View Products")}
                     <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" aria-hidden="true" />
                   </Link>
                 </Button>
