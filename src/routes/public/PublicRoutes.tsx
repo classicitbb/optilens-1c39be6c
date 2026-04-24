@@ -67,9 +67,17 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const toRelativePath = (path: string) => path.replace(/^\//, "");
 
+const ContactHashRedirect = () => {
+  if (typeof window !== "undefined") {
+    window.location.replace("/#contact");
+  }
+  return null;
+};
+
 const PublicRoutes = () => (
   <Routes>
     <Route index element={<Index />} />
+    <Route path="contact" element={<ContactHashRedirect />} />
     <Route path="blog" element={<BlogHubPage />} />
     <Route path="blog/:slug" element={<BlogPostPage />} />
     <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
