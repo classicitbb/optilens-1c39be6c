@@ -23,6 +23,7 @@ export type BlogPost = {
   seo_title: string | null;
   seo_description: string | null;
   source_url: string | null;
+  is_featured: boolean;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -96,6 +97,31 @@ export const usePublicBlogPosts = (entryType?: BlogEntryType) => {
       }
 
       const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []) as BlogPost[];
+    },
+  });
+};
+
+export const useFeaturedBlogPosts = () => {
+  return useQuery({
+    queryKey: ["blog_posts", "public", "featured"],
+    queryFn: async () => {
+      const { data: featured, error: featuredError } = await blogTable()
+        .select("*")
+        .eq("status", "published")
+        .eq("is_featured", true)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(6);
+      if (featuredError) throw featuredError;
+
+      if ((featured ?? []).length > 0) return (featured ?? []) as BlogPost[];
+
+      const { data, error } = await blogTable()
+        .select("*")
+        .eq("status", "published")
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(6);
       if (error) throw error;
       return (data ?? []) as BlogPost[];
     },
