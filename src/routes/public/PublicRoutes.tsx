@@ -17,6 +17,7 @@ const RxLabServicesPage = lazy(() => import("@/pages/RxLabServicesPage"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazy(() => import("@/pages/LensDesignGuidePage"));
+const CoatingsLandingPage = lazy(() => import("@/pages/coatings/CoatingsLandingPage"));
 const MirrorFinishPage = lazy(() => import("@/pages/MirrorFinishPage"));
 const UltraClearARPage = lazy(() => import("@/pages/coatings/UltraClearARPage"));
 const BlueBlockARPage = lazy(() => import("@/pages/coatings/BlueBlockARPage"));
@@ -112,6 +113,7 @@ const PublicRoutes = () => (
     <Route path="lenses/materials" element={<MaterialsPage />} />
     <Route path="lenses/thickness-chart" element={<ThicknessChartPage />} />
 
+    <Route path="coatings" element={<CoatingsLandingPage />} />
     <Route path="coatings/mirror" element={<MirrorFinishPage />} />
     <Route path="coatings/ultraclear-ar" element={<UltraClearARPage />} />
     <Route path="coatings/blueblock-ar" element={<BlueBlockARPage />} />

@@ -257,6 +257,7 @@ const BREADCRUMB_NAV_TARGETS = new Set<string>([
 "/profile",
 "/orders",
 "/lenses",
+"/coatings",
 "/patients",
 "/professionals",
 "/find-a-retailer",
