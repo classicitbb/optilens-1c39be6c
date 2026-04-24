@@ -339,6 +339,22 @@ const CompanionAssistant = () => {
     formState,
   } = useCompanionAssistant();
 
+  // Track whether the user dismissed the nudge ("Not now") — collapse to icon-only bubble
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const handleNudgeDismiss = () => {
+    setIsCollapsed(true);
+    dismissNudge();
+  };
+
+  // Track cookie-consent state so we can hide the launcher while the banner is showing
+  const [consentGiven, setConsentGiven] = useState(true);
+  useEffect(() => {
+    const update = () => setConsentGiven(hasGivenConsent());
+    update();
+    window.addEventListener(COOKIE_PREFERENCES_EVENT, update);
+    return () => window.removeEventListener(COOKIE_PREFERENCES_EVENT, update);
+  }, []);
+
   const title = useMemo(
     () => (location.pathname.startsWith("/profile") ? "Search and support assistant" : "Search and help assistant"),
     [location.pathname],
