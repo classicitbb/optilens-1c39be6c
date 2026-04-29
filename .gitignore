@@ -25,3 +25,8 @@ dist-ssr
 
 # Optional local Bun lockfile
 bun.lockb
+
+# Environment variables — never commit secrets
+.env
+.env.*
+!.env.example

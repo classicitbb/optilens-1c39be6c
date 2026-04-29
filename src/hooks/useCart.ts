@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { safeError } from "@/lib/safeLog";
 
 export interface CartItem {
   id: string;
@@ -74,7 +75,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
       setItems((data || []).map((d: any) => ({ ...d, product_type: d.product_type as "lens" | "supply" | "addon", variant_metadata: (d.variant_metadata ?? {}) as Record<string, unknown> })));
     } catch (error) {
       if (!isExpectedCartError(error)) {
-        console.error("Error fetching cart:", error);
+        safeError("Error fetching cart:", error);
       }
       setItems([]);
     } finally {
@@ -162,7 +163,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         description: `${product.name} has been added to your cart.`,
       });
     } catch (error) {
-      console.error("Error adding to cart:", error);
+      safeError("Error adding to cart:", error);
       toast({
         title: "Error",
         description: "Failed to add item to cart.",
@@ -192,7 +193,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
 
       setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, quantity } : item)));
     } catch (error) {
-      console.error("Error updating quantity:", error);
+      safeError("Error updating quantity:", error);
       toast({
         title: "Error",
         description: "Failed to update quantity.",
@@ -223,7 +224,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         description: "Item has been removed from your cart.",
       });
     } catch (error) {
-      console.error("Error removing from cart:", error);
+      safeError("Error removing from cart:", error);
       toast({
         title: "Error",
         description: "Failed to remove item.",
@@ -242,7 +243,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
 
       setItems([]);
     } catch (error) {
-      console.error("Error clearing cart:", error);
+      safeError("Error clearing cart:", error);
     }
   };
 

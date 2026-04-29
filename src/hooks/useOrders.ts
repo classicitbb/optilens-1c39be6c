@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { safeError, safeWarn } from "@/lib/safeLog";
 import type { OrderEntity } from "@/domain/entities";
 import { toOrderEntity } from "@/domain/services/recordMappers";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
@@ -67,7 +68,7 @@ export const useOrders = (targetUserId?: string) => {
 
       setOrders(ordersWithDetails.map(toOrderEntity));
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      safeError("Error fetching orders:", error);
       setOrders([]);
       toast({
         title: "Could not load orders",
@@ -165,13 +166,13 @@ export const useOrders = (targetUserId?: string) => {
       supabase.functions.invoke("order-confirmation", {
         body: { orderId },
       }).catch((emailError) => {
-        console.error("Failed to queue order confirmation email:", emailError);
+        safeWarn("Failed to queue order confirmation email:", emailError);
       });
 
       setOrders((prev) => [newOrder, ...prev]);
       return newOrder;
     } catch (error) {
-      console.error("Error creating order:", error);
+      safeError("Error creating order:", error);
       toast({
         title: "Error",
         description: getErrorMessage(error),
