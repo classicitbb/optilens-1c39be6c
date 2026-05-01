@@ -14,13 +14,24 @@ function parseOriginList(value: string | undefined): string[] {
 }
 
 function getEnvironment(): string {
-  return (
+  const explicit = (
     Deno.env.get("CORS_ENV") ??
     Deno.env.get("APP_ENV") ??
     Deno.env.get("SUPABASE_ENV") ??
-    Deno.env.get("NODE_ENV") ??
-    DEFAULT_ENV
-  ).toLowerCase();
+    Deno.env.get("NODE_ENV")
+  )?.toLowerCase();
+
+  if (explicit) return explicit;
+
+  // Auto-detect: Supabase cloud sets SUPABASE_URL to a non-localhost URL.
+  // When running in cloud (not local dev), treat as production so the real
+  // site domains are included in the CORS allowlist automatically.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  if (supabaseUrl && !supabaseUrl.includes("localhost") && !supabaseUrl.includes("127.0.0.1")) {
+    return "production";
+  }
+
+  return DEFAULT_ENV;
 }
 
 function getDefaultOriginsForEnv(environment: string): string[] {

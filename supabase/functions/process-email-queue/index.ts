@@ -82,8 +82,9 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const schedulerSecret = Deno.env.get('QUEUE_PROCESSOR_SECRET')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
     return new Response(
       JSON.stringify({ error: 'Server configuration error' }),
@@ -91,24 +92,36 @@ Deno.serve(async (req) => {
     )
   }
 
+  // Accept either a service-role JWT or the scheduler secret (for cron invocations).
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    )
+  const providedSchedulerSecret = req.headers.get('x-scheduler-secret')
+  const isSchedulerCall = schedulerSecret && providedSchedulerSecret === schedulerSecret
+
+  if (!isSchedulerCall) {
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Defense in depth: verify_jwt=true already requires a valid JWT at the
+    // gateway layer. This adds an explicit role check so only service-role
+    // callers can trigger queue processing.
+    const token = authHeader.slice('Bearer '.length).trim()
+    const claims = parseJwtClaims(token)
+    if (claims?.role !== 'service_role') {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
   }
 
-  // Defense in depth: verify_jwt=true already requires a valid JWT at the
-  // gateway layer. This adds an explicit role check so only service-role
-  // callers can trigger queue processing.
-  const token = authHeader.slice('Bearer '.length).trim()
-  const claims = parseJwtClaims(token)
-  if (claims?.role !== 'service_role') {
-    return new Response(
-      JSON.stringify({ error: 'Forbidden' }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } }
-    )
+  // LOVABLE_API_KEY is optional — if absent, only Resend fallback is available.
+  // Log a warning but continue; individual send attempts will fail gracefully.
+  if (!apiKey) {
+    console.warn('LOVABLE_API_KEY not set — Lovable email sends will fail; configure RESEND_API_KEY as fallback')
   }
 
   const supabase: any = createClient(supabaseUrl, supabaseServiceKey)
@@ -252,27 +265,51 @@ Deno.serve(async (req) => {
         // Normalize `to` — older enqueue calls may have passed an array
         const toValue = Array.isArray(payload.to) ? payload.to[0] : payload.to
 
-        await sendLovableEmail(
-          {
-            run_id: payload.run_id,
-            to: toValue,
+        const resendApiKey = Deno.env.get('RESEND_API_KEY')
+
+        if (apiKey) {
+          await sendLovableEmail(
+            {
+              run_id: payload.run_id,
+              to: toValue,
+              from: payload.from,
+              sender_domain: payload.sender_domain,
+              subject: payload.subject,
+              html: payload.html,
+              text: payload.text,
+              purpose: payload.purpose,
+              label: payload.label,
+              idempotency_key: payload.idempotency_key,
+              unsubscribe_token: payload.unsubscribe_token,
+              message_id: payload.message_id,
+              reply_to: payload.reply_to,
+            },
+            // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
+            // falls back to the default Lovable API endpoint (https://api.lovable.dev).
+            // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
+            { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
+          )
+        } else if (resendApiKey) {
+          // Fallback: send via Resend when LOVABLE_API_KEY is not configured
+          const resendBody: Record<string, unknown> = {
             from: payload.from,
-            sender_domain: payload.sender_domain,
+            to: [toValue],
             subject: payload.subject,
             html: payload.html,
-            text: payload.text,
-            purpose: payload.purpose,
-            label: payload.label,
-            idempotency_key: payload.idempotency_key,
-            unsubscribe_token: payload.unsubscribe_token,
-            message_id: payload.message_id,
-            reply_to: payload.reply_to,
-          },
-          // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
-          // falls back to the default Lovable API endpoint (https://api.lovable.dev).
-          // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
-          { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-        )
+          }
+          if (payload.reply_to) resendBody.reply_to = payload.reply_to
+          const resendResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(resendBody),
+          })
+          if (!resendResp.ok) {
+            const text = await resendResp.text()
+            throw new Error(`Resend fallback error ${resendResp.status}: ${text}`)
+          }
+        } else {
+          throw new Error('No email provider configured: set LOVABLE_API_KEY or RESEND_API_KEY')
+        }
 
         // Log success
         await supabase.from('email_send_log').insert({
