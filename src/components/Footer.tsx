@@ -44,10 +44,6 @@ const footerColumns = [
       { label: "LinkedIn", href: "https://www.linkedin.com/company/classic-visions/" },
     ],
   },
-  {
-    title: "Utility",
-    links: [{ label: "Sitemap", href: "/sitemap.xml" }],
-  },
 ] as const;
 
 const FooterColumnLink = ({ link }: { link: FooterLink }) => {
