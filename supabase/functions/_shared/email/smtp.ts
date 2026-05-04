@@ -1,94 +1,71 @@
-import { createTransport } from "npm:nodemailer@6.10.1";
+/**
+ * Shared SMTP email sender using nodemailer.
+ *
+ * Reads connection details from env vars set as Supabase project secrets:
+ *   SMTP_HOST  — mail server hostname, e.g. mail.classicvisions.net
+ *   SMTP_PORT  — 587 (STARTTLS, default) or 465 (SSL)
+ *   SMTP_USER  — full email address used to authenticate, e.g. noreply@classicvisions.net
+ *   SMTP_PASS  — password for that account
+ *   SMTP_FROM  — optional display From address; falls back to SMTP_USER
+ */
 
-export interface SmtpSendOptions {
+import nodemailer from "npm:nodemailer@6.9.14";
+
+export interface SmtpMailOptions {
   to: string;
-  from: string;
-  replyTo?: string;
   subject: string;
   html: string;
   text?: string;
-  messageId?: string;
+  replyTo?: string;
+  from?: string; // override the default SMTP_FROM / SMTP_USER
 }
 
-/**
- * Sends an email via the configured SMTP server.
- *
- * Required Supabase secrets:
- *   SMTP_HOST     - e.g. mail.classicvisions.net
- *   SMTP_USER     - e.g. notify@classicvisions.net
- *   SMTP_PASSWORD - account password
- *
- * Optional secrets:
- *   SMTP_PORT          - defaults to 465 (SSL/TLS)
- *   SMTP_FROM_OVERRIDE - if set, replaces the email address in the From header
- *                        while keeping the display name. Use this when the SMTP
- *                        server restricts sending to the authenticated address only.
- */
-export async function sendSmtpEmail(options: SmtpSendOptions): Promise<void> {
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  from: string;
+}
+
+export function getSmtpConfig(): SmtpConfig | null {
   const host = Deno.env.get("SMTP_HOST");
-  const port = parseInt(Deno.env.get("SMTP_PORT") ?? "465", 10);
   const user = Deno.env.get("SMTP_USER");
-  const pass = Deno.env.get("SMTP_PASSWORD");
+  const pass = Deno.env.get("SMTP_PASS");
 
-  if (!host || !user || !pass) {
-    throw new Error(
-      "SMTP not configured: set SMTP_HOST, SMTP_USER, and SMTP_PASSWORD as Supabase secrets"
-    );
-  }
+  if (!host || !user || !pass) return null;
 
-  const fromOverride = Deno.env.get("SMTP_FROM_OVERRIDE");
-  const resolvedFrom = fromOverride
-    ? options.from.replace(/<[^>]+>/, `<${fromOverride}>`)
-    : options.from;
+  const port = parseInt(Deno.env.get("SMTP_PORT") ?? "587", 10);
+  const from = Deno.env.get("SMTP_FROM") || user;
 
-  const transporter = createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
+  return { host, port, user, pass, from };
+}
+
+export async function sendViaSMTP(
+  opts: SmtpMailOptions,
+  config: SmtpConfig,
+): Promise<void> {
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    // port 465 = implicit SSL; anything else = STARTTLS
+    secure: config.port === 465,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+    // Reasonable timeouts for edge function execution limits
     connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 30_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 15_000,
   });
 
   await transporter.sendMail({
-    from: resolvedFrom,
-    to: options.to,
-    ...(options.replyTo ? { replyTo: options.replyTo } : {}),
-    subject: options.subject,
-    html: options.html,
-    ...(options.text ? { text: options.text } : {}),
-    ...(options.messageId ? { messageId: `<${options.messageId}@classicvisions.net>` } : {}),
+    from: opts.from ?? config.from,
+    to: opts.to,
+    replyTo: opts.replyTo,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text,
   });
-}
-
-/** Returns true for SMTP errors that should not be retried (permanent failures). */
-export function isSmtpPermanentFailure(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  const msg = error.message.toLowerCase();
-  return (
-    msg.includes("535") ||  // auth credentials rejected
-    msg.includes("550") ||  // mailbox unavailable / rejected
-    msg.includes("551") ||  // user not local
-    msg.includes("553") ||  // mailbox name invalid
-    msg.includes("authentication") ||
-    msg.includes("invalid login") ||
-    msg.includes("invalid credentials")
-  );
-}
-
-/** Returns true for transient SMTP errors worth retrying. */
-export function isSmtpTransientFailure(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  const msg = error.message.toLowerCase();
-  return (
-    msg.includes("421") ||  // service temporarily unavailable
-    msg.includes("450") ||  // requested action not taken (try again)
-    msg.includes("451") ||  // local error in processing
-    msg.includes("452") ||  // insufficient system storage
-    msg.includes("econnrefused") ||
-    msg.includes("econnreset") ||
-    msg.includes("etimedout") ||
-    msg.includes("enotfound")
-  );
 }
