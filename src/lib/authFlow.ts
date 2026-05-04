@@ -19,7 +19,21 @@ const AUTH_ROUTE = "/auth";
 
 export const getSafeAuthRedirect = (candidate?: string | null) => {
   if (!candidate) return DEFAULT_REDIRECT;
-  if (!candidate.startsWith("/") || candidate.startsWith("//")) return DEFAULT_REDIRECT;
+
+  // Decode percent-encoding to catch bypass attempts like /%2F%2Fevil.com
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(candidate);
+  } catch {
+    return DEFAULT_REDIRECT;
+  }
+
+  // Block protocol-relative URLs and any non-path-rooted strings
+  if (!decoded.startsWith("/") || decoded.startsWith("//")) return DEFAULT_REDIRECT;
+
+  // Block unicode fraction-slash lookalikes that could become host separators
+  if (/[⁄∕⧸]/.test(decoded)) return DEFAULT_REDIRECT;
+
   return candidate;
 };
 

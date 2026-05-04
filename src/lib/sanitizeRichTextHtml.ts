@@ -22,7 +22,8 @@ const ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
 };
 
 const SAFE_URL_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
-const DROP_CONTENT_TAGS = new Set(["script", "style", "iframe", "object", "embed"]);
+// svg is dropped because SVG supports JS-execution vectors (animate, foreignObject, etc.)
+const DROP_CONTENT_TAGS = new Set(["script", "style", "iframe", "object", "embed", "svg", "math"]);
 
 function fallbackSanitize(html: string): string {
   return html

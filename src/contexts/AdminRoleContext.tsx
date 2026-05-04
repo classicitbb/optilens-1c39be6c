@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { useUserRole, AppRole } from "@/hooks/useUserRole";
 
+// Roles that an admin is allowed to impersonate (downgrade only — never another admin)
+const IMPERSONABLE_ROLES: ReadonlySet<AppRole> = new Set(["operator", "viewer", "customer"]);
+
 interface AdminRoleContextType {
   role: AppRole | null;
   realRole: AppRole | null;
@@ -36,14 +39,23 @@ export const useAdminRoleSafe = (): AdminRoleContextType => {
 export const AdminRoleProvider = ({ children }: { children: ReactNode }) => {
   const roleData = useUserRole();
   const [impersonatedRole, setImpersonatedRole] = useState<AppRole | null>(() => {
-    const stored = sessionStorage.getItem("impersonate-role");
-    return stored ? (stored as AppRole) : null;
+    const stored = sessionStorage.getItem("impersonate-role") as AppRole | null;
+    // Discard any stored value that is not in the allow-list (prevents sessionStorage tampering)
+    return stored && IMPERSONABLE_ROLES.has(stored) ? stored : null;
   });
   const [impersonatedUserName, setImpersonatedUserName] = useState<string | null>(() => {
-    return sessionStorage.getItem("impersonate-name");
+    // Only keep the name when the role is also valid
+    const storedRole = sessionStorage.getItem("impersonate-role") as AppRole | null;
+    return storedRole && IMPERSONABLE_ROLES.has(storedRole)
+      ? sessionStorage.getItem("impersonate-name")
+      : null;
   });
 
   const startImpersonation = useCallback((role: AppRole, userName: string) => {
+    if (!IMPERSONABLE_ROLES.has(role)) {
+      console.warn("startImpersonation: role not in allow-list, ignoring", role);
+      return;
+    }
     sessionStorage.setItem("impersonate-role", role);
     sessionStorage.setItem("impersonate-name", userName);
     setImpersonatedRole(role);

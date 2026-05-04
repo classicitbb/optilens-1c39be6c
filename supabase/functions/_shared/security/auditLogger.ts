@@ -67,10 +67,17 @@ export async function logSecurityAuditEvent(input: SecurityAuditEventInput): Pro
   });
 
   if (error) {
-    console.warn("security audit logging failed", {
+    const isCritical = input.severity === "critical" || input.severity === "high";
+    const logFn = isCritical ? console.error : console.warn;
+    logFn("security audit logging failed", {
       eventType: input.eventType,
       sourceFunction: input.sourceFunction,
+      severity: input.severity ?? "info",
       message: error.message,
     });
+    // Re-throw for critical/high events so callers can take compensating action
+    if (isCritical) {
+      throw new Error(`Critical audit log write failed (${input.eventType}): ${error.message}`);
+    }
   }
 }
