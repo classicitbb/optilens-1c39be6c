@@ -145,7 +145,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("companion-assistant error", error);
     return new Response(JSON.stringify({
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: "An unexpected error occurred. Please try again.",
     }), {
       status: 500,
       headers: {
