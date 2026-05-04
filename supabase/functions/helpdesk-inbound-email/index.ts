@@ -63,6 +63,8 @@ Deno.serve(async (req) => {
   const secret =
     req.headers.get("x-inbound-secret") ??
     (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  console.log("[helpdesk-inbound-email] Secret length:", secret.length, "Expected length:", INBOUND_SECRET.length);
+  console.log("[helpdesk-inbound-email] First 8 chars match:", secret.slice(0,8) === INBOUND_SECRET.slice(0,8));
   if (!INBOUND_SECRET || secret !== INBOUND_SECRET) {
     return json({ error: "Unauthorized" }, 401);
   }
