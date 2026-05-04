@@ -1,6 +1,5 @@
-import { sendSmtpEmail, isSmtpPermanentFailure } from '../_shared/email/smtp.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { getSmtpConfig, sendViaSMTP } from '../_shared/email/smtp.ts'
+import { getSmtpConfig, sendViaSMTP, isSmtpPermanentFailure } from '../_shared/email/smtp.ts'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -85,12 +84,6 @@ Deno.serve(async (req) => {
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       )
     }
-  }
-
-  // LOVABLE_API_KEY is optional — if absent, only Resend fallback is available.
-  // Log a warning but continue; individual send attempts will fail gracefully.
-  if (!apiKey) {
-    console.warn('LOVABLE_API_KEY not set — falling back to SMTP for queue processing')
   }
 
   const supabase: any = createClient(supabaseUrl, supabaseServiceKey)
@@ -226,46 +219,21 @@ Deno.serve(async (req) => {
       try {
         const toValue = Array.isArray(payload.to) ? payload.to[0] : payload.to
 
-        if (apiKey) {
-          await sendLovableEmail(
-            {
-              run_id: payload.run_id,
-              to: toValue,
-              from: payload.from,
-              sender_domain: payload.sender_domain,
-              subject: payload.subject,
-              html: payload.html,
-              text: payload.text,
-              purpose: payload.purpose,
-              label: payload.label,
-              idempotency_key: payload.idempotency_key,
-              unsubscribe_token: payload.unsubscribe_token,
-              message_id: payload.message_id,
-              reply_to: payload.reply_to,
-            },
-            // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
-            // falls back to the default Lovable API endpoint (https://api.lovable.dev).
-            // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
-            { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-          )
-        } else {
-          // Fallback: send via SMTP (cPanel / own mail server)
-          const smtpConfig = getSmtpConfig()
-          if (!smtpConfig) {
-            throw new Error('No email provider configured: set LOVABLE_API_KEY or SMTP_HOST + SMTP_USER + SMTP_PASS')
-          }
-          await sendViaSMTP(
-            {
-              to: toValue,
-              from: payload.from,
-              replyTo: payload.reply_to,
-              subject: payload.subject,
-              html: payload.html,
-              text: payload.text,
-            },
-            smtpConfig,
-          )
+        const smtpConfig = getSmtpConfig()
+        if (!smtpConfig) {
+          throw new Error('Mail relay not configured: set MAIL_RELAY_URL and MAIL_RELAY_SECRET in Supabase secrets')
         }
+        await sendViaSMTP(
+          {
+            to: toValue,
+            from: payload.from,
+            replyTo: payload.reply_to,
+            subject: payload.subject,
+            html: payload.html,
+            text: payload.text,
+          },
+          smtpConfig,
+        )
 
         // Log success
         await supabase.from('email_send_log').insert({

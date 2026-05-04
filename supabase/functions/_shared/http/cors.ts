@@ -35,35 +35,37 @@ function getEnvironment(): string {
 }
 
 function getDefaultOriginsForEnv(environment: string): string[] {
-  // Common origins shared across all environments
-  const lovablePreviewOrigins = [
+  // These domains are always allowed regardless of environment —
+  // the live site must never be blocked by a misconfigured env var.
+  const alwaysAllowed = [
+    "https://classicvisions.net",
+    "https://www.classicvisions.net",
+    "https://classicvisions.lovable.app",
+    "https://optilens.lovable.app",
     "https://d568bffd-cdad-4066-b271-1e09c9a376d6.lovableproject.com",
     "https://id-preview--d568bffd-cdad-4066-b271-1e09c9a376d6.lovable.app",
   ];
 
-  if (environment === "production" || environment === "prod") {
+  if (environment === "staging") {
     return [
-      "https://classicvisions.lovable.app",
-      "https://optilens.lovable.app",
-      "https://classicvisions.net",
-      "https://www.classicvisions.net",
-      ...lovablePreviewOrigins,
+      ...alwaysAllowed,
+      "https://staging.optilens.lovable.app",
+      "https://staging.classicvisions.net",
     ];
   }
 
-  if (environment === "staging") {
-    return ["https://staging.optilens.lovable.app", "https://staging.classicvisions.net", ...lovablePreviewOrigins];
+  if (environment !== "production" && environment !== "prod") {
+    // Development: also allow localhost
+    return [
+      ...alwaysAllowed,
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:4173",
+      "http://127.0.0.1:4173",
+    ];
   }
 
-  return [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:4173",
-    "http://127.0.0.1:4173",
-    "https://optilens.lovable.app",
-    "https://classicvisions.lovable.app",
-    ...lovablePreviewOrigins,
-  ];
+  return alwaysAllowed;
 }
 
 function getAllowedOrigins(): Set<string> {

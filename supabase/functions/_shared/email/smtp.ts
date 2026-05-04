@@ -1,15 +1,17 @@
 /**
- * Shared SMTP email sender using nodemailer.
+ * Shared email sender via cPanel PHP mail relay.
  *
- * Reads connection details from env vars set as Supabase project secrets:
- *   SMTP_HOST  — mail server hostname, e.g. mail.classicvisions.net
- *   SMTP_PORT  — 587 (STARTTLS, default) or 465 (SSL)
- *   SMTP_USER  — full email address used to authenticate, e.g. noreply@classicvisions.net
- *   SMTP_PASS  — password for that account
- *   SMTP_FROM  — optional display From address; falls back to SMTP_USER
+ * Sends an HTTPS POST to MAIL_RELAY_URL (a PHP script on the cPanel server)
+ * which handles the actual SMTP delivery. This works around Deno Deploy's
+ * restriction on raw TCP connections (which SMTP requires).
+ *
+ * Required Supabase secrets:
+ *   MAIL_RELAY_URL    — e.g. https://classicvisions.net/mail-relay.php
+ *   MAIL_RELAY_SECRET — shared secret matching the PHP script
+ *
+ * Optional:
+ *   SMTP_FROM — display From address (falls back to notify@classicvisions.net)
  */
-
-import nodemailer from "npm:nodemailer@6.9.14";
 
 export interface SmtpMailOptions {
   to: string;
@@ -17,55 +19,66 @@ export interface SmtpMailOptions {
   html: string;
   text?: string;
   replyTo?: string;
-  from?: string; // override the default SMTP_FROM / SMTP_USER
+  from?: string;
 }
 
 export interface SmtpConfig {
-  host: string;
-  port: number;
-  user: string;
-  pass: string;
+  relayUrl: string;
+  relaySecret: string;
   from: string;
 }
 
 export function getSmtpConfig(): SmtpConfig | null {
-  const host = Deno.env.get("SMTP_HOST");
-  const user = Deno.env.get("SMTP_USER");
-  const pass = Deno.env.get("SMTP_PASS");
+  const relayUrl = Deno.env.get("MAIL_RELAY_URL");
+  const relaySecret = Deno.env.get("MAIL_RELAY_SECRET");
 
-  if (!host || !user || !pass) return null;
+  if (!relayUrl || !relaySecret) return null;
 
-  const port = parseInt(Deno.env.get("SMTP_PORT") ?? "587", 10);
-  const from = Deno.env.get("SMTP_FROM") || user;
+  const from =
+    Deno.env.get("SMTP_FROM") ||
+    Deno.env.get("SMTP_USER") ||
+    "notify@classicvisions.net";
 
-  return { host, port, user, pass, from };
+  return { relayUrl, relaySecret, from };
 }
 
 export async function sendViaSMTP(
   opts: SmtpMailOptions,
   config: SmtpConfig,
 ): Promise<void> {
-  const transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    // port 465 = implicit SSL; anything else = STARTTLS
-    secure: config.port === 465,
-    auth: {
-      user: config.user,
-      pass: config.pass,
+  const resp = await fetch(config.relayUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Relay-Secret": config.relaySecret,
     },
-    // Reasonable timeouts for edge function execution limits
-    connectionTimeout: 10_000,
-    greetingTimeout: 8_000,
-    socketTimeout: 15_000,
+    body: JSON.stringify({
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      reply_to: opts.replyTo ?? "",
+      from: opts.from ?? config.from,
+    }),
   });
 
-  await transporter.sendMail({
-    from: opts.from ?? config.from,
-    to: opts.to,
-    replyTo: opts.replyTo,
-    subject: opts.subject,
-    html: opts.html,
-    text: opts.text,
-  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Mail relay error ${resp.status}: ${text}`);
+  }
+
+  const result = await resp.json();
+  if (!result.ok) {
+    throw new Error(`Mail relay rejected send: ${JSON.stringify(result)}`);
+  }
 }
+
+// A permanent failure is one where retrying will never help —
+// e.g. relay auth failure (401) or bad request (400).
+export function isSmtpPermanentFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return /relay error 4[0-9]{2}/.test(error.message);
+}
+
+// Alias kept for any callers that use the older name
+export const sendSmtpEmail = sendViaSMTP;
+
