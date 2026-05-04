@@ -46,9 +46,6 @@ function generateTicketNumber(): string {
 }
 
 Deno.serve(async (req) => {
-  console.log("[helpdesk-inbound-email] Request received:", req.method, req.url);
-  console.log("[helpdesk-inbound-email] Has x-inbound-secret:", !!req.headers.get("x-inbound-secret"));
-  console.log("[helpdesk-inbound-email] INBOUND_SECRET set:", !!INBOUND_SECRET);
   // Only accept POST
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204 });
@@ -66,7 +63,6 @@ Deno.serve(async (req) => {
   ).trim();
   const expectedSecret = INBOUND_SECRET.trim();
   if (!expectedSecret || secret !== expectedSecret) {
-    console.log("[helpdesk-inbound-email] EXPECTED_SECRET_FULL:", expectedSecret);
     return json({ error: "Unauthorized" }, 401);
   }
 
