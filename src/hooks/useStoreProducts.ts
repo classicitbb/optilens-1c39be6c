@@ -47,10 +47,8 @@ export const useStoreProducts = () => {
     queryKey: ["store-products"],
     queryFn: async () => {
       const [lensRes, supplyRes, addonRes, mediaRes, overrideRes, variantSummaryRes] = await Promise.all([
-        (supabase.from("lenses") as any)
-          .select("id, name, sell_price, show_on_website, notes, lenstype:lenstypes(name), material:materials(name), mftype:mftypes(name)")
-          .eq("show_on_website", true)
-          .eq("is_active", true)
+        (supabase.from("lenses_public") as any)
+          .select("id, name, sell_price, notes, lenstype:lenstypes(name), material:materials(name), mftype:mftypes(name)")
           .order("name"),
         (supabase.from("supplies_public") as any)
           .select("id, name, description, sell_price, category, unit, quantity_per_unit, image_url")
