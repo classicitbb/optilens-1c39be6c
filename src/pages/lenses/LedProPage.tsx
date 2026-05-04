@@ -195,7 +195,7 @@ export default function LedProPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-20 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-end">
+          <div className="space-y-10">
             <div className="max-w-xl">
               <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.24em]">
                 One Lens, Many Scenarios
@@ -209,7 +209,7 @@ export default function LedProPage() {
               </p>
             </div>
 
-            <div className="grid gap-px overflow-hidden rounded-[1.75rem] border border-border bg-border sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-px overflow-hidden rounded-[1.75rem] border border-border bg-border sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {scenarioHighlights.map(({ title, body, icon: Icon }) => (
                 <div key={title} className="bg-background p-6">
                   <Icon className="h-5 w-5 text-accent" />
