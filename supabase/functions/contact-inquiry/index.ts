@@ -304,6 +304,67 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
+    // Create helpdesk ticket so submissions appear in the helpdesk overview
+    try {
+      let contactId: string | null = null;
+      const { data: matchedContact } = await supabase
+        .from("contacts")
+        .select("id")
+        .ilike("email", payload.email)
+        .maybeSingle();
+      if (matchedContact) contactId = matchedContact.id;
+
+      const ticketNumber = `TCK-${Date.now().toString().slice(-8)}`;
+      const isTradeAccount = payload.inquiryType === "trade_account";
+      const titleName = (payload.businessName?.trim() || payload.name).slice(0, 200);
+      const ticketTitle = isTradeAccount
+        ? `Trade Account: ${titleName}`
+        : `${payload.inquiryType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}: ${payload.name}`;
+
+      const descParts = [payload.message];
+      if (payload.businessName) descParts.push(`Business: ${payload.businessName}`);
+      if (payload.phone) descParts.push(`Phone: ${payload.phone}`);
+      if (payload.notes) descParts.push(`\nAdditional Details:\n${payload.notes}`);
+      const description = descParts.join("\n").slice(0, 10000);
+
+      const validChannels = new Set(["manual", "email", "phone", "chat", "portal", "api", "odoo_sync"]);
+      const ticketChannel = validChannels.has(payload.sourceChannel) ? payload.sourceChannel : "portal";
+
+      const { data: ticket, error: ticketErr } = await supabase
+        .from("helpdesk_tickets")
+        .insert({
+          ticket_number: ticketNumber,
+          title: ticketTitle.slice(0, 255),
+          description,
+          priority: 1,
+          source_channel: ticketChannel,
+          customer_email: payload.email,
+          partner_contact_id: contactId,
+          opened_at: insertedInquiry.created_at,
+        })
+        .select("id")
+        .single();
+
+      if (ticketErr) {
+        console.error("Helpdesk ticket insert error:", ticketErr);
+      } else {
+        await supabase.from("helpdesk_ticket_events").insert({
+          ticket_id: ticket.id,
+          event_type: "ticket_created",
+          payload: {
+            source_channel: ticketChannel,
+            from_address: payload.email,
+            from_name: payload.name,
+            inquiry_id: insertedInquiry.id,
+            inquiry_type: payload.inquiryType,
+          },
+        });
+        console.log(`Helpdesk ticket ${ticketNumber} created from ${payload.inquiryType} form (contact: ${contactId ?? "none"})`);
+      }
+    } catch (ticketCreateErr) {
+      console.error("Helpdesk ticket creation failed (non-fatal):", ticketCreateErr);
+    }
+
     const submittedAt = new Date(insertedInquiry.created_at).toUTCString();
 
     // Send both emails immediately via SMTP (your own mail server)
