@@ -131,21 +131,12 @@ const RxLabServicesPage = () => {
                 precision edging, tinting, and specialty coatings — all in-house.
               </p>
               <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                {isLoggedInCustomer ? (
-                  <Button variant="hero" size="lg" asChild>
-                    <a href={ACCOUNT_URL}>
-                      Go to My Account
-                      <ArrowRight className="h-5 w-5" aria-hidden="true" />
-                    </a>
-                  </Button>
-                ) : (
-                  <Button variant="hero" size="lg" asChild>
-                    <Link to={signupHref}>
-                      Create a Trade Account
-                      <ArrowRight className="h-5 w-5" aria-hidden="true" />
-                    </Link>
-                  </Button>
-                )}
+                <Button variant="hero" size="lg" asChild>
+                  <a href={ACCOUNT_URL}>
+                    Go to My Account
+                    <ArrowRight className="h-5 w-5" aria-hidden="true" />
+                  </a>
+                </Button>
                 <Button variant="outline" size="lg" asChild>
                   {isLoggedInCustomer ? (
                     <a href={HELPDESK_URL}>Send an Inquiry</a>
