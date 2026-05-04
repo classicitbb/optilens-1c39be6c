@@ -47,7 +47,7 @@ export const useStoreProducts = () => {
     queryKey: ["store-products"],
     queryFn: async () => {
       const [lensRes, supplyRes, addonRes, mediaRes, overrideRes, variantSummaryRes] = await Promise.all([
-        (supabase.from("lenses_public") as any)
+        (supabase as any).from("lenses_public")
           .select("id, name, sell_price, notes, lenstype:lenstypes(name), material:materials(name), mftype:mftypes(name)")
           .order("name"),
         (supabase.from("supplies_public") as any)
