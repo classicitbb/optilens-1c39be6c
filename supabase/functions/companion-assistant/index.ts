@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
+import { checkRateLimit, getClientIp } from "../_shared/http/rateLimit.ts";
 
 const corsPolicy = createCorsPolicy();
 
