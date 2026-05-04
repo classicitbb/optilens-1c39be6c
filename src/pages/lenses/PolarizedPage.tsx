@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import polarizedGlareDemo from "@/assets/polarized-glare-demo.svg";
-import polarizedFilterAxis from "@/assets/polarized-filter-axis.svg";
+import polarizedNonpolarisedContrast from "@/assets/polarized-nonpolarised-contrast.png";
+import howPolarisedLensesWork from "@/assets/how-polarised-lenses-work.png";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -175,8 +175,8 @@ const PolarizedPage = () => {
 
             <Card className="overflow-hidden border-accent/20 bg-slate-950 shadow-2xl shadow-accent/10">
               <img
-                src={polarizedGlareDemo}
-                alt="Illustration showing a polarized lens reducing reflected water glare"
+                src={polarizedNonpolarisedContrast}
+                alt="Side by side comparison of non-polarized and polarized lens vision clarity"
                 className="h-full w-full object-cover"
               />
             </Card>
@@ -224,8 +224,8 @@ const PolarizedPage = () => {
             <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <Card className="overflow-hidden border-border bg-gradient-to-br from-sky-50 via-background to-sky-100/70">
                 <img
-                  src={polarizedFilterAxis}
-                  alt="Diagram showing a vertical polarization axis allowing useful light through while blocking horizontal glare"
+                  src={howPolarisedLensesWork}
+                  alt="Diagram showing how a polarized lens blocks horizontal glare while letting vertical useful light through"
                   className="w-full object-cover"
                 />
               </Card>
