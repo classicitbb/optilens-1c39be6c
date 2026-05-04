@@ -3,14 +3,7 @@ import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Layers,
-  SplitSquareHorizontal,
-  Sparkles,
-  Cpu,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, Layers, SplitSquareHorizontal, Sparkles, Cpu } from "lucide-react";
 import { Link } from "react-router";
 
 const WHY_PATIENTS_ASK = [
@@ -55,8 +48,9 @@ const BifocalsPage = () => {
 
       <main className="pb-20 pt-24">
         <section className="container mx-auto max-w-6xl px-4 lg:px-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-accent">They Ask, You Answer</p>
-          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">Bifocals: Trusted Classic, Better Digital Future</h1>
+          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">
+            Bifocals: Trusted Classic, Better Digital Future
+          </h1>
           <p className="mt-4 max-w-3xl text-lg text-muted-foreground">
             Conventional flat-top bifocals are still a valid, reliable option. But today’s fully digital freeform
             bifocals give patients a major optical upgrade—without giving up the familiar bifocal concept.
@@ -172,7 +166,8 @@ const BifocalsPage = () => {
               <div>
                 <h2 className="text-xl font-bold">Need options beyond bifocals for younger patients?</h2>
                 <p className="mt-1 text-sm text-primary-foreground/80">
-                  Explore our evidence-based myopia control guide, including spectacles, contacts, ortho-k, and atropine.
+                  Explore our evidence-based myopia control guide, including spectacles, contacts, ortho-k, and
+                  atropine.
                 </p>
               </div>
               <Button variant="secondary" asChild>
