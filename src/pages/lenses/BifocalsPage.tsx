@@ -7,10 +7,10 @@ import { ArrowRight, CheckCircle2, Layers, SplitSquareHorizontal, Sparkles, Cpu 
 import { Link } from "react-router";
 
 const WHY_PATIENTS_ASK = [
-  "What exactly is a bifocal lens and who is it for?",
-  "Are conventional flat-top bifocals still a good option?",
-  "What has changed with modern digital/freeform bifocals?",
-  "Can we get better optics without losing bifocal simplicity?",
+  "What is a bifocal lens — and how does it actually work?",
+  "Who are bifocals best suited for, and when are they the right recommendation?",
+  "How do digital freeform bifocals outperform conventional flat-tops?",
+  "When should a patient upgrade from a traditional to a digital bifocal?",
 ];
 
 const COMPARISON = [
@@ -48,12 +48,13 @@ const BifocalsPage = () => {
 
       <main className="pb-20 pt-24">
         <section className="container mx-auto max-w-6xl px-4 lg:px-8">
-          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">
-            Bifocals: Trusted Classic, Better Digital Future
-          </h1>
+          <p className="text-sm font-semibold uppercase tracking-wider text-accent">Lens Education</p>
+          <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">Bifocals: What They Are — and Why Digital Is the Smarter Choice</h1>
           <p className="mt-4 max-w-3xl text-lg text-muted-foreground">
-            Conventional flat-top bifocals are still a valid, reliable option. But today’s fully digital freeform
-            bifocals give patients a major optical upgrade—without giving up the familiar bifocal concept.
+            Bifocals are corrective lenses with two distinct optical zones — distance vision above and near vision
+            below, separated by a visible line. They’ve helped patients for decades. Today, fully digital freeform
+            bifocals deliver that same familiar concept with dramatically better optics, comfort, and versatility.
+            If your patient needs a bifocal, the digital version is the upgrade worth recommending.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant="outline">Bifocal Education</Badge>
@@ -62,7 +63,7 @@ const BifocalsPage = () => {
         </section>
 
         <section className="container mx-auto mt-14 max-w-6xl px-4 lg:px-8">
-          <h2 className="text-2xl font-bold text-foreground">What patients and dispensers ask first</h2>
+          <h2 className="text-2xl font-bold text-foreground">Understanding bifocals — and when to recommend digital</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {WHY_PATIENTS_ASK.map((question) => (
               <Card key={question}>
