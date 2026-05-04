@@ -76,6 +76,11 @@ vi.mock("@/features/assistant/assistantGeneration", () => ({
   generateAssistantAnswer: vi.fn(async () => null),
 }));
 
+vi.mock("@/lib/cookieConsent", () => ({
+  hasGivenConsent: () => true,
+  COOKIE_PREFERENCES_EVENT: "cookie-preferences-changed",
+}));
+
 const RetailerPromptHarness = () => {
   const openRetailerPrompt = useRetailerAssistantPrompt();
 
