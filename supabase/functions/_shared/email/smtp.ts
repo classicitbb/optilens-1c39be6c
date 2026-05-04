@@ -71,3 +71,14 @@ export async function sendViaSMTP(
     throw new Error(`Mail relay rejected send: ${JSON.stringify(result)}`);
   }
 }
+
+// A permanent failure is one where retrying will never help —
+// e.g. relay auth failure (401) or bad request (400).
+export function isSmtpPermanentFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return /relay error 4[0-9]{2}/.test(error.message);
+}
+
+// Alias kept for any callers that use the older name
+export const sendSmtpEmail = sendViaSMTP;
+
