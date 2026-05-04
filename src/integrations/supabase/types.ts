@@ -1868,6 +1868,44 @@ export type Database = {
           },
         ]
       }
+      helpdesk_inbound_email_log: {
+        Row: {
+          created_at: string
+          from_address: string | null
+          id: string
+          mailbox: string
+          message_id: string
+          subject: string | null
+          ticket_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          mailbox?: string
+          message_id: string
+          subject?: string | null
+          ticket_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          mailbox?: string
+          message_id?: string
+          subject?: string | null
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_inbound_email_log_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_priorities: {
         Row: {
           color: string

@@ -122,7 +122,8 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Optician Website Design", description: "Preview and quote a retail website build", to: "/optical-retail-websites" },
     { label: "Online Ordering Portal", description: "Login to LabLink", href: LABLINK_PORTAL_URL, externalLabel: "External" },
     { label: "Order Tracking", description: "Track shipments and job status", href: LABLINK_TRACKING_URL, externalLabel: "External" },
-    { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" }]
+    { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" },
+    { label: "Rx Lab Services", description: "Custom surfacing, edging, tinting, and specialty coatings", to: "/rx-lab-services" }]
 
   },
   {

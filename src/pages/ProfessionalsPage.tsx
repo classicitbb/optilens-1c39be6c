@@ -35,6 +35,7 @@ const sections = [
       { label: "Online Ordering Portal (LabLink)", href: LABLINK_PORTAL_URL, external: true },
       { label: "Order Tracking (LabLink)", href: LABLINK_TRACKING_URL, external: true },
       { label: "Price List Request", to: "/professionals/price-list-request" },
+      { label: "Rx Lab Services", to: "/rx-lab-services" },
     ],
   },
   {
