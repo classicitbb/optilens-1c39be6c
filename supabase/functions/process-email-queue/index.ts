@@ -1,5 +1,6 @@
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { getSmtpConfig, sendViaSMTP } from '../_shared/email/smtp.ts'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
   // LOVABLE_API_KEY is optional — if absent, only Resend fallback is available.
   // Log a warning but continue; individual send attempts will fail gracefully.
   if (!apiKey) {
-    console.warn('LOVABLE_API_KEY not set — Lovable email sends will fail; configure RESEND_API_KEY as fallback')
+    console.warn('LOVABLE_API_KEY not set — falling back to SMTP for queue processing')
   }
 
   const supabase: any = createClient(supabaseUrl, supabaseServiceKey)
@@ -265,8 +266,6 @@ Deno.serve(async (req) => {
         // Normalize `to` — older enqueue calls may have passed an array
         const toValue = Array.isArray(payload.to) ? payload.to[0] : payload.to
 
-        const resendApiKey = Deno.env.get('RESEND_API_KEY')
-
         if (apiKey) {
           await sendLovableEmail(
             {
@@ -289,26 +288,23 @@ Deno.serve(async (req) => {
             // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
             { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
           )
-        } else if (resendApiKey) {
-          // Fallback: send via Resend when LOVABLE_API_KEY is not configured
-          const resendBody: Record<string, unknown> = {
-            from: payload.from,
-            to: [toValue],
-            subject: payload.subject,
-            html: payload.html,
-          }
-          if (payload.reply_to) resendBody.reply_to = payload.reply_to
-          const resendResp = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(resendBody),
-          })
-          if (!resendResp.ok) {
-            const text = await resendResp.text()
-            throw new Error(`Resend fallback error ${resendResp.status}: ${text}`)
-          }
         } else {
-          throw new Error('No email provider configured: set LOVABLE_API_KEY or RESEND_API_KEY')
+          // Fallback: send via SMTP (cPanel / own mail server)
+          const smtpConfig = getSmtpConfig()
+          if (!smtpConfig) {
+            throw new Error('No email provider configured: set LOVABLE_API_KEY or SMTP_HOST + SMTP_USER + SMTP_PASS')
+          }
+          await sendViaSMTP(
+            {
+              to: toValue,
+              from: payload.from,
+              replyTo: payload.reply_to,
+              subject: payload.subject,
+              html: payload.html,
+              text: payload.text,
+            },
+            smtpConfig,
+          )
         }
 
         // Log success

@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { z } from "npm:zod@3.25.76";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
+import { getSmtpConfig, sendViaSMTP } from "../_shared/email/smtp.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -10,10 +11,7 @@ const corsPolicy = createCorsPolicy({
 
 const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
 const SITE_NAME = "Classic Visions";
-const SENDER_DOMAIN = "support.classicvisions.net";
-const FROM_DOMAIN = "classicvisions.net";
 
-// Generate a cryptographically random 32-byte hex token (matches send-transactional-email)
 function generateToken(): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
@@ -22,7 +20,6 @@ function generateToken(): string {
     .join("");
 }
 
-// Get or create a single unsubscribe token per email address
 async function getOrCreateUnsubscribeToken(
   supabase: ReturnType<typeof createClient>,
   email: string,
@@ -73,7 +70,6 @@ const inquirySchema = z.object({
   startedAt: z.string().datetime({ offset: true }),
 });
 
-// Build simple HTML for the admin notification email
 function buildNotificationHtml(opts: {
   name: string;
   email: string;
@@ -84,9 +80,15 @@ function buildNotificationHtml(opts: {
   pageSlug: string;
   submittedAt: string;
 }): string {
-  const safeMessage = opts.message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
-  const phoneLine = opts.phone ? `<tr><td style="padding:6px 0;font-weight:600;color:#374151;width:110px">Phone</td><td style="padding:6px 0;color:#374151">${opts.phone}</td></tr>` : "";
-  const bizLine = opts.businessName ? `<tr><td style="padding:6px 0;font-weight:600;color:#374151">Business</td><td style="padding:6px 0;color:#374151">${opts.businessName}</td></tr>` : "";
+  const safeMessage = opts.message
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+  const phoneLine = opts.phone
+    ? `<tr><td style="padding:6px 0;font-weight:600;color:#374151;width:110px">Phone</td><td style="padding:6px 0;color:#374151">${opts.phone}</td></tr>`
+    : "";
+  const bizLine = opts.businessName
+    ? `<tr><td style="padding:6px 0;font-weight:600;color:#374151">Business</td><td style="padding:6px 0;color:#374151">${opts.businessName}</td></tr>`
+    : "";
 
   return `<!DOCTYPE html>
 <html>
@@ -106,20 +108,16 @@ function buildNotificationHtml(opts: {
     <div style="margin-top:20px;background:#f9fafb;border-left:3px solid #111827;padding:16px;border-radius:4px">
       <p style="margin:0;font-size:14px;color:#374151;line-height:1.6">${safeMessage}</p>
     </div>
-    <p style="margin-top:20px;font-size:13px;color:#6b7280">
-      Reply directly to this email to respond to ${opts.name}.
-    </p>
+    <p style="margin-top:20px;font-size:13px;color:#6b7280">Reply directly to this email to respond to ${opts.name}.</p>
   </div>
 </body>
 </html>`;
 }
 
-// Build simple HTML for the customer confirmation email
-function buildConfirmationHtml(opts: {
-  name: string;
-  message: string;
-}): string {
-  const safeMessage = opts.message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+function buildConfirmationHtml(opts: { name: string; message: string }): string {
+  const safeMessage = opts.message
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
 
   return `<!DOCTYPE html>
 <html>
@@ -135,43 +133,10 @@ function buildConfirmationHtml(opts: {
     </div>
     <p style="color:#6b7280;font-size:13px">If you didn't send this, you can safely ignore this email.</p>
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-    <p style="color:#9ca3af;font-size:12px;margin:0">${SITE_NAME} · This is an automated confirmation. Please do not reply to this email.</p>
+    <p style="color:#9ca3af;font-size:12px;margin:0">${SITE_NAME} · Automated confirmation — please do not reply to this email.</p>
   </div>
 </body>
 </html>`;
-}
-
-// Send an email directly via Resend API (same pattern as helpdesk-email)
-async function sendViaResend(opts: {
-  resendApiKey: string;
-  to: string;
-  from: string;
-  replyTo?: string;
-  subject: string;
-  html: string;
-  label: string;
-}): Promise<void> {
-  const body: Record<string, unknown> = {
-    from: opts.from,
-    to: [opts.to],
-    subject: opts.subject,
-    html: opts.html,
-  };
-  if (opts.replyTo) body.reply_to = opts.replyTo;
-
-  const resp = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${opts.resendApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Resend ${opts.label} error ${resp.status}: ${text}`);
-  }
 }
 
 Deno.serve(async (req) => {
@@ -200,10 +165,14 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error("Missing Supabase server configuration");
+    }
+
+    const smtpConfig = getSmtpConfig();
+    if (!smtpConfig) {
+      console.warn("SMTP not configured (SMTP_HOST / SMTP_USER / SMTP_PASS missing) — emails will not send");
     }
 
     const payload = inquirySchema.parse(await req.json());
@@ -251,6 +220,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+
     const { data: companySettings, error: companySettingsError } = await supabase
       .from("company_settings")
       .select("feedback_email")
@@ -334,49 +304,45 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    const fromAddress = `${SITE_NAME} <noreply@${SENDER_DOMAIN}>`;
     const submittedAt = new Date(insertedInquiry.created_at).toUTCString();
 
-    if (resendApiKey) {
-      // Send both emails directly via Resend — no queue dependency, immediate delivery.
+    // Send both emails immediately via SMTP (your own mail server)
+    if (smtpConfig) {
       await Promise.allSettled([
-        sendViaResend({
-          resendApiKey,
-          to: resolvedRecipient,
-          from: fromAddress,
-          replyTo: payload.email,
-          subject: `New Inquiry from ${payload.name} — ${SITE_NAME}`,
-          html: buildNotificationHtml({
-            name: payload.name,
-            email: payload.email,
-            phone: payload.phone || "",
-            businessName: payload.businessName || "",
-            message: payload.message,
-            inquiryType: payload.inquiryType,
-            pageSlug: payload.pageSlug,
-            submittedAt,
-          }),
-          label: "contact-inquiry-notification",
-        }).catch((err) => console.error("Resend admin notification failed", { error: String(err) })),
+        sendViaSMTP(
+          {
+            to: resolvedRecipient,
+            replyTo: payload.email,
+            subject: `New Inquiry from ${payload.name} — ${SITE_NAME}`,
+            html: buildNotificationHtml({
+              name: payload.name,
+              email: payload.email,
+              phone: payload.phone || "",
+              businessName: payload.businessName || "",
+              message: payload.message,
+              inquiryType: payload.inquiryType,
+              pageSlug: payload.pageSlug,
+              submittedAt,
+            }),
+          },
+          smtpConfig,
+        ).catch((err) => console.error("SMTP admin notification failed", { error: String(err) })),
 
-        sendViaResend({
-          resendApiKey,
-          to: payload.email,
-          from: fromAddress,
-          subject: `We received your message — ${SITE_NAME}`,
-          html: buildConfirmationHtml({
-            name: payload.name,
-            message: payload.message,
-          }),
-          label: "inquiry-confirmation",
-        }).catch((err) => console.error("Resend customer confirmation failed", { error: String(err) })),
+        sendViaSMTP(
+          {
+            to: payload.email,
+            subject: `We received your message — ${SITE_NAME}`,
+            html: buildConfirmationHtml({
+              name: payload.name,
+              message: payload.message,
+            }),
+          },
+          smtpConfig,
+        ).catch((err) => console.error("SMTP customer confirmation failed", { error: String(err) })),
       ]);
-    } else {
-      console.warn("RESEND_API_KEY not configured — falling back to email queue only");
     }
 
-    // Also enqueue via the queue system as an audit trail / fallback if Resend
-    // was not configured or failed.
+    // Enqueue for audit trail and as backup if SMTP was not yet configured
     try {
       const { renderAsync } = await import("npm:@react-email/components@0.0.22");
       const React = await import("npm:react@18.3.1");
@@ -386,25 +352,6 @@ Deno.serve(async (req) => {
       const { template: confirmationTemplate } = await import(
         "../_shared/transactional-email-templates/inquiry-confirmation.tsx"
       );
-
-      const notificationData = {
-        inquiryType: payload.inquiryType,
-        name: payload.name,
-        email: payload.email,
-        phone: payload.phone || "",
-        businessName: payload.businessName || "",
-        message: payload.message,
-        pageSlug: payload.pageSlug,
-        sourceChannel: payload.sourceChannel,
-        submittedAt: insertedInquiry.created_at,
-        notes: payload.notes || "",
-      };
-
-      const confirmationData = {
-        name: payload.name,
-        inquiryType: payload.inquiryType,
-        siteUrl: "https://classicvisions.lovable.app",
-      };
 
       const enqueueRenderedEmail = async (
         label: string,
@@ -432,8 +379,7 @@ Deno.serve(async (req) => {
           payload: {
             message_id: messageId,
             to: recipient,
-            from: `${SITE_NAME} <inquiry@${FROM_DOMAIN}>`,
-            sender_domain: SENDER_DOMAIN,
+            from: smtpConfig?.from ?? `noreply@classicvisions.net`,
             subject,
             html,
             text,
@@ -456,7 +402,18 @@ Deno.serve(async (req) => {
           "contact-inquiry-notification",
           resolvedRecipient,
           notificationTemplate,
-          notificationData,
+          {
+            inquiryType: payload.inquiryType,
+            name: payload.name,
+            email: payload.email,
+            phone: payload.phone || "",
+            businessName: payload.businessName || "",
+            message: payload.message,
+            pageSlug: payload.pageSlug,
+            sourceChannel: payload.sourceChannel,
+            submittedAt: insertedInquiry.created_at,
+            notes: payload.notes || "",
+          },
           `contact-inquiry-${insertedInquiry.id}`,
           payload.email,
         ),
@@ -464,7 +421,11 @@ Deno.serve(async (req) => {
           "inquiry-confirmation",
           payload.email,
           confirmationTemplate,
-          confirmationData,
+          {
+            name: payload.name,
+            inquiryType: payload.inquiryType,
+            siteUrl: "https://classicvisions.net",
+          },
           `inquiry-confirm-${insertedInquiry.id}`,
         ),
       ]);
