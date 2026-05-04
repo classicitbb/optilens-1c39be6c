@@ -61,6 +61,9 @@ serve(async (req) => {
   const originBlocked = rejectDisallowedOrigin(req, corsPolicy);
   if (originBlocked) return originBlocked;
 
+  const rateLimited = checkRateLimit(getClientIp(req), corsHeaders, 20, 60_000);
+  if (rateLimited) return rateLimited;
+
   try {
     const payload = (await req.json()) as WebSearchRequest;
 
