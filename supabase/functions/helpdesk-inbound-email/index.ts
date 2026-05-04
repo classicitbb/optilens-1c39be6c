@@ -54,10 +54,13 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed" }, 405);
   }
 
-  // Auth via shared secret
-  const authHeader = req.headers.get("authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
-  if (!INBOUND_SECRET || token !== INBOUND_SECRET) {
+  // Auth via shared secret — use x-inbound-secret header (Authorization is
+  // intercepted by the Supabase gateway). Also accept Authorization Bearer
+  // as fallback for direct callers.
+  const secret =
+    req.headers.get("x-inbound-secret") ??
+    (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!INBOUND_SECRET || secret !== INBOUND_SECRET) {
     return json({ error: "Unauthorized" }, 401);
   }
 
