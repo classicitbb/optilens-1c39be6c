@@ -46,9 +46,6 @@ function generateTicketNumber(): string {
 }
 
 Deno.serve(async (req) => {
-  console.log("[helpdesk-inbound-email] Request received:", req.method, req.url);
-  console.log("[helpdesk-inbound-email] Has x-inbound-secret:", !!req.headers.get("x-inbound-secret"));
-  console.log("[helpdesk-inbound-email] INBOUND_SECRET set:", !!INBOUND_SECRET);
   // Only accept POST
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204 });
@@ -60,12 +57,12 @@ Deno.serve(async (req) => {
   // Auth via shared secret — use x-inbound-secret header (Authorization is
   // intercepted by the Supabase gateway). Also accept Authorization Bearer
   // as fallback for direct callers.
-  const secret =
+  const secret = (
     req.headers.get("x-inbound-secret") ??
-    (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  console.log("[helpdesk-inbound-email] Secret length:", secret.length, "Expected length:", INBOUND_SECRET.length);
-  console.log("[helpdesk-inbound-email] First 8 chars match:", secret.slice(0,8) === INBOUND_SECRET.slice(0,8));
-  if (!INBOUND_SECRET || secret !== INBOUND_SECRET) {
+    (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "")
+  ).trim();
+  const expectedSecret = INBOUND_SECRET.trim();
+  if (!expectedSecret || secret !== expectedSecret) {
     return json({ error: "Unauthorized" }, 401);
   }
 
