@@ -1,8 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   ArrowRight,
   CheckCircle2,
@@ -13,28 +9,15 @@ import {
   Sparkles,
   ClipboardList,
   FlaskConical,
-  Building2,
-  Mail,
-  Phone,
-  User,
+  HeadphonesIcon,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { createAuthHref } from "@/lib/authFlow";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import Seo from "@/components/seo/Seo";
 
 const services = [
@@ -106,16 +89,6 @@ const benefits = [
   "LabLink order portal for 24/7 job submission",
 ];
 
-const inquirySchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100),
-  businessName: z.string().trim().min(1, "Business name is required").max(120),
-  email: z.string().trim().email("Enter a valid email").max(255),
-  phone: z.string().trim().max(20).optional().or(z.literal("")),
-  message: z.string().trim().max(1000).optional().or(z.literal("")),
-});
-
-type InquiryFormData = z.infer<typeof inquirySchema>;
-
 const signupHref = createAuthHref({
   mode: "signup",
   audience: "professional",
@@ -123,68 +96,15 @@ const signupHref = createAuthHref({
   redirect: "/rx-lab-services",
 });
 
+const ACCOUNT_URL = "https://www.classicvisions.net/profile/account";
+const HELPDESK_URL = "https://www.classicvisions.net/profile/helpdesk";
+const CUSTOMER_SERVICE_PATH = "/professionals/customer-service";
+
 const RxLabServicesPage = () => {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [honeypot, setHoneypot] = useState("");
-  const [startedAt, setStartedAt] = useState("");
+  const { user } = useAuth();
+  const { isCustomer } = useUserRole();
 
-  useEffect(() => {
-    setStartedAt(new Date().toISOString());
-  }, []);
-
-  const sourcePage = useMemo(() => {
-    if (typeof window === "undefined") return "/rx-lab-services";
-    return `${window.location.pathname}${window.location.search}`;
-  }, []);
-
-  const form = useForm<InquiryFormData>({
-    resolver: zodResolver(inquirySchema),
-    defaultValues: {
-      name: "",
-      businessName: "",
-      email: "",
-      phone: "",
-      message: "",
-    },
-  });
-
-  const onSubmit = async (values: InquiryFormData) => {
-    if (honeypot) return;
-
-    setIsSubmitting(true);
-    try {
-      await submitPublicInquiry({
-        inquiryType: "rx-lab-services-interest",
-        name: values.name,
-        email: values.email,
-        phone: values.phone || null,
-        businessName: values.businessName,
-        message: values.message
-          ? `Rx Lab Services inquiry from ${values.businessName}.\n\n${values.message}`
-          : `Rx Lab Services inquiry from ${values.businessName}.`,
-        pageSlug: sourcePage,
-        sourceChannel: "rx-lab-services-page",
-        honeypot,
-        startedAt,
-      });
-
-      setSubmitted(true);
-      toast({
-        title: "Inquiry received",
-        description: "We'll be in touch within one business day.",
-      });
-    } catch {
-      toast({
-        title: "Submission failed",
-        description: "Something went wrong. Please try again or email us directly.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const isLoggedInCustomer = !!user && isCustomer;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -211,14 +131,27 @@ const RxLabServicesPage = () => {
                 precision edging, tinting, and specialty coatings — all in-house.
               </p>
               <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Button variant="hero" size="lg" asChild>
-                  <Link to={signupHref}>
-                    Create a Trade Account
-                    <ArrowRight className="h-5 w-5" aria-hidden="true" />
-                  </Link>
-                </Button>
+                {isLoggedInCustomer ? (
+                  <Button variant="hero" size="lg" asChild>
+                    <a href={ACCOUNT_URL}>
+                      Go to My Account
+                      <ArrowRight className="h-5 w-5" aria-hidden="true" />
+                    </a>
+                  </Button>
+                ) : (
+                  <Button variant="hero" size="lg" asChild>
+                    <Link to={signupHref}>
+                      Create a Trade Account
+                      <ArrowRight className="h-5 w-5" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                )}
                 <Button variant="outline" size="lg" asChild>
-                  <a href="#inquiry">Send an Inquiry</a>
+                  {isLoggedInCustomer ? (
+                    <a href={HELPDESK_URL}>Send an Inquiry</a>
+                  ) : (
+                    <a href="#inquiry">Send an Inquiry</a>
+                  )}
                 </Button>
               </div>
             </div>
@@ -307,36 +240,63 @@ const RxLabServicesPage = () => {
                   </ul>
                 </div>
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-accent">
-                    Ready to get started?
-                  </p>
-                  <h3 className="mb-2 text-xl font-bold">Open a trade account</h3>
-                  <p className="mb-6 text-sm text-muted-foreground">
-                    Create your account in under two minutes. Business details qualify you for trade
-                    pricing and immediate ordering access through LabLink.
-                  </p>
-                  <Button variant="hero" className="w-full" asChild>
-                    <Link to={signupHref}>
-                      Sign Up — It's Free
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </Link>
-                  </Button>
-                  <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Already have an account?{" "}
-                    <Link
-                      to={createAuthHref({ mode: "signin", redirect: "/rx-lab-services" })}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      Sign in
-                    </Link>
-                  </p>
+                  {isLoggedInCustomer ? (
+                    <>
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-accent">
+                        Your account is active
+                      </p>
+                      <h3 className="mb-2 text-xl font-bold">Welcome back</h3>
+                      <p className="mb-6 text-sm text-muted-foreground">
+                        You have an active trade account. Access LabLink ordering, manage jobs,
+                        and view your pricing through your account portal.
+                      </p>
+                      <Button variant="hero" className="w-full" asChild>
+                        <a href={ACCOUNT_URL}>
+                          Go to My Account
+                          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                        </a>
+                      </Button>
+                      <p className="mt-3 text-center text-xs text-muted-foreground">
+                        Need help?{" "}
+                        <a href={HELPDESK_URL} className="font-medium text-primary hover:underline">
+                          Visit the helpdesk
+                        </a>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-accent">
+                        Ready to get started?
+                      </p>
+                      <h3 className="mb-2 text-xl font-bold">Open a trade account</h3>
+                      <p className="mb-6 text-sm text-muted-foreground">
+                        Create your account in under two minutes. Business details qualify you for trade
+                        pricing and immediate ordering access through LabLink.
+                      </p>
+                      <Button variant="hero" className="w-full" asChild>
+                        <Link to={signupHref}>
+                          Sign Up — It's Free
+                          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
+                      </Button>
+                      <p className="mt-3 text-center text-xs text-muted-foreground">
+                        Already have an account?{" "}
+                        <Link
+                          to={createAuthHref({ mode: "signin", redirect: "/rx-lab-services" })}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          Sign in
+                        </Link>
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Inquiry form */}
+        {/* Inquiry / support CTA */}
         <section id="inquiry" className="bg-muted/40 py-16 sm:py-20" aria-labelledby="inquiry-heading">
           <div className="container mx-auto px-4 lg:px-8">
             <div className="mx-auto max-w-xl">
@@ -349,139 +309,38 @@ const RxLabServicesPage = () => {
                 </p>
               </div>
 
-              {submitted ? (
-                <div className="rounded-2xl border border-success/30 bg-success/10 p-6 text-center">
-                  <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-success" aria-hidden="true" />
-                  <h3 className="mb-1 text-lg font-semibold">Inquiry received</h3>
-                  <p className="text-sm text-muted-foreground">
-                    We'll be in touch within one business day. In the meantime, you can{" "}
+              <div className="rounded-2xl border border-border bg-card p-8 shadow-soft text-center">
+                <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-accent">
+                  <HeadphonesIcon className="h-7 w-7 text-accent-foreground" aria-hidden="true" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold">Send an Inquiry</h3>
+                <p className="mb-6 text-sm text-muted-foreground">
+                  {isLoggedInCustomer
+                    ? "Submit a support ticket through your helpdesk and our lab team will follow up within one business day."
+                    : "Visit our customer service page to send us your details. Our lab team will follow up within one business day."}
+                </p>
+                <Button className="w-full" asChild>
+                  {isLoggedInCustomer ? (
+                    <a href={HELPDESK_URL}>
+                      Send an Inquiry
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <Link to={CUSTOMER_SERVICE_PATH}>
+                      Send an Inquiry
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  )}
+                </Button>
+                {!isLoggedInCustomer && (
+                  <p className="mt-3 text-center text-xs text-muted-foreground">
+                    Ready to open an account now?{" "}
                     <Link to={signupHref} className="font-medium text-primary hover:underline">
-                      create your trade account
-                    </Link>{" "}
-                    to get immediate catalog access.
+                      Sign up in 2 minutes
+                    </Link>
                   </p>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
-                      {/* Honeypot */}
-                      <input
-                        type="text"
-                        name="website"
-                        tabIndex={-1}
-                        aria-hidden="true"
-                        className="hidden"
-                        value={honeypot}
-                        onChange={(e) => setHoneypot(e.target.value)}
-                        autoComplete="off"
-                      />
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Full Name</FormLabel>
-                              <div className="relative">
-                                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                                <FormControl>
-                                  <Input {...field} autoComplete="name" placeholder="Jordan Smith" className="pl-9" />
-                                </FormControl>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="businessName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Business Name</FormLabel>
-                              <div className="relative">
-                                <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                                <FormControl>
-                                  <Input {...field} autoComplete="organization" placeholder="Vision Centre Ltd" className="pl-9" />
-                                </FormControl>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <div className="relative">
-                                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                                <FormControl>
-                                  <Input {...field} type="email" autoComplete="email" spellCheck={false} placeholder="you@example.com" className="pl-9" />
-                                </FormControl>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Phone (optional)</FormLabel>
-                              <div className="relative">
-                                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                                <FormControl>
-                                  <Input {...field} type="tel" inputMode="tel" autoComplete="tel" placeholder="+1 246 555 0101" className="pl-9" />
-                                </FormControl>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <FormField
-                        control={form.control}
-                        name="message"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Message (optional)</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                {...field}
-                                placeholder="Tell us about your lab volume, specific services you need, or any questions…"
-                                rows={4}
-                                className="resize-none"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button type="submit" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? "Sending…" : "Send Inquiry"}
-                      </Button>
-
-                      <p className="text-center text-xs text-muted-foreground">
-                        Ready to open an account now?{" "}
-                        <Link to={signupHref} className="font-medium text-primary hover:underline">
-                          Sign up in 2 minutes
-                        </Link>
-                      </p>
-                    </form>
-                  </Form>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </section>
