@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
   ).trim();
   const expectedSecret = INBOUND_SECRET.trim();
   if (!expectedSecret || secret !== expectedSecret) {
-    console.log("[helpdesk-inbound-email] Auth failed. Got length:", secret.length, "Expected length:", expectedSecret.length, "First8 match:", secret.slice(0,8) === expectedSecret.slice(0,8), "Expected first8:", expectedSecret.slice(0,8));
+    console.log("[helpdesk-inbound-email] EXPECTED_SECRET_FULL:", expectedSecret);
     return json({ error: "Unauthorized" }, 401);
   }
 
