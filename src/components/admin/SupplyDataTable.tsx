@@ -159,8 +159,27 @@ const SupplyDataTable = ({
     });
   }, [baseFiltered, filter, sortKey, sortDir, fxRate, applyStatusFilter]);
 
-  const supplierOptions = useMemo(() => [...new Set(supplies.map((s) => s.supplier_name ?? "—"))].sort().map((v) => ({ value: v, label: v })), [supplies]);
-  const categoryOptions = useMemo(() => [...new Set(supplies.map((s) => catLabels[s.category] || s.category))].sort().map((v) => ({ value: v, label: v })), [supplies, catLabels]);
+  const supplierOptions = useMemo(() => {
+    let items = supplies;
+    if (colFilters.category.size > 0) items = items.filter((i) => colFilters.category.has(catLabels[i.category] || i.category));
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter((s) => fieldsMatch(q, s.name, s.sku, s.category, catLabels[s.category], s.description, s.supplier_name, s.unit, s.bin, s.detail));
+    }
+    items = applyStatusFilter(items, filter);
+    return [...new Set(items.map((s) => s.supplier_name ?? "—"))].sort().map((v) => ({ value: v, label: v }));
+  }, [supplies, colFilters.category, search, filter, applyStatusFilter, catLabels]);
+
+  const categoryOptions = useMemo(() => {
+    let items = supplies;
+    if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(i.supplier_name ?? "—"));
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter((s) => fieldsMatch(q, s.name, s.sku, s.category, catLabels[s.category], s.description, s.supplier_name, s.unit, s.bin, s.detail));
+    }
+    items = applyStatusFilter(items, filter);
+    return [...new Set(items.map((s) => catLabels[s.category] || s.category))].sort().map((v) => ({ value: v, label: v }));
+  }, [supplies, colFilters.supplier, search, filter, applyStatusFilter, catLabels]);
 
   const filterTabs: { label: string; value: Filter; count: number }[] = [
     { label: "Active", value: "active", count: filterCounts.active },
