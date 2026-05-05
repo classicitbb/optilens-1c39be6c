@@ -150,8 +150,27 @@ const AddonDataTable = ({
     });
   }, [baseFiltered, filter, sortKey, sortDir, fxRate, applyStatusFilter]);
 
-  const supplierOptions = useMemo(() => [...new Set(addons.map((a) => a.supplier_name ?? "—"))].sort().map((v) => ({ value: v, label: v })), [addons]);
-  const categoryOptions = useMemo(() => [...new Set(addons.map((a) => CATEGORY_LABELS[a.category] || a.category))].sort().map((v) => ({ value: v, label: v })), [addons]);
+  const supplierOptions = useMemo(() => {
+    let items = addons;
+    if (colFilters.category.size > 0) items = items.filter((i) => colFilters.category.has(CATEGORY_LABELS[i.category] || i.category));
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter((a) => fieldsMatch(q, a.name, a.sku, a.category, CATEGORY_LABELS[a.category], a.description, a.supplier_name));
+    }
+    items = applyStatusFilter(items, filter);
+    return [...new Set(items.map((a) => a.supplier_name ?? "—"))].sort().map((v) => ({ value: v, label: v }));
+  }, [addons, colFilters.category, search, filter, applyStatusFilter]);
+
+  const categoryOptions = useMemo(() => {
+    let items = addons;
+    if (colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(i.supplier_name ?? "—"));
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter((a) => fieldsMatch(q, a.name, a.sku, a.category, CATEGORY_LABELS[a.category], a.description, a.supplier_name));
+    }
+    items = applyStatusFilter(items, filter);
+    return [...new Set(items.map((a) => CATEGORY_LABELS[a.category] || a.category))].sort().map((v) => ({ value: v, label: v }));
+  }, [addons, colFilters.supplier, search, filter, applyStatusFilter]);
 
   const filterTabs: { label: string; value: Filter; count: number }[] = [
     { label: "Active", value: "active", count: filterCounts.active },
