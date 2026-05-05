@@ -317,9 +317,14 @@ Deno.serve(async (req) => {
       const ticketNumber = `TCK-${Date.now().toString().slice(-8)}`;
       const isTradeAccount = payload.inquiryType === "trade_account";
       const titleName = (payload.businessName?.trim() || payload.name).slice(0, 200);
-      const ticketTitle = isTradeAccount
-        ? `Trade Account: ${titleName}`
-        : `${payload.inquiryType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}: ${payload.name}`;
+      const TICKET_TITLE_LABELS: Record<string, string> = {
+        trade_account: `Trade Account: ${titleName}`,
+        "website-design-lead": `Website Design Lead: ${titleName}`,
+        price_list: `Price List Request: ${titleName}`,
+        zenvue_wholesale: `ZenVue Wholesale: ${titleName}`,
+      };
+      const ticketTitle = TICKET_TITLE_LABELS[payload.inquiryType]
+        ?? `${payload.inquiryType.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}: ${payload.name}`;
 
       const descParts = [payload.message];
       if (payload.businessName) descParts.push(`Business: ${payload.businessName}`);
@@ -374,7 +379,9 @@ Deno.serve(async (req) => {
           {
             to: resolvedRecipient,
             replyTo: payload.email,
-            subject: `New Inquiry from ${payload.name} — ${SITE_NAME}`,
+            subject: payload.inquiryType === "website-design-lead"
+              ? `Website design quote request from ${payload.name} — ${SITE_NAME}`
+              : `New Inquiry from ${payload.name} — ${SITE_NAME}`,
             html: buildNotificationHtml({
               name: payload.name,
               email: payload.email,
@@ -440,7 +447,7 @@ Deno.serve(async (req) => {
           payload: {
             message_id: messageId,
             to: recipient,
-            from: smtpConfig?.from ?? `noreply@classicvisions.net`,
+            from: smtpConfig?.from ?? `notify@classicvisions.net`,
             subject,
             html,
             text,
@@ -485,6 +492,7 @@ Deno.serve(async (req) => {
           {
             name: payload.name,
             inquiryType: payload.inquiryType,
+            message: payload.message,
             siteUrl: "https://classicvisions.net",
           },
           `inquiry-confirm-${insertedInquiry.id}`,
