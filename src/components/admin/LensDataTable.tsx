@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2, ListChecks, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2, ListChecks, ThumbsDown, ThumbsUp, RefreshCw } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
@@ -71,6 +72,14 @@ const LensDataTable = ({
 
   const [visibleCount, setVisibleCount] = useState(50);
   const [unlocked, setUnlocked] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["lenses"] });
+    setRefreshing(false);
+  };
 
   // Resolve controlled vs local
   const filter = filterProp ?? filterLocal;
@@ -309,6 +318,9 @@ const LensDataTable = ({
           </button>
         ))}
         <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(var(--admin-muted-fg))" }}>
+          <button onClick={handleRefresh} disabled={refreshing} className="p-0.5 transition-colors hover:bg-muted/50" title="Refresh results">
+            <RefreshCw className={`h-3.5 w-3.5${refreshing ? " animate-spin" : ""}`} />
+          </button>
           {canEditCatalog && (
             <button
               onClick={() => setUnlocked((u) => !u)}

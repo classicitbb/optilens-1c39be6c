@@ -1,9 +1,10 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Copy, Trash2, Lock, Unlock, ArrowUpDown, Globe } from "lucide-react";
+import { Copy, Trash2, Lock, Unlock, ArrowUpDown, Globe, RefreshCw } from "lucide-react";
 import type { Supply } from "@/hooks/useSupplies";
 import { useMemo, useState, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import MultiSelectFilter from "./MultiSelectFilter";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
@@ -48,6 +49,14 @@ const SupplyDataTable = ({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterLocal, setFilterLocal] = useState<Filter>("active");
   const [unlocked, setUnlocked] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["supplies"] });
+    setRefreshing(false);
+  };
   const [sortKeyLocal, setSortKeyLocal] = useState<SortKey>("name");
   const [sortDirLocal, setSortDirLocal] = useState<SortDir>("asc");
   const [colFiltersLocal, setColFiltersLocal] = useState<{ supplier: string[]; category: string[] }>({ supplier: [], category: [] });
@@ -217,6 +226,9 @@ const SupplyDataTable = ({
           </button>
         ))}
         <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(var(--admin-muted-fg))" }}>
+          <button onClick={handleRefresh} disabled={refreshing} className="p-0.5 transition-colors hover:bg-muted/50" title="Refresh results">
+            <RefreshCw className={`h-3.5 w-3.5${refreshing ? " animate-spin" : ""}`} />
+          </button>
           {canEdit && (
             <button onClick={() => setUnlocked((u) => !u)} className="p-0.5 transition-colors hover:bg-muted/50" title={unlocked ? "Lock actions" : "Unlock actions"}>
               {unlocked ? <Unlock className="h-3.5 w-3.5" style={{ color: "hsl(var(--admin-warning))" }} /> : <Lock className="h-3.5 w-3.5" />}
