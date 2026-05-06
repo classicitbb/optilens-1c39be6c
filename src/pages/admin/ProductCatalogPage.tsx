@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLenses, Lens, LensFormData } from "@/hooks/useLenses";
 import { useAddons, Addon, AddonFormData } from "@/hooks/useAddons";
 import { useAddonPricingSheets } from "@/hooks/useAddonPricingSheets";
@@ -11,7 +12,7 @@ import { useCatalogFilterStore, CatalogFilterStore } from "@/hooks/useCatalogFil
 import { useLensPreferences } from "@/hooks/useLensPreferences";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, FilterX, Download, Settings, Database, Upload, Package as PackageIcon } from "lucide-react";
+import { Plus, Search, FilterX, RefreshCw, Download, Settings, Database, Upload, Package as PackageIcon } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 import {
@@ -48,9 +49,11 @@ const Spinner = () =>
 /* ─── Main Page ─── */
 const ProductCatalogPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const store = useCatalogFilterStore();
   const activeTab = store.activeTab;
   const [filterVersion, setFilterVersion] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const { canEdit, isAdmin, role } = useAdminRole();
   const { preferences } = useLensPreferences();
   const showCost = role === "admin" || role === "operator";
@@ -63,6 +66,24 @@ const ProductCatalogPage = () => {
     if (activeTab === "lenses") store.setLens({ search: v });else
     if (activeTab === "addons") store.setAddon({ search: v });else
     store.setSupply({ search: v });
+  };
+
+  const isFiltered = useMemo(() => {
+    if (search) return true;
+    if (activeTab === "lenses") {
+      return store.lens.filter !== "active" || Object.values(store.lens.colFilters).some((v) => v.length > 0);
+    }
+    if (activeTab === "addons") {
+      return store.addon.filter !== "active" || Object.values(store.addon.colFilters).some((v) => v.length > 0);
+    }
+    return store.supply.filter !== "active" || Object.values(store.supply.colFilters).some((v) => v.length > 0);
+  }, [search, activeTab, store.lens, store.addon, store.supply]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    const key = activeTab === "lenses" ? ["lenses"] : activeTab === "addons" ? ["addons"] : ["supplies"];
+    await queryClient.invalidateQueries({ queryKey: key });
+    setRefreshing(false);
   };
 
   const handleTabChange = (tab: Tab) => {
@@ -221,6 +242,11 @@ const ProductCatalogPage = () => {
         <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => {setFilterVersion((v) => v + 1);setSearch("");}}>
           <FilterX className="h-3.5 w-3.5" /> Clear Filters
         </Button>
+        {isFiltered && (
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-3.5 w-3.5${refreshing ? " animate-spin" : ""}`} /> Refresh
+          </Button>
+        )}
       </div>
 
       {/* Tab content – fills remaining height */}
