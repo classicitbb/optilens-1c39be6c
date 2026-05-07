@@ -29,6 +29,8 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = true
   [functions.odoo-sync-webhook]
     verify_jwt = false
+  [functions.helpdesk-inbound-email]
+    verify_jwt = false
   [functions.helpdesk-email]
     verify_jwt = false
   [functions.helpdesk-followup]
@@ -36,3 +38,4 @@ project_id = "xstmeirxhfbiyayrrsob"
     schedule = "*/15 * * * *"
   [functions.process-email-queue]
     verify_jwt = true
+    schedule = "*/10 * * * *"

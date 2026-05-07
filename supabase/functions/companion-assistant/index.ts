@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
+import { checkRateLimit, getClientIp } from "../_shared/http/rateLimit.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -119,6 +120,9 @@ serve(async (req) => {
   const originBlocked = rejectDisallowedOrigin(req, corsPolicy);
   if (originBlocked) return originBlocked;
 
+  const rateLimited = checkRateLimit(getClientIp(req), corsHeaders, 20, 60_000);
+  if (rateLimited) return rateLimited;
+
   try {
     const payload = (await req.json()) as CompanionRequest;
 
@@ -145,7 +149,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("companion-assistant error", error);
     return new Response(JSON.stringify({
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: "An unexpected error occurred. Please try again.",
     }), {
       status: 500,
       headers: {

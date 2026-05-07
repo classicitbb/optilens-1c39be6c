@@ -295,7 +295,7 @@ const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store, prefer
 
   return (
     <div className="flex flex-col h-full">
-      <LensDataTable lenses={lenses ?? []} preferences={preferences} search={search} filterVersion={filterVersion} onRowClick={(lens) => canEdit && setEditLens(lens)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(lens) => setDeleteTarget(lens)} canDelete={isAdmin} />
+      <LensDataTable lenses={lenses ?? []} preferences={preferences} search={search} filterVersion={filterVersion} onRowClick={(lens) => canEdit && setEditLens(lens)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(lens) => setDeleteTarget(lens)} canDelete={isAdmin} filter={store.lens.filter} onFilterChange={(f) => store.setLens({ filter: f })} colFilters={store.lens.colFilters} onColFiltersChange={(cf) => store.setLens({ colFilters: cf })} />
       <LensFormDialog open={formOpen} onOpenChange={setFormOpen} lens={null} onSubmit={handleCreate} isPending={createMutation.isPending} />
       <LensFormDialog open={!!editLens} onOpenChange={(open) => !open && setEditLens(null)} lens={editLens} lenses={lenses ?? []} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(l) => setEditLens(l)} isPending={updateMutation.isPending} />
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
@@ -393,7 +393,7 @@ const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {sea
 
   return (
     <div className="flex flex-col h-full">
-      <AddonDataTable addons={addons ?? []} search={search} canEdit={canEdit} filterVersion={filterVersion} onRowClick={(addon) => setEditAddon(addon)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(addon) => setDeleteTarget(addon)} canDelete={isAdmin} />
+      <AddonDataTable addons={addons ?? []} search={search} canEdit={canEdit} filterVersion={filterVersion} onRowClick={(addon) => setEditAddon(addon)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(addon) => setDeleteTarget(addon)} canDelete={isAdmin} filter={store.addon.filter} onFilterChange={(f) => store.setAddon({ filter: f })} colFilters={store.addon.colFilters} onColFiltersChange={(cf) => store.setAddon({ colFilters: cf })} />
       <AddonFormDialog open={formOpen} onOpenChange={setFormOpen} addon={null} onSubmit={handleCreate} isPending={createMutation.isPending} pricingSheets={pricingSheets ?? []} addonPricingSheets={[]} />
       <AddonFormDialog open={!!editAddon} onOpenChange={(open) => !open && setEditAddon(null)} addon={editAddon} addons={addons ?? []} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(a) => setEditAddon(a)} isPending={updateMutation.isPending} pricingSheets={pricingSheets ?? []} addonPricingSheets={addonSheets ?? []} />
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
@@ -478,7 +478,7 @@ const SuppliesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {s
 
   return (
     <div className="flex flex-col h-full">
-      <SupplyDataTable supplies={supplies ?? []} search={search} canEdit={canEdit} filterVersion={filterVersion} onRowClick={(supply) => setEditSupply(supply)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(supply) => setDeleteTarget(supply)} canDelete={isAdmin} />
+      <SupplyDataTable supplies={supplies ?? []} search={search} canEdit={canEdit} filterVersion={filterVersion} onRowClick={(supply) => setEditSupply(supply)} onToggleActive={handleToggle} onDuplicate={handleDuplicate} onDelete={(supply) => setDeleteTarget(supply)} canDelete={isAdmin} filter={store.supply.filter} onFilterChange={(f) => store.setSupply({ filter: f })} colFilters={store.supply.colFilters} onColFiltersChange={(cf) => store.setSupply({ colFilters: cf })} />
       <SupplyFormDialog open={formOpen} onOpenChange={setFormOpen} supply={null} onSubmit={handleCreate} isPending={createMutation.isPending} />
       <SupplyFormDialog open={!!editSupply} onOpenChange={(open) => !open && setEditSupply(null)} supply={editSupply} supplies={filtered} onSubmit={handleUpdate} onSubmitAndClose={handleUpdateAndClose} onNavigate={(s) => setEditSupply(s)} isPending={updateMutation.isPending} />
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>

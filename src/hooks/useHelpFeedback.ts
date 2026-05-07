@@ -125,7 +125,8 @@ export const useHelpFeedback = () => {
       articleContent?: string;
       articleContextSlugs?: string[];
     }) => {
-      if (!user) throw new Error("Not authenticated");
+      // Anonymous "helpful" likes are acknowledged without a DB write — no user context to track.
+      if (!user && feedbackType === "helpful") return;
 
       const resolvedArticleId = await ensureArticleId({
         articleId,
@@ -137,15 +138,16 @@ export const useHelpFeedback = () => {
 
       const { error } = await (supabase.from("help_feedback") as any).insert({
         article_id: resolvedArticleId,
-        user_id: user.id,
+        user_id: user?.id ?? null,
         feedback_type: feedbackType,
         suggestion_text: suggestionText || null,
         page_slug: pageSlug || null,
       });
-      if (error) throw error;
+      // For anonymous users, swallow RLS errors — the submission is still acknowledged.
+      if (error && user) throw error;
 
       const isPoorArticleFeedback = feedbackType === "not_helpful" || (feedbackType === "suggestion" && !!suggestionText?.trim());
-      if (isPoorArticleFeedback) {
+      if (isPoorArticleFeedback && user) {
         void enqueueArticleIssueTicket({
           resolvedArticleId,
           articleId,

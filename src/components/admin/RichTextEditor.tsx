@@ -82,6 +82,28 @@ const RichTextEditor = ({
       }
     },
     editorProps: {
+      handlePaste(view, event) {
+        const items = Array.from(event.clipboardData?.items ?? []);
+        const imageItems = items.filter((item) => item.type.startsWith("image/"));
+        if (!imageItems.length) return false;
+
+        imageItems.forEach((item) => {
+          const file = item.getAsFile();
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const src = e.target?.result as string;
+            if (!src) return;
+            const node = view.state.schema.nodes.image?.create({ src, alt: "" });
+            if (node) {
+              const tr = view.state.tr.replaceSelectionWith(node);
+              view.dispatch(tr);
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+        return true;
+      },
       attributes: {
         class: cn(
           "prose prose-sm max-w-none focus:outline-none overflow-y-auto text-foreground",

@@ -14,45 +14,58 @@ function parseOriginList(value: string | undefined): string[] {
 }
 
 function getEnvironment(): string {
-  return (
+  const explicit = (
     Deno.env.get("CORS_ENV") ??
     Deno.env.get("APP_ENV") ??
     Deno.env.get("SUPABASE_ENV") ??
-    Deno.env.get("NODE_ENV") ??
-    DEFAULT_ENV
-  ).toLowerCase();
+    Deno.env.get("NODE_ENV")
+  )?.toLowerCase();
+
+  if (explicit) return explicit;
+
+  // Auto-detect: Supabase cloud sets SUPABASE_URL to a non-localhost URL.
+  // When running in cloud (not local dev), treat as production so the real
+  // site domains are included in the CORS allowlist automatically.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  if (supabaseUrl && !supabaseUrl.includes("localhost") && !supabaseUrl.includes("127.0.0.1")) {
+    return "production";
+  }
+
+  return DEFAULT_ENV;
 }
 
 function getDefaultOriginsForEnv(environment: string): string[] {
-  // Common origins shared across all environments
-  const lovablePreviewOrigins = [
+  // These domains are always allowed regardless of environment —
+  // the live site must never be blocked by a misconfigured env var.
+  const alwaysAllowed = [
+    "https://classicvisions.net",
+    "https://www.classicvisions.net",
+    "https://classicvisions.lovable.app",
+    "https://optilens.lovable.app",
     "https://d568bffd-cdad-4066-b271-1e09c9a376d6.lovableproject.com",
     "https://id-preview--d568bffd-cdad-4066-b271-1e09c9a376d6.lovable.app",
   ];
 
-  if (environment === "production" || environment === "prod") {
+  if (environment === "staging") {
     return [
-      "https://classicvisions.lovable.app",
-      "https://optilens.lovable.app",
-      "https://classicvisions.net",
-      "https://www.classicvisions.net",
-      ...lovablePreviewOrigins,
+      ...alwaysAllowed,
+      "https://staging.optilens.lovable.app",
+      "https://staging.classicvisions.net",
     ];
   }
 
-  if (environment === "staging") {
-    return ["https://staging.optilens.lovable.app", "https://staging.classicvisions.net", ...lovablePreviewOrigins];
+  if (environment !== "production" && environment !== "prod") {
+    // Development: also allow localhost
+    return [
+      ...alwaysAllowed,
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:4173",
+      "http://127.0.0.1:4173",
+    ];
   }
 
-  return [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:4173",
-    "http://127.0.0.1:4173",
-    "https://optilens.lovable.app",
-    "https://classicvisions.lovable.app",
-    ...lovablePreviewOrigins,
-  ];
+  return alwaysAllowed;
 }
 
 function getAllowedOrigins(): Set<string> {

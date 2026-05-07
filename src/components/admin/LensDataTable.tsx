@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2, ListChecks, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowUpDown, Globe, Lock, Unlock, Copy, Trash2, ListChecks, ThumbsDown, ThumbsUp, RefreshCw } from "lucide-react";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { usePricingEngine } from "@/hooks/usePricingEngine";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
@@ -71,6 +72,14 @@ const LensDataTable = ({
 
   const [visibleCount, setVisibleCount] = useState(50);
   const [unlocked, setUnlocked] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["lenses"] });
+    setRefreshing(false);
+  };
 
   // Resolve controlled vs local
   const filter = filterProp ?? filterLocal;
@@ -128,11 +137,47 @@ const LensDataTable = ({
     setVisibleCount(50);
   }, [colFiltersArr, onColFiltersChange]);
 
-  // Build unique options for each column filter
+  const applyStatusFilter = useCallback((items: Lens[], targetFilter: Filter) => {
+    if (targetFilter === "active") return items.filter((i) => i.is_active);
+    if (targetFilter === "inactive") return items.filter((i) => !i.is_active);
+    if (targetFilter === "web") return items.filter((i) => i.show_on_website);
+    if (targetFilter === "zero_cost") return items.filter((i) => i.base_price === 0);
+    if (targetFilter === "zero_sell") return items.filter((i) => i.sell_price === 0);
+    if (targetFilter === "in_pricelist") return items.filter((i) => i.show_in_pricelist || usedItems.has(i.id));
+    if (targetFilter === "liked") return items.filter((i) => preferences[i.id] === "liked");
+    if (targetFilter === "disliked") return items.filter((i) => preferences[i.id] === "disliked");
+    return items;
+  }, [preferences, usedItems]);
+
+  // Build unique options for each column filter (faceted: options constrained by all other active filters)
   const columnOptions = useMemo(() => {
-    const collect = (key: ColumnFilterKey) => {
+    const withoutColFilter = (excludeKey: ColumnFilterKey) => {
+      let items = lenses;
+      if (excludeKey !== "supplier" && colFilters.supplier.size > 0) items = items.filter((i) => colFilters.supplier.has(fkName(i.supplier)));
+      if (excludeKey !== "brand" && colFilters.brand.size > 0) items = items.filter((i) => colFilters.brand.has(fkName(i.brand)));
+      if (excludeKey !== "material" && colFilters.material.size > 0) items = items.filter((i) => colFilters.material.has(fkName(i.material)));
+      if (excludeKey !== "mftype" && colFilters.mftype.size > 0) items = items.filter((i) => colFilters.mftype.has(fkName(i.mftype)));
+      if (excludeKey !== "lenstype" && colFilters.lenstype.size > 0) items = items.filter((i) => colFilters.lenstype.has(fkName(i.lenstype)));
+      if (excludeKey !== "finishtype" && colFilters.finishtype.size > 0) items = items.filter((i) => colFilters.finishtype.has(fkName(i.finishtype)));
+      if (excludeKey !== "option" && colFilters.option.size > 0) items = items.filter((i) => {
+        const names = (i.lens_lens_options ?? []).map((o) => o.lens_option?.name ?? "");
+        return names.some((n) => colFilters.option.has(n));
+      });
+      if (search) {
+        const q = search.toLowerCase();
+        items = items.filter((i) =>
+          fieldsMatch(q, i.name, fkName(i.supplier), fkAbbrev(i.supplier),
+            fkName(i.brand), fkAbbrev(i.brand), fkName(i.material), fkAbbrev(i.material),
+            fkName(i.lenstype), fkAbbrev(i.lenstype), fkName(i.finishtype), fkAbbrev(i.finishtype),
+            fkName(i.mftype), fkAbbrev(i.mftype), optionNames(i), optionAbbrevs(i), i.notes)
+        );
+      }
+      return applyStatusFilter(items, filter);
+    };
+
+    const collect = (key: ColumnFilterKey, source: Lens[]) => {
       const map = new Map<string, string>();
-      for (const l of lenses) {
+      for (const l of source) {
         if (key === "option") {
           for (const o of l.lens_lens_options ?? []) {
             const n = o.lens_option?.name ?? "";
@@ -145,23 +190,17 @@ const LensDataTable = ({
       }
       return Array.from(map.entries()).map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
     };
-    return {
-      supplier: collect("supplier"), brand: collect("brand"), material: collect("material"),
-      mftype: collect("mftype"), lenstype: collect("lenstype"), option: collect("option"), finishtype: collect("finishtype"),
-    };
-  }, [lenses]);
 
-  const applyStatusFilter = useCallback((items: Lens[], targetFilter: Filter) => {
-    if (targetFilter === "active") return items.filter((i) => i.is_active);
-    if (targetFilter === "inactive") return items.filter((i) => !i.is_active);
-    if (targetFilter === "web") return items.filter((i) => i.show_on_website);
-    if (targetFilter === "zero_cost") return items.filter((i) => i.base_price === 0);
-    if (targetFilter === "zero_sell") return items.filter((i) => i.sell_price === 0);
-    if (targetFilter === "in_pricelist") return items.filter((i) => i.show_in_pricelist || usedItems.has(i.id));
-    if (targetFilter === "liked") return items.filter((i) => preferences[i.id] === "liked");
-    if (targetFilter === "disliked") return items.filter((i) => preferences[i.id] === "disliked");
-    return items;
-  }, [preferences, usedItems]);
+    return {
+      supplier: collect("supplier", withoutColFilter("supplier")),
+      brand: collect("brand", withoutColFilter("brand")),
+      material: collect("material", withoutColFilter("material")),
+      mftype: collect("mftype", withoutColFilter("mftype")),
+      lenstype: collect("lenstype", withoutColFilter("lenstype")),
+      option: collect("option", withoutColFilter("option")),
+      finishtype: collect("finishtype", withoutColFilter("finishtype")),
+    };
+  }, [lenses, colFilters, search, filter, applyStatusFilter]);
 
   const baseFiltered = useMemo(() => {
     let items = lenses;
@@ -279,6 +318,9 @@ const LensDataTable = ({
           </button>
         ))}
         <span className="ml-auto flex items-center gap-1.5 text-xs py-1" style={{ color: "hsl(var(--admin-muted-fg))" }}>
+          <button onClick={handleRefresh} disabled={refreshing} className="p-0.5 transition-colors hover:bg-muted/50" title="Refresh results">
+            <RefreshCw className={`h-3.5 w-3.5${refreshing ? " animate-spin" : ""}`} />
+          </button>
           {canEditCatalog && (
             <button
               onClick={() => setUnlocked((u) => !u)}

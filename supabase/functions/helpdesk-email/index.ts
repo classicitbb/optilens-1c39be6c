@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight } from '../_shared/http/cors.ts'
+import { getSmtpConfig, sendViaSMTP } from '../_shared/email/smtp.ts'
 
 /**
  * helpdesk-email edge function
@@ -36,40 +37,20 @@ async function sendEmail(opts: {
   to: string
   subject: string
   html: string
-  supabaseUrl: string
-  serviceKey: string
+  replyTo?: string
 }): Promise<void> {
-  // Uses the existing email infrastructure via Supabase's built-in
-  // SMTP relay (configured in project settings → Auth → SMTP) or
-  // the Resend API directly. We call the existing send-transactional-email
-  // function via a service-role privileged internal invoke if available,
-  // otherwise fall back to a direct Resend API call.
-  const resendApiKey = Deno.env.get('RESEND_API_KEY')
+  const smtpConfig = getSmtpConfig()
 
-  if (resendApiKey) {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: `${SITE_NAME} Support <${SENDER_DOMAIN}>`,
-        to: [opts.to],
-        subject: opts.subject,
-        html: opts.html,
-      }),
-    })
-
-    if (!resp.ok) {
-      const text = await resp.text()
-      throw new Error(`Resend API error ${resp.status}: ${text}`)
-    }
+  if (smtpConfig) {
+    await sendViaSMTP(
+      { to: opts.to, subject: opts.subject, html: opts.html, replyTo: opts.replyTo },
+      smtpConfig,
+    )
     return
   }
 
-  // Fallback: log that email would be sent (for local dev without Resend key)
-  console.log(`[helpdesk-email] Would send to ${opts.to}: ${opts.subject}`)
+  // No SMTP configured — log so the issue is visible in edge function logs
+  console.warn(`[helpdesk-email] SMTP not configured — would send to ${opts.to}: ${opts.subject}`)
 }
 
 function ticketCreatedHtml(opts: {
@@ -238,8 +219,6 @@ Deno.serve(async (req) => {
           viewUrl,
           closeUrl,
         }),
-        supabaseUrl,
-        serviceKey,
       })
 
       // Log outbound event
@@ -263,8 +242,6 @@ Deno.serve(async (req) => {
           replyBody: messageBody,
           viewUrl,
         }),
-        supabaseUrl,
-        serviceKey,
       })
 
       // Set first_response_at if not yet set
@@ -292,8 +269,6 @@ Deno.serve(async (req) => {
               followupType,
               viewUrl: `${APP_BASE_URL}/admin/helpdesk/tickets/${ticket.id}`,
             }),
-            supabaseUrl,
-            serviceKey,
           })
         }
       }
@@ -309,8 +284,6 @@ Deno.serve(async (req) => {
             replyBody: "We apologize for the delay in responding to your ticket. Our team is reviewing your request and will get back to you shortly.",
             viewUrl,
           }),
-          supabaseUrl,
-          serviceKey,
         })
       }
 
