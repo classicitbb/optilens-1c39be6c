@@ -79,6 +79,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const activeFinishtypes = useMemo(() => (finishtypes.data ?? []).filter((i) => i.is_active), [finishtypes.data]);
   const activeLensOptions = useMemo(() => (lensOptions.data ?? []).filter((i) => i.is_active), [lensOptions.data]);
 
+  const refsLoading = suppliers.isLoading || brands.isLoading || materials.isLoading || mftypes.isLoading || lenstypes.isLoading || finishtypes.isLoading || lensOptions.isLoading;
+
   const { calculate, settings } = usePricingEngine();
 
   useEffect(() => {
@@ -251,7 +253,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const labelCls = "text-xs font-medium";
   const sectionCls = "text-[11px] font-semibold uppercase tracking-wider mb-2";
 
-  const RefSelect = ({ label, value, onChange, items }: {label: string;value: string;onChange: (v: string) => void;items: ReferenceItem[];}) => {
+  const RefSelect = ({ label, value, onChange, items, disabled }: {label: string;value: string;onChange: (v: string) => void;items: ReferenceItem[];disabled?: boolean;}) => {
     const [open, setOpen] = useState(false);
     const selected = items.find((i) => i.id === value);
     return (
@@ -259,7 +261,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
         <Label className="text-[11px]">{label}</Label>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" role="combobox" aria-expanded={open} className="h-7 w-full justify-between text-xs font-normal">
+            <Button variant="outline" role="combobox" aria-expanded={open} disabled={disabled} className="h-7 w-full justify-between text-xs font-normal">
               {selected ? selected.name : <span className="text-muted-foreground">Select {label}</span>}
               <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
             </Button>
@@ -347,13 +349,13 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 bg-muted/50 shadow-sm">
-                    <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeSuppliers} />
-                    <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeBrands} />
-                    <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} />
-                    <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeMftypes} />
-                    <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeLenstypes} />
-                    <RefSelect label="Finish Type" value={form.finishtype_id ?? ""} onChange={(v) => set("finishtype_id", v || null)} items={activeFinishtypes} />
-                    <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} />
+                    <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeSuppliers} disabled={refsLoading} />
+                    <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeBrands} disabled={refsLoading} />
+                    <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} disabled={refsLoading} />
+                    <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeMftypes} disabled={refsLoading} />
+                    <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeLenstypes} disabled={refsLoading} />
+                    <RefSelect label="Finish Type" value={form.finishtype_id ?? ""} onChange={(v) => set("finishtype_id", v || null)} items={activeFinishtypes} disabled={refsLoading} />
+                    <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} disabled={refsLoading} />
                     {form.option &&
                     <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
                     }
