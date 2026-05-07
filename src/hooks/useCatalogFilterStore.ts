@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type LensFilter = "all" | "active" | "inactive" | "web" | "zero_cost" | "zero_sell" | "in_pricelist" | "liked" | "disliked";
+export type LensFilter = "all" | "active" | "inactive" | "web" | "zero_cost" | "zero_sell" | "in_pricelist" | "liked" | "disliked" | "compare_tight" | "compare_loose" | "unique";
 export type LensSortKey = "name" | "supplier" | "brand" | "material" | "mftype" | "lenstype" | "option" | "finishtype" | "base_price" | "sell_price" | "sell_usd";
 export type AddonSupplyFilter = "all" | "active" | "inactive";
 export type AddonSortKey = "name" | "sku" | "category" | "price" | "cost" | "sort_order";
