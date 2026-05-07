@@ -184,7 +184,7 @@ const BlogPostsManager = ({
         slug: editing.slug?.trim() || null,
         excerpt: editing.excerpt?.trim() || null,
         content: editing.content || "",
-        body_json: editing.body_json ?? null,
+        body_json: null,
         cover_image_url: editing.cover_image_url?.trim() || null,
         cover_image_alt: editing.cover_image_alt?.trim() || null,
         author_name: editing.author_name?.trim() || null,
