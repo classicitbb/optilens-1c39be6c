@@ -322,6 +322,8 @@
   --admin-table-row-risk: 0 70% 96%;
   --admin-table-row-loss: 0 70% 95%;
   --admin-table-row-warning: 45 80% 94%;
+  --admin-table-row-best: 140 65% 92%;
+  --admin-table-group-header: 215 20% 93%;
   --admin-table-row-even: 0 0% 100%;
   --admin-table-row-odd: 30 15% 98%;
   --admin-table-row-pending: 0 80% 97%;
@@ -388,6 +390,8 @@
   --admin-table-row-risk: 0 40% 22%;
   --admin-table-row-loss: 0 45% 20%;
   --admin-table-row-warning: 40 45% 22%;
+  --admin-table-row-best: 140 50% 18%;
+  --admin-table-group-header: 215 30% 18%;
   --admin-table-row-even: 30 20% 12%;
   --admin-table-row-odd: 30 18% 14%;
   --admin-table-row-pending: 0 40% 18%;
