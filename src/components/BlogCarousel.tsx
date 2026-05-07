@@ -12,9 +12,10 @@ import { ArrowRight, BookOpen, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
 
 const BlogCarousel = () => {
-  const { data: posts = [], isLoading } = useFeaturedBlogPosts();
+  const { data: posts = [], isLoading, isError } = useFeaturedBlogPosts();
 
-  if (!isLoading && posts.length === 0) return null;
+  if (!isLoading && !isError && posts.length === 0) return null;
+  if (isError) return null;
 
   return (
     <section className="bg-muted/30 py-16 sm:py-24" aria-label="Latest blog posts">

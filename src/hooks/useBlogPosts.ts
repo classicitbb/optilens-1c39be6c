@@ -107,15 +107,19 @@ export const useFeaturedBlogPosts = () => {
   return useQuery({
     queryKey: ["blog_posts", "public", "featured"],
     queryFn: async () => {
+      // Attempt to fetch posts marked as featured. If the column doesn't exist
+      // yet in the live DB the query returns an error — silently fall through
+      // to the latest-posts fallback rather than throwing.
       const { data: featured, error: featuredError } = await blogTable()
         .select("*")
         .eq("status", "published")
         .eq("is_featured", true)
         .order("published_at", { ascending: false, nullsFirst: false })
         .limit(6);
-      if (featuredError) throw featuredError;
 
-      if ((featured ?? []).length > 0) return (featured ?? []) as BlogPost[];
+      if (!featuredError && (featured ?? []).length > 0) {
+        return (featured ?? []) as BlogPost[];
+      }
 
       const { data, error } = await blogTable()
         .select("*")
