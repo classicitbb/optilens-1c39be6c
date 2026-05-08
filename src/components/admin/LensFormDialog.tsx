@@ -9,10 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandItem, CommandGroup } from "@/components/ui/command";
 import { useReferenceData, ReferenceItem } from "@/hooks/useReferenceData";
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Lock, LockOpen, X } from "lucide-react";
+import FormSelect from "@/components/admin/FormSelect";
+import { ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Lock, LockOpen, X } from "lucide-react";
 import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
 import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
@@ -253,39 +252,19 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const labelCls = "text-xs font-medium";
   const sectionCls = "text-[11px] font-semibold uppercase tracking-wider mb-2";
 
-  const RefSelect = ({ label, value, onChange, items, disabled }: {label: string;value: string;onChange: (v: string) => void;items: ReferenceItem[];disabled?: boolean;}) => {
-    const [open, setOpen] = useState(false);
-    const selected = items.find((i) => i.id === value);
-    return (
-      <div className="space-y-0.5 bg-muted/50">
-        <Label className="text-[11px]">{label}</Label>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" role="combobox" aria-expanded={open} disabled={disabled} className="h-7 w-full justify-between text-xs font-normal">
-              {selected ? selected.name : <span className="text-muted-foreground">Select {label}</span>}
-              <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[220px] p-0 z-50" align="start">
-            <Command>
-              <CommandInput placeholder={`Search ${label.toLowerCase()}…`} className="h-8 text-xs" />
-              <CommandList>
-                <CommandEmpty className="py-2 text-xs text-center">No results.</CommandEmpty>
-                <CommandGroup>
-                  {items.map((i) =>
-                  <CommandItem key={i.id} value={i.name} onSelect={() => {onChange(i.id);setOpen(false);}} className="text-xs">
-                      <Check className={`mr-1.5 h-3 w-3 ${value === i.id ? "opacity-100" : "opacity-0"}`} />
-                      {i.name}
-                    </CommandItem>
-                  )}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>);
-
-  };
+  const RefSelect = ({ label, value, onChange, items, disabled, nullable }: {label: string;value: string;onChange: (v: string) => void;items: ReferenceItem[];disabled?: boolean;nullable?: boolean;}) => (
+    <div className="space-y-0.5 bg-muted/50">
+      <Label className="text-[11px]">{label}</Label>
+      <FormSelect
+        value={value}
+        onChange={onChange}
+        options={items.map((i) => ({ value: i.id, label: i.name }))}
+        disabled={disabled}
+        nullable={nullable}
+        placeholder={`Select ${label}`}
+      />
+    </div>
+  );
 
   const NumInput = ({ label, value, onChange, step = "0.25" }: {label: string;value: number | null;step?: string;onChange: (v: string) => void;}) =>
   <div className="space-y-0.5">
@@ -354,8 +333,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} disabled={refsLoading} />
                     <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeMftypes} disabled={refsLoading} />
                     <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeLenstypes} disabled={refsLoading} />
-                    <RefSelect label="Finish Type" value={form.finishtype_id ?? ""} onChange={(v) => set("finishtype_id", v || null)} items={activeFinishtypes} disabled={refsLoading} />
-                    <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} disabled={refsLoading} />
+                    <RefSelect label="Finish Type" value={form.finishtype_id ?? ""} onChange={(v) => set("finishtype_id", v || null)} items={activeFinishtypes} disabled={refsLoading} nullable />
+                    <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} disabled={refsLoading} nullable />
                     {form.option &&
                     <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
                     }
