@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 interface Option {
   value: string;
@@ -20,7 +20,6 @@ interface Props {
 const FormSelect = ({ value, onChange, options, placeholder = "Select…", disabled, nullable, className }: Props) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [draft, setDraft] = useState(value);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 220 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -30,7 +29,7 @@ const FormSelect = ({ value, onChange, options, placeholder = "Select…", disab
   const updateMenuPosition = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const menuH = 280;
+    const menuH = 260;
     const spaceBelow = window.innerHeight - rect.bottom;
     const top = spaceBelow >= menuH ? rect.bottom + 2 : rect.top - menuH - 2;
     setMenuStyle({
@@ -42,7 +41,6 @@ const FormSelect = ({ value, onChange, options, placeholder = "Select…", disab
 
   useEffect(() => {
     if (open) {
-      setDraft(value);
       setSearch("");
       updateMenuPosition();
     }
@@ -74,12 +72,10 @@ const FormSelect = ({ value, onChange, options, placeholder = "Select…", disab
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [options, search]);
 
-  const applyAndClose = () => {
-    onChange(draft);
+  const select = (v: string) => {
+    onChange(v);
     setOpen(false);
   };
-
-  const clear = () => setDraft("");
 
   return (
     <div className={`relative ${className ?? ""}`}>
@@ -108,7 +104,6 @@ const FormSelect = ({ value, onChange, options, placeholder = "Select…", disab
             top: menuStyle.top,
             left: menuStyle.left,
             minWidth: menuStyle.width,
-            maxHeight: 280,
             zIndex: 99999,
           }}
         >
@@ -129,52 +124,38 @@ const FormSelect = ({ value, onChange, options, placeholder = "Select…", disab
               />
             </div>
           )}
-          <div className="overflow-auto flex-1">
-            {filtered.map((opt) => {
-              const checked = draft === opt.value;
-              return (
-                <label
-                  key={opt.value}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer"
-                  style={{ background: checked ? "hsl(var(--admin-accent) / 0.08)" : undefined }}
-                  onClick={() => setDraft(opt.value)}
-                >
-                  <span
-                    className="flex items-center justify-center h-3.5 w-3.5 rounded border shrink-0"
-                    style={{
-                      borderColor: checked ? "hsl(var(--admin-accent))" : "hsl(var(--admin-border))",
-                      background: checked ? "hsl(var(--admin-accent))" : "transparent",
-                    }}
-                  >
-                    {checked && <Check className="h-2.5 w-2.5" style={{ color: "hsl(var(--admin-accent-fg))" }} />}
-                  </span>
-                  <span className="flex-1 leading-tight">{opt.label}</span>
-                </label>
-              );
-            })}
+          <div style={{ overflowY: "auto", maxHeight: 220 }}>
+            {nullable && value && (
+              <button
+                type="button"
+                className="w-full text-left px-3 py-1.5 text-xs"
+                style={{ color: "hsl(var(--admin-muted-fg))" }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => select("")}
+              >
+                — None —
+              </button>
+            )}
+            {filtered.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className="w-full text-left px-3 py-1.5 text-xs"
+                style={{
+                  background: opt.value === value ? "hsl(var(--admin-accent) / 0.15)" : undefined,
+                  fontWeight: opt.value === value ? 600 : undefined,
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => select(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
             {filtered.length === 0 && (
               <div className="px-3 py-2 text-xs text-center" style={{ color: "hsl(var(--admin-muted-fg))" }}>
                 No results
               </div>
             )}
-          </div>
-          <div className="flex justify-end gap-1 p-1.5 border-t" style={{ borderColor: "hsl(var(--admin-border))" }}>
-            {nullable && (
-              <button
-                className="px-2.5 py-1 text-xs rounded"
-                style={{ color: "hsl(var(--admin-accent))" }}
-                onClick={clear}
-              >
-                Clear
-              </button>
-            )}
-            <button
-              className="px-2.5 py-1 text-xs rounded"
-              style={{ background: "hsl(var(--admin-accent))", color: "hsl(var(--admin-accent-fg))" }}
-              onClick={applyAndClose}
-            >
-              OK
-            </button>
           </div>
         </div>,
         document.body,
