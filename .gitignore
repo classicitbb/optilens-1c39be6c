@@ -26,6 +26,9 @@ dist-ssr
 # Optional local Bun lockfile
 bun.lockb
 
+# Claude Code worktrees — never commit
+.claude/worktrees/
+
 # Environment variables — never commit secrets
 .env
 .env.*
