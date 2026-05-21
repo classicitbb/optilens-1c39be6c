@@ -16,6 +16,15 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers the LabLink embed routes in the public route registry", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.rx-order" && route.path === "/rx-order" && route.status === "active"),
+    ).toBeTruthy();
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.rx-job-status" && route.path === "/rx-job-status" && route.status === "active"),
+    ).toBeTruthy();
+  });
+
   it("registers /assistant/window in the public route registry", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.assistant.window" && route.path === "/assistant/window" && route.status === "active"),
@@ -73,6 +82,16 @@ describe("public route accessibility", () => {
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />');
+  });
+
+  it("declares runtime routes for the LabLink embed pages", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('path="rx-order"');
+    expect(source).toContain('path="rx-job-status"');
+    expect(source).toContain('title="Online Ordering Portal"');
+    expect(source).toContain('title="Order Tracking"');
   });
 
   it("declares a runtime route for /assistant/window", () => {

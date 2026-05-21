@@ -35,6 +35,24 @@ export interface ProductVariantSettings {
 
 const queryKey = (productType: StoreProductType, productId: string) => ["store-product-variants", productType, productId] as const;
 const settingsKey = (productType: StoreProductType, productId: string) => ["store-product-variant-settings", productType, productId] as const;
+const publicVariantColumns = [
+  "id",
+  "product_type",
+  "product_id",
+  "title",
+  "variant_key",
+  "sku",
+  "opc_code",
+  "attributes",
+  "metadata",
+  "price",
+  "stock_qty",
+  "reserved_qty",
+  "low_stock_threshold",
+  "allow_backorder",
+  "is_active",
+  "sort_order",
+].join(",");
 
 export const useProductVariants = (productType?: StoreProductType, productId?: string, options?: { activeOnly?: boolean }) => {
   const activeOnly = options?.activeOnly ?? true;
@@ -44,7 +62,7 @@ export const useProductVariants = (productType?: StoreProductType, productId?: s
     queryFn: async () => {
       const query = (supabase as any)
         .from("store_product_variants")
-        .select("*")
+        .select(publicVariantColumns)
         .eq("product_type", productType)
         .eq("product_id", productId)
         .order("sort_order", { ascending: true });
@@ -140,7 +158,7 @@ export const useUpsertProductVariants = (productType: StoreProductType, productI
           })),
           { onConflict: "product_type,product_id,variant_key" },
         )
-        .select("*");
+        .select(publicVariantColumns);
 
       if (error) throw error;
       return (data ?? []) as ProductVariant[];
