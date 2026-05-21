@@ -2,6 +2,49 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
+/**
+ * Fires the customer-onboarding function for a newly created user.
+ * This assigns the default template pricelist and sends the welcome email.
+ * Failures are logged but do NOT block the primary create/invite response.
+ */
+async function triggerCustomerOnboarding(
+  req: Request,
+  userId: string,
+  email: string,
+  displayName?: string,
+): Promise<void> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) return;
+
+  // Build the internal function URL from the project URL
+  const onboardingUrl = `${supabaseUrl}/functions/v1/customer-onboarding`;
+
+  try {
+    const resp = await fetch(onboardingUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Forward the caller's auth token so requirePrivilegedAccess passes
+        "Authorization": req.headers.get("Authorization") ?? "",
+        "x-admin-auth-token": req.headers.get("x-admin-auth-token") ?? "",
+        "Origin": req.headers.get("Origin") ?? "",
+      },
+      body: JSON.stringify({ userId, email, displayName }),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      console.warn("customer-onboarding: non-OK response", { status: resp.status, body: text });
+    } else {
+      const result = await resp.json();
+      console.log("customer-onboarding: completed", result);
+    }
+  } catch (err) {
+    console.error("customer-onboarding: fetch failed", err instanceof Error ? err.message : err);
+  }
+}
+
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   allowMethods: "POST, OPTIONS",
@@ -117,10 +160,16 @@ Deno.serve(async (req) => {
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
-      const { error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+      const { data: inviteData, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
         redirectTo: getPasswordRedirectTo(req),
       });
       if (error) throw error;
+
+      // Trigger onboarding: assign default pricelist + send welcome email
+      if (inviteData?.user?.id) {
+        await triggerCustomerOnboarding(req, inviteData.user.id, email);
+      }
+
       return jsonResponse(req, 200, { success: true });
     }
 
@@ -144,6 +193,12 @@ Deno.serve(async (req) => {
           .update({ display_name: displayName })
           .eq("user_id", newUser.user.id);
       }
+
+      // Trigger onboarding: assign default pricelist + send welcome email
+      if (newUser?.user?.id) {
+        await triggerCustomerOnboarding(req, newUser.user.id, email, displayName);
+      }
+
       return jsonResponse(req, 200, { success: true, userId: newUser?.user?.id });
     }
 
