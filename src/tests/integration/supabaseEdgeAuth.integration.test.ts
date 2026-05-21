@@ -57,6 +57,7 @@ describe("supabase edge-function auth hardening", () => {
       "supabase/functions/lead-intelligence/index.ts",
       "supabase/functions/odoo-sync-pull-contacts/index.ts",
       "supabase/functions/odoo-sync-push-contacts/index.ts",
+      "supabase/functions/send-transactional-email/index.ts",
     ]) {
       const source = read(file);
       expect(source).toContain("requirePrivilegedAccess");
@@ -83,6 +84,11 @@ describe("supabase edge-function auth hardening", () => {
       expect(source).toMatch(/allowedRoles:\s*\[['"]admin['"]\]/);
       expect(source).toContain("if (authContext instanceof Response)");
     }
+
+    const transactionalSender = read("supabase/functions/send-transactional-email/index.ts");
+    expect(transactionalSender).toMatch(/sourceFunction:\s*['"]send-transactional-email['"]/);
+    expect(transactionalSender).toMatch(/allowedRoles:\s*\[['"]admin['"],\s*['"]operator['"]\]/);
+    expect(transactionalSender).toContain("if (authContext instanceof Response)");
 
     const lensAssistant = read("supabase/functions/lens-assistant/index.ts");
     expect(lensAssistant).toContain("requireAuthenticatedUser");
