@@ -18,7 +18,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
-import { LABLINK_PORTAL_URL, LABLINK_TRACKING_URL } from "@/config/externalLinks";
 import { createAuthHref } from "@/lib/authFlow";
 
 type MegaMenuLink = {
@@ -120,8 +119,8 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Apply for a Trade Account", description: "Lead form", to: "/professionals/trade-account" },
     { label: "Optician Website Design", description: "Preview and quote a retail website build", to: "/optical-retail-websites" },
-    { label: "Online Ordering Portal", description: "Login to LabLink", href: LABLINK_PORTAL_URL, externalLabel: "External" },
-    { label: "Order Tracking", description: "Track shipments and job status", href: LABLINK_TRACKING_URL, externalLabel: "External" },
+    { label: "Online Ordering Portal", description: "Login to LabLink", to: "/rx-order" },
+    { label: "Order Tracking", description: "Track shipments and job status", to: "/rx-job-status" },
     { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" },
     { label: "Rx Lab Services", description: "Custom surfacing, edging, tinting, and specialty coatings", to: "/rx-lab-services" }]
 
@@ -243,7 +242,9 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "find-a-retailer": "Find a Retailer",
   "tracing-cutting-guide": "Tracing & Cutting Guide",
   "lab-process-overview": "Lab Process Overview",
-  "lens-ordering-tips": "Lens Ordering Tips"
+  "lens-ordering-tips": "Lens Ordering Tips",
+  "rx-order": "Online Ordering Portal",
+  "rx-job-status": "Order Tracking"
 };
 
 
@@ -282,7 +283,10 @@ const getBreadcrumbLabel = (segment: string) => {
   join(" ");
 };
 
-const MegaMenu = ({ item }: {item: PrimaryMenuItem;}) => {
+const getLabLinkNavigationProps = (preserveLabLinkSession: boolean) =>
+  preserveLabLinkSession ? { target: "_blank", rel: "noopener noreferrer" } : {};
+
+const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; preserveLabLinkSession: boolean;}) => {
   const [open, setOpen] = useState(false);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
   const [arrowLeft, setArrowLeft] = useState(0);
@@ -374,6 +378,7 @@ const MegaMenu = ({ item }: {item: PrimaryMenuItem;}) => {
               <a
                 key={link.label}
                 href={link.to}
+                {...getLabLinkNavigationProps(preserveLabLinkSession)}
                 onClick={handleLinkClick}
                 className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}>
                 
@@ -384,6 +389,7 @@ const MegaMenu = ({ item }: {item: PrimaryMenuItem;}) => {
               <Link
                 key={link.label}
                 to={link.to || "/"}
+                {...getLabLinkNavigationProps(preserveLabLinkSession)}
                 onClick={handleLinkClick}
                 className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}>
                 
@@ -439,6 +445,8 @@ const Header = () => {
   const activeUserInitials = getAccountInitials(activeUserName, activeUserEmail);
   const resolvedThemeValue = activeTheme === "system" ? resolvedTheme ?? "system" : activeTheme;
   const { data: storeProducts = [] } = useStoreProducts();
+  const preserveLabLinkSession = location.pathname === "/rx-order" || location.pathname === "/rx-job-status";
+  const labLinkNavigationProps = getLabLinkNavigationProps(preserveLabLinkSession);
 
   const handleSignOut = async () => {
     await signOut();
@@ -473,7 +481,7 @@ const Header = () => {
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
-        <Link to="/" className="flex items-center gap-2" aria-label="Classic Visions home">
+        <Link to="/" {...labLinkNavigationProps} className="flex items-center gap-2" aria-label="Classic Visions home">
           <div className="flex h-10 w-10 items-center justify-center">
               <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
@@ -482,7 +490,7 @@ const Header = () => {
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
           {PRIMARY_MENU.map((item) =>
-            <MegaMenu key={item.label} item={item} />
+            <MegaMenu key={item.label} item={item} preserveLabLinkSession={preserveLabLinkSession} />
             )}
         </nav>
 
@@ -525,7 +533,7 @@ const Header = () => {
                                       {link.label} {link.externalLabel ? `(${link.externalLabel})` : ""}
                                     </a> :
 
-                              <Link key={link.label} to={link.to || "/"} className={`block rounded-md px-2 py-1.5 text-sm ${link.isCta ? "border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                              <Link key={link.label} to={link.to || "/"} {...labLinkNavigationProps} className={`block rounded-md px-2 py-1.5 text-sm ${link.isCta ? "border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                                       {link.label}
                                     </Link>
 

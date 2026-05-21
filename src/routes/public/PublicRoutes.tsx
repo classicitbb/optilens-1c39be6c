@@ -2,6 +2,10 @@ import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
 
 import {
+  LABLINK_PORTAL_URL,
+  LABLINK_TRACKING_URL,
+} from "@/config/externalLinks";
+import {
   PUBLIC_COATINGS_REDIRECTS,
   PUBLIC_LENSES_REDIRECTS,
   PUBLIC_LEGAL_REDIRECTS,
@@ -14,6 +18,7 @@ const BlogPostPage = lazy(() => import("@/pages/BlogPostPage"));
 const CompanionAssistantWindowPage = lazy(() => import("@/pages/assistant/CompanionAssistantWindowPage"));
 const OpticalRetailWebsitesPage = lazy(() => import("@/pages/OpticalRetailWebsitesPage"));
 const RxLabServicesPage = lazy(() => import("@/pages/RxLabServicesPage"));
+const LabLinkEmbedPage = lazy(() => import("@/pages/LabLinkEmbedPage"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazy(() => import("@/pages/LensDesignGuidePage"));
@@ -85,6 +90,28 @@ const PublicRoutes = () => (
     <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
     <Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
+    <Route
+      path="rx-order"
+      element={
+        <LabLinkEmbedPage
+          title="Online Ordering Portal"
+          iframeTitle="Classic Visions Online Ordering Portal"
+          src={LABLINK_PORTAL_URL}
+          canonicalPath="/rx-order"
+        />
+      }
+    />
+    <Route
+      path="rx-job-status"
+      element={
+        <LabLinkEmbedPage
+          title="Order Tracking"
+          iframeTitle="Classic Visions Order Tracking"
+          src={LABLINK_TRACKING_URL}
+          canonicalPath="/rx-job-status"
+        />
+      }
+    />
     <Route path="knowledge" element={<Knowledge />} />
     <Route path="knowledge/:articleSlug" element={<Knowledge />} />
     <Route path="legal/:slug" element={<LegalPage />} />
