@@ -621,7 +621,7 @@ const Header = () => {
 
                       <div className="space-y-1 pt-1">
                         <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
-                          <Link to="/profile/account" className="flex items-center gap-3">
+                          <Link to="/profile/account" {...labLinkNavigationProps} className="flex items-center gap-3">
                             <Settings className="h-4.5 w-4.5 text-foreground/80" />
                             <span className="text-sm font-medium">Account settings</span>
                           </Link>
@@ -675,14 +675,14 @@ const Header = () => {
 
                       <div className="space-y-1">
                         <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
-                          <Link to="/orders" className="flex items-center gap-3">
+                          <Link to="/orders" {...labLinkNavigationProps} className="flex items-center gap-3">
                             <Package className="h-4.5 w-4.5 text-foreground/80" />
                             <span className="text-sm font-medium">Orders</span>
                           </Link>
                         </DropdownMenuItem>
                         {hasAccess &&
                 <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
-                            <Link to="/admin" className="flex items-center gap-3">
+                            <Link to="/admin" {...labLinkNavigationProps} className="flex items-center gap-3">
                               <Shield className="h-4.5 w-4.5 text-foreground/80" />
                               <span className="text-sm font-medium">Admin</span>
                             </Link>
@@ -710,7 +710,7 @@ const Header = () => {
                 </DropdownMenu> :
 
             <Button variant="ghost" size="sm" asChild>
-                  <Link to={createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}${location.hash}` || "/" })}>
+                  <Link to={createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}${location.hash}` || "/" })} {...labLinkNavigationProps}>
                     <User className="mr-2 h-4 w-4" />
                     Sign in
                   </Link>
@@ -721,7 +721,7 @@ const Header = () => {
                 <CartSheet triggerVariant="hero" triggerSize="sm" showLabel className="min-w-[7.5rem] justify-center" />
               ) : (
                 <Button variant="hero" size="sm" className="min-w-[7.5rem] justify-center" asChild>
-                  <Link to="/store">
+                  <Link to="/store" {...labLinkNavigationProps}>
                     <ShoppingCart className="h-5 w-5" />
                     <span>Shop</span>
                   </Link>
