@@ -1,6 +1,8 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
+import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Configuration baked in at scaffold time — do NOT change these manually.
@@ -15,11 +17,10 @@ const SENDER_DOMAIN = "support.classicvisions.net"
 // even though actual sending uses the subdomain above.
 const FROM_DOMAIN = "classicvisions.net"
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-}
+const corsPolicy = createCorsPolicy({
+  allowHeaders: 'authorization, x-client-info, apikey, content-type',
+  allowMethods: 'POST, OPTIONS',
+})
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
@@ -30,14 +31,27 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
-
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+  const preflight = handleCorsPreflight(req, corsPolicy)
+  if (preflight) return preflight
+
+  const corsHeaders = getCorsHeaders(req, corsPolicy)
+  const originBlocked = rejectDisallowedOrigin(req, corsPolicy)
+  if (originBlocked) return originBlocked
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const authContext = await requirePrivilegedAccess(req, corsHeaders, {
+    allowedRoles: ['admin', 'operator'],
+    sourceFunction: 'send-transactional-email',
+  })
+  if (authContext instanceof Response) {
+    return authContext
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
