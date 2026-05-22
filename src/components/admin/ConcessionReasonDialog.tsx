@@ -21,9 +21,9 @@ const ConcessionReasonDialog = ({ open, onConfirm, onCancel }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent className="sm:max-w-sm" style={{ borderRadius: "4px" }}>
+      <DialogContent className="admin-tool admin-overlay-surface sm:max-w-sm" style={{ borderRadius: "4px" }}>
         <DialogHeader>
-          <DialogTitle className="text-sm" style={{ color: "hsl(215 30% 15%)" }}>
+          <DialogTitle className="text-sm text-foreground">
             Price Below Strategic — Reason Required
           </DialogTitle>
         </DialogHeader>

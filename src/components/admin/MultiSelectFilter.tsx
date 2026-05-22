@@ -149,7 +149,7 @@ const MultiSelectFilter = ({ label, options, selected, onChange, storageKey }: P
       {open && createPortal(
         <div
           ref={menuRef}
-          className="admin-tool dark fixed rounded flex flex-col"
+          className="admin-tool fixed rounded flex flex-col"
           style={{
             background: "hsl(var(--admin-card))",
             border: "1.5px solid hsl(var(--admin-muted-fg) / 0.35)",

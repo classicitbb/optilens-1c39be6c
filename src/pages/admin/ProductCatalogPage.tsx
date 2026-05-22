@@ -224,7 +224,7 @@ const ProductCatalogPage = () => {
     <>
       {/* Main catalog — portal when fullscreen, inline otherwise */}
       {fullscreen ? createPortal(
-        <div className="admin-tool dark" style={{ position: "fixed", inset: 0, zIndex: 9000 }}>
+        <div className="admin-tool" style={{ position: "fixed", inset: 0, zIndex: 9000 }}>
           {catalogContent}
         </div>,
         document.body,
@@ -233,7 +233,7 @@ const ProductCatalogPage = () => {
       {/* Compare Tool overlay */}
       {showCompare && createPortal(
         <div
-          className="admin-tool dark"
+          className="admin-tool"
           style={{
             position: "fixed",
             inset: 0,

@@ -12,7 +12,7 @@ const AdminDocsLayout = () => {
 
   return (
     <AdminRoleProvider>
-      <div className="admin-tool dark flex flex-col h-screen w-full overflow-hidden rounded-none">
+      <div className="admin-tool flex flex-col h-screen w-full overflow-hidden rounded-none">
         <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
         <div className="flex flex-1 min-h-0 min-w-0">
           <main className="admin-content flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden p-4">
