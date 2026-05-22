@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
+
 interface TeamOption { id: string; name: string; }
 interface StageOption { id: string; name: string; is_closed: boolean; }
 interface TicketTypeOption { id: string; name: string; }

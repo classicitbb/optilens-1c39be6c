@@ -9,6 +9,7 @@ const read = (relativePath: string) =>
 
 describe("supabase edge-function auth hardening", () => {
   const privilegedFunctions = [
+    "customer-onboarding",
     "lead-intelligence",
     "lens-assistant",
     "order-confirmation",
@@ -54,6 +55,7 @@ describe("supabase edge-function auth hardening", () => {
   it("uses shared deny-by-default auth middleware for privileged functions", () => {
     for (const file of [
       "supabase/functions/admin-user-management/index.ts",
+      "supabase/functions/customer-onboarding/index.ts",
       "supabase/functions/lead-intelligence/index.ts",
       "supabase/functions/odoo-sync-pull-contacts/index.ts",
       "supabase/functions/odoo-sync-push-contacts/index.ts",
@@ -73,6 +75,7 @@ describe("supabase edge-function auth hardening", () => {
 
     const privilegeMap: Array<{ file: string; sourceFunction: string }> = [
       { file: "supabase/functions/admin-user-management/index.ts", sourceFunction: "admin-user-management" },
+      { file: "supabase/functions/customer-onboarding/index.ts", sourceFunction: "customer-onboarding" },
       { file: "supabase/functions/lead-intelligence/index.ts", sourceFunction: "lead-intelligence" },
       { file: "supabase/functions/odoo-sync-pull-contacts/index.ts", sourceFunction: "odoo-sync-pull-contacts" },
       { file: "supabase/functions/odoo-sync-push-contacts/index.ts", sourceFunction: "odoo-sync-push-contacts" },

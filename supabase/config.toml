@@ -39,3 +39,5 @@ project_id = "xstmeirxhfbiyayrrsob"
   [functions.process-email-queue]
     verify_jwt = true
     schedule = "*/10 * * * *"
+  [functions.customer-onboarding]
+    verify_jwt = true
