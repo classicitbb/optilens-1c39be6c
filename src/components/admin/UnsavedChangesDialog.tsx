@@ -19,7 +19,7 @@ interface Props {
 
 const UnsavedChangesDialog = ({ open, onSave, onDiscard, onCancel }: Props) => (
   <AlertDialog open={open} onOpenChange={(v) => { if (!v) onCancel(); }}>
-    <AlertDialogContent style={{ borderRadius: "4px", maxWidth: "340px" }} className="p-4">
+    <AlertDialogContent style={{ borderRadius: "4px", maxWidth: "340px" }} className="admin-tool admin-overlay-surface p-4">
       <AlertDialogHeader>
         <AlertDialogTitle className="text-sm">Unsaved Changes</AlertDialogTitle>
         <AlertDialogDescription className="text-xs">

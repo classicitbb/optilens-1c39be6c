@@ -12,7 +12,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { useHelpdeskTickets } from "@/features/admin/helpdesk/hooks/useHelpdeskTickets";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
@@ -79,7 +78,7 @@ const HelpdeskTicketsPage = () => {
   const [teamId, setTeamId] = useState<string>("all");
   const [onlyOpen, setOnlyOpen] = useState(true);
 
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "", dueDate: "" });
 
   // Edit dialog state
@@ -166,7 +165,7 @@ const HelpdeskTicketsPage = () => {
   const getPrioLabel = (level: number) => priorities.find(p => p.level === level)?.label ?? "Normal";
   const getPrioColor = (level: number) => priorities.find(p => p.level === level)?.color ?? "#6b7280";
 
-  // ── Auto-fill defaults when popover opens ──
+  // ── Auto-fill defaults when create dialog opens ──
   const initFormDefaults = useCallback(() => {
     const defaultStage = stages.find(s => !s.is_closed)?.id ?? "";
     const defaultPriority = priorities.length > 0 ? String(priorities[0].level) : "1";
@@ -184,12 +183,12 @@ const HelpdeskTicketsPage = () => {
   }, [stages, priorities]);
 
   useEffect(() => {
-    if (popoverOpen) {
+    if (createDialogOpen) {
       initFormDefaults();
-      // Focus title field after popover animation
+      // Focus first field after dialog animation
       setTimeout(() => fieldRefs.current[0]?.focus(), 80);
     }
-  }, [popoverOpen, initFormDefaults]);
+  }, [createDialogOpen, initFormDefaults]);
 
   const handleCreate = async () => {
     if (!form.title.trim()) { toast({ title: "Ticket title is required", variant: "destructive" }); return; }
@@ -209,7 +208,7 @@ const HelpdeskTicketsPage = () => {
       // Save to history for smart defaults
       pushHistory({ teamId: form.teamId, stageId: form.stageId, priority: form.priority, ticketTypeId: form.ticketTypeId });
       toast({ title: "Ticket created" });
-      setPopoverOpen(false);
+      setCreateDialogOpen(false);
     } catch (error) {
       toast({ title: "Unable to create ticket", description: (error as Error).message, variant: "destructive" });
     }
@@ -246,22 +245,15 @@ const HelpdeskTicketsPage = () => {
             {onlyOpen ? "Showing Open" : "Showing All"}
           </Button>
           {canEditTickets && (
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button size="sm" className="h-8 text-xs gap-1.5">
-                  <Plus className="h-3.5 w-3.5" />
-                  New Ticket
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-80 p-0"
-                align="end"
-                sideOffset={8}
-                collisionPadding={12}
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
-                <div className="p-4 space-y-3">
-                  <p className="text-sm font-medium text-foreground text-center">Create Ticket</p>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                New Ticket
+              </Button>
+              <DialogContent className="admin-tool admin-overlay-surface sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-sm font-medium text-center">Create Ticket</DialogTitle>
+                </DialogHeader>
 
                   {/* 0: Type — selecting auto-fills title & description */}
                   <div className="space-y-1">
@@ -389,9 +381,8 @@ const HelpdeskTicketsPage = () => {
                   >
                     {createTicket.isPending ? "Creating…" : "Create Ticket"}
                   </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </AdminPageHeader>

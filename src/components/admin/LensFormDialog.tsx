@@ -252,7 +252,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const labelCls = "text-xs font-medium";
   const sectionCls = "text-[11px] font-semibold uppercase tracking-wider mb-2";
 
-  const RefSelect = ({ label, value, onChange, items, disabled, nullable }: {label: string;value: string;onChange: (v: string) => void;items: ReferenceItem[];disabled?: boolean;nullable?: boolean;}) => (
+  const RefSelect = ({ label, value, onChange, items, disabled, nullable, searchable }: {label: string;value: string;onChange: (v: string) => void;items: ReferenceItem[];disabled?: boolean;nullable?: boolean;searchable?: boolean;}) => (
     <div className="space-y-0.5 bg-muted/50">
       <Label className="text-[11px]">{label}</Label>
       <FormSelect
@@ -261,6 +261,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
         options={items.map((i) => ({ value: i.id, label: i.name }))}
         disabled={disabled}
         nullable={nullable}
+        searchable={searchable}
         placeholder={`Select ${label}`}
       />
     </div>
@@ -275,7 +276,7 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="admin-overlay-surface sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
+      <DialogContent className="admin-tool admin-overlay-surface sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-sm font-semibold text-foreground">
@@ -328,13 +329,13 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 bg-muted/50 shadow-sm">
-                    <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeSuppliers} disabled={refsLoading} />
-                    <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeBrands} disabled={refsLoading} />
-                    <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} disabled={refsLoading} />
-                    <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeMftypes} disabled={refsLoading} />
-                    <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeLenstypes} disabled={refsLoading} />
-                    <RefSelect label="Finish Type" value={form.finishtype_id ?? ""} onChange={(v) => set("finishtype_id", v || null)} items={activeFinishtypes} disabled={refsLoading} nullable />
-                    <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} disabled={refsLoading} nullable />
+                    <RefSelect label="Supplier" value={form.supplier_id} onChange={(v) => set("supplier_id", v)} items={activeSuppliers} disabled={refsLoading} searchable />
+                    <RefSelect label="Brand" value={form.brand_id} onChange={(v) => set("brand_id", v)} items={activeBrands} disabled={refsLoading} searchable />
+                    <RefSelect label="Material" value={form.material_id} onChange={(v) => set("material_id", v)} items={activeMaterials} disabled={refsLoading} searchable />
+                    <RefSelect label="MF Type" value={form.mftype_id} onChange={(v) => set("mftype_id", v)} items={activeMftypes} disabled={refsLoading} searchable />
+                    <RefSelect label="Lens Type" value={form.lenstype_id} onChange={(v) => set("lenstype_id", v)} items={activeLenstypes} disabled={refsLoading} searchable />
+                    <RefSelect label="Finish Type" value={form.finishtype_id ?? ""} onChange={(v) => set("finishtype_id", v || null)} items={activeFinishtypes} disabled={refsLoading} nullable searchable />
+                    <RefSelect label="Option" value={form.option?.lens_option_id ?? ""} onChange={(v) => setOption(v)} items={activeLensOptions} disabled={refsLoading} nullable searchable />
                     {form.option &&
                     <NumInput label="Extra Cost" value={form.option.extra_cost} step="0.01" onChange={(v) => setOptionCost(parseFloat(v) || 0)} />
                     }
