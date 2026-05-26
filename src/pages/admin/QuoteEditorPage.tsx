@@ -77,6 +77,8 @@ const QuoteEditorPage = () => {
   const [overrideNote, setOverrideNote] = useState("");
   const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
+  const [noteDialogLine, setNoteDialogLine] = useState<QuoteLine | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
 
   // Rx map (for summary / PDF export on RX quotes)
   const lensLineIds = useMemo(() => lines.filter(l => l.line_type === "Lens").map(l => l.id), [lines]);
