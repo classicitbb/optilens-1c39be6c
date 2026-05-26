@@ -4711,6 +4711,7 @@ export type Database = {
           group_key: string | null
           id: string
           item_name: string
+          line_note: string | null
           line_type: string
           override_note: string | null
           override_reason: string | null
@@ -4737,6 +4738,7 @@ export type Database = {
           group_key?: string | null
           id?: string
           item_name?: string
+          line_note?: string | null
           line_type?: string
           override_note?: string | null
           override_reason?: string | null
@@ -4763,6 +4765,7 @@ export type Database = {
           group_key?: string | null
           id?: string
           item_name?: string
+          line_note?: string | null
           line_type?: string
           override_note?: string | null
           override_reason?: string | null
