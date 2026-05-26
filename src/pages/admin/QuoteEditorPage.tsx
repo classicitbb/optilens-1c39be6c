@@ -404,8 +404,8 @@ const QuoteEditorPage = () => {
                       const tb = thresholdBadge(line.threshold_status);
                       const lineTotal = line.qty * line.unit_sell_price_bbd;
                       return (
-                        <>
-                        <TableRow key={line.id} style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
+                        <React.Fragment key={line.id}>
+                        <TableRow style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
                           <TableCell className="text-xs">
                             <div className="flex items-center gap-1">
                               <span className="truncate max-w-[170px]">{line.item_name}</span>
