@@ -51,6 +51,7 @@ export interface QuoteLine {
   group_key: string | null;
   parent_line_id: string | null;
   sort_order: number;
+  line_note: string | null;
   created_at: string;
   updated_at: string;
 }
