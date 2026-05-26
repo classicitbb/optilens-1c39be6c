@@ -373,6 +373,7 @@ export type Database = {
           entry_type: string
           excerpt: string | null
           id: string
+          is_featured: boolean
           published_at: string | null
           related_post_slugs: string[]
           seo_description: string | null
@@ -396,6 +397,7 @@ export type Database = {
           entry_type?: string
           excerpt?: string | null
           id?: string
+          is_featured?: boolean
           published_at?: string | null
           related_post_slugs?: string[]
           seo_description?: string | null
@@ -419,6 +421,7 @@ export type Database = {
           entry_type?: string
           excerpt?: string | null
           id?: string
+          is_featured?: boolean
           published_at?: string | null
           related_post_slugs?: string[]
           seo_description?: string | null
@@ -6382,6 +6385,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_staff_role: { Args: { _user_id: string }; Returns: boolean }
       integration_secret_encryption_key: { Args: never; Returns: string }
       list_lead_provider_credentials_status: {
         Args: { p_tenant_key?: string }
