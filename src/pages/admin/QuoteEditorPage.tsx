@@ -449,7 +449,7 @@ const QuoteEditorPage = () => {
                             </TableCell>
                           </TableRow>
                         ) : null}
-                        </>
+                        </React.Fragment>
                       );
                     })}
                   </TableBody>
