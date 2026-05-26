@@ -1281,6 +1281,19 @@ export const QuotePreviewPanel = ({
                                     {line.description_override}
                                   </div>
                                 )}
+                                {line.line_note && (
+                                  <div
+                                    style={{
+                                      fontSize: `${styleMetrics.tableFootnoteFontSize}px`,
+                                      color: "#4a5568",
+                                      fontStyle: "italic",
+                                      whiteSpace: "pre-wrap",
+                                      marginTop: "2px",
+                                    }}
+                                  >
+                                    Note: {line.line_note}
+                                  </div>
+                                )}
                               </td>
                               <td
                                 style={{
