@@ -25,9 +25,7 @@ export default {
   				'Segoe UI Symbol',
   				'Noto Color Emoji'
   			],
-  			/* Meridian Precision — classical serif for monumental headlines */
   			serif: [
-  				'Playfair Display',
   				'ui-serif',
   				'Georgia',
   				'Cambria',
@@ -35,9 +33,7 @@ export default {
   				'Times',
   				'serif'
   			],
-  			/* Meridian Precision — geometric monospace for precision labels */
   			mono: [
-  				'Space Mono',
   				'ui-monospace',
   				'SFMono-Regular',
   				'Menlo',
