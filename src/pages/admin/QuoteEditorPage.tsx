@@ -404,6 +404,7 @@ const QuoteEditorPage = () => {
                       const tb = thresholdBadge(line.threshold_status);
                       const lineTotal = line.qty * line.unit_sell_price_bbd;
                       return (
+                        <>
                         <TableRow key={line.id} style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
                           <TableCell className="text-xs">
                             <div className="flex items-center gap-1">
@@ -427,9 +428,28 @@ const QuoteEditorPage = () => {
                             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold" style={{ background: pb.bg, color: pb.color }} title={`${line.profit_status} / ${line.threshold_status}`}>{pb.label}</span>
                           </TableCell>
                           <TableCell>
-                            {canEdit && <button onClick={() => deleteLineMutation.mutate(line.id)} className="p-0.5 rounded hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>}
+                            <div className="flex items-center gap-0.5">
+                              {canEdit && (
+                                <button
+                                  onClick={() => { setNoteDialogLine(line); setNoteDraft(line.line_note ?? ""); }}
+                                  className={`p-0.5 rounded hover:bg-muted ${line.line_note ? "text-primary" : "text-muted-foreground"}`}
+                                  title={line.line_note ? "Edit note" : "Add note"}
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {canEdit && <button onClick={() => deleteLineMutation.mutate(line.id)} className="p-0.5 rounded hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>}
+                            </div>
                           </TableCell>
                         </TableRow>
+                        {line.line_note ? (
+                          <TableRow key={`${line.id}-note`} style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
+                            <TableCell colSpan={9} className="text-[11px] text-muted-foreground italic pt-0 pb-2 pl-6 whitespace-pre-wrap break-words">
+                              <span className="font-medium not-italic text-foreground/70">Note: </span>{line.line_note}
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                        </>
                       );
                     })}
                   </TableBody>
