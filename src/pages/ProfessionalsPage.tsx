@@ -128,25 +128,13 @@ const ProfessionalsPage = () => {
                 <h2 className="text-lg font-semibold text-foreground">{section.title}</h2>
                 <div className="mt-4 space-y-2 flex-1">
                   {section.links.map((link) => (
-                    link.external ? (
-                      <a
-                        key={link.label}
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      >
-                        {link.label}
-                      </a>
-                    ) : (
-                      <Link
-                        key={link.label}
-                        to={link.to || "/professionals"}
-                        className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      >
-                        {link.label}
-                      </Link>
-                    )
+                    <Link
+                      key={link.label}
+                      to={link.to}
+                      className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      {link.label}
+                    </Link>
                   ))}
                 </div>
                 {section.title === "For Optical Stores & Clinics" && (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   useQuotes, useQuoteLines, useRxDetails, Quote, QuoteLine, RxDetail,
@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle, FileText } from "lucide-react";
 import QuotePdfExport from "@/components/admin/QuotePdfExport";
 import { resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { getPersistedPrintSettings, savePersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
@@ -77,6 +77,8 @@ const QuoteEditorPage = () => {
   const [overrideNote, setOverrideNote] = useState("");
   const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
+  const [noteDialogLine, setNoteDialogLine] = useState<QuoteLine | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
 
   // Rx map (for summary / PDF export on RX quotes)
   const lensLineIds = useMemo(() => lines.filter(l => l.line_type === "Lens").map(l => l.id), [lines]);
@@ -402,7 +404,8 @@ const QuoteEditorPage = () => {
                       const tb = thresholdBadge(line.threshold_status);
                       const lineTotal = line.qty * line.unit_sell_price_bbd;
                       return (
-                        <TableRow key={line.id} style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
+                        <React.Fragment key={line.id}>
+                        <TableRow style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
                           <TableCell className="text-xs">
                             <div className="flex items-center gap-1">
                               <span className="truncate max-w-[170px]">{line.item_name}</span>
@@ -425,9 +428,28 @@ const QuoteEditorPage = () => {
                             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold" style={{ background: pb.bg, color: pb.color }} title={`${line.profit_status} / ${line.threshold_status}`}>{pb.label}</span>
                           </TableCell>
                           <TableCell>
-                            {canEdit && <button onClick={() => deleteLineMutation.mutate(line.id)} className="p-0.5 rounded hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>}
+                            <div className="flex items-center gap-0.5">
+                              {canEdit && (
+                                <button
+                                  onClick={() => { setNoteDialogLine(line); setNoteDraft(line.line_note ?? ""); }}
+                                  className={`p-0.5 rounded hover:bg-muted ${line.line_note ? "text-primary" : "text-muted-foreground"}`}
+                                  title={line.line_note ? "Edit note" : "Add note"}
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {canEdit && <button onClick={() => deleteLineMutation.mutate(line.id)} className="p-0.5 rounded hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>}
+                            </div>
                           </TableCell>
                         </TableRow>
+                        {line.line_note ? (
+                          <TableRow key={`${line.id}-note`} style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
+                            <TableCell colSpan={9} className="text-[11px] text-muted-foreground italic pt-0 pb-2 pl-6 whitespace-pre-wrap break-words">
+                              <span className="font-medium not-italic text-foreground/70">Note: </span>{line.line_note}
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                        </React.Fragment>
                       );
                     })}
                   </TableBody>
@@ -505,6 +527,53 @@ const QuoteEditorPage = () => {
           <DialogFooter>
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setOverrideDialogLine(null); setOverrideReason(""); setOverrideNote(""); }}>Cancel</Button>
             <Button size="sm" className="h-7 text-xs" onClick={saveOverride} disabled={!overrideReason}>Confirm Override</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!noteDialogLine} onOpenChange={open => { if (!open) { setNoteDialogLine(null); setNoteDraft(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">Line Note</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-[11px] text-muted-foreground truncate">{noteDialogLine?.item_name}</p>
+            <Textarea
+              value={noteDraft}
+              onChange={e => setNoteDraft(e.target.value)}
+              placeholder="Add a note for this line item…"
+              className="text-xs min-h-[120px]"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="flex-row justify-between gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-destructive hover:text-destructive"
+              onClick={() => {
+                if (!noteDialogLine) return;
+                updateLineMutation.mutate({ id: noteDialogLine.id, updates: { line_note: null } });
+                setNoteDialogLine(null); setNoteDraft("");
+              }}
+              disabled={!noteDialogLine?.line_note}
+            >
+              Clear
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setNoteDialogLine(null); setNoteDraft(""); }}>Cancel</Button>
+              <Button
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  if (!noteDialogLine) return;
+                  updateLineMutation.mutate({ id: noteDialogLine.id, updates: { line_note: noteDraft.trim() || null } });
+                  setNoteDialogLine(null); setNoteDraft("");
+                }}
+              >
+                Save
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
