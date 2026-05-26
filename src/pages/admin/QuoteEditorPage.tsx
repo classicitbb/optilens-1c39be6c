@@ -530,6 +530,53 @@ const QuoteEditorPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!noteDialogLine} onOpenChange={open => { if (!open) { setNoteDialogLine(null); setNoteDraft(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">Line Note</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-[11px] text-muted-foreground truncate">{noteDialogLine?.item_name}</p>
+            <Textarea
+              value={noteDraft}
+              onChange={e => setNoteDraft(e.target.value)}
+              placeholder="Add a note for this line item…"
+              className="text-xs min-h-[120px]"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="flex-row justify-between gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-destructive hover:text-destructive"
+              onClick={() => {
+                if (!noteDialogLine) return;
+                updateLineMutation.mutate({ id: noteDialogLine.id, updates: { line_note: null } });
+                setNoteDialogLine(null); setNoteDraft("");
+              }}
+              disabled={!noteDialogLine?.line_note}
+            >
+              Clear
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setNoteDialogLine(null); setNoteDraft(""); }}>Cancel</Button>
+              <Button
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  if (!noteDialogLine) return;
+                  updateLineMutation.mutate({ id: noteDialogLine.id, updates: { line_note: noteDraft.trim() || null } });
+                  setNoteDialogLine(null); setNoteDraft("");
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
