@@ -1,17 +1,18 @@
 /**
- * Shared email sender via cPanel PHP mail relay.
+ * Shared email sender — now routes through Lovable Emails queue.
  *
- * Sends an HTTPS POST to MAIL_RELAY_URL (a PHP script on the cPanel server)
- * which handles the actual SMTP delivery. This works around Deno Deploy's
- * restriction on raw TCP connections (which SMTP requires).
+ * Historically this module sent via a cPanel PHP mail relay. That path was
+ * blocked by Cloudflare in front of classicvisions.net. We now enqueue
+ * directly into the Lovable Emails `transactional_emails` queue, which the
+ * `process-email-queue` cron dispatcher drains via the verified Lovable
+ * sender domain (support.classicvisions.net).
  *
- * Required Supabase secrets:
- *   MAIL_RELAY_URL    — e.g. https://classicvisions.net/mail-relay.php
- *   MAIL_RELAY_SECRET — shared secret matching the PHP script
- *
- * Optional:
- *   SMTP_FROM — display From address (falls back to notify@classicvisions.net)
+ * The exported API (`getSmtpConfig`, `sendViaSMTP`, `sendSmtpEmail`,
+ * `isSmtpPermanentFailure`) is preserved so existing callers
+ * (contact-inquiry, helpdesk-email) keep working without changes.
  */
+
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 export interface SmtpMailOptions {
   to: string;
@@ -23,62 +24,71 @@ export interface SmtpMailOptions {
 }
 
 export interface SmtpConfig {
-  relayUrl: string;
-  relaySecret: string;
+  /** Default From address for outbound mail */
   from: string;
 }
 
+const DEFAULT_FROM = "Classic Visions <support@classicvisions.net>";
+
 export function getSmtpConfig(): SmtpConfig | null {
-  const relayUrl = Deno.env.get("MAIL_RELAY_URL");
-  const relaySecret = Deno.env.get("MAIL_RELAY_SECRET");
-
-  if (!relayUrl || !relaySecret) return null;
-
-  const from =
-    Deno.env.get("SMTP_FROM") ||
-    Deno.env.get("SMTP_USER") ||
-    "notify@classicvisions.net";
-
-  return { relayUrl, relaySecret, from };
+  // Always available now — the queue lives inside the Supabase project.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) return null;
+  const from = Deno.env.get("SMTP_FROM") || DEFAULT_FROM;
+  return { from };
 }
 
 export async function sendViaSMTP(
   opts: SmtpMailOptions,
   config: SmtpConfig,
 ): Promise<void> {
-  const resp = await fetch(config.relayUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Relay-Secret": config.relaySecret,
-    },
-    body: JSON.stringify({
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
-      reply_to: opts.replyTo ?? "",
-      from: opts.from ?? config.from,
-    }),
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error("Supabase env not configured for email queue");
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Mail relay error ${resp.status}: ${text}`);
-  }
+  const messageId = crypto.randomUUID();
 
-  const result = await resp.json();
-  if (!result.ok) {
-    throw new Error(`Mail relay rejected send: ${JSON.stringify(result)}`);
+  // Audit log — append-only pending row
+  await supabase.from("email_send_log").insert({
+    message_id: messageId,
+    template_name: "raw",
+    recipient_email: opts.to,
+    status: "pending",
+  });
+
+  const { error } = await supabase.rpc("enqueue_email", {
+    queue_name: "transactional_emails",
+    payload: {
+      message_id: messageId,
+      to: opts.to,
+      from: opts.from ?? config.from,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text ?? "",
+      ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+      purpose: "transactional",
+      label: "raw",
+      idempotency_key: messageId,
+      queued_at: new Date().toISOString(),
+    },
+  });
+
+  if (error) {
+    throw new Error(`Email enqueue failed: ${error.message}`);
   }
 }
 
-// A permanent failure is one where retrying will never help —
-// e.g. relay auth failure (401) or bad request (400).
-export function isSmtpPermanentFailure(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return /relay error 4[0-9]{2}/.test(error.message);
+// Retained for API compatibility — queue-based sends are async, so there
+// are no synchronous permanent failures from this layer.
+export function isSmtpPermanentFailure(_error: unknown): boolean {
+  return false;
 }
 
-// Alias kept for any callers that use the older name
 export const sendSmtpEmail = sendViaSMTP;
-
