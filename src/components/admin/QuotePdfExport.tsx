@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { getPersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
 import { PrintOrientation, PrintPaperSize, PrintSettings } from "@/features/admin/print/types";
-import { preparePrintListChunks, type PrintListSection } from "@/features/admin/print/printLayout";
 import type { Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
 
 interface QuotePdfExportProps {
@@ -69,6 +68,9 @@ const PAGE_GAP = 16; // px between pages in preview
 const PREVIEW_FOOTER_HEIGHT_PX = 44;
 const PREVIEW_CONTINUATION_HEADER_HEIGHT_PX = 96;
 const PREVIEW_PAGE_BREAK_SAFETY_PX = 8;
+const QUOTE_LINE_ITEM_COLUMN_WIDTHS = ["7%", "55%", "8.5%", "16%", "13.5%"];
+const QUOTE_PRINT_FIRST_PAGE_ROWS = 16;
+const QUOTE_PRINT_CONTINUATION_ROWS = 14;
 
 const getContentAreaPx = (settings: PrintSettings) => {
   const area = getPrintableContentAreaMm(settings);
@@ -161,6 +163,22 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => {
   .rx-table { width: 100%; border-collapse: collapse; margin-bottom: ${metrics.headingGapPx}px; }
   .rx-table td.label-cell { text-align: left; font-weight: 600; background: var(--table-header-bg); width: 40px; white-space: nowrap; }
   .quote-type { border-radius: 0; }
+  .quote-print-page { position: relative; background: #ffffff; break-after: page; page-break-after: always; }
+  .quote-print-page:last-child { break-after: auto; page-break-after: auto; }
+  .print-continuation-header { margin-bottom: 10px; }
+  .print-continuation-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #2b6cb0;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .print-continuation-brand { font-size: 12px; font-weight: 700; color: #2b6cb0; }
+  .print-continuation-context { font-size: 9px; color: #718096; margin-top: 1px; }
+  .print-continuation-meta { text-align: right; }
+  .print-continuation-number { font-size: 12px; font-weight: 700; }
+  .print-continuation-type { font-size: 9px; color: #718096; margin-top: 1px; }
   @media print {
     .footer { display: none; }
     .print-fixed-footer {
@@ -181,6 +199,9 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => {
     .table-shared tr {
       break-inside: avoid;
       page-break-inside: avoid;
+    }
+    .quote-print-page {
+      min-height: calc(100vh - 1px);
     }
   }
 `;
@@ -245,18 +266,24 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       ...feeLines.map((line) => ({ line, displayIndex: null as number | null, isFee: true })),
     ];
 
-    const lineItemSections: PrintListSection<(typeof lineItemRows)[number]>[] = [
-      {
-        key: "quote-line-items",
-        label: "Line Items",
-        rows: lineItemRows,
-      },
-    ];
-
-    const lineItemChunks = preparePrintListChunks(lineItemSections, {
-      rowsPerPage: 14,
-      minSplitThreshold: 5,
-    });
+    const lineItemPageChunks: Array<{
+      key: string;
+      rows: typeof lineItemRows;
+      isContinuation: boolean;
+    }> = [];
+    let nextLineIndex = 0;
+    while (nextLineIndex < lineItemRows.length) {
+      const isContinuation = lineItemPageChunks.length > 0;
+      const pageSize = isContinuation
+        ? QUOTE_PRINT_CONTINUATION_ROWS
+        : QUOTE_PRINT_FIRST_PAGE_ROWS;
+      lineItemPageChunks.push({
+        key: `quote-line-items-${lineItemPageChunks.length}`,
+        rows: lineItemRows.slice(nextLineIndex, nextLineIndex + pageSize),
+        isContinuation,
+      });
+      nextLineIndex += pageSize;
+    }
 
     const renderRxTable = (rx: RxDetail) => {
       const hasAnyPrism = [
@@ -528,19 +555,35 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
         {/* Line items */}
         <div className="section print-keep-with-next">
           <div className="section-title print-keep-with-next">Line Items</div>
-          {lineItemChunks.map((chunk) => (
+          {lineItemPageChunks.map((chunk) => (
             <div
               key={chunk.key}
-              className={`print-list-breakable ${chunk.pageBreakBefore ? "print-page-break-before" : ""}`.trim()}
+              className={`print-list-breakable ${chunk.isContinuation ? "print-page-break-before" : ""}`.trim()}
             >
+              {chunk.isContinuation && (
+                <div className="print-continuation-header print-keep-with-next">
+                  <div className="print-continuation-title">
+                    <div>
+                      <div className="print-continuation-brand">Classic Visions</div>
+                      <div className="print-continuation-context">
+                        {quote.customer_name || "Quote"} · Continued
+                      </div>
+                    </div>
+                    <div className="print-continuation-meta">
+                      <div className="print-continuation-number">{quote.quote_number}</div>
+                      <div className="print-continuation-type">{quote.quote_type} QUOTE</div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <table className="table-shared">
                 <colgroup>
-                  <col style={{ width: "7%" }} />
-                  <col style={{ width: showInternal ? "38%" : "55%" }} />
-                  <col style={{ width: "8.5%" }} />
+                  <col style={{ width: QUOTE_LINE_ITEM_COLUMN_WIDTHS[0] }} />
+                  <col style={{ width: showInternal ? "38%" : QUOTE_LINE_ITEM_COLUMN_WIDTHS[1] }} />
+                  <col style={{ width: QUOTE_LINE_ITEM_COLUMN_WIDTHS[2] }} />
                   {showInternal && <col style={{ width: "11%" }} />}
-                  <col style={{ width: showInternal ? "12%" : "16%" }} />
-                  <col style={{ width: showInternal ? "13.5%" : "13.5%" }} />
+                  <col style={{ width: showInternal ? "12%" : QUOTE_LINE_ITEM_COLUMN_WIDTHS[3] }} />
+                  <col style={{ width: QUOTE_LINE_ITEM_COLUMN_WIDTHS[4] }} />
                   {showInternal && <col style={{ width: "10%" }} />}
                 </colgroup>
                 <thead>
@@ -886,7 +929,7 @@ export const QuotePreviewPanel = ({
   const fmt = (v: number | null | undefined) => (v != null ? v.toString() : "");
   const previewArea = getPrintableContentAreaMm(localPrintSettings);
   const styleMetrics = getQuoteStyleMetrics(localPrintSettings);
-  const lineItemColumnWidths = ["7%", "55%", "8.5%", "16%", "13.5%"];
+  const lineItemColumnWidths = QUOTE_LINE_ITEM_COLUMN_WIDTHS;
 
   return (
     <div className="border border-border overflow-hidden bg-white shadow-sm flex flex-col h-full">
