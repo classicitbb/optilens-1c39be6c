@@ -108,8 +108,22 @@ const formatVitalValue = (metricName: string, value: number | null) => {
 // Returns null when the proxy is unavailable or unconfigured.
 const fetchVercelBackup = async (): Promise<VercelAnalyticsBackup | null> => {
   try {
-    const { data, error } = await (supabase.functions as any).invoke("vercel-analytics-proxy");
-    if (error || !data?.available) return null;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return null;
+
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vercel-analytics-proxy`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    if (!data?.available) return null;
     return (data.data as VercelAnalyticsBackup) ?? null;
   } catch {
     return null;
