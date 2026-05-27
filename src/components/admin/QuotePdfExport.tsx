@@ -1,7 +1,7 @@
 import { useRef, forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download } from "lucide-react";
+import { Download, Maximize, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildPrintStyles, getPrintableContentAreaMm, resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { getPersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
@@ -66,6 +66,9 @@ const getContentBoxDimensionsPx = (settings: PrintSettings) => {
 };
 
 const PAGE_GAP = 16; // px between pages in preview
+const PREVIEW_FOOTER_HEIGHT_PX = 44;
+const PREVIEW_CONTINUATION_HEADER_HEIGHT_PX = 96;
+const PREVIEW_PAGE_BREAK_SAFETY_PX = 8;
 
 const getContentAreaPx = (settings: PrintSettings) => {
   const area = getPrintableContentAreaMm(settings);
@@ -125,7 +128,8 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => {
     --table-footnote-font-size: ${metrics.tableFootnoteFontSize}px;
   }
   table { width: 100%; border-collapse: collapse; }
-  .table-shared { border: 1px solid var(--table-border-color); }
+  .table-shared { border: 1px solid var(--table-border-color); table-layout: fixed; }
+  .table-shared thead { display: table-header-group; }
   .table-shared th { background: var(--table-header-bg); text-align: left; padding: ${metrics.tableHeaderPaddingY}px ${metrics.tableHeaderPaddingX}px; font-size: var(--table-header-font-size); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: #2d3748; border: 1px solid var(--table-border-color); }
   .table-shared td { padding: ${metrics.tableBodyPaddingY}px ${metrics.tableBodyPaddingX}px; font-size: var(--table-body-font-size); color: #2d3748; border: 1px solid var(--table-border-color); }
   .table-shared tbody tr:nth-child(even) { background: var(--table-row-even-bg); }
@@ -133,6 +137,12 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => {
   .table-shared th.center, .table-shared td.center { text-align: center; }
   .table-shared th.desc, .table-shared td.desc, .table-shared .table-col-description { text-align: left; }
   .table-shared td.desc { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .table-shared tr,
+  .table-shared td,
+  .table-shared th {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
   .table-footnote { font-size: var(--table-footnote-font-size); color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transform: scale(clamp(0.92, ${metrics.tableFontScale}, 1)); transform-origin: left center; }
   .totals { margin-top: 16px; display: flex; justify-content: flex-end; }
   .totals-box { width: 260px; }
@@ -144,12 +154,35 @@ const getQuoteDocumentStyles = (settings: PrintSettings) => {
   .notes-section { margin-top: ${metrics.sectionGapPx}px; padding: 16px; background: #f7fafc; border-radius: 0; border: 1px solid #2b6cb0; }
   .notes-text { font-size: 11px; color: #4a5568; white-space: pre-wrap; line-height: 1.5; }
   .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; text-align: center; font-size: 10px; color: #a0aec0; }
+  .print-fixed-footer { display: none; }
   .internal-badge { background: #fed7d7; color: #c53030; padding: 1px 6px; border-radius: 0; font-size: 9px; font-weight: 600; }
   .rx-section { margin-top: ${metrics.rxSectionGapPx}px; page-break-inside: avoid; }
   .rx-title { font-size: 11px; font-weight: 600; margin-bottom: ${Math.max(4, metrics.headingGapPx - 2)}px; color: #2b6cb0; }
   .rx-table { width: 100%; border-collapse: collapse; margin-bottom: ${metrics.headingGapPx}px; }
   .rx-table td.label-cell { text-align: left; font-weight: 600; background: var(--table-header-bg); width: 40px; white-space: nowrap; }
   .quote-type { border-radius: 0; }
+  @media print {
+    .footer { display: none; }
+    .print-fixed-footer {
+      display: block;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      text-align: center;
+      font-size: 10px;
+      color: #a0aec0;
+      background: #ffffff;
+    }
+    .print-list-breakable,
+    .table-shared tbody,
+    .table-shared tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
 `;
 };
 
@@ -180,7 +213,7 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
       if (!printWindow) return;
       printWindow.document
         .write(`<!DOCTYPE html><html><head><title>${quote.quote_number} - Quote</title>
-        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles(resolvedPrintSettings)}</style></head><body><div class="pre-print-hint">Disable browser headers/footers in print settings.</div><div class="print-root">${content.innerHTML}</div></body></html>`);
+        <style>${buildPrintStyles(resolvedPrintSettings)}${getQuoteDocumentStyles(resolvedPrintSettings)}</style></head><body><div class="pre-print-hint">Disable browser headers/footers in print settings.</div><div class="print-fixed-footer">Classic Visions — Precision Optics & Lens Solutions</div><div class="print-root">${content.innerHTML}</div></body></html>`);
       printWindow.document.close();
       setTimeout(() => {
         printWindow.print();
@@ -501,6 +534,15 @@ const QuotePdfExport = forwardRef<QuotePdfExportHandle, QuotePdfExportProps>(
               className={`print-list-breakable ${chunk.pageBreakBefore ? "print-page-break-before" : ""}`.trim()}
             >
               <table className="table-shared">
+                <colgroup>
+                  <col style={{ width: "7%" }} />
+                  <col style={{ width: showInternal ? "38%" : "55%" }} />
+                  <col style={{ width: "8.5%" }} />
+                  {showInternal && <col style={{ width: "11%" }} />}
+                  <col style={{ width: showInternal ? "12%" : "16%" }} />
+                  <col style={{ width: showInternal ? "13.5%" : "13.5%" }} />
+                  {showInternal && <col style={{ width: "10%" }} />}
+                </colgroup>
                 <thead>
                   <tr>
                     <th style={{ width: "40px" }}>#</th>
@@ -718,7 +760,10 @@ export const QuotePreviewPanel = ({
   const paneRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
+  const [fitScale, setFitScale] = useState(1);
+  const [manualZoom, setManualZoom] = useState<number | null>(null);
   const [pageCount, setPageCount] = useState(1);
+  const [pageOffsets, setPageOffsets] = useState([0]);
 
   useEffect(() => {
     const pane = paneRef.current;
@@ -726,34 +771,84 @@ export const QuotePreviewPanel = ({
 
     const updateScale = () => {
       const page = getPageDimensionsPx(localPrintSettings);
-      const rawStackHeight = page.height * pageCount + PAGE_GAP * Math.max(0, pageCount - 1);
       const availableWidth = Math.max(1, pane.clientWidth - 24);
-      const availableHeight = Math.max(1, pane.clientHeight - 24);
-      setPreviewScale(
-        Math.min(availableWidth / page.width, availableHeight / rawStackHeight),
-      );
+      const nextFitScale = availableWidth / page.width;
+      setFitScale(nextFitScale);
+      if (manualZoom == null) {
+        setPreviewScale(nextFitScale);
+      }
     };
 
     updateScale();
     const observer = new ResizeObserver(updateScale);
     observer.observe(pane);
     return () => observer.disconnect();
-  }, [localPrintSettings, pageCount]);
+  }, [localPrintSettings, manualZoom]);
 
   useEffect(() => {
     const updatePageCount = () => {
       const el = measureRef.current;
       if (!el) return;
       const area = getContentAreaPx(localPrintSettings);
-      setPageCount(Math.max(1, Math.ceil(el.scrollHeight / area.contentHeight)));
+      const usableContentHeight = Math.max(1, area.contentHeight - PREVIEW_FOOTER_HEIGHT_PX);
+      const continuationContentHeight = Math.max(1, usableContentHeight - PREVIEW_CONTINUATION_HEADER_HEIGHT_PX);
+      const rootTop = el.getBoundingClientRect().top;
+      const renderedHeight = el.getBoundingClientRect().height;
+      const scale =
+        el.offsetHeight > 0 && renderedHeight > 0
+          ? renderedHeight / el.offsetHeight
+          : previewScale || 1;
+      const explicitRowBreaks = Array.from(
+        el.querySelectorAll('[data-preview-row-break="true"]'),
+      );
+      const rowBreakSource =
+        explicitRowBreaks.length > 0 ? explicitRowBreaks : Array.from(el.querySelectorAll("tbody tr"));
+      const rowBreaks = rowBreakSource
+        .flatMap((row) => {
+          const rect = row.getBoundingClientRect();
+          return [
+            (rect.top - rootTop) / scale,
+            (rect.bottom - rootTop) / scale,
+          ];
+        })
+        .filter((boundary) => Number.isFinite(boundary) && boundary > 0)
+        .sort((a, b) => a - b);
+      const offsets = [0];
+      let start = 0;
+      const maxHeight = Math.max(el.scrollHeight, el.getBoundingClientRect().height / scale);
+      let pageIndex = 0;
+
+      while (start + (pageIndex === 0 ? usableContentHeight : continuationContentHeight) < maxHeight) {
+        const pageContentHeight = pageIndex === 0 ? usableContentHeight : continuationContentHeight;
+        const target = start + pageContentHeight;
+        const cleanBoundary = rowBreaks
+          .filter((boundary) => boundary > start + PREVIEW_PAGE_BREAK_SAFETY_PX && boundary <= target - PREVIEW_PAGE_BREAK_SAFETY_PX)
+          .pop();
+        const next = cleanBoundary ?? target;
+        if (next <= start + 1) break;
+        offsets.push(next);
+        start = next;
+        pageIndex += 1;
+      }
+
+      setPageOffsets(offsets);
+      setPageCount(offsets.length);
     };
     updatePageCount();
+    const frame = requestAnimationFrame(updatePageCount);
+    const fontReady = "fonts" in document
+      ? document.fonts.ready.then(updatePageCount).catch(() => undefined)
+      : undefined;
     const el = measureRef.current;
     if (!el) return;
     const observer = new ResizeObserver(updatePageCount);
     observer.observe(el);
-    return () => observer.disconnect();
-  }, [localPrintSettings]);
+    return () => {
+      cancelAnimationFrame(frame);
+      void fontReady;
+      observer.disconnect();
+    };
+  }, [localPrintSettings, previewScale]);
 
   useEffect(() => {
     setLocalPrintSettings(resolvePrintSettings(printSettings));
@@ -768,6 +863,11 @@ export const QuotePreviewPanel = ({
   const updateMargin = (field: "marginXMm" | "marginYMm", value: string) => {
     const parsed = Number(value);
     handleSettingsUpdate({ [field]: Number.isFinite(parsed) ? parsed : undefined });
+  };
+  const setZoom = (next: number) => {
+    const resolved = Math.min(3, Math.max(0.15, Number(next.toFixed(2))));
+    setManualZoom(resolved);
+    setPreviewScale(resolved);
   };
   const cleanInternalNotes = stripFrameTag(quote.notes_internal);
   const formatDate = (d?: string | null) => {
@@ -786,6 +886,7 @@ export const QuotePreviewPanel = ({
   const fmt = (v: number | null | undefined) => (v != null ? v.toString() : "");
   const previewArea = getPrintableContentAreaMm(localPrintSettings);
   const styleMetrics = getQuoteStyleMetrics(localPrintSettings);
+  const lineItemColumnWidths = ["7%", "55%", "8.5%", "16%", "13.5%"];
 
   return (
     <div className="border border-border overflow-hidden bg-white shadow-sm flex flex-col h-full">
@@ -847,29 +948,97 @@ export const QuotePreviewPanel = ({
       </div>
 
       <div className="px-3 py-1 text-[10px] text-muted-foreground border-b border-border bg-muted/10">
-        {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(previewArea.contentWidth)}×{Math.round(previewArea.contentHeight)}mm · {Math.round(previewScale * 100)}%
+        <div className="flex items-center justify-between gap-3">
+          <span>
+            {pageCount > 1 ? `${pageCount} pages · ` : ""}{Math.round(previewArea.contentWidth)}×{Math.round(previewArea.contentHeight)}mm · {Math.round(previewScale * 100)}%
+          </span>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setZoom(previewScale - 0.1)} title="Zoom out">
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <span className="w-10 text-center font-mono tabular-nums">{Math.round(previewScale * 100)}%</span>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setZoom(previewScale + 0.1)} title="Zoom in">
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[10px] gap-1" onClick={() => setZoom(1)} title="Actual size">
+              <RotateCcw className="h-3.5 w-3.5" />
+              100
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[10px] gap-1" onClick={() => { setManualZoom(null); setPreviewScale(fitScale); }} title="Fit width">
+              <Maximize className="h-3.5 w-3.5" />
+              Fit
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div
         ref={paneRef}
-        className="bg-muted/10 overflow-hidden p-3 flex-1"
+        className="bg-muted/10 overflow-auto p-3 flex-1"
         style={{ minHeight: "360px" }}
       >
         {(() => {
           const page = getPageDimensionsPx(localPrintSettings);
           const area = getContentAreaPx(localPrintSettings);
+          const usableContentHeight = Math.max(1, area.contentHeight - PREVIEW_FOOTER_HEIGHT_PX);
           const totalStackHeight = (page.height * pageCount + PAGE_GAP * (pageCount - 1)) * previewScale;
 
           return (
             <div className="mx-auto" style={{ width: page.width * previewScale, height: totalStackHeight }}>
               <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: page.width }}>
-                {Array.from({ length: pageCount }).map((_, i) => (
+                {Array.from({ length: pageCount }).map((_, i) => {
+                  const isContinuationPage = i > 0;
+                  const contentTop = area.marginY + (isContinuationPage ? PREVIEW_CONTINUATION_HEADER_HEIGHT_PX : 0);
+                  const pageContentHeight = Math.max(1, usableContentHeight - (isContinuationPage ? PREVIEW_CONTINUATION_HEADER_HEIGHT_PX : 0));
+                  const pageStart = pageOffsets[i] ?? i * usableContentHeight;
+                  const nextStart = pageOffsets[i + 1] ?? pageStart + pageContentHeight;
+                  const cleanCutHeight = Math.max(0, Math.min(pageContentHeight, nextStart - pageStart));
+                  const contentClipHeight = i < pageCount - 1 ? cleanCutHeight : pageContentHeight;
+
+                  return (
                   <div key={i} className="relative bg-white shadow-md" style={{ width: page.width, height: page.height, marginBottom: i < pageCount - 1 ? PAGE_GAP / previewScale : 0, overflow: "hidden" }}>
-                    <span className="absolute font-mono select-none pointer-events-none text-muted-foreground" style={{ bottom: area.marginY * 0.3, right: area.marginX, fontSize: "9px", opacity: 0.5 }}>
-                      Page {i + 1} of {pageCount}
-                    </span>
-                    <div style={{ position: "absolute", top: area.marginY, left: area.marginX, width: area.contentWidth, height: area.contentHeight, overflow: "hidden" }}>
-                      <div style={{ transform: `translateY(-${i * area.contentHeight}px)` }}>
+                    {isContinuationPage && (
+                      <div
+                        className="preview-continuation-header"
+                        style={{
+                          position: "absolute",
+                          top: area.marginY,
+                          left: area.marginX,
+                          width: area.contentWidth,
+                          height: PREVIEW_CONTINUATION_HEADER_HEIGHT_PX - 14,
+                          color: "#1a202c",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #2b6cb0", paddingBottom: "8px", marginBottom: "10px" }}>
+                          <div>
+                            <div style={{ fontSize: "12px", fontWeight: 700, color: "#2b6cb0" }}>Classic Visions</div>
+                            <div style={{ fontSize: "9px", color: "#718096", marginTop: "1px" }}>{quote.customer_name || "Quote"} · Continued</div>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: "12px", fontWeight: 700 }}>{quote.quote_number}</div>
+                            <div style={{ fontSize: "9px", color: "#718096", marginTop: "1px" }}>{quote.quote_type} QUOTE</div>
+                          </div>
+                        </div>
+                        <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", border: "1px solid #2b6cb0" }}>
+                          <colgroup>
+                            {lineItemColumnWidths.map((width) => (
+                              <col key={width} style={{ width }} />
+                            ))}
+                          </colgroup>
+                          <thead>
+                            <tr style={{ background: "#ebf4ff" }}>
+                              <th style={{ textAlign: "left", padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`, fontSize: `${styleMetrics.tableHeaderFontSize}px`, fontWeight: 600, textTransform: "uppercase", color: "#2d3748", border: "1px solid #2b6cb0" }}>#</th>
+                              <th style={{ textAlign: "left", padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`, fontSize: `${styleMetrics.tableHeaderFontSize}px`, fontWeight: 600, textTransform: "uppercase", color: "#2d3748", border: "1px solid #2b6cb0" }}>Description</th>
+                              <th style={{ textAlign: "right", padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`, fontSize: `${styleMetrics.tableHeaderFontSize}px`, fontWeight: 600, textTransform: "uppercase", color: "#2d3748", border: "1px solid #2b6cb0" }}>Qty</th>
+                              <th style={{ textAlign: "right", padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`, fontSize: `${styleMetrics.tableHeaderFontSize}px`, fontWeight: 600, textTransform: "uppercase", color: "#2d3748", border: "1px solid #2b6cb0" }}>Unit Price</th>
+                              <th style={{ textAlign: "right", padding: `${styleMetrics.tableHeaderPaddingY}px ${styleMetrics.tableHeaderPaddingX}px`, fontSize: `${styleMetrics.tableHeaderFontSize}px`, fontWeight: 600, textTransform: "uppercase", color: "#2d3748", border: "1px solid #2b6cb0" }}>Total</th>
+                            </tr>
+                          </thead>
+                        </table>
+                      </div>
+                    )}
+                    <div style={{ position: "absolute", top: contentTop, left: area.marginX, width: area.contentWidth, height: contentClipHeight, overflow: "hidden" }}>
+                      <div style={{ transform: `translateY(-${pageStart}px)` }}>
                         <div ref={i === 0 ? measureRef : undefined}>
                   <div
                     className="print-root"
@@ -1182,8 +1351,13 @@ export const QuotePreviewPanel = ({
                         Line Items
                       </div>
                       <table
-                        style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #2b6cb0" }}
+                        style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", border: "1px solid #2b6cb0" }}
                       >
+                        <colgroup>
+                          {lineItemColumnWidths.map((width) => (
+                            <col key={width} style={{ width }} />
+                          ))}
+                        </colgroup>
                         <thead>
                           <tr style={{ background: "#ebf4ff" }}>
                             <th
@@ -1257,6 +1431,7 @@ export const QuotePreviewPanel = ({
                           {productLines.map((line, i) => (
                             <tr
                               key={line.id}
+                              data-preview-row-break="true"
                               style={{ background: i % 2 === 1 ? "#f7fbff" : "#ffffff" }}
                             >
                               <td
@@ -1610,25 +1785,29 @@ export const QuotePreviewPanel = ({
                         </div>
                       </div>
                     )}
-
+                  </div>
+                        </div>
+                      </div>
+                    </div>
                     <div
+                      className="preview-page-footer absolute text-center text-muted-foreground"
                       style={{
-                        marginTop: "28px",
+                        left: area.marginX,
+                        right: area.marginX,
+                        bottom: area.marginY * 0.45,
                         borderTop: "1px solid #e2e8f0",
-                        paddingTop: "12px",
-                        textAlign: "center",
+                        paddingTop: "10px",
                         fontSize: "9px",
                         color: "#a0aec0",
                       }}
                     >
                       Classic Visions — Precision Optics & Lens Solutions
                     </div>
+                    <span className="absolute font-mono select-none pointer-events-none text-muted-foreground" style={{ bottom: area.marginY * 0.18, right: area.marginX, fontSize: "9px", opacity: 0.5 }}>
+                      Page {i + 1} of {pageCount}
+                    </span>
                   </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                )})}
               </div>
             </div>
           );
