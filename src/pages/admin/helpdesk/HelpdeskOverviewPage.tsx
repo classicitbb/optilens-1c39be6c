@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +21,7 @@ import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCrea
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
 
 interface OverviewTicket {
   id: string;
@@ -193,8 +194,10 @@ const TicketEditDialog = ({
 
 };
 
-const StageCreateTicketPopover = ({
+const StageCreateTicketDialog = ({
   stageName,
+  defaultStageId,
+  stages,
   teams,
   priorities,
   ticketTypes,
@@ -203,22 +206,41 @@ const StageCreateTicketPopover = ({
   onCreate,
 }: {
   stageName: string;
+  defaultStageId: string;
+  stages: { id: string; name: string }[];
   teams: { id: string; name: string }[];
   priorities: PriorityOption[];
   ticketTypes: { id: string; name: string }[];
   canCreate: boolean;
   isCreating: boolean;
-  onCreate: (payload: { title: string; description: string; teamId?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null }) => Promise<void>;
+  onCreate: (payload: { title: string; description: string; teamId?: string | null; stageId?: string | null; dueDate?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null }) => Promise<void>;
 }) => {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
     description: "",
     teamId: "",
+    stageId: defaultStageId,
+    dueDate: "",
     priority: "1",
     contactId: "",
     ticketTypeId: "",
   });
+
+  useEffect(() => {
+    if (!open) {
+      setForm({
+        title: "",
+        description: "",
+        teamId: "",
+        stageId: defaultStageId,
+        dueDate: "",
+        priority: "1",
+        contactId: "",
+        ticketTypeId: "",
+      });
+    }
+  }, [defaultStageId, open]);
 
   const handleCreate = async () => {
     if (!form.title.trim()) return;
@@ -226,6 +248,8 @@ const StageCreateTicketPopover = ({
       title: form.title,
       description: form.description,
       teamId: form.teamId || null,
+      stageId: form.stageId || defaultStageId,
+      dueDate: form.dueDate || null,
       priority: Number(form.priority),
       contactId: form.contactId || null,
       ticketTypeId: form.ticketTypeId || null,
@@ -234,6 +258,8 @@ const StageCreateTicketPopover = ({
       title: "",
       description: "",
       teamId: "",
+      stageId: defaultStageId,
+      dueDate: "",
       priority: "1",
       contactId: "",
       ticketTypeId: "",
@@ -242,64 +268,78 @@ const StageCreateTicketPopover = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-primary hover:text-primary"
-          disabled={!canCreate}
-          title={`Create ticket in ${stageName}`}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} collisionPadding={12} className="w-[520px] max-w-[calc(100vw-1rem)] p-4">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-7 w-7 text-primary hover:text-primary"
+        disabled={!canCreate}
+        title={`Create ticket in ${stageName}`}
+        onClick={() => setOpen(true)}
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+      <DialogContent className="admin-tool admin-overlay-surface w-[520px] max-w-[calc(100vw-1rem)] p-4">
         <div className="space-y-2" onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             void handleCreate();
           }
         }} role="form">
-          <p className="text-sm font-semibold text-center">Create Ticket</p>
-          <div className="space-y-2">
-            <Select
-              value={form.ticketTypeId || "__none"}
-              onValueChange={(v) => {
-                const typeId = v === "__none" ? "" : v;
-                const typeName = ticketTypes.find((type) => type.id === typeId)?.name;
-                setForm((prev) => ({
-                  ...prev,
-                  ticketTypeId: typeId,
-                  title: !prev.title.trim() && typeName ? typeName : prev.title,
-                  description: !prev.description.trim() && typeName ? typeName : prev.description,
-                }));
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none" className="text-xs">No type</SelectItem>
-                {ticketTypes.map((type) => <SelectItem key={type.id} value={type.id} className="text-xs">{type.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Input
-              value={form.title}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              placeholder="Title"
-              className="h-8 text-xs focus:ring-2 focus:ring-primary"
-            />
-            <Textarea
-              value={form.description}
-              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="Brief description"
-              className="text-xs min-h-[96px] focus:ring-2 focus:ring-primary"
-            />
-            <ContactPickerSelect
-              value={form.contactId || null}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, contactId: value || "" }))}
-              placeholder="Contact"
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold text-center">Create Ticket</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Type</Label>
+              <Select
+                value={form.ticketTypeId || "__none"}
+                onValueChange={(v) => {
+                  const typeId = v === "__none" ? "" : v;
+                  const typeName = ticketTypes.find((type) => type.id === typeId)?.name;
+                  setForm((prev) => ({
+                    ...prev,
+                    ticketTypeId: typeId,
+                    title: !prev.title.trim() && typeName ? typeName : prev.title,
+                    description: !prev.description.trim() && typeName ? typeName : prev.description,
+                  }));
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none" className="text-xs">No type</SelectItem>
+                  {ticketTypes.map((type) => <SelectItem key={type.id} value={type.id} className="text-xs">{type.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Title *</Label>
+              <Input
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                placeholder="Ticket title"
+                className="h-8 text-xs focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Contact</Label>
+              <ContactPickerSelect
+                value={form.contactId || null}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, contactId: value || "" }))}
+                placeholder="No contact"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Description</Label>
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Brief description"
+                className="text-xs min-h-[96px] focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Team</Label>
               <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, teamId: v === "__none" ? "" : v }))}>
                 <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
                 <SelectContent>
@@ -307,6 +347,9 @@ const StageCreateTicketPopover = ({
                   {teams.map((team) => <SelectItem key={team.id} value={team.id} className="text-xs">{team.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Priority</Label>
               <Select value={form.priority} onValueChange={(v) => setForm((prev) => ({ ...prev, priority: v }))}>
                 <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
                 <SelectContent>
@@ -314,13 +357,31 @@ const StageCreateTicketPopover = ({
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Initial Stage</Label>
+              <Select value={form.stageId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, stageId: v === "__none" ? "" : v }))}>
+                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Initial stage" /></SelectTrigger>
+                <SelectContent>
+                  {stages.map((stage) => <SelectItem key={stage.id} value={stage.id} className="text-xs">{stage.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Due Date</Label>
+              <Input
+                type="date"
+                value={form.dueDate}
+                onChange={(e) => setForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                className="h-8 text-xs focus:ring-2 focus:ring-primary"
+              />
+            </div>
             <Button size="sm" className="h-9 w-full text-xs" onClick={() => void handleCreate()} disabled={isCreating || !form.title.trim()}>
               Create Ticket
             </Button>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -497,21 +558,23 @@ const HelpdeskOverviewPage = () => {
     return () => document.removeEventListener("fullscreenchange", handler);
   }, [isFullscreen]);
 
-  const handleCreateInStage = useCallback(async (stageId: string, payload: { title: string; description: string; teamId?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => {
+  const handleCreateInStage = useCallback(async (stageId: string, payload: { title: string; description: string; teamId?: string | null; stageId?: string | null; dueDate?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => {
+    const nextStageId = payload.stageId ?? stageId;
     try {
       await createTicket.mutateAsync({
         title: payload.title,
         description: payload.description,
         teamId: payload.teamId ?? null,
-        stageId,
+        stageId: nextStageId,
         priority: payload.priority,
         ownerUserId: user?.id,
         partnerContactId: payload.contactId ?? null,
         ticketTypeId: payload.ticketTypeId ?? null,
+        deadline: payload.dueDate ? new Date(`${payload.dueDate}T00:00:00`).toISOString() : null,
         sourceChannel: "manual",
       });
       qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
-      toast({ title: "Ticket created", description: `Created in stage ${stages.find((stage: any) => stage.id === stageId)?.name ?? ""}` });
+      toast({ title: "Ticket created", description: `Created in stage ${stages.find((stage: any) => stage.id === nextStageId)?.name ?? ""}` });
     } catch (err) {
       toast({ title: "Ticket creation failed", description: (err as Error).message, variant: "destructive" });
       throw err;
@@ -628,7 +691,7 @@ const KanbanView = ({
   onEdit?: (t: OverviewTicket) => void;
   canCreate: boolean;
   isCreating: boolean;
-  onCreateInStage: (stageId: string, payload: { title: string; description: string; teamId?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => Promise<void>;
+  onCreateInStage: (stageId: string, payload: { title: string; description: string; teamId?: string | null; stageId?: string | null; dueDate?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => Promise<void>;
   teams: { id: string; name: string }[];
   priorities: PriorityOption[];
   ticketTypes: { id: string; name: string }[];
@@ -739,8 +802,10 @@ const KanbanView = ({
                     </div>
                     <div className="flex items-center gap-1">
                       {canCreate && col.name.toLowerCase() === "new" && col.id !== "__unstaged" && (
-                        <StageCreateTicketPopover
+                        <StageCreateTicketDialog
                           stageName={col.name}
+                          defaultStageId={col.id}
+                          stages={columns.map((column) => ({ id: column.id, name: column.name }))}
                           teams={teams}
                           priorities={priorities}
                           ticketTypes={ticketTypes}

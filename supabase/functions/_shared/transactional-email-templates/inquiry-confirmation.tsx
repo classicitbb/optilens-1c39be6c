@@ -10,6 +10,7 @@ const SITE_NAME = 'Classic Visions'
 interface InquiryConfirmationProps {
   name?: string
   inquiryType?: string
+  message?: string
   siteUrl?: string
 }
 
@@ -48,6 +49,7 @@ const DEFAULT_LABEL = {
 const InquiryConfirmationEmail = ({
   name = 'there',
   inquiryType = 'contact',
+  message = '',
   siteUrl = 'https://classicvisions.lovable.app',
 }: InquiryConfirmationProps) => {
   const label = INQUIRY_LABELS[inquiryType] ?? DEFAULT_LABEL
@@ -62,6 +64,13 @@ const InquiryConfirmationEmail = ({
           <Text style={text}>
             Hi {name}, {label.description.charAt(0).toLowerCase()}{label.description.slice(1)}
           </Text>
+
+          {message ? (
+            <Section style={detailsBox}>
+              <Text style={detailsLabel}>YOUR SUBMISSION DETAILS</Text>
+              <Text style={detailsText}>{message}</Text>
+            </Section>
+          ) : null}
 
           <Section style={infoBox}>
             <Text style={infoText}>
@@ -93,7 +102,8 @@ export const template = {
   displayName: 'Inquiry Confirmation',
   previewData: {
     name: 'Jane Doe',
-    inquiryType: 'contact',
+    inquiryType: 'website-design-lead',
+    message: 'Selected features:\n- Custom branding setup ($350)\n- Appointment booking integration ($500)\n\nUpfront website estimate: $1,950\n\nInfrastructure (always included):\n- Domain registration ($15/yr)\n- Hosting & DNS / Vercel Pro ($20/mo)',
     siteUrl: 'https://classicvisions.lovable.app',
   },
 } satisfies TemplateEntry
@@ -102,6 +112,9 @@ const main = { backgroundColor: '#ffffff', fontFamily: "'Plus Jakarta Sans', Ari
 const container = { padding: '40px 32px', maxWidth: '560px' }
 const h1 = { fontSize: '24px', fontWeight: 'bold' as const, color: '#1f2d3d', margin: '0 0 20px' }
 const text = { fontSize: '15px', color: '#5c6a7a', lineHeight: '1.6', margin: '0 0 24px' }
+const detailsBox = { backgroundColor: '#f0f4f8', borderLeft: '3px solid #3a4a5c', borderRadius: '4px', padding: '16px 20px', margin: '0 0 24px' }
+const detailsLabel = { fontSize: '11px', fontWeight: '700' as const, color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 10px' }
+const detailsText = { fontSize: '13px', color: '#374151', lineHeight: '1.7', margin: '0', whiteSpace: 'pre-wrap' as const }
 const infoBox = { backgroundColor: '#f5f7fa', borderRadius: '12px', padding: '16px 20px', margin: '0 0 24px' }
 const infoText = { fontSize: '14px', color: '#374151', lineHeight: '1.5', margin: '0' }
 const button = { backgroundColor: '#3a4a5c', color: '#f5f8fa', fontSize: '15px', fontWeight: '600' as const, borderRadius: '12px', padding: '14px 24px', textDecoration: 'none', display: 'inline-block', margin: '0 0 24px' }

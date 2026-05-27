@@ -1,8 +1,7 @@
 import { ExternalLink, MapPin, Phone } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useLegalPage } from "@/hooks/useContentArticles";
-import { LABLINK_PORTAL_URL, LABLINK_TRACKING_URL } from "@/config/externalLinks";
 
 type FooterLink = {
   label: string;
@@ -24,8 +23,8 @@ const footerColumns = [
     title: "Support",
     links: [
       { label: "Contact", to: "/#contact" },
-      { label: "Tracking", href: LABLINK_TRACKING_URL },
-      { label: "LabLink", href: LABLINK_PORTAL_URL },
+      { label: "Tracking", to: "/rx-job-status" },
+      { label: "LabLink", to: "/rx-order" },
     ],
   },
   {
@@ -46,7 +45,10 @@ const footerColumns = [
   },
 ] as const;
 
-const FooterColumnLink = ({ link }: { link: FooterLink }) => {
+const getLabLinkNavigationProps = (preserveLabLinkSession: boolean) =>
+  preserveLabLinkSession ? { target: "_blank", rel: "noopener noreferrer" } : {};
+
+const FooterColumnLink = ({ link, preserveLabLinkSession }: { link: FooterLink; preserveLabLinkSession: boolean }) => {
   if (link.href) {
     const isExternal = link.href.startsWith("http");
     return (
@@ -66,6 +68,7 @@ const FooterColumnLink = ({ link }: { link: FooterLink }) => {
       <Link
         key={link.label}
         to={link.to}
+        {...getLabLinkNavigationProps(preserveLabLinkSession)}
         className="text-sm leading-snug text-primary-foreground/70 transition-colors hover:text-primary-foreground"
       >
         {link.label}
@@ -78,14 +81,17 @@ const FooterColumnLink = ({ link }: { link: FooterLink }) => {
 
 const Footer = () => {
   const { data: copyrightArticle } = useLegalPage("copyright");
+  const location = useLocation();
   const copyrightText = copyrightArticle?.content || "© 2026 Classic Visions. All rights reserved.";
+  const preserveLabLinkSession = location.pathname === "/rx-order" || location.pathname === "/rx-job-status";
+  const labLinkNavigationProps = getLabLinkNavigationProps(preserveLabLinkSession);
 
   return (
     <footer className="border-t border-border bg-primary text-primary-foreground" role="contentinfo">
       <div className="container mx-auto px-4 py-12 sm:py-16 lg:px-8">
         {/* Brand row */}
         <div className="mb-10 flex flex-col gap-4 border-b border-primary-foreground/10 pb-10 sm:flex-row sm:items-center sm:justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="Classic Visions home">
+          <Link to="/" {...labLinkNavigationProps} className="flex items-center gap-2" aria-label="Classic Visions home">
             <div className="flex h-10 w-10 items-center justify-center">
               <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
@@ -102,7 +108,7 @@ const Footer = () => {
             <div key={column.title} className="space-y-3">
               <h4 className="text-sm font-semibold uppercase tracking-wider">{column.title}</h4>
               <nav className="flex flex-col gap-2" aria-label={`${column.title} links`}>
-                {column.links.map((link) => <FooterColumnLink key={link.label} link={link} />)}
+                {column.links.map((link) => <FooterColumnLink key={link.label} link={link} preserveLabLinkSession={preserveLabLinkSession} />)}
               </nav>
             </div>
           )}

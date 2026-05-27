@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import FormSelect from "@/components/admin/FormSelect";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -190,7 +190,7 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="admin-overlay-surface sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
+      <DialogContent className="admin-tool admin-overlay-surface sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-sm font-semibold text-foreground">
@@ -240,32 +240,31 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                         <Settings2 className="h-3 w-3 text-muted-foreground" />
                        </button>
                     </div>
-                    <Select value={form.category} onValueChange={(v) => set("category", v)}>
-                      <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {activeCategories.map((c) => <SelectItem key={c.code || c.id} value={c.code || c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <FormSelect
+                      value={form.category}
+                      onChange={(v) => set("category", v)}
+                      options={activeCategories.map((c) => ({ value: c.code || c.id, label: c.name }))}
+                    />
                   </div>
                   <div className="col-span-2">
                     <Label className={labelCls}>Supplier</Label>
-                    <Select value={form.supplier_id ?? "__none__"} onValueChange={(v) => set("supplier_id", v === "__none__" ? null : v)}>
-                      <SelectTrigger className={inputCls}><SelectValue placeholder="None" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">None</SelectItem>
-                        {activeSuppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <FormSelect
+                      value={form.supplier_id ?? ""}
+                      onChange={(v) => set("supplier_id", v || null)}
+                      options={activeSuppliers.map((s) => ({ value: s.id, label: s.name }))}
+                      placeholder="None"
+                      nullable
+                    />
                   </div>
                   <div className="col-span-2">
                     <Label className={labelCls}>Brand</Label>
-                    <Select value={form.brand_id ?? "__none__"} onValueChange={(v) => set("brand_id", v === "__none__" ? null : v)}>
-                      <SelectTrigger className={inputCls}><SelectValue placeholder="None" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">None</SelectItem>
-                        {activeBrands.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <FormSelect
+                      value={form.brand_id ?? ""}
+                      onChange={(v) => set("brand_id", v || null)}
+                      options={activeBrands.map((b) => ({ value: b.id, label: b.name }))}
+                      placeholder="None"
+                      nullable
+                    />
                   </div>
                   <div className="col-span-4">
                     <Label className={labelCls}>Description</Label>
@@ -281,12 +280,11 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                   </div>
                   <div>
                     <Label className={labelCls}>Unit</Label>
-                    <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
-                      <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <FormSelect
+                      value={form.unit}
+                      onChange={(v) => set("unit", v)}
+                      options={UNITS.map((u) => ({ value: u, label: u }))}
+                    />
                   </div>
                   <div>
                     <Label className={labelCls}>Qty/Unit</Label>
@@ -330,13 +328,11 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                 <div className="grid grid-cols-4 gap-3">
                   <div>
                     <Label className={labelCls}>Currency</Label>
-                    <Select value={form.currency} onValueChange={(v) => set("currency", v)}>
-                      <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="BBD">BBD</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormSelect
+                      value={form.currency}
+                      onChange={(v) => set("currency", v)}
+                      options={[{ value: "USD", label: "USD" }, { value: "BBD", label: "BBD" }]}
+                    />
                   </div>
                   <div>
                     <Label className={labelCls}>{form.bb_item ? "Cost (BBD)" : "Cost (USD)"}</Label>

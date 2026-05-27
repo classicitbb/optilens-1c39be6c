@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   useQuotes, useQuoteLines, useRxDetails, Quote, QuoteLine, RxDetail,
@@ -18,8 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
-import QuotePdfExport from "@/components/admin/QuotePdfExport";
+import { ArrowLeft, Plus, Trash2, AlertTriangle, CheckCircle2, XCircle, MinusCircle, FileText, Download, X } from "lucide-react";
+import QuotePdfExport, { QuotePdfExportHandle, QuotePreviewPanel } from "@/components/admin/QuotePdfExport";
 import { resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { getPersistedPrintSettings, savePersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
 import { PrintSettings } from "@/features/admin/print/types";
@@ -66,6 +66,8 @@ const QuoteEditorPage = () => {
   const [headerForm, setHeaderForm] = useState<Partial<Quote>>({});
   const [emailError, setEmailError] = useState("");
   const [showInternalExport, setShowInternalExport] = useState(false);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const pdfRef = useRef<QuotePdfExportHandle | null>(null);
   const printSettingsProfileId = `quote:${id ?? "draft"}:print-layout`;
   const [printSettings, setPrintSettings] = useState<PrintSettings>(
     getPersistedPrintSettings(printSettingsProfileId, { paperSize: "A4", orientation: "portrait" }),
@@ -77,6 +79,8 @@ const QuoteEditorPage = () => {
   const [overrideNote, setOverrideNote] = useState("");
   const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
+  const [noteDialogLine, setNoteDialogLine] = useState<QuoteLine | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
 
   // Rx map (for summary / PDF export on RX quotes)
   const lensLineIds = useMemo(() => lines.filter(l => l.line_type === "Lens").map(l => l.id), [lines]);
@@ -253,53 +257,62 @@ const QuoteEditorPage = () => {
             </Select>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {/* PDF export always visible */}
-          <QuotePdfExport quote={quote} lines={lines} totals={totals} showInternal={showInternalExport} rxMap={rxMap} printSettings={printSettings} printSettingsProfileId={printSettingsProfileId} />
-          <Select value={printSettings.paperSize} onValueChange={(value: "A4" | "Letter") => updatePrintSettings({ paperSize: value })}>
-            <SelectTrigger className="h-6 w-[84px] text-[10px]"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
-          </Select>
-          <Select value={printSettings.orientation} onValueChange={(value: "portrait" | "landscape") => updatePrintSettings({ orientation: value })}>
-            <SelectTrigger className="h-6 w-[110px] text-[10px]"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
-          </Select>
-          <Select value={printSettings.marginPreset ?? "normal"} onValueChange={(value: "narrow" | "normal" | "wide") => updatePrintSettings({ marginPreset: value })}>
-            <SelectTrigger className="h-6 w-[92px] text-[10px]"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="narrow">Narrow</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="wide">Wide</SelectItem></SelectContent>
-          </Select>
-          <Input type="number" min={0} max={60} step={1} value={printSettings.marginXMm ?? ""} onChange={(e) => {
-            const parsed = Number(e.target.value);
-            updatePrintSettings({ marginXMm: Number.isFinite(parsed) ? parsed : undefined });
-          }} className="h-6 w-[68px] text-[10px]" placeholder="H mm" />
-          <Input type="number" min={0} max={60} step={1} value={printSettings.marginYMm ?? ""} onChange={(e) => {
-            const parsed = Number(e.target.value);
-            updatePrintSettings({ marginYMm: Number.isFinite(parsed) ? parsed : undefined });
-          }} className="h-6 w-[68px] text-[10px]" placeholder="V mm" />
-          <Input type="number" min={8} max={40} step={1} value={printSettings.sectionSpacing ?? ""} onChange={(e) => {
-            const parsed = Number(e.target.value);
-            updatePrintSettings({ sectionSpacing: Number.isFinite(parsed) ? parsed : undefined });
-          }} className="h-6 w-[78px] text-[10px]" placeholder="Section" />
-          <Input type="number" min={0.85} max={1.2} step={0.01} value={printSettings.tableScale ?? ""} onChange={(e) => {
-            const parsed = Number(e.target.value);
-            updatePrintSettings({ tableScale: Number.isFinite(parsed) ? parsed : undefined });
-          }} className="h-6 w-[70px] text-[10px]" placeholder="Table" />
-          <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
-            <input type="checkbox" checked={showInternalExport} onChange={e => setShowInternalExport(e.target.checked)} className="h-3 w-3 rounded" />
-            Internal
-          </label>
-          {/* STOCK: rounding buttons */}
-          {!isRx && canEdit && lines.length > 0 && (
-            <div className="flex gap-0.5 ml-2">
-              <span className="text-[10px] text-muted-foreground self-center mr-1">Round:</span>
-              {[1, 5, 10].map(n => <Button key={n} size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => roundTotalUp(n)}>↑{n}</Button>)}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ── Content ─────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-auto p-4">
+        <div className="mb-4 rounded border border-border bg-card px-3 py-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => setPdfPreviewOpen(true)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Preview PDF
+            </Button>
+            <Select value={printSettings.paperSize} onValueChange={(value: "A4" | "Letter") => updatePrintSettings({ paperSize: value })}>
+              <SelectTrigger className="h-7 w-[84px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="A4">A4</SelectItem><SelectItem value="Letter">Letter</SelectItem></SelectContent>
+            </Select>
+            <Select value={printSettings.orientation} onValueChange={(value: "portrait" | "landscape") => updatePrintSettings({ orientation: value })}>
+              <SelectTrigger className="h-7 w-[110px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent>
+            </Select>
+            <Select value={printSettings.marginPreset ?? "normal"} onValueChange={(value: "narrow" | "normal" | "wide") => updatePrintSettings({ marginPreset: value })}>
+              <SelectTrigger className="h-7 w-[92px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="narrow">Narrow</SelectItem><SelectItem value="normal">Normal</SelectItem><SelectItem value="wide">Wide</SelectItem></SelectContent>
+            </Select>
+            <Input type="number" min={0} max={60} step={1} value={printSettings.marginXMm ?? ""} onChange={(e) => {
+              const parsed = Number(e.target.value);
+              updatePrintSettings({ marginXMm: Number.isFinite(parsed) ? parsed : undefined });
+            }} className="h-7 w-[72px] text-xs" placeholder="H mm" />
+            <Input type="number" min={0} max={60} step={1} value={printSettings.marginYMm ?? ""} onChange={(e) => {
+              const parsed = Number(e.target.value);
+              updatePrintSettings({ marginYMm: Number.isFinite(parsed) ? parsed : undefined });
+            }} className="h-7 w-[72px] text-xs" placeholder="V mm" />
+            <Input type="number" min={8} max={40} step={1} value={printSettings.sectionSpacing ?? ""} onChange={(e) => {
+              const parsed = Number(e.target.value);
+              updatePrintSettings({ sectionSpacing: Number.isFinite(parsed) ? parsed : undefined });
+            }} className="h-7 w-[84px] text-xs" placeholder="Section" />
+            <Input type="number" min={0.85} max={1.2} step={0.01} value={printSettings.tableScale ?? ""} onChange={(e) => {
+              const parsed = Number(e.target.value);
+              updatePrintSettings({ tableScale: Number.isFinite(parsed) ? parsed : undefined });
+            }} className="h-7 w-[72px] text-xs" placeholder="Table" />
+            <label className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer">
+              <input type="checkbox" checked={showInternalExport} onChange={e => setShowInternalExport(e.target.checked)} className="h-3 w-3 rounded" />
+              Internal
+            </label>
+            {!isRx && canEdit && lines.length > 0 && (
+              <div className="flex gap-0.5 ml-auto">
+                <span className="text-[11px] text-muted-foreground self-center mr-1">Round:</span>
+                {[1, 5, 10].map(n => <Button key={n} size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => roundTotalUp(n)}>↑{n}</Button>)}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* ══ RX QUOTE: multi-step wizard ════════════════════════════════ */}
         {isRx && (
           <RxQuoteWizard
@@ -318,10 +331,10 @@ const QuoteEditorPage = () => {
 
         {/* ══ STOCK QUOTE: flat editor ════════════════════════════════════ */}
         {!isRx && (
-          <div className="flex gap-4">
+          <div className="flex flex-col xl:flex-row gap-4">
             <div className="flex-1 min-w-0 space-y-4">
               {/* Header fields */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
                 <div>
                   <label className="text-[11px] font-medium mb-0.5 block text-muted-foreground">Customer</label>
                   <Input value={headerForm.customer_name ?? ""} onChange={e => setHeaderForm(p => ({ ...p, customer_name: e.target.value }))} onBlur={saveHeader} className="h-7 text-xs" disabled={!canEdit} />
@@ -340,7 +353,7 @@ const QuoteEditorPage = () => {
                   <Input value={headerForm.contact_phone ?? ""} onChange={e => setHeaderForm(p => ({ ...p, contact_phone: e.target.value }))} onBlur={saveHeader} className="h-7 text-xs" disabled={!canEdit} />
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
                 <div>
                   <label className="text-[11px] font-medium mb-0.5 block text-muted-foreground">Currency</label>
                   <Select value={headerForm.currency || "BBD"} onValueChange={v => setHeaderForm(p => ({ ...p, currency: v }))} disabled={!canEdit}>
@@ -357,7 +370,7 @@ const QuoteEditorPage = () => {
                   <Input type="number" value={headerForm.lead_time_days ?? ""} onChange={e => setHeaderForm(p => ({ ...p, lead_time_days: e.target.value ? Number(e.target.value) : null }))} onBlur={saveHeader} className="h-7 text-xs" disabled={!canEdit} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
                 <div>
                   <label className="text-[11px] font-medium mb-0.5 block text-muted-foreground">Customer Notes</label>
                   <Textarea value={headerForm.notes_customer ?? ""} onChange={e => setHeaderForm(p => ({ ...p, notes_customer: e.target.value }))} onBlur={saveHeader} className="text-xs min-h-[60px]" disabled={!canEdit} />
@@ -378,8 +391,8 @@ const QuoteEditorPage = () => {
                 )}
               </div>
 
-              <div className="border rounded border-border">
-                <Table>
+              <div className="border rounded border-border overflow-x-auto">
+                <Table className="min-w-[780px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-[11px] w-[200px]">Item</TableHead>
@@ -402,7 +415,8 @@ const QuoteEditorPage = () => {
                       const tb = thresholdBadge(line.threshold_status);
                       const lineTotal = line.qty * line.unit_sell_price_bbd;
                       return (
-                        <TableRow key={line.id} style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
+                        <React.Fragment key={line.id}>
+                        <TableRow style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
                           <TableCell className="text-xs">
                             <div className="flex items-center gap-1">
                               <span className="truncate max-w-[170px]">{line.item_name}</span>
@@ -425,9 +439,28 @@ const QuoteEditorPage = () => {
                             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold" style={{ background: pb.bg, color: pb.color }} title={`${line.profit_status} / ${line.threshold_status}`}>{pb.label}</span>
                           </TableCell>
                           <TableCell>
-                            {canEdit && <button onClick={() => deleteLineMutation.mutate(line.id)} className="p-0.5 rounded hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>}
+                            <div className="flex items-center gap-0.5">
+                              {canEdit && (
+                                <button
+                                  onClick={() => { setNoteDialogLine(line); setNoteDraft(line.line_note ?? ""); }}
+                                  className={`p-0.5 rounded hover:bg-muted ${line.line_note ? "text-primary" : "text-muted-foreground"}`}
+                                  title={line.line_note ? "Edit note" : "Add note"}
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {canEdit && <button onClick={() => deleteLineMutation.mutate(line.id)} className="p-0.5 rounded hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>}
+                            </div>
                           </TableCell>
                         </TableRow>
+                        {line.line_note ? (
+                          <TableRow key={`${line.id}-note`} style={line.profit_status === "BelowCost" ? { background: "hsl(0 60% 50% / 0.06)" } : undefined}>
+                            <TableCell colSpan={9} className="text-[11px] text-muted-foreground italic pt-0 pb-2 pl-6 whitespace-pre-wrap break-words">
+                              <span className="font-medium not-italic text-foreground/70">Note: </span>{line.line_note}
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                        </React.Fragment>
                       );
                     })}
                   </TableBody>
@@ -436,7 +469,7 @@ const QuoteEditorPage = () => {
             </div>
 
             {/* STOCK right summary */}
-            <div className="w-[220px] shrink-0 space-y-3 sticky top-0 self-start">
+            <div className="w-full xl:w-[220px] shrink-0 space-y-3 xl:sticky xl:top-0 self-start">
               <div className="border rounded border-border p-3 space-y-2">
                 <h3 className="text-xs font-semibold text-foreground">Summary</h3>
                 <div className="space-y-1.5">
@@ -506,6 +539,105 @@ const QuoteEditorPage = () => {
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setOverrideDialogLine(null); setOverrideReason(""); setOverrideNote(""); }}>Cancel</Button>
             <Button size="sm" className="h-7 text-xs" onClick={saveOverride} disabled={!overrideReason}>Confirm Override</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!noteDialogLine} onOpenChange={open => { if (!open) { setNoteDialogLine(null); setNoteDraft(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">Line Note</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-[11px] text-muted-foreground truncate">{noteDialogLine?.item_name}</p>
+            <Textarea
+              value={noteDraft}
+              onChange={e => setNoteDraft(e.target.value)}
+              placeholder="Add a note for this line item…"
+              className="text-xs min-h-[120px]"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="flex-row justify-between gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-destructive hover:text-destructive"
+              onClick={() => {
+                if (!noteDialogLine) return;
+                updateLineMutation.mutate({ id: noteDialogLine.id, updates: { line_note: null } });
+                setNoteDialogLine(null); setNoteDraft("");
+              }}
+              disabled={!noteDialogLine?.line_note}
+            >
+              Clear
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setNoteDialogLine(null); setNoteDraft(""); }}>Cancel</Button>
+              <Button
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  if (!noteDialogLine) return;
+                  updateLineMutation.mutate({ id: noteDialogLine.id, updates: { line_note: noteDraft.trim() || null } });
+                  setNoteDialogLine(null); setNoteDraft("");
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
+        <DialogContent className="w-screen h-[100dvh] max-w-none flex flex-col p-0 gap-0 overflow-hidden rounded-none border-0">
+          <DialogHeader className="px-4 py-3 border-b border-border">
+            <div className="flex items-center justify-between gap-3 pr-8">
+              <div className="min-w-0">
+                <DialogTitle className="text-sm font-semibold">PDF Preview</DialogTitle>
+                <p className="text-xs text-muted-foreground truncate">{quote.quote_number} · {quote.customer_name || "Untitled quote"}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" className="h-8 text-xs" onClick={() => pdfRef.current?.triggerPrint()}>
+                  Print / Save as PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => setPdfPreviewOpen(false)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Exit Preview
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 p-2 bg-muted/20">
+            <QuotePreviewPanel
+              quote={quote}
+              lines={lines}
+              totals={totals}
+              rxMap={rxMap}
+              printSettings={printSettings}
+              printSettingsProfileId={printSettingsProfileId}
+              onPrintSettingsChange={(next) => setPrintSettings(savePersistedPrintSettings(printSettingsProfileId, next))}
+            />
+          </div>
+          <div style={{ position: "absolute", left: "-9999px", top: 0, visibility: "hidden" }}>
+            <QuotePdfExport
+              ref={pdfRef}
+              quote={quote}
+              lines={lines}
+              totals={totals}
+              showInternal={showInternalExport}
+              rxMap={rxMap}
+              printSettings={printSettings}
+              printSettingsProfileId={printSettingsProfileId}
+              showTriggerButton={false}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

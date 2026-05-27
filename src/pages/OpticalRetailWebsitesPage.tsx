@@ -433,6 +433,7 @@ const OpticalRetailWebsitesPage = () => {
                       render={() => (
                         <FormItem>
                           <FormLabel>Feature selections</FormLabel>
+                          <p className="text-xs text-muted-foreground -mt-1">One-off build deliverables — included in your upfront estimate, not recurring.</p>
                           <div className="grid gap-3 sm:grid-cols-2">
                             {featureCatalog.map((feature) => (
                               <FormField

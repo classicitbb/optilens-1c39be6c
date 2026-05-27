@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import FormSelect from "@/components/admin/FormSelect";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -235,7 +235,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="admin-overlay-surface sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
+        <DialogContent className="admin-tool admin-overlay-surface sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-sm font-semibold text-foreground">
@@ -280,22 +280,17 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
                   </div>
                   <div>
                     <Label className={labelCls}>Category</Label>
-                    <Select value={form.category} onValueChange={(v) => set("category", v)}>
-                      <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <FormSelect value={form.category} onChange={(v) => set("category", v)} options={CATEGORIES} />
                   </div>
                   <div className="col-span-2">
                     <Label className={labelCls}>Supplier</Label>
-                    <Select value={form.supplier_id ?? "__none__"} onValueChange={(v) => set("supplier_id", v === "__none__" ? null : v)}>
-                      <SelectTrigger className={inputCls}><SelectValue placeholder="None" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">None</SelectItem>
-                        {activeSuppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <FormSelect
+                      value={form.supplier_id ?? ""}
+                      onChange={(v) => set("supplier_id", v || null)}
+                      options={activeSuppliers.map((s) => ({ value: s.id, label: s.name }))}
+                      placeholder="None"
+                      nullable
+                    />
                   </div>
                   <div className="col-span-2">
                     <Label className={labelCls}>Sort Order</Label>

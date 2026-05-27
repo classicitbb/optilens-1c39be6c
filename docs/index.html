@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PricesMart Optical — Staff Training</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0D1B2A;
+    --navy-mid: #1A2F45;
+    --teal: #1AADAD;
+    --teal-light: #E6F9F9;
+    --gold: #C49A3C;
+    --gold-light: #FBF5E6;
+    --cream: #F8F5F0;
+    --red: #C0392B;
+    --red-light: #FDEDEB;
+    --green: #1A7A4A;
+    --green-light: #E8F5EE;
+    --text: #1C1C1E;
+    --muted: #6B7280;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Lato', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  /* ---- TOP HEADER ---- */
+  .master-header {
+    background: var(--navy);
+    color: white;
+    padding: 40px 48px 36px;
+    border-bottom: 4px solid var(--gold);
+  }
+  .master-header .eyebrow {
+    font-family: 'Lato', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 10px;
+  }
+  .master-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+  .master-header .subtitle {
+    font-size: 1rem;
+    color: #A0AEC0;
+    font-weight: 300;
+    max-width: 600px;
+  }
+  .meta-row {
+    display: flex;
+    gap: 32px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-item {
+    font-size: 13px;
+    color: #CBD5E0;
+  }
+  .meta-item strong {
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* ---- STICKY NAV ---- */
+  .sticky-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--navy-mid);
+    border-bottom: 2px solid var(--teal);
+    overflow-x: auto;
+  }
+  .sticky-nav ul {
+    display: flex;
+    list-style: none;
+    padding: 0 24px;
+    white-space: nowrap;
+    min-height: 48px;
+  }
+  .sticky-nav ul li a {
+    display: block;
+    padding: 14px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #A0AEC0;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .sticky-nav ul li a:hover { color: var(--teal); }
+
+  /* ---- TIMELINE BAR ---- */
+  .timeline-bar {
+    background: var(--navy);
+    padding: 28px 48px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scroll-margin-top: 58px;
+  }
+  .tl-block {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--teal);
+    position: relative;
+  }
+  .tl-block .tl-time {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .tl-block .tl-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    line-height: 1.3;
+  }
+  .tl-block.break-block { border-left-color: var(--gold); }
+  .tl-block.break-block .tl-time { color: var(--gold); }
+
+  /* ---- MAIN CONTENT ---- */
+  .content-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ---- SECTION ---- */
+  .section {
+    margin-top: 60px;
+    scroll-margin-top: 58px;
+  }
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--navy);
+  }
+  .section-num {
+    background: var(--navy);
+    color: white;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    min-width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .section-title-group .timing-pill {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 4px;
+  }
+  .section-title-group h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.25;
+  }
+
+  /* ---- CALLOUT BOXES ---- */
+  .callout {
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 20px 0;
+    border-left: 5px solid;
+  }
+  .callout-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .callout p, .callout li { font-size: 15px; line-height: 1.65; }
+  .callout ul { padding-left: 18px; }
+  .callout ul li { margin-bottom: 4px; }
+
+  .callout.speaker {
+    background: var(--gold-light);
+    border-left-color: var(--gold);
+  }
+  .callout.speaker .callout-label { color: var(--gold); }
+
+  .callout.note {
+    background: var(--teal-light);
+    border-left-color: var(--teal);
+  }
+  .callout.note .callout-label { color: var(--teal); }
+
+  .callout.warning {
+    background: var(--red-light);
+    border-left-color: var(--red);
+  }
+  .callout.warning .callout-label { color: var(--red); }
+
+  .callout.good {
+    background: var(--green-light);
+    border-left-color: var(--green);
+  }
+  .callout.good .callout-label { color: var(--green); }
+
+  /* ---- PRINCIPLE BOX ---- */
+  .principle-box {
+    background: var(--navy);
+    color: white;
+    border-radius: 8px;
+    padding: 28px 32px;
+    margin: 28px 0;
+  }
+  .principle-box .principle-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 10px;
+  }
+  .principle-box p {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    line-height: 1.55;
+    color: #F0F4F8;
+  }
+
+  /* ---- SCRIPT BLOCK ---- */
+  .script-block {
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 24px 0;
+  }
+  .script-block .script-header {
+    background: var(--navy-mid);
+    padding: 10px 18px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+  .script-body { padding: 18px 22px; }
+  .script-line {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+  .script-line:last-child { margin-bottom: 0; }
+  .script-role {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    min-width: 110px;
+    padding-top: 2px;
+    color: var(--navy);
+  }
+  .script-role.patient { color: var(--gold); }
+  .script-role.staff { color: var(--teal); }
+  .script-text { font-size: 15px; line-height: 1.6; font-style: italic; color: #2D3748; }
+  .script-action { font-style: normal; color: var(--muted); font-size: 13px; }
+
+  /* ---- FLOW STAGES ---- */
+  .flow-stages { margin: 24px 0; }
+  .flow-stage {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+  .flow-badge {
+    background: var(--navy);
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    min-width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .flow-stage.active .flow-badge { background: var(--teal); }
+  .flow-content h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+  .flow-content p { font-size: 14.5px; color: #4A5568; line-height: 1.6; }
+
+  /* ---- CHECKLIST ---- */
+  .checklist { margin: 16px 0; }
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 15px;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-box {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--teal);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ---- TWO-COL ---- */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+  .card {
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .card h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 10px;
+    border-bottom: 2px solid var(--teal);
+    padding-bottom: 8px;
+  }
+  .card ul { padding-left: 18px; }
+  .card ul li { font-size: 14.5px; line-height: 1.6; margin-bottom: 4px; }
+
+  /* ---- Q&A TABLE ---- */
+  .qa-item {
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .qa-q {
+    font-weight: 700;
+    color: var(--navy);
+    font-size: 15px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .qa-q::before {
+    content: "Q";
+    background: var(--navy);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .qa-a {
+    font-size: 14.5px;
+    color: #4A5568;
+    line-height: 1.65;
+    padding-left: 32px;
+  }
+  .qa-a strong { color: var(--teal); }
+
+  /* ---- BREAK BANNER ---- */
+  .break-banner {
+    background: var(--gold);
+    color: var(--navy);
+    text-align: center;
+    padding: 24px 32px;
+    border-radius: 8px;
+    margin: 40px 0;
+    scroll-margin-top: 58px;
+  }
+  .break-banner h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .break-banner p { font-size: 14px; font-weight: 700; }
+
+  /* ---- CLOSING ---- */
+  .closing-block {
+    background: var(--navy);
+    color: white;
+    border-radius: 10px;
+    padding: 40px 44px;
+    margin-top: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .closing-block::before {
+    content: '"';
+    font-family: 'Playfair Display', serif;
+    font-size: 160px;
+    color: rgba(26,173,173,0.12);
+    position: absolute;
+    top: -20px;
+    left: 20px;
+    line-height: 1;
+  }
+  .closing-block h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--teal);
+    margin-bottom: 20px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 3px;
+  }
+  .closing-block p {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    line-height: 1.7;
+    color: #EDF2F7;
+    margin-bottom: 18px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---- OBSERVATION SHEET ---- */
+  .obs-sheet {
+    background: white;
+    border: 2px dashed var(--navy);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 20px 0;
+  }
+  .obs-sheet h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--navy);
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--navy);
+  }
+  .obs-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 14.5px;
+    align-items: flex-start;
+  }
+  .obs-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--teal);
+    border-radius: 50%;
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+
+  /* ---- LENS TABLE ---- */
+  .lens-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+  .lens-table th {
+    background: var(--navy);
+    color: white;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .lens-table td { padding: 12px 16px; border-bottom: 1px solid #E2E8F0; vertical-align: top; }
+  .lens-table tr:nth-child(even) td { background: #F7FAFC; }
+  .lens-table tr:last-child td { border-bottom: none; }
+
+  /* ---- PHRASE COMPARE ---- */
+  .phrase-compare { margin: 20px 0; }
+  .phrase-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .phrase-bad, .phrase-good {
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+  .phrase-bad {
+    background: var(--red-light);
+    border-left: 4px solid var(--red);
+    color: var(--red);
+  }
+  .phrase-good {
+    background: var(--green-light);
+    border-left: 4px solid var(--green);
+    color: var(--green);
+  }
+  .phrase-bad::before { content: "✗ "; font-weight: 700; }
+  .phrase-good::before { content: "✓ "; font-weight: 700; }
+
+  @media (max-width: 580px) {
+    .phrase-row { grid-template-columns: 1fr; }
+    .master-header { padding: 28px 20px; }
+    .master-header h1 { font-size: 1.8rem; }
+    .content-wrap { padding: 0 16px 60px; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- MASTER HEADER -->
+<div class="master-header">
+  <div class="eyebrow">Staff Training Session</div>
+  <h1>PricesMart Optical<br>Training Day</h1>
+  <div class="subtitle">Lenses · Frames · Store Flow · Patient Experience</div>
+  <div class="meta-row">
+    <div class="meta-item"><strong>Duration:</strong> 3 Hours (incl. 15 min break)</div>
+    <div class="meta-item"><strong>Format:</strong> Role-Play → Debrief → Theory → Practice</div>
+    <div class="meta-item"><strong>Facilitator:</strong> Russell</div>
+  </div>
+</div>
+
+<!-- STICKY NAV -->
+<nav class="sticky-nav">
+  <ul>
+    <li><a href="#timeline">Timeline</a></li>
+    <li><a href="#opening">Opening</a></li>
+    <li><a href="#dryrun">Dry Run</a></li>
+    <li><a href="#debrief">Debrief</a></li>
+    <li><a href="#dentist">Dentist Model</a></li>
+    <li><a href="#flow">Store Flow</a></li>
+    <li><a href="#lenses">Lenses &amp; Frames</a></li>
+    <li><a href="#communication">Communication</a></li>
+    <li><a href="#conversion">Conversion &amp; Rejection</a></li>
+    <li><a href="#qa">Q&amp;A Prep</a></li>
+    <li><a href="#close">Close</a></li>
+  </ul>
+</nav>
+
+<!-- TIMELINE -->
+<div class="timeline-bar" id="timeline">
+  <div class="tl-block">
+    <div class="tl-time">0:00 – 0:10</div>
+    <div class="tl-title">Welcome &amp; Framing</div>
+  </div>
+  <div class="tl-block">
+    <div class="tl-time">0:10 – 0:40</div>
+    <div class="tl-title">The Dry Run (Role Play)</div>
+  </div>
+  <div class="tl-block">
+    <div class="tl-time">0:40 – 1:00</div>
+    <div class="tl-title">Debrief &amp; Discussion</div>
+  </div>
+  <div class="tl-block">
+    <div class="tl-time">1:00 – 1:30</div>
+    <div class="tl-title">Dentist Model &amp; Store Flow</div>
+  </div>
+  <div class="tl-block break-block">
+    <div class="tl-time">1:30 – 1:45</div>
+    <div class="tl-title">☕ Break</div>
+  </div>
+  <div class="tl-block">
+    <div class="tl-time">1:45 – 2:15</div>
+    <div class="tl-title">Lenses &amp; Frames</div>
+  </div>
+  <div class="tl-block">
+    <div class="tl-time">2:15 – 2:45</div>
+    <div class="tl-title">Patient Communication</div>
+  </div>
+  <div class="tl-block">
+    <div class="tl-time">2:45 – 3:00</div>
+    <div class="tl-title">Q&amp;A &amp; Close</div>
+  </div>
+</div>
+
+<div class="content-wrap">
+
+<!-- ============================== SECTION 1: OPENING ============================== -->
+<div class="section" id="opening">
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <div class="section-title-group">
+      <div class="timing-pill">0:00 — 0:10 · 10 Minutes</div>
+      <h2>Welcome &amp; Framing</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note — Open With This</div>
+    <p>Stand at the front. Do not start with slides or a list. Start with a question.</p>
+  </div>
+
+  <div class="script-block">
+    <div class="script-header">Opening Script — Read or Adapt</div>
+    <div class="script-body">
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"Before I say anything — I want to ask you something. Think about the last time you went to the dentist. Did the dentist ask you what treatment you wanted? Did they say 'have a look at the equipment, let me know what you think'? Of course not. They examined you, they told you what you needed, they walked you through it step by step — and at the end, all you had to do was pay. You left feeling looked after."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"That is exactly what we are going to build here today. An experience so clear, so warm, and so professional that every patient who walks through that door feels completely guided — and every one of you feels completely confident."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"One more thing before we start — and I want you to really hear this: <em>no one knows what they don't know.</em> That's not a criticism. That's a fact. Today is about closing that gap. There is no judgment here. There is only growth."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="principle-box">
+    <div class="principle-label">The Core Principle</div>
+    <p>No one knows what they don't know. Today is about closing that gap — not pointing it out. Every person in this room is capable of delivering a world-class patient experience. Today we find out how.</p>
+  </div>
+
+  <div class="callout note">
+    <div class="callout-label">📋 Setup Instructions</div>
+    <ul>
+      <li>Assign roles before this section ends: Front Desk, Frame Consultant, Optometrist, and Patient</li>
+      <li>Explain the dry run is about to happen — no preparation required, no wrong answers</li>
+      <li>Tell the team: "I am going to sit quietly and watch. I will not interrupt. I will give you all my feedback afterward."</li>
+      <li>If you have more than 4 staff, create two teams and run two parallel scenarios, or have additional staff observe with their own checklist</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================== SECTION 2: DRY RUN ============================== -->
+<div class="section" id="dryrun">
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <div class="section-title-group">
+      <div class="timing-pill">0:10 — 0:40 · 30 Minutes</div>
+      <h2>The Dry Run — Role Play</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note</div>
+    <p>Hand out the scenario card below. Then step back. Do not coach during the role-play. Observe. Take notes using the observation sheet that follows.</p>
+  </div>
+
+  <div class="script-block">
+    <div class="script-header">📄 Scenario Card — Read Aloud to the Team</div>
+    <div class="script-body">
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"Here is your scenario. Listen carefully."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text"><strong>The Patient:</strong> Her name is Sandra. She is 38 years old. She has been getting headaches for the past month — she thinks it might be her eyes. She has never worn glasses before and is a little nervous about it. She came in today without an appointment because she was passing by. She is curious, slightly anxious, and in a mild hurry — she has to pick her child up from school in two hours. <span class="script-action">[Pause.]</span> She does not know what she needs. She is trusting you to guide her.</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"The scenario begins the moment Sandra walks through the door. I will call 'pause' if I need to reset anything. Otherwise — begin."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="obs-sheet">
+    <h4>🔍 Russell's Observation Sheet — Note These During the Dry Run</h4>
+    <div class="obs-item"><div class="obs-dot"></div><span>Was Sandra greeted warmly and by name within 30 seconds of arrival?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Did the front desk explain what would happen next — or just hand her a form?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Was Sandra told what the eye test involves before she went in?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Was there a clear, warm handoff from the front desk to the optometrist?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>After the eye test, did Sandra know her results in plain language?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Was there a clear handoff from the optometrist to the frame consultant?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Did the frame consultant lead — or wait for Sandra to wander the rack on her own?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Were frames pre-selected and presented purposefully — or was Sandra left to browse?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Were lenses explained simply and confidently, or did Sandra look confused?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Did Sandra know what she was going to pay before being asked to pay?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Was Sandra told how to care for her future lenses and when to come back to collect?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>At any point, did Sandra seem lost, confused, or unattended?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span>Were there any contradictions or mixed messages between staff?</span></div>
+  </div>
+
+  <div class="callout note">
+    <div class="callout-label">📋 Facilitator Guidance</div>
+    <p>If the role-play stalls completely (silence for more than 20 seconds with no movement), step in gently and say: <em>"Sandra has been standing there for 20 seconds. What would normally happen now?"</em> — then step back. Do not answer for them.</p>
+  </div>
+</div>
+
+<!-- ============================== SECTION 3: DEBRIEF ============================== -->
+<div class="section" id="debrief">
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <div class="section-title-group">
+      <div class="timing-pill">0:40 — 1:00 · 20 Minutes</div>
+      <h2>Debrief &amp; Feedback</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note — The Feedback Framework</div>
+    <p>Always lead with what went well. Then move to gaps. Never use the word "wrong." Use the phrase: <em>"The gap here is between what we did and what Sandra needed."</em> This is professional, not personal.</p>
+  </div>
+
+  <div class="script-block">
+    <div class="script-header">Debrief Script</div>
+    <div class="script-body">
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"Thank you. That was genuinely valuable — and brave. Let's talk through what I observed."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"First — what went well." <span class="script-action">[Share 2–3 specific positives from your observation sheet. Be specific. "The greeting was warm and immediate" is better than "the greeting was good."]</span></div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"Now — the gaps. And I want to be clear: these gaps exist because no one has shown us exactly how to close them. That is what this morning is for."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text"><span class="script-action">[Work through your specific observations. For each gap, name the moment, describe what happened, describe what was needed. Then say: "We'll talk about exactly how to handle that in the next section."]</span></div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"The most important moment in that entire scenario — the one that will make or break a sale AND a patient's experience — was the moment Sandra was led to the frame rack. That handoff. That transition. That is the moment everything either comes together or falls apart. And that is where we are going to spend a lot of our time today."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-label">⚠️ Things to Flag if They Came Up</div>
+    <ul>
+      <li><strong>"Have a look around"</strong> — this is not guidance. A patient who wanders is a patient we've abandoned.</li>
+      <li><strong>Silence between stages</strong> — every handoff needs a sentence. "Sarah is going to take great care of you from here."</li>
+      <li><strong>Price mentioned too early or too vaguely</strong> — the patient should never be surprised by cost at the counter.</li>
+      <li><strong>Technical language without explanation</strong> — "myopic" means nothing to Sandra. "Short-sighted" does.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================== SECTION 4: DENTIST MODEL ============================== -->
+<div class="section" id="dentist">
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <div class="section-title-group">
+      <div class="timing-pill">1:00 — 1:30 · 30 Minutes</div>
+      <h2>The Dentist Model</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note</div>
+    <p>This is the philosophical core of the entire session. Take your time here. Use the analogy slowly and let it land before moving on.</p>
+  </div>
+
+  <div class="script-block">
+    <div class="script-header">Introducing the Dentist Model</div>
+    <div class="script-body">
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"I want to tell you about the most successful optical experience you can give a patient. It looks exactly like a visit to the dentist."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"When you go to the dentist, you don't decide your treatment. The dentist examines you, explains what you need, guides you through each step with calm authority — and at the end, you pay. There's no confusion, no wandering, no pressure. You feel completely looked after. You trust them."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"That is what PricesMart Optical must be for every single patient. A place where they are guided. Where every stage is clear. Where they never feel lost, pressured, or confused. Where at the end — all they need to do is pay."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text">"We are kind. We are warm. We are encouraging. But we are also authoritative. We know what the patient needs better than they do — because we are the professionals. And we must act like it."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="principle-box">
+    <div class="principle-label">The Dentist Model in One Sentence</div>
+    <p>"The patient follows the professional's lead at every stage — with warmth, with clarity, and with confidence. At the end, they pay. That is the experience we build."</p>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h4>What "Kind &amp; Authoritative" Looks Like</h4>
+      <ul>
+        <li>Warm greeting, patient's name used</li>
+        <li>Clear explanation of each next step</li>
+        <li>Frames pre-selected and presented — not browsed</li>
+        <li>Lens recommendation given, not asked</li>
+        <li>Confident pricing — no apology for cost</li>
+        <li>Encouraging language throughout</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>What Breaks the Model</h4>
+      <ul>
+        <li>"Have a look around, let me know"</li>
+        <li>Silence between stages / no handoff</li>
+        <li>Waiting for the patient to ask questions</li>
+        <li>Agreeing with a patient just to avoid conflict</li>
+        <li>Mixed messages between staff members</li>
+        <li>Price as a surprise at the counter</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== SECTION 5: STORE FLOW ============================== -->
+<div class="section" id="flow">
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <div class="section-title-group">
+      <div class="timing-pill">1:00 — 1:30 · Continued</div>
+      <h2>The 7-Stage Store Flow</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note</div>
+    <p>Walk through these stages on the floor if possible. Physically move through the space as you describe each stage. This makes it real and spatial.</p>
+  </div>
+
+  <div class="flow-stages">
+
+    <div class="flow-stage">
+      <div class="flow-badge">1</div>
+      <div class="flow-content">
+        <h4>The Appointment — Phone or Walk-In</h4>
+        <p>Set the tone before the patient arrives. On the phone: warm, efficient, informative. <em>"Your visit will take about 45–60 minutes. Please bring any existing glasses or prescription if you have one."</em> Walk-in: greet immediately, check capacity, make them feel they are expected even if they are not.</p>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-badge">2</div>
+      <div class="flow-content">
+        <h4>Arrival &amp; Welcome</h4>
+        <p>The patient should be greeted by name (or introduced to) within 30 seconds of entering. <em>"Welcome to PricesMart Optical — we've been looking forward to seeing you."</em> Seat them, offer water, explain what happens next. Do not just hand them a form in silence.</p>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-badge">3</div>
+      <div class="flow-content">
+        <h4>Pre-Test Briefing</h4>
+        <p>Remove mystery. Before the patient enters the testing room, briefly explain: <em>"We'll be checking your vision clarity, eye health, and prescription. It takes about 15–20 minutes and nothing is uncomfortable."</em> Lead them to the room — do not point.</p>
+      </div>
+    </div>
+
+    <div class="flow-stage active">
+      <div class="flow-badge">4</div>
+      <div class="flow-content">
+        <h4>The Eye Test</h4>
+        <p>The optometrist leads. Clear, calm instructions. After the test — explain the findings in plain language. Not "you have mild myopia" — say <em>"you're a little short-sighted, which means things in the distance are slightly blurry for you."</em> Then, the critical handoff: <em>"Sandra, I'm going to introduce you to [Name] who is going to help you choose a frame that works perfectly for your prescription."</em></p>
+      </div>
+    </div>
+
+    <div class="flow-stage active">
+      <div class="flow-badge">5</div>
+      <div class="flow-content">
+        <h4>The Frame Opportunity — ⭐ The Most Important Stage</h4>
+        <p>This is where most optical practices lose the patient. <strong>Do not say "have a look around."</strong> Lead with intention. Before bringing the patient to the rack, pre-select 3–5 frames based on what you know about their face shape, skin tone, and lifestyle. <em>"I've already pulled a few that I think will really suit you — let's try these first."</em> Guide their feedback: "How does that feel? Would you like something bolder, or softer?" You are the expert. Act like it.</p>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-badge">6</div>
+      <div class="flow-content">
+        <h4>Lens Consultation</h4>
+        <p>Once the frame is chosen: <em>"Wonderful — now let's talk about the lenses, which is where the real magic happens for your vision."</em> Offer two options, not ten. Tie recommendations to lifestyle: <em>"Do you spend a lot of time on a screen? Then I'd recommend our blue-light filter — you'll notice the difference by the end of the first day."</em> Recommend confidently. Don't ask "do you want X?" — say "I recommend X because…"</p>
+      </div>
+    </div>
+
+    <div class="flow-stage">
+      <div class="flow-badge">7</div>
+      <div class="flow-content">
+        <h4>Payment &amp; Goodbye</h4>
+        <p>By this point, the patient knows the total. There is no surprise. Recap warmly: <em>"So you've chosen [frame] with [lens type and coating]. Your lenses will be ready in [X] working days and we'll give you a call."</em> Then: care instructions, cleaning cloth, case, and a confident close. <em>"You've made a really good decision today — you're going to love the difference."</em></p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout good">
+    <div class="callout-label">✅ The Golden Rule of Handoffs</div>
+    <p>Every time a patient moves from one person to the next, there must be a sentence. <em>"Sandra, this is Lerato — she's going to take excellent care of you from here."</em> The patient must never feel transferred or abandoned. They must feel passed, with care, into the next pair of capable hands.</p>
+  </div>
+</div>
+
+<!-- ============================== BREAK ============================== -->
+<div class="break-banner" id="break">
+  ☕ &nbsp;&nbsp;
+  <h3>15-Minute Break</h3>
+  <p>Resume at [TIME]. Be back and seated — we'll move straight into lenses and frames.</p>
+</div>
+
+<!-- ============================== SECTION 6: LENSES & FRAMES ============================== -->
+<div class="section" id="lenses">
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <div class="section-title-group">
+      <div class="timing-pill">1:45 — 2:15 · 30 Minutes</div>
+      <h2>Lenses &amp; Frames Knowledge</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note</div>
+    <p>This is the product knowledge section. Keep it practical — everything tied to a real patient conversation. For each lens type, ask: "How would you explain this to Sandra in one sentence?"</p>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 28px 0 16px;">Lens Types</h3>
+
+  <table class="lens-table">
+    <thead>
+      <tr>
+        <th>Lens Type</th>
+        <th>What It Does</th>
+        <th>Plain-Language Explanation for Patients</th>
+        <th>Best For</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Single Vision</strong></td>
+        <td>One prescription — distance or near only</td>
+        <td>"These lenses are focused for one distance — either seeing clearly far away or up close."</td>
+        <td>Most patients under 40; first-time wearers</td>
+      </tr>
+      <tr>
+        <td><strong>Bifocal</strong></td>
+        <td>Two prescriptions — visible dividing line</td>
+        <td>"These have two sections — the top for distance, the bottom for reading. You'll see a small line across the lens."</td>
+        <td>Patients who need both distances but prefer cost-conscious option</td>
+      </tr>
+      <tr>
+        <td><strong>Progressive</strong></td>
+        <td>Full range of vision, no visible line</td>
+        <td>"These give you clear vision at all distances with no line — it's a seamless transition from far to near."</td>
+        <td>Patients 40+ needing reading and distance; anyone wanting natural vision correction</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 28px 0 16px;">Lens Coatings &amp; Add-Ons</h3>
+
+  <div class="two-col">
+    <div class="card">
+      <h4>Anti-Reflection (AR)</h4>
+      <ul>
+        <li>Reduces glare from screens, headlights, lighting</li>
+        <li>Makes lenses nearly invisible — more natural look</li>
+        <li><em>"This eliminates the glare you'd otherwise see on every lens. It's the most noticeable upgrade."</em></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Blue-Light Filter</h4>
+      <ul>
+        <li>Filters high-energy light from screens</li>
+        <li>Reduces eye fatigue, improves sleep</li>
+        <li><em>"If you're on a phone, tablet, or computer for more than 2 hours a day — this one is for you."</em></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Photochromic (Transitions)</h4>
+      <ul>
+        <li>Darkens in sunlight, clears indoors</li>
+        <li>Acts as both clear glasses and sunglasses</li>
+        <li><em>"One pair does everything — no need to carry a separate pair of sunglasses."</em></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>UV &amp; Scratch-Resistant</h4>
+      <ul>
+        <li>UV blocks harmful sun exposure to the eye</li>
+        <li>Scratch-resistant extends lens life significantly</li>
+        <li><em>"These protect both your eyes and your investment."</em></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 28px 0 16px;">Frames — Face Shape Guide</h3>
+
+  <div class="two-col">
+    <div class="card">
+      <h4>Oval Face</h4>
+      <ul>
+        <li>The most versatile face shape</li>
+        <li>Almost any frame style works</li>
+        <li>Encourage the patient to try different styles freely</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Round Face</h4>
+      <ul>
+        <li>Angular, rectangular, or geometric frames</li>
+        <li>Creates definition and lengthens the face</li>
+        <li>Avoid round or small frames</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Square / Strong Jaw</h4>
+      <ul>
+        <li>Round, oval, or curved frames soften angles</li>
+        <li>Cat-eye styles work well</li>
+        <li>Avoid boxy or angular frames</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Heart / Wide Forehead</h4>
+      <ul>
+        <li>Wider at the bottom, lighter at the top</li>
+        <li>Rimless or semi-rimless frames are flattering</li>
+        <li>Avoid very heavy top-bar frames</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-label">⚠️ The Frame Fit Truth Principle</div>
+    <p>There is only ONE legitimate reason to tell a patient a frame will not work: <strong>if it physically cannot be fitted to their prescription or face correctly.</strong> Bridge too narrow, temples too short, lens too small for the prescription — these are real reasons. Personal taste is not a reason to say no. <strong>Never buckle simply because a patient hesitates.</strong> And if you must say a frame won't work — always follow immediately with: <em>"But I have something that gives you the same look and will fit you perfectly."</em></p>
+  </div>
+</div>
+
+<!-- ============================== SECTION 7: COMMUNICATION ============================== -->
+<div class="section" id="communication">
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <div class="section-title-group">
+      <div class="timing-pill">2:15 — 2:45 · 30 Minutes</div>
+      <h2>Patient Communication</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note</div>
+    <p>This section is about language. Real words. What to say, what never to say. Do a quick group exercise: ask the team to come up with the worst thing they could say at the frame rack. Laugh together. Then show them the better version.</p>
+  </div>
+
+  <div class="principle-box">
+    <div class="principle-label">The 3-Step Communication Model</div>
+    <p><strong style="color:var(--teal)">Acknowledge</strong> what the patient says. <strong style="color:var(--teal)">Guide</strong> them toward what they need. <strong style="color:var(--teal)">Confirm</strong> they are comfortable moving forward. Every interaction, every time.</p>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 28px 0 16px;">Say This, Not That</h3>
+
+  <div class="phrase-compare">
+    <div class="phrase-row">
+      <div class="phrase-bad">"I don't know."</div>
+      <div class="phrase-good">"That's a great question — let me find out for you right now."</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">"Have a look around and let me know."</div>
+      <div class="phrase-good">"I've already picked a few I think will suit you beautifully — shall we start here?"</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">"That doesn't really suit you."</div>
+      <div class="phrase-good">"Let me find you something that suits you even better — I have an idea."</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">"That's not my department."</div>
+      <div class="phrase-good">"Let me get the right person to help you with that — one moment."</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">"It depends." (and nothing more)</div>
+      <div class="phrase-good">"It depends on a couple of things — let me ask you a quick question so I can give you the right answer."</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">"The cheapest option would be…"</div>
+      <div class="phrase-good">"Let me show you what's available at different price points and explain the difference, so you can make the best choice for you."</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">"Do you want the coating?"</div>
+      <div class="phrase-good">"Based on what you've told me, I'd recommend the anti-reflection coating — here's why it will make a real difference for you."</div>
+    </div>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 28px 0 16px;">Encouraging Language — Use These</h3>
+
+  <div class="callout good">
+    <div class="callout-label">✅ Encouragement Phrases</div>
+    <ul>
+      <li><em>"That looks really good on you."</em></li>
+      <li><em>"You've made a great choice."</em></li>
+      <li><em>"You're going to love the difference in your vision."</em></li>
+      <li><em>"You've made a really good decision coming in today."</em></li>
+      <li><em>"That colour works beautifully with your skin tone."</em></li>
+      <li><em>"A lot of our patients choose that option and they're always happy with it."</em></li>
+    </ul>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-label">⚠️ The Truth Principle — Non-Negotiable</div>
+    <p>Tell the truth. If you don't know something — say so and go find out. If a frame truly does not work for a patient's prescription or face — tell them, with an immediate alternative. But do not lie to a patient, do not agree with them just to avoid friction, and do not let a patient leave with something that is wrong for them simply because you did not want the uncomfortable conversation. <strong>Our patients trust us. That trust is earned through honesty, every single time.</strong></p>
+  </div>
+</div>
+
+<!-- ============================== SECTION 8: CONVERSION & REJECTION ============================== -->
+<div class="section" id="conversion">
+  <div class="section-header">
+    <div class="section-num">08</div>
+    <div class="section-title-group">
+      <div class="timing-pill">2:45 — 3:00 · Integrated Throughout</div>
+      <h2>Browsers, Rejection &amp; the Conversion Gap</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note — Lead With the Real Problem</div>
+    <p>This is where you name the elephant in the room. PricesMart has traffic. It has members. It has free eye tests bringing people through the door. But those people are leaving without buying. That is a conversion problem — and it starts at the front door, not at the frame rack.</p>
+  </div>
+
+  <div class="principle-box">
+    <div class="principle-label">The PricesMart Dilemma</div>
+    <p>We are fully booked with free eye tests. The footfall is there. The trust is there — these are <em>members.</em> The gap is not in traffic. The gap is in what happens between the moment someone walks in and the moment they walk out. That gap is where revenue lives — and right now, we are leaving it on the table.</p>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 28px 0 16px;">Part 1 — The Three Types of Visitors</h3>
+
+  <div class="two-col" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+    <div class="card">
+      <h4>🔍 The Browser</h4>
+      <p style="font-size:14px; color:#4A5568;">Came in curious. Not sure they need anything. Looking at frames, displays, prices. No appointment. Could become a buyer with the right invitation.</p>
+    </div>
+    <div class="card">
+      <h4>📋 The Eye Test Patient</h4>
+      <p style="font-size:14px; color:#4A5568;">Has an appointment. Is already inside the system. Has a real clinical need. Should be your highest-conversion visitor — but often isn't.</p>
+    </div>
+    <div class="card">
+      <h4>🔄 The Returner</h4>
+      <p style="font-size:14px; color:#4A5568;">Has bought before or been in before. Knows the store. May be comparing, browsing upgrades, or ready to buy again. Treat them like a valued guest, not a stranger.</p>
+    </div>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 32px 0 16px;">Part 2 — Engaging the Browser: The N·A·I Method</h3>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note</div>
+    <p>There are two mistakes staff make with browsers: <strong>ignoring them completely</strong> (hoping they'll ask for help) or <strong>pouncing immediately</strong> (triggering defensiveness). The answer is neither. It is NAI — Notice, Acknowledge, Invite.</p>
+  </div>
+
+  <div class="flow-stages">
+    <div class="flow-stage active">
+      <div class="flow-badge">N</div>
+      <div class="flow-content">
+        <h4>Notice — Within 30 Seconds</h4>
+        <p>The moment someone enters or begins browsing, a staff member must notice them. Make eye contact, give a genuine smile, and nod. This signals: <em>you are seen, you are welcome, there is no pressure.</em> You do not need to move yet. Just acknowledge their presence.</p>
+      </div>
+    </div>
+    <div class="flow-stage active">
+      <div class="flow-badge">A</div>
+      <div class="flow-content">
+        <h4>Acknowledge — A Warm, Pressureless Opener</h4>
+        <p>Within about 60 seconds, approach calmly with an opener that is <strong>not</strong> "Can I help you?" — that question almost always triggers "No, I'm fine, just looking." Instead, use an observation or a gift of information. See the examples below.</p>
+      </div>
+    </div>
+    <div class="flow-stage active">
+      <div class="flow-badge">I</div>
+      <div class="flow-content">
+        <h4>Invite — Plant a Seed, Then Step Back</h4>
+        <p>Leave one piece of value — a piece of information, a gentle offer, a question — and then genuinely step back. Do not hover. Give them space to breathe. The invite is not a demand. It is an open door. Most people will walk through it when they feel safe.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 28px 0 16px;">Better Browser Openers — Use These Instead of "Can I Help You?"</h3>
+
+  <div class="phrase-compare">
+    <div class="phrase-row">
+      <div class="phrase-bad">"Can I help you?" / "Are you okay there?"</div>
+      <div class="phrase-good">"Welcome in — take your time. I'll be just around if you'd like to try anything on."</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">(Ignoring completely until called)</div>
+      <div class="phrase-good">"Those frames just came in this week — they've been really popular. Let me know if you'd like to see them up close."</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">"We have a deal on right now if you're interested."</div>
+      <div class="phrase-good">"Are you a PricesMart member? Your eye test is actually completely free — worth doing while you're here."</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-bad">"What are you looking for today?"</div>
+      <div class="phrase-good">"Are you replacing a pair or is this your first time looking at glasses?"  <em style="font-size:13px; color:var(--muted);">(This opens a conversation, it is not a sales pitch)</em></div>
+    </div>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 32px 0 16px;">Part 3 — Handling "I'm Just Looking" or "I'm Okay, Thanks"</h3>
+
+  <div class="callout note">
+    <div class="callout-label">💡 Key Insight</div>
+    <p>"I'm just looking" is not a rejection. It is self-protection. It means: <em>"I don't want to feel pressured."</em> The correct response removes the pressure without removing yourself from the conversation. The wrong response is to apologise, disappear, or push harder.</p>
+  </div>
+
+  <div class="principle-box">
+    <div class="principle-label">The Plant · Space · Return Method</div>
+    <p><strong style="color:var(--teal)">Plant</strong> one piece of value and step back warmly. <strong style="color:var(--teal)">Space</strong> — give them genuine room to browse without hovering. <strong style="color:var(--teal)">Return</strong> naturally after 2–3 minutes with something specific and non-pushy. By the third interaction, the wall is usually down.</p>
+  </div>
+
+  <div class="script-block">
+    <div class="script-header">Script — Handling "I'm Just Looking"</div>
+    <div class="script-body">
+      <div class="script-line">
+        <div class="script-role patient">Visitor</div>
+        <div class="script-text">"Thanks, I'm okay — just looking."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Staff</div>
+        <div class="script-text">"Of course, take all the time you need — no rush at all. I'll just mention, if anything catches your eye and you'd like to try it on, I'm happy to pull it out for you." <span class="script-action">[Smile. Step back. Do not hover.]</span></div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Staff</div>
+        <div class="script-text"><span class="script-action">[2–3 minutes later, approach naturally with something specific — not "can I help now?"]</span> "That style you were looking at is one of our lighter frames — a lot of people are surprised how comfortable they are. Would you like to try it on? It costs nothing to see how it looks."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Staff</div>
+        <div class="script-text"><span class="script-action">[If they're a member or the topic arises:]</span> "Just so you know — as a PricesMart member your eye test is free, no appointment needed for a check, we can often fit you in today. Even if you're not sure about glasses, it's worth knowing where your eyes are at."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="script-block">
+    <div class="script-header">Script — If They Are Clearly Not Buying Today</div>
+    <div class="script-body">
+      <div class="script-line">
+        <div class="script-role patient">Visitor</div>
+        <div class="script-text">"Thanks, I'm really just browsing. I might come back."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Staff</div>
+        <div class="script-text">"Absolutely, you're always welcome. Can I ask — are you looking for something specific, or just exploring styles? Sometimes it helps to know what you're working with — even if you're not ready to buy today." <span class="script-action">[This keeps the conversation open without pressure and gathers useful information.]</span></div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Staff</div>
+        <div class="script-text">"If you haven't had your eyes tested recently, it's worth doing before you commit to frames anyway — that way you know exactly what lens you'd need. And it's free for members." <span class="script-action">[Plant the free eye test as the low-commitment next step.]</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-label">⚠️ What Never to Do With a Browser</div>
+    <ul>
+      <li><strong>Don't offer a discount immediately</strong> — it signals desperation and undermines value before they've even seen the product</li>
+      <li><strong>Don't hover</strong> — staying within 2 feet of someone who said "just looking" will drive them out of the store</li>
+      <li><strong>Don't give up after one "no"</strong> — the first response is almost always reflex. The second and third interactions are where real conversations begin</li>
+      <li><strong>Don't use emotional pressure</strong> — no urgency manufactured from thin air ("this deal ends today"). That damages trust.</li>
+    </ul>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 32px 0 16px;">Part 4 — The Conversion Gap: Free Eye Test → Frame Sale</h3>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note — This is the Business-Critical Piece</div>
+    <p>These patients have already said yes. They came in, they booked, they showed up, they sat in the chair. They trust PricesMart enough to let us test their eyes. And yet they're leaving without glasses. That is not a traffic problem. That is a handoff problem, a language problem, and a bridge problem. Walk the team through this carefully.</p>
+  </div>
+
+  <div class="flow-stages">
+    <div class="flow-stage active">
+      <div class="flow-badge">①</div>
+      <div class="flow-content">
+        <h4>The Eye Test Must End With a Bridge, Not a Full Stop</h4>
+        <p>Right now the eye test ends and the patient leaves — or wanders. The optometrist must close every single test with a deliberate handoff sentence that creates a natural next step. Not optional. Not "if they want." Every time. <em>"Your prescription is [X]. The good news is there are some really great frames here that will work beautifully with this prescription — let me introduce you to [Name] who can help you find the right fit."</em></p>
+      </div>
+    </div>
+    <div class="flow-stage active">
+      <div class="flow-badge">②</div>
+      <div class="flow-content">
+        <h4>The Optometrist Is the First Salesperson — They Just Don't Know It</h4>
+        <p>During the eye test, ask lifestyle questions: <em>"Do you drive at night? Spend a lot of time on screens? Work outdoors?"</em> These answers become the frame consultant's roadmap. The optometrist should briefly tell the patient: <em>"Based on what you've told me, you'd really benefit from an anti-reflective coating — that will make a big difference for night driving."</em> Now the patient arrives at the frame rack already primed for a specific recommendation. The consultant doesn't start from zero.</p>
+      </div>
+    </div>
+    <div class="flow-stage active">
+      <div class="flow-badge">③</div>
+      <div class="flow-content">
+        <h4>The Prescription in Hand Is a Buying Signal — Use It</h4>
+        <p>A patient who leaves with a prescription and no glasses will take that prescription somewhere cheaper. They will compare. The way to prevent that is to make the conversation happen <em>before</em> they leave. Not aggressively — just logically: <em>"You already have your prescription right here, and we have frames that work with it right there. You could walk out today seeing clearly — it's worth 10 minutes to look."</em></p>
+      </div>
+    </div>
+    <div class="flow-stage active">
+      <div class="flow-badge">④</div>
+      <div class="flow-content">
+        <h4>Address the Price Moment Before It Becomes an Objection</h4>
+        <p>Many patients don't buy because they assume they can't afford it — but they never actually asked. The frame consultant must bring price into the conversation <em>early and without embarrassment.</em> <em>"We have options across a few different price ranges — shall I show you what's available so you can see what works for you?"</em> This removes the fear of being surprised and keeps the patient in the room. Never let price be the reason someone left without asking.</p>
+      </div>
+    </div>
+    <div class="flow-stage active">
+      <div class="flow-badge">⑤</div>
+      <div class="flow-content">
+        <h4>The "Not Today" Patient — Plant for the Return</h4>
+        <p>Some patients genuinely cannot buy today — budget, time, decision-making. That is fine. The goal is to make sure they come back to <em>us</em>, not go elsewhere. Close warmly: <em>"No problem at all. Your prescription is valid for [X months]. When you're ready, come back and we'll pick up right where we left off — I'll have a few frames in mind for you."</em> If possible, take their name. Make it personal. That patient is not lost — they are deferred.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout good">
+    <div class="callout-label">✅ The Conversion Mindset in One Statement</div>
+    <p>Every person who comes through the door for a free eye test is a warm lead. They have already trusted us with their eyes. The only question is whether we give them a reason to trust us with their glasses too. That reason is service, confidence, and a clear invitation — not pressure, not discounts, not silence.</p>
+  </div>
+
+  <h3 style="font-family:'Playfair Display',serif; color:var(--navy); font-size:1.3rem; margin: 28px 0 16px;">The Conversion Role Play — Quick Scenario</h3>
+
+  <div class="script-block">
+    <div class="script-header">📄 Scenario — The Free Test Patient Who Tries to Leave</div>
+    <div class="script-body">
+      <div class="script-line">
+        <div class="script-role staff">Russell</div>
+        <div class="script-text"><strong>The Scenario:</strong> Marcus is a PricesMart member. He booked a free eye test because he's been squinting at his phone. His test just finished. The optometrist told him he needs a mild reading prescription. Marcus picks up his prescription slip and heads toward the exit, saying — <span class="script-action">[Read to the "patient":]</span></div>
+      </div>
+      <div class="script-line">
+        <div class="script-role patient">Marcus</div>
+        <div class="script-text">"Okay, thank you — I'll have a think and maybe come back."</div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Frame Consultant</div>
+        <div class="script-text"><em>[How do you stop Marcus leaving — without being pushy?]</em> <span class="script-action">[Let the team respond. Then guide them toward:]</span></div>
+      </div>
+      <div class="script-line">
+        <div class="script-role staff">Ideal Response</div>
+        <div class="script-text">"Marcus, you've already done the hard part — you have your prescription right there. It'll take you about 10 minutes to see what we have. I already have an idea of a couple of frames that would work well with your prescription and your face shape. At least let's take a look before you go — no commitment at all."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="obs-sheet">
+    <h4>📊 Conversion KPIs to Watch Going Forward</h4>
+    <div class="obs-item"><div class="obs-dot"></div><span><strong>Eye test to frame consultation rate</strong> — What % of tested patients are walked to the frame area?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span><strong>Browser to test booking rate</strong> — What % of walk-in browsers end up booking a free eye test?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span><strong>Frame consultation to purchase rate</strong> — Of those who looked at frames, what % bought?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span><strong>Return rate</strong> — Of patients who said "I'll come back," what % actually did?</span></div>
+    <div class="obs-item"><div class="obs-dot"></div><span><strong>Prescription walkout rate</strong> — How many patients leave with a prescription but no purchase?</span></div>
+  </div>
+
+</div>
+
+<!-- ============================== SECTION 9: Q&A PREP ============================== -->
+<div class="section" id="qa">
+  <div class="section-header">
+    <div class="section-num">09</div>
+    <div class="section-title-group">
+      <div class="timing-pill">2:45 — 3:00 · 15 Minutes</div>
+      <h2>Q&amp;A Preparation</h2>
+    </div>
+  </div>
+
+  <div class="callout speaker">
+    <div class="callout-label">🎤 Speaker Note</div>
+    <p>These are the questions likely to come from the floor. Be ready with confident, honest answers. You can share these answers openly — transparency builds trust with your team.</p>
+  </div>
+
+  <div class="qa-item">
+    <div class="qa-q">What cleaner should I be recommending patients use on their lenses?</div>
+    <div class="qa-a">Always recommend our in-store lens spray with a clean microfibre cloth. Advise patients to avoid anything containing alcohol, ammonia, or acetone — these strip coatings. <strong>Never</strong> use paper towels, tissues, or clothing — these cause micro-scratches. Rinse with water first if there is dust or grit before wiping.</div>
+  </div>
+
+  <div class="qa-item">
+    <div class="qa-q">I've heard our suppliers have changed — is that true? What does it mean for patients?</div>
+    <div class="qa-a">Acknowledge any changes honestly. <strong>"Yes, we've made some adjustments to our supply partners to ensure we can offer consistent quality and availability for our patients."</strong> Do not speculate if you are unsure of the details. If a patient presses: <em>"Your lenses are manufactured to the same optical standards — what matters is that your prescription is correct and your lenses are produced accurately, which they are."</em></div>
+  </div>
+
+  <div class="qa-item">
+    <div class="qa-q">How long will the lenses take? / What's the current turnaround time?</div>
+    <div class="qa-a">Always give a range, never a single day that can become a broken promise. Example: <strong>"Standard lenses are typically ready in [X–Y] working days. If your prescription requires specialist lenses, it can be up to [Z] days — and we will always let you know upfront."</strong> Call the patient proactively when ready — do not wait for them to follow up.</div>
+  </div>
+
+  <div class="qa-item">
+    <div class="qa-q">What if a patient says they can't afford the recommended lens option?</div>
+    <div class="qa-a">Do not immediately drop to the cheapest option. First: <strong>"Let me walk you through the difference — that way you can make the best decision for you."</strong> Explain what they gain and what they give up at each price point. If they still choose the lower option, support that choice warmly. Never make a patient feel judged for their budget.</div>
+  </div>
+
+  <div class="qa-item">
+    <div class="qa-q">What if a patient insists on a frame that I know isn't right for their face?</div>
+    <div class="qa-a">Do not simply agree to avoid conflict. Say: <em>"I want to show you one more option before we decide — I think you'll really like what I have in mind."</em> Present an alternative enthusiastically. If they still insist — and the frame physically fits the prescription and their face — respect the choice and support it. The only hard no is a frame that genuinely cannot be fitted correctly.</div>
+  </div>
+
+  <div class="callout note">
+    <div class="callout-label">📋 Open Q&amp;A From the Floor</div>
+    <p>After covering the above, open the floor for any additional questions. Keep answers concise. If you don't know the answer: <em>"That's a great question — let me get you the right answer rather than guess. I'll follow up by [date]."</em></p>
+  </div>
+</div>
+
+<!-- ============================== SECTION 9: CLOSE ============================== -->
+<div class="section" id="close">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <div class="section-title-group">
+      <div class="timing-pill">Closing</div>
+      <h2>The Close</h2>
+    </div>
+  </div>
+
+  <div class="closing-block">
+    <h3>Closing Words — Russell's Script</h3>
+    <p>"Today we did something most training sessions don't do — we felt the gaps before we filled them. That dry run at the start wasn't about getting it right. It was about getting honest. And honesty is the foundation of everything we've talked about today."</p>
+    <p>"The dentist doesn't ask you what treatment you want. The dentist looks after you. That is what PricesMart Optical must be — a place where patients are looked after so well that all they need to do at the end is pay. No confusion. No second-guessing. Just trust."</p>
+    <p>"You now have a framework. A store flow. A language. A set of principles. The question is not whether you know them — you do. The question is whether you will use them, every patient, every time — including the difficult patient, the price-sensitive patient, the indecisive patient."</p>
+    <p>"Go home tonight and think about the last patient you served. Would they describe their experience the way we described it today? If yes — excellent. If not — now you know exactly what to do differently."</p>
+    <p style="color:var(--teal); font-style: normal; font-size:1rem; font-family:'Lato', sans-serif; font-weight:700; margin-top: 8px;">Thank you. Let's do great work.</p>
+  </div>
+
+  <div class="callout note" style="margin-top: 32px;">
+    <div class="callout-label">📋 Post-Session Actions</div>
+    <ul>
+      <li>Schedule a follow-up session in 3–4 weeks to review real patient interactions</li>
+      <li>Post the "7-Stage Store Flow" visibly in the staff area</li>
+      <li>Create a short laminated "Say This, Not That" card for each team member</li>
+      <li>Identify one team member to lead a second dry-run in the next team meeting</li>
+      <li>Follow up on any Q&amp;A items that needed research</li>
+    </ul>
+  </div>
+
+</div><!-- end content-wrap -->
+
+</div>
+</body>
+</html>

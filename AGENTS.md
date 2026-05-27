@@ -1,5 +1,36 @@
 # AGENTS.md
 
+## Start here — orientation sequence
+
+Read these files in order before beginning any task. Fetch only the ones
+relevant to your work area — do not load everything upfront.
+
+1. **`STATUS.md`** (root) — always read this first. Current work, known bugs,
+   do-not-touch zones. One file, always up to date.
+2. **`src/features/<name>/CONTEXT.md`** — read the CONTEXT.md for the specific
+   feature you are working in. Each one is ~30 lines.
+3. **Deeper docs** — fetch only if the task requires it:
+
+| Need | File |
+|---|---|
+| Catalog editor full behavior spec | `docs/catalog-editor-current-behavior.md` |
+| Routing architecture | `plan.md` |
+| Route registry (source of truth) | `src/config/routeRegistry.ts` |
+| Design constraints | `classicvisions_design_philosophy.md` |
+| AI assistant architecture | `docs/ai-knowledge-assistant-architecture.md` |
+| Architecture overview | `docs/architecture/README.md` |
+| Module doc index | `docs/ai/module-doc-index.json` |
+
+## Scope discipline
+
+- Only read files in the feature folder you are tasked with.
+- Do not preload docs for unrelated features.
+- If a task touches multiple features, read both CONTEXT.md files, then stop
+  unless you hit a gap.
+
+---
+
+
 ## Environment
 
 - Install dependencies with `npm ci` when `package-lock.json` exists
