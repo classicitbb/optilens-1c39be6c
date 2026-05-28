@@ -7,6 +7,19 @@ Run the PR checks locally before opening a pull request:
 npm run qa:pr-checks
 ```
 
+This includes lockfile policy, documentation symmetry, release-ledger drift, Vercel security-header sync, and wiki build-version validation.
+
+## Lockfile policy
+
+- This repository standardizes on npm.
+- Keep `package-lock.json`.
+- Do not commit `bun.lock` or `bun.lockb`; `npm run qa:lockfiles` fails when either Bun lockfile exists.
+
+## Vercel header sync
+
+- Run `npm run qa:vercel-headers` to confirm `vercel.json` matches `security/http-header-policy.json`.
+- After changing the security header policy, run `node scripts/sync_vercel_security_headers.mjs` to regenerate the Vercel header block.
+
 ## Doc symmetry guard
 The doc symmetry guard validates mapped documentation changes for code updates.
 

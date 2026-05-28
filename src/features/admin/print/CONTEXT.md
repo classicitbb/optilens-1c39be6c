@@ -20,3 +20,4 @@ Current consumers include quotation/proposal output.
 - `printLayout.ts` owns list chunking and row-aware print layout helpers.
 - Feature documents such as quotes may add document-specific table templates, but should keep column definitions explicit and shared between first-page body tables and continuation headings.
 - Preview modals must provide an obvious close/exit control in the header in addition to any default dialog close affordance.
+- Quotation preview and browser print output currently render through separate React paths (`QuotePreviewPanel` for modal preview, `QuotePdfExport` for the browser print dialog). Any pagination, continuation-header, footer, or column-template change must be applied to both paths or extracted before shipping.

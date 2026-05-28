@@ -63,6 +63,12 @@ Deno.serve(async (req) => {
     return jsonResponse(500, { error: 'Server configuration error' }, corsHeaders)
   }
 
+  const authContext = await requirePrivilegedAccess(req, corsHeaders, {
+    allowedRoles: ['admin', 'operator'],
+    sourceFunction: 'send-transactional-email',
+  })
+  if (authContext instanceof Response) return authContext
+
   // Parse request body
   let templateName: string
   let recipientEmail: string
