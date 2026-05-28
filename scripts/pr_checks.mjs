@@ -18,6 +18,11 @@ const checks = [
     args: ["run", "qa:release-ledger"],
   },
   {
+    name: "Vercel security header sync",
+    command: "npm",
+    args: ["run", "qa:vercel-headers"],
+  },
+  {
     name: "Wiki build version validation",
     command: "npm",
     args: ["run", "qa:wiki-build-version"],
