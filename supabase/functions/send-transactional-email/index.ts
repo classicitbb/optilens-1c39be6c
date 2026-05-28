@@ -1,7 +1,7 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
 import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
@@ -26,31 +26,42 @@ function generateToken(): string {
     .join('')
 }
 
+const corsPolicy = createCorsPolicy({
+  allowHeaders: 'authorization, x-admin-auth-token, x-client-info, apikey, content-type',
+  allowMethods: 'POST, OPTIONS',
+})
+
+const jsonResponse = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+  const preflight = handleCorsPreflight(req, corsPolicy)
+  if (preflight) return preflight
+
+  const corsHeaders = getCorsHeaders(req, corsPolicy)
+  const originBlocked = rejectDisallowedOrigin(req, corsPolicy)
+  if (originBlocked) return originBlocked
+
+  if (req.method !== 'POST') {
+    return jsonResponse(405, { error: 'Method not allowed' }, corsHeaders)
   }
+
+  const authContext = await requirePrivilegedAccess(req, corsHeaders, {
+    sourceFunction: 'send-transactional-email',
+    allowedRoles: ['admin', 'operator'],
+  })
+  if (authContext instanceof Response) return authContext
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
-    return new Response(
-      JSON.stringify({ error: 'Server configuration error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(500, { error: 'Server configuration error' }, corsHeaders)
   }
-
-  const authContext = await requirePrivilegedAccess(req, corsHeaders, {
-    allowedRoles: ['admin', 'operator'],
-    sourceFunction: 'send-transactional-email',
-  })
-  if (authContext instanceof Response) return authContext
 
   // Parse request body
   let templateName: string
@@ -68,23 +79,11 @@ Deno.serve(async (req) => {
       templateData = body.templateData
     }
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'Invalid JSON in request body' }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(400, { error: 'Invalid JSON in request body' }, corsHeaders)
   }
 
   if (!templateName) {
-    return new Response(
-      JSON.stringify({ error: 'templateName is required' }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(400, { error: 'templateName is required' }, corsHeaders)
   }
 
   // 1. Look up template from registry (early — needed to resolve recipient)
@@ -92,15 +91,9 @@ Deno.serve(async (req) => {
 
   if (!template) {
     console.error('Template not found in registry', { templateName })
-    return new Response(
-      JSON.stringify({
-        error: `Template '${templateName}' not found. Available: ${Object.keys(TEMPLATES).join(', ')}`,
-      }),
-      {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(404, {
+      error: `Template '${templateName}' not found. Available: ${Object.keys(TEMPLATES).join(', ')}`
+    }, corsHeaders)
   }
 
   // Resolve effective recipient: template-level `to` takes precedence over
@@ -109,15 +102,9 @@ Deno.serve(async (req) => {
   const effectiveRecipient = template.to || recipientEmail
 
   if (!effectiveRecipient) {
-    return new Response(
-      JSON.stringify({
-        error: 'recipientEmail is required (unless the template defines a fixed recipient)',
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(400, {
+      error: 'recipientEmail is required (unless the template defines a fixed recipient)'
+    }, corsHeaders)
   }
 
   // Create Supabase client with service role (bypasses RLS)
@@ -135,13 +122,7 @@ Deno.serve(async (req) => {
       error: suppressionError,
       effectiveRecipient,
     })
-    return new Response(
-      JSON.stringify({ error: 'Failed to verify suppression status' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(500, { error: 'Failed to verify suppression status' }, corsHeaders)
   }
 
   if (suppressed) {
@@ -154,13 +135,7 @@ Deno.serve(async (req) => {
     })
 
     console.log('Email suppressed', { effectiveRecipient, templateName })
-    return new Response(
-      JSON.stringify({ success: false, reason: 'email_suppressed' }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(200, { success: false, reason: 'email_suppressed' }, corsHeaders)
   }
 
   // 3. Get or create unsubscribe token (one token per email address)
@@ -186,13 +161,7 @@ Deno.serve(async (req) => {
       status: 'failed',
       error_message: 'Failed to look up unsubscribe token',
     })
-    return new Response(
-      JSON.stringify({ error: 'Failed to prepare email' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(500, { error: 'Failed to prepare email' }, corsHeaders)
   }
 
   if (existingToken && !existingToken.used_at) {
@@ -219,13 +188,7 @@ Deno.serve(async (req) => {
         status: 'failed',
         error_message: 'Failed to create unsubscribe token',
       })
-      return new Response(
-        JSON.stringify({ error: 'Failed to prepare email' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return jsonResponse(500, { error: 'Failed to prepare email' }, corsHeaders)
     }
 
     // If another request raced us, our upsert was silently ignored.
@@ -248,13 +211,7 @@ Deno.serve(async (req) => {
         status: 'failed',
         error_message: 'Failed to confirm unsubscribe token storage',
       })
-      return new Response(
-        JSON.stringify({ error: 'Failed to prepare email' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return jsonResponse(500, { error: 'Failed to prepare email' }, corsHeaders)
     }
     unsubscribeToken = storedToken.token
   } else {
@@ -271,13 +228,7 @@ Deno.serve(async (req) => {
       error_message:
         'Unsubscribe token used but email missing from suppressed list',
     })
-    return new Response(
-      JSON.stringify({ success: false, reason: 'email_suppressed' }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return jsonResponse(200, { success: false, reason: 'email_suppressed' }, corsHeaders)
   }
 
   // 4. Render React Email template to HTML and plain text
@@ -339,19 +290,10 @@ Deno.serve(async (req) => {
       error_message: 'Failed to enqueue email',
     })
 
-    return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse(500, { error: 'Failed to enqueue email' }, corsHeaders)
   }
 
   console.log('Transactional email enqueued', { templateName, effectiveRecipient })
 
-  return new Response(
-    JSON.stringify({ success: true, queued: true }),
-    {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    }
-  )
+  return jsonResponse(200, { success: true, queued: true }, corsHeaders)
 })
