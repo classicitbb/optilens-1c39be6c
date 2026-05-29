@@ -1,92 +1,49 @@
+## Diagnosis
 
+**Root cause:** stale-closure spread in `updateCharge` / `updateLine` in `src/pages/admin/costings/ShipmentDetailPage.tsx`.
 
----
+```ts
+const updateCharge = (charge, field, value) =>
+  upsertCharge.mutate({ ...charge, [field]: value });   // ← spreads whole row
+```
 
-## 1. Theme the Edit Dialogs (Lens, Addon, Supply)
+Sequence that reproduces the bug:
 
-All three form dialogs currently use generic shadcn styling. Update to match the dark navy admin theme visible in the uploaded screenshot (image-130):
+1. User types **VAT = 13.50** in row R, blurs → mutation sends `{...charge, vat_bbd: 13.5}`. DB now has VAT 13.5.
+2. React-Query invalidates `shipment-charges`, refetch is in flight (async).
+3. Before the refetch result lands and re-renders the row, the user edits **another cell in the same row** (Duty, Notes, VAT-Reclaimable toggle, or even Charge Type). The cell's onChange still closes over the **previous** `charge` object where `vat_bbd = 0`.
+4. The next mutation sends `{...staleCharge, duty_bbd: x}` — which includes `vat_bbd: 0` — clobbering the value just saved.
 
-- **LensFormDialog.tsx**: Apply `bg-[hsl(var(--admin-bg))]` to DialogContent, use admin border/input tokens, style ReadOnly cells with admin-muted backgrounds, section headers with admin color tokens.
-- **AddonFormDialog.tsx**: Same treatment -- admin tokens for borders, inputs, badges, switches.
-- **SupplyFormDialog.tsx**: Same treatment.
-- Ensure all three dialogs share the same visual language: `border-[hsl(var(--admin-border))]`, `bg-[hsl(var(--admin-bg))]`, input fields with `bg-[hsl(var(--admin-input-bg))]`.
+Same pattern in `updateLine` (e.g. typing qty then unit FOB then markup back-to-back resets earlier fields).
 
-## 2. Theme the Flyout Sidebar
+DB confirms the symptom: all 4 charges on shipment `3afe3749…` show `vat_bbd = 0` / `duty_bbd = 0` even though only `amount_bbd` got persisted — whichever field was edited last per row "won".
 
-**AdminSidebar.tsx**: The sidebar already uses admin tokens (`--admin-sidebar-fg`, `--admin-border`, etc.). Review and ensure the flyout overlay panel (`showFlyout` state) uses `bg-[hsl(var(--admin-bg))]` instead of `bg-[hsl(var(--background))]` so it matches the dark shell in both light and dark modes.
+Triggers/generated columns/RLS are not the culprit (verified: plain numeric columns, no triggers).
 
-## 3. Theme the Help Sidebar
+Activity in the Line Items tab doesn't write to charges directly, but switching tabs / typing into lines causes additional renders and lets the user touch the charge cells again later — at which point the still-cached stale charge object overwrites the saved VAT/Duty.
 
-**HelpPanel.tsx**: Update the slide-out panel background, border, and header styling to use admin tokens. Ensure article list items, feedback buttons, and the resize handle use consistent admin colors.
+## Fix
 
-## 4. Theme the Notifications Dropdown
+Send only the changed field instead of spreading the whole row. The hook's upsert already accepts `Partial<ShipmentCharge>` and updates by `id`, so a minimal payload is safe.
 
-**NotificationBell.tsx**: The dropdown currently uses `bg-popover` and `bg-muted`. Switch to explicit admin tokens:
+### Edits in `src/pages/admin/costings/ShipmentDetailPage.tsx`
 
-- Dropdown container: `bg-[hsl(var(--admin-bg))]`, `border-[hsl(var(--admin-border))]`
-- Header bar: `bg-[hsl(var(--admin-surface))]`
-- Items: hover with `bg-[hsl(var(--admin-sidebar-hover))]`
-- Ensure dismiss button uses admin foreground colors.
+1. **`updateCharge`** — change to `upsertCharge.mutate({ id: charge.id, [field]: value })`.
+2. **`updateLine`** — change to `upsertLine.mutate({ id: line.id, ...updates })`. (No spread of `line`.)
+3. **`handleProductSelect`** — same: send `{ id: line.id, lens_id, supply_id, addon_id, description }` only.
+4. **`handleProductTypeChange`** — send `{ id: line.id, product_type, lens_id: null, supply_id: null, addon_id: null }` only.
+5. The two compound line edits that update qty + line_fob simultaneously (Qty and Unit FOB cells) already pass an `updates` object — they'll be safe once `updateLine` no longer spreads `line`.
 
-## 5. Verify Business Logic in Pricing Engine
+### Optional hardening (same file)
 
-Review the `calculatePricingEngine` function and its usage in all three dialogs:
+- In `NumericInput`/`TextInput` `commit()`, if the value hasn't actually changed, skip the call (already done for numeric; keep).
+- No hook changes required. `useShipmentCharges`/`useShipmentLines` already handle partial updates correctly.
 
-- **Lenses**: Currently hardcodes `duty_applicable: false` and `vat_recoverable: true` -- correct per project rules ("Lenses are specifically exempt from import duty and VAT"). Labour at 5% of base_price when `full_lab` is on. 
-- **Addons**: Check that addon dialog passes correct inputs (category, currency, bb_item flags).
-- **Supplies**: Check that supply-specific flags (`duty_added`, `vat_paid`, `labour_added`, `bb_item`, `currency`) are correctly mapped to engine inputs.
-- Verify margin calculation: `margin = (sell_price - full_cost) / sell_price` is correct (sell-price-based margin, not markup).
+### Validation
 
-## 6. Implement Fuzzy Search Across Admin
+- Edit VAT → Duty → Notes in the same row rapidly; all three persist.
+- Reload page: values match what was typed.
+- Re-query `shipment_charges` for the affected shipment and confirm non-zero VAT/Duty.
+- Repeat with line items (Qty, Unit FOB, Markup) — none reset.
 
-Replace `fieldsMatch` (wildcard `%`-based) with Fuse.js fuzzy matching:
-
-- Install `fuse.js` package.
-- Create `src/lib/fuzzyMatch.ts` utility wrapping Fuse for single-query-against-fields use.
-- Update `fieldsMatch` to use fuzzy matching by default (threshold ~0.3) while preserving the `%` wildcard fallback for explicit patterns.
-- This automatically applies to all admin search fields that use `fieldsMatch`.
-
-## 7. Compress Padding in /admin/pricing/compare
-
-**PricingComparePage.tsx**: Reduce table row padding to create slimmer lines:
-
-- Add `className="py-1"` to all `<TableCell>` elements in the lens list.
-- Reduce lens name font to `text-[11px]` and supplier sub-label to `text-[10px]`.
-- Tighten action button sizes from `h-6 w-6` to `h-5 w-5`.
-
-
-
-## 10. SLA Policy Description Field
-
-**HelpdeskSlaPoliciesPage.tsx**: Add a rich-text `description` field to SLA policies:
-
-- Create a migration adding `description TEXT` column to `helpdesk_sla_policies`.
-- Add the `RichTextEditor` component to both the create form and edit dialog.
-- Display a collapsible description preview in the policy list table.
-
----
-
-## Technical Details
-
-### Files Modified
-
-
-| File                                                   | Changes                                      |
-| ------------------------------------------------------ | -------------------------------------------- |
-| `src/components/admin/LensFormDialog.tsx`              | Admin theme tokens, fix halfPairUsdList calc |
-| `src/components/admin/AddonFormDialog.tsx`             | Admin theme tokens                           |
-| `src/components/admin/SupplyFormDialog.tsx`            | Admin theme tokens                           |
-| `src/components/admin/AdminSidebar.tsx`                | Flyout bg fix                                |
-| `src/components/admin/HelpPanel.tsx`                   | Admin theme tokens                           |
-| `src/components/admin/NotificationBell.tsx`            | Admin theme tokens                           |
-| `src/lib/wildcardMatch.ts`                             | Add fuzzy matching via Fuse.js               |
-| `src/pages/admin/PricingComparePage.tsx`               | Tighter cell padding                         |
-| `src/pages/admin/helpdesk/HelpdeskOverviewPage.tsx`    | Browser fullscreen API                       |
-| `src/pages/admin/helpdesk/HelpdeskSlaPoliciesPage.tsx` | Description field + rich text                |
-| `package.json`                                         | Add `fuse.js` dependency                     |
-| Migration                                              | Add `description` to `helpdesk_sla_policies` |
-
-
-### Dependencies
-
-- `fuse.js` (~7KB gzipped) for fuzzy search
+No schema, RLS, or migration changes needed.
