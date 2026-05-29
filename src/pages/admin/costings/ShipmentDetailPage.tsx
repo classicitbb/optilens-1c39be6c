@@ -681,10 +681,7 @@ const ShipmentDetailPage = () => {
                           <NumericInput value={l.unit_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(unitFob) => updateLine(l, { unit_fob_foreign: unitFob, line_fob_foreign: unitFob * l.quantity })} />
                         </TableCell>
-                        <TableCell className="py-1">
-                          <NumericInput value={l.line_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateLine(l, { line_fob_foreign: v })} />
-                        </TableCell>
+                        <TableCell className="py-1 text-right font-mono">{fmt(l.line_fob_foreign)}</TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.lineFobBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.landedUnitBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.landedUnitUsd)}</TableCell>
