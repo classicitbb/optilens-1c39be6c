@@ -22,6 +22,17 @@ const AdminSidebar = () => {
   const currentPath = location.pathname;
   const [mode, setMode] = useState<SidebarMode>("open");
   const [isHovering, setIsHovering] = useState(false);
+  const userInteractedRef = useRef(false);
+
+  // Auto-collapse 5s after page load (unless user pins/toggles or hovers first)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!userInteractedRef.current) {
+        setMode((prev) => (prev === "open" ? "collapsed" : prev));
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const activeAppKey = useMemo<AppKey | null>(() => {
     for (const [key, app] of Object.entries(ADMIN_APPS)) {
