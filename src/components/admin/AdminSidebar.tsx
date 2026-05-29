@@ -103,6 +103,7 @@ const AdminSidebar = () => {
 
   const handleToggle = () => {
     if (isEditorRoute) return;
+    userInteractedRef.current = true;
     if (isPinned) {
       setMode("open");
       return;
@@ -113,6 +114,7 @@ const AdminSidebar = () => {
 
   const handlePinToggle = () => {
     if (isEditorRoute) return;
+    userInteractedRef.current = true;
     setMode(isPinned ? "open" : "pinned");
   };
 
