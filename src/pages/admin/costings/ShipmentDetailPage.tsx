@@ -372,14 +372,15 @@ const ShipmentDetailPage = () => {
     upsertLine.mutate({ ...line, product_type: newType as any, lens_id: null, supply_id: null, addon_id: null });
   };
 
-  // Charge field updater (blur-based)
+  // Charge field updater (blur-based) — send only the changed field to avoid
+  // stale-closure spreads clobbering values saved by other cells.
   const updateCharge = useCallback((charge: ShipmentCharge, field: string, value: any) => {
-    upsertCharge.mutate({ ...charge, [field]: value });
+    upsertCharge.mutate({ id: charge.id, [field]: value } as Partial<ShipmentCharge>);
   }, [upsertCharge]);
 
-  // Line field updater (blur-based)
+  // Line field updater (blur-based) — partial update by id only.
   const updateLine = useCallback((line: ShipmentLine, updates: Partial<ShipmentLine>) => {
-    upsertLine.mutate({ ...line, ...updates });
+    upsertLine.mutate({ id: line.id, ...updates });
   }, [upsertLine]);
 
   if (loading || !shipment) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
