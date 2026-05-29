@@ -356,7 +356,7 @@ const ShipmentDetailPage = () => {
   const getProductId = (line: ShipmentLine) => line.lens_id || line.supply_id || line.addon_id || "";
 
   const handleProductSelect = (line: ShipmentLine, productId: string) => {
-    const updates: Partial<ShipmentLine> = { ...line, lens_id: null, supply_id: null, addon_id: null };
+    const updates: Partial<ShipmentLine> = { id: line.id, lens_id: null, supply_id: null, addon_id: null };
     if (line.product_type === "lens") updates.lens_id = productId;
     else if (line.product_type === "supply") updates.supply_id = productId;
     else if (line.product_type === "addon") updates.addon_id = productId;
@@ -369,7 +369,7 @@ const ShipmentDetailPage = () => {
   };
 
   const handleProductTypeChange = (line: ShipmentLine, newType: string) => {
-    upsertLine.mutate({ ...line, product_type: newType as any, lens_id: null, supply_id: null, addon_id: null });
+    upsertLine.mutate({ id: line.id, product_type: newType as any, lens_id: null, supply_id: null, addon_id: null });
   };
 
   // Charge field updater (blur-based) — send only the changed field to avoid
