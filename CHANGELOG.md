@@ -4,6 +4,26 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-05-27 — Infrastructure Dependency and Edge Security Refresh
+
+### Plan
+- Refresh npm dependencies within compatible ranges and remove stale non-npm lockfiles.
+- Keep Vercel edge headers synchronized with the canonical security header policy.
+- Align the Vite React plugin with the current Vite 8 recommendation and preserve existing route/app architecture.
+
+### Release Notes
+- npm install/audit now reports zero vulnerabilities after lockfile refreshes and targeted transitive overrides.
+- `vercel.json` now serves HSTS, CSP, frame, referrer, content-type, and permissions headers from the shared security policy.
+- PR checks now validate Vercel security-header sync alongside existing lockfile, documentation, release-ledger, and wiki checks.
+
+### Technical Changelog
+- Removed stale `bun.lock` and tightened `scripts/check_lockfiles.mjs` to reject both `bun.lock` and `bun.lockb`.
+- Added `scripts/sync_vercel_security_headers.mjs` and `npm run qa:vercel-headers`.
+- Updated `scripts/pr_checks.mjs` to run the Vercel header sync check.
+- Added `X-Frame-Options: DENY` to `security/http-header-policy.json`.
+- Replaced `@vitejs/plugin-react-swc` with `@vitejs/plugin-react` in `vite.config.ts` and dependency metadata.
+- Corrected the Vite manual chunk rule to target `react-router` instead of the removed `react-router-dom` package.
+
 ## 2026-04-13 — LED PRO Public Lens Page + Admin Rendering Safeguards
 
 ### Plan

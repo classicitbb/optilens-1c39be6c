@@ -14,7 +14,7 @@ Applied non-breaking dependency updates where `Wanted > Current` and the major v
 - `react-hook-form`: `7.61.1` → `7.71.2`
 - `@tanstack/react-query`: `5.83.0` → `5.90.21`
 
-`@vitejs/plugin-react-swc` remained at `3.11.0` because no newer `3.x` version is currently available in this repo's dependency range.
+`@vitejs/plugin-react-swc` was later replaced with `@vitejs/plugin-react` because Vite 8/Rolldown recommends the standard React plugin when no SWC-specific plugins are configured.
 
 ### Regression checks executed after Phase 1
 
