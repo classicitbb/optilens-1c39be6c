@@ -4,6 +4,25 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-06-05 — Shipment Costing Fixes + Security/Print Hardening
+
+### Plan
+- Close the admin shipment-costing regressions merged on 2026-05-29 so charge edits, line edits, and FOB visibility behave predictably.
+- Fold in the 2026-06-01 DEV merge runtime changes without overstating doc-only churn.
+- Keep this weekly summary source-backed and include direct links to the merged history items that drove it.
+
+### Release Notes
+- Shipment Detail no longer overwrites charge edits with line-item edits, and the FOB column is now preserved as read-only in the admin costing view.
+- Admin UI polish fixes landed for sidebar behavior plus shared input/select rendering to address the text cutoff issues merged this week.
+- The DEV merge hardened quote printing, transactional-email authorization/CORS handling, and Vercel security-header synchronization while removing Bun lockfile drift from the npm-only workflow.
+
+### Technical Changelog
+- Updated `src/pages/admin/costings/ShipmentDetailPage.tsx` to stop charge/line edit overwrite regressions and keep the FOB column read-only.
+- Updated `src/components/admin/AdminSidebar.tsx`, `src/components/ui/select.tsx`, and `src/components/ui/input.tsx` for the sidebar/text-cutoff fixes that were merged on 2026-05-29.
+- Updated `src/components/admin/QuotePdfExport.tsx` to use explicit first-page/continuation pagination rules and continuation headers for quote print output.
+- Updated `supabase/functions/send-transactional-email/index.ts`, `vercel.json`, `scripts/sync_vercel_security_headers.mjs`, `scripts/check_lockfiles.mjs`, and `package.json` to tighten privileged email access, sync enforced security headers, and reject stray Bun lockfiles in the npm workflow.
+- Key history links: [Fixed text cutoff & sidebar](https://github.com/classicitbb/optilens-1c39be6c/commit/505681e27f9c0cb1a1f92aa7918dc48047248e3b), [Added read-only FOB col](https://github.com/classicitbb/optilens-1c39be6c/commit/ea6e9e969d03bddbd2dd9efe43bdb368fa41b20a), [Fixed charge/line edit overwrites](https://github.com/classicitbb/optilens-1c39be6c/commit/4893620509a7b512a4749630bc823142d73ea0f1), [Merge DEV updates](https://github.com/classicitbb/optilens-1c39be6c/commit/01c0ef8d5b44e5fc360ae10b452d00feb4322bff).
+
 ## 2026-04-13 — LED PRO Public Lens Page + Admin Rendering Safeguards
 
 ### Plan
