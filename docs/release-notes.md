@@ -2,6 +2,14 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-05-27 — Infrastructure Dependency and Edge Security Refresh
+
+### Release Notes
+- npm dependencies were refreshed through npm 10 and the lockfile now audits cleanly.
+- The stale Bun lockfile was removed, and lockfile policy now rejects both Bun lockfile formats.
+- Vercel now applies the shared security header policy at the edge, with a new QA check preventing config drift.
+- Vite now uses the standard React plugin recommended for this setup, and router chunking targets `react-router`.
+
 ## 2026-04-13 — LED PRO Public Lens Page + Admin Rendering Safeguards
 
 ### Release Notes
