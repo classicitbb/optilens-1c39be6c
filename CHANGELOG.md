@@ -4,25 +4,24 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
-## 2026-05-27 — Infrastructure Dependency and Edge Security Refresh
+## 2026-06-05 — Shipment Costing Fixes + Security/Print Hardening
 
 ### Plan
-- Refresh npm dependencies within compatible ranges and remove stale non-npm lockfiles.
-- Keep Vercel edge headers synchronized with the canonical security header policy.
-- Align the Vite React plugin with the current Vite 8 recommendation and preserve existing route/app architecture.
+- Close the admin shipment-costing regressions merged on 2026-05-29 so charge edits, line edits, and FOB visibility behave predictably.
+- Fold in the 2026-06-01 DEV merge runtime changes without overstating doc-only churn.
+- Keep this weekly summary source-backed and include direct links to the merged history items that drove it.
 
 ### Release Notes
-- npm install/audit now reports zero vulnerabilities after lockfile refreshes and targeted transitive overrides.
-- `vercel.json` now serves HSTS, CSP, frame, referrer, content-type, and permissions headers from the shared security policy.
-- PR checks now validate Vercel security-header sync alongside existing lockfile, documentation, release-ledger, and wiki checks.
+- Shipment Detail no longer overwrites charge edits with line-item edits, and the FOB column is now preserved as read-only in the admin costing view.
+- Admin UI polish fixes landed for sidebar behavior plus shared input/select rendering to address the text cutoff issues merged this week.
+- The DEV merge hardened quote printing, transactional-email authorization/CORS handling, and Vercel security-header synchronization while removing Bun lockfile drift from the npm-only workflow.
 
 ### Technical Changelog
-- Removed stale `bun.lock` and tightened `scripts/check_lockfiles.mjs` to reject both `bun.lock` and `bun.lockb`.
-- Added `scripts/sync_vercel_security_headers.mjs` and `npm run qa:vercel-headers`.
-- Updated `scripts/pr_checks.mjs` to run the Vercel header sync check.
-- Added `X-Frame-Options: DENY` to `security/http-header-policy.json`.
-- Replaced `@vitejs/plugin-react-swc` with `@vitejs/plugin-react` in `vite.config.ts` and dependency metadata.
-- Corrected the Vite manual chunk rule to target `react-router` instead of the removed `react-router-dom` package.
+- Updated `src/pages/admin/costings/ShipmentDetailPage.tsx` to stop charge/line edit overwrite regressions and keep the FOB column read-only.
+- Updated `src/components/admin/AdminSidebar.tsx`, `src/components/ui/select.tsx`, and `src/components/ui/input.tsx` for the sidebar/text-cutoff fixes that were merged on 2026-05-29.
+- Updated `src/components/admin/QuotePdfExport.tsx` to use explicit first-page/continuation pagination rules and continuation headers for quote print output.
+- Updated `supabase/functions/send-transactional-email/index.ts`, `vercel.json`, `scripts/sync_vercel_security_headers.mjs`, `scripts/check_lockfiles.mjs`, and `package.json` to tighten privileged email access, sync enforced security headers, and reject stray Bun lockfiles in the npm workflow.
+- Key history links: [Fixed text cutoff & sidebar](https://github.com/classicitbb/optilens-1c39be6c/commit/505681e27f9c0cb1a1f92aa7918dc48047248e3b), [Added read-only FOB col](https://github.com/classicitbb/optilens-1c39be6c/commit/ea6e9e969d03bddbd2dd9efe43bdb368fa41b20a), [Fixed charge/line edit overwrites](https://github.com/classicitbb/optilens-1c39be6c/commit/4893620509a7b512a4749630bc823142d73ea0f1), [Merge DEV updates](https://github.com/classicitbb/optilens-1c39be6c/commit/01c0ef8d5b44e5fc360ae10b452d00feb4322bff).
 
 ## 2026-04-13 — LED PRO Public Lens Page + Admin Rendering Safeguards
 
