@@ -121,6 +121,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
         <Sparkles className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
         <Input
           ref={inputRef}
+          dir="ltr"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setFocused(true)}
@@ -128,7 +129,7 @@ export const PublicSearchPanel = ({ compact = false }: { compact?: boolean }) =>
             window.setTimeout(() => setFocused(false), 150);
           }}
           placeholder={compact ? "AI Search: pages, products, FAQs..." : "Ask anything - pages, products, FAQs, forms, and anchors"}
-          className={`border-0 bg-transparent pl-10 pr-10 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 ${compact ? "h-9 text-sm" : "h-12 text-base"}`}
+          className={`border-0 bg-transparent pl-10 pr-10 text-left text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 ${compact ? "h-9 text-sm" : "h-12 text-base"}`}
         />
       </div>
 

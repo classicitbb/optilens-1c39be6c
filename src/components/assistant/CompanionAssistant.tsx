@@ -420,6 +420,7 @@ const CompanionAssistant = () => {
         <div className="rounded-[22px] border border-slate-700/80 bg-slate-900/95 p-2 shadow-[0_16px_50px_rgba(2,6,23,0.35)]">
           <div className="flex items-center gap-2">
             <Input
+              dir="ltr"
               value={currentQuery}
               onChange={(event) => setCurrentQuery(event.target.value)}
               onKeyDown={(event) => {
@@ -430,7 +431,7 @@ const CompanionAssistant = () => {
               }}
               placeholder="Ask about lenses, coatings, retailers, or support"
               disabled={isSubmitting}
-              className="h-11 border-0 bg-transparent text-slate-50 placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="h-11 border-0 bg-transparent text-left text-slate-50 placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <Button
               type="button"
