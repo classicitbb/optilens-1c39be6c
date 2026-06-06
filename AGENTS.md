@@ -27,6 +27,11 @@ relevant to your work area — do not load everything upfront.
 - Do not preload docs for unrelated features.
 - If a task touches multiple features, read both CONTEXT.md files, then stop
   unless you hit a gap.
+- For explicit repo-wide repair, dependency cleanup, build stabilization, or
+  app-wide smoke/debug requests, agents may inspect and edit across feature
+  boundaries as needed. Still start with `STATUS.md`, avoid unrelated refactors,
+  and preserve the protected wiki/routing rules below unless the task directly
+  requires coordinated changes there.
 
 ---
 
@@ -34,7 +39,8 @@ relevant to your work area — do not load everything upfront.
 ## Environment
 
 - Install dependencies with `npm ci` when `package-lock.json` exists
-- Use Node `20.x` or `22.x` with npm `10.x`
+- When dependency fixes are required, keep npm as the package manager and update
+  `package.json`/`package-lock.json` together through npm commands.
 - Do not switch package managers
 - Assume the repo must work from a clean checkout
 
