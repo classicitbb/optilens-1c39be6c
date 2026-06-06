@@ -34,14 +34,17 @@ relevant to your work area — do not load everything upfront.
 ## Environment
 
 - Install dependencies with `npm ci` when `package-lock.json` exists
+- Use Node `20.x` or `22.x` with npm `10.x`
 - Do not switch package managers
 - Assume the repo must work from a clean checkout
 
 ## Validation
 
+- Run `npm run ci:pr-checks` when your change can affect lockfile policy, doc symmetry, wiki build versions, or release-ledger checks
 - Run `npm run lint`
 - Run `npm run test -- --runInBand`
 - Run `npm run build`
+- Run `npm run qa:smoke` when touching admin routing, legacy redirects, or runtime error logging wiring
 
 ## Rules
 
