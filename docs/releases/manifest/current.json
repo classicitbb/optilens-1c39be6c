@@ -1,68 +1,43 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-04-13T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-05-27T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Added a new public LED PRO lifestyle-lens page at `/lenses/led-pro`.",
-    "LED PRO now appears in public navigation, lens-guide discovery, knowledge-center content, and site search so every public entry point resolves to one canonical route.",
-    "The LED PRO watch section now uses a live embedded demo instead of relying on a locally merged video file.",
-    "Helpdesk SLA policy descriptions now render only after shared rich-text sanitization, and PDF preview starts from an explicit 100% manual zoom state."
+    "npm dependencies were refreshed through npm 10 and the lockfile now audits cleanly.",
+    "The stale Bun lockfile was removed, and lockfile policy now rejects both Bun lockfile formats.",
+    "Vercel now applies the shared security header policy at the edge, with a new QA check preventing config drift.",
+    "Vite now uses the standard React plugin recommended for this setup, and router chunking targets `react-router`."
   ],
   "moduleImpact": [
     {
-      "module": "src/pages/lenses",
+      "module": "scripts/check_lockfiles.mjs",
       "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
     },
     {
-      "module": "src/routes/public",
+      "module": "scripts/sync_vercel_security_headers.mjs",
       "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
     },
     {
-      "module": "src/config/routeRegistry.ts",
+      "module": "scripts/pr_checks.mjs",
       "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
     },
     {
-      "module": "lenses/led-pro",
+      "module": "security/http-header-policy.json",
       "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
     },
     {
-      "module": "src/components/Header.tsx",
+      "module": "@vitejs/plugin-react-swc",
       "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
     },
     {
-      "module": "src/pages/LensDesignGuidePage.tsx",
+      "module": "@vitejs/plugin-react",
       "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
-    },
-    {
-      "module": "src/data/knowledgeCenter.ts",
-      "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
-    },
-    {
-      "module": "src/lib/siteSearchIndex.ts",
-      "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
-    },
-    {
-      "module": "src/tests/integration",
-      "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
-    },
-    {
-      "module": "src/pages/admin",
-      "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
-    },
-    {
-      "module": "src/components/admin",
-      "impact": "medium",
-      "notes": "Updated as part of LED PRO Public Lens Page + Admin Rendering Safeguards."
+      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
     }
   ],
   "migrationNotes": [
