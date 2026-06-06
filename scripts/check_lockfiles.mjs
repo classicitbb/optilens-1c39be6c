@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs";
 
 const hasNpmLockfile = existsSync("package-lock.json");
+const hasBunTextLockfile = existsSync("bun.lock");
 const hasBunLockfile = existsSync("bun.lockb");
 
 if (!hasNpmLockfile) {
@@ -9,9 +10,12 @@ if (!hasNpmLockfile) {
   process.exit(1);
 }
 
-if (hasBunLockfile) {
-  console.error("❌ Lockfile policy violation: both package-lock.json and bun.lockb exist.");
-  console.error("   This repository standardizes on npm. Remove bun.lockb and run npm ci.");
+if (hasBunTextLockfile || hasBunLockfile) {
+  const bunLockfiles = [hasBunTextLockfile && "bun.lock", hasBunLockfile && "bun.lockb"]
+    .filter(Boolean)
+    .join(", ");
+  console.error(`❌ Lockfile policy violation: both package-lock.json and ${bunLockfiles} exist.`);
+  console.error("   This repository standardizes on npm. Remove Bun lockfiles and run npm ci.");
   process.exit(1);
 }
 

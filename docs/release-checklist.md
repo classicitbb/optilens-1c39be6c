@@ -41,9 +41,9 @@ Use this lane for version upgrades that cross major versions or require migratio
   - [x] Updated `recharts` from 2.15.4 to 3.8.1.
   - [x] Fixed `chart.tsx` — Tooltip and Legend prop types changed; used permissive typing to accommodate recharts 3 internal state restructuring.
   - [x] No app-level chart code changes needed (only shadcn chart wrapper affected).
-- [x] Vite 8 migration (2026-03-30)
+- [x] Vite 8 migration (2026-03-30, refreshed 2026-05-27)
   - [x] Updated `vite` from 7.3.1 to 8.0.3 (Rolldown/Oxc bundler).
-  - [x] `@vitejs/plugin-react-swc` 4.3.0 compatible — no config changes needed.
+  - [x] Replaced `@vitejs/plugin-react-swc` with `@vitejs/plugin-react` after Vite reported that no SWC-specific plugins are used.
   - [x] Compat layer auto-converts esbuild/rollupOptions config.
   - [x] Excluded integration test files from `tsconfig.app.json` (Node.js types not available in browser tsconfig).
 - [x] Vitest 4 / @vitest/coverage-v8 4 migration (2026-03-30)
