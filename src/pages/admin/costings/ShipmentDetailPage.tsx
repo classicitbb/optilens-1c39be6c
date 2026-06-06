@@ -356,7 +356,7 @@ const ShipmentDetailPage = () => {
   const getProductId = (line: ShipmentLine) => line.lens_id || line.supply_id || line.addon_id || "";
 
   const handleProductSelect = (line: ShipmentLine, productId: string) => {
-    const updates: Partial<ShipmentLine> = { ...line, lens_id: null, supply_id: null, addon_id: null };
+    const updates: Partial<ShipmentLine> = { id: line.id, lens_id: null, supply_id: null, addon_id: null };
     if (line.product_type === "lens") updates.lens_id = productId;
     else if (line.product_type === "supply") updates.supply_id = productId;
     else if (line.product_type === "addon") updates.addon_id = productId;
@@ -369,17 +369,18 @@ const ShipmentDetailPage = () => {
   };
 
   const handleProductTypeChange = (line: ShipmentLine, newType: string) => {
-    upsertLine.mutate({ ...line, product_type: newType as any, lens_id: null, supply_id: null, addon_id: null });
+    upsertLine.mutate({ id: line.id, product_type: newType as any, lens_id: null, supply_id: null, addon_id: null });
   };
 
-  // Charge field updater (blur-based)
+  // Charge field updater (blur-based) — send only the changed field to avoid
+  // stale-closure spreads clobbering values saved by other cells.
   const updateCharge = useCallback((charge: ShipmentCharge, field: string, value: any) => {
-    upsertCharge.mutate({ ...charge, [field]: value });
+    upsertCharge.mutate({ id: charge.id, [field]: value } as Partial<ShipmentCharge>);
   }, [upsertCharge]);
 
-  // Line field updater (blur-based)
+  // Line field updater (blur-based) — partial update by id only.
   const updateLine = useCallback((line: ShipmentLine, updates: Partial<ShipmentLine>) => {
-    upsertLine.mutate({ ...line, ...updates });
+    upsertLine.mutate({ id: line.id, ...updates });
   }, [upsertLine]);
 
   if (loading || !shipment) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
@@ -681,10 +682,7 @@ const ShipmentDetailPage = () => {
                           <NumericInput value={l.unit_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-full"
                             onChange={(unitFob) => updateLine(l, { unit_fob_foreign: unitFob, line_fob_foreign: unitFob * l.quantity })} />
                         </TableCell>
-                        <TableCell className="py-1">
-                          <NumericInput value={l.line_fob_foreign} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateLine(l, { line_fob_foreign: v })} />
-                        </TableCell>
+                        <TableCell className="py-1 text-right font-mono">{fmt(l.line_fob_foreign)}</TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.lineFobBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.landedUnitBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.landedUnitUsd)}</TableCell>

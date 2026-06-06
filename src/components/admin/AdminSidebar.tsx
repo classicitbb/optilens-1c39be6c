@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +22,17 @@ const AdminSidebar = () => {
   const currentPath = location.pathname;
   const [mode, setMode] = useState<SidebarMode>("open");
   const [isHovering, setIsHovering] = useState(false);
+  const userInteractedRef = useRef(false);
+
+  // Auto-collapse 5s after page load (unless user pins/toggles or hovers first)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!userInteractedRef.current) {
+        setMode((prev) => (prev === "open" ? "collapsed" : prev));
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const activeAppKey = useMemo<AppKey | null>(() => {
     for (const [key, app] of Object.entries(ADMIN_APPS)) {
@@ -92,6 +103,7 @@ const AdminSidebar = () => {
 
   const handleToggle = () => {
     if (isEditorRoute) return;
+    userInteractedRef.current = true;
     if (isPinned) {
       setMode("open");
       return;
@@ -102,6 +114,7 @@ const AdminSidebar = () => {
 
   const handlePinToggle = () => {
     if (isEditorRoute) return;
+    userInteractedRef.current = true;
     setMode(isPinned ? "open" : "pinned");
   };
 
