@@ -56,6 +56,7 @@ const HelpdeskTicketDetailPage = lazy(() => import("@/pages/admin/helpdesk/Helpd
 const WebsitePortalsPage = lazy(() => import("@/pages/admin/WebsitePortalsPage"));
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
+const OrdersPage = lazy(() => import("@/pages/admin/OrdersPage"));
 
 const AdminRoutes = () => (
   <Routes>
@@ -81,12 +82,14 @@ const AdminRoutes = () => (
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
       <Route path="pricing/legacy" element={<Navigate to="/admin/pricing/catalog" replace />} />
 
+      <Route path="orders" element={<OrdersPage />} />
+
       <Route path="sales" element={<Navigate to="/admin/sales/quotations" replace />} />
       <Route path="sales/proposals" element={<CatalogPublisherV2Page />} />
       <Route path="sales/quotations" element={<QuotationsListPage />} />
       <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
       <Route path="sales/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
-      <Route path="sales/web-orders" element={<PlaceholderPage />} />
+      <Route path="sales/web-orders" element={<OrdersPage />} />
       <Route path="sales/rx-orders" element={<PlaceholderPage />} />
 
       <Route path="contacts" element={<ContactsPage />} />

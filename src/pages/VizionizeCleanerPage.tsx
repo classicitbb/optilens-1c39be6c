@@ -1,12 +1,16 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import VizionizeHeroBackground from "@/components/VizionizeHeroBackground";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ToastAction } from "@/components/ui/toast";
 import { Link, useNavigate } from "react-router";
 import Seo from "@/components/seo/Seo";
 import { useCartContext } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { createAuthHref } from "@/lib/authFlow";
 import {
   Sparkles,
   Shield,
@@ -21,7 +25,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-// Stable product ID matching the SKU (2817200) on the supplier catalog
+// Stable product ID matching the supplier SKU
 const VIZIONIZE_CART_PRODUCT = {
   id: 2817200,
   name: "VIZIONIZE AI™ Lens Cleaner (1 oz)",
@@ -108,23 +112,33 @@ const COMPATIBLE_WITH = [
 
 const VizionizeCleanerPage = () => {
   const { addToCart } = useCartContext();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  /** If not signed in, send the user to sign-up and return here after. */
   const handleAddToCart = async () => {
+    if (!user) {
+      navigate(
+        createAuthHref({ mode: "signup", redirect: "/vizionize-cleaner" })
+      );
+      return;
+    }
     await addToCart(VIZIONIZE_CART_PRODUCT);
-    // useCart already shows a sign-in toast if not logged in;
-    // only show success if we get here without throwing
     toast({
       title: "Added to cart",
-      description: "VIZIONIZE AI™ Lens Cleaner (1 oz) has been added to your cart.",
+      description: "VIZIONIZE AI™ Lens Cleaner (1 oz) is in your cart.",
+      action: (
+        <ToastAction altText="View cart" asChild>
+          <Link to="/checkout">View Cart</Link>
+        </ToastAction>
+      ),
     });
   };
 
   const handleContactUs = () => {
     const params = new URLSearchParams({ msg: CONTACT_PRELOAD_MSG });
     navigate(`/?${params.toString()}#contact`);
-    // Ensure the page scrolls to #contact after navigation
     setTimeout(() => {
       document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
     }, 150);
@@ -140,60 +154,76 @@ const VizionizeCleanerPage = () => {
       <Header />
       <main className="pb-20 pt-24">
 
-        {/* ── Hero ── */}
-        <section className="container mx-auto max-w-6xl px-4 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            {/* Text */}
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className="text-xs font-semibold uppercase tracking-wider">
-                  New Product
-                </Badge>
-                <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
-                  Patent Pending
-                </Badge>
-              </div>
-              <h1 className="mt-4 text-4xl font-bold text-foreground sm:text-5xl">
-                VIZIONIZE AI™<br className="hidden sm:block" /> Lens Cleaner
-              </h1>
-              <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-                The world's first AI-formulated eyeglass cleaner — engineered with scratch-resistant nanoparticles to
-                clean deeper, protect smarter, and keep your lenses performing at their best.
-              </p>
-              <p className="mt-2 text-base font-medium text-accent">
-                Smarter science. Superior protection. Perfect vision.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Button variant="hero" size="lg" onClick={handleAddToCart}>
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                  Buy Now
-                </Button>
-                <Button variant="outline" size="lg" asChild>
-                  <a
-                    href="https://www.dynamiclabs.net/collections/vizionize-ai-cleaners-cloths"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Package className="mr-2 h-5 w-5" />
-                    Order in Bulk
-                  </a>
-                </Button>
-                <Button variant="ghost" size="lg" onClick={handleContactUs}>
-                  <MessageSquare className="mr-2 h-5 w-5" />
-                  Contact Us
-                </Button>
-              </div>
-            </div>
+        {/* ── Hero (with animated background) ── */}
+        <section className="relative overflow-hidden bg-primary py-16 lg:py-24">
+          {/* Animated backdrop — matrix rain + cubes + robots */}
+          <VizionizeHeroBackground />
 
-            {/* Product image */}
-            <div className="flex items-center justify-center lg:justify-end">
-              <div className="relative flex h-80 w-80 items-center justify-center rounded-2xl bg-muted/40 p-6 shadow-soft">
-                <img
-                  src="https://dynamiclabs.net/cdn/shop/files/1oznewnew.png"
-                  alt="VIZIONIZE AI™ 1 oz Lens Cleaner bottle"
-                  className="max-h-64 w-auto object-contain drop-shadow-lg"
-                  loading="eager"
-                />
+          {/* Foreground content */}
+          <div className="relative z-10 container mx-auto max-w-6xl px-4 lg:px-8">
+            <div className="grid items-center gap-12 lg:grid-cols-2">
+              {/* Text */}
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-accent text-accent-foreground text-xs font-semibold uppercase tracking-wider">
+                    New Product
+                  </Badge>
+                  <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground text-xs font-semibold uppercase tracking-wider">
+                    Patent Pending
+                  </Badge>
+                </div>
+                <h1 className="mt-4 text-4xl font-bold text-primary-foreground sm:text-5xl">
+                  VIZIONIZE AI™<br className="hidden sm:block" /> Lens Cleaner
+                </h1>
+                <p className="mt-5 max-w-xl text-lg text-primary-foreground/80">
+                  The world's first AI-formulated eyeglass cleaner — engineered with scratch-resistant nanoparticles to
+                  clean deeper, protect smarter, and keep your lenses performing at their best.
+                </p>
+                <p className="mt-2 text-base font-medium text-accent">
+                  Smarter science. Superior protection. Perfect vision.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Button variant="hero" size="lg" onClick={handleAddToCart}>
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    Buy Now
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+                    variant="outline"
+                    asChild
+                  >
+                    <a
+                      href="https://www.dynamiclabs.net/collections/vizionize-ai-cleaners-cloths"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Package className="mr-2 h-5 w-5" />
+                      Order in Bulk
+                    </a>
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    className="text-primary-foreground hover:bg-primary-foreground/10"
+                    onClick={handleContactUs}
+                  >
+                    <MessageSquare className="mr-2 h-5 w-5" />
+                    Contact Us
+                  </Button>
+                </div>
+              </div>
+
+              {/* Product image */}
+              <div className="flex items-center justify-center lg:justify-end">
+                <div className="relative flex h-80 w-80 items-center justify-center rounded-2xl border border-primary-foreground/10 bg-primary-foreground/5 p-6 shadow-soft backdrop-blur-sm">
+                  <img
+                    src="https://dynamiclabs.net/cdn/shop/files/1oznewnew.png"
+                    alt="VIZIONIZE AI™ 1 oz Lens Cleaner bottle"
+                    className="max-h-64 w-auto object-contain drop-shadow-2xl"
+                    loading="eager"
+                  />
+                </div>
               </div>
             </div>
           </div>

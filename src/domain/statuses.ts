@@ -14,7 +14,7 @@ export const SOURCE_CATEGORIES = [
 ] as const;
 export type SourceCategory = (typeof SOURCE_CATEGORIES)[number];
 
-export const ORDER_STATUSES = ["draft", "pending", "confirmed", "processing", "shipped", "completed", "cancelled"] as const;
+export const ORDER_STATUSES = ["draft", "pending", "pending_payment", "confirmed", "processing", "shipped", "completed", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const QUOTE_STATUSES = ["draft", "sent", "accepted", "expired", "rejected", "cancelled"] as const;
@@ -29,7 +29,7 @@ export type ShipmentStatus = (typeof SHIPMENT_STATUSES)[number];
 export const INVOICE_STATUSES = ["draft", "issued", "partially_paid", "paid", "void", "overdue"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
-export const PAYMENT_STATUSES = ["initiated", "authorized", "settled", "failed", "refunded", "void"] as const;
+export const PAYMENT_STATUSES = ["initiated", "authorized", "settled", "failed", "refunded", "void", "pending_review"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const TICKET_STATUSES = ["new", "triaged", "in_progress", "waiting_on_customer", "resolved", "closed"] as const;

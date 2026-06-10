@@ -182,10 +182,43 @@ export const useOrders = (targetUserId?: string) => {
     }
   };
 
+  const approvePayment = async (orderId: string): Promise<boolean> => {
+    try {
+      const { error } = await (supabase.rpc as any)("approve_pending_payment", {
+        p_order_id: orderId,
+      });
+      if (error) throw error;
+
+      // Optimistically update local state
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? { ...o, status: "confirmed" as const, payments: o.payments.map((p) => ({ ...p, status: "settled" as const })) }
+            : o,
+        ),
+      );
+
+      toast({
+        title: "Payment approved",
+        description: "The order has been confirmed and moved to processing.",
+      });
+      return true;
+    } catch (error) {
+      safeError("Error approving payment:", error);
+      toast({
+        title: "Error approving payment",
+        description: getErrorMessage(error),
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     orders,
     loading,
     createOrder,
+    approvePayment,
     refetch: fetchOrders,
   };
 };

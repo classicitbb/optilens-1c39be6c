@@ -23,7 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Package, ShoppingBag, Clock } from "lucide-react";
+import { Package, ShoppingBag, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 
 const Orders = () => {
@@ -49,6 +49,8 @@ const getStatusColor = (status: string) => {
       case "confirmed":
       case "processing":
         return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+      case "pending_payment":
+        return "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400";
       case "cancelled":
         return "bg-red-500/10 text-red-500 border-red-500/20";
       case "shipped":
@@ -57,6 +59,11 @@ const getStatusColor = (status: string) => {
         return "bg-muted text-muted-foreground";
     }
   };
+
+  const getStatusLabel = (status: string) =>
+    status === "pending_payment"
+      ? "Awaiting Payment Confirmation"
+      : status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,8 +122,7 @@ const getStatusColor = (status: string) => {
                           variant="outline"
                           className={getStatusColor(order.status)}
                         >
-                          {order.status.charAt(0).toUpperCase() +
-                            order.status.slice(1)}
+                          {getStatusLabel(order.status)}
                         </Badge>
                         <span className="text-xl font-bold text-foreground">
                           ${order.totalAmount.toFixed(2)}
@@ -125,6 +131,14 @@ const getStatusColor = (status: string) => {
                     </div>
                   </CardHeader>
                   <CardContent>
+                    {order.status === "pending_payment" && (
+                      <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>
+                          Your order is reserved and awaiting payment confirmation from our team. You will receive an email once it is approved and processing begins.
+                        </span>
+                      </div>
+                    )}
                     <Accordion type="single" collapsible>
                       <AccordionItem value="items" className="border-none">
                         <AccordionTrigger className="py-2 text-sm hover:no-underline">
