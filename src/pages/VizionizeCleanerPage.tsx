@@ -3,8 +3,10 @@ import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import Seo from "@/components/seo/Seo";
+import { useCartContext } from "@/contexts/CartContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   Sparkles,
   Shield,
@@ -12,12 +14,24 @@ import {
   Zap,
   Droplets,
   Eye,
-  Phone,
+  MessageSquare,
   ShoppingCart,
   Package,
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
+
+// Stable product ID matching the SKU (2817200) on the supplier catalog
+const VIZIONIZE_CART_PRODUCT = {
+  id: 2817200,
+  name: "VIZIONIZE AI™ Lens Cleaner (1 oz)",
+  price: 1.54,
+  productType: "supply" as const,
+  quantity: 1,
+};
+
+const CONTACT_PRELOAD_MSG =
+  "Hi, I'm interested in ordering the VIZIONIZE AI™ Lens Cleaner. Please send me information about pricing and availability.";
 
 const FEATURES = [
   {
@@ -92,31 +106,30 @@ const COMPATIBLE_WITH = [
   "Sports & safety eyewear",
 ];
 
-const SIZES = [
-  {
-    label: "1 oz Bottle",
-    detail: "Portable retail-ready size. Ideal for dispensing at point of sale or gifting to patients.",
-    cta: "Order Individual Units",
-    href: "https://www.dynamiclabs.net/products/1-0z-vizionize-ai%E2%84%A2-lens-cleaner",
-    external: true,
-  },
-  {
-    label: "Gallon Refill",
-    detail: "High-volume refill for practices that want to fill their own spray bottles or dispense in bulk.",
-    cta: "Order Gallon Refill",
-    href: "https://www.dynamiclabs.net/products/vizionziw-lens-cleaner-refill-gallon",
-    external: true,
-  },
-  {
-    label: "2.5 Gallon Cubitainer",
-    detail: "Large-format supply for high-volume dispensers, optical labs, and multi-location groups.",
-    cta: "Contact for Bulk Pricing",
-    href: "/#contact",
-    external: false,
-  },
-];
-
 const VizionizeCleanerPage = () => {
+  const { addToCart } = useCartContext();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleAddToCart = async () => {
+    await addToCart(VIZIONIZE_CART_PRODUCT);
+    // useCart already shows a sign-in toast if not logged in;
+    // only show success if we get here without throwing
+    toast({
+      title: "Added to cart",
+      description: "VIZIONIZE AI™ Lens Cleaner (1 oz) has been added to your cart.",
+    });
+  };
+
+  const handleContactUs = () => {
+    const params = new URLSearchParams({ msg: CONTACT_PRELOAD_MSG });
+    navigate(`/?${params.toString()}#contact`);
+    // Ensure the page scrolls to #contact after navigation
+    setTimeout(() => {
+      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+    }, 150);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Seo
@@ -129,51 +142,60 @@ const VizionizeCleanerPage = () => {
 
         {/* ── Hero ── */}
         <section className="container mx-auto max-w-6xl px-4 lg:px-8">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="text-xs font-semibold uppercase tracking-wider">
-              New Product
-            </Badge>
-            <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
-              Patent Pending
-            </Badge>
-          </div>
-          <h1 className="mt-4 font-serif text-4xl font-bold text-foreground sm:text-5xl">
-            VIZIONIZE AI™<br className="hidden sm:block" /> Lens Cleaner
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-            The world's first AI-formulated eyeglass cleaner — engineered with scratch-resistant nanoparticles to
-            clean deeper, protect smarter, and keep your lenses performing at their best.
-          </p>
-          <p className="mt-2 text-base font-medium text-accent">
-            Smarter science. Superior protection. Perfect vision.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button variant="hero" size="lg" asChild>
-              <a
-                href="https://www.dynamiclabs.net/products/1-0z-vizionize-ai%E2%84%A2-lens-cleaner"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Buy Now
-              </a>
-            </Button>
-            <Button variant="outline" size="lg" asChild>
-              <a
-                href="https://www.dynamiclabs.net/collections/vizionize-ai-cleaners-cloths"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Package className="mr-2 h-5 w-5" />
-                Order in Bulk
-              </a>
-            </Button>
-            <Button variant="ghost" size="lg" asChild>
-              <Link to="/#contact">
-                <Phone className="mr-2 h-5 w-5" />
-                Call Us
-              </Link>
-            </Button>
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            {/* Text */}
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="text-xs font-semibold uppercase tracking-wider">
+                  New Product
+                </Badge>
+                <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
+                  Patent Pending
+                </Badge>
+              </div>
+              <h1 className="mt-4 text-4xl font-bold text-foreground sm:text-5xl">
+                VIZIONIZE AI™<br className="hidden sm:block" /> Lens Cleaner
+              </h1>
+              <p className="mt-5 max-w-xl text-lg text-muted-foreground">
+                The world's first AI-formulated eyeglass cleaner — engineered with scratch-resistant nanoparticles to
+                clean deeper, protect smarter, and keep your lenses performing at their best.
+              </p>
+              <p className="mt-2 text-base font-medium text-accent">
+                Smarter science. Superior protection. Perfect vision.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button variant="hero" size="lg" onClick={handleAddToCart}>
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  Buy Now
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <a
+                    href="https://www.dynamiclabs.net/collections/vizionize-ai-cleaners-cloths"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Package className="mr-2 h-5 w-5" />
+                    Order in Bulk
+                  </a>
+                </Button>
+                <Button variant="ghost" size="lg" onClick={handleContactUs}>
+                  <MessageSquare className="mr-2 h-5 w-5" />
+                  Contact Us
+                </Button>
+              </div>
+            </div>
+
+            {/* Product image */}
+            <div className="flex items-center justify-center lg:justify-end">
+              <div className="relative flex h-80 w-80 items-center justify-center rounded-2xl bg-muted/40 p-6 shadow-soft">
+                <img
+                  src="https://dynamiclabs.net/cdn/shop/files/1oznewnew.png"
+                  alt="VIZIONIZE AI™ 1 oz Lens Cleaner bottle"
+                  className="max-h-64 w-auto object-contain drop-shadow-lg"
+                  loading="eager"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -242,7 +264,7 @@ const VizionizeCleanerPage = () => {
             </div>
             <Card className="border-border bg-primary text-primary-foreground">
               <CardContent className="flex flex-col gap-4 p-8">
-                <p className="font-serif text-xl font-semibold leading-snug">
+                <p className="text-xl font-semibold leading-snug">
                   "Lens cleaners have remained virtually unchanged for decades — until now."
                 </p>
                 <p className="text-sm text-primary-foreground/80">
@@ -264,27 +286,73 @@ const VizionizeCleanerPage = () => {
         <section className="mt-20 bg-muted/40 py-16">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <h2 className="text-2xl font-bold text-foreground">Available Sizes</h2>
-            <p className="mt-1 text-muted-foreground">Individual retail bottles to high-volume cubitainers — we have the right option for your practice.</p>
+            <p className="mt-1 text-muted-foreground">
+              Individual retail bottles to high-volume cubitainers — we have the right option for your practice.
+            </p>
             <div className="mt-10 grid gap-6 sm:grid-cols-3">
-              {SIZES.map((s) => (
-                <Card key={s.label} className="border-border bg-background">
-                  <CardContent className="flex flex-col gap-3 p-6">
-                    <h3 className="text-lg font-bold text-foreground">{s.label}</h3>
-                    <p className="flex-1 text-sm text-muted-foreground">{s.detail}</p>
-                    <Button variant="secondary" className="mt-2 w-full" asChild>
-                      {s.external ? (
-                        <a href={s.href} target="_blank" rel="noopener noreferrer">
-                          {s.cta} <ArrowRight className="ml-2 h-4 w-4" />
-                        </a>
-                      ) : (
-                        <Link to={s.href}>
-                          {s.cta} <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              {/* 1 oz — add to cart */}
+              <Card className="border-border bg-background">
+                <CardContent className="flex flex-col gap-3 p-6">
+                  <div className="flex h-20 items-center justify-center">
+                    <img
+                      src="https://dynamiclabs.net/cdn/shop/files/1oznewnew.png"
+                      alt="1 oz VIZIONIZE AI bottle"
+                      className="max-h-20 w-auto object-contain"
+                    />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground">1 oz Bottle</h3>
+                  <p className="flex-1 text-sm text-muted-foreground">
+                    Portable retail-ready size. Ideal for dispensing at point of sale or gifting to patients.
+                  </p>
+                  <Button variant="secondary" className="mt-2 w-full" onClick={handleAddToCart}>
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Add to Cart
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Gallon — go to product page */}
+              <Card className="border-border bg-background">
+                <CardContent className="flex flex-col gap-3 p-6">
+                  <div className="flex h-20 items-center justify-center">
+                    <img
+                      src="https://eyeglasssupplystore.com/cdn/shop/files/vizionizeaigallonnewfinal_2.png"
+                      alt="Gallon VIZIONIZE AI refill"
+                      className="max-h-20 w-auto object-contain"
+                    />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground">Gallon Refill</h3>
+                  <p className="flex-1 text-sm text-muted-foreground">
+                    High-volume refill for practices that want to fill their own spray bottles or dispense in bulk.
+                  </p>
+                  <Button variant="secondary" className="mt-2 w-full" asChild>
+                    <a
+                      href="https://www.dynamiclabs.net/products/vizionziw-lens-cleaner-refill-gallon"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Order Gallon Refill <ArrowRight className="ml-2 h-4 w-4" />
+                    </a>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* 2.5 Gallon — contact us */}
+              <Card className="border-border bg-background">
+                <CardContent className="flex flex-col gap-3 p-6">
+                  <div className="flex h-20 items-center justify-center rounded-lg bg-muted/60">
+                    <Package className="h-12 w-12 text-muted-foreground/50" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground">2.5 Gallon Cubitainer</h3>
+                  <p className="flex-1 text-sm text-muted-foreground">
+                    Large-format supply for high-volume dispensers, optical labs, and multi-location groups.
+                  </p>
+                  <Button variant="secondary" className="mt-2 w-full" onClick={handleContactUs}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Contact for Bulk Pricing
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
@@ -296,23 +364,14 @@ const VizionizeCleanerPage = () => {
               <div>
                 <h2 className="text-xl font-bold">Ready to Defend Your Lens?</h2>
                 <p className="mt-1 text-sm text-primary-foreground/80">
-                  Order individual bottles for your dispensary, buy in bulk for your practice, or call us to
+                  Order individual bottles for your dispensary, buy in bulk for your practice, or contact us to
                   discuss distributor and wholesale pricing.
                 </p>
               </div>
               <div className="flex flex-wrap justify-center gap-3 sm:justify-end">
-                <Button
-                  variant="secondary"
-                  asChild
-                >
-                  <a
-                    href="https://www.dynamiclabs.net/products/1-0z-vizionize-ai%E2%84%A2-lens-cleaner"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Buy Now
-                  </a>
+                <Button variant="secondary" onClick={handleAddToCart}>
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Buy Now
                 </Button>
                 <Button
                   variant="outline"
@@ -331,12 +390,10 @@ const VizionizeCleanerPage = () => {
                 <Button
                   variant="outline"
                   className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-                  asChild
+                  onClick={handleContactUs}
                 >
-                  <Link to="/#contact">
-                    <Phone className="mr-2 h-4 w-4" />
-                    Call Us
-                  </Link>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Contact Us
                 </Button>
               </div>
             </CardContent>
