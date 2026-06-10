@@ -11,6 +11,7 @@ import {
   PUBLIC_MISC_REDIRECTS,
 } from "@/config/routeRegistry";
 import Index from "@/pages/Index";
+import VizionizeCleanerPage from "@/pages/VizionizeCleanerPage";
 import BlogHubPage from "@/pages/BlogHubPage";
 import BlogPostPage from "@/pages/BlogPostPage";
 import CompanionAssistantWindowPage from "@/pages/assistant/CompanionAssistantWindowPage";
@@ -183,6 +184,8 @@ const PublicRoutes = () => (
     <Route path="photochromic" element={<PhotochromicGuidePage />} />
     <Route path="zenvue/compare" element={<ZenvueCompare />} />
     <Route path="zenvue/wholesale" element={<ZenvueWholesale />} />
+
+    <Route path="vizionize-cleaner" element={<VizionizeCleanerPage />} />
 
     <Route path="*" element={<NotFound />} />
   </Routes>
