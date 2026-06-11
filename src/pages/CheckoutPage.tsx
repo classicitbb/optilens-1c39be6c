@@ -497,7 +497,7 @@ const CheckoutPage = () => {
       </div>
 
       {/* Main layout */}
-      <main className="container mx-auto px-4 py-8 sm:px-6">
+      <main className="container mx-auto px-4 pb-16 pt-24 sm:px-6">
         {isLoading ? (
           <div className="flex min-h-[40vh] items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
