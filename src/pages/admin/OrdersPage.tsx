@@ -179,10 +179,7 @@ const OrdersPage = () => {
 
   return (
     <>
-      <AdminPageHeader
-        title="Orders"
-        description="View and manage all customer orders across B2B and B2C channels."
-      />
+      <AdminPageHeader icon={Package} title="Orders" />
 
       <div className="flex items-center justify-between gap-4 pb-4">
         <div className="relative max-w-xs flex-1">
