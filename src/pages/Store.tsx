@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useStoreProducts, StoreProduct, getStableStoreProductCartId, getStoreProductRoute } from "@/hooks/useStoreProducts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createAuthHref } from "@/lib/authFlow";
+import StorageImage from "@/components/StorageImage";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
