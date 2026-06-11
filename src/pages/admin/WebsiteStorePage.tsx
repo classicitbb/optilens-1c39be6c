@@ -34,6 +34,7 @@ import { useAddonPricingSheets } from "@/hooks/useAddonPricingSheets";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
+import StorageImage from "@/components/StorageImage";
 
 type ProductType = "lens" | "supply" | "addon";
 type ProductFilter = "all" | "lenses" | "supplies" | "services";
