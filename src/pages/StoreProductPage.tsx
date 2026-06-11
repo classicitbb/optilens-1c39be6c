@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Expand, Lock, ShoppingCart } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { createAuthHref } from "@/lib/authFlow";
+import StorageImage from "@/components/StorageImage";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
