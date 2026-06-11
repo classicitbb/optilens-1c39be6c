@@ -125,7 +125,7 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
           </div>
           <div className="relative h-[92px] w-[92px] overflow-hidden rounded-md border border-border/50 bg-muted/30">
             {product.image_url ? (
-              <img src={product.image_url} alt={`${product.name} thumbnail`} className="h-full w-full object-cover" loading="lazy" />
+              <StorageImage src={product.image_url} alt={`${product.name} thumbnail`} className="h-full w-full object-cover" loading="lazy" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">No image</div>
             )}
