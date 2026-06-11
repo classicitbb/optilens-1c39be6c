@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, CreditCard, Loader2, Package, WalletCards, Building2, Clock, Info } from "lucide-react";
+import { CheckCircle, CreditCard, Loader2, Package, WalletCards, Building2, Clock, Info, AlertCircle } from "lucide-react";
 import { CartItem } from "@/hooks/useCart";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";

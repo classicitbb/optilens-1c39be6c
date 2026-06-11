@@ -127,15 +127,15 @@ const StoreProductPage = () => {
                         </DialogContent>
                       </Dialog>
                     )}
-
-                    {product.description && (
-                      <p className="whitespace-normal break-words text-sm text-muted-foreground">{product.description}</p>
-                    )}
                   </div>
 
                   {/* Right column: name, tags, price, cart */}
                   <div className="space-y-4">
                     <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
+
+                    {product.description && (
+                      <p className="whitespace-normal break-words text-sm text-muted-foreground">{product.description}</p>
+                    )}
 
                     {product.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2">
