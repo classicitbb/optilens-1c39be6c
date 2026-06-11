@@ -705,7 +705,7 @@ const WebsiteStorePage = () => {
                 <div className="rounded border p-4 text-xs text-muted-foreground">No images uploaded. A default white placeholder will be used.</div>
               ) : selectedMedia.map((media, index) => (
                 <div key={media.id} className="rounded border p-2 space-y-2">
-                  <img src={media.image_url} alt={`Product image ${index + 1}`} className="h-36 w-full rounded object-cover" />
+                  <StorageImage src={media.image_url} alt={`Product image ${index + 1}`} className="h-36 w-full rounded object-cover" />
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Position {index + 1}</span>
                     <div className="flex gap-1">
