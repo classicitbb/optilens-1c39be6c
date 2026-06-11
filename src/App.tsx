@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
 import RouteLoadingFallback from "@/routes/shared/RouteLoadingFallback";
-import PublicRoutes from "@/routes/public/PublicRoutes";
 import RuntimeAnalytics from "@/components/analytics/RuntimeAnalytics";
 import ScrollToTop from "@/components/ScrollToTop";
 import AdminHostRedirect from "@/components/AdminHostRedirect";
