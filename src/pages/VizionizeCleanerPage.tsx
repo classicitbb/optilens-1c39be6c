@@ -189,21 +189,6 @@ const VizionizeCleanerPage = () => {
                   </Button>
                   <Button
                     size="lg"
-                    className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
-                    variant="outline"
-                    asChild
-                  >
-                    <a
-                      href="https://www.dynamiclabs.net/collections/vizionize-ai-cleaners-cloths"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Package className="mr-2 h-5 w-5" />
-                      Order in Bulk
-                    </a>
-                  </Button>
-                  <Button
-                    size="lg"
                     variant="ghost"
                     className="text-primary-foreground hover:bg-primary-foreground/10"
                     onClick={handleContactUs}
