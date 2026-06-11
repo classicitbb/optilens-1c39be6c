@@ -106,7 +106,7 @@ const StoreProductPage = () => {
                   <div className="space-y-3">
                     <div className="relative flex h-[280px] items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/20">
                       {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+                        <StorageImage src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
                       ) : (
                         <div className="text-sm text-muted-foreground">No image available</div>
                       )}
