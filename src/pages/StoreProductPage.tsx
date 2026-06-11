@@ -123,7 +123,7 @@ const StoreProductPage = () => {
                           <DialogHeader>
                             <DialogTitle>{product.name}</DialogTitle>
                           </DialogHeader>
-                          <img src={product.image_url} alt={`${product.name} expanded`} className="max-h-[75vh] w-full rounded-md object-contain" />
+                          <StorageImage src={product.image_url} alt={`${product.name} expanded`} className="max-h-[75vh] w-full rounded-md object-contain" />
                         </DialogContent>
                       </Dialog>
                     )}
