@@ -145,7 +145,7 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
                   <DialogHeader>
                     <DialogTitle>{product.name}</DialogTitle>
                   </DialogHeader>
-                  <img src={product.image_url} alt={`${product.name} large preview`} className="max-h-[70vh] w-full rounded-md object-contain" />
+                  <StorageImage src={product.image_url} alt={`${product.name} large preview`} className="max-h-[70vh] w-full rounded-md object-contain" />
                 </DialogContent>
               </Dialog>
             )}
