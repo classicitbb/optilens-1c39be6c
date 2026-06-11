@@ -120,13 +120,19 @@ const AddressFields = ({
   title,
   value,
   onChange,
+  errorLine1,
+  errorCountry,
+  onClearError,
 }: {
   idPrefix: string;
   title: string;
   value: ProfileAddress;
   onChange: (next: ProfileAddress) => void;
+  errorLine1?: string;
+  errorCountry?: string;
+  onClearError?: (field: "addressLine1" | "addressCountry") => void;
 }) => (
-  <div className="space-y-3 rounded-lg border p-4">
+  <div data-scroll-target className="space-y-3 rounded-lg border p-4">
     <h3 className="text-sm font-semibold text-foreground">{title}</h3>
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="space-y-2 sm:col-span-2">
@@ -139,13 +145,25 @@ const AddressFields = ({
         />
       </div>
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor={`${idPrefix}-line1`}>Address line 1</Label>
+        <Label htmlFor={`${idPrefix}-line1`} className={errorLine1 ? "text-destructive" : ""}>
+          Address line 1
+        </Label>
         <Input
           id={`${idPrefix}-line1`}
           value={value.line1}
-          onChange={(event) => onChange({ ...value, line1: event.target.value })}
+          onChange={(event) => {
+            onChange({ ...value, line1: event.target.value });
+            if (errorLine1) onClearError?.("addressLine1");
+          }}
           placeholder="123 Broad Street"
+          className={errorLine1 ? "border-destructive focus-visible:ring-destructive" : ""}
+          aria-describedby={errorLine1 ? `error-${idPrefix}-line1` : undefined}
         />
+        {errorLine1 && (
+          <p id={`error-${idPrefix}-line1`} className="flex items-center gap-1 text-xs text-destructive">
+            <AlertCircle className="h-3 w-3 shrink-0" />{errorLine1}
+          </p>
+        )}
       </div>
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor={`${idPrefix}-line2`}>Address line 2</Label>
@@ -184,13 +202,25 @@ const AddressFields = ({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${idPrefix}-country`}>Country</Label>
+        <Label htmlFor={`${idPrefix}-country`} className={errorCountry ? "text-destructive" : ""}>
+          Country
+        </Label>
         <Input
           id={`${idPrefix}-country`}
           value={value.country}
-          onChange={(event) => onChange({ ...value, country: event.target.value })}
+          onChange={(event) => {
+            onChange({ ...value, country: event.target.value });
+            if (errorCountry) onClearError?.("addressCountry");
+          }}
           placeholder="Barbados"
+          className={errorCountry ? "border-destructive focus-visible:ring-destructive" : ""}
+          aria-describedby={errorCountry ? `error-${idPrefix}-country` : undefined}
         />
+        {errorCountry && (
+          <p id={`error-${idPrefix}-country`} className="flex items-center gap-1 text-xs text-destructive">
+            <AlertCircle className="h-3 w-3 shrink-0" />{errorCountry}
+          </p>
+        )}
       </div>
     </div>
   </div>
@@ -216,6 +246,10 @@ export const CheckoutDialog = ({
   const [sameAsShipping, setSameAsShipping] = useState(true);
   const [googlePayAvailable, setGooglePayAvailable] = useState(false);
   const [formData, setFormData] = useState<CheckoutFormData>(() => emptyCheckoutState(false));
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<
+    "fullName" | "phone" | "addressLine1" | "addressCountry" | "payment",
+    string
+  >>>({});
 
   const totalLabel = useMemo(() => totalPrice.toFixed(2), [totalPrice]);
   const cartLinksByItemId = useMemo(() => {
@@ -362,6 +396,26 @@ export const CheckoutDialog = ({
     method === "firstpay_offline" ||
     method === "bimpay_offline";
 
+  const validateAndGetErrors = (
+    payload: CheckoutFormData,
+    checkoutMethod: CheckoutFormData["checkoutMethod"],
+  ) => {
+    const errors: typeof fieldErrors = {};
+    if (!payload.fullName.trim()) errors.fullName = "Full name is required.";
+    if (!payload.phone.trim()) errors.phone = "Phone number is required.";
+    if (!payload.shippingAddress.line1.trim()) errors.addressLine1 = "Street address is required.";
+    if (!payload.shippingAddress.country.trim()) errors.addressCountry = "Country is required.";
+
+    const isNewPath = isOfflineOrAccountMethod(checkoutMethod);
+    const hasSavedMethod = checkoutMethod === "saved_demo_card" && !!payload.paymentMethodId;
+    const hasNewCard = checkoutMethod !== "saved_demo_card" && payload.cardLast4.replace(/\D/g, "").length === 4;
+    if (!isNewPath && checkoutMethod !== "google_pay" && !hasSavedMethod && !hasNewCard) {
+      errors.payment = "Please select or enter a payment method.";
+    }
+
+    return Object.keys(errors).length > 0 ? errors : null;
+  };
+
   const handleCheckout = async (
     checkoutMethod: CheckoutFormData["checkoutMethod"] = formData.checkoutMethod,
     overrideData?: CheckoutFormData,
@@ -373,17 +427,25 @@ export const CheckoutDialog = ({
       checkoutMethod,
     };
 
-    const hasSavedMethod = checkoutMethod === "saved_demo_card" && !!payload.paymentMethodId;
-    const hasNewCard = checkoutMethod !== "saved_demo_card" && payload.cardLast4.replace(/\D/g, "").length === 4;
-    const isNewPath = isOfflineOrAccountMethod(checkoutMethod);
-
-    if (!payload.fullName.trim() || !payload.phone.trim() || !payload.shippingAddress.line1.trim() || !payload.shippingAddress.country.trim()) {
+    const errors = validateAndGetErrors(payload, checkoutMethod);
+    if (errors) {
+      setFieldErrors(errors);
+      // Scroll to the first errored field
+      const firstErrorId = errors.fullName
+        ? "checkout-full-name"
+        : errors.phone
+          ? "checkout-phone"
+          : errors.addressLine1 || errors.addressCountry
+            ? "shipping-line1"
+            : "checkout-payment";
+      setTimeout(() => {
+        document.getElementById(firstErrorId)?.closest("[data-scroll-target]")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        document.getElementById(firstErrorId)?.focus({ preventScroll: true });
+      }, 0);
       return;
     }
 
-    if (!isNewPath && !hasSavedMethod && !hasNewCard && checkoutMethod !== "google_pay") {
-      return;
-    }
+    setFieldErrors({});
 
     setIsProcessing(true);
     const success = await onCheckout({
@@ -574,25 +636,49 @@ export const CheckoutDialog = ({
 
                 <div className="grid gap-6 lg:grid-cols-[1.55fr_1fr] lg:items-start">
                   <div className="space-y-6">
-                    <div className={cn("grid gap-4", googlePayAvailable && "pt-1")}>
+                    <div data-scroll-target className={cn("grid gap-4", googlePayAvailable && "pt-1")}>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="checkout-full-name">Full name</Label>
+                          <Label htmlFor="checkout-full-name" className={fieldErrors.fullName ? "text-destructive" : ""}>
+                            Full name
+                          </Label>
                           <Input
                             id="checkout-full-name"
                             value={formData.fullName}
-                            onChange={(event) => setFormData((prev) => ({ ...prev, fullName: event.target.value, cardholderName: prev.cardholderName || event.target.value }))}
+                            onChange={(event) => {
+                              setFormData((prev) => ({ ...prev, fullName: event.target.value, cardholderName: prev.cardholderName || event.target.value }));
+                              if (fieldErrors.fullName) setFieldErrors((e) => ({ ...e, fullName: undefined }));
+                            }}
                             placeholder="Jane Smith"
+                            className={fieldErrors.fullName ? "border-destructive focus-visible:ring-destructive" : ""}
+                            aria-describedby={fieldErrors.fullName ? "error-full-name" : undefined}
                           />
+                          {fieldErrors.fullName && (
+                            <p id="error-full-name" className="flex items-center gap-1 text-xs text-destructive">
+                              <AlertCircle className="h-3 w-3 shrink-0" />{fieldErrors.fullName}
+                            </p>
+                          )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="checkout-phone">Phone number</Label>
+                          <Label htmlFor="checkout-phone" className={fieldErrors.phone ? "text-destructive" : ""}>
+                            Phone number
+                          </Label>
                           <Input
                             id="checkout-phone"
                             value={formData.phone}
-                            onChange={(event) => setFormData((prev) => ({ ...prev, phone: event.target.value }))}
+                            onChange={(event) => {
+                              setFormData((prev) => ({ ...prev, phone: event.target.value }));
+                              if (fieldErrors.phone) setFieldErrors((e) => ({ ...e, phone: undefined }));
+                            }}
                             placeholder="+1 (246) 555-0101"
+                            className={fieldErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                            aria-describedby={fieldErrors.phone ? "error-phone" : undefined}
                           />
+                          {fieldErrors.phone && (
+                            <p id="error-phone" className="flex items-center gap-1 text-xs text-destructive">
+                              <AlertCircle className="h-3 w-3 shrink-0" />{fieldErrors.phone}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -646,7 +732,15 @@ export const CheckoutDialog = ({
                       </div>
                     </div>
 
-                    <AddressFields idPrefix="shipping" title="Shipping address" value={formData.shippingAddress} onChange={updateShippingAddress} />
+                    <AddressFields
+                      idPrefix="shipping"
+                      title="Shipping address"
+                      value={formData.shippingAddress}
+                      onChange={updateShippingAddress}
+                      errorLine1={fieldErrors.addressLine1}
+                      errorCountry={fieldErrors.addressCountry}
+                      onClearError={(f) => setFieldErrors((e) => ({ ...e, [f]: undefined }))}
+                    />
 
                     <div className="flex items-center justify-between rounded-lg border p-4">
                       <div>
@@ -712,13 +806,13 @@ export const CheckoutDialog = ({
                             ))}
                           </div>
                         </div>
-                        <AddressFields idPrefix="billing" title="Billing address" value={formData.billingAddress} onChange={updateBillingAddress} />
+                        <AddressFields idPrefix="billing" title="Billing address" value={formData.billingAddress} onChange={updateBillingAddress} onClearError={() => {}} />
                       </>
                     )}
 
                     {/* ── B2B: Pay on Account (verified customers) ── */}
                     {isVerifiedB2B && (
-                      <div className="space-y-3 rounded-lg border p-4">
+                      <div id="checkout-payment" data-scroll-target className="space-y-3 rounded-lg border p-4">
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-primary" />
                           <div>
@@ -785,7 +879,10 @@ export const CheckoutDialog = ({
                                     ? "border-primary bg-primary/5"
                                     : "border-border hover:border-primary/40",
                                 )}
-                                onClick={() => setFormData((prev) => ({ ...prev, checkoutMethod: method.id, paymentMethodId: null }))}
+                                onClick={() => {
+                                  setFormData((prev) => ({ ...prev, checkoutMethod: method.id, paymentMethodId: null }));
+                                  if (fieldErrors.payment) setFieldErrors((e) => ({ ...e, payment: undefined }));
+                                }}
                               >
                                 <p className="text-sm font-medium text-foreground">{method.icon} {method.label}</p>
                                 <p className="mt-0.5 text-[11px] text-muted-foreground">{method.description}</p>
@@ -800,12 +897,17 @@ export const CheckoutDialog = ({
                             <span>Your order will be processed immediately. An invoice will be sent to your email address for settlement.</span>
                           </div>
                         )}
+                        {fieldErrors.payment && (
+                          <p className="flex items-center gap-1 text-xs text-destructive">
+                            <AlertCircle className="h-3 w-3 shrink-0" />{fieldErrors.payment}
+                          </p>
+                        )}
                       </div>
                     )}
 
                     {/* ── B2C: Offline payment selector (unverified customers) ── */}
                     {!isVerifiedB2B && (
-                      <div className="space-y-3 rounded-lg border p-4">
+                      <div id="checkout-payment" data-scroll-target className="space-y-3 rounded-lg border p-4">
                         <div className="flex items-center gap-2">
                           <WalletCards className="h-4 w-4 text-primary" />
                           <div>
@@ -827,7 +929,10 @@ export const CheckoutDialog = ({
                                   ? "border-primary bg-primary/5"
                                   : "border-border hover:border-primary/40",
                               )}
-                              onClick={() => setFormData((prev) => ({ ...prev, checkoutMethod: method.id, paymentMethodId: null }))}
+                              onClick={() => {
+                                setFormData((prev) => ({ ...prev, checkoutMethod: method.id, paymentMethodId: null }));
+                                if (fieldErrors.payment) setFieldErrors((e) => ({ ...e, payment: undefined }));
+                              }}
                             >
                               <p className="font-medium text-foreground">{method.icon} {method.label}</p>
                               <p className="mt-1 text-xs text-muted-foreground">{method.description}</p>
@@ -841,6 +946,12 @@ export const CheckoutDialog = ({
                             Your order will be reserved and fulfilled once our team confirms your payment. You will receive an email notification.
                           </span>
                         </div>
+
+                        {fieldErrors.payment && (
+                          <p className="flex items-center gap-1 text-xs text-destructive">
+                            <AlertCircle className="h-3 w-3 shrink-0" />{fieldErrors.payment}
+                          </p>
+                        )}
 
                         <p className="text-xs text-muted-foreground">
                           Want to order on account?{" "}
@@ -892,7 +1003,7 @@ export const CheckoutDialog = ({
                       <Button variant="secondary" asChild disabled={isProcessing}>
                         <Link to="/store" onClick={() => onOpenChange(false)}>Keep Shopping</Link>
                       </Button>
-                      <Button variant="hero" onClick={() => handleCheckout(formData.checkoutMethod)} disabled={!isReadyToPlaceOrder || isProcessing}>
+                      <Button variant="hero" onClick={() => handleCheckout(formData.checkoutMethod)} disabled={isProcessing}>
                         {isProcessing ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

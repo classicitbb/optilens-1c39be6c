@@ -21,6 +21,7 @@ import Store from "@/pages/Store";
 import StoreProductPage from "@/pages/StoreProductPage";
 import Unsubscribe from "@/pages/Unsubscribe";
 import CheckoutPage from "@/pages/CheckoutPage";
+import CartPage from "@/pages/CartPage";
 import PortalRoutes from "@/routes/portal/PortalRoutes";
 import OpsRoutes from "@/routes/ops/OpsRoutes";
 import AdminRoutes from "@/routes/admin/AdminRoutes";
@@ -104,6 +105,7 @@ const App = () => (
                     <Route path="/unsubscribe" element={<Unsubscribe />} />
                     <Route path="/store" element={<Store />} />
                     <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
+                    <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/profile/*" element={<PortalRoutes />} />
                     <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
