@@ -865,7 +865,7 @@ const ListCatalogTab = ({
             {isEditingThisPrice ?
             <input
               autoFocus
-              className="w-24 rounded border px-1 py-0.5 text-right text-xs text-foreground outline-none focus:ring-1 focus:ring-primary/30"
+              className="w-24 rounded border px-1 py-0.5 text-left text-xs text-foreground outline-none focus:ring-1 focus:ring-primary/30"
               value={editingPrice.value}
               onChange={(e) => setEditingPrice({ key: row.key, value: e.target.value })}
               onBlur={() => commitPrice(row, section, rowType, editingPrice.value)}

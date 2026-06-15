@@ -1,43 +1,42 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-05-27T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-06-05T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "npm dependencies were refreshed through npm 10 and the lockfile now audits cleanly.",
-    "The stale Bun lockfile was removed, and lockfile policy now rejects both Bun lockfile formats.",
-    "Vercel now applies the shared security header policy at the edge, with a new QA check preventing config drift.",
-    "Vite now uses the standard React plugin recommended for this setup, and router chunking targets `react-router`."
+    "Shipment Detail no longer overwrites charge edits with line-item edits, and the FOB column is now preserved as read-only in the admin costing view.",
+    "Admin UI polish fixes landed for sidebar behavior plus shared input/select rendering to address the text cutoff issues merged this week.",
+    "The DEV merge hardened quote printing, transactional-email authorization/CORS handling, and Vercel security-header synchronization while removing Bun lockfile drift from the npm-only workflow."
   ],
   "moduleImpact": [
     {
-      "module": "scripts/check_lockfiles.mjs",
+      "module": "src/pages/admin",
       "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
+      "notes": "Updated as part of Shipment Costing Fixes + Security/Print Hardening."
+    },
+    {
+      "module": "src/components/admin",
+      "impact": "medium",
+      "notes": "Updated as part of Shipment Costing Fixes + Security/Print Hardening."
+    },
+    {
+      "module": "src/components/ui",
+      "impact": "medium",
+      "notes": "Updated as part of Shipment Costing Fixes + Security/Print Hardening."
+    },
+    {
+      "module": "supabase/functions",
+      "impact": "medium",
+      "notes": "Updated as part of Shipment Costing Fixes + Security/Print Hardening."
     },
     {
       "module": "scripts/sync_vercel_security_headers.mjs",
       "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
+      "notes": "Updated as part of Shipment Costing Fixes + Security/Print Hardening."
     },
     {
-      "module": "scripts/pr_checks.mjs",
+      "module": "scripts/check_lockfiles.mjs",
       "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "security/http-header-policy.json",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "@vitejs/plugin-react-swc",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "@vitejs/plugin-react",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
+      "notes": "Updated as part of Shipment Costing Fixes + Security/Print Hardening."
     }
   ],
   "migrationNotes": [

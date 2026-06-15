@@ -215,7 +215,7 @@ const MaterialUpgradesGrid = () => {
                             value={row.full_price_bbd ?? ""}
                             placeholder="—"
                             onChange={(e) => setCell(row.id, "full_price_bbd", e.target.value)}
-                            className="w-full px-2 py-1.5 text-right bg-transparent outline-none focus:bg-primary/5 focus:ring-1 focus:ring-primary/30 rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full px-2 py-1.5 text-left bg-transparent outline-none focus:bg-primary/5 focus:ring-1 focus:ring-primary/30 rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </td>
                         <td key={`${name}-${mat}-delta`} className="border-r border-border last:border-r-0 p-0">
@@ -225,7 +225,7 @@ const MaterialUpgradesGrid = () => {
                             value={row.delta_bbd ?? ""}
                             placeholder="—"
                             onChange={(e) => setCell(row.id, "delta_bbd", e.target.value)}
-                            className="w-full px-2 py-1.5 text-right bg-transparent outline-none focus:bg-primary/5 focus:ring-1 focus:ring-primary/30 rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-emerald-700"
+                            className="w-full px-2 py-1.5 text-left bg-transparent outline-none focus:bg-primary/5 focus:ring-1 focus:ring-primary/30 rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-emerald-700"
                           />
                         </td>
                       </>

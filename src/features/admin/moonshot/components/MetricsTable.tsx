@@ -65,7 +65,7 @@ export function MetricsTable({ frequency, compact = false }: { frequency: Metric
                           type="number"
                           value={val}
                           onChange={(e) => updateMetricPoint(metric.id, date, Number(e.target.value || 0))}
-                          className={cn("h-7 text-center border-0 p-0 focus-visible:ring-0", meetsGoal ? "bg-transparent text-emerald-700" : "bg-transparent text-red-700")}
+                          className={cn("h-7 text-left border-0 p-0 focus-visible:ring-0", meetsGoal ? "bg-transparent text-emerald-700" : "bg-transparent text-red-700")}
                         />
                         {!compact ? <div>{formatValue(val, metric.unit)}</div> : null}
                       </div>

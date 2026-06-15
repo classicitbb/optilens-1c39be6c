@@ -241,7 +241,7 @@ const PriceMatrixEditor = ({ showUSD, fxRate }: PriceMatrixEditorProps) => {
                             onKeyDown={(e) => {
                               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                             }}
-                            className="flex-1 min-w-0 px-2 py-1.5 text-right bg-transparent outline-none focus:bg-primary/5 focus:ring-1 focus:ring-primary/30 rounded-sm placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="flex-1 min-w-0 px-2 py-1.5 text-left bg-transparent outline-none focus:bg-primary/5 focus:ring-1 focus:ring-primary/30 rounded-sm placeholder:text-muted-foreground/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             onClick={() => openPicker(row.id, col.key)}

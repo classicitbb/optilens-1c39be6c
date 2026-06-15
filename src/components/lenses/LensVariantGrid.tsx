@@ -115,7 +115,7 @@ export const LensVariantGrid = ({
                                     const next = Math.max(0, Number(event.target.value || 0));
                                     setQuantities((prev) => ({ ...prev, [variant.id]: next }));
                                   }}
-                                  className="h-6 w-11 px-1 text-center text-[10px] ring-1 ring-amber-400/70"
+                                  className="h-6 w-11 px-1 text-left text-[10px] ring-1 ring-amber-400/70"
                                   disabled={readOnly}
                                   aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
                                 />
@@ -136,7 +136,7 @@ export const LensVariantGrid = ({
                             const next = Math.max(0, Number(event.target.value || 0));
                             setQuantities((prev) => ({ ...prev, [variant.id]: next }));
                           }}
-                          className="h-6 w-11 px-1 text-center text-[10px]"
+                          className="h-6 w-11 px-1 text-left text-[10px]"
                           disabled={readOnly}
                           aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
                         />
