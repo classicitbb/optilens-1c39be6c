@@ -18,6 +18,33 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
+
+const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
+  const signed = useSignedDataFileUrl(url);
+  return (
+    <>
+      <img
+        src={signed ?? undefined}
+        alt="Business card"
+        className="w-24 h-16 rounded border object-cover"
+        style={{ borderColor: "hsl(215 25% 88%)" }}
+      />
+      <div className="space-y-1">
+        {signed && (
+          <a href={signed} target="_blank" rel="noreferrer" className="text-xs underline inline-flex items-center gap-1">
+            View full image <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+        {fileName && (
+          <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
+            {fileName}
+          </p>
+        )}
+      </div>
+    </>
+  );
+};
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptionsByCountry } from "@/lib/locationOptions";
 
@@ -2075,27 +2102,7 @@ const ContactsPage = () => {
                       </div>
                       {editContact.business_card_image_url ? (
                         <div className="flex items-center gap-3">
-                          <img
-                            src={editContact.business_card_image_url}
-                            alt="Business card"
-                            className="w-24 h-16 rounded border object-cover"
-                            style={{ borderColor: "hsl(215 25% 88%)" }}
-                          />
-                          <div className="space-y-1">
-                            <a
-                              href={editContact.business_card_image_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs underline inline-flex items-center gap-1"
-                            >
-                              View full image <ExternalLink className="h-3 w-3" />
-                            </a>
-                            {editContact.business_card_file_name && (
-                              <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
-                                {editContact.business_card_file_name}
-                              </p>
-                            )}
-                          </div>
+                          <BusinessCardPreview url={editContact.business_card_image_url} fileName={editContact.business_card_file_name} />
                         </div>
                       ) : (
                         <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>

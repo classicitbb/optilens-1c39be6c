@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -48,6 +49,7 @@ const ContactForm = () => {
   const [honeypot, setHoneypot] = useState("");
   const [startedAt, setStartedAt] = useState("");
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     setStartedAt(new Date().toISOString());
@@ -64,9 +66,18 @@ const ContactForm = () => {
       name: "",
       email: "",
       phone: "",
-      message: "",
+      message: searchParams.get("msg") ?? "",
     },
   });
+
+  // If the URL param arrives after initial render (e.g. navigate with replace),
+  // sync it into the field without overwriting anything the user has typed.
+  useEffect(() => {
+    const preset = searchParams.get("msg");
+    if (preset && !form.getValues("message")) {
+      form.setValue("message", preset, { shouldDirty: false });
+    }
+  }, [searchParams, form]);
 
   const onSubmit = async (data: ContactFormData) => {
     if (honeypot) return;

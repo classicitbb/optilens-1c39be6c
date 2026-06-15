@@ -7,25 +7,26 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
 import RouteLoadingFallback from "@/routes/shared/RouteLoadingFallback";
-import PublicRoutes from "@/routes/public/PublicRoutes";
 import RuntimeAnalytics from "@/components/analytics/RuntimeAnalytics";
 import ScrollToTop from "@/components/ScrollToTop";
 import AdminHostRedirect from "@/components/AdminHostRedirect";
 import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Auth from "@/pages/Auth";
-import ResetPassword from "@/pages/ResetPassword";
-import NotFound from "@/pages/NotFound";
-import Store from "@/pages/Store";
-import StoreProductPage from "@/pages/StoreProductPage";
-import Unsubscribe from "@/pages/Unsubscribe";
-import CheckoutPage from "@/pages/CheckoutPage";
-import PortalRoutes from "@/routes/portal/PortalRoutes";
-import OpsRoutes from "@/routes/ops/OpsRoutes";
-import AdminRoutes from "@/routes/admin/AdminRoutes";
-import MoonshotRoutes from "@/routes/moonshot/MoonshotRoutes";
 
+const PublicRoutes = lazy(() => import("@/routes/public/PublicRoutes"));
+const PortalRoutes = lazy(() => import("@/routes/portal/PortalRoutes"));
+const OpsRoutes = lazy(() => import("@/routes/ops/OpsRoutes"));
+const AdminRoutes = lazy(() => import("@/routes/admin/AdminRoutes"));
+const MoonshotRoutes = lazy(() => import("@/routes/moonshot/MoonshotRoutes"));
+const Auth = lazy(() => import("@/pages/Auth"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Store = lazy(() => import("@/pages/Store"));
+const StoreProductPage = lazy(() => import("@/pages/StoreProductPage"));
+const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
+const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
+const CartPage = lazy(() => import("@/pages/CartPage"));
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
 const GlobalErrorLogger = lazy(() => import("@/components/GlobalErrorLogger"));
@@ -104,6 +105,7 @@ const App = () => (
                     <Route path="/unsubscribe" element={<Unsubscribe />} />
                     <Route path="/store" element={<Store />} />
                     <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
+                    <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/profile/*" element={<PortalRoutes />} />
                     <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />

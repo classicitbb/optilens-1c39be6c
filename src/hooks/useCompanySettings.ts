@@ -127,6 +127,33 @@ export const calculateLandedCost = (
   return { bbCost, duty, vat, labour, fullCost, autoPrice, markup, profitPercent, salesTax, plusSalesTax, wsStkPrice, afterSalesProfit };
 };
 
+const DATA_FILES_BUCKET = "data-files";
+const DATA_FILES_PUBLIC_MARKER = "/storage/v1/object/public/data-files/";
+const DATA_FILES_SIGNED_MARKER = "/storage/v1/object/sign/data-files/";
+
+const extractDataFilePath = (url?: string | null): string | null => {
+  if (!url) return null;
+  for (const marker of [DATA_FILES_PUBLIC_MARKER, DATA_FILES_SIGNED_MARKER]) {
+    const idx = url.indexOf(marker);
+    if (idx !== -1) {
+      const tail = url.slice(idx + marker.length);
+      const q = tail.indexOf("?");
+      return q === -1 ? tail : tail.slice(0, q);
+    }
+  }
+  return null;
+};
+
+const resolveDataFileSignedUrl = async (storedUrl?: string | null): Promise<string | null> => {
+  const path = extractDataFilePath(storedUrl);
+  if (!path) return storedUrl ?? null;
+  const { data, error } = await supabase.storage
+    .from(DATA_FILES_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
+};
+
 export const useCompanySettings = () => {
   const queryClient = useQueryClient();
 
@@ -138,9 +165,15 @@ export const useCompanySettings = () => {
         .limit(1)
         .single();
       if (error) throw error;
-      return data as unknown as CompanySettings;
+      const settings = data as unknown as CompanySettings;
+      // Resolve private-bucket logo URL to a short-lived signed URL for display.
+      if (settings.logo_url) {
+        settings.logo_url = await resolveDataFileSignedUrl(settings.logo_url);
+      }
+      return settings;
     },
   });
+
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<Omit<CompanySettings, "id" | "updated_at">>) => {

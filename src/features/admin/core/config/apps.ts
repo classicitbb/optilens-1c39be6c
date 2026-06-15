@@ -52,6 +52,7 @@ export const ADMIN_APPS = {
     defaultRoute: '/admin/sales/quotations',
     featurePrefix: 'sales',
     sidebarItems: [
+      { label: 'Orders', route: '/admin/orders', icon: Package },
       { label: 'Quotations', route: '/admin/sales/quotations', icon: FileEdit },
       { label: 'Proposals', route: '/admin/sales/proposals', icon: FileEdit },
     ] satisfies SidebarItem[],
