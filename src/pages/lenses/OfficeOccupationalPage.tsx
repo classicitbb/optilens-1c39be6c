@@ -3,14 +3,13 @@ import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { RxPowerInput } from "@/components/lenses/RxInputs";
 import { Link } from "react-router";
 import { useMemo, useState } from "react";
 import {
   Eye,
   Monitor,
   ArrowRight,
-  Check,
   Armchair,
   Users,
   Maximize2,
@@ -19,8 +18,6 @@ import {
   Move,
 } from "lucide-react";
 import {
-  buildAddOptions,
-  buildSphOptions,
   calculateOfficeLensValues,
   formatMeters,
   formatSignedDiopters,
@@ -123,12 +120,10 @@ const TECHNOLOGIES = [
 /* ------------------------------------------------------------------ */
 
 const OfficeOccupationalPage = () => {
-  const sphOptions = useMemo(() => buildSphOptions(), []);
-  const addOptions = useMemo(() => buildAddOptions(), []);
   const [distanceSphRight, setDistanceSphRight] = useState(0);
   const [distanceSphLeft, setDistanceSphLeft] = useState(0);
   const [addPower, setAddPower] = useState(1.5);
-  const [selectedRangeId, setSelectedRangeId] = useState<(typeof OFFICE_RANGE_OPTIONS)[number]["id"]>("6m_plus");
+  const [selectedRangeId, setSelectedRangeId] = useState<(typeof OFFICE_RANGE_OPTIONS)[number]["id"]>("2m");
 
   const calculator = useMemo(
     () =>
@@ -222,65 +217,47 @@ const OfficeOccupationalPage = () => {
             <CardContent className="p-6 sm:p-8">
               <h2 className="text-2xl font-bold text-foreground">Office Range Calculator</h2>
               <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-                Replicated calculator workflow for Optilux & Essential Office / Start Office:
-                select distance sphere, ADD power, and a far distance range to generate shift guidance and pupil-centre references.
+                Enter the distance prescription and reading ADD, then choose a maximum working
+                distance. The calculator derives the intermediate (room) power, the degression to
+                order, and the near and room reference powers for each eye.
               </p>
 
               <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="distance-sph-right">Distance SPH (R)</Label>
-                  <select
-                    id="distance-sph-right"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={distanceSphRight}
-                    onChange={(event) => setDistanceSphRight(Number(event.target.value))}
-                  >
-                    {sphOptions.map((option) => (
-                      <option key={`r-${option}`} value={option}>
-                        {formatSignedDiopters(option)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="distance-sph-left">Distance SPH (L)</Label>
-                  <select
-                    id="distance-sph-left"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={distanceSphLeft}
-                    onChange={(event) => setDistanceSphLeft(Number(event.target.value))}
-                  >
-                    {sphOptions.map((option) => (
-                      <option key={`l-${option}`} value={option}>
-                        {formatSignedDiopters(option)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="add-power">ADD</Label>
-                  <select
-                    id="add-power"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={addPower}
-                    onChange={(event) => setAddPower(Number(event.target.value))}
-                  >
-                    {addOptions.map((option) => (
-                      <option key={`add-${option}`} value={option}>
-                        {option.toFixed(2)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <RxPowerInput
+                  id="distance-sph-right"
+                  label="Distance SPH (R)"
+                  value={distanceSphRight}
+                  min={-20}
+                  max={20}
+                  onChange={setDistanceSphRight}
+                />
+                <RxPowerInput
+                  id="distance-sph-left"
+                  label="Distance SPH (L)"
+                  value={distanceSphLeft}
+                  min={-20}
+                  max={20}
+                  onChange={setDistanceSphLeft}
+                />
+                <RxPowerInput
+                  id="add-power"
+                  label="ADD (plus only)"
+                  value={addPower}
+                  min={0}
+                  max={4}
+                  allowNegative={false}
+                  onChange={setAddPower}
+                />
               </div>
 
               <div className="mt-6">
-                <p className="text-sm font-medium text-foreground">Choose far distance range</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                <p className="text-sm font-medium text-foreground">Choose maximum working distance</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   {OFFICE_RANGE_OPTIONS.map((option) => (
                     <button
                       type="button"
                       key={option.id}
+                      aria-pressed={selectedRangeId === option.id}
                       className={`rounded-md border px-3 py-2 text-sm transition ${
                         selectedRangeId === option.id
                           ? "border-primary bg-primary text-primary-foreground"
@@ -294,40 +271,48 @@ const OfficeOccupationalPage = () => {
                 </div>
               </div>
 
+              {calculator.insufficientAdd && (
+                <p className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  The ADD ({formatSignedDiopters(addPower)}) is lower than the intermediate power this
+                  range requires ({formatSignedDiopters(calculator.intermediatePower)}). Choose a
+                  shorter working distance or increase the ADD.
+                </p>
+              )}
+
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <div className="rounded-lg border border-border p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shift</p>
-                  <p className="mt-1 text-lg font-semibold text-foreground">
-                    {calculator.shift === null ? "—" : formatSignedDiopters(calculator.shift)}
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Intermediate / Room Power (1 ÷ {calculator.selectedRange.maxDistanceMeters} m)
                   </p>
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shift at Pupil Centre</p>
                   <p className="mt-1 text-lg font-semibold text-foreground">
-                    {calculator.shiftAtPupilCenter === null ? "—" : formatSignedDiopters(calculator.shiftAtPupilCenter)}
+                    {formatSignedDiopters(calculator.intermediatePower)}
                   </p>
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Range at Pupil Centre</p>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Degression to Order</p>
                   <p className="mt-1 text-lg font-semibold text-foreground">
-                    {calculator.rangeAtPupilCenterMeters === null ? "—" : formatMeters(calculator.rangeAtPupilCenterMeters)}
+                    {formatSignedDiopters(calculator.degression)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">= ADD − intermediate power</p>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Far Working Distance</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">
+                    {formatMeters(calculator.selectedRange.maxDistanceMeters)}
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-border p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rx at Pupil Centre</p>
-                  <p className="mt-1 text-sm text-foreground">
-                    R: {calculator.rxAtPupilCenterRight === null ? "—" : formatSignedDiopters(calculator.rxAtPupilCenterRight)}
-                  </p>
-                  <p className="mt-1 text-sm text-foreground">
-                    L: {calculator.rxAtPupilCenterLeft === null ? "—" : formatSignedDiopters(calculator.rxAtPupilCenterLeft)}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Near Zone Rx (distance + ADD)</p>
+                  <p className="mt-1 text-sm text-foreground">R: {formatSignedDiopters(calculator.nearZoneRight)}</p>
+                  <p className="mt-1 text-sm text-foreground">L: {formatSignedDiopters(calculator.nearZoneLeft)}</p>
 
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Final Office Lens Rx (reference)</p>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Room Zone Rx (distance + intermediate)</p>
+                  <p className="mt-1 text-sm text-foreground">R: {formatSignedDiopters(calculator.roomZoneRight)}</p>
+                  <p className="mt-1 text-sm text-foreground">L: {formatSignedDiopters(calculator.roomZoneLeft)}</p>
+
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order Reference</p>
                   <p className="mt-1 text-sm text-foreground">
-                    R: {formatSignedDiopters(distanceSphRight)} / SHIFT {calculator.shift === null ? "—" : formatSignedDiopters(calculator.shift)}
+                    R: {formatSignedDiopters(distanceSphRight)} dist · ADD {formatSignedDiopters(addPower)} · degression {formatSignedDiopters(calculator.degression)}
                   </p>
                   <p className="mt-1 text-sm text-foreground">
-                    L: {formatSignedDiopters(distanceSphLeft)} / SHIFT {calculator.shift === null ? "—" : formatSignedDiopters(calculator.shift)}
-                  </p>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Near reference from distance + ADD: R {formatSignedDiopters(calculator.nearReferenceRight)}, L {formatSignedDiopters(calculator.nearReferenceLeft)}.
+                    L: {formatSignedDiopters(distanceSphLeft)} dist · ADD {formatSignedDiopters(addPower)} · degression {formatSignedDiopters(calculator.degression)}
                   </p>
                 </div>
               </div>

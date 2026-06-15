@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { RxNumberInput, RxPowerInput } from "@/components/lenses/RxInputs";
 
 type EyeInput = {
   sph: number;
@@ -11,6 +12,17 @@ type EyeInput = {
   axis: number;
   pd: number;
 };
+
+type PdMode = "mono" | "binocular";
+
+// Lab-safe input ranges.
+const SPH_RANGE = { min: -20, max: 20 };
+const CYL_RANGE = { min: -8, max: 8 };
+const AXIS_RANGE = { min: 0, max: 180 };
+const MONO_PD_RANGE = { min: 20, max: 40 };
+const BINOCULAR_PD_RANGE = { min: 40, max: 85 };
+const DBL_RANGE = { min: 10, max: 26 };
+const CTET_RANGE = { min: 0.8, max: 3.5 };
 
 type ShapePreset = {
   id: string;
@@ -62,75 +74,11 @@ const computeThickness = ({
   return Number((etOrCt + sagMm).toFixed(2));
 };
 
-const NumberField = ({
-  id,
-  label,
-  value,
-  step,
-  debounceMs = 220,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: number;
-  step: number;
-  debounceMs?: number;
-  onChange: (value: number) => void;
-}) => {
-  const [draftValue, setDraftValue] = useState(() => (Number.isFinite(value) ? String(value) : ""));
-  const timeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setDraftValue(Number.isFinite(value) ? String(value) : "");
-  }, [value]);
-
-  useEffect(() => () => {
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-    }
-  }, []);
-
-  const commitValue = (nextRawValue: string) => {
-    const parsed = Number.parseFloat(nextRawValue);
-    if (Number.isFinite(parsed)) {
-      onChange(parsed);
-    }
-  };
-
-  return (
-    <div>
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type="number"
-        step={step}
-        value={draftValue}
-        onChange={(event) => {
-          const nextRawValue = event.target.value;
-          setDraftValue(nextRawValue);
-
-          if (timeoutRef.current !== null) {
-            window.clearTimeout(timeoutRef.current);
-          }
-
-          timeoutRef.current = window.setTimeout(() => {
-            commitValue(nextRawValue);
-          }, debounceMs);
-        }}
-        onBlur={(event) => {
-          if (timeoutRef.current !== null) {
-            window.clearTimeout(timeoutRef.current);
-          }
-          commitValue(event.target.value);
-        }}
-      />
-    </div>
-  );
-};
-
 const OptiEdgeThicknessWidget = () => {
   const [right, setRight] = useState<EyeInput>({ sph: -2.5, cyl: -0.75, axis: 90, pd: 31 });
   const [left, setLeft] = useState<EyeInput>({ sph: -2.0, cyl: -1.0, axis: 85, pd: 31 });
+  const [pdMode, setPdMode] = useState<PdMode>("mono");
+  const [binocularPd, setBinocularPd] = useState(62);
   const [dbl, setDbl] = useState(18);
   const [ctEt, setCtEt] = useState(1.1);
   const [presetId, setPresetId] = useState(SHAPE_PRESETS[0].id);
@@ -138,14 +86,19 @@ const OptiEdgeThicknessWidget = () => {
   const preset = useMemo(() => SHAPE_PRESETS.find((shape) => shape.id === presetId) ?? SHAPE_PRESETS[0], [presetId]);
   const framePd = useMemo(() => preset.width + dbl, [preset.width, dbl]);
 
+  // Effective monocular PD used by the decentration calc. In binocular mode the
+  // single binocular PD is split evenly across the two eyes.
+  const rightMonoPd = pdMode === "binocular" ? binocularPd / 2 : right.pd;
+  const leftMonoPd = pdMode === "binocular" ? binocularPd / 2 : left.pd;
+
   const opticDiameterForEye = (monoPd: number) => {
     const decentration = Math.abs(framePd / 2 - monoPd);
     return clamp(preset.width + 2 * decentration + 2, 40, 80);
   };
 
   const results = useMemo(() => {
-    const rightDiameter = opticDiameterForEye(right.pd);
-    const leftDiameter = opticDiameterForEye(left.pd);
+    const rightDiameter = opticDiameterForEye(rightMonoPd);
+    const leftDiameter = opticDiameterForEye(leftMonoPd);
 
     return MATERIALS.map((material) => ({
       material,
@@ -164,7 +117,7 @@ const OptiEdgeThicknessWidget = () => {
         etOrCt: ctEt,
       }),
     }));
-  }, [right, left, ctEt, framePd, preset.width]);
+  }, [right.sph, right.cyl, left.sph, left.cyl, rightMonoPd, leftMonoPd, ctEt, framePd, preset.width]);
 
   const baseline = results[0];
 
@@ -186,30 +139,67 @@ const OptiEdgeThicknessWidget = () => {
         <CardContent className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">Right Eye</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField id="right-sph" label="SPH" value={right.sph} step={0.25} onChange={(value) => setRight((prev) => ({ ...prev, sph: clamp(value, -20, 20) }))} />
-              <NumberField id="right-cyl" label="CYL" value={right.cyl} step={0.25} onChange={(value) => setRight((prev) => ({ ...prev, cyl: clamp(value, -8, 8) }))} />
-              <NumberField id="right-axis" label="AXIS" value={right.axis} step={1} onChange={(value) => setRight((prev) => ({ ...prev, axis: clamp(value, 0, 180) }))} />
-              <NumberField id="right-pd" label="PD" value={right.pd} step={0.5} onChange={(value) => setRight((prev) => ({ ...prev, pd: clamp(value, 22, 40) }))} />
+            <div className="grid grid-cols-3 gap-3">
+              <RxPowerInput id="right-sph" label="SPH" value={right.sph} {...SPH_RANGE} onChange={(value) => setRight((prev) => ({ ...prev, sph: value }))} />
+              <RxPowerInput id="right-cyl" label="CYL" value={right.cyl} {...CYL_RANGE} onChange={(value) => setRight((prev) => ({ ...prev, cyl: value }))} />
+              <RxNumberInput id="right-axis" label="AXIS" value={right.axis} integer wrapModulo={180} {...AXIS_RANGE} onChange={(value) => setRight((prev) => ({ ...prev, axis: value }))} />
             </div>
           </div>
 
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">Left Eye</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <NumberField id="left-sph" label="SPH" value={left.sph} step={0.25} onChange={(value) => setLeft((prev) => ({ ...prev, sph: clamp(value, -20, 20) }))} />
-              <NumberField id="left-cyl" label="CYL" value={left.cyl} step={0.25} onChange={(value) => setLeft((prev) => ({ ...prev, cyl: clamp(value, -8, 8) }))} />
-              <NumberField id="left-axis" label="AXIS" value={left.axis} step={1} onChange={(value) => setLeft((prev) => ({ ...prev, axis: clamp(value, 0, 180) }))} />
-              <NumberField id="left-pd" label="PD" value={left.pd} step={0.5} onChange={(value) => setLeft((prev) => ({ ...prev, pd: clamp(value, 22, 40) }))} />
+            <div className="grid grid-cols-3 gap-3">
+              <RxPowerInput id="left-sph" label="SPH" value={left.sph} {...SPH_RANGE} onChange={(value) => setLeft((prev) => ({ ...prev, sph: value }))} />
+              <RxPowerInput id="left-cyl" label="CYL" value={left.cyl} {...CYL_RANGE} onChange={(value) => setLeft((prev) => ({ ...prev, cyl: value }))} />
+              <RxNumberInput id="left-axis" label="AXIS" value={left.axis} integer wrapModulo={180} {...AXIS_RANGE} onChange={(value) => setLeft((prev) => ({ ...prev, axis: value }))} />
             </div>
+          </div>
+
+          <div className="space-y-4 lg:col-span-2">
+            <Separator />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="font-semibold text-foreground">Pupillary Distance</h3>
+              <div className="inline-flex rounded-md border border-border p-0.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={pdMode === "mono" ? "default" : "ghost"}
+                  onClick={() => setPdMode("mono")}
+                >
+                  Monocular
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={pdMode === "binocular" ? "default" : "ghost"}
+                  onClick={() => setPdMode("binocular")}
+                >
+                  Binocular
+                </Button>
+              </div>
+            </div>
+            {pdMode === "mono" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <RxNumberInput id="right-pd" label="Right PD (mm)" value={right.pd} step={0.5} decimals={1} {...MONO_PD_RANGE} onChange={(value) => setRight((prev) => ({ ...prev, pd: value }))} />
+                <RxNumberInput id="left-pd" label="Left PD (mm)" value={left.pd} step={0.5} decimals={1} {...MONO_PD_RANGE} onChange={(value) => setLeft((prev) => ({ ...prev, pd: value }))} />
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <RxNumberInput id="binocular-pd" label="Binocular PD (mm)" value={binocularPd} step={0.5} decimals={1} {...BINOCULAR_PD_RANGE} onChange={(value) => setBinocularPd(value)} />
+                <div>
+                  <Label htmlFor="binocular-pd-split">Per eye (auto)</Label>
+                  <Input id="binocular-pd-split" value={(binocularPd / 2).toFixed(1)} disabled />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4 lg:col-span-2">
             <Separator />
             <h3 className="font-semibold text-foreground">Frame Parameters</h3>
             <div className="grid gap-3 md:grid-cols-3">
-              <NumberField id="frame-dbl" label="DBL" value={dbl} step={1} onChange={(value) => setDbl(clamp(value, 10, 26))} />
-              <NumberField id="frame-etct" label="ET / CT" value={ctEt} step={0.1} onChange={(value) => setCtEt(clamp(value, 0.8, 3.5))} />
+              <RxNumberInput id="frame-dbl" label="DBL" value={dbl} integer {...DBL_RANGE} onChange={(value) => setDbl(value)} />
+              <RxNumberInput id="frame-etct" label="ET / CT" value={ctEt} step={0.1} decimals={1} {...CTET_RANGE} onChange={(value) => setCtEt(value)} />
               <div>
                 <Label htmlFor="frame-pd">Frame PD (auto)</Label>
                 <Input id="frame-pd" value={framePd.toFixed(1)} disabled />
@@ -272,5 +262,6 @@ const OptiEdgeThicknessWidget = () => {
     </section>
   );
 };
+
 
 export default OptiEdgeThicknessWidget;
