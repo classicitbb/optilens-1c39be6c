@@ -8,15 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useCartContext } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import SaveDraftDialog from "@/components/cart/SaveDraftDialog";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 import { cn } from "@/lib/utils";
 
 const CartPage = () => {
   const { items, totalPrice, totalItems, updateQuantity, removeFromCart, loading } = useCartContext();
   const { data: storeProducts = [] } = useStoreProducts();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [poNumber, setPoNumber] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
+  const [saveDraftOpen, setSaveDraftOpen] = useState(false);
 
   const shippingEstimate = 28;
   const grandTotal = totalPrice + shippingEstimate;
@@ -70,7 +76,26 @@ const CartPage = () => {
             </span>
           </h1>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+            <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+              <Link to="/profile/drafts">View drafts</Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+              disabled={items.length === 0}
+              onClick={() => {
+                if (!user) {
+                  toast({
+                    title: "Sign in required",
+                    description: "Please sign in to save a draft.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSaveDraftOpen(true);
+              }}
+            >
               <FileText className="h-3.5 w-3.5" aria-hidden="true" />
               Save draft
             </Button>
@@ -278,6 +303,7 @@ const CartPage = () => {
         </div>
       </main>
       <Footer />
+      <SaveDraftDialog open={saveDraftOpen} onOpenChange={setSaveDraftOpen} items={items} />
     </div>
   );
 };

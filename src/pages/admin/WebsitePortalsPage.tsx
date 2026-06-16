@@ -211,13 +211,15 @@ const WebsitePortalsPage = () => {
   }, [customersQuery.data, search]);
 
   useEffect(() => {
+    if (customersQuery.isLoading) return;
     if (!selectedUserId && customers[0]) {
       setSelectedUserId(customers[0].userId);
+      return;
     }
-    if (selectedUserId && !customers.some((customer) => customer.userId === selectedUserId)) {
+    if (selectedUserId && customers.length > 0 && !customers.some((customer) => customer.userId === selectedUserId)) {
       setSelectedUserId(customers[0]?.userId ?? null);
     }
-  }, [customers, selectedUserId]);
+  }, [customers, selectedUserId, customersQuery.isLoading]);
 
   const selectedCustomer = customers.find((customer) => customer.userId === selectedUserId) ?? null;
 
@@ -441,10 +443,11 @@ const WebsitePortalsPage = () => {
   });
 
   useEffect(() => {
-    if (!selectedCustomer) return;
+    if (!selectedCustomer?.userId) return;
     refetchAddresses();
     refetchPaymentMethods();
-  }, [selectedCustomer, refetchAddresses, refetchPaymentMethods]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCustomer?.userId]);
 
   useEffect(() => {
     if (!detailQuery.data) return;
