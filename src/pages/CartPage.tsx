@@ -76,7 +76,26 @@ const CartPage = () => {
             </span>
           </h1>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+            <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+              <Link to="/profile/drafts">View drafts</Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+              disabled={items.length === 0}
+              onClick={() => {
+                if (!user) {
+                  toast({
+                    title: "Sign in required",
+                    description: "Please sign in to save a draft.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSaveDraftOpen(true);
+              }}
+            >
               <FileText className="h-3.5 w-3.5" aria-hidden="true" />
               Save draft
             </Button>
