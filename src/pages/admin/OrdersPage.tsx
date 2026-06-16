@@ -151,6 +151,7 @@ const OrdersPage = () => {
   const { orders, loading, fetchOrders, approvePayment } = useAdminOrders();
   const [search, setSearch] = useState("");
   const [confirmOrder, setConfirmOrder] = useState<AdminOrderRow | null>(null);
+  const [viewOrder, setViewOrder] = useState<AdminOrderRow | null>(null);
   const [approving, setApproving] = useState(false);
 
   useEffect(() => {
