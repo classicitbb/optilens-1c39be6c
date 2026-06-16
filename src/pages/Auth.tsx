@@ -1,6 +1,8 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { ArrowRight, Building2, CheckCircle2, ChevronLeft, FileBadge, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, ChevronLeft, FileBadge, Globe, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { lovable } from "@/integrations/lovable/index";
 import { useForm } from "react-hook-form";
@@ -28,6 +30,7 @@ type AuthFormData = {
   organizationName: string;
   taxId: string;
   phone: string;
+  country: string;
   email: string;
   password: string;
 };
@@ -81,6 +84,7 @@ const Auth = () => {
       organizationName: "",
       taxId: "",
       phone: "",
+      country: "",
       email: "",
       password: "",
     },
@@ -151,6 +155,10 @@ const Auth = () => {
         form.setError("phone", { message: "Required" });
         valid = false;
       }
+      if (!values.country.trim()) {
+        form.setError("country", { message: "Required" });
+        valid = false;
+      }
       if (!audience) {
         valid = false;
         syncFlow({ step: "welcome", audience: null });
@@ -177,6 +185,7 @@ const Auth = () => {
       audience: currentAudience,
       intent: currentIntent,
       tax_id: values.taxId.trim() || null,
+      country: values.country.trim() || null,
       onboarding_completed_at: new Date().toISOString(),
       redirect,
     };
@@ -530,6 +539,34 @@ const Auth = () => {
                         )}
                       />
                     ) : null}
+
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <div className="relative">
+                            <Globe className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                            <Select value={field.value || undefined} onValueChange={field.onChange}>
+                              <FormControl>
+                                <SelectTrigger className="pl-9">
+                                  <SelectValue placeholder="Select your country" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {COUNTRY_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </>
                 ) : null}
 
