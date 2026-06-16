@@ -228,23 +228,32 @@ const OrdersPage = () => {
             <OrdersTable
               orders={pendingPayment}
               onApprove={setConfirmOrder}
+              onView={setViewOrder}
               showApprove
             />
           </TabsContent>
 
           <TabsContent value="active">
-            <OrdersTable orders={active} />
+            <OrdersTable orders={active} onView={setViewOrder} />
           </TabsContent>
 
           <TabsContent value="completed">
-            <OrdersTable orders={completed} />
+            <OrdersTable orders={completed} onView={setViewOrder} />
           </TabsContent>
 
           <TabsContent value="all">
-            <OrdersTable orders={filtered} onApprove={setConfirmOrder} showApprove />
+            <OrdersTable orders={filtered} onApprove={setConfirmOrder} onView={setViewOrder} showApprove />
           </TabsContent>
         </Tabs>
       )}
+
+      <OrderDetailDialog
+        order={viewOrder}
+        open={!!viewOrder}
+        onOpenChange={(open) => !open && setViewOrder(null)}
+        onStatusChanged={fetchOrders}
+      />
+
 
       {/* Approve confirmation dialog */}
       <AlertDialog open={!!confirmOrder} onOpenChange={(open) => !open && setConfirmOrder(null)}>
