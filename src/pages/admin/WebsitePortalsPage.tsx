@@ -443,10 +443,11 @@ const WebsitePortalsPage = () => {
   });
 
   useEffect(() => {
-    if (!selectedCustomer) return;
+    if (!selectedCustomer?.userId) return;
     refetchAddresses();
     refetchPaymentMethods();
-  }, [selectedCustomer, refetchAddresses, refetchPaymentMethods]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCustomer?.userId]);
 
   useEffect(() => {
     if (!detailQuery.data) return;
