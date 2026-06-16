@@ -465,6 +465,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_drafts: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          name: string
+          note: string | null
+          total_amount: number
+          total_items: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json
+          name: string
+          note?: string | null
+          total_amount?: number
+          total_items?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          name?: string
+          note?: string | null
+          total_amount?: number
+          total_items?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
