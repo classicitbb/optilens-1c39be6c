@@ -303,6 +303,7 @@ const CartPage = () => {
         </div>
       </main>
       <Footer />
+      <SaveDraftDialog open={saveDraftOpen} onOpenChange={setSaveDraftOpen} items={items} />
     </div>
   );
 };
