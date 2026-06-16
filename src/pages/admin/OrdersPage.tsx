@@ -67,7 +67,7 @@ interface OrdersTableProps {
   showApprove?: boolean;
 }
 
-const OrdersTable = ({ orders, onApprove, showApprove }: OrdersTableProps) => {
+const OrdersTable = ({ orders, onApprove, onView, showApprove }: OrdersTableProps) => {
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -92,7 +92,11 @@ const OrdersTable = ({ orders, onApprove, showApprove }: OrdersTableProps) => {
       </TableHeader>
       <TableBody>
         {orders.map((order) => (
-          <TableRow key={order.id}>
+          <TableRow
+            key={order.id}
+            className="cursor-pointer hover:bg-muted/40"
+            onClick={() => onView?.(order)}
+          >
             <TableCell className="font-mono text-xs font-medium">
               #{order.id.slice(0, 8).toUpperCase()}
             </TableCell>
