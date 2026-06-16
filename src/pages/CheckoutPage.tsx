@@ -312,6 +312,21 @@ const CheckoutPage = () => {
   // ── Derived ──
   const isLoading = isLoadingProfile || addressesLoading || paymentMethodsLoading || identityLoading;
 
+  // 1stPay and BimPay are Caribbean payment networks only available when shipping to Barbados.
+  const isBarbadosShipment = formData.shippingAddress.country === "Barbados";
+  const availableOfflineMethods = isBarbadosShipment
+    ? OFFLINE_METHODS
+    : OFFLINE_METHODS.filter((method) => method.id !== "firstpay_offline" && method.id !== "bimpay_offline");
+
+  useEffect(() => {
+    if (
+      !isBarbadosShipment &&
+      (formData.checkoutMethod === "firstpay_offline" || formData.checkoutMethod === "bimpay_offline")
+    ) {
+      setFormData((prev) => ({ ...prev, checkoutMethod: "stripe_offline" }));
+    }
+  }, [isBarbadosShipment, formData.checkoutMethod]);
+
   const completedOrderNum = useMemo(
     () => `CV-${new Date().getFullYear()}-${String(Math.floor(10000 + Math.random() * 90000)).slice(0, 5)}`,
     [],
@@ -868,7 +883,7 @@ const CheckoutPage = () => {
                     )}
 
                     {/* Offline payment methods */}
-                    {OFFLINE_METHODS.map((method) => {
+                    {availableOfflineMethods.map((method) => {
                       const Icon = method.icon;
                       return (
                         <PickCard
