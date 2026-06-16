@@ -8,15 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useCartContext } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import SaveDraftDialog from "@/components/cart/SaveDraftDialog";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 import { cn } from "@/lib/utils";
 
 const CartPage = () => {
   const { items, totalPrice, totalItems, updateQuantity, removeFromCart, loading } = useCartContext();
   const { data: storeProducts = [] } = useStoreProducts();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [poNumber, setPoNumber] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
+  const [saveDraftOpen, setSaveDraftOpen] = useState(false);
 
   const shippingEstimate = 28;
   const grandTotal = totalPrice + shippingEstimate;
