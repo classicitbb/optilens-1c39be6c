@@ -155,6 +155,10 @@ const Auth = () => {
         form.setError("phone", { message: "Required" });
         valid = false;
       }
+      if (!values.country.trim()) {
+        form.setError("country", { message: "Required" });
+        valid = false;
+      }
       if (!audience) {
         valid = false;
         syncFlow({ step: "welcome", audience: null });
