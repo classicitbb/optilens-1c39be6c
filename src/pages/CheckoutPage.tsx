@@ -221,7 +221,7 @@ const OrderSummarySidebar = ({
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { items, totalPrice, clearCart } = useCartContext();
+  const { items, totalPrice, clearCart, loading: cartLoading } = useCartContext();
   const { user } = useAuth();
   const { createOrder } = useOrders();
   const { identity, isLoading: identityLoading } = usePortalIdentity();
@@ -261,10 +261,11 @@ const CheckoutPage = () => {
       navigate(createAuthHref({ mode: "signin", redirect: "/checkout" }), { replace: true });
       return;
     }
-    if (!isComplete && items.length === 0) {
+    // Wait for the cart to finish loading before deciding to bounce back.
+    if (!cartLoading && !isComplete && items.length === 0) {
       navigate("/cart", { replace: true });
     }
-  }, [items.length, navigate, user, isComplete]);
+  }, [items.length, navigate, user, isComplete, cartLoading]);
 
   // ── Load profile ──
   useEffect(() => {
@@ -389,7 +390,7 @@ const CheckoutPage = () => {
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-secondary/10">
               <CheckCircle className="h-9 w-9 text-secondary" aria-hidden="true" />
             </div>
-            <h1 className="mb-2 font-serif text-2xl text-foreground">
+            <h1 className="mb-2 text-2xl text-foreground">
               {formData.checkoutMethod === "on_account"
                 ? "Order placed on account"
                 : "Order received"}
@@ -435,8 +436,9 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Breadcrumb */}
-      <div className="border-b border-border bg-card">
+      {/* Breadcrumb (offset for fixed header) */}
+      <div className="border-b border-border bg-card pt-16">
+
         <div className="container mx-auto flex items-center gap-1 px-4 py-2.5 text-xs sm:px-6">
           <Link to="/store" className="text-muted-foreground hover:text-foreground transition-colors">
             Store
@@ -497,7 +499,7 @@ const CheckoutPage = () => {
       </div>
 
       {/* Main layout */}
-      <main className="container mx-auto px-4 pb-16 pt-24 sm:px-6">
+      <main className="container mx-auto px-4 pb-16 pt-8 sm:px-6">
         {isLoading ? (
           <div className="flex min-h-[40vh] items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

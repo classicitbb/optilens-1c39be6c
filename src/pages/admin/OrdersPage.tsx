@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CheckCircle, Clock, Loader2, Package, Search } from "lucide-react";
 import { format } from "date-fns";
+import OrderDetailDialog from "@/components/admin/OrderDetailDialog";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -62,10 +63,11 @@ const formatProvider = (method: string) => CHECKOUT_METHOD_LABELS[method] ?? met
 interface OrdersTableProps {
   orders: AdminOrderRow[];
   onApprove?: (order: AdminOrderRow) => void;
+  onView?: (order: AdminOrderRow) => void;
   showApprove?: boolean;
 }
 
-const OrdersTable = ({ orders, onApprove, showApprove }: OrdersTableProps) => {
+const OrdersTable = ({ orders, onApprove, onView, showApprove }: OrdersTableProps) => {
   if (orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -90,7 +92,11 @@ const OrdersTable = ({ orders, onApprove, showApprove }: OrdersTableProps) => {
       </TableHeader>
       <TableBody>
         {orders.map((order) => (
-          <TableRow key={order.id}>
+          <TableRow
+            key={order.id}
+            className="cursor-pointer hover:bg-muted/40"
+            onClick={() => onView?.(order)}
+          >
             <TableCell className="font-mono text-xs font-medium">
               #{order.id.slice(0, 8).toUpperCase()}
             </TableCell>
@@ -124,7 +130,7 @@ const OrdersTable = ({ orders, onApprove, showApprove }: OrdersTableProps) => {
                     size="sm"
                     variant="outline"
                     className="border-green-500/40 text-green-600 hover:bg-green-500/10 hover:text-green-600"
-                    onClick={() => onApprove(order)}
+                    onClick={(e) => { e.stopPropagation(); onApprove(order); }}
                   >
                     <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
                     Approve
@@ -145,6 +151,7 @@ const OrdersPage = () => {
   const { orders, loading, fetchOrders, approvePayment } = useAdminOrders();
   const [search, setSearch] = useState("");
   const [confirmOrder, setConfirmOrder] = useState<AdminOrderRow | null>(null);
+  const [viewOrder, setViewOrder] = useState<AdminOrderRow | null>(null);
   const [approving, setApproving] = useState(false);
 
   useEffect(() => {
@@ -221,23 +228,32 @@ const OrdersPage = () => {
             <OrdersTable
               orders={pendingPayment}
               onApprove={setConfirmOrder}
+              onView={setViewOrder}
               showApprove
             />
           </TabsContent>
 
           <TabsContent value="active">
-            <OrdersTable orders={active} />
+            <OrdersTable orders={active} onView={setViewOrder} />
           </TabsContent>
 
           <TabsContent value="completed">
-            <OrdersTable orders={completed} />
+            <OrdersTable orders={completed} onView={setViewOrder} />
           </TabsContent>
 
           <TabsContent value="all">
-            <OrdersTable orders={filtered} onApprove={setConfirmOrder} showApprove />
+            <OrdersTable orders={filtered} onApprove={setConfirmOrder} onView={setViewOrder} showApprove />
           </TabsContent>
         </Tabs>
       )}
+
+      <OrderDetailDialog
+        order={viewOrder}
+        open={!!viewOrder}
+        onOpenChange={(open) => !open && setViewOrder(null)}
+        onStatusChanged={fetchOrders}
+      />
+
 
       {/* Approve confirmation dialog */}
       <AlertDialog open={!!confirmOrder} onOpenChange={(open) => !open && setConfirmOrder(null)}>
