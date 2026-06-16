@@ -185,6 +185,7 @@ const Auth = () => {
       audience: currentAudience,
       intent: currentIntent,
       tax_id: values.taxId.trim() || null,
+      country: values.country.trim() || null,
       onboarding_completed_at: new Date().toISOString(),
       redirect,
     };
