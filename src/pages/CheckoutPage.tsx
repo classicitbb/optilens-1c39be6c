@@ -261,10 +261,11 @@ const CheckoutPage = () => {
       navigate(createAuthHref({ mode: "signin", redirect: "/checkout" }), { replace: true });
       return;
     }
-    if (!isComplete && items.length === 0) {
+    // Wait for the cart to finish loading before deciding to bounce back.
+    if (!cartLoading && !isComplete && items.length === 0) {
       navigate("/cart", { replace: true });
     }
-  }, [items.length, navigate, user, isComplete]);
+  }, [items.length, navigate, user, isComplete, cartLoading]);
 
   // ── Load profile ──
   useEffect(() => {
