@@ -539,6 +539,34 @@ const Auth = () => {
                         )}
                       />
                     ) : null}
+
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <div className="relative">
+                            <Globe className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                            <Select value={field.value || undefined} onValueChange={field.onChange}>
+                              <FormControl>
+                                <SelectTrigger className="pl-9">
+                                  <SelectValue placeholder="Select your country" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {COUNTRY_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </>
                 ) : null}
 
