@@ -436,8 +436,9 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Breadcrumb */}
-      <div className="border-b border-border bg-card">
+      {/* Breadcrumb (offset for fixed header) */}
+      <div className="border-b border-border bg-card pt-16">
+
         <div className="container mx-auto flex items-center gap-1 px-4 py-2.5 text-xs sm:px-6">
           <Link to="/store" className="text-muted-foreground hover:text-foreground transition-colors">
             Store
