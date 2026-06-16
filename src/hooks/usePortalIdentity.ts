@@ -6,6 +6,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
 export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders";
 
+export type PaymentTerms = "credit" | "cash" | "standard";
+
 export interface PortalIdentity {
   profileId: string;
   portalAccessStatus: PortalAccessStatus;
@@ -17,6 +19,7 @@ export interface PortalIdentity {
   assignedPricelistId: number | null;
   organizationName: string | null;
   customerName: string | null;
+  paymentTerms: PaymentTerms;
   featureOverrides: Partial<Record<PortalFeature, boolean>>;
 }
 
@@ -41,6 +44,9 @@ const normalizeIdentity = (
   assignedPricelistId: typeof row.assigned_pricelist_id === "number" ? row.assigned_pricelist_id : null,
   organizationName: typeof row.organization_name === "string" ? row.organization_name : null,
   customerName: typeof row.customer_name === "string" ? row.customer_name : null,
+  paymentTerms: (row.payment_terms === "credit_approved" ? "credit"
+               : row.payment_terms === "cash_only"       ? "cash"
+               : "standard") as PaymentTerms,
   featureOverrides,
 });
 

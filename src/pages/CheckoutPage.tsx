@@ -231,6 +231,8 @@ const CheckoutPage = () => {
   const { defaultPaymentMethod, isLoading: paymentMethodsLoading } = useCustomerPaymentMethods();
 
   const isVerifiedB2B = identity?.portalAccessStatus === "approved_customer";
+  const canPayOnAccount = isVerifiedB2B && identity?.paymentTerms === "credit";
+  const isCashOnly = isVerifiedB2B && identity?.paymentTerms === "cash";
 
   // ── State ──
   const [step, setStep] = useState<Step>(1);
@@ -297,7 +299,7 @@ const CheckoutPage = () => {
     if (identityLoading || addressesLoading || paymentMethodsLoading) return;
     setFormData((prev) => ({
       ...prev,
-      checkoutMethod: isVerifiedB2B ? "on_account" : "stripe_offline",
+      checkoutMethod: canPayOnAccount ? "on_account" : "stripe_offline",
       shippingAddressId: defaultShipping?.id ?? prev.shippingAddressId,
       shippingAddress: defaultShipping ? toProfileAddress(defaultShipping) : prev.shippingAddress,
       billingAddressId: defaultBilling?.id ?? defaultShipping?.id ?? prev.billingAddressId,
@@ -307,7 +309,7 @@ const CheckoutPage = () => {
           ? toProfileAddress(defaultShipping)
           : prev.billingAddress,
     }));
-  }, [identityLoading, addressesLoading, paymentMethodsLoading, isVerifiedB2B, defaultShipping, defaultBilling]);
+  }, [identityLoading, addressesLoading, paymentMethodsLoading, canPayOnAccount, defaultShipping, defaultBilling]);
 
   // ── Derived ──
   const isLoading = isLoadingProfile || addressesLoading || paymentMethodsLoading || identityLoading;
@@ -849,7 +851,7 @@ const CheckoutPage = () => {
 
                   <div className="space-y-2">
                     {/* On Account — shown first for verified B2B */}
-                    {isVerifiedB2B && (
+                    {canPayOnAccount && (
                       <PickCard
                         selected={formData.checkoutMethod === "on_account"}
                         accent
@@ -921,14 +923,25 @@ const CheckoutPage = () => {
                     </div>
                   )}
 
-                  {!isVerifiedB2B && (
+                  {isCashOnly ? (
+                    <p className="mt-4 text-xs text-muted-foreground">
+                      This account is set to <strong>cash only</strong>. Contact us to discuss credit terms.
+                    </p>
+                  ) : !canPayOnAccount && isVerifiedB2B ? (
+                    <p className="mt-4 text-xs text-muted-foreground">
+                      Want to pay on account?{" "}
+                      <a href="/contact" className="text-secondary underline underline-offset-2 hover:text-secondary/80">
+                        Apply for a credit account.
+                      </a>
+                    </p>
+                  ) : !isVerifiedB2B ? (
                     <p className="mt-4 text-xs text-muted-foreground">
                       Want to pay on account?{" "}
                       <a href="/contact" className="text-secondary underline underline-offset-2 hover:text-secondary/80">
                         Apply for a verified B2B account.
                       </a>
                     </p>
-                  )}
+                  ) : null}
                 </div>
               )}
 
