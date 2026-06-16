@@ -1,6 +1,8 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { ArrowRight, Building2, CheckCircle2, ChevronLeft, FileBadge, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, ChevronLeft, FileBadge, Globe, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { lovable } from "@/integrations/lovable/index";
 import { useForm } from "react-hook-form";
