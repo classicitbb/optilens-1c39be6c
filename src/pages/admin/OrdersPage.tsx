@@ -130,7 +130,7 @@ const OrdersTable = ({ orders, onApprove, onView, showApprove }: OrdersTableProp
                     size="sm"
                     variant="outline"
                     className="border-green-500/40 text-green-600 hover:bg-green-500/10 hover:text-green-600"
-                    onClick={() => onApprove(order)}
+                    onClick={(e) => { e.stopPropagation(); onApprove(order); }}
                   >
                     <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
                     Approve
