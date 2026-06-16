@@ -30,6 +30,7 @@ type AuthFormData = {
   organizationName: string;
   taxId: string;
   phone: string;
+  country: string;
   email: string;
   password: string;
 };
