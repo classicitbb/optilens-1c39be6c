@@ -37,6 +37,8 @@ import { cn } from "@/lib/utils";
 import { createAuthHref } from "@/lib/authFlow";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import SecurityTrustBar from "@/components/checkout/SecurityTrustBar";
+import { COUNTRY_OPTIONS, getStateOptionsByCountry } from "@/lib/locationOptions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -680,10 +682,17 @@ const CheckoutPage = () => {
                         <Label htmlFor="ship-state">Parish / State</Label>
                         <Input
                           id="ship-state"
+                          list="ship-state-suggestions"
                           value={formData.shippingAddress.state}
                           onChange={(e) => updateShippingAddress({ ...formData.shippingAddress, state: e.target.value })}
                           placeholder="St. Michael"
+                          autoComplete="address-level1"
                         />
+                        <datalist id="ship-state-suggestions">
+                          {getStateOptionsByCountry(formData.shippingAddress.country).map((opt) => (
+                            <option key={opt.value} value={opt.value} />
+                          ))}
+                        </datalist>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="ship-postal">Postal code</Label>
@@ -701,17 +710,37 @@ const CheckoutPage = () => {
                         >
                           Country
                         </Label>
-                        <Input
-                          id="ship-country"
-                          value={formData.shippingAddress.country}
-                          onChange={(e) => {
-                            updateShippingAddress({ ...formData.shippingAddress, country: e.target.value });
+                        <Select
+                          value={formData.shippingAddress.country || undefined}
+                          onValueChange={(value) => {
+                            const currentStates = getStateOptionsByCountry(formData.shippingAddress.country).map((o) => o.value);
+                            const nextStates = getStateOptionsByCountry(value).map((o) => o.value);
+                            const currentState = formData.shippingAddress.state;
+                            // Clear state if it belonged to the prior country's suggestion list and isn't valid for the new one
+                            const shouldClearState = currentState && currentStates.includes(currentState) && !nextStates.includes(currentState);
+                            updateShippingAddress({
+                              ...formData.shippingAddress,
+                              country: value,
+                              state: shouldClearState ? "" : currentState,
+                            });
                             setFieldErrors((p) => ({ ...p, addressCountry: undefined }));
                           }}
-                          placeholder="Barbados"
-                          aria-invalid={!!fieldErrors.addressCountry}
-                          className={cn(fieldErrors.addressCountry && "border-destructive focus-visible:ring-destructive")}
-                        />
+                        >
+                          <SelectTrigger
+                            id="ship-country"
+                            aria-invalid={!!fieldErrors.addressCountry}
+                            className={cn(fieldErrors.addressCountry && "border-destructive focus-visible:ring-destructive")}
+                          >
+                            <SelectValue placeholder="Select a country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COUNTRY_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FieldError message={fieldErrors.addressCountry} />
                       </div>
                     </div>
