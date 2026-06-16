@@ -13,6 +13,7 @@ const QuoteFormSection = lazy(() => import("@/components/account/sections/QuoteF
 const HelpdeskTicketsSection = lazy(() => import("@/components/account/sections/HelpdeskTicketsSection"));
 const HelpdeskTicketDetailSection = lazy(() => import("@/components/account/sections/HelpdeskTicketDetailSection"));
 const AssignedPricelistsSection = lazy(() => import("@/components/account/sections/AssignedPricelistsSection"));
+const CartDraftsSection = lazy(() => import("@/components/account/sections/CartDraftsSection"));
 
 const PortalRoutes = () => {
   return (
