@@ -84,6 +84,7 @@ const Auth = () => {
       organizationName: "",
       taxId: "",
       phone: "",
+      country: "",
       email: "",
       password: "",
     },
