@@ -82,14 +82,26 @@ const CartDraftsSection = () => {
           {drafts.map((draft) => (
             <li key={draft.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">{draft.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {draft.total_items} item{draft.total_items === 1 ? "" : "s"} · {formatMoney(draft.total_amount)} ·
+                <div className="flex items-center gap-2">
+                  <div className="truncate font-medium">{draft.name}</div>
+                  {(() => {
+                    const ageDays = (Date.now() - new Date(draft.updated_at).getTime()) / 86_400_000;
+                    return ageDays > 30 ? (
+                      <Badge variant="outline" className="text-[10px]">Expired</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">Draft</Badge>
+                    );
+                  })()}
+                </div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{draft.total_items}</span> item{draft.total_items === 1 ? "" : "s"} ·{" "}
+                  <span className="font-medium text-foreground">{formatMoney(draft.total_amount)}</span> ·{" "}
                   Saved {formatDate(draft.updated_at)}
                 </div>
                 {draft.note && <div className="mt-1 text-xs text-muted-foreground/80">{draft.note}</div>}
               </div>
               <div className="flex shrink-0 items-center gap-2">
+
                 <Button
                   variant="outline"
                   size="sm"
