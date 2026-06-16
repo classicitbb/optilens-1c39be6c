@@ -1,85 +1,78 @@
-## Plan
+# Cart → Checkout → Drafts → Admin Orders: fixes, polish & E2E tests
 
-Three problems to address. All three live in the storefront/admin frontend; no changes to pricing/catalog backend logic.
+## 1. Fix checkout "blink and return to cart"
 
-### 1. `/admin/website/portals` reload loop
+**Root cause:** `CheckoutPage.tsx` guard (line 264) checks `items.length === 0` while `CartContext.loading` is still `true` on first render after navigation. The cart hasn't fetched yet, so the guard fires `navigate("/cart", { replace: true })` immediately.
 
-`WebsitePortalsPage.tsx` has unstable effect dependencies that keep firing renders/refetches:
+**Fix:** read `loading` from `useCartContext()` and gate the guard:
 
-- Line 222: `const selectedCustomer = customers.find(...)` — a fresh object reference every render.
-- Line 443 effect depends on `selectedCustomer`, so it calls `refetchAddresses()` / `refetchPaymentMethods()` on every render. Those refetches update hook state, which re-renders, which re-runs the effect. This is the loop the user sees (and matches the repeated analytics pageview pings every ~6 s in console logs).
-- Line 213 effect also re-runs frequently because `customers` is rebuilt by `useMemo` only when search/data change, but the inline `setSelectedUserId` call goes through `setSearchParams` which can churn even when the value is unchanged.
-
-Fix:
-
-- Depend on `selectedCustomer?.userId` (a stable string) instead of the object in the address/payments refetch effect.
-- In the auto-select effect, only call `setSearchParams` when the new value actually differs from the current `?customer=` param.
-- Guard the second branch ("selectedUserId no longer in list") so it does not run while `customersQuery.isLoading` is true (avoids clearing during a transient empty list).
-
-### 2. Shopping cart + checkout: fix and verify
-
-Scope is the existing flow — no business-logic changes. Concrete fixes:
-
-- `CartPage.tsx`: the "Save draft" button is a no-op (line 73). Wire it to the new draft save flow from item 3 below, with toast feedback and disabled state when the cart is empty.
-- `CheckoutPage.tsx`: verify the top padding fix from the prior turn is intact, and confirm the order-success flow does not redirect back to `/cart` prematurely (memory note on `orderPlaced` state).
-- Test the round-trip end to end with Playwright against `localhost:8080`:
-  1. Sign in as the pre-minted preview user.
-  2. Add an item to cart from `/store`.
-  3. Visit `/cart`, verify totals + Save draft works.
-  4. Proceed to `/checkout`, walk through the 4 steps (Contact → Shipping → Payment → Review).
-  5. Place an on-account order, confirm success view renders and cart clears.
-  6. Capture screenshots at each step; report any errors observed in console/network.
-
-### 3. Save Draft + drafts management
-
-Add a real draft mechanism for the customer-facing cart so a shopper can stash a cart and come back.
-
-**Data model** — new table `public.cart_drafts`:
-
-```text
-id              uuid (pk)
-user_id         uuid (auth.users) NOT NULL
-name            text (user-supplied label, default "Draft <timestamp>")
-note            text
-items           jsonb  -- snapshot: [{ product_id, product_type, product_name, product_price, quantity, options, ... }]
-total_items     int
-total_amount    numeric
-created_at      timestamptz
-updated_at      timestamptz
+```ts
+if (!loading && !isComplete && items.length === 0) navigate("/cart", { replace: true });
 ```
 
-- RLS: owner-only (`auth.uid() = user_id`) for select/insert/update/delete.
-- `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated`; `GRANT ALL ... TO service_role`. No anon grant.
-- `updated_at` trigger using existing `public.update_updated_at_column()` helper.
+Also include `loading` in the effect deps.
 
-**Frontend**:
+## 2. Fix checkout header overlap
 
-- `src/hooks/useCartDrafts.ts` — list / create / rename / delete / restore via TanStack Query.
-- `CartPage.tsx`: Save draft button opens a small dialog (label + note), calls `createDraft({ items, name, note })`, then offers to clear the live cart. Disabled when cart empty.
-- New page `src/pages/CartDraftsPage.tsx` at route `/profile/drafts` (customer portal area, behind auth):
-  - List drafts (name, item count, total, updated_at).
-  - Restore → merges items back into live cart and navigates to `/cart`.
-  - Rename inline; Delete with confirm.
-- Add a link to "Saved drafts" from `CartPage` header and from the portal sidebar.
-- Register the route in `src/routes/portal/PortalRoutes.tsx` and `src/config/routeRegistry.ts` per the routing-governance rules.
+`<Header />` is `fixed top-0` (h-16). Currently breadcrumb + stepper render flush below it with no offset — they sit under the fixed header. The `pt-24` lives on `<main>`, too late.
 
-**Validation**:
+**Fix:** wrap the breadcrumb+stepper container in `pt-16` (or move the offset to the outer `<div>` after `<Header />`), and drop the redundant `pt-24` on `<main>` to `pt-6`. Verify cart, checkout, drafts, profile all use the same offset pattern.
 
-- After migration approval, run lint + build.
-- Playwright: save a draft → reload → visit `/profile/drafts` → restore → confirm cart repopulated.
+## 3. Cart / Checkout / Drafts typography alignment
 
-### Out of scope
+Audit and align fonts across `CartPage`, `CheckoutPage`, `CartDraftsSection`, `SaveDraftDialog`:
 
-- Admin-side draft management (drafts are user-owned; admins can already see live carts in Portals).
-- Any pricing engine, catalog, or wiki changes.
-- Refactor of `CheckoutPage` beyond the targeted fixes.
+- Page titles → default sans . never use serif fonts. 
+- Body / labels / table → default sans (no font overrides).
+- Remove any stray `font-mono` decorative labels in CheckoutPage that don't appear elsewhere on the public store (keep one consistent stepper style).
 
-### Files touched
+## 4. /profile/drafts UI enhancements
 
-- `src/pages/admin/WebsitePortalsPage.tsx` (effect deps)
-- `src/pages/CartPage.tsx` (Save draft wiring + link)
-- New: `src/hooks/useCartDrafts.ts`, `src/pages/CartDraftsPage.tsx`, `src/components/cart/SaveDraftDialog.tsx`
-- `src/routes/portal/PortalRoutes.tsx`, `src/config/routeRegistry.ts`
-- One Supabase migration creating `cart_drafts` with grants, RLS, and trigger.  
-  
-Also review the sales/orders module as it is showing an auth error, like i am not able to access it. 
+In `CartDraftsSection.tsx`:
+
+- Show per-draft summary: name, note, **total items**, **total amount (BBD)**, created/updated timestamps, status badge (`Draft` / `Restored` / `Expired` if older than 30 days — UI-only).
+- Two actions per row: **Restore** (merges items back into cart via `useCart.addToCart` for each item, then routes to `/cart` and toasts count restored) and **Delete** (with confirm).
+- Empty state with link back to `/store`.
+- Match cart's typography (`font-serif` heading, sans body).
+- After Restore, verify cart count updates by invalidating the cart query / calling `refetch()` from context.
+
+## 5. /admin/orders — viewable, approvable, printable
+
+Audit `src/pages/admin/Orders.tsx` (or equivalent) + `useAdminOrders.ts`. Required behavior:
+
+- Each order row clickable → opens **OrderDetailDrawer** (or `/admin/orders/:id`) showing line items, addresses, payment method, totals, status timeline.
+- Statuses surfaced: `pending_payment`, `active`, `fulfilled`, `completed`, `cancelled` (use existing `src/domain/statuses.ts` enum).
+- **Approve payment** button visible only when status = `pending_payment`; calls existing `approve_pending_payment` RPC with method label (BimPay / Payment Link / Stripe offline / 1stPay) + reference note; moves order to `active`.
+- **Mark fulfilled** action on `active` orders → moves to `fulfilled`; **Mark completed** on `fulfilled` → `completed`. Each writes to `order_payment_events` / order audit.
+- **Print order** button → opens print-friendly route `/admin/orders/:id/print` (new lightweight component, uses `window.print()`).
+
+## 6. Automated E2E browser tests
+
+Add Playwright scripts under `/tmp/browser/cart-checkout/` (kept out of repo per browser-agent rules) AND a committed Vitest + Testing-Library suite in `src/tests/e2e/cartCheckoutFlow.e2e.test.tsx` covering:
+
+1. Add product to cart from `/store` → cart shows item, totals correct.
+2. Cart → "Proceed to Checkout" → checkout renders step 1 with items intact (regression for blink bug).
+3. Save draft from cart → draft appears in `/profile/drafts` with correct item count + total.
+4. Restore draft → cart repopulated, toast shown, `/cart` route.
+5. Delete draft → row removed.
+6. Admin: pending order → approve payment → status flips to `active`; view detail; trigger print preview.
+
+Use the pre-minted Supabase session env vars for auth, viewport `1280×1800`, screenshots after every key step under `/tmp/browser/cart-checkout/screenshots/`.
+
+## Files to change
+
+- `src/pages/CheckoutPage.tsx` — loading-aware guard, header offset
+- `src/pages/CartPage.tsx` — typography sweep
+- `src/components/account/sections/CartDraftsSection.tsx` — totals/status/restore-delete UX
+- `src/hooks/useCartDrafts.ts` — expose `restoreDraft` that pushes items into cart and triggers refetch
+- `src/pages/admin/Orders.tsx` + new `OrderDetailDrawer.tsx` + `OrdersPrintPage.tsx`
+- `src/routes/admin/AdminRoutes.tsx` + `src/config/routeRegistry.ts` — register print route
+- `src/tests/e2e/cartCheckoutFlow.e2e.test.tsx` — new committed suite
+- `/tmp/browser/cart-checkout/*.py` — runtime verification scripts (not committed)
+
+## Validation
+
+- `npm run lint`
+- `npm run test -- --runInBand`
+- `npm run build`
+- Playwright run against `localhost:8080` with auth session restored; capture screenshots of cart, checkout step 1 with stepper fully visible (no header overlap), drafts list with totals, admin order detail with Approve button, print preview.
