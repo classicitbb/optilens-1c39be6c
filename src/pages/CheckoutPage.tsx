@@ -221,7 +221,7 @@ const OrderSummarySidebar = ({
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { items, totalPrice, clearCart } = useCartContext();
+  const { items, totalPrice, clearCart, loading: cartLoading } = useCartContext();
   const { user } = useAuth();
   const { createOrder } = useOrders();
   const { identity, isLoading: identityLoading } = usePortalIdentity();
