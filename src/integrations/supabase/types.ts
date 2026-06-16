@@ -6273,6 +6273,10 @@ export type Database = {
         Args: { p_items: Json; p_target_user_id?: string }
         Returns: number
       }
+      approve_pending_payment: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       can_access_customer_portal_feature: {
         Args: { p_feature_key?: string; p_user_id?: string }
         Returns: boolean
@@ -6312,6 +6316,23 @@ export type Database = {
           sort_order: number
           supplier_id: string
           updated_at: string
+        }[]
+      }
+      get_all_orders_admin: {
+        Args: { p_limit?: number; p_offset?: number; p_status_filter?: string }
+        Returns: {
+          checkout_method: string
+          contact_email: string
+          contact_phone: string
+          created_at: string
+          customer_name: string
+          id: string
+          payment_provider: string
+          payment_status: string
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
         }[]
       }
       get_integration_connection_secret: {
