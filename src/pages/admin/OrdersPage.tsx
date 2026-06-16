@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CheckCircle, Clock, Loader2, Package, Search } from "lucide-react";
 import { format } from "date-fns";
+import OrderDetailDialog from "@/components/admin/OrderDetailDialog";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
