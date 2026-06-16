@@ -63,6 +63,7 @@ const formatProvider = (method: string) => CHECKOUT_METHOD_LABELS[method] ?? met
 interface OrdersTableProps {
   orders: AdminOrderRow[];
   onApprove?: (order: AdminOrderRow) => void;
+  onView?: (order: AdminOrderRow) => void;
   showApprove?: boolean;
 }
 
