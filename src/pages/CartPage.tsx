@@ -52,7 +52,7 @@ const CartPage = () => {
         <Header />
         <main className="container mx-auto flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 pt-24 text-center">
           <ShoppingCart className="h-12 w-12 text-muted-foreground" aria-hidden="true" />
-          <h1 className="font-serif text-2xl text-foreground">Your cart is empty</h1>
+          <h1 className="text-2xl text-foreground">Your cart is empty</h1>
           <p className="text-muted-foreground">Add some products and come back.</p>
           <Button variant="outline" asChild className="mt-2">
             <Link to="/store">Browse products</Link>
@@ -69,7 +69,7 @@ const CartPage = () => {
       <main className="container mx-auto px-4 pb-16 pt-24 sm:px-6">
         {/* Page header */}
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="font-serif text-2xl text-foreground">
+          <h1 className="text-2xl text-foreground">
             Shopping Cart
             <span className="ml-2 font-sans text-base font-normal text-muted-foreground">
               ({totalItems} {totalItems === 1 ? "item" : "items"})

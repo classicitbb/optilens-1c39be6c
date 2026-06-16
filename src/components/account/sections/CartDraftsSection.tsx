@@ -60,7 +60,7 @@ const CartDraftsSection = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="font-serif text-2xl text-foreground">Saved Drafts</h1>
+        <h1 className="text-2xl text-foreground">Saved Drafts</h1>
         <p className="text-sm text-muted-foreground">Snapshots of carts you saved for later.</p>
       </div>
 

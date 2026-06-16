@@ -390,7 +390,7 @@ const CheckoutPage = () => {
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-secondary/10">
               <CheckCircle className="h-9 w-9 text-secondary" aria-hidden="true" />
             </div>
-            <h1 className="mb-2 font-serif text-2xl text-foreground">
+            <h1 className="mb-2 text-2xl text-foreground">
               {formData.checkoutMethod === "on_account"
                 ? "Order placed on account"
                 : "Order received"}
