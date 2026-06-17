@@ -61,7 +61,7 @@ export const useProductVariants = (productType?: StoreProductType, productId?: s
     enabled: Boolean(productType && productId),
     queryFn: async () => {
       const query = (supabase as any)
-        .from("store_product_variants")
+        .from("store_product_variants_public")
         .select(publicVariantColumns)
         .eq("product_type", productType)
         .eq("product_id", productId)

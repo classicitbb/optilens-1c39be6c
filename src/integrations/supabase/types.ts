@@ -166,6 +166,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "addon_pricing_sheets_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "addon_pricing_sheets_pricing_sheet_id_fkey"
             columns: ["pricing_sheet_id"]
             isOneToOne: false
@@ -565,6 +572,13 @@ export type Database = {
             columns: ["variant_id"]
             isOneToOne: false
             referencedRelation: "store_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "store_product_variants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3310,6 +3324,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lens_lens_options_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lens_lens_options_lens_option_id_fkey"
             columns: ["lens_option_id"]
             isOneToOne: false
@@ -3614,6 +3635,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "matrix_allocations_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "matrix_allocations_pricelist_version_id_fkey"
             columns: ["pricelist_version_id"]
             isOneToOne: false
@@ -3814,6 +3842,13 @@ export type Database = {
             columns: ["variant_id"]
             isOneToOne: false
             referencedRelation: "store_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "store_product_variants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -4385,6 +4420,13 @@ export type Database = {
             referencedRelation: "lenses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pricing_input_rows_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pricing_settings: {
@@ -4829,10 +4871,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quote_lines_parent_line_id_fkey"
+            columns: ["parent_line_id"]
+            isOneToOne: false
+            referencedRelation: "quote_lines_customer"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "quote_lines_quote_id_fkey"
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes_customer"
             referencedColumns: ["id"]
           },
         ]
@@ -5116,6 +5172,13 @@ export type Database = {
             referencedRelation: "quote_lines"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "rx_details_quote_line_id_fkey"
+            columns: ["quote_line_id"]
+            isOneToOne: true
+            referencedRelation: "quote_lines_customer"
+            referencedColumns: ["id"]
+          },
         ]
       }
       rx_price_categories: {
@@ -5393,10 +5456,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "shipment_lines_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "shipment_lines_lens_id_fkey"
             columns: ["lens_id"]
             isOneToOne: false
             referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
             referencedColumns: ["id"]
           },
           {
@@ -5750,6 +5827,13 @@ export type Database = {
             columns: ["variant_id"]
             isOneToOne: false
             referencedRelation: "store_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_variant_audit_logs_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "store_product_variants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -6210,6 +6294,65 @@ export type Database = {
       }
     }
     Views: {
+      addons_public: {
+        Row: {
+          auto_rule: Json | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          is_auto: boolean | null
+          name: string | null
+          price: number | null
+          show_on_website: boolean | null
+          sku: string | null
+          sort_order: number | null
+          supplier_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_rule?: Json | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_auto?: boolean | null
+          name?: string | null
+          price?: number | null
+          show_on_website?: boolean | null
+          sku?: string | null
+          sort_order?: number | null
+          supplier_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_rule?: Json | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_auto?: boolean | null
+          name?: string | null
+          price?: number | null
+          show_on_website?: boolean | null
+          sku?: string | null
+          sort_order?: number | null
+          supplier_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addons_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_health_metrics_dashboard: {
         Row: {
           error_rate: number | null
@@ -6222,6 +6365,210 @@ export type Database = {
         }
         Relationships: []
       }
+      lenses_public: {
+        Row: {
+          id: string | null
+          is_active: boolean | null
+          lenstype_id: string | null
+          material_id: string | null
+          mftype_id: string | null
+          name: string | null
+          notes: string | null
+          sell_price: number | null
+          show_on_website: boolean | null
+        }
+        Insert: {
+          id?: string | null
+          is_active?: boolean | null
+          lenstype_id?: string | null
+          material_id?: string | null
+          mftype_id?: string | null
+          name?: string | null
+          notes?: string | null
+          sell_price?: number | null
+          show_on_website?: boolean | null
+        }
+        Update: {
+          id?: string | null
+          is_active?: boolean | null
+          lenstype_id?: string | null
+          material_id?: string | null
+          mftype_id?: string | null
+          name?: string | null
+          notes?: string | null
+          sell_price?: number | null
+          show_on_website?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lenses_lenstype_id_fkey"
+            columns: ["lenstype_id"]
+            isOneToOne: false
+            referencedRelation: "lenstypes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lenses_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lenses_mftype_id_fkey"
+            columns: ["mftype_id"]
+            isOneToOne: false
+            referencedRelation: "mftypes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_lines_customer: {
+        Row: {
+          created_at: string | null
+          description_override: string | null
+          group_key: string | null
+          id: string | null
+          item_name: string | null
+          line_note: string | null
+          line_type: string | null
+          parent_line_id: string | null
+          product_id: string | null
+          qty: number | null
+          quote_id: string | null
+          sku: string | null
+          sort_order: number | null
+          unit_sell_price_bbd: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description_override?: string | null
+          group_key?: string | null
+          id?: string | null
+          item_name?: string | null
+          line_note?: string | null
+          line_type?: string | null
+          parent_line_id?: string | null
+          product_id?: string | null
+          qty?: number | null
+          quote_id?: string | null
+          sku?: string | null
+          sort_order?: number | null
+          unit_sell_price_bbd?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description_override?: string | null
+          group_key?: string | null
+          id?: string | null
+          item_name?: string | null
+          line_note?: string | null
+          line_type?: string | null
+          parent_line_id?: string | null
+          product_id?: string | null
+          qty?: number | null
+          quote_id?: string | null
+          sku?: string | null
+          sort_order?: number | null
+          unit_sell_price_bbd?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_parent_line_id_fkey"
+            columns: ["parent_line_id"]
+            isOneToOne: false
+            referencedRelation: "quote_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_parent_line_id_fkey"
+            columns: ["parent_line_id"]
+            isOneToOne: false
+            referencedRelation: "quote_lines_customer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes_customer"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes_customer: {
+        Row: {
+          account_id: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          customer_name: string | null
+          grand_total: number | null
+          id: string | null
+          lead_time_days: number | null
+          notes_customer: string | null
+          quote_number: string | null
+          quote_type: string | null
+          status: string | null
+          subtotal_sell: number | null
+          updated_at: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          customer_name?: string | null
+          grand_total?: number | null
+          id?: string | null
+          lead_time_days?: number | null
+          notes_customer?: string | null
+          quote_number?: string | null
+          quote_type?: string | null
+          status?: string | null
+          subtotal_sell?: number | null
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          customer_name?: string | null
+          grand_total?: number | null
+          id?: string | null
+          lead_time_days?: number | null
+          notes_customer?: string | null
+          quote_number?: string | null
+          quote_type?: string | null
+          status?: string | null
+          subtotal_sell?: number | null
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       store_product_variant_summary: {
         Row: {
           active_variants: number | null
@@ -6231,6 +6578,69 @@ export type Database = {
           product_id: string | null
           product_type: string | null
           total_variants: number | null
+        }
+        Relationships: []
+      }
+      store_product_variants_public: {
+        Row: {
+          allow_backorder: boolean | null
+          attributes: Json | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          low_stock_threshold: number | null
+          metadata: Json | null
+          opc_code: string | null
+          price: number | null
+          product_id: string | null
+          product_type: string | null
+          reserved_qty: number | null
+          sku: string | null
+          sort_order: number | null
+          stock_qty: number | null
+          title: string | null
+          updated_at: string | null
+          variant_key: string | null
+        }
+        Insert: {
+          allow_backorder?: boolean | null
+          attributes?: Json | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          low_stock_threshold?: number | null
+          metadata?: Json | null
+          opc_code?: string | null
+          price?: number | null
+          product_id?: string | null
+          product_type?: string | null
+          reserved_qty?: number | null
+          sku?: string | null
+          sort_order?: number | null
+          stock_qty?: number | null
+          title?: string | null
+          updated_at?: string | null
+          variant_key?: string | null
+        }
+        Update: {
+          allow_backorder?: boolean | null
+          attributes?: Json | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          low_stock_threshold?: number | null
+          metadata?: Json | null
+          opc_code?: string | null
+          price?: number | null
+          product_id?: string | null
+          product_type?: string | null
+          reserved_qty?: number | null
+          sku?: string | null
+          sort_order?: number | null
+          stock_qty?: number | null
+          title?: string | null
+          updated_at?: string | null
+          variant_key?: string | null
         }
         Relationships: []
       }
