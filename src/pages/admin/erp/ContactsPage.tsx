@@ -1691,7 +1691,7 @@ const ContactsPage = () => {
 
       {/* Edit Dialog */}
       <Dialog open={!!editContact} onOpenChange={(v) => !v && closeEditDialog()}>
-        <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100dvh - 32px)" }}>
+        <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden flex flex-col" style={{ height: "calc(100svh - 24px)", maxHeight: "calc(100svh - 24px)" }}>
           {editContact && (() => {
             const currentIndex = filtered.findIndex((c) => c.id === editContact.id);
             const canGoPrev = editContact.id && currentIndex > 0;
