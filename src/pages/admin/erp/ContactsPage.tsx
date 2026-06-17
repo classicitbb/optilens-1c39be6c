@@ -1755,8 +1755,8 @@ const ContactsPage = () => {
                     <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="details" className="flex-1 px-4 py-3 m-0 overflow-hidden">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5 gap-y-2.5 h-full">
+                  <TabsContent value="details" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5 gap-y-2.5 md:h-full">
                       {/* Column 1: Identity */}
                       <div className="space-y-2">
                         <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "hsl(215 15% 55%)" }}>Identity</h4>
