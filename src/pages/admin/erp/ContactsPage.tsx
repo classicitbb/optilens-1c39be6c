@@ -1691,7 +1691,7 @@ const ContactsPage = () => {
 
       {/* Edit Dialog */}
       <Dialog open={!!editContact} onOpenChange={(v) => !v && closeEditDialog()}>
-        <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden" style={{ maxHeight: "calc(100vh - 48px)" }}>
+        <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden flex flex-col" style={{ maxHeight: "calc(100dvh - 32px)" }}>
           {editContact && (() => {
             const currentIndex = filtered.findIndex((c) => c.id === editContact.id);
             const canGoPrev = editContact.id && currentIndex > 0;
@@ -1713,7 +1713,7 @@ const ContactsPage = () => {
                       {editContact.id ? "Edit Contact" : editContact.is_company ? "New Company" : "New Person"}
                     </DialogTitle>
                     {editContact.id && (
-                      <div className="flex items-center gap-2 mr-4">
+                      <div className="hidden sm:flex items-center gap-2 mr-4">
                         {getOpportunityCount(editContact.id) > 0 ? (
                           <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openCrmForContact(editContact)}>
                             <Kanban className="h-3.5 w-3.5 mr-1" />
@@ -1729,7 +1729,7 @@ const ContactsPage = () => {
                       </div>
                     )}
                     {editContact.id && (
-                      <div className="flex items-center gap-1 mr-8">
+                      <div className="hidden sm:flex items-center gap-1 mr-8">
                         <span className="text-[10px] mr-1" style={{ color: "hsl(215 15% 55%)" }}>
                           {currentIndex + 1} / {filtered.length}
                         </span>
@@ -2023,7 +2023,7 @@ const ContactsPage = () => {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="notes" className="flex-1 px-4 py-3 m-0">
+                  <TabsContent value="notes" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <Button
                         type="button"
