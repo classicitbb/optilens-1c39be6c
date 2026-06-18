@@ -64,6 +64,11 @@ export default function ApiKeysPage() {
     else load();
   }
 
+  const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL ?? "";
+  const docsUrl = `${supabaseUrl}/functions/v1/api-v1/docs`;
+  const specUrl = `${supabaseUrl}/functions/v1/api-v1/openapi.json`;
+  const copy = (v: string, label: string) => { navigator.clipboard.writeText(v); toast({ title: `${label} copied` }); };
+
   return (
     <div className="container mx-auto p-6 space-y-6 max-w-5xl">
       <header>
@@ -73,6 +78,30 @@ export default function ApiKeysPage() {
           Send <code>x-api-key: &lt;token&gt;</code>.
         </p>
       </header>
+
+      <Card>
+        <CardHeader><CardTitle>Documentation</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Paste the OpenAPI URL into ChatGPT Custom GPT Actions, Cursor, Postman, or any AI coding tool
+            to give it full knowledge of every endpoint, parameter, and response shape. No auth needed to view.
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="w-32 shrink-0">Swagger UI</Label>
+              <Input readOnly value={docsUrl} className="font-mono text-xs" />
+              <Button size="sm" variant="outline" onClick={() => copy(docsUrl, "Docs URL")}>Copy</Button>
+              <Button size="sm" variant="outline" asChild><a href={docsUrl} target="_blank" rel="noreferrer">Open</a></Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="w-32 shrink-0">openapi.json</Label>
+              <Input readOnly value={specUrl} className="font-mono text-xs" />
+              <Button size="sm" variant="outline" onClick={() => copy(specUrl, "Spec URL")}>Copy</Button>
+              <Button size="sm" variant="outline" asChild><a href={specUrl} target="_blank" rel="noreferrer">Open</a></Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Create a new key</CardTitle></CardHeader>
