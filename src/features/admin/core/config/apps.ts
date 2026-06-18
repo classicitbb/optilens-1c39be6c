@@ -9,7 +9,7 @@ import {
   Ticket, UsersRound, ShieldCheck,
   Layout, Palette, UserCircle, Store,
   BookMarked, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key,
   Rocket, LayoutDashboard as MsBoard, ListChecks, MessageSquare, TrendingUp, Mountain, CheckSquare, AlertCircle, FileText as MsPlan, Wrench as MsTools, Users as MsUsers,
   type LucideIcon,
 } from 'lucide-react';
