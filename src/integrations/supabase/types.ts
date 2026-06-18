@@ -328,6 +328,95 @@ export type Database = {
           },
         ]
       }
+      api_audit_log: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          method: string
+          request_summary: Json | null
+          resource: string
+          resource_id: string | null
+          response_summary: Json | null
+          status: number
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          method: string
+          request_summary?: Json | null
+          resource: string
+          resource_id?: string | null
+          response_summary?: Json | null
+          status: number
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          method?: string
+          request_summary?: Json | null
+          resource?: string
+          resource_id?: string | null
+          response_summary?: Json | null
+          status?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_audit_log_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -6699,6 +6788,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      create_api_key: {
+        Args: { p_expires_at?: string; p_name: string; p_scopes: string[] }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -6920,6 +7013,7 @@ export type Database = {
         }[]
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
+      revoke_api_key: { Args: { p_id: string }; Returns: undefined }
       sync_customer_portal_identity: {
         Args: { p_user_id?: string }
         Returns: {
@@ -7023,6 +7117,14 @@ export type Database = {
       upsert_presence_heartbeat: {
         Args: { p_role_scope?: string; p_status?: string }
         Returns: undefined
+      }
+      verify_api_key: {
+        Args: { p_token: string }
+        Returns: {
+          id: string
+          name: string
+          scopes: string[]
+        }[]
       }
     }
     Enums: {
