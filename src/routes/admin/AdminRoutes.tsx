@@ -140,6 +140,7 @@ const AdminRoutes = () => (
       <Route path="settings/roles" element={<RolesPermissionsPage />} />
       <Route path="settings/audit" element={<AuditLogPage />} />
       <Route path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>} />
+      <Route path="settings/api-keys" element={<AdminOnlyRoute><ApiKeysPage /></AdminOnlyRoute>} />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
 
