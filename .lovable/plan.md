@@ -1,75 +1,51 @@
 ## Goal
-Expose a stable REST API so an external pricelist-wizard app (with AI/logic) can read and write Classic Visions domain data: **price catalog, moonshot, contacts, products, customers, orders**. Authenticated by per-integration API keys, scoped, audited.
+Make the `api-v1` edge function self-describing so other AI tools (Custom GPTs, Cursor, Claude, agents) and humans (Postman, Insomnia) can discover endpoints automatically — no hand-holding.
 
-## Architecture
-One Supabase Edge Function `api-v1` acts as the gateway for all external calls.
+## What gets added
 
-```text
-external app -> https://.../functions/v1/api-v1/<resource>[/id]
-                  headers: x-api-key: <token>
-                          ↓
-                  verify key, load scopes
-                          ↓
-                  service-role Supabase client
-                          ↓
-                  resource handler (read/write)
-                          ↓
-                  audit log row
+**1. OpenAPI 3.1 spec** — hand-written, lives at:
 ```
+supabase/functions/api-v1/openapi.ts
+```
+A single TypeScript module that exports a JS object (so we get type-checking and avoid YAML parsing in Deno). Covers every current resource:
+- `catalog`, `contacts`, `customers`, `orders`
+- `lenses`, `supplies`, `addons` (with cost fields documented as stripped)
+- `moonshot_rocks`, `moonshot_todos`
 
-Why one function, not many: one CORS surface, one auth path, one audit pipeline, easier to version (`/api-v1`, later `/api-v2`).
+For each resource we document: `GET /<resource>` (list, with `limit`/`offset`/`order` query params), `GET /<resource>/:id`, `POST /<resource>`, `PATCH /<resource>/:id`, plus the `x-api-key` security scheme, the `catalog` draft-routing behavior, and standard error shapes.
 
-## Auth model (per-integration API keys)
-New tables:
-- `api_keys` — `id, name, key_prefix, key_hash, scopes text[], created_by, last_used_at, revoked_at, expires_at`
-- `api_audit_log` — `id, api_key_id, method, resource, resource_id, status, request_summary, response_summary, ip, created_at`
+**2. Two new public routes inside the edge function** (no API key required):
+- `GET /functions/v1/api-v1/openapi.json` — returns the spec as JSON
+- `GET /functions/v1/api-v1/docs` — returns an HTML page that loads Swagger UI from a CDN and points at `./openapi.json`
 
-Key format: `clv_live_<prefix>_<secret>`; only the SHA-256 hash is stored. Shown to admin **once** at creation.
+These are added at the top of the request handler so they short-circuit before the API-key check.
 
-Scopes are `resource:action` strings:
-- `catalog:read`, `catalog:write`
-- `contacts:read`, `contacts:write`
-- `products:read`, `products:write`
-- `customers:read`, `customers:write`
-- `orders:read`, `orders:write`
-- `moonshot:read`, `moonshot:write`
+**3. Admin UI hookup** on `/admin/settings/api-keys`:
+- A "Documentation" card at the top with two copy-buttons: the Swagger UI URL and the raw `openapi.json` URL.
+- A short blurb: "Paste the openapi.json URL into ChatGPT Custom GPT Actions, Cursor, or any AI coding tool to give it full access to this API."
 
-Admin UI: new page `/admin/integrations/api-keys` to create, name, scope, revoke, rotate keys, and view recent audit log.
+## What this unlocks for other AIs
 
-## Resources exposed in v1
-Each resource gets `GET /list`, `GET /:id`, `POST /` (create), `PATCH /:id` (update). Deletes are intentionally out of scope for v1 (per your earlier policy preference — soft-archive instead where supported).
+| Tool | How it consumes the spec |
+|---|---|
+| **ChatGPT Custom GPT** | Paste the openapi.json URL into "Actions" → it imports every endpoint as a callable tool |
+| **Cursor / Claude Code** | Point at the URL or the `openapi.ts` file in the repo |
+| **Postman / Insomnia** | Import openapi.json → full collection appears |
+| **n8n / Zapier / Make** | "HTTP Request from OpenAPI" node consumes it directly |
+| **OpenAI / Anthropic agents** | Standard `openapi_to_functions` converters turn endpoints into tool calls |
 
-| Resource | Backing table(s) | Notes |
-|---|---|---|
-| `catalog` | `price_catalog`, joined lens/addon refs | Cost fields stripped unless key has `catalog:read_cost` scope (separate, admin-only). |
-| `contacts` | `contacts` | Honors Caribbean country list, parent_id linkage. |
-| `products` | `lenses`, `supplies`, `addons` via a unified product view | Type discriminator in payload (`lens` / `supply` / `addon`). |
-| `customers` | `customers` + linked `contacts` | Includes `assigned_pricelist_id`. |
-| `orders` | `orders`, `order_items` | Write path goes through `place_customer_order_v2` to preserve governance + payment-link issuance. |
-| `moonshot` | Tables backing the Moonshot module (rocks, todos, scorecards, meetings, issues) | Read/write parity with internal UI. |
+## Why public (no auth) for the spec
 
-All write payloads validated with zod. All responses are JSON, paginated with `?limit=&cursor=`, return `{data, next_cursor}`.
+The spec describes shape only — no data, no secrets. Making it public is the universal standard (Stripe, GitHub, Twilio all do this) and is the **only** way Custom GPT Actions and most agent frameworks can fetch it. Actual data still requires `x-api-key`.
 
-## Security
-- Key verification compares SHA-256 of provided token against `api_keys.key_hash`; rejects revoked/expired.
-- Function runs with service role internally, but every handler enforces scope **before** touching the DB.
-- All cost fields hidden by default — matches the existing Viewer/Customer rule (hard rule #7).
-- Rate limit: 60 req/min per key (in-memory token bucket; logs `429` on overflow).
-- CORS: allow any origin (it's a keyed API), but require `x-api-key` header.
-- Every request writes to `api_audit_log`.
+## Out of scope (can do later)
 
-## Deliverables
-1. **Migration** — `api_keys`, `api_audit_log`, RLS (admin-only), `create_api_key` RPC returning the plaintext key once, `revoke_api_key` RPC.
-2. **Edge function** `supabase/functions/api-v1/index.ts` with: auth middleware, scope guard, rate limiter, audit logger, and the six resource handlers.
-3. **Admin page** `src/pages/admin/integrations/ApiKeysPage.tsx` — list/create/revoke/rotate keys, view audit log, copy-once key reveal.
-4. **Sidebar entry** added under existing Admin → Integrations area.
-5. **Public docs page** `/admin/integrations/api-keys/docs` describing endpoints, auth header, examples (curl + fetch), scopes.
+- Auto-generating the spec from zod schemas (would require refactoring the edge function)
+- Versioned spec history
+- Rate-limit documentation (no rate limits exist yet)
 
-## Out of scope (call out, not building in v1)
-- Webhooks (you said read+write only) — flagged for v2.
-- Delete endpoints.
-- Per-user JWT (only API keys).
-- OpenAPI spec file — can add later if the external app benefits.
+## Files touched
 
-## Open question to confirm before build
-The pricelist-wizard will need to **write** to the price catalog (create/update rows). Confirm: should writes go directly into `price_catalog`, or should they create a draft `pricelist_version` that an admin publishes? I'll default to **direct write** for v1 unless you say otherwise.
+- **new** `supabase/functions/api-v1/openapi.ts` — the spec
+- **edit** `supabase/functions/api-v1/index.ts` — add `/openapi.json` and `/docs` routes before auth
+- **edit** `src/pages/admin/settings/ApiKeysPage.tsx` — add Documentation card with the two URLs
