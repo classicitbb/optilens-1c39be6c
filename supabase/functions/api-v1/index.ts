@@ -97,6 +97,19 @@ Deno.serve(async (req: Request) => {
   const segments = apiIdx >= 0 ? parts.slice(apiIdx + 1) : parts;
   const [resource, id] = segments;
 
+  // Public docs endpoints — no API key required.
+  const serverUrl = `${url.origin}/functions/v1/api-v1`;
+  if (req.method === "GET" && resource === "openapi.json") {
+    return new Response(JSON.stringify(buildOpenApiSpec(serverUrl)), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  if (req.method === "GET" && resource === "docs") {
+    return new Response(SWAGGER_UI_HTML, {
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
