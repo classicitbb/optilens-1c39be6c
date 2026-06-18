@@ -379,6 +379,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          draft_pricelist_version_id: number | null
           expires_at: string | null
           id: string
           key_hash: string
@@ -392,6 +393,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          draft_pricelist_version_id?: number | null
           expires_at?: string | null
           id?: string
           key_hash: string
@@ -405,6 +407,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          draft_pricelist_version_id?: number | null
           expires_at?: string | null
           id?: string
           key_hash?: string
@@ -415,7 +418,15 @@ export type Database = {
           scopes?: string[]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_draft_pricelist_version_id_fkey"
+            columns: ["draft_pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_log: {
         Row: {
@@ -6770,6 +6781,10 @@ export type Database = {
     Functions: {
       add_variant_items_to_cart: {
         Args: { p_items: Json; p_target_user_id?: string }
+        Returns: number
+      }
+      api_get_or_create_catalog_draft: {
+        Args: { p_api_key_id: string }
         Returns: number
       }
       approve_pending_payment: {
