@@ -6,6 +6,7 @@
 //   POST /<resource>           -> insert
 //   PATCH /<resource>/<id>     -> update
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildOpenApiSpec, SWAGGER_UI_HTML } from "./openapi.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
