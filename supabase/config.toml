@@ -41,3 +41,5 @@ project_id = "xstmeirxhfbiyayrrsob"
     schedule = "*/10 * * * *"
   [functions.customer-onboarding]
     verify_jwt = true
+  [functions.api-v1]
+    verify_jwt = false
