@@ -153,6 +153,7 @@ export const ADMIN_APPS = {
       { label: 'Roles & Permissions', route: '/admin/settings/roles', icon: Lock },
       { label: 'Audit Log', route: '/admin/settings/audit', icon: ScrollText },
       { label: 'Integrations', route: '/admin/settings/integrations', icon: Plug },
+      { label: 'API Keys', route: '/admin/settings/api-keys', icon: Key },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
     ] satisfies SidebarItem[],
