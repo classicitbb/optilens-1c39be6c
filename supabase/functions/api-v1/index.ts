@@ -152,16 +152,56 @@ Deno.serve(async (req: Request) => {
     } else if (req.method === "POST") {
       const body = await req.json().catch(() => null);
       if (!body || typeof body !== "object") return json({ error: "Invalid JSON body." }, 400);
-      const { data, error } = await supabase.from(cfg.table).insert(body).select().maybeSingle();
-      if (error) throw error;
-      status = 201;
-      respBody = { data: stripCost(data, cfg.costFields) };
+      if (resource === "catalog") {
+        // Route catalog writes through this key's draft pricelist_version.
+        // If the draft has been saved as a usable template, we keep using
+        // that same version — never write directly to the live price_catalog.
+        const { data: draftId, error: draftErr } = await supabase.rpc(
+          "api_get_or_create_catalog_draft",
+          { p_api_key_id: key.id },
+        );
+        if (draftErr) throw draftErr;
+        const row = { ...body, pricelist_version_id: draftId };
+        const { data, error } = await supabase
+          .from("pricelist_catalog_rows")
+          .insert(row)
+          .select()
+          .maybeSingle();
+        if (error) throw error;
+        status = 201;
+        respBody = { data, draft_pricelist_version_id: draftId };
+      } else {
+        const { data, error } = await supabase.from(cfg.table).insert(body).select().maybeSingle();
+        if (error) throw error;
+        status = 201;
+        respBody = { data: stripCost(data, cfg.costFields) };
+      }
     } else if (req.method === "PATCH" && id) {
       const body = await req.json().catch(() => null);
       if (!body || typeof body !== "object") return json({ error: "Invalid JSON body." }, 400);
-      const { data, error } = await supabase.from(cfg.table).update(body).eq("id", id).select().maybeSingle();
-      if (error) throw error;
-      respBody = { data: stripCost(data, cfg.costFields) };
+      if (resource === "catalog") {
+        const { data: draftId, error: draftErr } = await supabase.rpc(
+          "api_get_or_create_catalog_draft",
+          { p_api_key_id: key.id },
+        );
+        if (draftErr) throw draftErr;
+        // Scope the update to the key's own draft so callers cannot mutate
+        // rows belonging to other pricelist versions.
+        const { data, error } = await supabase
+          .from("pricelist_catalog_rows")
+          .update(body)
+          .eq("id", id)
+          .eq("pricelist_version_id", draftId)
+          .select()
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) { status = 404; respBody = { error: "Row not found in current draft." }; }
+        else respBody = { data, draft_pricelist_version_id: draftId };
+      } else {
+        const { data, error } = await supabase.from(cfg.table).update(body).eq("id", id).select().maybeSingle();
+        if (error) throw error;
+        respBody = { data: stripCost(data, cfg.costFields) };
+      }
     } else {
       status = 405;
       respBody = { error: "Method not allowed." };
