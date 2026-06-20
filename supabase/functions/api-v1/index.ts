@@ -150,12 +150,21 @@ Deno.serve(async (req: Request) => {
     if (req.method === "GET" && !id) {
       const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 500);
       const offset = parseInt(url.searchParams.get("offset") ?? "0", 10) || 0;
-      const order = url.searchParams.get("order") ?? "created_at.desc";
+      const orderParam = url.searchParams.get("order");
+      const orderProvided = !!orderParam;
+      const order = orderParam ?? "created_at.desc";
       const [col, dir] = order.split(".");
-      const q = supabase.from(cfg.table).select("*", { count: "exact" })
-        .range(offset, offset + limit - 1)
-        .order(col || "created_at", { ascending: (dir || "desc") === "asc" });
-      const { data, error, count } = await q;
+      const ascending = (dir || "desc") === "asc";
+      const runQuery = (orderCol: string) =>
+        supabase.from(cfg.table).select("*", { count: "exact" })
+          .range(offset, offset + limit - 1)
+          .order(orderCol, { ascending });
+      let { data, error, count } = await runQuery(col || "created_at");
+      // If caller did not specify an order and the default column doesn't exist,
+      // retry once ordered by `id` so resources without `created_at` still work.
+      if (error && !orderProvided && (error.code === "42703" || /does not exist/i.test(error.message ?? ""))) {
+        ({ data, error, count } = await runQuery("id"));
+      }
       if (error) throw error;
       respBody = { data: stripCost(data, cfg.costFields), count, limit, offset };
     } else if (req.method === "GET" && id) {
