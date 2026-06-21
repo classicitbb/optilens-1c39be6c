@@ -34,6 +34,11 @@ export const useReferenceData = (table: string, enabled = true) => {
       return data as ReferenceItem[];
     },
     enabled: !!safeTable && enabled,
+    // Reference/lookup tables change rarely — cache aggressively to cut DB load.
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const createMutation = useMutation({
