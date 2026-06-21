@@ -175,7 +175,6 @@ Deno.serve(async (req: Request) => {
       ) {
         ({ data, error, count } = await runList("id"));
       }
-      }
       if (error) throw error;
       respBody = { data: stripCost(data, cfg.costFields), count, limit, offset };
     } else if (req.method === "GET" && id) {
