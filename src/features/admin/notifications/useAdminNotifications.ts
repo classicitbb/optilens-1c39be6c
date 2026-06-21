@@ -27,13 +27,7 @@ export function useAdminNotifications() {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 20);
     },
-    // Poll every 2 minutes, and only while the tab is visible — this avoids
-    // burning Cloud DB cycles polling integration_connections / sync_jobs
-    // for every backgrounded admin tab.
-    refetchInterval: () => (isBrowser && document.visibilityState === "visible" ? 120_000 : false),
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60_000,
+    refetchInterval: 30_000,
   });
   const receiptsQuery = useQuery({
     queryKey: ["admin-notification-receipts", user?.id],
@@ -46,10 +40,7 @@ export function useAdminNotifications() {
       if (error) throw error;
       return (data ?? []) as Array<{ notification_id: string; read_at: string | null; dismissed_at: string | null }>;
     },
-    refetchInterval: () => (isBrowser && document.visibilityState === "visible" ? 120_000 : false),
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60_000,
+    refetchInterval: 30_000,
   });
 
   const notifications = notificationsQuery.data ?? [];

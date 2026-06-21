@@ -418,12 +418,7 @@ const HelpdeskOverviewPage = () => {
       if (error) throw error;
       return (data ?? []) as OverviewTicket[];
     },
-    // Poll only when the tab is visible, and slow the cadence way down (was 30s -> 66k DB calls/day).
-    refetchInterval: () =>
-      typeof document !== "undefined" && document.visibilityState === "visible" ? 120_000 : false,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60_000,
+    refetchInterval: 30000
   });
 
   const ticketIds = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);

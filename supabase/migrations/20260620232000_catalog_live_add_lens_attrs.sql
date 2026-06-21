@@ -1,7 +1,11 @@
-DROP VIEW IF EXISTS public.catalog_live;
-
-CREATE VIEW public.catalog_live
-WITH (security_invoker = true) AS
+-- Round out catalog_live with the lens-classification attributes the pricing
+-- engine uses to match equivalent lenses across suppliers in the Rx matrix:
+-- lenstype, material, mftype. These are FK lookups on `lenses`, resolved to
+-- readable names; supplies/addons carry NULL for them.
+--
+-- CREATE OR REPLACE only allows appending columns, so the existing 16 columns
+-- stay in the same order and the three new ones are added at the end.
+CREATE OR REPLACE VIEW public.catalog_live AS
   SELECT
     l.id                   AS id,
     'lens'::text           AS product_type,
@@ -28,7 +32,9 @@ WITH (security_invoker = true) AS
   LEFT JOIN public.materials m  ON m.id  = l.material_id
   LEFT JOIN public.mftypes mf   ON mf.id = l.mftype_id
   WHERE l.is_active
+
   UNION ALL
+
   SELECT
     sp.id,
     'supply'::text,
@@ -52,7 +58,9 @@ WITH (security_invoker = true) AS
   FROM public.supplies sp
   LEFT JOIN public.suppliers s ON s.id = sp.supplier_id
   WHERE sp.is_active
+
   UNION ALL
+
   SELECT
     a.id,
     'addon'::text,

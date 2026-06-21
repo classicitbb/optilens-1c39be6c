@@ -80,10 +80,6 @@ export const useLenses = () => {
 
   const query = useQuery<Lens[]>({
     queryKey: ["lenses"],
-    staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
     queryFn: async () => {
       // Use server-side safe RPC that strips base_price for viewer/customer roles
       const { data: lensRows, error } = await (supabase.rpc as any)("get_lenses_safe");
