@@ -6461,6 +6461,9 @@ export type Database = {
           currency: string | null
           id: string | null
           is_active: boolean | null
+          lenstype: string | null
+          material: string | null
+          mftype: string | null
           name: string | null
           product_id: string | null
           product_type: string | null
