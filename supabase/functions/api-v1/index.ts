@@ -67,6 +67,12 @@ const RESOURCES: Record<string, ResourceConfig> = {
     writeScope: "products:write",
     costFields: ["cost"],
   },
+  // Reference / lookup tables — product rows reference these by id.
+  suppliers:  { table: "suppliers",  readScope: "reference:read", writeScope: "reference:write" },
+  materials:  { table: "materials",  readScope: "reference:read", writeScope: "reference:write" },
+  lenstypes:  { table: "lenstypes",  readScope: "reference:read", writeScope: "reference:write" },
+  mftypes:    { table: "mftypes",    readScope: "reference:read", writeScope: "reference:write" },
+  brands:     { table: "brands",     readScope: "reference:read", writeScope: "reference:write" },
   // Moonshot — generic tables (read/write parity). Update as needed.
   moonshot_rocks: { table: "rocks", readScope: "moonshot:read", writeScope: "moonshot:write" },
   moonshot_todos: { table: "todos", readScope: "moonshot:read", writeScope: "moonshot:write" },
