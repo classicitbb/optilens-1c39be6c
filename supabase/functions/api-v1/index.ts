@@ -158,33 +158,23 @@ Deno.serve(async (req: Request) => {
       const order = orderParam ?? "created_at.desc";
       const [col, dir] = order.split(".");
       const ascending = (dir || "desc") === "asc";
-<<<<<<< Updated upstream
-      const runQuery = (orderCol: string) =>
-        supabase.from(cfg.table).select("*", { count: "exact" })
-          .range(offset, offset + limit - 1)
-          .order(orderCol, { ascending });
-      let { data, error, count } = await runQuery(col || "created_at");
-      // If caller did not specify an order and the default column doesn't exist,
-      // retry once ordered by `id` so resources without `created_at` still work.
-      if (error && !orderProvided && (error.code === "42703" || /does not exist/i.test(error.message ?? ""))) {
-        ({ data, error, count } = await runQuery("id"));
-=======
       const orderCol = col || "created_at";
       const runList = (oc: string) =>
         supabase.from(cfg.table).select("*", { count: "exact" })
           .range(offset, offset + limit - 1)
           .order(oc, { ascending });
       let { data, error, count } = await runList(orderCol);
-      // Not every table has the default `created_at` column. If the order
-      // column is missing, fall back to the primary key so a valid resource
-      // never 400s purely over ordering.
+      // Not every table has the default `created_at` column. If the caller
+      // didn't specify an order and the default column is missing, fall back
+      // to the primary key so a valid resource never 400s purely over ordering.
       if (
         error &&
+        !orderProvided &&
         orderCol !== "id" &&
         (error.code === "42703" || /does not exist/i.test(error.message ?? ""))
       ) {
         ({ data, error, count } = await runList("id"));
->>>>>>> Stashed changes
+      }
       }
       if (error) throw error;
       respBody = { data: stripCost(data, cfg.costFields), count, limit, offset };
