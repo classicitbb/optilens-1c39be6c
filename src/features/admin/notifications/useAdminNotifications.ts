@@ -46,7 +46,10 @@ export function useAdminNotifications() {
       if (error) throw error;
       return (data ?? []) as Array<{ notification_id: string; read_at: string | null; dismissed_at: string | null }>;
     },
-    refetchInterval: 30_000,
+    refetchInterval: () => (isBrowser && document.visibilityState === "visible" ? 120_000 : false),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
   });
 
   const notifications = notificationsQuery.data ?? [];
