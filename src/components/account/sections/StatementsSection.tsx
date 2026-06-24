@@ -182,16 +182,16 @@ const StatementsSection = () => {
         </p>
       </header>
 
-      {/* Balance and Controls - Sticky on Mobile */}
-      <Card className="border-0 bg-white shadow-sm md:border">
-        <div className="space-y-4 p-4 md:p-6">
-          {/* Balance Summary */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
+      {/* Balance and Controls - Responsive Header */}
+      <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
+        <div className="space-y-4 p-4 md:space-y-6 md:p-6">
+          {/* Balance Summary - Auto-fit grid */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:gap-8">
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
                 Total Invoiced
               </p>
-              <p className="text-lg font-semibold text-foreground sm:text-xl">
+              <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
                 ${totalInvoiced.toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -199,11 +199,11 @@ const StatementsSection = () => {
               </p>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="min-w-max space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
                 Total Paid
               </p>
-              <p className="text-lg font-semibold text-foreground sm:text-xl">
+              <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
                 ${totalPaid.toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -211,11 +211,11 @@ const StatementsSection = () => {
               </p>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="min-w-max space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
                 Balance Due
               </p>
-              <p className="text-lg font-semibold text-primary sm:text-xl">
+              <p className="text-lg font-semibold text-primary dark:text-emerald-400 sm:text-xl">
                 ${currentBalance.toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -224,14 +224,14 @@ const StatementsSection = () => {
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 sm:max-w-xs">
+          {/* Controls - Wraps and centers on mobile */}
+          <div className="flex flex-wrap gap-3 items-end justify-between">
+            <div className="w-full sm:w-auto sm:min-w-xs">
               <Select value={statementFilter} onValueChange={setStatementFilter}>
-                <SelectTrigger className="h-10 text-sm">
+                <SelectTrigger className="h-10 text-sm bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-slate-900 dark:border-slate-700">
                   <SelectItem value="June 2026">June 2026</SelectItem>
                   <SelectItem value="May 2026">May 2026</SelectItem>
                   <SelectItem value="April 2026">April 2026</SelectItem>
@@ -242,17 +242,17 @@ const StatementsSection = () => {
               </Select>
             </div>
 
-            <div className="flex gap-2 sm:gap-3">
+            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 onClick={() => setPaymentModalOpen(true)}
-                className="flex-1 h-10 sm:flex-none bg-primary hover:bg-primary/90"
+                className="flex-1 h-10 sm:flex-none bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
               >
                 Pay Balance
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-10 w-10"
+                className="h-10 w-10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800"
                 onClick={() => alert("Printing statement...")}
               >
                 <Printer className="h-4 w-4" />
@@ -263,33 +263,33 @@ const StatementsSection = () => {
       </Card>
 
       {/* Transaction Table - Scrollable Container */}
-      <Card className="border-0 bg-white shadow-sm md:border overflow-hidden">
+      <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left md:px-6">
+              <tr className="border-b bg-muted/50 dark:bg-slate-900/50 dark:border-slate-700">
+                <th className="px-4 py-3 text-left md:px-6 text-foreground dark:text-slate-50">
                   <SortHeader column="date" label="Date" />
                 </th>
-                <th className="px-4 py-3 text-left md:px-6">
+                <th className="px-4 py-3 text-left md:px-6 text-foreground dark:text-slate-50">
                   <SortHeader column="invoiceNum" label="Invoice #" />
                 </th>
-                <th className="hidden px-4 py-3 text-left md:table-cell md:px-6">
+                <th className="hidden px-4 py-3 text-left md:table-cell md:px-6 text-foreground dark:text-slate-50">
                   <SortHeader column="rxNum" label="Rx #" />
                 </th>
-                <th className="hidden px-4 py-3 text-left lg:table-cell lg:px-6">
+                <th className="hidden px-4 py-3 text-left lg:table-cell lg:px-6 text-foreground dark:text-slate-50">
                   <SortHeader column="orderNum" label="Order #" />
                 </th>
-                <th className="hidden px-4 py-3 text-left 2xl:table-cell 2xl:px-6">
+                <th className="hidden px-4 py-3 text-left 2xl:table-cell 2xl:px-6 text-foreground dark:text-slate-50">
                   <SortHeader column="poNum" label="PO #" />
                 </th>
-                <th className="hidden px-4 py-3 text-left sm:table-cell md:px-6">
+                <th className="hidden px-4 py-3 text-left sm:table-cell md:px-6 text-foreground dark:text-slate-50">
                   <SortHeader column="description" label="Description" />
                 </th>
-                <th className="px-4 py-3 text-right md:px-6">
+                <th className="px-4 py-3 text-right md:px-6 text-foreground dark:text-slate-50">
                   <SortHeader column="amount" label="Amount" />
                 </th>
-                <th className="px-4 py-3 text-right md:px-6">
+                <th className="px-4 py-3 text-right md:px-6 text-foreground dark:text-slate-50">
                   <SortHeader column="status" label="Status" />
                 </th>
               </tr>
@@ -298,31 +298,31 @@ const StatementsSection = () => {
               {sortedTransactions.map((transaction) => (
                 <tr
                   key={transaction.id}
-                  className="border-b transition-colors hover:bg-muted/30"
+                  className="border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30"
                 >
-                  <td className="px-4 py-3 md:px-6 text-foreground">
+                  <td className="px-4 py-3 md:px-6 text-foreground dark:text-slate-50">
                     {new Date(transaction.date).toLocaleDateString("en-US", {
                       month: "2-digit",
                       day: "2-digit",
                       year: "numeric",
                     })}
                   </td>
-                  <td className="px-4 py-3 md:px-6 font-medium text-foreground">
+                  <td className="px-4 py-3 md:px-6 font-medium text-foreground dark:text-slate-50">
                     {transaction.invoiceNum}
                   </td>
-                  <td className="hidden px-4 py-3 md:table-cell md:px-6 text-foreground">
+                  <td className="hidden px-4 py-3 md:table-cell md:px-6 text-foreground dark:text-slate-50">
                     {transaction.rxNum}
                   </td>
-                  <td className="hidden px-4 py-3 lg:table-cell lg:px-6 text-foreground">
+                  <td className="hidden px-4 py-3 lg:table-cell lg:px-6 text-foreground dark:text-slate-50">
                     {transaction.orderNum}
                   </td>
-                  <td className="hidden px-4 py-3 2xl:table-cell 2xl:px-6 text-foreground">
+                  <td className="hidden px-4 py-3 2xl:table-cell 2xl:px-6 text-foreground dark:text-slate-50">
                     {transaction.poNum}
                   </td>
-                  <td className="hidden px-4 py-3 sm:table-cell md:px-6 text-foreground">
+                  <td className="hidden px-4 py-3 sm:table-cell md:px-6 text-foreground dark:text-slate-50">
                     {transaction.description}
                   </td>
-                  <td className="px-4 py-3 md:px-6 text-right font-medium text-foreground">
+                  <td className="px-4 py-3 md:px-6 text-right font-medium text-foreground dark:text-slate-50">
                     {transaction.amount < 0 ? "-" : ""}$
                     {Math.abs(transaction.amount).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
@@ -333,8 +333,8 @@ const StatementsSection = () => {
                     <span
                       className={`inline-block rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wider ${
                         transaction.status === "open"
-                          ? "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                          : "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          ? "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
+                          : "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                       }`}
                     >
                       {transaction.status === "open" ? "Open" : "Paid"}
@@ -349,18 +349,18 @@ const StatementsSection = () => {
 
       {/* Payment Modal */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="w-full max-w-sm rounded-lg">
+        <DialogContent className="w-full max-w-sm rounded-lg bg-white dark:bg-slate-950 dark:border-slate-700">
           <DialogHeader>
-            <DialogTitle>Make a Payment</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="dark:text-slate-50">Make a Payment</DialogTitle>
+            <DialogDescription className="dark:text-slate-400">
               Enter your payment details below
             </DialogDescription>
           </DialogHeader>
 
           {paymentSuccess ? (
-            <Alert className="border-green-200 bg-green-50">
-              <Check className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <AlertDescription className="text-emerald-800 dark:text-emerald-300">
                 Thank you for your payment. Your records will be updated as soon
                 as the money is received in our bank.
               </AlertDescription>
@@ -368,11 +368,11 @@ const StatementsSection = () => {
           ) : (
             <form onSubmit={handlePaymentSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="amount" className="text-sm font-semibold">
+                <Label htmlFor="amount" className="text-sm font-semibold dark:text-slate-50">
                   Payment Amount
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400">
                     $
                   </span>
                   <Input
@@ -382,31 +382,31 @@ const StatementsSection = () => {
                     min="0.01"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="pl-7 h-10"
+                    className="pl-7 h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="cardholder" className="text-sm font-semibold">
+                <Label htmlFor="cardholder" className="text-sm font-semibold dark:text-slate-50">
                   Cardholder Name
                 </Label>
                 <Input
                   id="cardholder"
                   placeholder="Full name"
-                  className="h-10"
+                  className="h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-400"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="cardnum" className="text-sm font-semibold">
+                <Label htmlFor="cardnum" className="text-sm font-semibold dark:text-slate-50">
                   Card Number
                 </Label>
                 <Input
                   id="cardnum"
                   placeholder="•••• •••• •••• ••••"
-                  className="h-10"
+                  className="h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-400"
                   maxLength={19}
                   required
                 />
@@ -414,24 +414,24 @@ const StatementsSection = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="expiry" className="text-sm font-semibold">
+                  <Label htmlFor="expiry" className="text-sm font-semibold dark:text-slate-50">
                     Expiry
                   </Label>
                   <Input
                     id="expiry"
                     placeholder="MM/YY"
-                    className="h-10"
+                    className="h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-400"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cvv" className="text-sm font-semibold">
+                  <Label htmlFor="cvv" className="text-sm font-semibold dark:text-slate-50">
                     CVV
                   </Label>
                   <Input
                     id="cvv"
                     placeholder="•••"
-                    className="h-10"
+                    className="h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-400"
                     maxLength={4}
                     required
                   />
@@ -440,7 +440,7 @@ const StatementsSection = () => {
 
               <Button
                 type="submit"
-                className="w-full h-10 bg-primary hover:bg-primary/90"
+                className="w-full h-10 bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
               >
                 Process Payment
               </Button>
