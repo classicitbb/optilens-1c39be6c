@@ -6453,6 +6453,30 @@ export type Database = {
           },
         ]
       }
+      catalog_live: {
+        Row: {
+          category: string | null
+          cost: number | null
+          created_at: string | null
+          currency: string | null
+          id: string | null
+          is_active: boolean | null
+          lenstype: string | null
+          material: string | null
+          mftype: string | null
+          name: string | null
+          product_id: string | null
+          product_type: string | null
+          sell_price: number | null
+          sku: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          updated_at: string | null
+          web_enabled: boolean | null
+          wspl_enabled: boolean | null
+        }
+        Relationships: []
+      }
       integration_health_metrics_dashboard: {
         Row: {
           error_rate: number | null

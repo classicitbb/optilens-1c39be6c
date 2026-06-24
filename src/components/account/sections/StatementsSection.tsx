@@ -440,7 +440,7 @@ const StatementsSection = () => {
 
               <Button
                 type="submit"
-                className="w-full h-10 bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold dark:bg-emerald-600 dark:hover:bg-emerald-700"
               >
                 Process Payment
               </Button>
