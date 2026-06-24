@@ -300,14 +300,14 @@ const StatementsSection = () => {
                   key={transaction.id}
                   className="border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30"
                 >
-                  <td className="px-4 py-3 md:px-6 text-foreground dark:text-slate-50">
+                  <td className="px-2 py-2 md:px-3 whitespace-nowrap text-foreground dark:text-slate-50">
                     {new Date(transaction.date).toLocaleDateString("en-US", {
                       month: "2-digit",
                       day: "2-digit",
                       year: "numeric",
                     })}
                   </td>
-                  <td className="px-4 py-3 md:px-6 font-medium text-foreground dark:text-slate-50">
+                  <td className="px-2 py-2 md:px-3 whitespace-nowrap font-medium text-foreground dark:text-slate-50">
                     {transaction.invoiceNum}
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell md:px-6 text-foreground dark:text-slate-50">
@@ -322,14 +322,14 @@ const StatementsSection = () => {
                   <td className="hidden px-4 py-3 sm:table-cell md:px-6 text-foreground dark:text-slate-50">
                     {transaction.description}
                   </td>
-                  <td className="px-4 py-3 md:px-6 text-right font-medium text-foreground dark:text-slate-50">
+                  <td className="px-2 py-2 md:px-3 whitespace-nowrap text-right font-medium text-foreground dark:text-slate-50">
                     {transaction.amount < 0 ? "-" : ""}$
                     {Math.abs(transaction.amount).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
                   </td>
-                  <td className="px-4 py-3 md:px-6 text-right">
+                  <td className="px-2 py-2 md:px-3 whitespace-nowrap text-right">
                     <span
                       className={`inline-block rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wider ${
                         transaction.status === "open"
