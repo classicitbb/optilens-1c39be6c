@@ -245,7 +245,7 @@ const StatementsSection = () => {
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 onClick={() => setPaymentModalOpen(true)}
-                className="flex-1 h-10 sm:flex-none bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                className="flex-1 h-10 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold dark:bg-emerald-600 dark:hover:bg-emerald-700"
               >
                 Pay Balance
               </Button>
