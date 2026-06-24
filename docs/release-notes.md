@@ -2,6 +2,14 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
+
+### Release Notes
+- Direct reads on `addons`, `lenses`, and `supplies` now require admin/operator edit access so viewer/customer roles cannot read cost-bearing columns.
+- Public product browsing remains available through existing cost-free public views.
+- Public analytics writes now validate UUID-shaped visitor IDs, safe path values, known web-vital metrics, ratings, and bounded values.
+- npm dependency refresh resolved the reported audit vulnerability; `npm audit` now reports zero vulnerabilities.
+
 ## 2026-06-05 — Shipment Costing Fixes + Security/Print Hardening
 
 ### Release Notes

@@ -4,6 +4,24 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
+
+### Plan
+- Close reported cost-data exposure on `addons`, `lenses`, and `supplies` without changing public catalog routes or staff editing flows.
+- Keep website analytics ingestion available while rejecting malformed public write payloads.
+- Refresh npm dependencies within the existing npm lockfile workflow and preserve the current site behavior.
+
+### Release Notes
+- Direct reads on cost-bearing product tables are now limited to admin/operator edit roles; public and customer-facing product reads continue through cost-free views.
+- Website analytics session, pageview, and web-vitals inserts now validate IDs, paths, metric names, ratings, and bounded numeric fields instead of accepting unrestricted rows.
+- Dependency audit now reports zero vulnerabilities after npm lockfile refresh.
+
+### Technical Changelog
+- Added `supabase/migrations/20260624090000_harden_product_cost_rls_and_analytics_inserts.sql` to replace broad `has_any_role()` product SELECT policies with `has_edit_role()` policies and tighten analytics INSERT checks.
+- Updated `src/tests/integration/supabaseRlsHardening.integration.test.ts` to assert product-cost RLS and analytics policy hardening.
+- Resolved an API v1 merge-conflict marker in `supabase/functions/api-v1/index.ts` while preserving the default-order fallback behavior.
+- Updated auth flow tests and shared test setup so required country selection is covered without depending on Radix Select browser internals in jsdom.
+
 ## 2026-06-05 — Shipment Costing Fixes + Security/Print Hardening
 
 ### Plan
