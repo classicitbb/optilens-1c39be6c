@@ -16,7 +16,7 @@ const approvalBadge = (
 );
 
 const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
-  const { canAccessFeature } = usePortalIdentity();
+  const { canAccessFeature, isStaff } = usePortalIdentity();
 
   const items = ACCOUNT_NAV_ITEMS.map((item) => {
     if (item.to === "/profile/quotes") {
@@ -29,6 +29,10 @@ const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
 
     if (item.to === "/profile/pricelists") {
       return { ...item, disabled: !canAccessFeature("pricelists"), badge: !canAccessFeature("pricelists") ? approvalBadge : undefined };
+    }
+
+    if (item.to === "/profile/statements") {
+      return { ...item, disabled: !isStaff, badge: !isStaff ? approvalBadge : undefined };
     }
 
     return item;
