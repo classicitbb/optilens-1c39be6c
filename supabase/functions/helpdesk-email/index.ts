@@ -82,13 +82,22 @@ function ticketCreatedHtml(opts: {
 </html>`
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function staffReplyHtml(opts: {
   ticketNumber: string
   subject: string
   replyBody: string
   viewUrl: string
 }): string {
-  const bodyHtml = opts.replyBody.replace(/\n/g, '<br>')
+  const bodyHtml = escapeHtml(opts.replyBody).replace(/\n/g, '<br>')
   return `
 <!DOCTYPE html>
 <html>
