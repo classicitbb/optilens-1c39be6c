@@ -26,51 +26,135 @@ type ResourceConfig = {
 
 const RESOURCES: Record<string, ResourceConfig> = {
   catalog: {
-    // Reads come from the live view (unifies lenses/supplies/addons in real
-    // time). Writes are special-cased below into the key's draft
-    // pricelist_version → pricelist_catalog_rows, so they never touch this view.
     table: "catalog_live",
     readScope: "catalog:read",
     writeScope: "catalog:write",
+    // Writes route to pricelist_catalog_rows (handled specially below).
+    insertable: [
+      "row_label", "category", "section_key", "sort_order",
+      "lens_id", "supply_id", "addon_id",
+      "price", "currency", "notes", "is_active",
+    ],
+    updatable: [
+      "row_label", "category", "section_key", "sort_order",
+      "price", "currency", "notes", "is_active",
+    ],
   },
   contacts: {
     table: "contacts",
     readScope: "contacts:read",
     writeScope: "contacts:write",
+    insertable: [
+      "name", "first_name", "last_name", "email", "phone", "mobile",
+      "type", "is_company", "business_name", "parent_id",
+      "address", "city", "state", "zip", "country",
+      "status", "pipeline_stage", "notes",
+    ],
+    updatable: [
+      "name", "first_name", "last_name", "email", "phone", "mobile",
+      "type", "is_company", "business_name", "parent_id",
+      "address", "city", "state", "zip", "country",
+      "status", "pipeline_stage", "notes",
+    ],
   },
   customers: {
     table: "customers",
     readScope: "customers:read",
     writeScope: "customers:write",
     idType: "int",
+    insertable: [
+      "name", "email", "phone", "address",
+      "pipeline_stage", "contact_id", "assigned_pricelist_id",
+    ],
+    updatable: [
+      "name", "email", "phone", "address",
+      "pipeline_stage", "contact_id", "assigned_pricelist_id",
+    ],
   },
   orders: {
     table: "orders",
     readScope: "orders:read",
     writeScope: "orders:write",
+    // user_id, totals, payment fields are NOT writable via external API.
+    insertable: [
+      "status", "customer_name", "contact_email", "contact_phone",
+      "shipping_address", "billing_address", "checkout_method",
+    ],
+    updatable: [
+      "status", "customer_name", "contact_email", "contact_phone",
+      "shipping_address", "billing_address",
+    ],
   },
   lenses: {
     table: "lenses",
     readScope: "products:read",
     writeScope: "products:write",
     costFields: ["base_price", "cost"],
+    // base_price/cost are intentionally NOT in the allowlist.
+    insertable: [
+      "name", "supplier_id", "brand_id", "material_id", "mftype_id",
+      "lenstype_id", "finishtype_id", "index_value", "sell_price",
+      "sph_min", "sph_max", "cyl_min", "cyl_max", "add_min", "add_max",
+      "is_active", "show_in_pricelist", "show_in_ws_pricelist", "show_on_website",
+      "full_lab", "notes", "pricing_category", "pricing_index",
+    ],
+    updatable: [
+      "name", "supplier_id", "brand_id", "material_id", "mftype_id",
+      "lenstype_id", "finishtype_id", "index_value", "sell_price",
+      "sph_min", "sph_max", "cyl_min", "cyl_max", "add_min", "add_max",
+      "is_active", "show_in_pricelist", "show_in_ws_pricelist", "show_on_website",
+      "full_lab", "notes", "pricing_category", "pricing_index",
+    ],
   },
   supplies: {
     table: "supplies",
     readScope: "products:read",
     writeScope: "products:write",
     costFields: ["base_price", "cost"],
+    insertable: [
+      "name", "category", "description", "sku", "sell_price", "unit",
+      "quantity_per_unit", "is_active", "show_on_website", "image_url",
+      "notes", "supplier_id", "brand_id", "preferred", "stocked",
+      "show_in_pricelist", "bin", "detail", "currency",
+      "bb_item", "duty_added", "vat_paid", "labour_added", "stk_wspl",
+    ],
+    updatable: [
+      "name", "category", "description", "sku", "sell_price", "unit",
+      "quantity_per_unit", "is_active", "show_on_website", "image_url",
+      "notes", "supplier_id", "brand_id", "preferred", "stocked",
+      "show_in_pricelist", "bin", "detail", "currency",
+      "bb_item", "duty_added", "vat_paid", "labour_added", "stk_wspl",
+    ],
   },
   addons: {
     table: "addons",
     readScope: "products:read",
     writeScope: "products:write",
     costFields: ["cost"],
+    insertable: [
+      "name", "sku", "category", "description", "price",
+      "is_active", "is_auto", "auto_rule", "show_on_website",
+      "sort_order", "supplier_id",
+    ],
+    updatable: [
+      "name", "sku", "category", "description", "price",
+      "is_active", "is_auto", "auto_rule", "show_on_website",
+      "sort_order", "supplier_id",
+    ],
   },
-  // Moonshot — generic tables (read/write parity). Update as needed.
   moonshot_rocks: { table: "rocks", readScope: "moonshot:read", writeScope: "moonshot:write" },
   moonshot_todos: { table: "todos", readScope: "moonshot:read", writeScope: "moonshot:write" },
 };
+
+function pickFields(body: Record<string, any>, allowed?: string[]): Record<string, any> {
+  if (!allowed || allowed.length === 0) return body;
+  const allow = new Set(allowed);
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (allow.has(k)) out[k] = v;
+  }
+  return out;
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -181,12 +265,13 @@ Deno.serve(async (req: Request) => {
       if (!data) { status = 404; respBody = { error: "Not found" }; }
       else respBody = { data: stripCost(data, cfg.costFields) };
     } else if (req.method === "POST") {
-      const body = await req.json().catch(() => null);
-      if (!body || typeof body !== "object") return json({ error: "Invalid JSON body." }, 400);
+      const rawBody = await req.json().catch(() => null);
+      if (!rawBody || typeof rawBody !== "object") return json({ error: "Invalid JSON body." }, 400);
+      const body = pickFields(rawBody as Record<string, any>, cfg.insertable);
+      if (Object.keys(body).length === 0) {
+        return json({ error: "No writable fields present in request body." }, 400);
+      }
       if (resource === "catalog") {
-        // Route catalog writes through this key's draft pricelist_version.
-        // If the draft has been saved as a usable template, we keep using
-        // that same version — never write directly to the live price_catalog.
         const { data: draftId, error: draftErr } = await supabase.rpc(
           "api_get_or_create_catalog_draft",
           { p_api_key_id: key.id },
@@ -208,16 +293,18 @@ Deno.serve(async (req: Request) => {
         respBody = { data: stripCost(data, cfg.costFields) };
       }
     } else if (req.method === "PATCH" && id) {
-      const body = await req.json().catch(() => null);
-      if (!body || typeof body !== "object") return json({ error: "Invalid JSON body." }, 400);
+      const rawBody = await req.json().catch(() => null);
+      if (!rawBody || typeof rawBody !== "object") return json({ error: "Invalid JSON body." }, 400);
+      const body = pickFields(rawBody as Record<string, any>, cfg.updatable ?? cfg.insertable);
+      if (Object.keys(body).length === 0) {
+        return json({ error: "No writable fields present in request body." }, 400);
+      }
       if (resource === "catalog") {
         const { data: draftId, error: draftErr } = await supabase.rpc(
           "api_get_or_create_catalog_draft",
           { p_api_key_id: key.id },
         );
         if (draftErr) throw draftErr;
-        // Scope the update to the key's own draft so callers cannot mutate
-        // rows belonging to other pricelist versions.
         const { data, error } = await supabase
           .from("pricelist_catalog_rows")
           .update(body)
