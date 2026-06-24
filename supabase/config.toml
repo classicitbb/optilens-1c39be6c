@@ -23,12 +23,6 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = false
   [functions.handle-email-suppression]
     verify_jwt = false
-  [functions.odoo-sync-pull-contacts]
-    verify_jwt = true
-  [functions.odoo-sync-push-contacts]
-    verify_jwt = true
-  [functions.odoo-sync-webhook]
-    verify_jwt = false
   [functions.helpdesk-inbound-email]
     verify_jwt = false
   [functions.helpdesk-email]

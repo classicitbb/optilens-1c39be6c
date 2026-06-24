@@ -231,10 +231,11 @@ const CheckoutPage = () => {
   const location = useLocation();
   const { items, totalPrice, clearCart, loading: cartLoading } = useCartContext();
   const { user } = useAuth();
-  const { createOrder } = useOrders();
+  const { createOrder, settleScotiaPayment } = useOrders();
   const { identity, isLoading: identityLoading } = usePortalIdentity();
   const { addresses, defaultShipping, defaultBilling, isLoading: addressesLoading } = useCustomerAddresses();
-  const { defaultPaymentMethod, isLoading: paymentMethodsLoading } = useCustomerPaymentMethods();
+  const { defaultPaymentMethod, paymentMethods, isLoading: paymentMethodsLoading } = useCustomerPaymentMethods();
+  const savedScotiaCards = paymentMethods.filter((m) => m.provider === "scotia" && m.status === "active");
 
   const isVerifiedB2B = identity?.portalAccessStatus === "approved_customer";
   const canPayOnAccount = isVerifiedB2B && identity?.paymentTerms === "credit";
@@ -260,26 +261,66 @@ const CheckoutPage = () => {
   // local state so it never alters the existing checkoutMethod union (offline
   // methods + on-account stay fully intact as the fallback path).
   const [payWithScotia, setPayWithScotia] = useState(false);
+  const [saveScotiaCard, setSaveScotiaCard] = useState(false);
+  // Token of a previously-saved Scotia card to reuse (CVV-only), or null for a new card.
+  const [selectedScotiaToken, setSelectedScotiaToken] = useState<string | null>(null);
   const [scotiaError, setScotiaError] = useState<string | null>(null);
 
-  const handleScotiaResult = async (result: ScotiaValidationResult) => {
+  const handleScotiaResult = async (
+    result: ScotiaValidationResult,
+    raw: Record<string, string>,
+  ) => {
     if (!result.hashValid) {
       setScotiaError("Payment response could not be verified. Please try again.");
       return;
     }
-    if (result.approved) {
-      // TODO(full-integration): settle the order via place_customer_order /
-      // an authorize→settle RPC, persist result.oid, and (when present)
-      // save result.hosteddataid to customer_payment_methods.
-      setIsComplete(true);
-      await clearCart();
+    if (!result.approved) {
+      setScotiaError(
+        result.softDecline
+          ? "Your bank declined the payment but a retry may succeed."
+          : "Your bank declined the payment. Please use a different card or payment method.",
+      );
       return;
     }
-    setScotiaError(
-      result.softDecline
-        ? "Your bank declined the payment but a retry may succeed."
-        : "Your bank declined the payment. Please use a different card or payment method.",
-    );
+
+    setIsProcessing(true);
+    try {
+      // 1. Record the order (payment already approved at the gateway).
+      const order = await createOrder(items, totalPrice, {
+        ...formData,
+        checkoutMethod: "scotia_ecom",
+        billingAddress: sameAsShipping ? formData.shippingAddress : formData.billingAddress,
+        billingAddressId: sameAsShipping ? formData.shippingAddressId : formData.billingAddressId,
+        fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+      });
+      if (!order) {
+        setScotiaError("Payment approved, but we couldn't record your order. Please contact support.");
+        return;
+      }
+
+      // 2. Settle: persist gateway result + (optionally) the saved card token.
+      const last4 = (raw.cardnumber ?? "").replace(/\D/g, "").slice(-4);
+      await settleScotiaPayment(order.id, {
+        approved: true,
+        oid: result.oid ?? raw.oid ?? null,
+        association_response_code: result.associationResponseCode || null,
+        fail_rc: result.failRc,
+        hosteddataid: result.hosteddataid ?? raw.hosteddataid ?? null,
+        card_brand: raw.ccbrand ?? raw.paymentMethod ?? null,
+        card_last4: last4 || null,
+        cardholder_name: raw.bname ?? formData.cardholderName ?? null,
+        expiry_month: raw.expmonth ? Number(raw.expmonth) : null,
+        expiry_year: raw.expyear ? Number(raw.expyear) : null,
+        save_token: saveScotiaCard,
+      });
+
+      setIsComplete(true);
+      await clearCart();
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const shippingCost =
@@ -974,12 +1015,64 @@ const CheckoutPage = () => {
                           <span>{scotiaError}</span>
                         </div>
                       )}
+                      {/* Saved Scotia cards — reuse with CVV only */}
+                      {savedScotiaCards.length > 0 && (
+                        <div className="mb-3 space-y-2">
+                          <p className="font-mono text-[9.5px] uppercase tracking-wide text-muted-foreground">
+                            Saved cards
+                          </p>
+                          {savedScotiaCards.map((card) => (
+                            <PickCard
+                              key={card.id}
+                              selected={selectedScotiaToken === card.paymentToken}
+                              onClick={() => {
+                                setSelectedScotiaToken(card.paymentToken);
+                                setScotiaError(null);
+                              }}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm text-foreground">
+                                  {card.brand} ···· {card.last4}
+                                </span>
+                                <span className="font-mono text-[10px] text-muted-foreground">
+                                  CVV only
+                                </span>
+                              </div>
+                            </PickCard>
+                          ))}
+                          <PickCard
+                            selected={selectedScotiaToken === null}
+                            onClick={() => {
+                              setSelectedScotiaToken(null);
+                              setScotiaError(null);
+                            }}
+                          >
+                            <span className="text-sm text-foreground">Use a new card</span>
+                          </PickCard>
+                        </div>
+                      )}
+
+                      {selectedScotiaToken === null && (
+                        <label className="mb-3 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={saveScotiaCard}
+                            onChange={(e) => setSaveScotiaCard(e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-border"
+                          />
+                          Securely save this card for faster checkout next time
+                        </label>
+                      )}
+
                       <ScotiaPaymentFrame
+                        key={selectedScotiaToken ?? "new-card"}
                         payment={{
                           chargetotal: totalPrice + (shippingCost ?? 0),
                           responseSuccessURL: `${window.location.origin}/checkout`,
                           responseFailURL: `${window.location.origin}/checkout`,
                           orderId: poNumber || undefined,
+                          hosteddataid: selectedScotiaToken ?? undefined,
+                          assignToken: selectedScotiaToken === null ? saveScotiaCard : undefined,
                         }}
                         onResult={handleScotiaResult}
                         onError={(message) => setScotiaError(message)}

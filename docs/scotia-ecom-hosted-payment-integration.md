@@ -122,7 +122,46 @@ CheckoutPage (Payment step, buyer picks "Credit / Debit card")
 | `src/components/checkout/ScotiaPaymentFrame.tsx` | IFRAME host + `postMessage` listener. |
 | `src/pages/CheckoutPage.tsx` | Flag-gated "Credit / Debit card" option in the Payment step; renders the frame; offline methods untouched. |
 | `supabase/migrations/20260624170000_scotia_ecom_gateway_scaffold.sql` | Additive: `scotia` provider, nullable `gateway_*` columns on `order_payments`. |
+| `supabase/migrations/20260624173000_settle_scotia_payment_rpc.sql` | `settle_scotia_payment()` RPC: patches the payment row with the verified gateway result, saves the returned token as a `scotia` card, sets order status, writes an audit event. |
+| `src/hooks/useOrders.ts` | `settleScotiaPayment()` helper calling the RPC. |
+| `src/hooks/useCustomerPaymentMethods.ts` | Surfaces the real `scotia` provider for saved tokens. |
 | `.env` | `VITE_SCOTIA_ENABLED` / `VITE_SCOTIA_ENV` (disabled). |
+
+### Credential store (admin-managed)
+StoreID + SharedSecret are no longer env-only. They are managed at
+**Admin → Settings → Payment Gateway** (`/admin/settings/integrations`, which
+replaced the decommissioned Odoo integration):
+
+- `payment_gateway_settings` — non-secret config (store_id, environment,
+  currency, timezone, enabled, status). Admin-readable via RLS.
+- `payment_gateway_secrets` — the SharedSecret, `pgp_sym_encrypt`-encrypted at
+  rest; RLS denies all direct access.
+- `upsert_payment_gateway_settings(...)` — admin-only RPC; encrypts the secret
+  on write.
+- `get_scotia_credentials()` — SECURITY DEFINER, **service-role only**; decrypts
+  and returns credentials to the `scotia-payment` Edge Function.
+
+The Edge Function resolves credentials from this store first and falls back to
+`SCOTIA_*` env vars if the store is empty (dev/local). The "Test configuration"
+button asks the function to build a signed (zero-charge) form to prove the
+credentials resolve and the hash computes.
+
+> **Odoo removed.** The former Odoo connector (edge functions, `_shared/odoo`,
+> `src/server/sync`, sidebar/notification sources, and DB tables/RPCs) has been
+> fully removed — see migration `20260624181000_drop_odoo_integration.sql`.
+
+### Saved-card reuse (CVV-only)
+The checkout payment step lists saved `scotia` cards; selecting one sends
+`hosteddataid` through `prepare`, so the gateway prompts for **CVV only**
+(manual p.23). "Use a new card" falls back to full entry with an optional save.
+
+### Settlement flow (now wired)
+On an approved + hash-valid result, `handleScotiaResult` (CheckoutPage):
+1. `createOrder(... checkoutMethod: "scotia_ecom")` → order in `confirmed`/`settled`.
+2. `settleScotiaPayment(order.id, gateway)` → patches `order_payments`
+   (`provider='scotia'`, `gateway_oid`/`response_code`/`hosteddataid`), and — when
+   "save this card" is ticked (`assignToken=true`) — stores the returned
+   `hosteddataid` in `customer_payment_methods` for CVV-only reuse.
 
 ---
 
@@ -168,14 +207,13 @@ is computed, so the existing hash logic covers them.
 1. **Credentials.** Obtain test `StoreID` + `SharedSecret`; set
    `SCOTIA_STORE_ID`, `SCOTIA_SHARED_SECRET`, `SCOTIA_ENV`, `SCOTIA_CURRENCY`
    (840), `SCOTIA_TIMEZONE` (e.g. `America/Barbados`) as function secrets.
-2. **Order settlement.** Extend `place_customer_order()` (or add an
-   `settle_scotia_payment` RPC) to: create an `order_payments` row
-   (`provider='scotia'`, status `authorized`→`settled`), persist
-   `gateway_oid` / `gateway_response_code` / `gateway_hosteddataid`, and decrement
-   stock. Currently `handleScotiaResult` only flips the UI to "complete" with a
-   `TODO`.
-3. **Token persistence.** On `assignToken`, save `hosteddataid` to
-   `customer_payment_methods` and offer saved cards (CVV-only) at checkout.
+2. **Order settlement.** ✅ Implemented via `settle_scotia_payment()` +
+   `useOrders.settleScotiaPayment()`. Remaining: surface saved Scotia cards as a
+   reuse option in the checkout payment step (CVV-only flow), and confirm stock
+   decrement happens where expected.
+3. **Token persistence.** ✅ Implemented — `assignToken` (the "save this card"
+   checkbox) stores `hosteddataid` in `customer_payment_methods` (provider
+   `scotia`). Remaining: a checkout picker to pay with a previously saved card.
 4. **Decline UX.** Map association codes to friendly copy; allow retry on soft
    declines, force method-switch on hard declines (helpers already provided).
 5. **Confirm gateway `postMessage` shape** during certification (the manual's

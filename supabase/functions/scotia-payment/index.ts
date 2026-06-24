@@ -21,6 +21,7 @@
 //   SCOTIA_CURRENCY        ISO numeric, e.g. "840" USD (default "840")
 // ============================================================
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { z } from "npm:zod@3.25.76";
 import {
   createCorsPolicy,
@@ -44,14 +45,51 @@ const corsPolicy = createCorsPolicy({
   allowMethods: "POST, OPTIONS",
 });
 
-// ── Config from environment ────────────────────────────────────────────────
-function getConfig() {
-  const storeId = Deno.env.get("SCOTIA_STORE_ID") ?? "";
-  const sharedSecret = Deno.env.get("SCOTIA_SHARED_SECRET") ?? "";
-  const env = (Deno.env.get("SCOTIA_ENV") ?? "test") as ScotiaEnv;
-  const timezone = Deno.env.get("SCOTIA_TIMEZONE") ?? "America/Barbados";
-  const currency = Deno.env.get("SCOTIA_CURRENCY") ?? "840"; // 840 = USD
-  return { storeId, sharedSecret, env, timezone, currency };
+interface ScotiaConfig {
+  storeId: string;
+  sharedSecret: string;
+  env: ScotiaEnv;
+  timezone: string;
+  currency: string;
+}
+
+const supabaseAdmin = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+);
+
+/**
+ * Resolve credentials. Primary source is the admin-managed secret store
+ * (get_scotia_credentials, service-role only, decrypts server-side). Falls back
+ * to environment variables so the function still works before the store is
+ * populated (or in local/dev).
+ */
+async function getConfig(): Promise<ScotiaConfig> {
+  const envCfg: ScotiaConfig = {
+    storeId: Deno.env.get("SCOTIA_STORE_ID") ?? "",
+    sharedSecret: Deno.env.get("SCOTIA_SHARED_SECRET") ?? "",
+    env: (Deno.env.get("SCOTIA_ENV") ?? "test") as ScotiaEnv,
+    timezone: Deno.env.get("SCOTIA_TIMEZONE") ?? "America/Barbados",
+    currency: Deno.env.get("SCOTIA_CURRENCY") ?? "840", // 840 = USD
+  };
+
+  try {
+    const { data, error } = await supabaseAdmin.rpc("get_scotia_credentials");
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!error && row?.store_id && row?.shared_secret) {
+      return {
+        storeId: row.store_id,
+        sharedSecret: row.shared_secret,
+        env: (row.environment ?? envCfg.env) as ScotiaEnv,
+        timezone: row.timezone ?? envCfg.timezone,
+        currency: row.currency ?? envCfg.currency,
+      };
+    }
+  } catch (_err) {
+    // Secret store unavailable → fall back to env config below.
+  }
+
+  return envCfg;
 }
 
 // ── Request schemas ────────────────────────────────────────────────────────
@@ -123,7 +161,7 @@ Deno.serve(async (req) => {
 
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, req);
 
-  const cfg = getConfig();
+  const cfg = await getConfig();
   if (!cfg.storeId || !cfg.sharedSecret) {
     // Scaffold safety: never silently sign with empty credentials.
     return json({ error: "Scotia gateway not configured (missing StoreID / SharedSecret)." }, 503, req);

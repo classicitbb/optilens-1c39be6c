@@ -39,7 +39,8 @@ export interface CheckoutFormData {
     | "on_account"
     | "stripe_offline"
     | "firstpay_offline"
-    | "bimpay_offline";
+    | "bimpay_offline"
+    | "scotia_ecom";
   paymentMethodId: string | null;
   savePaymentMethod: boolean;
   cardholderName: string;
