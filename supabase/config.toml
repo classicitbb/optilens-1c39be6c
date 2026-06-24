@@ -43,3 +43,8 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = true
   [functions.api-v1]
     verify_jwt = false
+  # Scotia eCom+ (IPG Connect) hosted-payment helper. Public preflight/CORS is
+  # handled in code; the buyer's browser calls "prepare". Set verify_jwt=true
+  # before production so only authenticated checkout sessions can request a hash.
+  [functions.scotia-payment]
+    verify_jwt = false

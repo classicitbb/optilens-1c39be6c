@@ -39,6 +39,12 @@ import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import SecurityTrustBar from "@/components/checkout/SecurityTrustBar";
 import { COUNTRY_OPTIONS, getStateOptionsByCountry } from "@/lib/locationOptions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isScotiaEnabled, type ScotiaValidationResult } from "@/lib/payments/scotiaConnect";
+import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
+
+// Scotia eCom+ embedded gateway. Off unless VITE_SCOTIA_ENABLED=true — the
+// existing offline methods + on-account always remain available as fallback.
+const SCOTIA_ENABLED = isScotiaEnabled();
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -249,6 +255,32 @@ const CheckoutPage = () => {
   const [orderNotes, setOrderNotes] = useState<string>(
     (location.state as { orderNotes?: string } | null)?.orderNotes ?? "",
   );
+
+  // Scotia eCom+ embedded payment: selected within the Payment step. Kept in
+  // local state so it never alters the existing checkoutMethod union (offline
+  // methods + on-account stay fully intact as the fallback path).
+  const [payWithScotia, setPayWithScotia] = useState(false);
+  const [scotiaError, setScotiaError] = useState<string | null>(null);
+
+  const handleScotiaResult = async (result: ScotiaValidationResult) => {
+    if (!result.hashValid) {
+      setScotiaError("Payment response could not be verified. Please try again.");
+      return;
+    }
+    if (result.approved) {
+      // TODO(full-integration): settle the order via place_customer_order /
+      // an authorize→settle RPC, persist result.oid, and (when present)
+      // save result.hosteddataid to customer_payment_methods.
+      setIsComplete(true);
+      await clearCart();
+      return;
+    }
+    setScotiaError(
+      result.softDecline
+        ? "Your bank declined the payment but a retry may succeed."
+        : "Your bank declined the payment. Please use a different card or payment method.",
+    );
+  };
 
   const shippingCost =
     step >= 2
@@ -850,12 +882,37 @@ const CheckoutPage = () => {
                   <SectionHead>Payment method</SectionHead>
 
                   <div className="space-y-2">
+                    {/* Scotia eCom+ embedded card payment (flag-gated). */}
+                    {SCOTIA_ENABLED && (
+                      <PickCard
+                        selected={payWithScotia}
+                        accent
+                        onClick={() => {
+                          setPayWithScotia(true);
+                          setScotiaError(null);
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                          <div>
+                            <p className="text-sm font-medium text-foreground">Credit / Debit card</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              Secure card payment processed by Scotiabank. You stay on this page.
+                            </p>
+                          </div>
+                        </div>
+                      </PickCard>
+                    )}
+
                     {/* On Account — shown first for verified B2B */}
                     {canPayOnAccount && (
                       <PickCard
                         selected={formData.checkoutMethod === "on_account"}
                         accent
-                        onClick={() => setFormData((p) => ({ ...p, checkoutMethod: "on_account", paymentMethodId: null }))}
+                        onClick={() => {
+                          setPayWithScotia(false);
+                          setFormData((p) => ({ ...p, checkoutMethod: "on_account", paymentMethodId: null }));
+                        }}
                       >
                         <div className="flex items-start gap-3">
                           <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
@@ -890,10 +947,11 @@ const CheckoutPage = () => {
                       return (
                         <PickCard
                           key={method.id}
-                          selected={formData.checkoutMethod === method.id}
-                          onClick={() =>
-                            setFormData((p) => ({ ...p, checkoutMethod: method.id, paymentMethodId: null }))
-                          }
+                          selected={!payWithScotia && formData.checkoutMethod === method.id}
+                          onClick={() => {
+                            setPayWithScotia(false);
+                            setFormData((p) => ({ ...p, checkoutMethod: method.id, paymentMethodId: null }));
+                          }}
                         >
                           <div className="flex items-start gap-3">
                             <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -907,8 +965,30 @@ const CheckoutPage = () => {
                     })}
                   </div>
 
+                  {/* Embedded Scotia gateway — buyer pays without leaving the page. */}
+                  {SCOTIA_ENABLED && payWithScotia && (
+                    <div className="mt-4">
+                      {scotiaError && (
+                        <div className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-xs text-destructive" role="alert">
+                          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <span>{scotiaError}</span>
+                        </div>
+                      )}
+                      <ScotiaPaymentFrame
+                        payment={{
+                          chargetotal: totalPrice + (shippingCost ?? 0),
+                          responseSuccessURL: `${window.location.origin}/checkout`,
+                          responseFailURL: `${window.location.origin}/checkout`,
+                          orderId: poNumber || undefined,
+                        }}
+                        onResult={handleScotiaResult}
+                        onError={(message) => setScotiaError(message)}
+                      />
+                    </div>
+                  )}
+
                   {/* Pending-payment notice for non-B2B */}
-                  {formData.checkoutMethod !== "on_account" && (
+                  {!payWithScotia && formData.checkoutMethod !== "on_account" && (
                     <div className="mt-4 flex items-start gap-2 rounded-lg border border-accent/20 bg-accent/5 px-3 py-2.5 text-xs text-muted-foreground">
                       <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden="true" />
                       <span>
