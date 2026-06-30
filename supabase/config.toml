@@ -37,6 +37,10 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = true
   [functions.api-v1]
     verify_jwt = false
+  # Innovations -> CV outbound sync receiver. Auth is x-api-key in code
+  # (verify_api_key + per-resource write scope), so the platform JWT gate is off.
+  [functions.innovations-sync]
+    verify_jwt = false
   # Scotia eCom+ (IPG Connect) hosted-payment helper. Public preflight/CORS is
   # handled in code; the buyer's browser calls "prepare". Set verify_jwt=true
   # before production so only authenticated checkout sessions can request a hash.
