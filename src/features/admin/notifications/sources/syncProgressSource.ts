@@ -10,7 +10,7 @@ type PaymentGatewaySettings = {
 // Surfaces the Scotia eCom+ payment-gateway configuration state as an admin
 // notification. (Replaces the former Odoo sync-progress source.)
 export async function getSyncProgressNotifications(): Promise<AdminNotificationEvent[]> {
-  const { data } = await (supabase.from("payment_gateway_settings") as any)
+  const { data } = await ((supabase as any).from("payment_gateway_settings") as any)
     .select("status,enabled,updated_at")
     .eq("tenant_key", "default")
     .maybeSingle();

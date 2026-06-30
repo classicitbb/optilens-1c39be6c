@@ -49,7 +49,7 @@ export default function IntegrationsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["payment-gateway-settings"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("payment_gateway_settings") as any)
+      const { data, error } = await ((supabase as any).from("payment_gateway_settings") as any)
         .select("store_id,environment,currency,timezone,enabled,has_secret,status,last_tested_at,updated_at")
         .eq("tenant_key", "default")
         .maybeSingle();

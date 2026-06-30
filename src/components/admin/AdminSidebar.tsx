@@ -46,7 +46,7 @@ const AdminSidebar = () => {
   const { data: integrationStatus } = useQuery({
     queryKey: ["payment-gateway-status"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("payment_gateway_settings") as any)
+      const { data, error } = await ((supabase as any).from("payment_gateway_settings") as any)
         .select("status")
         .eq("tenant_key", "default")
         .maybeSingle();
