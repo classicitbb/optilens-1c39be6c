@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
+import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scotia eCom+ (Fiserv IPG Connect) hosted-payment credential store.
@@ -163,6 +164,8 @@ export default function IntegrationsPage() {
           {statusMeta[currentStatus].label}
         </Badge>
       </div>
+
+      <InnovationsSyncStatusCard />
 
       <Card>
         <CardHeader>

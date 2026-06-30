@@ -36,6 +36,9 @@ full contract.
 
 ## Running it
 
+The token below is obtained by unlocking the vault with your passphrase
+(`POST /api/connectors/unlock { "passphrase": "..." }` returns a 30-min token).
+
 **On-demand (manual, session + vault gated)**
 ```
 POST /api/connectors/innovations-sync/run
@@ -44,13 +47,14 @@ POST /api/connectors/innovations-sync/run
   "entities": ["customers","contacts"] }              # write
 ```
 
-**Unattended (scheduled)**
+**Unattended (scheduled)** — the CLI is a separate process, so it takes the
+vault **passphrase** and unlocks itself (a server-minted token won't work here):
 ```
 # preview
-node scripts/innovations-sync-cli.js --dry-run --token <token>
+node scripts/innovations-sync-cli.js --dry-run --passphrase "<vault passphrase>"
 # write
-node scripts/innovations-sync-cli.js --token <token>
-# install hourly task (set OPTILENS_SYNC_TOKEN at Machine scope first)
+node scripts/innovations-sync-cli.js --passphrase "<vault passphrase>"
+# install hourly task (set OPTILENS_SYNC_PASSPHRASE at Machine scope first)
 powershell -File scripts/install-innovations-sync-task.ps1 -IntervalMinutes 60
 ```
 
