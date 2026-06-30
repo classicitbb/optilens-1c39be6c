@@ -58,6 +58,18 @@ node scripts/innovations-sync-cli.js --passphrase "<vault passphrase>"
 powershell -File scripts/install-innovations-sync-task.ps1 -IntervalMinutes 60
 ```
 
+**Cloud "Sync now" button** (admin → `/admin/settings/integrations`)
+The cloud cannot call the office directly, so the button **queues** a request in
+`innovations_sync_requests`. The office picks it up via:
+```
+# install a frequent request-poller task (e.g. every 3 min)
+powershell -File scripts/install-innovations-sync-task.ps1 -ServeRequests -IntervalMinutes 3
+# or process the queue once, on demand:
+POST /api/connectors/innovations-sync/check-requests { "token": "<vault-token>" }
+```
+The office claims the request (`GET _requests/next`), runs the write, and reports
+back (`POST _requests/complete`); the card shows pending → done.
+
 ## Verifying / monitoring
 - `select * from innovations_sync_runs order by started_at desc limit 20;`
   — received / upserted / failed per run.

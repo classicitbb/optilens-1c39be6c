@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Database, Loader2, PlugZap } from "lucide-react";
 
 // Live status for the outbound Innovations → cloud sync (OptiLens Local pushes;
@@ -19,10 +21,15 @@ type Run = {
   started_at: string;
 };
 
+type SyncRequest = { id: string; status: string; requested_at: string; finished_at: string | null };
+
 const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—");
 const RECENT_MS = 24 * 60 * 60 * 1000;
 
 export default function InnovationsSyncStatusCard() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["innovations-sync-status"],
     refetchInterval: 30000,
@@ -38,9 +45,10 @@ export default function InnovationsSyncStatusCard() {
       const latestByEntity: Record<string, Run> = {};
       for (const run of list) if (!latestByEntity[run.entity]) latestByEntity[run.entity] = run;
 
-      const [custRes, contactRes] = await Promise.all([
+      const [custRes, contactRes, reqRes] = await Promise.all([
         (supabase as any).from("customers").select("id", { count: "exact", head: true }).not("innovations_customer_id", "is", null),
         (supabase as any).from("contacts").select("id", { count: "exact", head: true }).not("innovations_contact_id", "is", null),
+        (supabase as any).from("innovations_sync_requests").select("id,status,requested_at,finished_at").order("requested_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
 
       return {
@@ -48,8 +56,25 @@ export default function InnovationsSyncStatusCard() {
         latestByEntity,
         custCount: (custRes.count as number | null) ?? 0,
         contactCount: (contactRes.count as number | null) ?? 0,
+        lastRequest: (reqRes.data ?? null) as SyncRequest | null,
       };
     },
+  });
+
+  const pendingRequest = data?.lastRequest && (data.lastRequest.status === "pending" || data.lastRequest.status === "claimed");
+
+  const requestSync = useMutation({
+    mutationFn: async () => {
+      const { error: insErr } = await (supabase as any)
+        .from("innovations_sync_requests")
+        .insert({ entities: ["customers", "contacts"], status: "pending" });
+      if (insErr) throw insErr;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["innovations-sync-status"] });
+      toast({ title: "Sync requested", description: "OptiLens Local will run it on its next check." });
+    },
+    onError: (e: any) => toast({ title: "Could not request sync", description: e.message, variant: "destructive" }),
   });
 
   const latestWrite = data?.runs.find((r) => !r.dry_run && (r.status === "success" || r.status === "partial"));
@@ -63,16 +88,26 @@ export default function InnovationsSyncStatusCard() {
           <CardTitle className="flex items-center gap-2 text-base">
             <PlugZap className="h-4 w-4" /> Innovations Sync (OptiLens Local)
           </CardTitle>
-          <Badge
-            variant="outline"
-            className={
-              live
-                ? "bg-emerald-500/10 text-emerald-700 border-emerald-300"
-                : "bg-slate-500/10 text-slate-700 border-slate-300"
-            }
-          >
-            {live ? "Live" : data?.runs.length ? "Idle" : "Awaiting first sync"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={
+                live
+                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-300"
+                  : "bg-slate-500/10 text-slate-700 border-slate-300"
+              }
+            >
+              {live ? "Live" : data?.runs.length ? "Idle" : "Awaiting first sync"}
+            </Badge>
+            <Button
+              size="sm"
+              onClick={() => requestSync.mutate()}
+              disabled={requestSync.isPending || !!pendingRequest}
+            >
+              {(requestSync.isPending || pendingRequest) && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+              {pendingRequest ? "Sync requested…" : "Sync now"}
+            </Button>
+          </div>
         </div>
         <CardDescription>
           Outbound push from the office MS SQL (Innovations). This card shows what has landed in the cloud.
@@ -102,6 +137,13 @@ export default function InnovationsSyncStatusCard() {
                 Last activity: <strong>{fmt(lastAny?.started_at)}</strong>
                 {lastAny ? (lastAny.dry_run ? " (dry run)" : " (write)") : ""}
               </div>
+              {data?.lastRequest && (
+                <div className="md:col-span-2 text-muted-foreground">
+                  Last "Sync now" request: <strong className="capitalize">{data.lastRequest.status}</strong>
+                  {" · "}{fmt(data.lastRequest.finished_at ?? data.lastRequest.requested_at)}
+                  {pendingRequest && " — waiting for the office agent to pick it up"}
+                </div>
+              )}
             </div>
 
             {data && Object.keys(data.latestByEntity).length > 0 && (

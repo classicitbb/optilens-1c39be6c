@@ -74,18 +74,13 @@ Deno.serve(async (req: Request) => {
   const idx = parts.indexOf("innovations-sync");
   const entity = (idx >= 0 ? parts[idx + 1] : parts[parts.length - 1]) ?? "";
 
-  const cfg = ENTITIES[entity];
-  if (!cfg) {
-    return json({ error: `Unknown or unsupported entity '${entity}'. Supported: ${Object.keys(ENTITIES).join(", ")}.` }, 404);
-  }
-
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } },
   );
 
-  // Auth
+  // Auth (all paths)
   const token = req.headers.get("x-api-key") ?? "";
   if (!token) return json({ error: "Missing x-api-key header." }, 401);
   const { data: keyRows, error: keyErr } = await supabase.rpc("verify_api_key", { p_token: token });
@@ -93,6 +88,52 @@ Deno.serve(async (req: Request) => {
   const key = Array.isArray(keyRows) ? keyRows[0] : keyRows;
   if (!key) return json({ error: "Invalid or revoked API key." }, 401);
   const scopes: string[] = key.scopes ?? [];
+
+  // Control plane: the office agent claims/completes CV-initiated "Sync now"
+  // requests (the cloud cannot call the office, so it queues; the office polls).
+  if (entity === "_requests") {
+    if (!scopes.includes("customers:write") && !scopes.includes("contacts:write")) {
+      return json({ error: "Missing required scope: customers:write" }, 403);
+    }
+    if (req.method === "GET" && id === "next") {
+      const { data: pending } = await supabase
+        .from("innovations_sync_requests")
+        .select("id,entities")
+        .eq("status", "pending")
+        .order("requested_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!pending) return json({ request: null });
+      const { data: claimed, error: claimErr } = await supabase
+        .from("innovations_sync_requests")
+        .update({ status: "claimed", claimed_at: new Date().toISOString() })
+        .eq("id", (pending as any).id)
+        .eq("status", "pending")
+        .select("id,entities")
+        .maybeSingle();
+      if (claimErr || !claimed) return json({ request: null }); // lost the race
+      return json({ request: claimed });
+    }
+    if (req.method === "POST" && id === "complete") {
+      const body = await req.json().catch(() => null) as any;
+      if (!body || !body.id) return json({ error: "Body must be { id, ok, result }." }, 400);
+      await supabase
+        .from("innovations_sync_requests")
+        .update({
+          status: body.ok ? "done" : "failed",
+          finished_at: new Date().toISOString(),
+          result: body.result ?? null,
+        })
+        .eq("id", body.id);
+      return json({ ok: true });
+    }
+    return json({ error: "Unsupported _requests operation." }, 404);
+  }
+
+  const cfg = ENTITIES[entity];
+  if (!cfg) {
+    return json({ error: `Unknown or unsupported entity '${entity}'. Supported: ${Object.keys(ENTITIES).join(", ")}.` }, 404);
+  }
   if (!scopes.includes(cfg.scope)) {
     return json({ error: `Missing required scope: ${cfg.scope}` }, 403);
   }
