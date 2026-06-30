@@ -98,14 +98,16 @@ Body:
 { "dry_run": true, "records": [ { …mapped entity row… } ] }
 ```
 Behaviour:
-- `verify_api_key` → requires scope `sync:write` (401/403 otherwise).
+- `verify_api_key` → requires the entity's existing write scope
+  (`customers:write` / `contacts:write`) (401/403 otherwise).
 - Per record: upsert into the target table `ON CONFLICT (innovations_<id>)`.
 - Writes a row to `integration_sync_runs`; failures go to a dead-letter table.
 - `dry_run:true` validates + maps but rolls back; returns counts + a sample.
 - Response: `{ entity, received, upserted, failed, dry_run, sample, errors[] }`.
 
 ## 5. Auth & secrets
-- Key minted in CV admin (**Settings → API Keys**) with scope `sync:write`.
+- Key minted in CV admin (**Settings → API Keys**) with `customers:write` +
+  `contacts:write` (reuses the existing per-resource scopes; no new scope needed).
 - Stored on the office side in OptiLens Local's credential vault (never in git).
 - Rotatable via the existing key-rotation runbook.
 

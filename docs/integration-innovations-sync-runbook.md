@@ -11,7 +11,7 @@ full contract.
 | Provider | `innovations` (on-prem MS SQL, `Innovations` on `MSSQL-SVR`) |
 | Purpose | Mirror customers + contacts (later: balances, invoices, statements) into CV cloud for the Customer Journey Hub |
 | Direction | Outbound push, office → cloud (office DB never exposed inbound) |
-| Auth | `x-api-key: cv_live_…`, scope `sync:write`, verified by `verify_api_key` |
+| Auth | `x-api-key: cv_live_…`; scopes `customers:write` + `contacts:write`, verified by `verify_api_key` |
 | Office env var | `OPTILENS_SYNC_TOKEN` (vault token, for unattended runs) |
 | CV tables written | `customers`, `contacts` (upsert by `innovations_customer_id` / `innovations_contact_id`) |
 | Observability | `innovations_sync_runs`, `innovations_sync_dead_letters` |
@@ -24,8 +24,9 @@ full contract.
 1. Apply migration `supabase/migrations/20260630120000_innovations_sync_v1.sql`
    (adds external-id columns, observability tables, `innovations` provider).
 2. Deploy the edge function: `supabase functions deploy innovations-sync`.
-3. Mint an API key: **Settings → API Keys**, scope **`sync:write`** only.
-   Copy the `cv_live_…` value (shown once).
+3. Mint an API key: **Settings → API Keys**, tick **`customers:write`** and
+   **`contacts:write`** (both already on that screen). Copy the `cv_live_…`
+   value (shown once).
 
 **OptiLens Local (office)**
 4. Unlock the vault, then save the key under the CV API connector
@@ -65,7 +66,7 @@ powershell -File scripts/install-innovations-sync-task.ps1 -IntervalMinutes 60
 | Symptom | Cause / fix |
 | ------- | ----------- |
 | `401 Missing/invalid x-api-key` | Key not saved in vault, or wrong value. Re-save under CV API connector. |
-| `403 Missing required scope: sync:write` | Key lacks the scope. Mint a new key with `sync:write`. |
+| `403 Missing required scope: customers:write` (or `contacts:write`) | Key lacks that scope. Mint a key with both `customers:write` and `contacts:write`. |
 | `404 Unknown entity` | Only `customers`, `contacts` supported in v1. |
 | `422` / `failed` status | Upsert errors — inspect `innovations_sync_dead_letters.last_error`. |
 | `Invalid column name` in office logs | The `contacts` SQL uses assumed `dbo.Contacts` columns. Adjust `ENTITIES.contacts.sql` / `.map` in `lib/innovations-sync.js` to the real columns, re-run dry-run. |

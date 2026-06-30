@@ -15,14 +15,14 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const REQUIRED_SCOPE = "sync:write";
-
-// Per-entity upsert config: target table, conflict key, and the writable
-// column allowlist. Anything outside the allowlist is dropped before write.
+// Per-entity upsert config: target table, conflict key, the write scope required
+// (reusing the existing per-resource scopes shown in the admin API Keys screen),
+// and the writable column allowlist. Anything outside the allowlist is dropped.
 type EntityConfig = {
   table: string;
   conflictKey: string;
   required: string;
+  scope: string;
   allow: string[];
 };
 
@@ -31,6 +31,7 @@ const ENTITIES: Record<string, EntityConfig> = {
     table: "customers",
     conflictKey: "innovations_customer_id",
     required: "innovations_customer_id",
+    scope: "customers:write",
     allow: [
       "innovations_customer_id", "name", "account_number", "address",
       "country_code", "pipeline_stage", "type", "email", "phone", "notes",
@@ -40,6 +41,7 @@ const ENTITIES: Record<string, EntityConfig> = {
     table: "contacts",
     conflictKey: "innovations_contact_id",
     required: "innovations_contact_id",
+    scope: "contacts:write",
     allow: [
       "innovations_contact_id", "innovations_parent_customer_id", "name",
       "business_name", "email", "phone", "street", "street2", "city", "state",
@@ -91,8 +93,8 @@ Deno.serve(async (req: Request) => {
   const key = Array.isArray(keyRows) ? keyRows[0] : keyRows;
   if (!key) return json({ error: "Invalid or revoked API key." }, 401);
   const scopes: string[] = key.scopes ?? [];
-  if (!scopes.includes(REQUIRED_SCOPE)) {
-    return json({ error: `Missing required scope: ${REQUIRED_SCOPE}` }, 403);
+  if (!scopes.includes(cfg.scope)) {
+    return json({ error: `Missing required scope: ${cfg.scope}` }, 403);
   }
 
   // Body
