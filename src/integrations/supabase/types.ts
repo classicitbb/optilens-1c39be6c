@@ -1376,6 +1376,8 @@ export type Database = {
           google_reviews_count: number | null
           id: string
           industry_id: string | null
+          innovations_contact_id: number | null
+          innovations_parent_customer_id: number | null
           instagram_handle: string | null
           is_archived: boolean
           is_company: boolean
@@ -1417,6 +1419,8 @@ export type Database = {
           google_reviews_count?: number | null
           id?: string
           industry_id?: string | null
+          innovations_contact_id?: number | null
+          innovations_parent_customer_id?: number | null
           instagram_handle?: string | null
           is_archived?: boolean
           is_company?: boolean
@@ -1458,6 +1462,8 @@ export type Database = {
           google_reviews_count?: number | null
           id?: string
           industry_id?: string | null
+          innovations_contact_id?: number | null
+          innovations_parent_customer_id?: number | null
           instagram_handle?: string | null
           is_archived?: boolean
           is_company?: boolean
@@ -1693,12 +1699,15 @@ export type Database = {
       }
       customers: {
         Row: {
+          account_number: string | null
           address: string | null
           assigned_pricelist_id: number | null
           contact_id: string | null
+          country_code: string | null
           created_at: string | null
           email: string | null
           id: number
+          innovations_customer_id: number | null
           name: string
           notes: string | null
           phone: string | null
@@ -1707,12 +1716,15 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_number?: string | null
           address?: string | null
           assigned_pricelist_id?: number | null
           contact_id?: string | null
+          country_code?: string | null
           created_at?: string | null
           email?: string | null
           id?: number
+          innovations_customer_id?: number | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -1721,12 +1733,15 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_number?: string | null
           address?: string | null
           assigned_pricelist_id?: number | null
           contact_id?: string | null
+          country_code?: string | null
           created_at?: string | null
           email?: string | null
           id?: number
+          innovations_customer_id?: number | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -2761,6 +2776,87 @@ export type Database = {
           is_active?: boolean
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      innovations_sync_dead_letters: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          entity: string
+          external_id: string | null
+          id: string
+          last_error: string | null
+          source_payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          entity: string
+          external_id?: string | null
+          id?: string
+          last_error?: string | null
+          source_payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          entity?: string
+          external_id?: string | null
+          id?: string
+          last_error?: string | null
+          source_payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      innovations_sync_runs: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          dry_run: boolean
+          entity: string
+          error_summary: string | null
+          failed: number
+          finished_at: string
+          id: string
+          received: number
+          started_at: string
+          status: string
+          upserted: number
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          dry_run?: boolean
+          entity: string
+          error_summary?: string | null
+          failed?: number
+          finished_at?: string
+          id?: string
+          received?: number
+          started_at?: string
+          status?: string
+          upserted?: number
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          dry_run?: boolean
+          entity?: string
+          error_summary?: string | null
+          failed?: number
+          finished_at?: string
+          id?: string
+          received?: number
+          started_at?: string
+          status?: string
+          upserted?: number
         }
         Relationships: []
       }
@@ -6835,6 +6931,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
