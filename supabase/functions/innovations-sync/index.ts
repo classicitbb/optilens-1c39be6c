@@ -187,6 +187,12 @@ Deno.serve(async (req: Request) => {
   }
   const dryRun = (raw as any).dry_run !== false; // default true
   const records = (raw as any).records as Record<string, unknown>[];
+  if (records.length > MAX_RECORDS_PER_REQUEST) {
+    return json(
+      { error: `Too many records. Max ${MAX_RECORDS_PER_REQUEST} per request, got ${records.length}.` },
+      413,
+    );
+  }
   const started = new Date().toISOString();
 
   // Map + validate
