@@ -714,8 +714,36 @@ export type Database = {
             foreignKeyName: "catalog_assignments_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "balances_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "catalog_assignments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_assignments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "catalog_assignments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "statement_lines_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "catalog_assignments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "statements_public"
+            referencedColumns: ["customer_id"]
           },
         ]
       }
@@ -1705,6 +1733,7 @@ export type Database = {
           contact_id: string | null
           country_code: string | null
           created_at: string | null
+          credit_limit: number | null
           email: string | null
           id: number
           innovations_customer_id: number | null
@@ -1722,6 +1751,7 @@ export type Database = {
           contact_id?: string | null
           country_code?: string | null
           created_at?: string | null
+          credit_limit?: number | null
           email?: string | null
           id?: number
           innovations_customer_id?: number | null
@@ -1739,6 +1769,7 @@ export type Database = {
           contact_id?: string | null
           country_code?: string | null
           created_at?: string | null
+          credit_limit?: number | null
           email?: string | null
           id?: number
           innovations_customer_id?: number | null
@@ -4066,8 +4097,22 @@ export type Database = {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "invoices_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "statement_lines_public"
+            referencedColumns: ["invoice_id"]
           },
           {
             foreignKeyName: "order_items_variant_id_fkey"
@@ -4153,8 +4198,22 @@ export type Database = {
             foreignKeyName: "order_payment_links_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "invoices_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_payment_links_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_payment_links_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "statement_lines_public"
+            referencedColumns: ["invoice_id"]
           },
         ]
       }
@@ -4209,8 +4268,22 @@ export type Database = {
             foreignKeyName: "order_payments_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "invoices_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "statement_lines_public"
+            referencedColumns: ["invoice_id"]
           },
           {
             foreignKeyName: "order_payments_payment_method_id_fkey"
@@ -4260,8 +4333,22 @@ export type Database = {
             foreignKeyName: "order_revisions_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "invoices_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_revisions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_revisions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "statement_lines_public"
+            referencedColumns: ["invoice_id"]
           },
         ]
       }
@@ -6585,6 +6672,17 @@ export type Database = {
           },
         ]
       }
+      balances_public: {
+        Row: {
+          account_number: string | null
+          as_of: string | null
+          credit_limit: number | null
+          current_balance: number | null
+          customer_id: number | null
+          overdue_balance: number | null
+        }
+        Relationships: []
+      }
       catalog_live: {
         Row: {
           category: string | null
@@ -6618,6 +6716,20 @@ export type Database = {
           provider: string | null
           records_processed_per_run: number | null
           tenant_key: string | null
+        }
+        Relationships: []
+      }
+      invoices_public: {
+        Row: {
+          account_number: string | null
+          amount_paid: number | null
+          balance: number | null
+          customer_id: number | null
+          id: string | null
+          issued_at: string | null
+          order_status: string | null
+          payment_status: string | null
+          total: number | null
         }
         Relationships: []
       }
@@ -6822,6 +6934,32 @@ export type Database = {
           subtotal_sell?: number | null
           updated_at?: string | null
           valid_until?: string | null
+        }
+        Relationships: []
+      }
+      statement_lines_public: {
+        Row: {
+          account_number: string | null
+          amount_paid: number | null
+          balance: number | null
+          customer_id: number | null
+          invoice_id: string | null
+          issued_at: string | null
+          payment_status: string | null
+          period_start: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      statements_public: {
+        Row: {
+          account_number: string | null
+          closing_balance: number | null
+          customer_id: number | null
+          period_end: string | null
+          period_start: string | null
+          total_invoiced: number | null
+          total_paid: number | null
         }
         Relationships: []
       }
