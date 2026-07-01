@@ -348,7 +348,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
       </button>
 
       {open &&
-      <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+      <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border/50 bg-background/80 p-4 shadow-lg backdrop-blur-md">
           {/* Arrow pointing up at the trigger button */}
           <div
           style={{ left: arrowLeft }}
@@ -501,7 +501,7 @@ const Header = () => {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80">
+            <SheetContent side="left" className="w-80 border-border/50 bg-background/80 backdrop-blur-md">
               <SheetTitle className="mb-6 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center">
                   <img src={cleanLogoSmooth} alt="Classic Visions" className="h-6 w-6" />
@@ -603,7 +603,7 @@ const Header = () => {
                   <DropdownMenuContent
                     align="end"
                     sideOffset={10}
-                    className="w-[min(88vw,18rem)] rounded-2xl border-border/60 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur-xl"
+                    className="w-[min(88vw,18rem)] rounded-2xl border-border/50 bg-background/80 p-0 shadow-2xl shadow-black/10 backdrop-blur-md"
                   >
                     <div className="space-y-1 p-2.5 sm:p-3">
                       <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">
