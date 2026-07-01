@@ -155,9 +155,9 @@ export default function IntegrationsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Payment Gateway</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
           <p className="text-sm text-muted-foreground">
-            Scotia eCom+ hosted payment credentials and configuration.
+            External service integrations and gateway configuration.
           </p>
         </div>
         <Badge variant="outline" className={statusMeta[currentStatus].className}>
