@@ -2815,6 +2815,42 @@ export type Database = {
         }
         Relationships: []
       }
+      innovations_sync_requests: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          entities: string[]
+          finished_at: string | null
+          id: string
+          requested_at: string
+          requested_by: string | null
+          result: Json | null
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          entities?: string[]
+          finished_at?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          result?: Json | null
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          entities?: string[]
+          finished_at?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          result?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       innovations_sync_runs: {
         Row: {
           api_key_id: string | null
