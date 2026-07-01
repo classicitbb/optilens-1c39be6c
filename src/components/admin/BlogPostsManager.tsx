@@ -281,13 +281,38 @@ const BlogPostsManager = ({
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Cover image URL</label>
-                    <Input
-                      value={editing.cover_image_url || ""}
-                      onChange={(event) => setEditing({ ...editing, cover_image_url: event.target.value })}
-                      className="h-9 text-sm"
-                      placeholder="https://..."
-                    />
+                    <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                      Cover image URL <span className="text-muted-foreground/70">(paste image, URL, or drop file)</span>
+                    </label>
+                    <div className="flex items-start gap-2">
+                      {editing.cover_image_url ? (
+                        <img
+                          src={editing.cover_image_url}
+                          alt=""
+                          className="h-9 w-14 flex-shrink-0 rounded border border-border object-cover"
+                        />
+                      ) : null}
+                      <Input
+                        value={editing.cover_image_url || ""}
+                        onChange={(event) => setEditing({ ...editing, cover_image_url: event.target.value })}
+                        onPaste={(event) => handleCoverPaste(event, editing, setEditing)}
+                        onDrop={(event) => handleCoverDrop(event, editing, setEditing)}
+                        onDragOver={(event) => event.preventDefault()}
+                        className="h-9 text-sm"
+                        placeholder="Paste an image or https://..."
+                      />
+                      {editing.cover_image_url ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 px-2"
+                          onClick={() => setEditing({ ...editing, cover_image_url: "" })}
+                        >
+                          Clear
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                   <div>
                     <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Cover image alt</label>
