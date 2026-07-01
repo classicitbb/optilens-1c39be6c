@@ -88,7 +88,8 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-06-30.4-fixes";
+const VERSION = "2026-07-01.1-qa";
+const MAX_RECORDS_PER_REQUEST = 1000;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -126,7 +127,7 @@ Deno.serve(async (req: Request) => {
   // requests (the cloud cannot call the office, so it queues; the office polls).
   if (entity === "_requests") {
     if (!scopes.includes("customers:write") && !scopes.includes("contacts:write")) {
-      return json({ error: "Missing required scope: customers:write" }, 403);
+      return json({ error: "Missing required scope: customers:write or contacts:write" }, 403);
     }
     if (req.method === "GET" && id === "next") {
       const { data: pending } = await supabase
@@ -150,14 +151,19 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST" && id === "complete") {
       const body = (await req.json().catch(() => null)) as any;
       if (!body || !body.id) return json({ error: "Body must be { id, ok, result }." }, 400);
-      await supabase
+      const { data: updated, error: updErr } = await supabase
         .from("innovations_sync_requests")
         .update({
           status: body.ok ? "done" : "failed",
           finished_at: new Date().toISOString(),
           result: body.result ?? null,
         })
-        .eq("id", body.id);
+        .eq("id", body.id)
+        .eq("status", "claimed")
+        .select("id")
+        .maybeSingle();
+      if (updErr) return json({ error: "Update failed", detail: updErr.message }, 500);
+      if (!updated) return json({ error: "Request not found or not in claimed state." }, 409);
       return json({ ok: true });
     }
     return json({ error: "Unsupported _requests operation." }, 404);
@@ -181,6 +187,12 @@ Deno.serve(async (req: Request) => {
   }
   const dryRun = (raw as any).dry_run !== false; // default true
   const records = (raw as any).records as Record<string, unknown>[];
+  if (records.length > MAX_RECORDS_PER_REQUEST) {
+    return json(
+      { error: `Too many records. Max ${MAX_RECORDS_PER_REQUEST} per request, got ${records.length}.` },
+      413,
+    );
+  }
   const started = new Date().toISOString();
 
   // Map + validate
