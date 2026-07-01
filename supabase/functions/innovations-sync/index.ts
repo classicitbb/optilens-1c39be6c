@@ -36,8 +36,17 @@ const ENTITIES: Record<string, EntityConfig> = {
     // constraints (customers_type_check) whose allowed values we don't set from
     // the ERP. Dropped here so the office payload can't trip them regardless.
     allow: [
-      "innovations_customer_id", "name", "account_number", "address",
-      "country_code", "email", "phone", "notes",
+      "innovations_customer_id",
+      "name",
+      "account_number",
+      "address",
+      "country_code",
+      "pipeline_stage",
+      "type",
+      "email",
+      "phone",
+      "notes",
+
     ],
   },
   contacts: {
@@ -46,10 +55,24 @@ const ENTITIES: Record<string, EntityConfig> = {
     required: "innovations_contact_id",
     scope: "contacts:write",
     allow: [
-      "innovations_contact_id", "innovations_parent_customer_id", "name",
-      "business_name", "email", "phone", "street", "street2", "city", "state",
-      "zip", "country", "country_code", "is_company", "status",
-      "pipeline_stage", "type", "notes",
+      "innovations_contact_id",
+      "innovations_parent_customer_id",
+      "name",
+      "business_name",
+      "email",
+      "phone",
+      "street",
+      "street2",
+      "city",
+      "state",
+      "zip",
+      "country",
+      "country_code",
+      "is_company",
+      "status",
+      "pipeline_stage",
+      "type",
+      "notes",
     ],
   },
 };
@@ -91,6 +114,7 @@ Deno.serve(async (req: Request) => {
     { auth: { persistSession: false } },
   );
 
+
   // Auth (all paths)
   const token = req.headers.get("x-api-key") ?? "";
   if (!token) return json({ error: "Missing x-api-key header." }, 401);
@@ -126,7 +150,7 @@ Deno.serve(async (req: Request) => {
       return json({ request: claimed });
     }
     if (req.method === "POST" && id === "complete") {
-      const body = await req.json().catch(() => null) as any;
+      const body = (await req.json().catch(() => null)) as any;
       if (!body || !body.id) return json({ error: "Body must be { id, ok, result }." }, 400);
       await supabase
         .from("innovations_sync_requests")
@@ -143,7 +167,10 @@ Deno.serve(async (req: Request) => {
 
   const cfg = ENTITIES[entity];
   if (!cfg) {
-    return json({ error: `Unknown or unsupported entity '${entity}'. Supported: ${Object.keys(ENTITIES).join(", ")}.` }, 404);
+    return json(
+      { error: `Unknown or unsupported entity '${entity}'. Supported: ${Object.keys(ENTITIES).join(", ")}.` },
+      404,
+    );
   }
   if (!scopes.includes(cfg.scope)) {
     return json({ error: `Missing required scope: ${cfg.scope}` }, 403);
@@ -162,7 +189,10 @@ Deno.serve(async (req: Request) => {
   const mapped: Record<string, unknown>[] = [];
   const invalid: { index: number; error: string }[] = [];
   records.forEach((r, i) => {
-    if (!r || typeof r !== "object") { invalid.push({ index: i, error: "not an object" }); return; }
+    if (!r || typeof r !== "object") {
+      invalid.push({ index: i, error: "not an object" });
+      return;
+    }
     const row = pick(r, cfg.allow);
     if (row[cfg.required] === undefined || row[cfg.required] === null || row[cfg.required] === "") {
       invalid.push({ index: i, error: `missing ${cfg.required}` });
@@ -201,8 +231,12 @@ Deno.serve(async (req: Request) => {
           failed++;
           if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);
           await supabase.from("innovations_sync_dead_letters").insert({
-            entity, external_id: String(row[cfg.required]), api_key_id: key.id,
-            last_error: rowErr.message, source_payload: row, status: "pending",
+            entity,
+            external_id: String(row[cfg.required]),
+            api_key_id: key.id,
+            last_error: rowErr.message,
+            source_payload: row,
+            status: "pending",
           });
         } else {
           upserted++;
@@ -215,20 +249,29 @@ Deno.serve(async (req: Request) => {
 
   // Run log (best-effort)
   await supabase.from("innovations_sync_runs").insert({
-    entity, api_key_id: key.id, dry_run: dryRun,
-    received: records.length, upserted, failed, status,
-    error_summary: errors.length ? errors.join(" | ") : null,
-    started_at: started, finished_at: new Date().toISOString(),
-  });
-
-  return json({
     entity,
+    api_key_id: key.id,
     dry_run: dryRun,
     received: records.length,
     upserted,
     failed,
     status,
-    sample: mapped.slice(0, 3),
-    errors,
-  }, status === "failed" ? 422 : 200);
+    error_summary: errors.length ? errors.join(" | ") : null,
+    started_at: started,
+    finished_at: new Date().toISOString(),
+  });
+
+  return json(
+    {
+      entity,
+      dry_run: dryRun,
+      received: records.length,
+      upserted,
+      failed,
+      status,
+      sample: mapped.slice(0, 3),
+      errors,
+    },
+    status === "failed" ? 422 : 200,
+  );
 });
