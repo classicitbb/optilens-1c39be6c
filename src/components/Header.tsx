@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles, Settings, Palette, ShoppingCart } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
@@ -296,7 +297,10 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideTrigger = ref.current?.contains(target);
+      const insidePanel = panelRef.current?.contains(target);
+      if (!insideTrigger && !insidePanel) {
         setOpen(false);
         setIsPinnedOpen(false);
       }
@@ -348,12 +352,13 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
       </button>
 
       {open &&
-      <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border/50 bg-background/80 p-4 shadow-lg backdrop-blur-md">
+      createPortal(
+        <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border/50 bg-background/80 p-4 shadow-lg backdrop-blur-md">
           {/* Arrow pointing up at the trigger button */}
           <div
           style={{ left: arrowLeft }}
           className="absolute -top-1.5 z-10 h-3 w-3 -translate-x-1/2 rotate-45 rounded-[2px] border shadow-none border-amber-400 bg-[#e7b318]" />
-        
+
           <div className="grid gap-4 md:grid-cols-3">
           {item.sections.map((section) =>
           <div key={section.title}>
@@ -368,7 +373,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
                 rel="noopener noreferrer"
                 onClick={handleLinkClick}
                 className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}>
-                
+
                       <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                       <p className="text-xs text-muted-foreground">{link.description}</p>
                       {link.externalLabel && <p className="text-[11px] font-semibold text-primary">{link.externalLabel}</p>}
@@ -381,7 +386,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
                 {...getLabLinkNavigationProps(preserveLabLinkSession)}
                 onClick={handleLinkClick}
                 className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}>
-                
+
                         <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                         <p className="text-xs text-muted-foreground">{link.description}</p>
                       </a> :
@@ -392,7 +397,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
                 {...getLabLinkNavigationProps(preserveLabLinkSession)}
                 onClick={handleLinkClick}
                 className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}>
-                
+
                       <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                       <p className="text-xs text-muted-foreground">{link.description}</p>
                     </Link>
@@ -403,8 +408,9 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
             </div>
           )}
           </div>
-        </div>
-      }
+        </div>,
+        document.body
+      )}
     </div>);
 
 };
