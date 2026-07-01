@@ -1339,16 +1339,17 @@ const ContactsPage = () => {
           .eq("contact_id", contactId as any)
           .maybeSingle();
         if (!existing) {
-          await (supabase.from("customers") as any).insert({
+          const { error: custErr } = await (supabase.from("customers") as any).insert({
             name: editContact.name,
-            email: editContact.email ?? null,
+            email: editContact.email?.trim() || null,
             phone: editContact.phone ?? null,
             address: [editContact.street, editContact.city, editContact.state, editContact.country_code].filter(Boolean).join(", ") || null,
-            type: editContact.is_company ? "Company" : "Person",
+            type: "Customer",
             pipeline_stage: editContact.pipeline_stage ?? "Prospect",
             contact_id: contactId,
             account_number: trimmedAccountNumber,
           } as any);
+          if (custErr) throw custErr;
         } else if (trimmedAccountNumber !== (linkedCustomerRecord?.account_number ?? null)) {
           const { error: acctErr } = await (supabase.from("customers") as any)
             .update({ account_number: trimmedAccountNumber })
