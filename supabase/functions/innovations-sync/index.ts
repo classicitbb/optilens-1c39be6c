@@ -88,7 +88,8 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-06-30.4-fixes";
+const VERSION = "2026-07-01.1-qa";
+const MAX_RECORDS_PER_REQUEST = 1000;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
