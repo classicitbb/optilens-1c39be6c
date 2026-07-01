@@ -127,7 +127,7 @@ Deno.serve(async (req: Request) => {
   // requests (the cloud cannot call the office, so it queues; the office polls).
   if (entity === "_requests") {
     if (!scopes.includes("customers:write") && !scopes.includes("contacts:write")) {
-      return json({ error: "Missing required scope: customers:write" }, 403);
+      return json({ error: "Missing required scope: customers:write or contacts:write" }, 403);
     }
     if (req.method === "GET" && id === "next") {
       const { data: pending } = await supabase
