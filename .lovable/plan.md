@@ -1,51 +1,24 @@
+
 ## Goal
-Make the `api-v1` edge function self-describing so other AI tools (Custom GPTs, Cursor, Claude, agents) and humans (Postman, Insomnia) can discover endpoints automatically — no hand-holding.
+Make cover image handling in the blog editor effortless, and actually display the cover on the reading page.
 
-## What gets added
+## Changes
 
-**1. OpenAPI 3.1 spec** — hand-written, lives at:
-```
-supabase/functions/api-v1/openapi.ts
-```
-A single TypeScript module that exports a JS object (so we get type-checking and avoid YAML parsing in Deno). Covers every current resource:
-- `catalog`, `contacts`, `customers`, `orders`
-- `lenses`, `supplies`, `addons` (with cost fields documented as stripped)
-- `moonshot_rocks`, `moonshot_todos`
+### 1. `src/components/admin/BlogPostsManager.tsx` — editor
+- When `RichTextEditor.onChange(html)` fires, parse the HTML for the first `<img src="...">`. If `editing.cover_image_url` is empty/unset, auto-populate it with that src (and set alt from the img's `alt` if cover alt is empty). Never overwrite a cover URL the user already set.
+- Upgrade the Cover image URL field to a "paste anywhere" target:
+  - Add `onPaste` on the input that reads `clipboardData`:
+    - If an image file is present (screenshot / copied image), upload it via the existing Supabase storage path used by RichTextEditor (reuse its uploader helper — inspect `src/components/admin/RichTextEditor.tsx` to reuse the same bucket/util) and set the returned public URL.
+    - Else if plain text contains a URL or a data URL, set it directly.
+    - Else if HTML contains `<img src>`, extract the src.
+  - Also accept drag-and-drop of an image file onto the field (same handler).
+  - Show a small inline preview thumbnail beside the input when a URL is present, plus a "Clear" button.
+- Keep the field editable as a normal text input for manual URLs.
 
-For each resource we document: `GET /<resource>` (list, with `limit`/`offset`/`order` query params), `GET /<resource>/:id`, `POST /<resource>`, `PATCH /<resource>/:id`, plus the `x-api-key` security scheme, the `catalog` draft-routing behavior, and standard error shapes.
+### 2. `src/pages/BlogPostPage.tsx` — reader
+- If `post.cover_image_url` is set, render a hero `<img>` at the top of the article card (above the title block, inside the existing rounded article container) with `alt = post.cover_image_alt || post.title`, `loading="eager"`, aspect ~16/9, `object-cover`. If not set, render nothing (current behavior).
 
-**2. Two new public routes inside the edge function** (no API key required):
-- `GET /functions/v1/api-v1/openapi.json` — returns the spec as JSON
-- `GET /functions/v1/api-v1/docs` — returns an HTML page that loads Swagger UI from a CDN and points at `./openapi.json`
-
-These are added at the top of the request handler so they short-circuit before the API-key check.
-
-**3. Admin UI hookup** on `/admin/settings/api-keys`:
-- A "Documentation" card at the top with two copy-buttons: the Swagger UI URL and the raw `openapi.json` URL.
-- A short blurb: "Paste the openapi.json URL into ChatGPT Custom GPT Actions, Cursor, or any AI coding tool to give it full access to this API."
-
-## What this unlocks for other AIs
-
-| Tool | How it consumes the spec |
-|---|---|
-| **ChatGPT Custom GPT** | Paste the openapi.json URL into "Actions" → it imports every endpoint as a callable tool |
-| **Cursor / Claude Code** | Point at the URL or the `openapi.ts` file in the repo |
-| **Postman / Insomnia** | Import openapi.json → full collection appears |
-| **n8n / Zapier / Make** | "HTTP Request from OpenAPI" node consumes it directly |
-| **OpenAI / Anthropic agents** | Standard `openapi_to_functions` converters turn endpoints into tool calls |
-
-## Why public (no auth) for the spec
-
-The spec describes shape only — no data, no secrets. Making it public is the universal standard (Stripe, GitHub, Twilio all do this) and is the **only** way Custom GPT Actions and most agent frameworks can fetch it. Actual data still requires `x-api-key`.
-
-## Out of scope (can do later)
-
-- Auto-generating the spec from zod schemas (would require refactoring the edge function)
-- Versioned spec history
-- Rate-limit documentation (no rate limits exist yet)
-
-## Files touched
-
-- **new** `supabase/functions/api-v1/openapi.ts` — the spec
-- **edit** `supabase/functions/api-v1/index.ts` — add `/openapi.json` and `/docs` routes before auth
-- **edit** `src/pages/admin/settings/ApiKeysPage.tsx` — add Documentation card with the two URLs
+## Notes
+- No schema changes. No changes to `useBlogPosts` or public queries.
+- Reuse the RichTextEditor image upload utility so pasted images land in the same storage bucket as inline body images (consistent URLs, no orphan uploads).
+- Auto-cover only fills when empty — never clobbers manual entry. Removing the cover manually stays sticky (won't be re-auto-filled unless the field is empty again on next body change).
