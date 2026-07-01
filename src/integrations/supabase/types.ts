@@ -7195,6 +7195,7 @@ export type Database = {
           customer_name: string
           email_verified: boolean
           organization_name: string
+          payment_terms: string
           portal_access_note: string
           portal_access_status: string
           profile_completed: boolean
