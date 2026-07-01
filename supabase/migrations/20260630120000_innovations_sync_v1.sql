@@ -16,17 +16,17 @@ ALTER TABLE public.customers
   ADD COLUMN IF NOT EXISTS account_number text,
   ADD COLUMN IF NOT EXISTS country_code text;
 
+-- Plain (non-partial) unique index so it can serve as an ON CONFLICT arbiter
+-- for upserts. NULLs remain distinct, so existing rows without the id are fine.
 CREATE UNIQUE INDEX IF NOT EXISTS customers_innovations_customer_id_key
-  ON public.customers (innovations_customer_id)
-  WHERE innovations_customer_id IS NOT NULL;
+  ON public.customers (innovations_customer_id);
 
 ALTER TABLE public.contacts
   ADD COLUMN IF NOT EXISTS innovations_contact_id bigint,
   ADD COLUMN IF NOT EXISTS innovations_parent_customer_id bigint;
 
 CREATE UNIQUE INDEX IF NOT EXISTS contacts_innovations_contact_id_key
-  ON public.contacts (innovations_contact_id)
-  WHERE innovations_contact_id IS NOT NULL;
+  ON public.contacts (innovations_contact_id);
 
 -- 3. Sync observability (decoupled from the odoo-locked contact_sync_* tables).
 CREATE TABLE IF NOT EXISTS public.innovations_sync_runs (

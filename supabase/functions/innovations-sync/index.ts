@@ -173,9 +173,19 @@ Deno.serve(async (req: Request) => {
       upserted = mapped.length;
     } else {
       for (const row of mapped) {
-        const { error: rowErr } = await supabase
+        let { error: rowErr } = await supabase
           .from(cfg.table)
           .upsert(row, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
+        // Contacts have a unique-name constraint (used by CRM name-upserts, so it
+        // stays). ERP names legitimately repeat — on a name collision, retry once
+        // with a unique suffix so the person still lands as a distinct row.
+        if (rowErr && entity === "contacts" && /contacts_name_key|unique/i.test(rowErr.message || "") && row.name) {
+          const retryRow = { ...row, name: `${row.name} (#${row.innovations_contact_id})` };
+          const retry = await supabase
+            .from(cfg.table)
+            .upsert(retryRow, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
+          rowErr = retry.error;
+        }
         if (rowErr) {
           failed++;
           if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);
