@@ -151,14 +151,19 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST" && id === "complete") {
       const body = (await req.json().catch(() => null)) as any;
       if (!body || !body.id) return json({ error: "Body must be { id, ok, result }." }, 400);
-      await supabase
+      const { data: updated, error: updErr } = await supabase
         .from("innovations_sync_requests")
         .update({
           status: body.ok ? "done" : "failed",
           finished_at: new Date().toISOString(),
           result: body.result ?? null,
         })
-        .eq("id", body.id);
+        .eq("id", body.id)
+        .eq("status", "claimed")
+        .select("id")
+        .maybeSingle();
+      if (updErr) return json({ error: "Update failed", detail: updErr.message }, 500);
+      if (!updated) return json({ error: "Request not found or not in claimed state." }, 409);
       return json({ ok: true });
     }
     return json({ error: "Unsupported _requests operation." }, 404);
