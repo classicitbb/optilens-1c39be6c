@@ -481,7 +481,19 @@ const BlogPostsManager = ({
                   <Suspense fallback={<div className="h-[420px] animate-pulse rounded-lg border border-border bg-muted/20" />}>
                     <RichTextEditor
                       content={editing.content || ""}
-                      onChange={(html) => setEditing({ ...editing, content: html })}
+                      onChange={(html) => {
+                        const next: BlogPostDraft = { ...editing, content: html };
+                        if (!editing.cover_image_url) {
+                          const found = extractFirstImage(html);
+                          if (found) {
+                            next.cover_image_url = found.src;
+                            if (!editing.cover_image_alt && found.alt) {
+                              next.cover_image_alt = found.alt;
+                            }
+                          }
+                        }
+                        setEditing(next);
+                      }}
                       placeholder="Write the article body..."
                       minHeight="420px"
                     />
