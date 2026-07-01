@@ -5,6 +5,29 @@ import { Layers, Target, FlaskConical, Glasses, Wrench, Globe, ArrowRight } from
 
 const products = [
   {
+    icon: Wrench,
+    title: "Rx Lab Services",
+    description: "Professional prescription laboratory services including surfacing, edging, tinting, and specialty coatings.",
+    features: ["Custom surfacing", "Precision edging", "Specialty coatings"],
+    link: "/rx-lab-services",
+    cta: true,
+    ctaLabel: "Learn More & Sign Up",
+  },
+  {
+    icon: Glasses,
+    title: "Optical Supplies",
+    description: "Retail and dispensary essentials including frames, cases, cleaning solutions, and display accessories.",
+    features: ["Frames & accessories", "Cleaning products", "Display solutions"],
+    link: "/store?category=optical",
+  },
+  {
+    icon: FlaskConical,
+    title: "Lab Supplies",
+    description: "Essential consumables and equipment for your surfacing and finishing lab. Blocks, pads, polishing compounds, and more.",
+    features: ["Surfacing consumables", "Finishing supplies", "Equipment parts"],
+    link: "/store?category=lab",
+  },
+  {
     icon: Layers,
     title: "Semi-Finished Lenses",
     description: "Custom-surfaced prescription lenses tailored to your exact specifications. Available in single vision, bifocal, and progressive designs.\n\n\n",
@@ -19,29 +42,6 @@ const products = [
     link: "/store?category=finished",
   },
   {
-    icon: FlaskConical,
-    title: "Lab Supplies",
-    description: "Essential consumables and equipment for your surfacing and finishing lab. Blocks, pads, polishing compounds, and more.",
-    features: ["Surfacing consumables", "Finishing supplies", "Equipment parts"],
-    link: "/store?category=lab",
-  },
-  {
-    icon: Glasses,
-    title: "Optical Supplies",
-    description: "Retail and dispensary essentials including frames, cases, cleaning solutions, and display accessories.",
-    features: ["Frames & accessories", "Cleaning products", "Display solutions"],
-    link: "/store?category=optical",
-  },
-  {
-    icon: Wrench,
-    title: "Rx Lab Services",
-    description: "Professional prescription laboratory services including surfacing, edging, tinting, and specialty coatings.",
-    features: ["Custom surfacing", "Precision edging", "Specialty coatings"],
-    link: "/rx-lab-services",
-    cta: true,
-    ctaLabel: "Learn More & Sign Up",
-  },
-  {
     icon: Globe,
     title: "Optician Website Design",
     description: "Professional, modern websites built specifically for opticians and optical retailers. Showcase your practice and drive appointments.",
@@ -50,6 +50,7 @@ const products = [
     cta: true,
   },
 ];
+
 
 const Products = () => {
   return (
