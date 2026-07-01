@@ -6947,6 +6947,7 @@ export type Database = {
           issued_at: string | null
           payment_status: string | null
           period_start: string | null
+          statement_id: string | null
           total: number | null
         }
         Relationships: []
@@ -6956,6 +6957,7 @@ export type Database = {
           account_number: string | null
           closing_balance: number | null
           customer_id: number | null
+          id: string | null
           period_end: string | null
           period_start: string | null
           total_invoiced: number | null
