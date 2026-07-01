@@ -85,6 +85,16 @@ const BlogPostPage = () => {
           ) : (
             <>
               <article className="mt-3 overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
+                {post.cover_image_url ? (
+                  <div className="aspect-[16/9] w-full overflow-hidden bg-muted">
+                    <img
+                      src={post.cover_image_url}
+                      alt={post.cover_image_alt || post.title}
+                      loading="eager"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
                 <div className="bg-[radial-gradient(circle_at_top_left,rgba(231,179,24,0.16),transparent_26%),radial-gradient(circle_at_top_right,rgba(42,94,139,0.14),transparent_28%)] px-6 py-5 sm:px-8 sm:py-6">
                   <div className="max-w-4xl">
                     <Link to="/blog" className="mb-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
