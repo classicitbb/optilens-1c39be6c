@@ -15,7 +15,8 @@ export const useSupportAvailability = () => {
       if (error) throw error;
       return { onlineSupportCount: data?.length ?? 0 };
     },
-    refetchInterval: 30_000,
+    refetchInterval: 90_000,
+    refetchIntervalInBackground: false,
   });
 
   return {

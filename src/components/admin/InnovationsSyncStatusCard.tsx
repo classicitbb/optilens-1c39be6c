@@ -32,7 +32,8 @@ export default function InnovationsSyncStatusCard() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["innovations-sync-status"],
-    refetchInterval: 30000,
+    refetchInterval: 90000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const { data: runs, error: runErr } = await (supabase as any)
         .from("innovations_sync_runs")
