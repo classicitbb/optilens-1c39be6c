@@ -88,8 +88,49 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-01.1-qa";
+const VERSION = "2026-07-01.2-account-number-link";
 const MAX_RECORDS_PER_REQUEST = 1000;
+
+// Customers get individual resolution instead of a blind onConflict(innovations_customer_id)
+// upsert. Reason: a website signup can pre-create a customers row (company contact +
+// account_number, no innovations_customer_id yet — see sync_customer_portal_identity)
+// before Innovations ever pushes that account. When Innovations does push it, matching
+// only on innovations_customer_id would insert a duplicate row instead of adopting the
+// pre-created one. account_number is the sole link between a website account and its
+// Innovations account, so it's the fallback match key here.
+async function upsertCustomerRow(
+  supabase: ReturnType<typeof createClient>,
+  row: Record<string, unknown>,
+): Promise<{ error: { message: string } | null }> {
+  const { data: byInnovationsId, error: lookupErr } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("innovations_customer_id", row.innovations_customer_id as any)
+    .maybeSingle();
+  if (lookupErr) return { error: lookupErr };
+
+  if (byInnovationsId) {
+    return await supabase.from("customers").update(row).eq("id", (byInnovationsId as any).id);
+  }
+
+  const acctNumber = row.account_number;
+  if (typeof acctNumber === "string" && acctNumber.trim() !== "") {
+    const { data: byAccountNumber, error: acctErr } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("account_number", acctNumber as any)
+      .is("innovations_customer_id", null)
+      .maybeSingle();
+    if (acctErr) return { error: acctErr };
+    if (byAccountNumber) {
+      // Adopt the pre-created (e.g. website signup) row: fill in the immutable
+      // Innovations id and refresh the rest of the mapped fields.
+      return await supabase.from("customers").update(row).eq("id", (byAccountNumber as any).id);
+    }
+  }
+
+  return await supabase.from("customers").insert(row);
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -215,7 +256,27 @@ Deno.serve(async (req: Request) => {
   let failed = invalid.length;
   const errors: string[] = invalid.slice(0, 5).map((x) => `record ${x.index}: ${x.error}`);
 
-  if (!dryRun && mapped.length) {
+  if (!dryRun && mapped.length && entity === "customers") {
+    // Individual resolution per row — see upsertCustomerRow for why this can't
+    // be a blind onConflict batch upsert.
+    for (const row of mapped) {
+      const { error: rowErr } = await upsertCustomerRow(supabase, row);
+      if (rowErr) {
+        failed++;
+        if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);
+        await supabase.from("innovations_sync_dead_letters").insert({
+          entity,
+          external_id: String(row[cfg.required]),
+          api_key_id: key.id,
+          last_error: rowErr.message,
+          source_payload: row,
+          status: "pending",
+        });
+      } else {
+        upserted++;
+      }
+    }
+  } else if (!dryRun && mapped.length) {
     // Try a single batch upsert; on failure, isolate per-row and dead-letter.
     const { error: batchErr } = await supabase
       .from(cfg.table)

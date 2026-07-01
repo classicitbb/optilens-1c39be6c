@@ -337,6 +337,26 @@ const ContactsPage = () => {
     enabled: !!editContact?.id && !!editContact?.is_company,
   });
 
+  // Linked customer record — carries the Innovations account_number that ties
+  // this company/customer contact to their ERP account and portal statements.
+  const { data: linkedCustomerRecord } = useQuery({
+    queryKey: ["contact-customer-record", editContact?.id],
+    queryFn: async () => {
+      if (!editContact?.id) return null;
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,account_number")
+        .eq("contact_id", editContact.id as any)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: number; account_number: string | null } | null;
+    },
+    enabled: !!editContact?.id && !!editContact?.is_customer,
+  });
+  const [accountNumber, setAccountNumber] = useState("");
+  useEffect(() => {
+    setAccountNumber(linkedCustomerRecord?.account_number ?? "");
+  }, [linkedCustomerRecord?.id, linkedCustomerRecord?.account_number, editContact?.id]);
+
   const { data: opportunities = [] } = useQuery({
     queryKey: ["contact-opportunity-links"],
     queryFn: async () => {
@@ -1308,8 +1328,11 @@ const ContactsPage = () => {
         await setContactTags.mutateAsync({ contactId, tagIds: selectedTagIds });
       }
 
-      // Auto-create/sync customer record when is_customer is true
+      // Auto-create/sync customer record when is_customer is true. Also keeps
+      // account_number in sync — this is the sole key that links a website
+      // customer's account to their Innovations ERP account and statements.
       if (editContact.is_customer && contactId) {
+        const trimmedAccountNumber = accountNumber.trim() || null;
         // Check if customer already linked
         const { data: existing } = await (supabase.from("customers") as any)
           .select("id")
@@ -1324,7 +1347,13 @@ const ContactsPage = () => {
             type: editContact.is_company ? "Company" : "Person",
             pipeline_stage: editContact.pipeline_stage ?? "Prospect",
             contact_id: contactId,
+            account_number: trimmedAccountNumber,
           } as any);
+        } else if (trimmedAccountNumber !== (linkedCustomerRecord?.account_number ?? null)) {
+          const { error: acctErr } = await (supabase.from("customers") as any)
+            .update({ account_number: trimmedAccountNumber })
+            .eq("id", existing.id as any);
+          if (acctErr) throw acctErr;
         }
       }
 
@@ -1960,6 +1989,20 @@ const ContactsPage = () => {
                           <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
                             {editContact.is_customer ? "Available for pricelist assignments" : "Not a customer"}
                           </p>
+                          {editContact.is_company && editContact.is_customer && (
+                            <div className="pt-1">
+                              <label className="text-[11px] font-medium mb-0.5 block">Account Number</label>
+                              <Input
+                                className="h-7 text-xs"
+                                placeholder="e.g. RETAIL"
+                                value={accountNumber}
+                                onChange={(e) => setAccountNumber(e.target.value)}
+                              />
+                              <p className="text-[10px] mt-0.5" style={{ color: "hsl(215 15% 55%)" }}>
+                                The only field that links this account to Innovations and the customer's online statements.
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         {/* Tags */}
