@@ -32,9 +32,12 @@ const ENTITIES: Record<string, EntityConfig> = {
     conflictKey: "innovations_customer_id",
     required: "innovations_customer_id",
     scope: "customers:write",
+    // `type` and `pipeline_stage` are intentionally excluded — they carry CHECK
+    // constraints (customers_type_check) whose allowed values we don't set from
+    // the ERP. Dropped here so the office payload can't trip them regardless.
     allow: [
       "innovations_customer_id", "name", "account_number", "address",
-      "country_code", "pipeline_stage", "type", "email", "phone", "notes",
+      "country_code", "email", "phone", "notes",
     ],
   },
   contacts: {
@@ -65,14 +68,22 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
+const VERSION = "2026-06-30.3-disambig-customerstrip";
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   const url = new URL(req.url);
   const parts = url.pathname.split("/").filter(Boolean);
   const idx = parts.indexOf("innovations-sync");
   const entity = (idx >= 0 ? parts[idx + 1] : parts[parts.length - 1]) ?? "";
+
+  // Public version check (no auth) — lets us confirm a deploy actually landed.
+  if (req.method === "GET" && (!entity || entity === "innovations-sync" || entity === "version")) {
+    return json({ name: "innovations-sync", version: VERSION, entities: Object.keys(ENTITIES) });
+  }
+
+  if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
