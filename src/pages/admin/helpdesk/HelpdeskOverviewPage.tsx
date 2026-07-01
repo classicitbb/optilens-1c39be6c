@@ -418,7 +418,9 @@ const HelpdeskOverviewPage = () => {
       if (error) throw error;
       return (data ?? []) as OverviewTicket[];
     },
-    refetchInterval: 30000
+    refetchInterval: 120000,
+    refetchIntervalInBackground: false,
+    staleTime: 60000,
   });
 
   const ticketIds = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);

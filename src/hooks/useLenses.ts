@@ -111,7 +111,11 @@ export const useLenses = () => {
         base_price: safeMap.has(l.id) ? safeMap.get(l.id) : l.base_price,
       }));
     },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
+
 
   const createMutation = useMutation({
     mutationFn: async (form: LensFormData) => {

@@ -97,11 +97,7 @@ Deno.serve(async (req: Request) => {
   const parts = url.pathname.split("/").filter(Boolean);
   const idx = parts.indexOf("innovations-sync");
   const entity = (idx >= 0 ? parts[idx + 1] : parts[parts.length - 1]) ?? "";
-<<<<<<< Updated upstream
-  const id = (idx >= 0 ? parts[idx + 2] : undefined) ?? "";
-=======
-  const id = idx >= 0 ? parts[idx + 2] : undefined; // e.g. _requests/<id>
->>>>>>> Stashed changes
+  const id = (idx >= 0 ? parts[idx + 2] : undefined) ?? ""; // e.g. _requests/<id>
 
   // Public version check (no auth) — lets us confirm a deploy actually landed.
   if (req.method === "GET" && (!entity || entity === "innovations-sync" || entity === "version")) {
