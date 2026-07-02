@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
-export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders";
+export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "statements";
 
 export type PaymentTerms = "credit" | "cash" | "standard";
 
@@ -28,6 +28,7 @@ const featureTitles: Record<PortalFeature, string> = {
   helpdesk: "Helpdesk",
   pricelists: "Pricelists",
   "private-orders": "Private orders",
+  statements: "Statements",
 };
 
 const normalizeIdentity = (

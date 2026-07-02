@@ -15,10 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowUpDown, Check, Printer, X } from "lucide-react";
+import { ArrowUpDown, Printer, X } from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -465,11 +463,9 @@ const StatementTemplate = ({ data }: { data: Transaction[] }) => {
 const StatementsSection = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [statementFilter, setStatementFilter] = useState("June 2026");
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [paymentAmount, setPaymentAmount] = useState("4320.50");
 
   const totalInvoiced = 8120.0;
   const totalPaid = 3799.5;
@@ -516,15 +512,6 @@ const StatementsSection = () => {
     return sorted;
   }, [sortColumn, sortDirection]);
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPaymentSuccess(true);
-    setTimeout(() => {
-      setPaymentModalOpen(false);
-      setPaymentSuccess(false);
-    }, 2500);
-  };
-
   const handlePrintStatement = () => {
     setStatementPreviewOpen(true);
   };
@@ -555,6 +542,12 @@ const StatementsSection = () => {
           View your account balance, transaction history, and statements.
         </p>
       </header>
+
+      <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
+        <AlertDescription className="text-xs text-amber-800 dark:text-amber-300">
+          This page is still being connected to live billing records. The balance and transactions shown below are sample data, not your real account activity.
+        </AlertDescription>
+      </Alert>
 
       {/* Balance and Controls - Responsive Header */}
       <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
@@ -722,105 +715,39 @@ const StatementsSection = () => {
         </div>
       </Card>
 
-      {/* Payment Modal */}
+      {/* Payment Modal — online payments are not wired up yet; do not collect card data here. */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
         <DialogContent className="w-full max-w-sm rounded-lg bg-white dark:bg-slate-950 dark:border-slate-700">
           <DialogHeader>
-            <DialogTitle className="dark:text-slate-50">Make a Payment</DialogTitle>
+            <DialogTitle className="dark:text-slate-50">Pay your balance</DialogTitle>
             <DialogDescription className="dark:text-slate-400">
-              Enter your payment details below
+              Online payments aren't available yet.
             </DialogDescription>
           </DialogHeader>
 
-          {paymentSuccess ? (
-            <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
-              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <AlertDescription className="text-emerald-800 dark:text-emerald-300">
-                Thank you for your payment. Your records will be updated as soon
-                as the money is received in our bank.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <form onSubmit={handlePaymentSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount" className="text-sm font-semibold dark:text-slate-50">
-                  Payment Amount
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400">
-                    $
-                  </span>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="pl-7 h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50"
-                  />
-                </div>
-              </div>
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
+            <AlertDescription className="text-amber-800 dark:text-amber-300">
+              We're still connecting this portal to live billing, so we can't take
+              card payments here yet. To pay your balance of $
+              {currentBalance.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+              , please contact us at{" "}
+              <a href="tel:+12464334928" className="underline">246-433-4928</a> or{" "}
+              <a href="mailto:accounts@classicvisions.net" className="underline">
+                accounts@classicvisions.net
+              </a>.
+            </AlertDescription>
+          </Alert>
 
-              <div className="space-y-2">
-                <Label htmlFor="cardholder" className="text-sm font-semibold dark:text-slate-50">
-                  Cardholder Name
-                </Label>
-                <Input
-                  id="cardholder"
-                  placeholder="Full name"
-                  className="h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-400"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="cardnum" className="text-sm font-semibold dark:text-slate-50">
-                  Card Number
-                </Label>
-                <Input
-                  id="cardnum"
-                  placeholder="•••• •••• •••• ••••"
-                  className="h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-400"
-                  maxLength={19}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiry" className="text-sm font-semibold dark:text-slate-50">
-                    Expiry
-                  </Label>
-                  <Input
-                    id="expiry"
-                    placeholder="MM/YY"
-                    className="h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-400"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cvv" className="text-sm font-semibold dark:text-slate-50">
-                    CVV
-                  </Label>
-                  <Input
-                    id="cvv"
-                    placeholder="•••"
-                    className="h-10 bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50 dark:placeholder-slate-400"
-                    maxLength={4}
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-10 bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
-              >
-                Process Payment
-              </Button>
-            </form>
-          )}
+          <Button
+            variant="outline"
+            className="w-full h-10"
+            onClick={() => setPaymentModalOpen(false)}
+          >
+            Close
+          </Button>
         </DialogContent>
       </Dialog>
 

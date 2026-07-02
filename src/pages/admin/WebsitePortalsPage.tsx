@@ -99,7 +99,7 @@ interface PortalCustomerDetail extends PortalCustomerListItem {
   }>;
 }
 
-const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders"] as const;
+const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "statements"] as const;
 
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "—");

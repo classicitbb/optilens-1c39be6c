@@ -21,7 +21,7 @@ const AssistantForm = () => {
   const showProductTopic = formState.kind === "product_help";
 
   return (
-    <div className="space-y-3 rounded-[22px] border border-white/50 bg-white/70 p-4 backdrop-blur-sm">
+    <div className="space-y-3 rounded-[22px] border border-white/50 bg-white/70 p-4 backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Request help</p>
@@ -29,7 +29,7 @@ const AssistantForm = () => {
             This stays inside the assistant and includes the current page and conversation context.
           </p>
         </div>
-        <Button type="button" variant="ghost" size="sm" className="text-foreground/60 hover:bg-white/60 hover:text-foreground" onClick={closeForm}>
+        <Button type="button" variant="ghost" size="sm" className="text-foreground/60 hover:bg-white/60 hover:text-foreground dark:hover:bg-white/15" onClick={closeForm}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -39,14 +39,14 @@ const AssistantForm = () => {
           value={formState.name}
           onChange={(event) => updateForm({ name: event.target.value })}
           placeholder="Full name"
-          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40"
+          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40 dark:border-white/10 dark:bg-white/10"
         />
         <Input
           value={formState.email}
           onChange={(event) => updateForm({ email: event.target.value })}
           placeholder="Email address"
           type="email"
-          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40"
+          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40 dark:border-white/10 dark:bg-white/10"
         />
       </div>
 
@@ -63,7 +63,7 @@ const AssistantForm = () => {
           value={formState.market}
           onChange={(event) => updateForm({ market: event.target.value })}
           placeholder="Island or market"
-          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40"
+          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40 dark:border-white/10 dark:bg-white/10"
         />
       ) : null}
 
@@ -72,7 +72,7 @@ const AssistantForm = () => {
           value={formState.issueType}
           onChange={(event) => updateForm({ issueType: event.target.value })}
           placeholder={formState.kind === "portal_support" ? "Issue type or account concern" : "What do you need help with?"}
-          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40"
+          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40 dark:border-white/10 dark:bg-white/10"
         />
       ) : null}
 
@@ -81,7 +81,7 @@ const AssistantForm = () => {
           value={formState.productTopic}
           onChange={(event) => updateForm({ productTopic: event.target.value })}
           placeholder="Product or topic"
-          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40"
+          className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40 dark:border-white/10 dark:bg-white/10"
         />
       ) : null}
 
@@ -96,7 +96,7 @@ const AssistantForm = () => {
               : "Tell us what you need help with."
         }
         rows={4}
-        className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40"
+        className="border-white/50 bg-white/60 text-foreground placeholder:text-foreground/40 dark:border-white/10 dark:bg-white/10"
       />
 
       <div className="flex flex-wrap gap-2">
@@ -104,7 +104,7 @@ const AssistantForm = () => {
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
           Submit request
         </Button>
-        <Button type="button" variant="outline" className="rounded-full border-white/60 bg-white/60 text-foreground hover:bg-white/90" onClick={closeForm}>
+        <Button type="button" variant="outline" className="rounded-full border-white/60 bg-white/60 text-foreground hover:bg-white/90 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/20" onClick={closeForm}>
           Keep chatting
         </Button>
       </div>
@@ -129,7 +129,7 @@ const MessageQuickActions = ({
             key={action.label}
             size="sm"
             variant="outline"
-            className="h-auto justify-start rounded-full border-white/50 bg-white/60 px-4 py-2 text-left text-sm font-normal text-foreground/80 shadow-soft hover:bg-white/90 hover:text-foreground"
+            className="h-auto justify-start rounded-full border-white/50 bg-white/60 px-4 py-2 text-left text-sm font-normal text-foreground/80 shadow-soft hover:bg-white/90 hover:text-foreground dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/20"
             onClick={() => onAction(action)}
           >
             {action.label}
@@ -199,7 +199,7 @@ const AssistantResultCard = ({
   };
 
   return (
-    <div className="space-y-3 rounded-[22px] border border-white/50 bg-white/70 p-4 shadow-soft backdrop-blur-sm">
+    <div className="space-y-3 rounded-[22px] border border-white/50 bg-white/70 p-4 shadow-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary" className="border border-secondary/20 bg-secondary/10 capitalize text-secondary">{result.intent}</Badge>
         <Badge variant="outline" className="border-foreground/20 capitalize text-foreground/60">{result.confidence} confidence</Badge>
@@ -244,7 +244,7 @@ const AssistantResultCard = ({
         </div>
       ) : null}
 
-      <div className="border-t border-white/40 pt-3 text-xs leading-5 text-foreground/50">
+      <div className="border-t border-white/40 pt-3 text-xs leading-5 text-foreground/50 dark:border-white/10">
         Ask a follow-up in plain language for a tighter answer or a different topic.
       </div>
     </div>
@@ -278,7 +278,7 @@ const AssistantMessageList = () => {
                 ) : null}
 
                 {message.kind === "text" ? (
-                  <div className="space-y-3 rounded-[20px] rounded-bl-lg border border-white/50 bg-white/70 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-sm">
+                  <div className="space-y-3 rounded-[20px] rounded-bl-lg border border-white/50 bg-white/70 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
                     <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
                       <ReactMarkdown>{message.text}</ReactMarkdown>
                     </div>
@@ -296,7 +296,7 @@ const AssistantMessageList = () => {
                 ) : null}
 
                 {message.kind === "confirmation" ? (
-                  <div className="space-y-3 rounded-[20px] rounded-bl-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 shadow-soft backdrop-blur-sm">
+                  <div className="space-y-3 rounded-[20px] rounded-bl-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 shadow-soft backdrop-blur-sm dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-100">
                     <div>
                       <p className="font-semibold">{message.title}</p>
                       <p className="mt-1 leading-6">{message.text}</p>
@@ -357,17 +357,17 @@ const CompanionAssistant = () => {
   const assistantWindow = (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border border-white/40 shadow-elegant backdrop-blur-2xl backdrop-saturate-150",
-        "bg-gradient-to-b from-white/80 to-white/60",
+        "flex flex-col overflow-hidden border border-white/40 shadow-elegant backdrop-blur-2xl backdrop-saturate-150 dark:border-white/10",
+        "bg-gradient-to-b from-white/80 to-white/60 dark:from-white/[0.08] dark:to-white/[0.03]",
         isDetachedRoute
           ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px]"
           : "h-full rounded-[28px]",
       )}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-white/40 px-4 py-4">
+      <div className="flex items-start justify-between gap-3 border-b border-white/40 px-4 py-4 dark:border-white/10">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/60 text-primary shadow-soft">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/60 text-primary shadow-soft dark:border-white/10 dark:bg-white/10">
               <Search className="h-5 w-5" />
             </div>
             <div>
@@ -382,7 +382,7 @@ const CompanionAssistant = () => {
               type="button"
               size="icon"
               variant="ghost"
-              className="h-9 w-9 shrink-0 text-foreground/60 hover:bg-white/60 hover:text-foreground"
+              className="h-9 w-9 shrink-0 text-foreground/60 hover:bg-white/60 hover:text-foreground dark:hover:bg-white/15"
               onClick={openDetachedWindow}
               aria-label="Pop out assistant"
             >
@@ -393,7 +393,7 @@ const CompanionAssistant = () => {
             type="button"
             size="icon"
             variant="ghost"
-            className="h-9 w-9 shrink-0 rounded-full border border-white/50 bg-white/60 text-foreground/70 shadow-soft hover:bg-white/90 hover:text-foreground"
+            className="h-9 w-9 shrink-0 rounded-full border border-white/50 bg-white/60 text-foreground/70 shadow-soft hover:bg-white/90 hover:text-foreground dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/20"
             onClick={closeAssistant}
           >
             <X className="h-4 w-4" />
@@ -401,7 +401,7 @@ const CompanionAssistant = () => {
         </div>
       </div>
 
-      <div className="border-b border-white/40 bg-white/20 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-foreground/40">
+      <div className="border-b border-white/40 bg-white/20 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-foreground/40 dark:border-white/10 dark:bg-white/[0.03]">
         Search, products, retailers, support
       </div>
 
@@ -409,10 +409,10 @@ const CompanionAssistant = () => {
         <AssistantMessageList />
       </div>
 
-      <div className="space-y-3 border-t border-white/40 bg-white/20 px-4 py-4">
+      <div className="space-y-3 border-t border-white/40 bg-white/20 px-4 py-4 dark:border-white/10 dark:bg-white/[0.03]">
         {formState ? <AssistantForm /> : null}
 
-        <div className="rounded-full border border-white/50 bg-white/70 p-1 shadow-soft backdrop-blur-sm focus-within:border-ring/60">
+        <div className="rounded-full border border-white/50 bg-white/70 p-1 shadow-soft backdrop-blur-sm focus-within:border-ring/60 dark:border-white/10 dark:bg-white/10">
           <div className="flex items-center gap-2">
             <Input
               dir="ltr"
@@ -493,7 +493,7 @@ const CompanionAssistant = () => {
 
       {isOpen ? (
         isDetachedRoute ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(200,145,48,0.10),transparent_35%),linear-gradient(180deg,#eef1f6,#e4e9f1)] p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(200,145,48,0.10),transparent_35%),linear-gradient(180deg,#eef1f6,#e4e9f1)] p-4 dark:bg-[radial-gradient(circle_at_top,rgba(200,145,48,0.12),transparent_35%),linear-gradient(180deg,#0b1522,#05070d)]">
             {assistantWindow}
           </div>
         ) : (
