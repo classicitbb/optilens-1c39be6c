@@ -23,6 +23,9 @@ type ResourceConfig = {
   idType?: "uuid" | "int";
   insertable?: string[]; // allowlist of writable columns; default = all
   updatable?: string[];
+  idColumn?: string; // column used for GET /<resource>/<id>; default "id"
+  filterable?: string[]; // query params applied as .eq() filters on list requests
+  defaultOrder?: string; // "column.asc|desc" used when the caller passes no ?order; default "created_at.desc"
 };
 
 const RESOURCES: Record<string, ResourceConfig> = {
@@ -85,6 +88,36 @@ const RESOURCES: Record<string, ResourceConfig> = {
       "status", "customer_name", "contact_email", "contact_phone",
       "shipping_address", "billing_address",
     ],
+  },
+  // Read-only, derived from orders/order_payments — no cost fields, nothing to
+  // strip. Only checkout_method='on_account' orders represent real unsettled
+  // receivables; card/offline-approved orders settle immediately and never
+  // appear here. See invoices_public/balances_public/statements_public views.
+  invoices: {
+    table: "invoices_public",
+    readScope: "invoices:read",
+    // Reserved for a future POST /invoices/:id/payments endpoint — not
+    // implemented yet, so this scope currently can't be satisfied by anyone.
+    writeScope: "invoices:write",
+    filterable: ["customer_id", "account_number", "payment_status"],
+    defaultOrder: "issued_at.desc",
+  },
+  balances: {
+    table: "balances_public",
+    readScope: "balances:read",
+    writeScope: "balances:write", // derived data — no write path planned
+    idColumn: "customer_id", // no separate "id" column; keyed by customer
+    filterable: ["customer_id", "account_number"],
+    defaultOrder: "current_balance.desc",
+  },
+  statements: {
+    table: "statements_public",
+    readScope: "statements:read",
+    writeScope: "statements:write", // derived data — no write path planned
+    // id is a synthetic "<customer_id>:<period_start>" column on the view
+    // (statements have no natural single key — they're customer + month).
+    filterable: ["customer_id", "account_number"],
+    defaultOrder: "period_start.desc",
   },
   lenses: {
     table: "lenses",
@@ -240,14 +273,18 @@ Deno.serve(async (req: Request) => {
       const offset = parseInt(url.searchParams.get("offset") ?? "0", 10) || 0;
       const orderParam = url.searchParams.get("order");
       const orderProvided = !!orderParam;
-      const order = orderParam ?? "created_at.desc";
+      const order = orderParam ?? cfg.defaultOrder ?? "created_at.desc";
       const [col, dir] = order.split(".");
       const ascending = (dir || "desc") === "asc";
       const orderCol = col || "created_at";
-      const runList = (oc: string) =>
-        supabase.from(cfg.table).select("*", { count: "exact" })
-          .range(offset, offset + limit - 1)
-          .order(oc, { ascending });
+      const runList = (oc: string) => {
+        let q = supabase.from(cfg.table).select("*", { count: "exact" });
+        for (const fcol of cfg.filterable ?? []) {
+          const val = url.searchParams.get(fcol);
+          if (val !== null) q = q.eq(fcol, val);
+        }
+        return q.range(offset, offset + limit - 1).order(oc, { ascending });
+      };
       let { data, error, count } = await runList(orderCol);
       // Not every table has the default `created_at` column. If the caller did
       // not request an explicit order, fall back to the primary key.
@@ -256,15 +293,39 @@ Deno.serve(async (req: Request) => {
         !orderProvided &&
         (error.code === "42703" || /does not exist/i.test(error.message ?? ""))
       ) {
-        ({ data, error, count } = await runList("id"));
+        ({ data, error, count } = await runList(cfg.idColumn ?? "id"));
       }
       if (error) throw error;
+      // statements: ?include=lines nests each period's underlying invoices from
+      // statement_lines_public, matched on the same synthetic statement id.
+      if (resource === "statements" && url.searchParams.get("include") === "lines" && Array.isArray(data) && data.length) {
+        const ids = data.map((r: any) => r.id);
+        const { data: lines, error: linesErr } = await supabase
+          .from("statement_lines_public")
+          .select("*")
+          .in("statement_id", ids);
+        if (linesErr) throw linesErr;
+        const byStatement = new Map<string, any[]>();
+        for (const line of lines ?? []) {
+          const arr = byStatement.get(line.statement_id) ?? [];
+          arr.push(line);
+          byStatement.set(line.statement_id, arr);
+        }
+        data = data.map((r: any) => ({ ...r, lines: byStatement.get(r.id) ?? [] }));
+      }
       respBody = { data: stripCost(data, cfg.costFields), count, limit, offset };
     } else if (req.method === "GET" && id) {
-      const { data, error } = await supabase.from(cfg.table).select("*").eq("id", id).maybeSingle();
+      const { data, error } = await supabase.from(cfg.table).select("*").eq(cfg.idColumn ?? "id", id).maybeSingle();
       if (error) throw error;
       if (!data) { status = 404; respBody = { error: "Not found" }; }
-      else respBody = { data: stripCost(data, cfg.costFields) };
+      else if (resource === "statements" && url.searchParams.get("include") === "lines") {
+        const { data: lines, error: linesErr } = await supabase
+          .from("statement_lines_public")
+          .select("*")
+          .eq("statement_id", id);
+        if (linesErr) throw linesErr;
+        respBody = { data: { ...stripCost(data, cfg.costFields), lines: lines ?? [] } };
+      } else respBody = { data: stripCost(data, cfg.costFields) };
     } else if (req.method === "POST") {
       const rawBody = await req.json().catch(() => null);
       if (!rawBody || typeof rawBody !== "object") return json({ error: "Invalid JSON body." }, 400);

@@ -15,6 +15,11 @@ const ALL_SCOPES = [
   "orders:read", "orders:write",
   "products:read", "products:write",
   "moonshot:read", "moonshot:write",
+  // Derived, read-only billing data (on_account orders only). No :write scope
+  // yet — there's no write endpoint for these until a future payments API ships.
+  "invoices:read",
+  "balances:read",
+  "statements:read",
 ];
 
 type ApiKey = {
