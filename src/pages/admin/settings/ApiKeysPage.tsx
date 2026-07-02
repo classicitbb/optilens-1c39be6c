@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+// touch: 2026-07-02 — invoices/balances/statements scopes (push retry)
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -1,4 +1,5 @@
 // External REST API v1 — keyed access to core domain data.
+// touch: 2026-07-02 — invoices/balances/statements resources (push retry)
 // Auth: x-api-key header. Verified via public.verify_api_key RPC.
 // Routes: /api-v1/<resource>[/<id>]
 //   GET  /<resource>           -> list (?limit=&offset=&order=)
