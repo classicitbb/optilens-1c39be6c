@@ -166,7 +166,7 @@ const CartPage = () => {
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-foreground transition-colors hover:border-secondary hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-foreground transition-colors hover:border-secondary hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                               aria-label={`Decrease quantity of ${item.product_name}`}
                             >
                               <Minus className="h-3 w-3" />
@@ -177,7 +177,7 @@ const CartPage = () => {
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-foreground transition-colors hover:border-secondary hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-foreground transition-colors hover:border-secondary hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                               aria-label={`Increase quantity of ${item.product_name}`}
                             >
                               <Plus className="h-3 w-3" />
@@ -193,7 +193,7 @@ const CartPage = () => {
                           <button
                             type="button"
                             onClick={() => removeFromCart(item.id)}
-                            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                             aria-label={`Remove ${item.product_name} from cart`}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -232,7 +232,7 @@ const CartPage = () => {
                   rows={3}
                   className={cn(
                     "w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                   )}
                 />
               </div>

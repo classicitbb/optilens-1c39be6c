@@ -46,7 +46,7 @@ const RxInput = ({ value, onChange, validate, placeholder = "", small = false }:
       onChange={onChange}
       placeholder={placeholder}
       className={cn(
-        "w-full rounded border bg-background text-left text-[11px] focus:outline-none focus:ring-1 focus:ring-ring",
+        "w-full rounded border bg-background text-left text-[11px] focus:outline-none focus:ring-1 focus:ring-inset focus:ring-ring",
         small ? "h-6 px-0.5" : "h-7 px-1",
         isInvalid && value ? "border-destructive bg-destructive/5" : "border-input"
       )}

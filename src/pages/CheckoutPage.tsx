@@ -134,7 +134,7 @@ const PickCard = ({
     onClick={onClick}
     className={cn(
       "w-full rounded-lg border px-3.5 py-3 text-left transition-all duration-150",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
       selected && !accent && "border-secondary bg-secondary/5 dark:bg-secondary/10",
       selected && accent && "border-primary bg-primary/5 dark:bg-primary/10",
       !selected && "border-border hover:border-secondary/60 bg-card",
@@ -561,7 +561,7 @@ const CheckoutPage = () => {
                     onClick={() => done && setStep(n)}
                     className={cn(
                       "flex cursor-default items-center gap-2 border-b-2 px-4 py-3.5 text-sm transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                       done && "cursor-pointer border-secondary text-secondary hover:text-secondary/80",
                       active && "border-primary text-foreground font-semibold",
                       !done && !active && "border-transparent text-muted-foreground",
@@ -859,7 +859,7 @@ const CheckoutPage = () => {
                         }
                         className={cn(
                           "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                           sameAsShipping ? "bg-secondary" : "bg-muted",
                         )}
                       >
@@ -1204,7 +1204,7 @@ const CheckoutPage = () => {
                           <button
                             type="button"
                             onClick={() => setStep(goTo)}
-                            className="font-mono text-[10px] text-secondary underline underline-offset-2 hover:text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                            className="font-mono text-[10px] text-secondary underline underline-offset-2 hover:text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded"
                           >
                             Edit
                           </button>

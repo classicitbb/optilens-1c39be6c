@@ -305,7 +305,7 @@ const StageCreateTicketDialog = ({
                   }));
                 }}
               >
-                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none" className="text-xs">No type</SelectItem>
                   {ticketTypes.map((type) => <SelectItem key={type.id} value={type.id} className="text-xs">{type.name}</SelectItem>)}
@@ -318,7 +318,7 @@ const StageCreateTicketDialog = ({
                 value={form.title}
                 onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
                 placeholder="Ticket title"
-                className="h-8 text-xs focus:ring-2 focus:ring-primary"
+                className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"
               />
             </div>
             <div className="space-y-1">
@@ -335,13 +335,13 @@ const StageCreateTicketDialog = ({
                 value={form.description}
                 onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="Brief description"
-                className="text-xs min-h-[96px] focus:ring-2 focus:ring-primary"
+                className="text-xs min-h-[96px] focus:ring-2 focus:ring-inset focus:ring-primary"
               />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Team</Label>
               <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, teamId: v === "__none" ? "" : v }))}>
-                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none" className="text-xs">No team</SelectItem>
                   {teams.map((team) => <SelectItem key={team.id} value={team.id} className="text-xs">{team.name}</SelectItem>)}
@@ -351,7 +351,7 @@ const StageCreateTicketDialog = ({
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Priority</Label>
               <Select value={form.priority} onValueChange={(v) => setForm((prev) => ({ ...prev, priority: v }))}>
-                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
                 <SelectContent>
                   {priorities.map((priority) => <SelectItem key={priority.level} value={String(priority.level)} className="text-xs">{priority.label}</SelectItem>)}
                 </SelectContent>
@@ -360,7 +360,7 @@ const StageCreateTicketDialog = ({
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Initial Stage</Label>
               <Select value={form.stageId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, stageId: v === "__none" ? "" : v }))}>
-                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-primary"><SelectValue placeholder="Initial stage" /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Initial stage" /></SelectTrigger>
                 <SelectContent>
                   {stages.map((stage) => <SelectItem key={stage.id} value={stage.id} className="text-xs">{stage.name}</SelectItem>)}
                 </SelectContent>
@@ -372,7 +372,7 @@ const StageCreateTicketDialog = ({
                 type="date"
                 value={form.dueDate}
                 onChange={(e) => setForm((prev) => ({ ...prev, dueDate: e.target.value }))}
-                className="h-8 text-xs focus:ring-2 focus:ring-primary"
+                className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"
               />
             </div>
             <Button size="sm" className="h-9 w-full text-xs" onClick={() => void handleCreate()} disabled={isCreating || !form.title.trim()}>
