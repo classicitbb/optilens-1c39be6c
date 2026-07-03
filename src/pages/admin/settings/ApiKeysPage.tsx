@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
 const ALL_SCOPES = [
@@ -42,6 +43,9 @@ export default function ApiKeysPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [newToken, setNewToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [editKey, setEditKey] = useState<ApiKey | null>(null);
+  const [editScopes, setEditScopes] = useState<string[]>([]);
+  const [savingScopes, setSavingScopes] = useState(false);
 
   async function load() {
     const { data, error } = await (supabase as any)
@@ -70,6 +74,27 @@ export default function ApiKeysPage() {
     const { error } = await (supabase as any).rpc("revoke_api_key", { p_id: id });
     if (error) toast({ title: "Revoke failed", description: error.message, variant: "destructive" });
     else load();
+  }
+
+  function openEditScopes(key: ApiKey) {
+    setEditKey(key);
+    setEditScopes(key.scopes);
+  }
+
+  // Scopes live on the key row, separate from the secret (key_hash) — editing
+  // them in place doesn't rotate the token, so nothing downstream re-keying is
+  // needed. Just grant/revoke the specific scopes; the existing token keeps working.
+  async function saveScopes() {
+    if (!editKey) return;
+    setSavingScopes(true);
+    const { error } = await (supabase as any).rpc("update_api_key_scopes", {
+      p_id: editKey.id, p_scopes: editScopes,
+    });
+    setSavingScopes(false);
+    if (error) return toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    toast({ title: "Scopes updated" });
+    setEditKey(null);
+    load();
   }
 
   const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL ?? "";
@@ -171,9 +196,12 @@ export default function ApiKeysPage() {
                   <td className="text-xs">{k.scopes.join(", ")}</td>
                   <td>{k.last_used_at ? new Date(k.last_used_at).toLocaleString() : "—"}</td>
                   <td>{k.revoked_at ? <span className="text-destructive">Revoked</span> : "Active"}</td>
-                  <td>
+                  <td className="space-x-2 whitespace-nowrap">
                     {!k.revoked_at && (
-                      <Button size="sm" variant="outline" onClick={() => revoke(k.id)}>Revoke</Button>
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => openEditScopes(k)}>Edit scopes</Button>
+                        <Button size="sm" variant="outline" onClick={() => revoke(k.id)}>Revoke</Button>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -185,6 +213,32 @@ export default function ApiKeysPage() {
           </table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!editKey} onOpenChange={(v) => !v && setEditKey(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit scopes — {editKey?.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            The token itself doesn't change — existing integrations keep working with whatever scopes you grant here.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {ALL_SCOPES.map((s) => (
+              <label key={s} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={editScopes.includes(s)}
+                  onCheckedChange={(c) => setEditScopes((prev) => c ? [...prev, s] : prev.filter(x => x !== s))}
+                />
+                <span>{s}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setEditKey(null)}>Cancel</Button>
+            <Button onClick={saveScopes} disabled={savingScopes}>Save scopes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
