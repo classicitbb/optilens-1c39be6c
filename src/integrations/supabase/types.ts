@@ -1466,6 +1466,7 @@ export type Database = {
           is_customer: boolean
           lead_score: number
           lead_source: string
+          linked_customer_id: number | null
           name: string
           notes: string | null
           parent_id: string | null
@@ -1509,6 +1510,7 @@ export type Database = {
           is_customer?: boolean
           lead_score?: number
           lead_source?: string
+          linked_customer_id?: number | null
           name: string
           notes?: string | null
           parent_id?: string | null
@@ -1552,6 +1554,7 @@ export type Database = {
           is_customer?: boolean
           lead_score?: number
           lead_source?: string
+          linked_customer_id?: number | null
           name?: string
           notes?: string | null
           parent_id?: string | null
@@ -1574,6 +1577,20 @@ export type Database = {
             columns: ["industry_id"]
             isOneToOne: false
             referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_linked_customer_id_fkey"
+            columns: ["linked_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "contacts_linked_customer_id_fkey"
+            columns: ["linked_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
@@ -7617,6 +7634,7 @@ export type Database = {
         }[]
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
+      resolve_contact_customer_links: { Args: never; Returns: number }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
       sync_customer_portal_identity: {
         Args: { p_user_id?: string }
