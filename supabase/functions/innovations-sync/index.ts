@@ -6,7 +6,10 @@
 // Contract: docs/integration-innovations-sync-contract.md
 //
 //   POST /functions/v1/innovations-sync/<entity>
-//   body: { "dry_run": true, "records": [ { ...mapped row... } ] }
+//   body: { "dry_run": true, "suppress_email"?: true, "records": [ { ...mapped row... } ] }
+//   suppress_email (statements only): skip the "statement ready" email even for
+//   newly-inserted rows. Use for historical backfills so old statements don't
+//   spam every customer on the first sync.
 //
 // Machine API (no browser origin) -> permissive CORS, matching api-v1.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -165,7 +168,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-02.2-customer-payment-fields";
+const VERSION = "2026-07-02.3-suppress-email-backfill";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 // Customers get individual resolution instead of a blind onConflict(innovations_customer_id)
@@ -442,6 +445,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Body must be { dry_run?: boolean, records: [] }." }, 400);
   }
   const dryRun = (raw as any).dry_run !== false; // default true
+  // Historical backfills (e.g. the first-ever sync of years of statements)
+  // must not spam every customer with a "statement ready" email for old,
+  // already-known statements. Only real month-end pushes should email.
+  const suppressEmail = (raw as any).suppress_email === true;
   const records = (raw as any).records as Record<string, unknown>[];
   if (records.length > MAX_RECORDS_PER_REQUEST) {
     return json({ error: `Too many records. Max ${MAX_RECORDS_PER_REQUEST} per request, got ${records.length}.` }, 413);
@@ -507,7 +514,7 @@ Deno.serve(async (req: Request) => {
         });
       } else {
         upserted++;
-        if (isNew) await enqueueStatementReadyEmail(supabase, row);
+        if (isNew && !suppressEmail) await enqueueStatementReadyEmail(supabase, row);
       }
     }
   } else if (!dryRun && mapped.length && entity === "balances") {
