@@ -283,6 +283,28 @@ const EMPTY_STRING_LIST: string[] = [];
 const ContactsPage = () => {
   const { data: contactsData, isLoading } = useContacts();
   const contacts = contactsData ?? EMPTY_CONTACTS;
+
+  // Bulk lookup for the ERP-resolved parent-customer link (contacts.linked_customer_id
+  // -> customers.id), auto-maintained by resolve_contact_customer_links() on every
+  // Innovations contacts sync. One batched query for the whole list, not per-row.
+  const linkedCustomerIds = useMemo(
+    () => Array.from(new Set(contacts.map((c) => c.linked_customer_id).filter((id): id is number => typeof id === "number"))),
+    [contacts],
+  );
+  const { data: linkedCustomersById = {} } = useQuery({
+    queryKey: ["contacts-linked-customers", linkedCustomerIds],
+    enabled: linkedCustomerIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,name,account_number")
+        .in("id", linkedCustomerIds);
+      if (error) throw error;
+      const map: Record<number, { id: number; name: string; account_number: string | null }> = {};
+      for (const row of (data ?? []) as any[]) map[row.id] = row;
+      return map;
+    },
+  });
+
   const { data: tags = [] } = useContactTags();
   const { data: industries = [] } = useIndustries();
   const saveContact = useSaveContact();
@@ -938,6 +960,15 @@ const ContactsPage = () => {
           {c.is_customer && (
             <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
               Customer
+            </Badge>
+          )}
+          {c.linked_customer_id && linkedCustomersById[c.linked_customer_id] && (
+            <Badge
+              className="text-[10px] px-1.5 py-0 h-5 border-0"
+              style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}
+              title={`Linked to Innovations account: ${linkedCustomersById[c.linked_customer_id].name}`}
+            >
+              ERP: {linkedCustomersById[c.linked_customer_id].account_number || linkedCustomersById[c.linked_customer_id].name}
             </Badge>
           )}
         </div>
@@ -2005,6 +2036,32 @@ const ContactsPage = () => {
                             </div>
                           )}
                         </div>
+
+                        {/* Read-only: ERP parent-customer link, auto-resolved from
+                            Innovations contacts.parent customer id via
+                            resolve_contact_customer_links(). Distinct from the editable
+                            Account Number field above — that field creates/edits this
+                            contact's OWN customers row (customers.contact_id); this panel
+                            shows which customer COMPANY this contact belongs to
+                            (contacts.linked_customer_id), which applies to person contacts
+                            too, not just company/customer contacts. */}
+                        {editContact.linked_customer_id && linkedCustomersById[editContact.linked_customer_id] && (
+                          <div className="border rounded-md p-2 space-y-1" style={{ borderColor: "hsl(168 76% 42% / 0.3)", background: "hsl(168 76% 42% / 0.05)" }}>
+                            <div className="flex items-center gap-1.5">
+                              <ShieldCheck className="h-3.5 w-3.5" style={{ color: "hsl(168 76% 42%)" }} />
+                              <Label className="text-[11px] font-semibold">Linked Innovations Account</Label>
+                            </div>
+                            <p className="text-xs">
+                              {linkedCustomersById[editContact.linked_customer_id].name}
+                              {linkedCustomersById[editContact.linked_customer_id].account_number && (
+                                <span style={{ color: "hsl(215 15% 55%)" }}> — {linkedCustomersById[editContact.linked_customer_id].account_number}</span>
+                              )}
+                            </p>
+                            <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
+                              Auto-linked from Innovations sync. Read-only.
+                            </p>
+                          </div>
+                        )}
 
                         {/* Tags */}
                         {editContact.id && (

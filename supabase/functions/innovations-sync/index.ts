@@ -168,7 +168,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-02.3-suppress-email-backfill";
+const VERSION = "2026-07-02.4-contact-customer-linking";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 // Customers get individual resolution instead of a blind onConflict(innovations_customer_id)
@@ -574,6 +574,14 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
+  }
+
+  // After a real contacts push, re-resolve contacts.linked_customer_id from
+  // innovations_parent_customer_id -> customers.innovations_customer_id.
+  // Best-effort: a resolver hiccup must never fail the sync itself.
+  if (!dryRun && entity === "contacts" && mapped.length) {
+    const { error: resolveErr } = await supabase.rpc("resolve_contact_customer_links");
+    if (resolveErr) console.error("resolve_contact_customer_links failed", resolveErr);
   }
 
   const status = failed === 0 ? "success" : upserted > 0 ? "partial" : "failed";

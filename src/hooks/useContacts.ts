@@ -38,6 +38,11 @@ export interface Contact {
   lead_score: number;
   created_at: string;
   updated_at: string;
+  // Raw Innovations parent-customer id, and the resolved link auto-maintained
+  // by public.resolve_contact_customer_links() (see innovations-sync). Null
+  // for contacts that aren't ERP-synced or whose parent hasn't matched yet.
+  innovations_parent_customer_id: number | null;
+  linked_customer_id: number | null;
 }
 
 export interface ContactTag {
