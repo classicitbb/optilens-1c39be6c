@@ -40,7 +40,23 @@ const ENTITIES: Record<string, EntityConfig> = {
     // `type` and `pipeline_stage` are intentionally excluded — they carry CHECK
     // constraints (customers_type_check) whose allowed values we don't set from
     // the ERP. Dropped here so the office payload can't trip them regardless.
-    allow: ["innovations_customer_id", "name", "account_number", "address", "country_code", "email", "phone", "notes"],
+    allow: [
+      "innovations_customer_id",
+      "name",
+      "account_number",
+      "address",
+      "country_code",
+      "email",
+      "phone",
+      "notes",
+      // Payment routing, sourced from dbo.Customers / dbo.EFTInstitutions. Used
+      // to resolve "Pay Balance": card capture vs. redirect to the customer's
+      // bank via bank_payment_portals (keyed on eft_institution_name).
+      "pay_by_card",
+      "pay_by_eft",
+      "eft_institution_name",
+      "default_payment_type",
+    ],
   },
   contacts: {
     table: "contacts",
@@ -149,7 +165,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-02.1-statements-balances";
+const VERSION = "2026-07-02.2-customer-payment-fields";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 // Customers get individual resolution instead of a blind onConflict(innovations_customer_id)
