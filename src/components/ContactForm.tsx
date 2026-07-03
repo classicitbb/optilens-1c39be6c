@@ -144,11 +144,22 @@ const ContactForm = () => {
           <div className="rounded-2xl border border-border bg-card p-8 shadow-elegant">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
-                <div className="absolute h-0 overflow-hidden opacity-0" aria-hidden="true" tabIndex={-1}>
-                  <label htmlFor="website_url">Website</label>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "-9999px",
+                    top: "auto",
+                    width: 0,
+                    height: 0,
+                    opacity: 0,
+                    overflow: "hidden",
+                  }}
+                  aria-hidden="true"
+                >
+                  <label htmlFor="company_website">Company website</label>
                   <input
-                    id="website_url"
-                    name="website_url"
+                    id="company_website"
+                    name="company_website"
                     type="text"
                     autoComplete="off"
                     value={honeypot}
