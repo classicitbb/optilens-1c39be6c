@@ -180,18 +180,30 @@ Deno.serve(async (req) => {
     const ipHint = getIpHintFromRequest(req);
     const userAgent = getUserAgentFromRequest(req) ?? "unknown";
 
+    const isHomepageContactForm = payload.inquiryType === "contact";
+    const HOMEPAGE_MIN_FILL_MS = 3000;
+
+    // Silent success response used only for the homepage contact form so bots
+    // cannot learn they were blocked. Mirrors the shape of a real success.
+    const silentSuccess = () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     if (payload.honeypot.trim()) {
       await logSecurityAuditEvent({
         category: "edge_security",
         eventType: "abuse.bot_detected",
         severity: "high",
-        statusCode: 400,
+        statusCode: isHomepageContactForm ? 200 : 400,
         sourceFunction: "contact-inquiry",
         sourcePath,
         ipHint,
         userAgent,
-        payload: { reason: "honeypot_populated" },
+        payload: { reason: "honeypot_populated", inquiryType: payload.inquiryType, silent: isHomepageContactForm },
       });
+      if (isHomepageContactForm) return silentSuccess();
       return new Response(JSON.stringify({ error: "Spam rejected" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -199,18 +211,20 @@ Deno.serve(async (req) => {
     }
 
     const startedAtMs = Date.parse(payload.startedAt);
-    if (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs < MIN_FORM_FILL_MS) {
+    const minFillMs = isHomepageContactForm ? HOMEPAGE_MIN_FILL_MS : MIN_FORM_FILL_MS;
+    if (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs < minFillMs) {
       await logSecurityAuditEvent({
         category: "edge_security",
         eventType: "abuse.bot_detected",
         severity: "medium",
-        statusCode: 400,
+        statusCode: isHomepageContactForm ? 200 : 400,
         sourceFunction: "contact-inquiry",
         sourcePath,
         ipHint,
         userAgent,
-        payload: { reason: "form_fill_too_fast", minFillMs: MIN_FORM_FILL_MS },
+        payload: { reason: "form_fill_too_fast", minFillMs, inquiryType: payload.inquiryType, silent: isHomepageContactForm },
       });
+      if (isHomepageContactForm) return silentSuccess();
       return new Response(JSON.stringify({ error: "Submission blocked by bot protection" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
