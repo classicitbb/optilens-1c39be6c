@@ -1,4 +1,7 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,96 +19,94 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowUpDown, Printer, X } from "lucide-react";
+import { ArrowUpDown, ArrowUpRight, Loader2, Printer, ReceiptText, X } from "lucide-react";
 
-interface Transaction {
-  id: string;
-  date: string;
-  invoiceNum: string;
-  rxNum: string;
-  orderNum: string;
-  poNum: string;
-  description: string;
-  amount: number;
-  status: "open" | "paid";
+// ── Real data shapes (mirrors the security_invoker views / narrow payment
+// profile view — see supabase/functions/innovations-sync + the migration that
+// created statements/statement_lines/balances and customer_payment_profile_public). ──
+interface StatementRow {
+  id: string; // innovations_statement_id, text
+  account_number: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  opening_balance: number | null;
+  closing_balance: number | null;
+  payments: number | null;
+  finance_charges: number | null;
+  discount: number | null;
+  due_date: string | null;
+  status: number | null;
+  void: boolean | null;
+  printed: boolean | null;
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: "1",
-    date: "2026-06-15",
-    invoiceNum: "INV-24601",
-    rxNum: "RX-2024-5847",
-    orderNum: "ORD-18942",
-    poNum: "PO-8734",
-    description: "Lens materials & labor",
-    amount: 1250.0,
-    status: "open",
-  },
-  {
-    id: "2",
-    date: "2026-06-10",
-    invoiceNum: "INV-24592",
-    rxNum: "RX-2024-5821",
-    orderNum: "ORD-18933",
-    poNum: "PO-8721",
-    description: "Frame inventory + mounting",
-    amount: 875.5,
-    status: "open",
-  },
-  {
-    id: "3",
-    date: "2026-06-05",
-    invoiceNum: "INV-24588",
-    rxNum: "RX-2024-5805",
-    orderNum: "ORD-18925",
-    poNum: "PO-8712",
-    description: "Coatings & treatments",
-    amount: 645.0,
-    status: "open",
-  },
-  {
-    id: "4",
-    date: "2026-05-20",
-    invoiceNum: "PAY-24540",
-    rxNum: "—",
-    orderNum: "—",
-    poNum: "—",
-    description: "Payment received",
-    amount: -550.0,
-    status: "paid",
-  },
-  {
-    id: "5",
-    date: "2026-05-18",
-    invoiceNum: "INV-24530",
-    rxNum: "RX-2024-5412",
-    orderNum: "ORD-18815",
-    poNum: "PO-8691",
-    description: "Rush order processing",
-    amount: 550.0,
-    status: "paid",
-  },
-];
+interface StatementLineRow {
+  id: number | null;
+  statement_id: string | null;
+  account_number: string | null;
+  order_type: number | null;
+  invoice_id: number | null;
+  reference: string | null;
+  patient: string | null;
+  post_date: string | null;
+  amount: number | null;
+}
 
-type SortColumn = keyof Transaction | null;
+interface BalanceRow {
+  account_number: string | null;
+  credit_limit: number | null;
+  current_balance: number | null;
+  last_payment_amount: number | null;
+  last_payment_date: string | null;
+  last_statement_amount: number | null;
+  last_statement_date: string | null;
+}
+
+interface PaymentProfile {
+  customer_id: number;
+  account_number: string | null;
+  name: string | null;
+  pay_by_card: boolean | null;
+  pay_by_eft: boolean | null;
+  eft_institution_name: string | null;
+}
+
+interface BankPortal {
+  bank_name: string;
+  portal_url: string;
+}
+
+type SortColumn = "post_date" | "reference" | "patient" | "invoice_id" | "amount" | null;
 type SortDirection = "asc" | "desc";
 
-const StatementTemplate = ({ data }: { data: Transaction[] }) => {
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-  });
+const money = (n: number | null | undefined) =>
+  (n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const totalInvoiced = data
-    .filter((t) => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalPaid = Math.abs(
-    data
-      .filter((t) => t.amount < 0)
-      .reduce((sum, t) => sum + t.amount, 0)
-  );
+const fmtDate = (value: string | null | undefined, opts?: Intl.DateTimeFormatOptions) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", opts ?? { month: "2-digit", day: "2-digit", year: "numeric" });
+};
+
+const periodLabel = (s: StatementRow) =>
+  `${fmtDate(s.period_start, { month: "short", day: "numeric" })} – ${fmtDate(s.period_end, { month: "short", day: "numeric", year: "numeric" })}`;
+
+const lineDetail = (l: StatementLineRow) =>
+  l.reference?.trim() || l.patient?.trim() || (l.invoice_id ? `Invoice #${l.invoice_id}` : "Statement item");
+
+const StatementTemplate = ({
+  statement,
+  lines,
+  customerName,
+  accountNumber,
+}: {
+  statement: StatementRow;
+  lines: StatementLineRow[];
+  customerName: string | null;
+  accountNumber: string | null;
+}) => {
+  const currentDate = new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 
   return (
     <div
@@ -132,24 +133,10 @@ const StatementTemplate = ({ data }: { data: Transaction[] }) => {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <div
-            style={{
-              fontSize: "20pt",
-              fontWeight: "800",
-              color: "#F4F2ED",
-              letterSpacing: "-0.03em",
-            }}
-          >
+          <div style={{ fontSize: "20pt", fontWeight: "800", color: "#F4F2ED", letterSpacing: "-0.03em" }}>
             CLASSIC VISIONS
           </div>
-          <div
-            style={{
-              color: "rgba(244,242,237,0.75)",
-              fontSize: "6.5pt",
-              lineHeight: "1.65",
-              letterSpacing: "0.01em",
-            }}
-          >
+          <div style={{ color: "rgba(244,242,237,0.75)", fontSize: "6.5pt", lineHeight: "1.65", letterSpacing: "0.01em" }}>
             Uplands, St. John · Barbados · BB20031
             <br />
             TIN# 1000006494000
@@ -159,162 +146,65 @@ const StatementTemplate = ({ data }: { data: Transaction[] }) => {
             www.classicvisions.net
           </div>
         </div>
-        <div
-          style={{
-            textAlign: "right",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: "4px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "6pt",
-              fontWeight: "700",
-              letterSpacing: "0.22em",
-              textTransform: "uppercase",
-              color: "#1A8A9C",
-            }}
-          >
+        <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+          <div style={{ fontSize: "6pt", fontWeight: "700", letterSpacing: "0.22em", textTransform: "uppercase", color: "#1A8A9C" }}>
             Account Statement
           </div>
-          <div
-            style={{
-              fontSize: "28pt",
-              fontWeight: "800",
-              letterSpacing: "-0.03em",
-              color: "rgba(244,242,237,0.15)",
-              lineHeight: "1",
-              textTransform: "uppercase",
-            }}
-          >
+          <div style={{ fontSize: "28pt", fontWeight: "800", letterSpacing: "-0.03em", color: "rgba(244,242,237,0.15)", lineHeight: "1", textTransform: "uppercase" }}>
             Statement
           </div>
         </div>
       </div>
 
-      <div
-        style={{
-          height: "3px",
-          background:
-            "linear-gradient(90deg, #C89130 0%, rgba(200,145,48,0.2) 100%)",
-        }}
-      ></div>
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #C89130 0%, rgba(200,145,48,0.2) 100%)" }}></div>
 
       {/* Body */}
       <div style={{ padding: "18px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
         {/* Meta fields */}
         <div style={{ display: "flex", gap: "16px" }}>
-          <div
-            style={{
-              flex: 1,
-              border: "1.5px solid #c9d4de",
-              borderLeft: "3px solid #C89130",
-              borderRadius: "4px",
-              padding: "10px 12px",
-              background: "#F4F2ED",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "90px 1fr",
-                gap: "4px",
-                paddingBottom: "2.5px",
-                borderBottom: "1px solid #c9d4de",
-              }}
-            >
-              <span
+          <div style={{ flex: 1, border: "1.5px solid #c9d4de", borderLeft: "3px solid #C89130", borderRadius: "4px", padding: "10px 12px", background: "#F4F2ED" }}>
+            {[
+              ["Customer", customerName || "—"],
+              ["Account #", accountNumber || "—"],
+              ["Period", periodLabel(statement)],
+              ["Due Date", fmtDate(statement.due_date)],
+              ["Generated", currentDate],
+            ].map(([label, value], i, arr) => (
+              <div
+                key={label}
                 style={{
-                  fontSize: "6.5pt",
-                  fontWeight: "700",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "#5a7490",
+                  display: "grid",
+                  gridTemplateColumns: "90px 1fr",
+                  gap: "4px",
+                  paddingBottom: "2.5px",
+                  paddingTop: i === 0 ? 0 : "2.5px",
+                  borderBottom: i < arr.length - 1 ? "1px solid #c9d4de" : "none",
                 }}
               >
-                Period
-              </span>
-              <span style={{ fontSize: "7.5pt", fontWeight: "600" }}>
-                June 2026
-              </span>
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "90px 1fr",
-                gap: "4px",
-                paddingBottom: "2.5px",
-                paddingTop: "2.5px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "6.5pt",
-                  fontWeight: "700",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "#5a7490",
-                }}
-              >
-                Generated
-              </span>
-              <span style={{ fontSize: "7.5pt", fontWeight: "600" }}>
-                {currentDate}
-              </span>
-            </div>
+                <span style={{ fontSize: "6.5pt", fontWeight: "700", letterSpacing: "0.08em", textTransform: "uppercase", color: "#5a7490" }}>
+                  {label}
+                </span>
+                <span style={{ fontSize: "7.5pt", fontWeight: "600" }}>{value}</span>
+              </div>
+            ))}
           </div>
 
-          <div
-            style={{
-              width: "210px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-            }}
-          >
+          <div style={{ width: "210px", display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ border: "1.5px solid #c9d4de", borderRadius: "4px", overflow: "hidden" }}>
-              <div
-                style={{
-                  background: "#0B1E35",
-                  color: "#F4F2ED",
-                  fontSize: "6pt",
-                  fontWeight: "700",
-                  letterSpacing: "0.18em",
-                  textTransform: "uppercase",
-                  padding: "5px 10px",
-                }}
-              >
+              <div style={{ background: "#0B1E35", color: "#F4F2ED", fontSize: "6pt", fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase", padding: "5px 10px" }}>
                 Account Summary
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", fontSize: "7pt", borderBottom: "1px solid #c9d4de" }}>
-                <span>Total Invoiced</span>
-                <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>
-                  ${totalInvoiced.toFixed(2)}
-                </span>
+                <span>Opening Balance</span>
+                <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>${money(statement.opening_balance)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", fontSize: "7pt", borderBottom: "1px solid #c9d4de" }}>
-                <span>Total Paid</span>
-                <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>
-                  ${totalPaid.toFixed(2)}
-                </span>
+                <span>Payments</span>
+                <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>${money(statement.payments)}</span>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "3px 10px",
-                  background: "#0B1E35",
-                  color: "#F4F2ED",
-                  fontWeight: "700",
-                  fontSize: "7pt",
-                }}
-              >
-                <span>Current Balance</span>
-                <span style={{ color: "#C89130", fontSize: "8pt", fontVariantNumeric: "tabular-nums" }}>
-                  ${(totalInvoiced - totalPaid).toFixed(2)}
-                </span>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", background: "#0B1E35", color: "#F4F2ED", fontWeight: "700", fontSize: "7pt" }}>
+                <span>Closing Balance</span>
+                <span style={{ color: "#C89130", fontSize: "8pt", fontVariantNumeric: "tabular-nums" }}>${money(statement.closing_balance)}</span>
               </div>
             </div>
           </div>
@@ -322,154 +212,141 @@ const StatementTemplate = ({ data }: { data: Transaction[] }) => {
 
         {/* Transaction table */}
         <div style={{ marginTop: "8px" }}>
-          <div
-            style={{
-              fontSize: "6.5pt",
-              fontWeight: "700",
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: "#1A8A9C",
-              marginBottom: "8px",
-            }}
-          >
+          <div style={{ fontSize: "6.5pt", fontWeight: "700", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1A8A9C", marginBottom: "8px" }}>
             Transaction Detail
           </div>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: "7pt",
-            }}
-          >
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "7pt" }}>
             <thead>
               <tr style={{ background: "#0B1E35", color: "#F4F2ED" }}>
-                <th
-                  style={{
-                    padding: "6px 8px",
-                    fontSize: "6.5pt",
-                    fontWeight: "700",
-                    textAlign: "left",
-                    borderRight: "1px solid rgba(244,242,237,0.1)",
-                  }}
-                >
-                  Date
-                </th>
-                <th
-                  style={{
-                    padding: "6px 8px",
-                    fontSize: "6.5pt",
-                    fontWeight: "700",
-                    textAlign: "left",
-                    borderRight: "1px solid rgba(244,242,237,0.1)",
-                  }}
-                >
-                  Invoice
-                </th>
-                <th
-                  style={{
-                    padding: "6px 8px",
-                    fontSize: "6.5pt",
-                    fontWeight: "700",
-                    textAlign: "left",
-                    borderRight: "1px solid rgba(244,242,237,0.1)",
-                  }}
-                >
-                  Rx #
-                </th>
-                <th
-                  style={{
-                    padding: "6px 8px",
-                    fontSize: "6.5pt",
-                    fontWeight: "700",
-                    textAlign: "left",
-                    borderRight: "1px solid rgba(244,242,237,0.1)",
-                  }}
-                >
-                  Description
-                </th>
-                <th
-                  style={{
-                    padding: "6px 8px",
-                    fontSize: "6.5pt",
-                    fontWeight: "700",
-                    textAlign: "right",
-                  }}
-                >
-                  Amount
-                </th>
+                {["Date", "Reference", "Patient", "Invoice #"].map((h) => (
+                  <th key={h} style={{ padding: "6px 8px", fontSize: "6.5pt", fontWeight: "700", textAlign: "left", borderRight: "1px solid rgba(244,242,237,0.1)" }}>
+                    {h}
+                  </th>
+                ))}
+                <th style={{ padding: "6px 8px", fontSize: "6.5pt", fontWeight: "700", textAlign: "right" }}>Amount</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((row, idx) => (
-                <tr
-                  key={row.id}
-                  style={{
-                    background: idx % 2 === 0 ? "#ffffff" : "#F4F2ED",
-                    borderBottom: "1px solid #c9d4de",
-                  }}
-                >
-                  <td style={{ padding: "4px 8px" }}>
-                    {new Date(row.date).toLocaleDateString("en-US", {
-                      month: "2-digit",
-                      day: "2-digit",
-                      year: "2-digit",
-                    })}
-                  </td>
-                  <td style={{ padding: "4px 8px", fontWeight: "600" }}>
-                    {row.invoiceNum}
-                  </td>
-                  <td style={{ padding: "4px 8px" }}>{row.rxNum}</td>
-                  <td style={{ padding: "4px 8px" }}>{row.description}</td>
-                  <td
-                    style={{
-                      padding: "4px 8px",
-                      textAlign: "right",
-                      fontWeight: "600",
-                      fontVariantNumeric: "tabular-nums",
-                      color: row.amount < 0 ? "#c0392b" : "#0B1E35",
-                    }}
-                  >
-                    ${Math.abs(row.amount).toFixed(2)}
+              {lines.map((row, idx) => (
+                <tr key={row.id ?? idx} style={{ background: idx % 2 === 0 ? "#ffffff" : "#F4F2ED", borderBottom: "1px solid #c9d4de" }}>
+                  <td style={{ padding: "4px 8px" }}>{fmtDate(row.post_date, { month: "2-digit", day: "2-digit", year: "2-digit" })}</td>
+                  <td style={{ padding: "4px 8px", fontWeight: "600" }}>{row.reference || "—"}</td>
+                  <td style={{ padding: "4px 8px" }}>{row.patient || "—"}</td>
+                  <td style={{ padding: "4px 8px" }}>{row.invoice_id ?? "—"}</td>
+                  <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: "600", fontVariantNumeric: "tabular-nums", color: (row.amount ?? 0) < 0 ? "#c0392b" : "#0B1E35" }}>
+                    ${money(Math.abs(row.amount ?? 0))}
                   </td>
                 </tr>
               ))}
+              {lines.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ padding: "16px 8px", textAlign: "center", color: "#5a7490" }}>
+                    No transactions on this statement.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
       {/* Footer */}
-      <div
-        style={{
-          marginTop: "auto",
-          padding: "16px 24px",
-          background: "#0B1E35",
-          color: "rgba(244,242,237,0.8)",
-          fontSize: "6.5pt",
-          lineHeight: "1.6",
-          borderTop: "2px solid #C89130",
-        }}
-      >
-        <strong style={{ color: "#F4F2ED" }}>Payment Due:</strong> 30 days from
-        invoice date
+      <div style={{ marginTop: "auto", padding: "16px 24px", background: "#0B1E35", color: "rgba(244,242,237,0.8)", fontSize: "6.5pt", lineHeight: "1.6", borderTop: "2px solid #C89130" }}>
+        <strong style={{ color: "#F4F2ED" }}>Payment Due:</strong> {fmtDate(statement.due_date)}
         <br />
-        <strong style={{ color: "#F4F2ED" }}>Bank:</strong> Bank of Nova Scotia ·{" "}
-        <strong style={{ color: "#F4F2ED" }}>Account No.:</strong> 448873
+        Questions about this statement? Contact <strong style={{ color: "#F4F2ED" }}>accounts@classicvisions.net</strong> or 246-433-4928.
       </div>
     </div>
   );
 };
 
 const StatementsSection = () => {
+  const { identity } = usePortalIdentity();
+  const crmCustomerId = identity?.crmCustomerId ?? null;
+
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
-  const [statementFilter, setStatementFilter] = useState("June 2026");
+  const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  const totalInvoiced = 8120.0;
-  const totalPaid = 3799.5;
-  const currentBalance = 4320.5;
+  const statementsQuery = useQuery({
+    queryKey: ["customer-statements", crmCustomerId],
+    enabled: typeof crmCustomerId === "number",
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("statements_public")
+        .select("*")
+        .eq("customer_id", crmCustomerId)
+        .eq("void", false)
+        .order("period_end", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as StatementRow[];
+    },
+  });
+
+  const statements = statementsQuery.data ?? [];
+  const activeStatementId = selectedStatementId ?? statements[0]?.id ?? null;
+  const activeStatement = statements.find((s) => s.id === activeStatementId) ?? null;
+
+  const balanceQuery = useQuery({
+    queryKey: ["customer-balance", crmCustomerId],
+    enabled: typeof crmCustomerId === "number",
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("balances_public")
+        .select("*")
+        .eq("customer_id", crmCustomerId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as BalanceRow | null;
+    },
+  });
+
+  const linesQuery = useQuery({
+    queryKey: ["customer-statement-lines", activeStatementId],
+    enabled: !!activeStatementId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("statement_lines_public")
+        .select("*")
+        .eq("statement_id", activeStatementId)
+        .order("post_date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as StatementLineRow[];
+    },
+  });
+  const lines = linesQuery.data ?? [];
+
+  const paymentProfileQuery = useQuery({
+    queryKey: ["customer-payment-profile", crmCustomerId],
+    enabled: typeof crmCustomerId === "number",
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("customer_payment_profile_public")
+        .select("*")
+        .eq("customer_id", crmCustomerId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as PaymentProfile | null;
+    },
+  });
+  const paymentProfile = paymentProfileQuery.data ?? null;
+
+  const bankPortalQuery = useQuery({
+    queryKey: ["bank-payment-portal", paymentProfile?.eft_institution_name],
+    enabled: !!paymentProfile?.pay_by_eft && !!paymentProfile?.eft_institution_name,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bank_payment_portals")
+        .select("bank_name,portal_url")
+        .eq("bank_name", paymentProfile!.eft_institution_name)
+        .maybeSingle();
+      if (error) throw error;
+      return data as BankPortal | null;
+    },
+  });
+  const bankPortal = bankPortalQuery.data ?? null;
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -480,131 +357,115 @@ const StatementsSection = () => {
     }
   };
 
-  const sortedTransactions = useMemo(() => {
-    let sorted = [...mockTransactions];
-
-    if (sortColumn) {
-      sorted.sort((a, b) => {
-        let aVal = a[sortColumn];
-        let bVal = b[sortColumn];
-
-        if (typeof aVal === "number" && typeof bVal === "number") {
-          return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
-        }
-
-        if (typeof aVal === "string" && typeof bVal === "string") {
-          if (sortColumn === "date") {
-            const aDate = new Date(aVal);
-            const bDate = new Date(bVal);
-            return sortDirection === "asc"
-              ? aDate.getTime() - bDate.getTime()
-              : bDate.getTime() - aDate.getTime();
-          }
-          return sortDirection === "asc"
-            ? aVal.localeCompare(bVal)
-            : bVal.localeCompare(aVal);
-        }
-
-        return 0;
-      });
-    }
-
+  const sortedLines = useMemo(() => {
+    if (!sortColumn) return lines;
+    const sorted = [...lines];
+    sorted.sort((a, b) => {
+      const aVal = a[sortColumn];
+      const bVal = b[sortColumn];
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+      }
+      if (sortColumn === "post_date") {
+        const aTime = aVal ? new Date(aVal as string).getTime() : 0;
+        const bTime = bVal ? new Date(bVal as string).getTime() : 0;
+        return sortDirection === "asc" ? aTime - bTime : bTime - aTime;
+      }
+      const aStr = String(aVal ?? "");
+      const bStr = String(bVal ?? "");
+      return sortDirection === "asc" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
     return sorted;
-  }, [sortColumn, sortDirection]);
+  }, [lines, sortColumn, sortDirection]);
 
-  const handlePrintStatement = () => {
-    setStatementPreviewOpen(true);
-  };
-
-  const SortHeader = ({
-    column,
-    label,
-  }: {
-    column: SortColumn;
-    label: string;
-  }) => (
-    <button
-      onClick={() => handleSort(column)}
-      className="flex items-center gap-2 font-semibold hover:text-primary"
-    >
+  const SortHeader = ({ column, label }: { column: SortColumn; label: string }) => (
+    <button onClick={() => handleSort(column)} className="flex items-center gap-2 font-semibold hover:text-primary">
       {label}
       <ArrowUpDown className="h-3 w-3 opacity-40" />
     </button>
   );
 
+  const isLoading = statementsQuery.isLoading || balanceQuery.isLoading;
+  const currentBalance = balanceQuery.data?.current_balance ?? 0;
+
+  if (!crmCustomerId) {
+    return (
+      <section className="space-y-6">
+        <header className="space-y-1">
+          <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
+          <p className="text-sm text-muted-foreground">View your account balance, transaction history, and statements.</p>
+        </header>
+        <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+            <ReceiptText className="h-10 w-10 text-muted-foreground/60" />
+            <p className="text-sm text-muted-foreground">
+              Your account isn't linked to a billing record yet. Once your customer account is approved, statements will appear here.
+            </p>
+          </div>
+        </Card>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
       <header className="space-y-1">
-        <h2 className="text-2xl font-semibold text-foreground">
-          Statements & Billing
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          View your account balance, transaction history, and statements.
-        </p>
+        <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
+        <p className="text-sm text-muted-foreground">View your account balance, transaction history, and statements.</p>
       </header>
 
-      <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
-        <AlertDescription className="text-xs text-amber-800 dark:text-amber-300">
-          This page is still being connected to live billing records. The balance and transactions shown below are sample data, not your real account activity.
-        </AlertDescription>
-      </Alert>
-
-      {/* Balance and Controls - Responsive Header */}
+      {/* Balance and Controls */}
       <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
         <div className="space-y-4 p-4 md:space-y-6 md:p-6">
-          {/* Balance Summary - Auto-fit grid */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:gap-8">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                Total Invoiced
-              </p>
-              <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
-                ${totalInvoiced.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                Total Paid
-              </p>
-              <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
-                ${totalPaid.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:gap-8">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
+                  Opening Balance {activeStatement ? `(${periodLabel(activeStatement)})` : ""}
+                </p>
+                <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
+                  ${money(activeStatement?.opening_balance)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
+                  Payments This Period
+                </p>
+                <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
+                  ${money(activeStatement?.payments)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
+                  Current Balance
+                </p>
+                <p className="text-lg font-semibold text-primary dark:text-emerald-400 sm:text-xl">
+                  ${money(currentBalance)}
+                </p>
+              </div>
             </div>
+          )}
 
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                Balance Due
-              </p>
-              <p className="text-lg font-semibold text-primary dark:text-emerald-400 sm:text-xl">
-                ${currentBalance.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
-            </div>
-          </div>
-
-          {/* Controls - Wraps and centers on mobile */}
           <div className="flex flex-wrap gap-3 items-end justify-between">
             <div className="w-full sm:w-auto sm:min-w-xs">
-              <Select value={statementFilter} onValueChange={setStatementFilter}>
+              <Select
+                value={activeStatementId ?? ""}
+                onValueChange={setSelectedStatementId}
+                disabled={statements.length === 0}
+              >
                 <SelectTrigger className="h-10 text-sm bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50">
-                  <SelectValue />
+                  <SelectValue placeholder={statements.length === 0 ? "No statements yet" : "Select a statement"} />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-slate-900 dark:border-slate-700">
-                  <SelectItem value="June 2026">June 2026</SelectItem>
-                  <SelectItem value="May 2026">May 2026</SelectItem>
-                  <SelectItem value="April 2026">April 2026</SelectItem>
-                  <SelectItem value="March 2026">March 2026</SelectItem>
-                  <SelectItem value="all-time">All Time</SelectItem>
-                  <SelectItem value="unpaid">All Unpaid</SelectItem>
+                  {statements.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {periodLabel(s)} · ${money(s.closing_balance)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -620,7 +481,8 @@ const StatementsSection = () => {
                 variant="outline"
                 size="icon"
                 className="h-10 w-10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800"
-                onClick={handlePrintStatement}
+                onClick={() => setStatementPreviewOpen(true)}
+                disabled={!activeStatement}
                 title="Preview and print statement"
               >
                 <Printer className="h-4 w-4" />
@@ -630,122 +492,128 @@ const StatementsSection = () => {
         </div>
       </Card>
 
-      {/* Transaction Table - Scrollable Container */}
+      {/* Transaction Table */}
       <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50 dark:bg-slate-900/50 dark:border-slate-700">
-                <th className="px-4 py-3 text-left md:px-6 text-foreground dark:text-slate-50">
-                  <SortHeader column="date" label="Date" />
-                </th>
-                <th className="px-4 py-3 text-left md:px-6 text-foreground dark:text-slate-50">
-                  <SortHeader column="invoiceNum" label="Invoice #" />
-                </th>
-                <th className="hidden px-4 py-3 text-left md:table-cell md:px-6 text-foreground dark:text-slate-50">
-                  <SortHeader column="rxNum" label="Rx #" />
-                </th>
-                <th className="hidden px-4 py-3 text-left lg:table-cell lg:px-6 text-foreground dark:text-slate-50">
-                  <SortHeader column="orderNum" label="Order #" />
-                </th>
-                <th className="hidden px-4 py-3 text-left 2xl:table-cell 2xl:px-6 text-foreground dark:text-slate-50">
-                  <SortHeader column="poNum" label="PO #" />
-                </th>
-                <th className="hidden px-4 py-3 text-left sm:table-cell md:px-6 text-foreground dark:text-slate-50">
-                  <SortHeader column="description" label="Description" />
-                </th>
-                <th className="px-4 py-3 text-right md:px-6 text-foreground dark:text-slate-50">
-                  <SortHeader column="amount" label="Amount" />
-                </th>
-                <th className="px-4 py-3 text-right md:px-6 text-foreground dark:text-slate-50">
-                  <SortHeader column="status" label="Status" />
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedTransactions.map((transaction) => (
-                <tr
-                  key={transaction.id}
-                  className="border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30"
-                >
-                  <td className="px-4 py-3 md:px-6 text-foreground dark:text-slate-50">
-                    {new Date(transaction.date).toLocaleDateString("en-US", {
-                      month: "2-digit",
-                      day: "2-digit",
-                      year: "numeric",
-                    })}
-                  </td>
-                  <td className="px-4 py-3 md:px-6 font-medium text-foreground dark:text-slate-50">
-                    {transaction.invoiceNum}
-                  </td>
-                  <td className="hidden px-4 py-3 md:table-cell md:px-6 text-foreground dark:text-slate-50">
-                    {transaction.rxNum}
-                  </td>
-                  <td className="hidden px-4 py-3 lg:table-cell lg:px-6 text-foreground dark:text-slate-50">
-                    {transaction.orderNum}
-                  </td>
-                  <td className="hidden px-4 py-3 2xl:table-cell 2xl:px-6 text-foreground dark:text-slate-50">
-                    {transaction.poNum}
-                  </td>
-                  <td className="hidden px-4 py-3 sm:table-cell md:px-6 text-foreground dark:text-slate-50">
-                    {transaction.description}
-                  </td>
-                  <td className="px-4 py-3 md:px-6 text-right font-medium text-foreground dark:text-slate-50">
-                    {transaction.amount < 0 ? "-" : ""}$
-                    {Math.abs(transaction.amount).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </td>
-                  <td className="px-4 py-3 md:px-6 text-right">
-                    <span
-                      className={`inline-block rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wider ${
-                        transaction.status === "open"
-                          ? "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
-                          : "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                      }`}
-                    >
-                      {transaction.status === "open" ? "Open" : "Paid"}
-                    </span>
-                  </td>
+        {linesQuery.isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : statements.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+            <ReceiptText className="h-10 w-10 text-muted-foreground/60" />
+            <p className="text-sm text-muted-foreground">No statements have been posted to your account yet.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50 dark:bg-slate-900/50 dark:border-slate-700">
+                  <th className="px-4 py-3 text-left md:px-6 text-foreground dark:text-slate-50">
+                    <SortHeader column="post_date" label="Date" />
+                  </th>
+                  <th className="px-4 py-3 text-left md:px-6 text-foreground dark:text-slate-50">
+                    <SortHeader column="reference" label="Reference" />
+                  </th>
+                  <th className="hidden px-4 py-3 text-left md:table-cell md:px-6 text-foreground dark:text-slate-50">
+                    <SortHeader column="patient" label="Patient" />
+                  </th>
+                  <th className="hidden px-4 py-3 text-left sm:table-cell md:px-6 text-foreground dark:text-slate-50">
+                    <SortHeader column="invoice_id" label="Invoice #" />
+                  </th>
+                  <th className="px-4 py-3 text-right md:px-6 text-foreground dark:text-slate-50">
+                    <SortHeader column="amount" label="Amount" />
+                  </th>
+                  <th className="px-4 py-3 text-right md:px-6 text-foreground dark:text-slate-50">Type</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sortedLines.map((line) => {
+                  const isPayment = (line.amount ?? 0) < 0;
+                  return (
+                    <tr key={line.id ?? lineDetail(line)} className="border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30">
+                      <td className="px-4 py-3 md:px-6 text-foreground dark:text-slate-50">{fmtDate(line.post_date)}</td>
+                      <td className="px-4 py-3 md:px-6 font-medium text-foreground dark:text-slate-50">{lineDetail(line)}</td>
+                      <td className="hidden px-4 py-3 md:table-cell md:px-6 text-foreground dark:text-slate-50">{line.patient || "—"}</td>
+                      <td className="hidden px-4 py-3 sm:table-cell md:px-6 text-foreground dark:text-slate-50">{line.invoice_id ?? "—"}</td>
+                      <td className="px-4 py-3 md:px-6 text-right font-medium text-foreground dark:text-slate-50">
+                        {isPayment ? "-" : ""}${money(Math.abs(line.amount ?? 0))}
+                      </td>
+                      <td className="px-4 py-3 md:px-6 text-right">
+                        <span
+                          className={`inline-block rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wider ${
+                            isPayment
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                              : "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"
+                          }`}
+                        >
+                          {isPayment ? "Payment" : "Charge"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {sortedLines.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                      No transactions on this statement.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
-      {/* Payment Modal — online payments are not wired up yet; do not collect card data here. */}
+      {/* Payment Modal */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
         <DialogContent className="w-full max-w-sm rounded-lg bg-white dark:bg-slate-950 dark:border-slate-700">
           <DialogHeader>
             <DialogTitle className="dark:text-slate-50">Pay your balance</DialogTitle>
             <DialogDescription className="dark:text-slate-400">
-              Online payments aren't available yet.
+              Current balance: ${money(currentBalance)}
             </DialogDescription>
           </DialogHeader>
 
-          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
-            <AlertDescription className="text-amber-800 dark:text-amber-300">
-              We're still connecting this portal to live billing, so we can't take
-              card payments here yet. To pay your balance of $
-              {currentBalance.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-              , please contact us at{" "}
-              <a href="tel:+12464334928" className="underline">246-433-4928</a> or{" "}
-              <a href="mailto:accounts@classicvisions.net" className="underline">
-                accounts@classicvisions.net
-              </a>.
-            </AlertDescription>
-          </Alert>
+          {paymentProfile?.pay_by_eft && bankPortal ? (
+            <>
+              <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-900/20">
+                <AlertDescription className="text-blue-900 dark:text-blue-300">
+                  Your account is set up to pay via {bankPortal.bank_name}. You'll be taken to your bank's online
+                  banking to complete the payment.
+                </AlertDescription>
+              </Alert>
+              <Button
+                className="w-full h-10 gap-2"
+                onClick={() => window.open(bankPortal.portal_url, "_blank", "noopener,noreferrer")}
+              >
+                Go to {bankPortal.bank_name} Online Banking <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </>
+          ) : paymentProfile?.pay_by_eft && paymentProfile?.eft_institution_name ? (
+            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
+              <AlertDescription className="text-amber-800 dark:text-amber-300">
+                Your bank ({paymentProfile.eft_institution_name}) hasn't been connected for online payment routing
+                yet. Please contact us at{" "}
+                <a href="tel:+12464334928" className="underline">246-433-4928</a> or{" "}
+                <a href="mailto:accounts@classicvisions.net" className="underline">accounts@classicvisions.net</a> to
+                arrange payment.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
+              <AlertDescription className="text-amber-800 dark:text-amber-300">
+                {paymentProfile?.pay_by_card
+                  ? "Online card payments are coming soon. "
+                  : "We're still connecting this portal to live billing, so we can't take payments here yet. "}
+                To pay your balance of ${money(currentBalance)}, please contact us at{" "}
+                <a href="tel:+12464334928" className="underline">246-433-4928</a> or{" "}
+                <a href="mailto:accounts@classicvisions.net" className="underline">accounts@classicvisions.net</a>.
+              </AlertDescription>
+            </Alert>
+          )}
 
-          <Button
-            variant="outline"
-            className="w-full h-10"
-            onClick={() => setPaymentModalOpen(false)}
-          >
+          <Button variant="outline" className="w-full h-10" onClick={() => setPaymentModalOpen(false)}>
             Close
           </Button>
         </DialogContent>
@@ -755,36 +623,27 @@ const StatementsSection = () => {
       <Dialog open={statementPreviewOpen} onOpenChange={setStatementPreviewOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto bg-white dark:bg-slate-950 p-0">
           <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b bg-white p-4 dark:bg-slate-950 dark:border-slate-700">
-            <DialogTitle className="dark:text-slate-50">
-              Statement Preview
-            </DialogTitle>
+            <DialogTitle className="dark:text-slate-50">Statement Preview</DialogTitle>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.print()}
-                className="dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
-              >
+              <Button variant="outline" size="sm" onClick={() => window.print()} className="dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
-              <button
-                onClick={() => setStatementPreviewOpen(false)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded"
-              >
+              <button onClick={() => setStatementPreviewOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded">
                 <X className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          <div
-            className="p-4"
-            style={{
-              background: "#d0d5dc",
-              minHeight: "600px",
-            }}
-          >
-            <StatementTemplate data={sortedTransactions} />
+          <div className="p-4" style={{ background: "#d0d5dc", minHeight: "600px" }}>
+            {activeStatement && (
+              <StatementTemplate
+                statement={activeStatement}
+                lines={sortedLines}
+                customerName={identity?.customerName ?? paymentProfile?.name ?? null}
+                accountNumber={activeStatement.account_number ?? paymentProfile?.account_number ?? null}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
