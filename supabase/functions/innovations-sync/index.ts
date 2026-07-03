@@ -40,16 +40,7 @@ const ENTITIES: Record<string, EntityConfig> = {
     // `type` and `pipeline_stage` are intentionally excluded — they carry CHECK
     // constraints (customers_type_check) whose allowed values we don't set from
     // the ERP. Dropped here so the office payload can't trip them regardless.
-    allow: [
-      "innovations_customer_id",
-      "name",
-      "account_number",
-      "address",
-      "country_code",
-      "email",
-      "phone",
-      "notes",
-    ],
+    allow: ["innovations_customer_id", "name", "account_number", "address", "country_code", "email", "phone", "notes"],
   },
   contacts: {
     table: "contacts",
@@ -180,7 +171,10 @@ async function upsertCustomerRow(
   if (lookupErr) return { error: lookupErr };
 
   if (byInnovationsId) {
-    return await supabase.from("customers").update(row).eq("id", (byInnovationsId as any).id);
+    return await supabase
+      .from("customers")
+      .update(row)
+      .eq("id", (byInnovationsId as any).id);
   }
 
   const acctNumber = row.account_number;
@@ -195,7 +189,10 @@ async function upsertCustomerRow(
     if (byAccountNumber) {
       // Adopt the pre-created (e.g. website signup) row: fill in the immutable
       // Innovations id and refresh the rest of the mapped fields.
-      return await supabase.from("customers").update(row).eq("id", (byAccountNumber as any).id);
+      return await supabase
+        .from("customers")
+        .update(row)
+        .eq("id", (byAccountNumber as any).id);
     }
   }
 
@@ -234,7 +231,10 @@ async function upsertStatementRow(
   if (lookupErr) return { error: lookupErr, isNew: false };
 
   if (existing) {
-    const { error } = await supabase.from("statements").update(enriched).eq("id", (existing as any).id);
+    const { error } = await supabase
+      .from("statements")
+      .update(enriched)
+      .eq("id", (existing as any).id);
     return { error, isNew: false };
   }
   const { error } = await supabase.from("statements").insert(enriched);
@@ -350,12 +350,9 @@ Deno.serve(async (req: Request) => {
 
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { persistSession: false } },
-  );
-
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+    auth: { persistSession: false },
+  });
 
   // Auth (all paths)
   const token = req.headers.get("x-api-key") ?? "";
@@ -431,10 +428,7 @@ Deno.serve(async (req: Request) => {
   const dryRun = (raw as any).dry_run !== false; // default true
   const records = (raw as any).records as Record<string, unknown>[];
   if (records.length > MAX_RECORDS_PER_REQUEST) {
-    return json(
-      { error: `Too many records. Max ${MAX_RECORDS_PER_REQUEST} per request, got ${records.length}.` },
-      413,
-    );
+    return json({ error: `Too many records. Max ${MAX_RECORDS_PER_REQUEST} per request, got ${records.length}.` }, 413);
   }
   const started = new Date().toISOString();
 
