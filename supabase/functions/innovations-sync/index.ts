@@ -1,4 +1,6 @@
-// Innovations -> CV cloud sync receiver (v1: customers, contacts).
+// Innovations -> CV cloud sync receiver (customers, contacts, statements,
+// statement_lines, balances). New statements auto-enqueue a "statement ready"
+// email to the linked customer — see enqueueStatementReadyEmail below.
 // Server-to-server. Auth: x-api-key (scope `sync:write`), verified via
 // public.verify_api_key. Idempotent upsert by immutable Innovations id.
 // Contract: docs/integration-innovations-sync-contract.md
@@ -8,6 +10,9 @@
 //
 // Machine API (no browser origin) -> permissive CORS, matching api-v1.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import * as React from "npm:react@18.3.1";
+import { renderAsync } from "npm:@react-email/components@0.0.22";
+import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -72,6 +77,71 @@ const ENTITIES: Record<string, EntityConfig> = {
       "notes",
     ],
   },
+  // Real posted statements, pushed from optilens-local (source: Innovations
+  // dbo.FinARStatements). Not derived from CV website orders.
+  statements: {
+    table: "statements",
+    conflictKey: "innovations_statement_id",
+    required: "innovations_statement_id",
+    scope: "statements:write",
+    allow: [
+      "innovations_statement_id",
+      "innovations_customer_id",
+      "from_date",
+      "to_date",
+      "statement_date",
+      "due_date",
+      "opening_balance",
+      "closing_balance",
+      "payments",
+      "finance_charges",
+      "discount",
+      "aging_amount_1",
+      "aging_amount_2",
+      "aging_amount_3",
+      "aging_amount_4",
+      "status",
+      "void",
+      "printed",
+      "innovations_emailed",
+    ],
+  },
+  // Line items per statement (source: Innovations dbo.FinARStatementItems).
+  // No customer/account_number resolution needed — scoped via
+  // innovations_statement_id, so this stays on the generic batch-upsert path.
+  statement_lines: {
+    table: "statement_lines",
+    conflictKey: "innovations_statement_item_id",
+    required: "innovations_statement_item_id",
+    scope: "statements:write",
+    allow: [
+      "innovations_statement_item_id",
+      "innovations_statement_id",
+      "order_type",
+      "invoice_id",
+      "reference",
+      "patient",
+      "post_date",
+      "amount",
+    ],
+  },
+  // Per-customer balance snapshot (source: Innovations dbo.CustomerBalances).
+  // Refreshed wholesale on each sync — no history, just current values.
+  balances: {
+    table: "balances",
+    conflictKey: "innovations_customer_id",
+    required: "innovations_customer_id",
+    scope: "balances:write",
+    allow: [
+      "innovations_customer_id",
+      "credit_limit",
+      "current_balance",
+      "last_statement_amount",
+      "last_statement_date",
+      "last_payment_amount",
+      "last_payment_date",
+    ],
+  },
 };
 
 function json(body: unknown, status = 200): Response {
@@ -88,7 +158,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-01.2-account-number-link";
+const VERSION = "2026-07-02.1-statements-balances";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 // Customers get individual resolution instead of a blind onConflict(innovations_customer_id)
@@ -130,6 +200,138 @@ async function upsertCustomerRow(
   }
 
   return await supabase.from("customers").insert(row);
+}
+
+// Statements/balances arrive keyed only by innovations_customer_id — resolve
+// customer_id/account_number against the already-synced customers table (same
+// idea as upsertCustomerRow's fallback, just one direction: customers always
+// sync before statements/balances in a given run).
+async function resolveCustomerLink(
+  supabase: ReturnType<typeof createClient>,
+  innovationsCustomerId: unknown,
+): Promise<{ customer_id: number | null; account_number: string | null }> {
+  const { data } = await supabase
+    .from("customers")
+    .select("id, account_number")
+    .eq("innovations_customer_id", innovationsCustomerId as any)
+    .maybeSingle();
+  if (!data) return { customer_id: null, account_number: null };
+  return { customer_id: (data as any).id, account_number: (data as any).account_number ?? null };
+}
+
+async function upsertStatementRow(
+  supabase: ReturnType<typeof createClient>,
+  row: Record<string, unknown>,
+): Promise<{ error: { message: string } | null; isNew: boolean }> {
+  const link = await resolveCustomerLink(supabase, row.innovations_customer_id);
+  const enriched = { ...row, customer_id: link.customer_id, account_number: link.account_number };
+
+  const { data: existing, error: lookupErr } = await supabase
+    .from("statements")
+    .select("id")
+    .eq("innovations_statement_id", row.innovations_statement_id as any)
+    .maybeSingle();
+  if (lookupErr) return { error: lookupErr, isNew: false };
+
+  if (existing) {
+    const { error } = await supabase.from("statements").update(enriched).eq("id", (existing as any).id);
+    return { error, isNew: false };
+  }
+  const { error } = await supabase.from("statements").insert(enriched);
+  return { error, isNew: !error };
+}
+
+async function upsertBalanceRow(
+  supabase: ReturnType<typeof createClient>,
+  row: Record<string, unknown>,
+): Promise<{ error: { message: string } | null }> {
+  const link = await resolveCustomerLink(supabase, row.innovations_customer_id);
+  const enriched = { ...row, customer_id: link.customer_id, account_number: link.account_number };
+  return await supabase
+    .from("balances")
+    .upsert(enriched, { onConflict: "innovations_customer_id", ignoreDuplicates: false });
+}
+
+// Fired once per genuinely NEW statement (never on a resync/update of one we've
+// already seen). Renders the same way send-transactional-email does, but
+// enqueues directly — that function requires a privileged user JWT, and this
+// receiver only ever has a service-role context (x-api-key auth).
+async function enqueueStatementReadyEmail(
+  supabase: ReturnType<typeof createClient>,
+  statementRow: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const custId = statementRow.customer_id;
+    if (!custId) return; // no linked customer yet — nothing to email
+    const { data: customer } = await supabase
+      .from("customers")
+      .select("name, email, account_number")
+      .eq("id", custId as any)
+      .maybeSingle();
+    const recipient = (customer as any)?.email;
+    if (!recipient || typeof recipient !== "string" || !recipient.trim()) return;
+
+    const { data: suppressed } = await supabase
+      .from("suppressed_emails")
+      .select("id")
+      .eq("email", recipient.toLowerCase())
+      .maybeSingle();
+    if (suppressed) return;
+
+    const template = TEMPLATES["statement-ready"];
+    if (!template) return;
+
+    const templateData = {
+      customerName: (customer as any)?.name || "there",
+      accountNumber: (customer as any)?.account_number || statementRow.account_number || "",
+      periodStart: statementRow.from_date,
+      periodEnd: statementRow.to_date,
+      closingBalance: Number(statementRow.closing_balance ?? 0),
+      dueDate: statementRow.due_date,
+      siteUrl: Deno.env.get("APP_BASE_URL") ?? "https://classicvisions.net",
+    };
+
+    const html = await renderAsync(React.createElement(template.component, templateData));
+    const text = await renderAsync(React.createElement(template.component, templateData), { plainText: true });
+    const resolvedSubject = typeof template.subject === "function" ? template.subject(templateData) : template.subject;
+    const messageId = crypto.randomUUID();
+
+    await supabase.from("email_send_log").insert({
+      message_id: messageId,
+      template_name: "statement-ready",
+      recipient_email: recipient,
+      status: "pending",
+    });
+
+    const { error: enqueueError } = await supabase.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: {
+        message_id: messageId,
+        to: recipient,
+        from: "classicvisions <noreply@classicvisions.net>",
+        sender_domain: "support.classicvisions.net",
+        subject: resolvedSubject,
+        html,
+        text,
+        purpose: "transactional",
+        label: "statement-ready",
+        idempotency_key: messageId,
+        queued_at: new Date().toISOString(),
+      },
+    });
+    if (enqueueError) {
+      await supabase.from("email_send_log").insert({
+        message_id: crypto.randomUUID(),
+        template_name: "statement-ready",
+        recipient_email: recipient,
+        status: "failed",
+        error_message: `enqueue failed: ${enqueueError.message}`,
+      });
+    }
+  } catch (err) {
+    // Best-effort — a failed email must never fail the statement sync itself.
+    console.error("enqueueStatementReadyEmail failed", err);
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -261,6 +463,47 @@ Deno.serve(async (req: Request) => {
     // be a blind onConflict batch upsert.
     for (const row of mapped) {
       const { error: rowErr } = await upsertCustomerRow(supabase, row);
+      if (rowErr) {
+        failed++;
+        if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);
+        await supabase.from("innovations_sync_dead_letters").insert({
+          entity,
+          external_id: String(row[cfg.required]),
+          api_key_id: key.id,
+          last_error: rowErr.message,
+          source_payload: row,
+          status: "pending",
+        });
+      } else {
+        upserted++;
+      }
+    }
+  } else if (!dryRun && mapped.length && entity === "statements") {
+    // Individual resolution per row (needs customer_id/account_number lookup)
+    // — and only a genuinely NEW row triggers the "statement ready" email, so
+    // resyncing an already-seen statement never re-sends it.
+    for (const row of mapped) {
+      const { error: rowErr, isNew } = await upsertStatementRow(supabase, row);
+      if (rowErr) {
+        failed++;
+        if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);
+        await supabase.from("innovations_sync_dead_letters").insert({
+          entity,
+          external_id: String(row[cfg.required]),
+          api_key_id: key.id,
+          last_error: rowErr.message,
+          source_payload: row,
+          status: "pending",
+        });
+      } else {
+        upserted++;
+        if (isNew) await enqueueStatementReadyEmail(supabase, row);
+      }
+    }
+  } else if (!dryRun && mapped.length && entity === "balances") {
+    // Individual resolution per row (needs customer_id/account_number lookup).
+    for (const row of mapped) {
+      const { error: rowErr } = await upsertBalanceRow(supabase, row);
       if (rowErr) {
         failed++;
         if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);

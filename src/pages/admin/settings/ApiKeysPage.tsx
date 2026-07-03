@@ -15,10 +15,13 @@ const ALL_SCOPES = [
   "orders:read", "orders:write",
   "products:read", "products:write",
   "moonshot:read", "moonshot:write",
-  // Read-only billing data, ingested from Innovations. No :write scope yet —
-  // there's no write endpoint for these until a future payments API ships.
+  // Billing data ingested from Innovations via optilens-local. :read scopes
+  // are for portal/api-v1 consumers; :write scopes are for optilens-local's
+  // push key calling innovations-sync's statements/balances entities.
   "balances:read",
+  "balances:write",
   "statements:read",
+  "statements:write",
 ];
 
 type ApiKey = {
