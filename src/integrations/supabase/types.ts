@@ -509,6 +509,13 @@ export type Database = {
             foreignKeyName: "balances_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "balances_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -777,6 +784,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "catalog_templates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_assignments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "catalog_assignments_customer_id_fkey"
@@ -6065,6 +6079,13 @@ export type Database = {
             foreignKeyName: "statements_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -6849,6 +6870,13 @@ export type Database = {
             foreignKeyName: "balances_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "balances_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -6875,6 +6903,36 @@ export type Database = {
           updated_at: string | null
           web_enabled: boolean | null
           wspl_enabled: boolean | null
+        }
+        Relationships: []
+      }
+      customer_payment_profile_public: {
+        Row: {
+          account_number: string | null
+          customer_id: number | null
+          default_payment_type: number | null
+          eft_institution_name: string | null
+          name: string | null
+          pay_by_card: boolean | null
+          pay_by_eft: boolean | null
+        }
+        Insert: {
+          account_number?: string | null
+          customer_id?: number | null
+          default_payment_type?: number | null
+          eft_institution_name?: string | null
+          name?: string | null
+          pay_by_card?: boolean | null
+          pay_by_eft?: boolean | null
+        }
+        Update: {
+          account_number?: string | null
+          customer_id?: number | null
+          default_payment_type?: number | null
+          eft_institution_name?: string | null
+          name?: string | null
+          pay_by_card?: boolean | null
+          pay_by_eft?: boolean | null
         }
         Relationships: []
       }
@@ -7112,6 +7170,13 @@ export type Database = {
             foreignKeyName: "statements_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -7176,6 +7241,13 @@ export type Database = {
           void?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
           {
             foreignKeyName: "statements_customer_id_fkey"
             columns: ["customer_id"]
@@ -7566,6 +7638,10 @@ export type Database = {
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
         Returns: string
+      }
+      update_api_key_scopes: {
+        Args: { p_id: string; p_scopes: string[] }
+        Returns: undefined
       }
       upsert_integration_connection:
         | {

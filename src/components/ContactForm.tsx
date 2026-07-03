@@ -80,7 +80,20 @@ const ContactForm = () => {
   }, [searchParams, form]);
 
   const onSubmit = async (data: ContactFormData) => {
-    if (honeypot) return;
+    const elapsedMs = startedAt ? Date.now() - Date.parse(startedAt) : 0;
+    const looksLikeBot = Boolean(honeypot) || elapsedMs < 3000;
+
+    if (looksLikeBot) {
+      // Silent success — do not tip off bots, do not send to server.
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for your inquiry. We'll get back to you shortly.",
+      });
+      form.reset();
+      setHoneypot("");
+      setStartedAt(new Date().toISOString());
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -131,11 +144,22 @@ const ContactForm = () => {
           <div className="rounded-2xl border border-border bg-card p-8 shadow-elegant">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" noValidate>
-                <div className="absolute h-0 overflow-hidden opacity-0" aria-hidden="true" tabIndex={-1}>
-                  <label htmlFor="website_url">Website</label>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "-9999px",
+                    top: "auto",
+                    width: 0,
+                    height: 0,
+                    opacity: 0,
+                    overflow: "hidden",
+                  }}
+                  aria-hidden="true"
+                >
+                  <label htmlFor="company_website">Company website</label>
                   <input
-                    id="website_url"
-                    name="website_url"
+                    id="company_website"
+                    name="company_website"
                     type="text"
                     autoComplete="off"
                     value={honeypot}
