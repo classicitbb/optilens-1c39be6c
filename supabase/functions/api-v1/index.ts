@@ -89,23 +89,14 @@ const RESOURCES: Record<string, ResourceConfig> = {
       "shipping_address", "billing_address",
     ],
   },
-  // Read-only, derived from orders/order_payments — no cost fields, nothing to
-  // strip. Only checkout_method='on_account' orders represent real unsettled
-  // receivables; card/offline-approved orders settle immediately and never
-  // appear here. See invoices_public/balances_public/statements_public views.
-  invoices: {
-    table: "invoices_public",
-    readScope: "invoices:read",
-    // Reserved for a future POST /invoices/:id/payments endpoint — not
-    // implemented yet, so this scope currently can't be satisfied by anyone.
-    writeScope: "invoices:write",
-    filterable: ["customer_id", "account_number", "payment_status"],
-    defaultOrder: "issued_at.desc",
-  },
+  // Read-only, ingested from Innovations (FinARStatements/FinARStatementItems/
+  // CustomerBalances) via optilens-local -> innovations-sync. Real posted
+  // statements, not derived from CV website orders. Invoice detail lives on
+  // statement lines (?include=lines) — there's no separate invoices entity.
   balances: {
     table: "balances_public",
     readScope: "balances:read",
-    writeScope: "balances:write", // derived data — no write path planned
+    writeScope: "balances:write", // ingested data — no write path planned
     idColumn: "customer_id", // no separate "id" column; keyed by customer
     filterable: ["customer_id", "account_number"],
     defaultOrder: "current_balance.desc",
@@ -113,9 +104,7 @@ const RESOURCES: Record<string, ResourceConfig> = {
   statements: {
     table: "statements_public",
     readScope: "statements:read",
-    writeScope: "statements:write", // derived data — no write path planned
-    // id is a synthetic "<customer_id>:<period_start>" column on the view
-    // (statements have no natural single key — they're customer + month).
+    writeScope: "statements:write", // ingested data — no write path planned
     filterable: ["customer_id", "account_number"],
     defaultOrder: "period_start.desc",
   },
