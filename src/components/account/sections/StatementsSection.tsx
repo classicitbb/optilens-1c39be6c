@@ -20,10 +20,11 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowUpDown, ArrowUpRight, Loader2, Printer, ReceiptText, X } from "lucide-react";
+import { COMPANY_CONTACT } from "@/config/companyContact";
+import { requestLiveData } from "@/lib/liveDataGateway";
 
-// ── Real data shapes (mirrors the security_invoker views / narrow payment
-// profile view — see supabase/functions/innovations-sync + the migration that
-// created statements/statement_lines/balances and customer_payment_profile_public). ──
+// Live Innovations data is fetched on demand through the private OptiLens
+// gateway. Payment routing remains a narrow CV-owned portal configuration.
 interface StatementRow {
   id: string; // innovations_statement_id, text
   account_number: string | null;
@@ -69,6 +70,19 @@ interface PaymentProfile {
   pay_by_card: boolean | null;
   pay_by_eft: boolean | null;
   eft_institution_name: string | null;
+}
+
+interface LiveAccountResponse {
+  customer: { name: string | null; account_number: string | null };
+  balance: BalanceRow | null;
+  statements: Array<Omit<StatementRow, "id"> & { id: string | number }>;
+  retrieved_at: string;
+}
+
+interface LiveStatementResponse {
+  statement: StatementRow;
+  lines: StatementLineRow[];
+  retrieved_at: string;
 }
 
 interface BankPortal {
@@ -137,11 +151,11 @@ const StatementTemplate = ({
             CLASSIC VISIONS
           </div>
           <div style={{ color: "rgba(244,242,237,0.75)", fontSize: "6.5pt", lineHeight: "1.65", letterSpacing: "0.01em" }}>
-            Uplands, St. John · Barbados · BB20031
+            {COMPANY_CONTACT.addressLine}
             <br />
             TIN# 1000006494000
             <br />
-            Tel: 246-433-4928 · Fax: 246-433-4927
+            Tel: {COMPANY_CONTACT.phoneDisplay}
             <br />
             www.classicvisions.net
           </div>
@@ -254,7 +268,7 @@ const StatementTemplate = ({
       <div style={{ marginTop: "auto", padding: "16px 24px", background: "#0B1E35", color: "rgba(244,242,237,0.8)", fontSize: "6.5pt", lineHeight: "1.6", borderTop: "2px solid #C89130" }}>
         <strong style={{ color: "#F4F2ED" }}>Payment Due:</strong> {fmtDate(statement.due_date)}
         <br />
-        Questions about this statement? Contact <strong style={{ color: "#F4F2ED" }}>accounts@classicvisions.net</strong> or 246-433-4928.
+        Questions about this statement? Contact <strong style={{ color: "#F4F2ED" }}>{COMPANY_CONTACT.email}</strong> or {COMPANY_CONTACT.phoneDisplay}.
       </div>
     </div>
   );
@@ -270,53 +284,33 @@ const StatementsSection = () => {
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  const statementsQuery = useQuery({
-    queryKey: ["customer-statements", crmCustomerId],
+  const liveAccountQuery = useQuery({
+    queryKey: ["live-innovations-customer-account", crmCustomerId],
     enabled: typeof crmCustomerId === "number",
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("statements_public")
-        .select("*")
-        .eq("customer_id", crmCustomerId)
-        .eq("void", false)
-        .order("period_end", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as StatementRow[];
-    },
+    queryFn: ({ signal }) => requestLiveData<LiveAccountResponse>("innovations.customer_account", {}, { signal }),
+    staleTime: 30_000,
+    retry: 1,
   });
 
-  const statements = statementsQuery.data ?? [];
+  const statements = useMemo(() => (liveAccountQuery.data?.statements ?? []).map((statement) => ({
+    ...statement,
+    id: String(statement.id),
+  })) as StatementRow[], [liveAccountQuery.data?.statements]);
   const activeStatementId = selectedStatementId ?? statements[0]?.id ?? null;
   const activeStatement = statements.find((s) => s.id === activeStatementId) ?? null;
 
-  const balanceQuery = useQuery({
-    queryKey: ["customer-balance", crmCustomerId],
-    enabled: typeof crmCustomerId === "number",
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("balances_public")
-        .select("*")
-        .eq("customer_id", crmCustomerId)
-        .maybeSingle();
-      if (error) throw error;
-      return data as BalanceRow | null;
-    },
-  });
-
   const linesQuery = useQuery({
-    queryKey: ["customer-statement-lines", activeStatementId],
+    queryKey: ["live-innovations-statement", activeStatementId],
     enabled: !!activeStatementId,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("statement_lines_public")
-        .select("*")
-        .eq("statement_id", activeStatementId)
-        .order("post_date", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as StatementLineRow[];
-    },
+    queryFn: ({ signal }) => requestLiveData<LiveStatementResponse>(
+      "innovations.customer_statement",
+      { statement_id: Number(activeStatementId) },
+      { signal },
+    ),
+    staleTime: 30_000,
+    retry: 1,
   });
-  const lines = linesQuery.data ?? [];
+  const lines = useMemo(() => linesQuery.data?.lines ?? [], [linesQuery.data?.lines]);
 
   const paymentProfileQuery = useQuery({
     queryKey: ["customer-payment-profile", crmCustomerId],
@@ -385,8 +379,8 @@ const StatementsSection = () => {
     </button>
   );
 
-  const isLoading = statementsQuery.isLoading || balanceQuery.isLoading;
-  const currentBalance = balanceQuery.data?.current_balance ?? 0;
+  const isLoading = liveAccountQuery.isLoading;
+  const currentBalance = liveAccountQuery.data?.balance?.current_balance ?? 0;
 
   if (!crmCustomerId) {
     return (
@@ -407,11 +401,30 @@ const StatementsSection = () => {
     );
   }
 
+  if (liveAccountQuery.isError) {
+    return (
+      <section className="space-y-6">
+        <header className="space-y-1">
+          <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
+          <p className="text-sm text-muted-foreground">Your balance and statements, fetched only when you open this page.</p>
+        </header>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>{liveAccountQuery.error instanceof Error ? liveAccountQuery.error.message : "Live account data is temporarily unavailable."}</span>
+            <Button variant="outline" size="sm" onClick={() => liveAccountQuery.refetch()}>
+              Try live source again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
       <header className="space-y-1">
         <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
-        <p className="text-sm text-muted-foreground">View your account balance, transaction history, and statements.</p>
+        <p className="text-sm text-muted-foreground">Live Innovations balance and statements, fetched only when you open this page.</p>
       </header>
 
       {/* Balance and Controls */}
@@ -494,7 +507,13 @@ const StatementsSection = () => {
 
       {/* Transaction Table */}
       <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border overflow-hidden">
-        {linesQuery.isLoading ? (
+        {linesQuery.isError ? (
+          <Alert variant="destructive" className="m-4" role="alert">
+            <AlertDescription>
+              {linesQuery.error instanceof Error ? linesQuery.error.message : "The selected live statement could not be loaded."}
+            </AlertDescription>
+          </Alert>
+        ) : linesQuery.isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
