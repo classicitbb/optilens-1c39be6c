@@ -21,6 +21,41 @@ import {
 /*  Static data                                                        */
 /* ------------------------------------------------------------------ */
 
+const PRODUCTS = [
+  {
+    name: "Endless SV",
+    tier: "Best",
+    tierColor: "bg-accent text-accent-foreground",
+    personalized: true,
+    tagline: "Personalized free-form single vision",
+    description:
+      "Fully personalized, digitally surfaced single vision lens delivering impeccable visual quality — ideal for high prescriptions, wrapped frames, and demanding digital use.",
+    features: [
+      "Point-by-point IOT Digital Ray-Path 2 optimization",
+      "Near elimination of peripheral blur",
+      "Superior clarity for high Rx and wrap frames",
+      "Optimized digital-device comfort",
+    ],
+    technologies: ["IOT Digital Ray-Path 2"],
+  },
+  {
+    name: "Conventional SV",
+    tier: "Adept",
+    tierColor: "bg-muted text-muted-foreground",
+    personalized: false,
+    tagline: "Dependable everyday single vision",
+    description:
+      "Traditional (Adept) single vision lens for reliable, affordable everyday distance or near correction across all common materials and treatments.",
+    features: [
+      "Trusted conventional design",
+      "Available in clear, photochromic, and tinted",
+      "Full range of materials 1.50–1.74",
+      "Cost-effective everyday choice",
+    ],
+    technologies: ["Conventional Design"],
+  },
+];
+
 const BENEFITS = [
   {
     icon: <Eye className="h-5 w-5" />,
@@ -127,8 +162,61 @@ const SingleVisionPage = () => {
           </Badge>
         </section>
 
-        {/* ── Key Benefits ───────────────────────────────── */}
+        {/* ── Product Lineup ─────────────────────────────── */}
         <section className="container mx-auto mt-16 max-w-6xl px-4 lg:px-8">
+          <h2 className="text-2xl font-bold text-foreground">Product Lineup</h2>
+          <p className="mt-1 text-muted-foreground">
+            From our personalized best-in-class design down to a dependable
+            everyday option — matched to your patient's needs and budget.
+          </p>
+
+          <div className="mt-8 grid gap-6 sm:grid-cols-2">
+            {PRODUCTS.map((p) => (
+              <Card
+                key={p.name}
+                className="relative flex flex-col overflow-hidden border-border"
+              >
+                <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+                  <Badge className={p.tierColor}>{p.tier}</Badge>
+                  {p.personalized && (
+                    <Badge variant="outline" className="text-xs">
+                      Personalized
+                    </Badge>
+                  )}
+                </div>
+                <CardContent className="flex flex-1 flex-col gap-3 p-5">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {p.name}
+                  </h3>
+                  <p className="text-xs italic text-muted-foreground">
+                    "{p.tagline}"
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {p.description}
+                  </p>
+                  <ul className="mt-auto space-y-1.5 pt-3">
+                    {p.features.map((f) => (
+                      <li
+                        key={f}
+                        className="flex items-start gap-2 text-sm text-foreground"
+                      >
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Tech:</span>{" "}
+                    {p.technologies.join(", ")}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Key Benefits ───────────────────────────────── */}
+        <section className="container mx-auto mt-20 max-w-6xl px-4 lg:px-8">
           <h2 className="text-2xl font-bold text-foreground">Key Benefits</h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {BENEFITS.map((b) => (

@@ -49,6 +49,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Progressive", description: "Premium multifocal options for all-day use", to: "/lenses/progressive" },
     { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
+    { label: "Sport", description: "Endless Sport for golfers, bikers, and boaters", to: "/lenses/sport" },
     { label: "Anti-Fatigue", description: "Digital comfort with near support boost", to: "/lenses/anti-fatigue" },
     { label: "Single Vision", description: "Everyday distance and near correction", to: "/lenses/single-vision" },
     { label: "Bifocals", description: "Classic bifocal options and freeform alternatives", to: "/lenses/bifocals" }]
