@@ -3987,6 +3987,129 @@ export type Database = {
         }
         Relationships: []
       }
+      live_data_gateway_agents: {
+        Row: {
+          agent_name: string
+          agent_version: string | null
+          api_key_id: string
+          capabilities: string[]
+          connected_at: string
+          last_error: string | null
+          last_seen_at: string
+        }
+        Insert: {
+          agent_name?: string
+          agent_version?: string | null
+          api_key_id: string
+          capabilities?: string[]
+          connected_at?: string
+          last_error?: string | null
+          last_seen_at?: string
+        }
+        Update: {
+          agent_name?: string
+          agent_version?: string | null
+          api_key_id?: string
+          capabilities?: string[]
+          connected_at?: string
+          last_error?: string | null
+          last_seen_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_data_gateway_agents_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: true
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_data_gateway_requests: {
+        Row: {
+          arguments: Json
+          claimed_at: string | null
+          claimed_by: string | null
+          completed_at: string | null
+          consumed_at: string | null
+          error_code: string | null
+          error_message: string | null
+          expires_at: string
+          id: string
+          operation: string
+          purge_after: string
+          requested_at: string
+          requested_by: string
+          response_payload: Json | null
+          source: string
+          status: string
+          target: Json
+          website_customer_id: number
+        }
+        Insert: {
+          arguments?: Json
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          consumed_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          expires_at?: string
+          id?: string
+          operation: string
+          purge_after?: string
+          requested_at?: string
+          requested_by: string
+          response_payload?: Json | null
+          source: string
+          status?: string
+          target?: Json
+          website_customer_id: number
+        }
+        Update: {
+          arguments?: Json
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          consumed_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          expires_at?: string
+          id?: string
+          operation?: string
+          purge_after?: string
+          requested_at?: string
+          requested_by?: string
+          response_payload?: Json | null
+          source?: string
+          status?: string
+          target?: Json
+          website_customer_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_data_gateway_requests_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_data_gateway_requests_website_customer_id_fkey"
+            columns: ["website_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "live_data_gateway_requests_website_customer_id_fkey"
+            columns: ["website_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_upgrades: {
         Row: {
           delta_bbd: number | null
@@ -7559,6 +7682,17 @@ export type Database = {
       cancel_integration_sync_job: {
         Args: { p_sync_job_id: string }
         Returns: undefined
+      }
+      claim_live_data_gateway_request: {
+        Args: { p_agent_key_id: string }
+        Returns: {
+          arguments: Json
+          expires_at: string
+          id: string
+          operation: string
+          source: string
+          target: Json
+        }[]
       }
       close_helpdesk_ticket_by_token: {
         Args: { p_token: string }
