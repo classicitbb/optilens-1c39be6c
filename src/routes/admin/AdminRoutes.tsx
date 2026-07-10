@@ -45,6 +45,8 @@ const CrmActivitiesPage = lazy(() => import("@/pages/admin/crm/CrmActivitiesPage
 const CrmDashboardPage = lazy(() => import("@/pages/admin/crm/CrmDashboardPage"));
 const RuntimeErrorsPage = lazy(() => import("@/pages/admin/RuntimeErrorsPage"));
 const IntegrationsPage = lazy(() => import("@/pages/admin/settings/IntegrationsPage"));
+const ApiKeysPage = lazy(() => import("@/pages/admin/settings/ApiKeysPage"));
+const BankPaymentPortalsPage = lazy(() => import("@/pages/admin/settings/BankPaymentPortalsPage"));
 const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
 const HelpdeskTeamsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTeamsPage"));
@@ -56,6 +58,7 @@ const HelpdeskTicketDetailPage = lazy(() => import("@/pages/admin/helpdesk/Helpd
 const WebsitePortalsPage = lazy(() => import("@/pages/admin/WebsitePortalsPage"));
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
+const OrdersPage = lazy(() => import("@/pages/admin/OrdersPage"));
 
 const AdminRoutes = () => (
   <Routes>
@@ -81,12 +84,14 @@ const AdminRoutes = () => (
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
       <Route path="pricing/legacy" element={<Navigate to="/admin/pricing/catalog" replace />} />
 
+      <Route path="orders" element={<OrdersPage />} />
+
       <Route path="sales" element={<Navigate to="/admin/sales/quotations" replace />} />
       <Route path="sales/proposals" element={<CatalogPublisherV2Page />} />
       <Route path="sales/quotations" element={<QuotationsListPage />} />
       <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
       <Route path="sales/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
-      <Route path="sales/web-orders" element={<PlaceholderPage />} />
+      <Route path="sales/web-orders" element={<OrdersPage />} />
       <Route path="sales/rx-orders" element={<PlaceholderPage />} />
 
       <Route path="contacts" element={<ContactsPage />} />
@@ -136,6 +141,8 @@ const AdminRoutes = () => (
       <Route path="settings/roles" element={<RolesPermissionsPage />} />
       <Route path="settings/audit" element={<AuditLogPage />} />
       <Route path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>} />
+      <Route path="settings/api-keys" element={<AdminOnlyRoute><ApiKeysPage /></AdminOnlyRoute>} />
+      <Route path="settings/bank-payment-portals" element={<AdminOnlyRoute><BankPaymentPortalsPage /></AdminOnlyRoute>} />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
 

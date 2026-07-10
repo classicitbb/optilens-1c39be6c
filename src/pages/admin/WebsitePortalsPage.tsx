@@ -54,6 +54,7 @@ interface PortalCustomerListItem {
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
   featureOverrides: Record<string, boolean>;
+  accountNumber: string | null;
   cartItems: Array<{
     id: string;
     product_name: string;
@@ -98,7 +99,7 @@ interface PortalCustomerDetail extends PortalCustomerListItem {
   }>;
 }
 
-const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders"] as const;
+const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "statements"] as const;
 
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "—");
@@ -122,6 +123,7 @@ const WebsitePortalsPage = () => {
     setSearchParams(id ? { customer: id } : {}, { replace: true });
   const [cutoffHours, setCutoffHours] = useState("24");
   const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
+  const [accountNumberDraft, setAccountNumberDraft] = useState("");
 
   const customersQuery = useQuery({
     queryKey: ["website-portals-customers"],
@@ -211,13 +213,15 @@ const WebsitePortalsPage = () => {
   }, [customersQuery.data, search]);
 
   useEffect(() => {
+    if (customersQuery.isLoading) return;
     if (!selectedUserId && customers[0]) {
       setSelectedUserId(customers[0].userId);
+      return;
     }
-    if (selectedUserId && !customers.some((customer) => customer.userId === selectedUserId)) {
+    if (selectedUserId && customers.length > 0 && !customers.some((customer) => customer.userId === selectedUserId)) {
       setSelectedUserId(customers[0]?.userId ?? null);
     }
-  }, [customers, selectedUserId]);
+  }, [customers, selectedUserId, customersQuery.isLoading]);
 
   const selectedCustomer = customers.find((customer) => customer.userId === selectedUserId) ?? null;
 
@@ -269,7 +273,7 @@ const WebsitePortalsPage = () => {
         selectedCustomer.crmCustomerId
           ? (supabase as any)
               .from("customers")
-              .select("assigned_pricelist_id")
+              .select("assigned_pricelist_id,account_number")
               .eq("id", selectedCustomer.crmCustomerId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
@@ -292,6 +296,7 @@ const WebsitePortalsPage = () => {
         ...selectedCustomer,
         featureOverrides,
         assignedPricelistId: typeof (customerRow as any)?.assigned_pricelist_id === "number" ? (customerRow as any).assigned_pricelist_id : null,
+        accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : null,
         cartItems: (cartRows ?? []) as PortalCustomerDetail["cartItems"],
         abandonedAlerts: (alerts ?? []) as PortalCustomerDetail["abandonedAlerts"],
         inquiries: (inquiries ?? []) as PortalCustomerDetail["inquiries"],
@@ -336,6 +341,23 @@ const WebsitePortalsPage = () => {
     },
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to assign pricelist.", variant: "destructive" }),
   });
+  const updateAccountNumber = useMutation({
+    mutationFn: async (nextAccountNumber: string) => {
+      if (!selectedCustomer?.crmCustomerId) throw new Error("Customer must be approved (have a CRM customer record) before an account number can be linked.");
+      const trimmed = nextAccountNumber.trim() || null;
+      const { error } = await (supabase as any)
+        .from("customers")
+        .update({ account_number: trimmed })
+        .eq("id", selectedCustomer.crmCustomerId);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await detailQuery.refetch();
+      toast({ title: "Account number updated", description: "This is the only field that links the account to Innovations and online statements." });
+    },
+    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to update account number.", variant: "destructive" }),
+  });
+
   const updateCustomerProfile = useMutation({
     mutationFn: async (payload: { full_name: string; phone: string; organization_name: string }) => {
       if (!selectedCustomer) throw new Error("Select a customer first.");
@@ -441,10 +463,11 @@ const WebsitePortalsPage = () => {
   });
 
   useEffect(() => {
-    if (!selectedCustomer) return;
+    if (!selectedCustomer?.userId) return;
     refetchAddresses();
     refetchPaymentMethods();
-  }, [selectedCustomer, refetchAddresses, refetchPaymentMethods]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCustomer?.userId]);
 
   useEffect(() => {
     if (!detailQuery.data) return;
@@ -453,6 +476,7 @@ const WebsitePortalsPage = () => {
       phone: detailQuery.data.phone || "",
       organization_name: detailQuery.data.organizationName || "",
     });
+    setAccountNumberDraft(detailQuery.data.accountNumber || "");
   }, [detailQuery.data]);
 
 
@@ -626,6 +650,30 @@ const WebsitePortalsPage = () => {
                                 </SelectContent>
                               </Select>
                             </div>
+                            <div className="space-y-2">
+                              <Label>Account number</Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={accountNumberDraft}
+                                  onChange={(event) => setAccountNumberDraft(event.target.value)}
+                                  placeholder="e.g. RETAIL"
+                                  disabled={!detailQuery.data.crmCustomerId}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateAccountNumber.mutate(accountNumberDraft)}
+                                  disabled={updateAccountNumber.isPending || !detailQuery.data.crmCustomerId || accountNumberDraft.trim() === (detailQuery.data.accountNumber ?? "")}
+                                >
+                                  {updateAccountNumber.isPending ? "Saving…" : "Save"}
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {detailQuery.data.crmCustomerId
+                                  ? "The only field linking this account to Innovations and their online statements."
+                                  : "Customer must be approved before an account number can be linked."}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -719,6 +767,11 @@ const WebsitePortalsPage = () => {
                       <div className="space-y-2">
                         <Label>Organization</Label>
                         <Input value={profileDraft.organization_name} onChange={(event) => setProfileDraft((prev) => ({ ...prev, organization_name: event.target.value }))} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Account number</Label>
+                        <Input value={detailQuery.data.accountNumber || "Not linked"} disabled readOnly />
+                        <p className="text-xs text-muted-foreground">Read-only here — edit it from the Operations tab or the linked company's contact record.</p>
                       </div>
                       <Button
                         onClick={() => updateCustomerProfile.mutate(profileDraft)}

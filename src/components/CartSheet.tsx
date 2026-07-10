@@ -159,16 +159,28 @@ export const CartSheet = ({
                 <span>Total</span>
                 <span>${totalPrice.toFixed(2)} <span className="text-[10px] font-semibold uppercase text-muted-foreground">USD</span></span>
               </div>
-              <Button
-                variant="hero"
-                className="mt-4 w-full"
-                onClick={() => {
-                  setSheetOpen(false);
-                  navigate("/checkout");
-                }}
-              >
-                Proceed to Checkout
-              </Button>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button
+                  variant="hero"
+                  className="w-full"
+                  onClick={() => {
+                    setSheetOpen(false);
+                    navigate("/checkout");
+                  }}
+                >
+                  Proceed to Checkout
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-muted-foreground"
+                  asChild
+                >
+                  <Link to="/cart" onClick={() => setSheetOpen(false)}>
+                    View full cart &amp; add PO #
+                  </Link>
+                </Button>
+              </div>
             </div>
           </>
         )}

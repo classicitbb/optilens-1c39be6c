@@ -2,6 +2,23 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-06-24 — Closed issues
+
+### Product cost columns readable through direct table SELECT
+- Surface: Supabase RLS for `addons`, `lenses`, and `supplies`
+- Symptom: authenticated viewer/customer roles could read base product tables that include cost-bearing fields.
+- Resolution: replaced broad role SELECT policies with editor-role SELECT policies and preserved cost-free public views for customer-safe browsing.
+
+### Public analytics tables accepted unrestricted insert payloads
+- Surface: website analytics runtime tables
+- Symptom: public INSERT policies accepted arbitrary rows with `WITH CHECK (true)`.
+- Resolution: tightened INSERT policies with visitor ID, token, path, metric, rating, device, and value checks while leaving normal public analytics ingestion enabled.
+
+### API v1 lint blocked by merge-conflict marker
+- Surface: `supabase/functions/api-v1/index.ts`
+- Symptom: lint failed on a leftover conflict marker in list ordering fallback logic.
+- Resolution: resolved the conflict to a single fallback path that retries `id` ordering only when the caller did not provide an explicit order.
+
 ## 2026-04-13 — Closed issues
 
 ### SLA policy description HTML rendering risk

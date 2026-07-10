@@ -443,7 +443,7 @@ const PricelistVersionsSection = () => {
                       min="0"
                       value={masterMarkupPct}
                       onChange={(e) => setMasterMarkupPct(e.target.value)}
-                      className="h-8 text-xs text-right pr-6"
+                      className="h-8 text-xs text-left pr-6"
                       placeholder="0"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
@@ -460,7 +460,7 @@ const PricelistVersionsSection = () => {
                       min="0"
                       value={masterDiscountPct}
                       onChange={(e) => setMasterDiscountPct(e.target.value)}
-                      className="h-8 text-xs text-right pr-6"
+                      className="h-8 text-xs text-left pr-6"
                       placeholder="0"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
@@ -482,7 +482,7 @@ const PricelistVersionsSection = () => {
                     min="0"
                     value={markupPct}
                     onChange={(e) => setMarkupPct(e.target.value)}
-                    className="h-8 text-xs text-right"
+                    className="h-8 text-xs text-left"
                     placeholder="0"
                   />
                 </div>
@@ -496,7 +496,7 @@ const PricelistVersionsSection = () => {
                     min="0"
                     value={discountPct}
                     onChange={(e) => setDiscountPct(e.target.value)}
-                    className="h-8 text-xs text-right"
+                    className="h-8 text-xs text-left"
                     placeholder="0"
                   />
                 </div>
@@ -523,7 +523,7 @@ const PricelistVersionsSection = () => {
                             min="0"
                             value={childSections[st].markup}
                             onChange={(e) => updateChild(st, "markup", e.target.value)}
-                            className="h-7 text-xs text-right pr-6"
+                            className="h-7 text-xs text-left pr-6"
                             placeholder="0"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
@@ -540,7 +540,7 @@ const PricelistVersionsSection = () => {
                             min="0"
                             value={childSections[st].discount}
                             onChange={(e) => updateChild(st, "discount", e.target.value)}
-                            className="h-7 text-xs text-right pr-6"
+                            className="h-7 text-xs text-left pr-6"
                             placeholder="0"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>

@@ -108,7 +108,7 @@ const CurrencyFxSection = ({
               </span>
               <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Input
-                className="h-8 w-24 text-xs text-center font-mono"
+                className="h-8 w-24 text-xs text-left font-mono"
                 type="number"
                 step="0.0001"
                 min="0"

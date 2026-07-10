@@ -18,6 +18,33 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
+
+const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
+  const signed = useSignedDataFileUrl(url);
+  return (
+    <>
+      <img
+        src={signed ?? undefined}
+        alt="Business card"
+        className="w-24 h-16 rounded border object-cover"
+        style={{ borderColor: "hsl(215 25% 88%)" }}
+      />
+      <div className="space-y-1">
+        {signed && (
+          <a href={signed} target="_blank" rel="noreferrer" className="text-xs underline inline-flex items-center gap-1">
+            View full image <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+        {fileName && (
+          <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
+            {fileName}
+          </p>
+        )}
+      </div>
+    </>
+  );
+};
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptionsByCountry } from "@/lib/locationOptions";
 
@@ -256,6 +283,28 @@ const EMPTY_STRING_LIST: string[] = [];
 const ContactsPage = () => {
   const { data: contactsData, isLoading } = useContacts();
   const contacts = contactsData ?? EMPTY_CONTACTS;
+
+  // Bulk lookup for the ERP-resolved parent-customer link (contacts.linked_customer_id
+  // -> customers.id), auto-maintained by resolve_contact_customer_links() on every
+  // Innovations contacts sync. One batched query for the whole list, not per-row.
+  const linkedCustomerIds = useMemo(
+    () => Array.from(new Set(contacts.map((c) => c.linked_customer_id).filter((id): id is number => typeof id === "number"))),
+    [contacts],
+  );
+  const { data: linkedCustomersById = {} } = useQuery({
+    queryKey: ["contacts-linked-customers", linkedCustomerIds],
+    enabled: linkedCustomerIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,name,account_number")
+        .in("id", linkedCustomerIds);
+      if (error) throw error;
+      const map: Record<number, { id: number; name: string; account_number: string | null }> = {};
+      for (const row of (data ?? []) as any[]) map[row.id] = row;
+      return map;
+    },
+  });
+
   const { data: tags = [] } = useContactTags();
   const { data: industries = [] } = useIndustries();
   const saveContact = useSaveContact();
@@ -309,6 +358,26 @@ const ContactsPage = () => {
     },
     enabled: !!editContact?.id && !!editContact?.is_company,
   });
+
+  // Linked customer record — carries the Innovations account_number that ties
+  // this company/customer contact to their ERP account and portal statements.
+  const { data: linkedCustomerRecord } = useQuery({
+    queryKey: ["contact-customer-record", editContact?.id],
+    queryFn: async () => {
+      if (!editContact?.id) return null;
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,account_number")
+        .eq("contact_id", editContact.id as any)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: number; account_number: string | null } | null;
+    },
+    enabled: !!editContact?.id && !!editContact?.is_customer,
+  });
+  const [accountNumber, setAccountNumber] = useState("");
+  useEffect(() => {
+    setAccountNumber(linkedCustomerRecord?.account_number ?? "");
+  }, [linkedCustomerRecord?.id, linkedCustomerRecord?.account_number, editContact?.id]);
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["contact-opportunity-links"],
@@ -893,6 +962,15 @@ const ContactsPage = () => {
               Customer
             </Badge>
           )}
+          {c.linked_customer_id && linkedCustomersById[c.linked_customer_id] && (
+            <Badge
+              className="text-[10px] px-1.5 py-0 h-5 border-0"
+              style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}
+              title={`Linked to Innovations account: ${linkedCustomersById[c.linked_customer_id].name}`}
+            >
+              ERP: {linkedCustomersById[c.linked_customer_id].account_number || linkedCustomersById[c.linked_customer_id].name}
+            </Badge>
+          )}
         </div>
       </TableCell>
       <TableCell className="text-xs">{c.email}</TableCell>
@@ -1281,23 +1359,33 @@ const ContactsPage = () => {
         await setContactTags.mutateAsync({ contactId, tagIds: selectedTagIds });
       }
 
-      // Auto-create/sync customer record when is_customer is true
+      // Auto-create/sync customer record when is_customer is true. Also keeps
+      // account_number in sync — this is the sole key that links a website
+      // customer's account to their Innovations ERP account and statements.
       if (editContact.is_customer && contactId) {
+        const trimmedAccountNumber = accountNumber.trim() || null;
         // Check if customer already linked
         const { data: existing } = await (supabase.from("customers") as any)
           .select("id")
           .eq("contact_id", contactId as any)
           .maybeSingle();
         if (!existing) {
-          await (supabase.from("customers") as any).insert({
+          const { error: custErr } = await (supabase.from("customers") as any).insert({
             name: editContact.name,
-            email: editContact.email ?? null,
+            email: editContact.email?.trim() || null,
             phone: editContact.phone ?? null,
             address: [editContact.street, editContact.city, editContact.state, editContact.country_code].filter(Boolean).join(", ") || null,
-            type: editContact.is_company ? "Company" : "Person",
+            type: "Customer",
             pipeline_stage: editContact.pipeline_stage ?? "Prospect",
             contact_id: contactId,
+            account_number: trimmedAccountNumber,
           } as any);
+          if (custErr) throw custErr;
+        } else if (trimmedAccountNumber !== (linkedCustomerRecord?.account_number ?? null)) {
+          const { error: acctErr } = await (supabase.from("customers") as any)
+            .update({ account_number: trimmedAccountNumber })
+            .eq("id", existing.id as any);
+          if (acctErr) throw acctErr;
         }
       }
 
@@ -1664,7 +1752,7 @@ const ContactsPage = () => {
 
       {/* Edit Dialog */}
       <Dialog open={!!editContact} onOpenChange={(v) => !v && closeEditDialog()}>
-        <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden" style={{ maxHeight: "calc(100vh - 48px)" }}>
+        <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden flex flex-col" style={{ height: "calc(100svh - 24px)", maxHeight: "calc(100svh - 24px)" }}>
           {editContact && (() => {
             const currentIndex = filtered.findIndex((c) => c.id === editContact.id);
             const canGoPrev = editContact.id && currentIndex > 0;
@@ -1686,7 +1774,7 @@ const ContactsPage = () => {
                       {editContact.id ? "Edit Contact" : editContact.is_company ? "New Company" : "New Person"}
                     </DialogTitle>
                     {editContact.id && (
-                      <div className="flex items-center gap-2 mr-4">
+                      <div className="hidden sm:flex items-center gap-2 mr-4">
                         {getOpportunityCount(editContact.id) > 0 ? (
                           <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openCrmForContact(editContact)}>
                             <Kanban className="h-3.5 w-3.5 mr-1" />
@@ -1702,7 +1790,7 @@ const ContactsPage = () => {
                       </div>
                     )}
                     {editContact.id && (
-                      <div className="flex items-center gap-1 mr-8">
+                      <div className="hidden sm:flex items-center gap-1 mr-8">
                         <span className="text-[10px] mr-1" style={{ color: "hsl(215 15% 55%)" }}>
                           {currentIndex + 1} / {filtered.length}
                         </span>
@@ -1728,8 +1816,8 @@ const ContactsPage = () => {
                     <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="details" className="flex-1 px-4 py-3 m-0 overflow-hidden">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5 gap-y-2.5 h-full">
+                  <TabsContent value="details" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5 gap-y-2.5 md:h-full">
                       {/* Column 1: Identity */}
                       <div className="space-y-2">
                         <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "hsl(215 15% 55%)" }}>Identity</h4>
@@ -1933,7 +2021,47 @@ const ContactsPage = () => {
                           <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
                             {editContact.is_customer ? "Available for pricelist assignments" : "Not a customer"}
                           </p>
+                          {editContact.is_company && editContact.is_customer && (
+                            <div className="pt-1">
+                              <label className="text-[11px] font-medium mb-0.5 block">Account Number</label>
+                              <Input
+                                className="h-7 text-xs"
+                                placeholder="e.g. RETAIL"
+                                value={accountNumber}
+                                onChange={(e) => setAccountNumber(e.target.value)}
+                              />
+                              <p className="text-[10px] mt-0.5" style={{ color: "hsl(215 15% 55%)" }}>
+                                The only field that links this account to Innovations and the customer's online statements.
+                              </p>
+                            </div>
+                          )}
                         </div>
+
+                        {/* Read-only: ERP parent-customer link, auto-resolved from
+                            Innovations contacts.parent customer id via
+                            resolve_contact_customer_links(). Distinct from the editable
+                            Account Number field above — that field creates/edits this
+                            contact's OWN customers row (customers.contact_id); this panel
+                            shows which customer COMPANY this contact belongs to
+                            (contacts.linked_customer_id), which applies to person contacts
+                            too, not just company/customer contacts. */}
+                        {editContact.linked_customer_id && linkedCustomersById[editContact.linked_customer_id] && (
+                          <div className="border rounded-md p-2 space-y-1" style={{ borderColor: "hsl(168 76% 42% / 0.3)", background: "hsl(168 76% 42% / 0.05)" }}>
+                            <div className="flex items-center gap-1.5">
+                              <ShieldCheck className="h-3.5 w-3.5" style={{ color: "hsl(168 76% 42%)" }} />
+                              <Label className="text-[11px] font-semibold">Linked Innovations Account</Label>
+                            </div>
+                            <p className="text-xs">
+                              {linkedCustomersById[editContact.linked_customer_id].name}
+                              {linkedCustomersById[editContact.linked_customer_id].account_number && (
+                                <span style={{ color: "hsl(215 15% 55%)" }}> — {linkedCustomersById[editContact.linked_customer_id].account_number}</span>
+                              )}
+                            </p>
+                            <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
+                              Auto-linked from Innovations sync. Read-only.
+                            </p>
+                          </div>
+                        )}
 
                         {/* Tags */}
                         {editContact.id && (
@@ -1996,7 +2124,7 @@ const ContactsPage = () => {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="notes" className="flex-1 px-4 py-3 m-0">
+                  <TabsContent value="notes" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <Button
                         type="button"
@@ -2075,27 +2203,7 @@ const ContactsPage = () => {
                       </div>
                       {editContact.business_card_image_url ? (
                         <div className="flex items-center gap-3">
-                          <img
-                            src={editContact.business_card_image_url}
-                            alt="Business card"
-                            className="w-24 h-16 rounded border object-cover"
-                            style={{ borderColor: "hsl(215 25% 88%)" }}
-                          />
-                          <div className="space-y-1">
-                            <a
-                              href={editContact.business_card_image_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs underline inline-flex items-center gap-1"
-                            >
-                              View full image <ExternalLink className="h-3 w-3" />
-                            </a>
-                            {editContact.business_card_file_name && (
-                              <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
-                                {editContact.business_card_file_name}
-                              </p>
-                            )}
-                          </div>
+                          <BusinessCardPreview url={editContact.business_card_image_url} fileName={editContact.business_card_file_name} />
                         </div>
                       ) : (
                         <p className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>

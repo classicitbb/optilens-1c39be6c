@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Bot, Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkles, X } from "lucide-react";
+import { Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,15 +21,15 @@ const AssistantForm = () => {
   const showProductTopic = formState.kind === "product_help";
 
   return (
-    <div className="space-y-3 rounded-[22px] border border-slate-700/80 bg-slate-900/95 p-4">
+    <div className="space-y-3 rounded-[22px] border border-border/50 bg-card/80 p-4 backdrop-blur-md">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-50">Request help</p>
-          <p className="text-xs leading-5 text-slate-400">
+          <p className="text-sm font-semibold text-foreground">Request help</p>
+          <p className="text-xs leading-5 text-foreground/50">
             This stays inside the assistant and includes the current page and conversation context.
           </p>
         </div>
-        <Button type="button" variant="ghost" size="sm" className="text-slate-300 hover:bg-white/10 hover:text-white" onClick={closeForm}>
+        <Button type="button" variant="ghost" size="sm" className="text-foreground/60 hover:bg-muted hover:text-foreground" onClick={closeForm}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -39,14 +39,14 @@ const AssistantForm = () => {
           value={formState.name}
           onChange={(event) => updateForm({ name: event.target.value })}
           placeholder="Full name"
-          className="border-slate-700/80 bg-slate-950/70 text-slate-50 placeholder:text-slate-500"
+          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
         />
         <Input
           value={formState.email}
           onChange={(event) => updateForm({ email: event.target.value })}
           placeholder="Email address"
           type="email"
-          className="border-slate-700/80 bg-slate-950/70 text-slate-50 placeholder:text-slate-500"
+          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
         />
       </div>
 
@@ -55,7 +55,7 @@ const AssistantForm = () => {
         onChange={(event) => updateForm({ phone: event.target.value })}
         placeholder="Phone (optional)"
         type="tel"
-        className="border-slate-700/80 bg-slate-950/70 text-slate-50 placeholder:text-slate-500"
+        className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
       />
 
       {showMarket ? (
@@ -63,7 +63,7 @@ const AssistantForm = () => {
           value={formState.market}
           onChange={(event) => updateForm({ market: event.target.value })}
           placeholder="Island or market"
-          className="border-slate-700/80 bg-slate-950/70 text-slate-50 placeholder:text-slate-500"
+          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
         />
       ) : null}
 
@@ -72,7 +72,7 @@ const AssistantForm = () => {
           value={formState.issueType}
           onChange={(event) => updateForm({ issueType: event.target.value })}
           placeholder={formState.kind === "portal_support" ? "Issue type or account concern" : "What do you need help with?"}
-          className="border-slate-700/80 bg-slate-950/70 text-slate-50 placeholder:text-slate-500"
+          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
         />
       ) : null}
 
@@ -81,7 +81,7 @@ const AssistantForm = () => {
           value={formState.productTopic}
           onChange={(event) => updateForm({ productTopic: event.target.value })}
           placeholder="Product or topic"
-          className="border-slate-700/80 bg-slate-950/70 text-slate-50 placeholder:text-slate-500"
+          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
         />
       ) : null}
 
@@ -96,7 +96,7 @@ const AssistantForm = () => {
               : "Tell us what you need help with."
         }
         rows={4}
-        className="border-slate-700/80 bg-slate-950/70 text-slate-50 placeholder:text-slate-500"
+        className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
       />
 
       <div className="flex flex-wrap gap-2">
@@ -104,7 +104,7 @@ const AssistantForm = () => {
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
           Submit request
         </Button>
-        <Button type="button" variant="outline" className="rounded-full border-slate-600/80 bg-slate-950/70 text-slate-100 hover:bg-slate-800" onClick={closeForm}>
+        <Button type="button" variant="outline" className="rounded-full border-border/50 bg-card/80 text-foreground hover:bg-muted" onClick={closeForm}>
           Keep chatting
         </Button>
       </div>
@@ -123,13 +123,13 @@ const MessageQuickActions = ({
 }) => {
   if (isStarter) {
     return (
-      <div className="grid gap-2">
+      <div className="flex flex-col items-start gap-2">
         {quickActions.map((action) => (
           <Button
             key={action.label}
             size="sm"
             variant="outline"
-            className="justify-start rounded-2xl border-slate-600/80 bg-slate-950/65 px-4 py-5 text-left text-slate-100 hover:bg-slate-800"
+            className="h-auto justify-start rounded-full border-border/50 bg-card/80 px-4 py-2 text-left text-sm font-normal text-foreground/80 shadow-soft hover:bg-muted hover:text-foreground"
             onClick={() => onAction(action)}
           >
             {action.label}
@@ -149,20 +149,20 @@ const MessageQuickActions = ({
                 href={action.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sky-300 underline underline-offset-2 hover:text-sky-200"
+                className="inline-flex items-center gap-1 text-secondary underline underline-offset-2 hover:text-secondary/80"
               >
                 {action.label}
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             ) : (
-              <Link to={action.href} className="text-sky-300 underline underline-offset-2 hover:text-sky-200">
+              <Link to={action.href} className="text-secondary underline underline-offset-2 hover:text-secondary/80">
                 {action.label}
               </Link>
             )
           ) : (
             <button
               type="button"
-              className="p-0 text-left text-sky-300 underline underline-offset-2 hover:text-sky-200"
+              className="p-0 text-left text-secondary underline underline-offset-2 hover:text-secondary/80"
               onClick={() => onAction(action)}
             >
               {action.label}
@@ -184,7 +184,7 @@ const AssistantResultCard = ({
   const renderLink = (path: string, title: string, external?: boolean, website?: string) => {
     if (external) {
       return (
-        <a href={website || path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-300 underline underline-offset-2 hover:text-sky-200">
+        <a href={website || path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-secondary underline underline-offset-2 hover:text-secondary/80">
           {title}
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
@@ -192,17 +192,17 @@ const AssistantResultCard = ({
     }
 
     return (
-      <Link to={path} className="text-sky-300 underline underline-offset-2 hover:text-sky-200">
+      <Link to={path} className="text-secondary underline underline-offset-2 hover:text-secondary/80">
         {title}
       </Link>
     );
   };
 
   return (
-    <div className="space-y-3 rounded-[22px] border border-slate-700/80 bg-slate-900/95 p-4 shadow-[0_20px_60px_rgba(2,6,23,0.42)]">
+    <div className="space-y-3 rounded-[22px] border border-border/50 bg-card/80 p-4 shadow-soft backdrop-blur-md">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="secondary" className="border border-sky-400/15 bg-sky-500/10 capitalize text-sky-100">{result.intent}</Badge>
-        <Badge variant="outline" className="border-slate-600/80 capitalize text-slate-300">{result.confidence} confidence</Badge>
+        <Badge variant="secondary" className="border border-secondary/20 bg-secondary/10 capitalize text-secondary">{result.intent}</Badge>
+        <Badge variant="outline" className="border-foreground/20 capitalize text-foreground/60">{result.confidence} confidence</Badge>
         {isEnhancing ? (
           <Badge variant="outline" className="border-amber-400/30 bg-amber-400/10 text-amber-100">
             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -212,9 +212,9 @@ const AssistantResultCard = ({
       </div>
 
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Assistant response</p>
-        <div className="rounded-[20px] border border-sky-400/15 bg-sky-500/10 px-4 py-3">
-          <div className="prose prose-invert prose-sm max-w-none text-slate-50 leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Assistant response</p>
+        <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
+          <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
             <ReactMarkdown>{result.answer}</ReactMarkdown>
           </div>
         </div>
@@ -222,19 +222,19 @@ const AssistantResultCard = ({
 
       {(result.citations ?? result.topLinks).length > 0 ? (
         <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Sources</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Sources</p>
           <ul className="space-y-1.5">
             {(result.citations ?? result.topLinks).map((link, i) => (
               <li key={link.path}>
                 {link.external ? (
-                  <a href={link.website || link.path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300">
-                    <span className="text-slate-500">[{i + 1}]</span>
+                  <a href={link.website || link.path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-secondary/80">
+                    <span className="text-foreground/40">[{i + 1}]</span>
                     {link.title}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 ) : (
-                  <Link to={link.path} className="inline-flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300">
-                    <span className="text-slate-500">[{i + 1}]</span>
+                  <Link to={link.path} className="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-secondary/80">
+                    <span className="text-foreground/40">[{i + 1}]</span>
                     {link.title}
                   </Link>
                 )}
@@ -244,7 +244,7 @@ const AssistantResultCard = ({
         </div>
       ) : null}
 
-      <div className="border-t border-slate-700/80 pt-3 text-xs leading-5 text-slate-400">
+      <div className="border-t border-border/50 pt-3 text-xs leading-5 text-foreground/50">
         Ask a follow-up in plain language for a tighter answer or a different topic.
       </div>
     </div>
@@ -268,24 +268,18 @@ const AssistantMessageList = () => {
           {messages.map((message, index) => (
             <div
               key={message.id}
-              className={cn("flex gap-3", message.role === "user" ? "justify-end" : "justify-start")}
+              className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
             >
-              {message.role === "assistant" ? (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-sky-400/20 bg-sky-500/12 text-sky-200 shadow-[0_0_0_1px_rgba(56,189,248,0.08)]">
-                  <Bot className="h-4 w-4" />
-                </div>
-              ) : null}
-
               <div className={cn("max-w-[88%]", message.role === "user" ? "items-end" : "items-start")}>
                 {message.kind === "user" ? (
-                  <div className="rounded-[20px] bg-primary px-4 py-3 text-sm text-primary-foreground shadow-[0_18px_40px_rgba(14,165,233,0.18)]">
+                  <div className="rounded-[20px] rounded-br-lg bg-primary px-4 py-3 text-sm text-primary-foreground shadow-soft">
                     {message.text}
                   </div>
                 ) : null}
 
                 {message.kind === "text" ? (
-                  <div className="space-y-3 rounded-[20px] border border-slate-700/80 bg-slate-900/90 px-4 py-3 text-sm text-slate-50 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
-                    <div className="prose prose-invert prose-sm max-w-none leading-6 text-slate-100 [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
+                  <div className="space-y-3 rounded-[20px] rounded-bl-lg border border-border/50 bg-card/80 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-md">
+                    <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
                       <ReactMarkdown>{message.text}</ReactMarkdown>
                     </div>
                     {message.quickActions?.length ? (
@@ -302,7 +296,7 @@ const AssistantMessageList = () => {
                 ) : null}
 
                 {message.kind === "confirmation" ? (
-                  <div className="space-y-3 rounded-[20px] border border-emerald-400/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-50 shadow-[0_18px_40px_rgba(6,95,70,0.2)]">
+                  <div className="space-y-3 rounded-[20px] rounded-bl-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 shadow-soft backdrop-blur-md dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-100">
                     <div>
                       <p className="font-semibold">{message.title}</p>
                       <p className="mt-1 leading-6">{message.text}</p>
@@ -363,21 +357,22 @@ const CompanionAssistant = () => {
   const assistantWindow = (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border shadow-[0_35px_120px_rgba(2,6,23,0.68)]",
+        "flex flex-col overflow-hidden border border-border/50 shadow-elegant backdrop-blur-md",
+        "bg-background/80",
         isDetachedRoute
-          ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px] border-slate-700/80 bg-[#09111d]"
-          : "h-full rounded-[28px] border-slate-700/80 bg-[#09111d]",
+          ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px]"
+          : "h-full rounded-[28px]",
       )}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-slate-700/90 bg-[linear-gradient(135deg,rgba(20,28,43,0.98),rgba(59,29,74,0.92))] px-4 py-4">
+      <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-sky-400/20 bg-sky-500/14 text-sky-100">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border/50 bg-card/80 text-primary shadow-soft">
               <Search className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-50">{title}</p>
-              <p className="text-xs text-slate-300">Immediate help first, grounded site context second.</p>
+              <p className="text-sm font-semibold text-foreground">{title}</p>
+              <p className="text-xs text-foreground/50">Immediate help first, grounded site context second.</p>
             </div>
           </div>
         </div>
@@ -387,7 +382,7 @@ const CompanionAssistant = () => {
               type="button"
               size="icon"
               variant="ghost"
-              className="h-9 w-9 shrink-0 text-slate-200 hover:bg-white/10 hover:text-white"
+              className="h-9 w-9 shrink-0 text-foreground/60 hover:bg-muted hover:text-foreground"
               onClick={openDetachedWindow}
               aria-label="Pop out assistant"
             >
@@ -398,7 +393,7 @@ const CompanionAssistant = () => {
             type="button"
             size="icon"
             variant="ghost"
-            className="h-9 w-9 shrink-0 text-slate-200 hover:bg-white/10 hover:text-white"
+            className="h-9 w-9 shrink-0 rounded-full border border-border/50 bg-card/80 text-foreground/70 shadow-soft hover:bg-muted hover:text-foreground"
             onClick={closeAssistant}
           >
             <X className="h-4 w-4" />
@@ -406,20 +401,21 @@ const CompanionAssistant = () => {
         </div>
       </div>
 
-      <div className="border-b border-slate-800/80 bg-slate-950/70 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-slate-400">
+      <div className="border-b border-border/50 bg-muted/30 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-foreground/40">
         Search, products, retailers, support
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top,rgba(30,41,59,0.35),transparent_40%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))]">
+      <div className="flex min-h-0 flex-1 flex-col">
         <AssistantMessageList />
       </div>
 
-      <div className="space-y-3 border-t border-slate-700/90 bg-slate-950/98 px-4 py-4">
+      <div className="space-y-3 border-t border-border/50 bg-muted/30 px-4 py-4">
         {formState ? <AssistantForm /> : null}
 
-        <div className="rounded-[22px] border border-slate-700/80 bg-slate-900/95 p-2 shadow-[0_16px_50px_rgba(2,6,23,0.35)]">
+        <div className="rounded-full border border-border/50 bg-card/80 p-1 shadow-soft backdrop-blur-md focus-within:border-ring/60">
           <div className="flex items-center gap-2">
             <Input
+              dir="ltr"
               value={currentQuery}
               onChange={(event) => setCurrentQuery(event.target.value)}
               onKeyDown={(event) => {
@@ -428,9 +424,9 @@ const CompanionAssistant = () => {
                   void submitQuery();
                 }
               }}
-              placeholder="Ask about lenses, coatings, retailers, or support"
+              placeholder="Ask anything"
               disabled={isSubmitting}
-              className="h-11 border-0 bg-transparent text-slate-50 placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="h-11 border-0 bg-transparent px-4 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <Button
               type="button"
@@ -497,7 +493,7 @@ const CompanionAssistant = () => {
 
       {isOpen ? (
         isDetachedRoute ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_30%),linear-gradient(180deg,#020617,#08111f)] p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(200,145,48,0.10),transparent_35%),linear-gradient(180deg,#eef1f6,#e4e9f1)] p-4 dark:bg-[radial-gradient(circle_at_top,rgba(200,145,48,0.12),transparent_35%),linear-gradient(180deg,#0b1522,#05070d)]">
             {assistantWindow}
           </div>
         ) : (

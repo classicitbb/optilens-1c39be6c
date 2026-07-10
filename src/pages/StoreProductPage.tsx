@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Expand, Lock, ShoppingCart } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { createAuthHref } from "@/lib/authFlow";
+import StorageImage from "@/components/StorageImage";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -105,7 +106,7 @@ const StoreProductPage = () => {
                   <div className="space-y-3">
                     <div className="relative flex h-[280px] items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/20">
                       {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+                        <StorageImage src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
                       ) : (
                         <div className="text-sm text-muted-foreground">No image available</div>
                       )}
@@ -122,19 +123,19 @@ const StoreProductPage = () => {
                           <DialogHeader>
                             <DialogTitle>{product.name}</DialogTitle>
                           </DialogHeader>
-                          <img src={product.image_url} alt={`${product.name} expanded`} className="max-h-[75vh] w-full rounded-md object-contain" />
+                          <StorageImage src={product.image_url} alt={`${product.name} expanded`} className="max-h-[75vh] w-full rounded-md object-contain" />
                         </DialogContent>
                       </Dialog>
-                    )}
-
-                    {product.description && (
-                      <p className="whitespace-normal break-words text-sm text-muted-foreground">{product.description}</p>
                     )}
                   </div>
 
                   {/* Right column: name, tags, price, cart */}
                   <div className="space-y-4">
                     <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
+
+                    {product.description && (
+                      <p className="whitespace-normal break-words text-sm text-muted-foreground">{product.description}</p>
+                    )}
 
                     {product.tags.length > 0 && (
                       <div className="flex flex-wrap gap-2">

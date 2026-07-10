@@ -13,8 +13,6 @@ describe("supabase edge-function auth hardening", () => {
     "lead-intelligence",
     "lens-assistant",
     "order-confirmation",
-    "odoo-sync-pull-contacts",
-    "odoo-sync-push-contacts",
     "preview-transactional-email",
     "send-transactional-email",
   ] as const;
@@ -29,7 +27,6 @@ describe("supabase edge-function auth hardening", () => {
     "contact-inquiry",
     "handle-email-suppression",
     "handle-email-unsubscribe",
-    "odoo-sync-webhook",
   ] as const;
 
   it("enables verify_jwt for privileged functions", () => {
@@ -57,8 +54,6 @@ describe("supabase edge-function auth hardening", () => {
       "supabase/functions/admin-user-management/index.ts",
       "supabase/functions/customer-onboarding/index.ts",
       "supabase/functions/lead-intelligence/index.ts",
-      "supabase/functions/odoo-sync-pull-contacts/index.ts",
-      "supabase/functions/odoo-sync-push-contacts/index.ts",
       "supabase/functions/send-transactional-email/index.ts",
     ]) {
       const source = read(file);
@@ -77,8 +72,6 @@ describe("supabase edge-function auth hardening", () => {
       { file: "supabase/functions/admin-user-management/index.ts", sourceFunction: "admin-user-management" },
       { file: "supabase/functions/customer-onboarding/index.ts", sourceFunction: "customer-onboarding" },
       { file: "supabase/functions/lead-intelligence/index.ts", sourceFunction: "lead-intelligence" },
-      { file: "supabase/functions/odoo-sync-pull-contacts/index.ts", sourceFunction: "odoo-sync-pull-contacts" },
-      { file: "supabase/functions/odoo-sync-push-contacts/index.ts", sourceFunction: "odoo-sync-push-contacts" },
     ];
 
     for (const item of privilegeMap) {
@@ -104,7 +97,6 @@ describe("supabase edge-function auth hardening", () => {
       "supabase/functions/lens-assistant/index.ts",
       "supabase/functions/contact-inquiry/index.ts",
       "supabase/functions/lead-intelligence/index.ts",
-      "supabase/functions/_shared/odoo/runtime.ts",
     ];
 
     for (const file of files) {

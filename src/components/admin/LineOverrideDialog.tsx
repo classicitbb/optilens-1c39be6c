@@ -202,7 +202,7 @@ const LineOverrideDialog = ({
               <Input
                 value={cost != null ? cost.toFixed(2) : "—"}
                 disabled
-                className="h-7 text-xs text-right bg-muted/30"
+                className="h-7 text-xs text-left bg-muted/30"
               />
             </div>
             <div>
@@ -212,7 +212,7 @@ const LineOverrideDialog = ({
               <Input
                 value={currentPrice != null ? currentPrice.toFixed(2) : "—"}
                 disabled
-                className="h-7 text-xs text-right bg-muted/30"
+                className="h-7 text-xs text-left bg-muted/30"
               />
             </div>
           </div>
@@ -228,7 +228,7 @@ const LineOverrideDialog = ({
                 min="0"
                 value={overridePrice}
                 onChange={(e) => setOverridePrice(e.target.value)}
-                className="h-8 text-xs text-right flex-1"
+                className="h-8 text-xs text-left flex-1"
                 placeholder="Enter override price"
               />
               <MarginBadge

@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-06-24 — Product-cost and analytics hardening
+
+- If viewer or customer users cannot query `addons`, `lenses`, or `supplies` directly, that is expected; customer-safe product reads should use the public views that omit cost fields.
+- If public analytics rows fail to insert, check that `visitor_id` is UUID-shaped, `pathname` starts with `/`, web-vital metric names are one of `CLS`, `FCP`, `INP`, `LCP`, or `TTFB`, and ratings are recognized values.
+- If Auth onboarding tests fail around country selection, keep the form requirement intact and adjust the test fixture or Select mock rather than weakening validation.
+
 ## 2026-04-13 — LED PRO page and admin support notes
 
 - New customer-facing page: `LED PRO` at `/lenses/led-pro`.

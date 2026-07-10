@@ -369,6 +369,7 @@ export const useMoonshotStore = create<MoonshotState>()(
     }),
     {
       name: "moonshot-store",
+      version: 2,
       merge: (persisted, current) => {
         const p = persisted as Record<string, unknown> | undefined;
         if (!p) return current;

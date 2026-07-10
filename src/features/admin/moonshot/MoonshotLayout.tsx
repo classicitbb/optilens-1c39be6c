@@ -191,7 +191,7 @@ export default function MoonshotLayout() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="rounded-full border border-border/60 bg-background shadow-sm transition-all hover:bg-muted/80 hover:ring-2 hover:ring-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    className="rounded-full border border-border/60 bg-background shadow-sm transition-all hover:bg-muted/80 hover:ring-2 hover:ring-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
                     aria-label={`Open Moonshot account menu for ${currentUser.name}`}
                   >
                     <Avatar className="h-8 w-8 border border-border/60 bg-background text-foreground">

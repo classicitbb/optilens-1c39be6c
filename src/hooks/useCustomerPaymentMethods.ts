@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export interface CustomerPaymentMethod {
   id: string;
-  provider: "demo";
+  provider: "demo" | "scotia";
   paymentToken: string;
   cardholderName: string;
   brand: string;
@@ -29,7 +29,7 @@ export interface SaveCustomerPaymentMethodInput {
 
 const mapRow = (row: Record<string, any>): CustomerPaymentMethod => ({
   id: String(row.id),
-  provider: "demo",
+  provider: row.provider === "scotia" ? "scotia" : "demo",
   paymentToken: String(row.payment_token ?? ""),
   cardholderName: String(row.cardholder_name ?? ""),
   brand: String(row.brand ?? "Visa"),

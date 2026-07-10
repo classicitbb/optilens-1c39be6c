@@ -2,13 +2,20 @@
 
 Summarized release outcomes for each major date-stamped update.
 
-## 2026-05-27 — Infrastructure Dependency and Edge Security Refresh
+## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 
 ### Release Notes
-- npm dependencies were refreshed through npm 10 and the lockfile now audits cleanly.
-- The stale Bun lockfile was removed, and lockfile policy now rejects both Bun lockfile formats.
-- Vercel now applies the shared security header policy at the edge, with a new QA check preventing config drift.
-- Vite now uses the standard React plugin recommended for this setup, and router chunking targets `react-router`.
+- Direct reads on `addons`, `lenses`, and `supplies` now require admin/operator edit access so viewer/customer roles cannot read cost-bearing columns.
+- Public product browsing remains available through existing cost-free public views.
+- Public analytics writes now validate UUID-shaped visitor IDs, safe path values, known web-vital metrics, ratings, and bounded values.
+- npm dependency refresh resolved the reported audit vulnerability; `npm audit` now reports zero vulnerabilities.
+
+## 2026-06-05 — Shipment Costing Fixes + Security/Print Hardening
+
+### Release Notes
+- Shipment Detail no longer overwrites charge edits with line-item edits, and the FOB column is now preserved as read-only in the admin costing view.
+- Admin UI polish fixes landed for sidebar behavior plus shared input/select rendering to address the text cutoff issues merged this week.
+- The DEV merge hardened quote printing, transactional-email authorization/CORS handling, and Vercel security-header synchronization while removing Bun lockfile drift from the npm-only workflow.
 
 ## 2026-04-13 — LED PRO Public Lens Page + Admin Rendering Safeguards
 

@@ -1,0 +1,1 @@
+ALTER VIEW public.customer_payment_profile_public SET (security_invoker = true);

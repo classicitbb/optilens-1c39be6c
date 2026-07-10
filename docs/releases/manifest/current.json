@@ -1,43 +1,28 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-05-27T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-06-24T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "npm dependencies were refreshed through npm 10 and the lockfile now audits cleanly.",
-    "The stale Bun lockfile was removed, and lockfile policy now rejects both Bun lockfile formats.",
-    "Vercel now applies the shared security header policy at the edge, with a new QA check preventing config drift.",
-    "Vite now uses the standard React plugin recommended for this setup, and router chunking targets `react-router`."
+    "Direct reads on `addons`, `lenses`, and `supplies` now require admin/operator edit access so viewer/customer roles cannot read cost-bearing columns.",
+    "Public product browsing remains available through existing cost-free public views.",
+    "Public analytics writes now validate UUID-shaped visitor IDs, safe path values, known web-vital metrics, ratings, and bounded values.",
+    "npm dependency refresh resolved the reported audit vulnerability; `npm audit` now reports zero vulnerabilities."
   ],
   "moduleImpact": [
     {
-      "module": "scripts/check_lockfiles.mjs",
+      "module": "supabase/migrations",
       "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
+      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
     },
     {
-      "module": "scripts/sync_vercel_security_headers.mjs",
+      "module": "src/tests/integration",
       "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
+      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
     },
     {
-      "module": "scripts/pr_checks.mjs",
+      "module": "supabase/functions",
       "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "security/http-header-policy.json",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "@vitejs/plugin-react-swc",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "@vitejs/plugin-react",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
+      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
     }
   ],
   "migrationNotes": [

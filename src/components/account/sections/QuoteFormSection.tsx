@@ -20,9 +20,8 @@ const QuoteFormSection = () => {
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("quotes")
+        .from("quotes_customer")
         .select("id,quote_number,status,quote_type,created_at,notes_customer")
-        .eq("created_by", user.id)
         .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;

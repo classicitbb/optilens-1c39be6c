@@ -46,6 +46,39 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
+vi.mock("@/components/ui/select", async () => {
+  const React = await import("react");
+  const SelectContext = React.createContext<{ onValueChange?: (value: string) => void }>({});
+
+  const Select = ({ children, onValueChange }: { children: React.ReactNode; onValueChange?: (value: string) => void }) => (
+    <SelectContext.Provider value={{ onValueChange }}>
+      <div>{children}</div>
+    </SelectContext.Provider>
+  );
+
+  const SelectTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+    ({ children, ...props }, ref) => (
+      <button type="button" role="combobox" ref={ref} {...props}>
+        {children}
+      </button>
+    ),
+  );
+  SelectTrigger.displayName = "SelectTrigger";
+
+  const SelectValue = ({ placeholder }: { placeholder?: string }) => <span>{placeholder}</span>;
+  const SelectContent = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+  const SelectItem = ({ children, value }: { children: React.ReactNode; value: string }) => {
+    const { onValueChange } = React.useContext(SelectContext);
+    return (
+      <button type="button" role="option" onClick={() => onValueChange?.(value)}>
+        {children}
+      </button>
+    );
+  };
+
+  return { Select, SelectContent, SelectItem, SelectTrigger, SelectValue };
+});
+
 const renderAuth = (initialEntry: string) =>
   render(
     <MemoryRouter initialEntries={[initialEntry]}>
@@ -85,6 +118,8 @@ describe("Auth page onboarding flow", () => {
     fireEvent.change(screen.getByLabelText("Phone Number"), { target: { value: "+1 246 555 0101" } });
     fireEvent.change(screen.getByLabelText("Business Name"), { target: { value: "Vision Center" } });
     fireEvent.change(screen.getByLabelText("Tax / Business Registration #"), { target: { value: "TIN-12345" } });
+    fireEvent.click(screen.getByRole("combobox", { name: "Country" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Barbados" }));
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "jordan@example.com" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret12" } });
 

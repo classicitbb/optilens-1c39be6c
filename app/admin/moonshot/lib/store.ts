@@ -384,6 +384,6 @@ export const useMoonshotStore = create<MoonshotState>()(
       updateSeatFitReview: (id, updates) => set((s) => ({ seatFitReviews: s.seatFitReviews.map((review) => (review.id === id ? { ...review, ...updates, updatedAt: new Date().toISOString() } : review)) })),
       deleteSeatFitReview: (id) => set((s) => ({ seatFitReviews: s.seatFitReviews.filter((review) => review.id !== id) })),
     }),
-    { name: "moonshot-store" },
+    { name: "moonshot-store", version: 2 },
   ),
 );

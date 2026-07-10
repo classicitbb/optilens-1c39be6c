@@ -2,6 +2,13 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-06-24 — Security hardening support tests
+
+- Product-cost exposure is guarded at the database policy layer: browser-facing catalog/product flows should continue to read `addons_public`, `lenses_public`, `supplies_public`, and other cost-free customer views.
+- Staff admin product editors still read/write the base product tables through `has_edit_role()` access.
+- Runtime website analytics still uses direct public inserts for pageviews and web vitals, but rows must match the stricter migration checks for visitor IDs, paths, metric names, ratings, and bounded numeric values.
+- Auth onboarding tests now fill the required country field and mock Select primitives in the unit test so jsdom does not depend on Radix dropdown scrolling behavior.
+
 ## 2026-04-13 — LED PRO route + admin rendering updates
 
 - Canonical public route added: `/lenses/led-pro`.

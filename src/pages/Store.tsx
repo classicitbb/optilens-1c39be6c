@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useStoreProducts, StoreProduct, getStableStoreProductCartId, getStoreProductRoute } from "@/hooks/useStoreProducts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createAuthHref } from "@/lib/authFlow";
+import StorageImage from "@/components/StorageImage";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -124,7 +125,7 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
           </div>
           <div className="relative h-[92px] w-[92px] overflow-hidden rounded-md border border-border/50 bg-muted/30">
             {product.image_url ? (
-              <img src={product.image_url} alt={`${product.name} thumbnail`} className="h-full w-full object-cover" loading="lazy" />
+              <StorageImage src={product.image_url} alt={`${product.name} thumbnail`} className="h-full w-full object-cover" loading="lazy" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">No image</div>
             )}
@@ -144,7 +145,7 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
                   <DialogHeader>
                     <DialogTitle>{product.name}</DialogTitle>
                   </DialogHeader>
-                  <img src={product.image_url} alt={`${product.name} large preview`} className="max-h-[70vh] w-full rounded-md object-contain" />
+                  <StorageImage src={product.image_url} alt={`${product.name} large preview`} className="max-h-[70vh] w-full rounded-md object-contain" />
                 </DialogContent>
               </Dialog>
             )}
@@ -354,7 +355,7 @@ const Store = () => {
                 <TabsContent value={activeTab}>
                   <div className={layout === "grid" ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {filtered.map((product, index) => (
-                      <ProductCard key={product.id} product={product} index={index} layout={layout} />
+                      <ProductCard key={`${product.product_type}:${product.id}`} product={product} index={index} layout={layout} />
                     ))}
                   </div>
                   {filtered.length === 0 && (

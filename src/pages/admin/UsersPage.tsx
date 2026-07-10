@@ -430,7 +430,7 @@ const UsersPage = () => {
             />
             <Input
               type="password"
-              placeholder="Password (min 8 characters)"
+              placeholder="Password (min 12 characters)"
               value={createPassword}
               onChange={(e) => setCreatePassword(e.target.value)}
               className="h-8 text-xs"
@@ -441,16 +441,18 @@ const UsersPage = () => {
             <Button
               size="sm"
               className="h-7 text-xs"
-              disabled={createUser.isPending || !createEmail.includes("@") || createPassword.length < 8}
+              disabled={createUser.isPending || !createEmail.includes("@") || createPassword.length < 12}
               onClick={async () => {
                 try {
                   await createUser.mutateAsync({ email: createEmail, password: createPassword, displayName: createName || undefined });
                   toast({ title: "User created", description: `Account created for ${createEmail}.` });
                   setCreateOpen(false);
-                } catch {
-                  toast({ title: "Error", description: "Failed to create user.", variant: "destructive" });
+                } catch (err) {
+                  const message = err instanceof Error ? err.message : "Failed to create user.";
+                  toast({ title: "Error", description: message, variant: "destructive" });
                 }
               }}
+
             >
               {createUser.isPending ? "Creating…" : "Create User"}
             </Button>

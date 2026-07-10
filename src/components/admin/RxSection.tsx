@@ -103,7 +103,7 @@ const RxInput = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="h-6 text-[11px] text-center px-0.5"
+      className="h-6 text-[11px] text-left px-0.5"
       style={isInvalid ? { borderColor: "hsl(0 60% 50%)", background: "hsl(0 60% 98%)" } : undefined}
     />
   );
