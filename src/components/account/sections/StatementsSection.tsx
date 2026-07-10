@@ -401,20 +401,31 @@ const StatementsSection = () => {
     );
   }
 
+  if (liveAccountQuery.isError) {
+    return (
+      <section className="space-y-6">
+        <header className="space-y-1">
+          <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
+          <p className="text-sm text-muted-foreground">Your balance and statements, fetched only when you open this page.</p>
+        </header>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>{liveAccountQuery.error instanceof Error ? liveAccountQuery.error.message : "Live account data is temporarily unavailable."}</span>
+            <Button variant="outline" size="sm" onClick={() => liveAccountQuery.refetch()}>
+              Try live source again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
       <header className="space-y-1">
         <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
         <p className="text-sm text-muted-foreground">Live Innovations balance and statements, fetched only when you open this page.</p>
       </header>
-
-      {liveAccountQuery.isError ? (
-        <Alert variant="destructive" role="alert">
-          <AlertDescription>
-            {liveAccountQuery.error instanceof Error ? liveAccountQuery.error.message : "Live account data is temporarily unavailable."}
-          </AlertDescription>
-        </Alert>
-      ) : null}
 
       {/* Balance and Controls */}
       <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
