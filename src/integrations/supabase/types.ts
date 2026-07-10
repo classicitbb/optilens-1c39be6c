@@ -3715,6 +3715,115 @@ export type Database = {
         }
         Relationships: []
       }
+      lens_recommendation_rule_sets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          published_at: string | null
+          published_by: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      lens_recommendation_rules: {
+        Row: {
+          coating: string | null
+          conditions: Json
+          created_at: string
+          id: string
+          priority: number
+          product_id: string
+          reasons: string[]
+          rule_set_id: string
+          tier: string
+          turnaround_max_days: number | null
+          turnaround_min_days: number | null
+          updated_at: string
+          warnings: string[]
+        }
+        Insert: {
+          coating?: string | null
+          conditions?: Json
+          created_at?: string
+          id?: string
+          priority?: number
+          product_id: string
+          reasons?: string[]
+          rule_set_id: string
+          tier: string
+          turnaround_max_days?: number | null
+          turnaround_min_days?: number | null
+          updated_at?: string
+          warnings?: string[]
+        }
+        Update: {
+          coating?: string | null
+          conditions?: Json
+          created_at?: string
+          id?: string
+          priority?: number
+          product_id?: string
+          reasons?: string[]
+          rule_set_id?: string
+          tier?: string
+          turnaround_max_days?: number | null
+          turnaround_min_days?: number | null
+          updated_at?: string
+          warnings?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_recommendation_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_recommendation_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_recommendation_rules_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "lens_recommendation_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lenses: {
         Row: {
           add_max: number | null
@@ -5523,6 +5632,53 @@ export type Database = {
             columns: ["quote_line_id"]
             isOneToOne: true
             referencedRelation: "quote_lines_customer"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_order_drafts: {
+        Row: {
+          created_at: string
+          id: string
+          input_payload: Json
+          name: string
+          patient_reference: string | null
+          recommendation_snapshot: Json | null
+          rule_set_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_payload?: Json
+          name: string
+          patient_reference?: string | null
+          recommendation_snapshot?: Json | null
+          rule_set_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_payload?: Json
+          name?: string
+          patient_reference?: string | null
+          recommendation_snapshot?: Json | null
+          rule_set_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_order_drafts_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "lens_recommendation_rule_sets"
             referencedColumns: ["id"]
           },
         ]
@@ -7459,6 +7615,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_customer_command_center: { Args: never; Returns: Json }
       get_integration_connection_secret: {
         Args: { p_connection_id: string }
         Returns: string
@@ -7621,6 +7778,10 @@ export type Database = {
         }
         Returns: string
       }
+      publish_lens_recommendation_rule_set: {
+        Args: { p_rule_set_id: string }
+        Returns: undefined
+      }
       queue_abandoned_cart_alerts: {
         Args: { p_cutoff_hours?: number }
         Returns: Json
@@ -7633,6 +7794,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recommend_lenses: { Args: { p_input: Json }; Returns: Json }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       resolve_contact_customer_links: { Args: never; Returns: number }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
