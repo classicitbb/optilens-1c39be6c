@@ -1,11 +1,7 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-<<<<<<< ours
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
-=======
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
->>>>>>> theirs
 import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
@@ -30,8 +26,6 @@ function generateToken(): string {
     .join('')
 }
 
-<<<<<<< ours
-=======
 const corsPolicy = createCorsPolicy({
   allowHeaders: 'authorization, x-admin-auth-token, x-client-info, apikey, content-type',
   allowMethods: 'POST, OPTIONS',
@@ -43,7 +37,6 @@ const jsonResponse = (status: number, body: unknown, corsHeaders: Record<string,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
->>>>>>> theirs
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy)
   if (preflight) return preflight
@@ -69,12 +62,6 @@ Deno.serve(async (req) => {
     console.error('Missing required environment variables')
     return jsonResponse(500, { error: 'Server configuration error' }, corsHeaders)
   }
-
-  const authContext = await requirePrivilegedAccess(req, corsHeaders, {
-    allowedRoles: ['admin', 'operator'],
-    sourceFunction: 'send-transactional-email',
-  })
-  if (authContext instanceof Response) return authContext
 
   // Parse request body
   let templateName: string
