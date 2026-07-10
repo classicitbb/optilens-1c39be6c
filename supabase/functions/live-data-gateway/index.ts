@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-10.2";
+const VERSION = "2026-07-10.3";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -221,6 +221,30 @@ async function cachedLiveDataResponse(
   return null;
 }
 
+function offlineLiveDataResponse(operation: Operation, customer: CustomerMapping) {
+  const base = {
+    retrieved_at: new Date().toISOString(),
+    source_status: "offline",
+    fallback: true,
+    error: "The private live-data connector is offline.",
+  };
+
+  if (operation === "optilens.customer_deliveries") {
+    return { ...base, deliveries: [] };
+  }
+
+  if (operation === "innovations.customer_account") {
+    return {
+      ...base,
+      customer: { name: null, account_number: customer.account_number ?? null },
+      balance: null,
+      statements: [],
+    };
+  }
+
+  return null;
+}
+
 async function clientContext(req: Request) {
   const auth = await requireAuthenticatedUser(req, getCorsHeaders(req, corsPolicy));
   if (auth instanceof Response) return { response: auth };
@@ -291,6 +315,8 @@ async function handleClientRequest(req: Request, body: JsonObject) {
   if (!hasAgent) {
     const cached = await cachedLiveDataResponse(auth.supabaseAdminClient, operation, customer as CustomerMapping, argumentsBody);
     if (cached) return json(req, cached, 200);
+    const offline = offlineLiveDataResponse(operation, customer as CustomerMapping);
+    if (offline) return json(req, offline, 200);
     return json(req, { error: "The private live-data connector is offline." }, 503);
   }
 
