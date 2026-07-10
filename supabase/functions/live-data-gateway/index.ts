@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-10.1";
+const VERSION = "2026-07-10.2";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -21,6 +21,12 @@ const OPERATIONS = {
 
 type Operation = keyof typeof OPERATIONS;
 type JsonObject = Record<string, unknown>;
+
+type CustomerMapping = {
+  id: number;
+  account_number: string | null;
+  innovations_customer_id: number | null;
+};
 
 const corsPolicy = createCorsPolicy({
   allowHeaders:
@@ -104,6 +110,117 @@ async function cleanup(supabase: SupabaseClient) {
   await supabase.from("live_data_gateway_requests").delete().lte("purge_after", now);
 }
 
+function statementPayload(row: JsonObject): JsonObject {
+  return {
+    id: row.innovations_statement_id ?? row.id,
+    account_number: row.account_number ?? null,
+    period_start: row.from_date ?? null,
+    period_end: row.to_date ?? null,
+    opening_balance: row.opening_balance ?? null,
+    closing_balance: row.closing_balance ?? null,
+    payments: row.payments ?? null,
+    finance_charges: row.finance_charges ?? null,
+    discount: row.discount ?? null,
+    due_date: row.due_date ?? null,
+    status: row.status ?? null,
+    void: row.void ?? null,
+    printed: row.printed ?? null,
+  };
+}
+
+async function cachedStatements(supabase: SupabaseClient, customer: CustomerMapping) {
+  const select = "id,innovations_statement_id,account_number,from_date,to_date,opening_balance,closing_balance,payments,finance_charges,discount,due_date,status,void,printed,synced_at";
+  const query = (column: string, value: string | number) => supabase
+    .from("statements")
+    .select(select)
+    .eq(column, value)
+    .order("statement_date", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: false })
+    .limit(24);
+
+  const attempts: Array<[string, string | number | null]> = [
+    ["customer_id", customer.id],
+    ["innovations_customer_id", customer.innovations_customer_id],
+    ["account_number", customer.account_number],
+  ];
+
+  for (const [column, value] of attempts) {
+    if (value === null || value === "") continue;
+    const { data, error } = await query(column, value);
+    if (!error && data && data.length > 0) return data as JsonObject[];
+  }
+  return [];
+}
+
+async function cachedBalance(supabase: SupabaseClient, customer: CustomerMapping) {
+  const select = "account_number,credit_limit,current_balance,last_payment_amount,last_payment_date,last_statement_amount,last_statement_date,synced_at";
+  const attempts: Array<[string, string | number | null]> = [
+    ["customer_id", customer.id],
+    ["innovations_customer_id", customer.innovations_customer_id],
+    ["account_number", customer.account_number],
+  ];
+
+  for (const [column, value] of attempts) {
+    if (value === null || value === "") continue;
+    const { data, error } = await supabase
+      .from("balances")
+      .select(select)
+      .eq(column, value)
+      .order("synced_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (!error && data) return data as JsonObject;
+  }
+  return null;
+}
+
+async function cachedLiveDataResponse(
+  supabase: SupabaseClient,
+  operation: Operation,
+  customer: CustomerMapping,
+  argumentsBody: JsonObject,
+) {
+  if (operation === "innovations.customer_account") {
+    const [balance, statements] = await Promise.all([
+      cachedBalance(supabase, customer),
+      cachedStatements(supabase, customer),
+    ]);
+    if (!balance && statements.length === 0) return null;
+    return {
+      customer: { name: null, account_number: customer.account_number ?? balance?.account_number ?? null },
+      balance,
+      statements: statements.map(statementPayload),
+      retrieved_at: new Date().toISOString(),
+      source_status: "cached",
+    };
+  }
+
+  if (operation === "innovations.customer_statement") {
+    const statementId = integer(argumentsBody.statement_id);
+    if (!statementId) return null;
+    const { data: statement } = await supabase
+      .from("statements")
+      .select("id,innovations_statement_id,account_number,from_date,to_date,opening_balance,closing_balance,payments,finance_charges,discount,due_date,status,void,printed,synced_at")
+      .eq("innovations_statement_id", statementId)
+      .maybeSingle();
+    if (!statement) return null;
+    const { data: lines } = await supabase
+      .from("statement_lines")
+      .select("id,innovations_statement_id,order_type,invoice_id,reference,patient,post_date,amount")
+      .eq("innovations_statement_id", statementId)
+      .order("post_date", { ascending: true, nullsFirst: false })
+      .order("id", { ascending: true });
+    return {
+      statement: statementPayload(statement as JsonObject),
+      lines: lines ?? [],
+      retrieved_at: new Date().toISOString(),
+      source_status: "cached",
+    };
+  }
+
+  return null;
+}
+
 async function clientContext(req: Request) {
   const auth = await requireAuthenticatedUser(req, getCorsHeaders(req, corsPolicy));
   if (auth instanceof Response) return { response: auth };
@@ -171,7 +288,11 @@ async function handleClientRequest(req: Request, body: JsonObject) {
   const hasAgent = (agents ?? []).some((agent: { capabilities?: string[] }) =>
     Array.isArray(agent.capabilities) && agent.capabilities.includes(operation)
   );
-  if (!hasAgent) return json(req, { error: "The private live-data connector is offline." }, 503);
+  if (!hasAgent) {
+    const cached = await cachedLiveDataResponse(auth.supabaseAdminClient, operation, customer as CustomerMapping, argumentsBody);
+    if (cached) return json(req, cached, 200);
+    return json(req, { error: "The private live-data connector is offline." }, 503);
+  }
 
   const now = Date.now();
   const { data: requestRow, error: insertError } = await auth.supabaseAdminClient
