@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useState } from "react";
 import { ArrowRight, Clock3, Glasses, MapPin, Sparkles, Store, UserRound } from "lucide-react";
 import { Link } from "react-router";
+import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,6 +164,7 @@ const SmartHome = () => {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 };

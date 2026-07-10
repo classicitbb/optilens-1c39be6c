@@ -13,6 +13,7 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 
 ### Release Notes
 - The homepage now presents professional or patient actions, remembers the selected audience on the device, and keeps trade pricing out of the patient path.
+- The compact homepage retains the established shared footer for company, support, legal, social, address, and contact navigation.
 - `/profile` now summarizes attention items, website orders, balances, statements, drafts, tickets, assigned pricing, and source freshness in one command-centre view.
 - The new lens assistant validates Rx and frame inputs, returns only published rule outcomes, shows assigned-pricelist prices only when present, and saves editable Rx drafts before opening LabLink.
 - Staff can prepare and publish versioned lens recommendation rules from `/admin/website/store/lens-assistant`; invalid or inactive product references block publication.
@@ -22,6 +23,7 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 - Added canonical routes for `/lens-assistant`, `/profile/rx-drafts/:draftId`, and `/admin/website/store/lens-assistant`, with synchronized route registry and navigation.
 - Centralized public company contact details and extended Ask Classic to read permitted account summaries while explicitly declining unsupported LabLink/Innovations job searches.
 - Added unit and integration coverage for audience mappings, Rx/prism validation, ranking, pricing visibility, publication checks, draft privacy, route synchronization, and assistant boundaries.
+- Added the end-to-end service blueprint under `docs/architecture/` to govern customer journeys, operational states, system ownership, correlation identifiers, and the OptiLens Local integration boundary.
 
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 

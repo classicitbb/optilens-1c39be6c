@@ -10,6 +10,7 @@ Support-facing notes for the frontend runtime.
 - Saving a lens recommendation creates an editable website draft only. The order is not submitted until the customer completes the existing LabLink workflow.
 - If recommendations are unavailable, confirm that a rule set has been reviewed and published and that every referenced product is active and in the approved catalogue.
 - Ask Classic cannot search production Innovations/LabLink jobs by patient, PO, or job number until the deferred read-only jobs feed exists.
+- The smart homepage should end with the same shared footer used elsewhere; if it disappears, verify that `SmartHome` renders `Footer` after its main content.
 
 ## 2026-06-24 — Product-cost and analytics hardening
 

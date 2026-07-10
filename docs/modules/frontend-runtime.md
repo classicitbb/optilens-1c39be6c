@@ -11,6 +11,7 @@ Operational notes and change context for code in `src/**`.
 - `LabLinkEmbedPage` reads the draft query parameter and displays a non-submission summary without requiring clipboard access for ordinary data entry.
 - Public company contact details are centralized in `src/config/companyContact.ts` and reused by footer, statements, and homepage surfaces.
 - At phone widths the shared header keeps the logo on one line and reduces sign-in/shop actions to accessible icon buttons so the smart journey is not clipped.
+- The smart homepage ends with the shared site footer, preserving company, support, legal, social, address, and contact navigation below the compact action-first experience.
 
 ## 2026-06-24 — Security hardening support tests
 

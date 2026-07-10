@@ -24,6 +24,11 @@ Track frontend regressions and customer-facing issues.
 - Symptom: the logo wrapped and the Shop label was partially cut off, competing with the smart-home actions.
 - Resolution: preserved the one-line brand and changed sign-in/shop to accessible icon actions at the smallest breakpoint.
 
+### Smart homepage omitted the shared footer
+- Surface: `/`
+- Symptom: the action-first homepage ended after service facts, removing the established company, support, legal, social, and contact links.
+- Resolution: restored the shared `Footer` component after the smart-home content so the compact journey retains the full site footer.
+
 ## 2026-06-24 — Closed issues
 
 ### Product cost columns readable through direct table SELECT
