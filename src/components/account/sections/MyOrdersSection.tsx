@@ -1,5 +1,6 @@
 import { format } from "date-fns";
-import { Clock, Package, ShoppingBag } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Clock, Loader2, Package, RefreshCw, ShoppingBag, Truck } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { requestLiveData } from "@/lib/liveDataGateway";
 
 
 const formatAddress = (address?: Record<string, unknown> | null) => {
@@ -37,9 +41,35 @@ const getStatusColor = (status: string) => {
   }
 };
 
+type LiveDelivery = {
+  shipment_session_id: string;
+  source_shipment_id: string | number | null;
+  app_status: string;
+  source_shipped: boolean | null;
+  started_at: string | null;
+  closed_at: string | null;
+  tracking_number: string | null;
+  shipping_method_name: string | null;
+  item_count: number | null;
+};
+
+type LiveDeliveriesResponse = {
+  deliveries: LiveDelivery[];
+  retrieved_at: string;
+};
+
 const MyOrdersSection = () => {
   const { orders, loading } = useOrders();
-  const { canAccessFeature } = usePortalIdentity();
+  const { canAccessFeature, identity } = usePortalIdentity();
+  const canSeePrivateOrders = canAccessFeature("private-orders");
+  const deliveriesQuery = useQuery({
+    queryKey: ["live-optilens-deliveries", identity?.crmCustomerId],
+    enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
+    queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>("optilens.customer_deliveries", {}, { signal }),
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const liveDeliveries = deliveriesQuery.data?.deliveries ?? [];
   const pendingOrders = orders.filter((order) => ["draft", "pending", "confirmed", "processing"].includes(order.status));
   const completedOrders = orders.filter((order) => order.status === "completed");
   const otherOrders = orders.filter((order) => !["draft", "pending", "confirmed", "processing", "completed"].includes(order.status));
@@ -56,10 +86,71 @@ const MyOrdersSection = () => {
         <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
         <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
         {pendingOrders.length ? <Badge className="w-fit bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingOrders.length}</Badge> : null}
-        {!canAccessFeature("private-orders") ? (
+        {!canSeePrivateOrders ? (
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
         ) : null}
       </header>
+
+      {canSeePrivateOrders ? (
+        <section className="space-y-3" aria-labelledby="live-deliveries-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 id="live-deliveries-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Truck className="h-5 w-5" /> Live delivery status
+              </h3>
+              <p className="text-sm text-muted-foreground">Fetched from OptiLens Local only when this page is opened.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => deliveriesQuery.refetch()} disabled={deliveriesQuery.isFetching}>
+              {deliveriesQuery.isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Refresh live status
+            </Button>
+          </div>
+
+          {deliveriesQuery.isError ? (
+            <Alert variant="destructive" role="alert">
+              <AlertDescription>
+                {deliveriesQuery.error instanceof Error ? deliveriesQuery.error.message : "Live delivery status is temporarily unavailable."}
+              </AlertDescription>
+            </Alert>
+          ) : deliveriesQuery.isLoading ? (
+            <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
+          ) : liveDeliveries.length === 0 ? (
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No OptiLens deliveries were found in the last 90 days.</CardContent></Card>
+          ) : (
+            <Card>
+              <CardContent className="overflow-x-auto p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Delivery</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Tracking</TableHead>
+                      <TableHead className="text-right">Items</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {liveDeliveries.map((delivery) => (
+                      <TableRow key={delivery.shipment_session_id}>
+                        <TableCell className="font-medium">#{delivery.source_shipment_id ?? delivery.shipment_session_id.slice(0, 8)}</TableCell>
+                        <TableCell><Badge variant="outline">{delivery.source_shipped ? "Shipped" : delivery.app_status || "Preparing"}</Badge></TableCell>
+                        <TableCell>{delivery.shipping_method_name || "—"}</TableCell>
+                        <TableCell>{delivery.tracking_number || "Not assigned"}</TableCell>
+                        <TableCell className="text-right">{delivery.item_count ?? 0}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+          {deliveriesQuery.data?.retrieved_at ? (
+            <p className="text-xs text-muted-foreground" role="status">
+              Live response received {format(new Date(deliveriesQuery.data.retrieved_at), "PPP 'at' p")}.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
