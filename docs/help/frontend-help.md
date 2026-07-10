@@ -2,6 +2,15 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-10 — Smart journey support notes
+
+- Public visitors can switch between “Optical professional” and “Patient or visitor” on the homepage; the device remembers the last choice and patient mode intentionally omits trade prices and ordering actions.
+- Signed-in customers visiting `/` normally land on `/profile`. Staff can use “View public site” to inspect the public homepage without signing out.
+- A missing lens price means the customer has no matching assigned-pricelist row; do not replace it with a retail or generic price. A missing approved turnaround is displayed as “Confirm with the lab.”
+- Saving a lens recommendation creates an editable website draft only. The order is not submitted until the customer completes the existing LabLink workflow.
+- If recommendations are unavailable, confirm that a rule set has been reviewed and published and that every referenced product is active and in the approved catalogue.
+- Ask Classic cannot search production Innovations/LabLink jobs by patient, PO, or job number until the deferred read-only jobs feed exists.
+
 ## 2026-06-24 — Product-cost and analytics hardening
 
 - If viewer or customer users cannot query `addons`, `lenses`, or `supplies` directly, that is expected; customer-safe product reads should use the public views that omit cost fields.

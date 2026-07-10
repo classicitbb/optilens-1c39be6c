@@ -111,7 +111,7 @@ describe("CompanionAssistant", () => {
     fireEvent.click(screen.getByRole("button", { name: /search & help/i }));
 
     expect(await screen.findByText("Find a retailer")).toBeInTheDocument();
-    expect(screen.getByText("Compare lenses")).toBeInTheDocument();
+    expect(screen.getByText("Find the right lens")).toBeInTheDocument();
     expect(screen.getByText("Get support")).toBeInTheDocument();
   });
 

@@ -1,28 +1,24 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-06-24T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-10T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Direct reads on `addons`, `lenses`, and `supplies` now require admin/operator edit access so viewer/customer roles cannot read cost-bearing columns.",
-    "Public product browsing remains available through existing cost-free public views.",
-    "Public analytics writes now validate UUID-shaped visitor IDs, safe path values, known web-vital metrics, ratings, and bounded values.",
-    "npm dependency refresh resolved the reported audit vulnerability; `npm audit` now reports zero vulnerabilities."
+    "A compact role-aware homepage now puts ordering, tracking, lens guidance, help, account access, and retailer discovery first and remembers the professional/patient choice on that device.",
+    "Signed-in customers are sent to a command centre that brings together onboarding, website orders, Rx drafts, balances, statements, tickets, assigned pricing, and clear source/freshness labels.",
+    "The controlled lens assistant validates prescription and frame information, applies only staff-published catalogue rules, and never substitutes a generic price or invented turnaround.",
+    "Recommendations can be saved as owner-private drafts and reviewed beside LabLink; LabLink remains the final submission system and the website never claims that saving a draft submitted an order.",
+    "Ask Classic can explain permitted account data and lens-tool results, while patient mode remains educational and unsupported Innovations job lookup is stated plainly."
   ],
   "moduleImpact": [
     {
-      "module": "supabase/migrations",
+      "module": "profile/rx-drafts",
       "impact": "medium",
-      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
+      "notes": "Updated as part of Smart Customer Journey First Release."
     },
     {
-      "module": "src/tests/integration",
+      "module": "admin/website",
       "impact": "medium",
-      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
-    },
-    {
-      "module": "supabase/functions",
-      "impact": "medium",
-      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
+      "notes": "Updated as part of Smart Customer Journey First Release."
     }
   ],
   "migrationNotes": [

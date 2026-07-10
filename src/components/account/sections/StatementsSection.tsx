@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowUpDown, ArrowUpRight, Loader2, Printer, ReceiptText, X } from "lucide-react";
+import { COMPANY_CONTACT } from "@/config/companyContact";
 
 // ── Real data shapes (mirrors the security_invoker views / narrow payment
 // profile view — see supabase/functions/innovations-sync + the migration that
@@ -137,11 +138,11 @@ const StatementTemplate = ({
             CLASSIC VISIONS
           </div>
           <div style={{ color: "rgba(244,242,237,0.75)", fontSize: "6.5pt", lineHeight: "1.65", letterSpacing: "0.01em" }}>
-            Uplands, St. John · Barbados · BB20031
+            {COMPANY_CONTACT.addressLine}
             <br />
             TIN# 1000006494000
             <br />
-            Tel: 246-433-4928 · Fax: 246-433-4927
+            Tel: {COMPANY_CONTACT.phoneDisplay}
             <br />
             www.classicvisions.net
           </div>
@@ -254,7 +255,7 @@ const StatementTemplate = ({
       <div style={{ marginTop: "auto", padding: "16px 24px", background: "#0B1E35", color: "rgba(244,242,237,0.8)", fontSize: "6.5pt", lineHeight: "1.6", borderTop: "2px solid #C89130" }}>
         <strong style={{ color: "#F4F2ED" }}>Payment Due:</strong> {fmtDate(statement.due_date)}
         <br />
-        Questions about this statement? Contact <strong style={{ color: "#F4F2ED" }}>accounts@classicvisions.net</strong> or 246-433-4928.
+        Questions about this statement? Contact <strong style={{ color: "#F4F2ED" }}>{COMPANY_CONTACT.email}</strong> or {COMPANY_CONTACT.phoneDisplay}.
       </div>
     </div>
   );

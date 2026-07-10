@@ -4,11 +4,13 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-05-26
+Last updated: 2026-07-10
 
 ---
 
 ## Active work
+
+- **Smart customer journey** — first-release code, database migration, controlled lens rules, customer command centre, Rx draft handoff, and route/test coverage are implemented. The migration still needs to be applied to the target Supabase project and an approved rule set must be published before live recommendations are enabled.
 
 - **Catalog editor wizard** — `NewCatalogDialog` component not yet shipped.
   Implementation prompts exist in `plan.md` (Codex handoff sequence). Three

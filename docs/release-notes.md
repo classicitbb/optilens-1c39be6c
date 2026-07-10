@@ -2,6 +2,15 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-10 — Smart Customer Journey First Release
+
+### Release Notes
+- A compact role-aware homepage now puts ordering, tracking, lens guidance, help, account access, and retailer discovery first and remembers the professional/patient choice on that device.
+- Signed-in customers are sent to a command centre that brings together onboarding, website orders, Rx drafts, balances, statements, tickets, assigned pricing, and clear source/freshness labels.
+- The controlled lens assistant validates prescription and frame information, applies only staff-published catalogue rules, and never substitutes a generic price or invented turnaround.
+- Recommendations can be saved as owner-private drafts and reviewed beside LabLink; LabLink remains the final submission system and the website never claims that saving a draft submitted an order.
+- Ask Classic can explain permitted account data and lens-tool results, while patient mode remains educational and unsupported Innovations job lookup is stated plainly.
+
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 
 ### Release Notes

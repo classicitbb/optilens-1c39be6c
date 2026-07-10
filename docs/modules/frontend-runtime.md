@@ -2,6 +2,16 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-07-10 — Smart customer journey runtime
+
+- `/` renders `SmartHome` for public visitors, persists the audience preference under `classicvisions.home.audience`, and redirects authenticated customers to `/profile` unless staff explicitly request `/?view=public`.
+- Canonical runtime routes are `/lens-assistant`, `/profile/rx-drafts/:draftId`, and `/admin/website/store/lens-assistant`; route metadata remains synchronized in `src/config/routeRegistry.ts`.
+- `Profile` uses `get_customer_command_center()` as the one-call path and falls back to existing customer-safe queries when the migration is not yet deployed.
+- Lens validation lives in `src/features/lens-assistant/validation.ts`; recommendations and prices are accepted only from `recommend_lenses(jsonb)` tool results.
+- `LabLinkEmbedPage` reads the draft query parameter and displays a non-submission summary without requiring clipboard access for ordinary data entry.
+- Public company contact details are centralized in `src/config/companyContact.ts` and reused by footer, statements, and homepage surfaces.
+- At phone widths the shared header keeps the logo on one line and reduces sign-in/shop actions to accessible icon buttons so the smart journey is not clipped.
+
 ## 2026-06-24 — Security hardening support tests
 
 - Product-cost exposure is guarded at the database policy layer: browser-facing catalog/product flows should continue to read `addons_public`, `lenses_public`, `supplies_public`, and other cost-free customer views.

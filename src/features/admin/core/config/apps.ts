@@ -7,7 +7,7 @@ import {
   Kanban, CalendarCheck,
   LayoutDashboard,
   Ticket, UsersRound, ShieldCheck,
-  Layout, Palette, UserCircle, Store,
+  Layout, Palette, UserCircle, Store, Glasses,
   BookMarked, HelpCircle,
   Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark,
   Rocket, LayoutDashboard as MsBoard, ListChecks, MessageSquare, TrendingUp, Mountain, CheckSquare, AlertCircle, FileText as MsPlan, Wrench as MsTools, Users as MsUsers,
@@ -125,6 +125,7 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Website Portals', route: '/admin/website/portals', icon: UserCircle },
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
+      { label: 'Lens Assistant Rules', route: '/admin/website/store/lens-assistant', icon: Glasses },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
       { label: 'Feature Pages', route: '/admin/website/features', icon: Palette },
     ] satisfies SidebarItem[],

@@ -487,11 +487,11 @@ const Header = () => {
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
-        <Link to="/" {...labLinkNavigationProps} className="flex items-center gap-2" aria-label="Classic Visions home">
-          <div className="flex h-10 w-10 items-center justify-center">
+        <Link to="/" {...labLinkNavigationProps} className="flex shrink-0 items-center gap-1.5 sm:gap-2" aria-label="Classic Visions home">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center sm:h-10 sm:w-10">
               <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
-          <span className="text-xl font-bold text-foreground">Classic Visions</span>
+          <span className="whitespace-nowrap text-lg font-bold text-foreground sm:text-xl">Classic Visions</span>
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
@@ -500,10 +500,10 @@ const Header = () => {
             )}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">
+              <Button variant="ghost" size="sm" className="px-2 lg:hidden" aria-label="Open mobile navigation menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -715,10 +715,10 @@ const Header = () => {
                   </DropdownMenuContent>
                 </DropdownMenu> :
 
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
                   <Link to={createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}${location.hash}` || "/" })} {...labLinkNavigationProps}>
-                    <User className="mr-2 h-4 w-4" />
-                    Sign in
+                    <User className="h-4 w-4 sm:mr-2" />
+                    <span className="sr-only sm:not-sr-only">Sign in</span>
                   </Link>
                 </Button>
             }
@@ -726,10 +726,10 @@ const Header = () => {
               {user ? (
                 <CartSheet triggerVariant="hero" triggerSize="sm" showLabel className="min-w-[7.5rem] justify-center" />
               ) : (
-                <Button variant="hero" size="sm" className="min-w-[7.5rem] justify-center" asChild>
+                <Button variant="hero" size="sm" className="min-w-0 justify-center px-3 sm:min-w-[7.5rem]" asChild>
                   <Link to="/store" {...labLinkNavigationProps}>
                     <ShoppingCart className="h-5 w-5" />
-                    <span>Shop</span>
+                    <span className="sr-only sm:not-sr-only">Shop</span>
                   </Link>
                 </Button>
               )}

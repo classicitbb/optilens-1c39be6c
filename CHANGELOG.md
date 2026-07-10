@@ -4,6 +4,25 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-10 — Smart Customer Journey First Release
+
+### Plan
+- Replace the long public homepage with a compact role-aware starting point and route signed-in customers to a self-service command centre.
+- Add deterministic, catalogue-controlled lens guidance with private Rx drafts and an honest LabLink handoff.
+- Extend Ask Classic with permission-scoped customer information without implying access to unavailable Innovations job data.
+
+### Release Notes
+- The homepage now presents professional or patient actions, remembers the selected audience on the device, and keeps trade pricing out of the patient path.
+- `/profile` now summarizes attention items, website orders, balances, statements, drafts, tickets, assigned pricing, and source freshness in one command-centre view.
+- The new lens assistant validates Rx and frame inputs, returns only published rule outcomes, shows assigned-pricelist prices only when present, and saves editable Rx drafts before opening LabLink.
+- Staff can prepare and publish versioned lens recommendation rules from `/admin/website/store/lens-assistant`; invalid or inactive product references block publication.
+
+### Technical Changelog
+- Added customer-scoped `get_customer_command_center()` and deterministic `recommend_lenses(jsonb)` database functions, versioned recommendation tables, and owner-private `rx_order_drafts` with RLS.
+- Added canonical routes for `/lens-assistant`, `/profile/rx-drafts/:draftId`, and `/admin/website/store/lens-assistant`, with synchronized route registry and navigation.
+- Centralized public company contact details and extended Ask Classic to read permitted account summaries while explicitly declining unsupported LabLink/Innovations job searches.
+- Added unit and integration coverage for audience mappings, Rx/prism validation, ranking, pricing visibility, publication checks, draft privacy, route synchronization, and assistant boundaries.
+
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 
 ### Plan

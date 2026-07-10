@@ -2,6 +2,28 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-10 — Closed issues
+
+### Public tasks were buried in a long marketing homepage
+- Surface: `/`
+- Symptom: ordering, tracking, lens selection, help, and account actions felt like unrelated destinations and required excessive scrolling.
+- Resolution: replaced the entry page with a compact role-aware smart front door based on the supplied Classic Visions mockup.
+
+### Customer account information required fragmented requests
+- Surface: `/profile`
+- Symptom: orders, balances, statements, drafts, tickets, and pricing were fetched and interpreted across separate views.
+- Resolution: added a customer-derived command-centre aggregate with honest source and freshness labels, while retaining detailed drill-down pages.
+
+### Lens guidance could not be carried safely into ordering
+- Surface: lens selection and LabLink handoff
+- Symptom: no controlled recommendation snapshot or private editable handoff existed, increasing the risk of inferred prices or false submission expectations.
+- Resolution: added published deterministic rules, assigned-price-only results, owner-private Rx drafts, and a visible “not yet submitted” LabLink summary with no clipboard dependency.
+
+### Header actions were clipped at phone width
+- Surface: shared public header at 390 px and below
+- Symptom: the logo wrapped and the Shop label was partially cut off, competing with the smart-home actions.
+- Resolution: preserved the one-line brand and changed sign-in/shop to accessible icon actions at the smallest breakpoint.
+
 ## 2026-06-24 — Closed issues
 
 ### Product cost columns readable through direct table SELECT
