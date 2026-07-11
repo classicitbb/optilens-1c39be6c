@@ -204,13 +204,12 @@ async function upsertCustomerRow(
 
   const acctNumber = row.account_number;
   if (typeof acctNumber === "string" && acctNumber.trim() !== "") {
-    const { data: byAccountNumber, error: acctErr } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("account_number", acctNumber as any)
-      .is("innovations_customer_id", null)
-      .maybeSingle();
+    const { data: accountMatches, error: acctErr } = await supabase
+      .rpc("find_customer_by_account_number", { p_account_number: acctNumber });
     if (acctErr) return { error: acctErr };
+    const byAccountNumber = Array.isArray(accountMatches)
+      ? accountMatches.find((match: any) => match && match.innovations_customer_id == null)
+      : null;
     if (byAccountNumber) {
       // Adopt the pre-created (e.g. website signup) row: fill in the immutable
       // Innovations id and refresh the rest of the mapped fields.

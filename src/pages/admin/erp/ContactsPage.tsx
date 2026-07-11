@@ -13,12 +13,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ToastAction } from "@/components/ui/toast";
 import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
+import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -1363,14 +1365,15 @@ const ContactsPage = () => {
       // account_number in sync — this is the sole key that links a website
       // customer's account to their Innovations ERP account and statements.
       if (editContact.is_customer && contactId) {
-        const trimmedAccountNumber = accountNumber.trim() || null;
+        const normalizedAccountNumber = normalizeAccountNumberInput(accountNumber) || null;
         // Check if customer already linked
         const { data: existing } = await (supabase.from("customers") as any)
           .select("id")
           .eq("contact_id", contactId as any)
           .maybeSingle();
+        let customerId = existing?.id as number | undefined;
         if (!existing) {
-          const { error: custErr } = await (supabase.from("customers") as any).insert({
+          const { data: insertedCustomer, error: custErr } = await (supabase.from("customers") as any).insert({
             name: editContact.name,
             email: editContact.email?.trim() || null,
             phone: editContact.phone ?? null,
@@ -1378,14 +1381,14 @@ const ContactsPage = () => {
             type: "Customer",
             pipeline_stage: editContact.pipeline_stage ?? "Prospect",
             contact_id: contactId,
-            account_number: trimmedAccountNumber,
-          } as any);
+          } as any)
+            .select("id")
+            .single();
           if (custErr) throw custErr;
-        } else if (trimmedAccountNumber !== (linkedCustomerRecord?.account_number ?? null)) {
-          const { error: acctErr } = await (supabase.from("customers") as any)
-            .update({ account_number: trimmedAccountNumber })
-            .eq("id", existing.id as any);
-          if (acctErr) throw acctErr;
+          customerId = insertedCustomer.id as number;
+        }
+        if (customerId && normalizedAccountNumber !== (linkedCustomerRecord?.account_number ?? null)) {
+          await assignCustomerAccountNumber(customerId, normalizedAccountNumber);
         }
       }
 
@@ -1403,7 +1406,17 @@ const ContactsPage = () => {
         businessCardInputRef.current.value = "";
       }
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      const isConflict = e instanceof AccountNumberAssignmentError && e.result.status === "conflict";
+      toast({
+        title: isConflict ? "Account number already linked" : "Error",
+        description: e.message,
+        variant: "destructive",
+        action: isConflict ? (
+          <ToastAction altText="Open ERP contacts" onClick={() => navigate("/admin/erp/contacts")}>
+            Open contacts
+          </ToastAction>
+        ) : undefined,
+      });
     }
   };
 
