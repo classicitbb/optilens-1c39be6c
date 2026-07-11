@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-11 — Statements and My Rx Order Status
+
+- Statements are posted financial records. The live current balance is displayed separately and is not a printable or selectable provisional statement.
+- If statement rows lack order/payment detail, verify the Innovations statement-line sync and the customer's LMS account mapping.
+- My Rx Order Status contains only `Rx` order-type records. Delivery tracking remains in the Live Delivery Status panel; a missing Rx table response usually means the local InnovaAPI connector is offline or its bearer token is not configured.
+
 ## 2026-06-24 — Product-cost and analytics hardening
 
 - If viewer or customer users cannot query `addons`, `lenses`, or `supplies` directly, that is expected; customer-safe product reads should use the public views that omit cost fields.

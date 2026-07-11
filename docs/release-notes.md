@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-11 — Portal Statements and Rx Status
+
+### Release Notes
+- Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.
+- My Orders adds a live Rx-only status table with order, invoice, patient, and current-status dates; existing delivery tracking remains available.
+
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 
 ### Release Notes

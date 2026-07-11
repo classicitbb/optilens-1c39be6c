@@ -2,6 +2,18 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-11 — Closed issues
+
+### Synthetic current-period statement presented as a posted statement
+- Surface: customer Statements & Billing
+- Symptom: the newest entry was calculated from balance data and had no source statement ID or line items.
+- Resolution: portal selection now contains only posted Innovations statements; live balance remains separate.
+
+### Shipment tracking used where Rx status was required
+- Surface: customer My Orders
+- Symptom: the live panel showed shipment sessions rather than the current LMS Rx status.
+- Resolution: added a separate InnovaAPI-backed My Rx Order Status table, filtered to Rx rows, without removing shipment tracking.
+
 ## 2026-06-24 — Closed issues
 
 ### Product cost columns readable through direct table SELECT

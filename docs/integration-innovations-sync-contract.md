@@ -27,7 +27,8 @@ lib/innovations-sync.js (OptiLens Local)         ──HTTPS, x-api-key──▶
                                                                           │ upsert by
                                                                           ▼ innovations_* id
                                                               public.customers / contacts /
-                                                              invoices / statements / customer_balances
+                                                              invoices / statements / statement_lines /
+                                                              customer_balances
 ```
 
 The CV cloud **issues** the API key (`cv_live_…`, scope `sync:write`); OptiLens
@@ -45,15 +46,19 @@ duplicate. Each lands in a dedicated `innovations_<id>` column with a UNIQUE ind
 | Contacts   | `dbo.Contacts`                               | `ContactID`    | `contacts` (extended)  |
 | Balances   | `dbo.CustomerBalances` (summary only)        | `CustomerID`   | `customer_balances`    |
 | Invoices   | `dbo.FinExportedInvoices` (headers only)     | `InvoiceID`    | `invoices` (new)       |
-| Statements | `dbo.FinARStatements` (headers only)         | `StatementID`  | `statements` (new)     |
+| Statements | `dbo.FinARStatements` + `dbo.FinARPeriods`   | `StatementID`  | `statements` (new)     |
+| Statement lines | `dbo.FinARStatementItems` → `FinARStatements` | `StatementItemID` | `statement_lines` (new) |
 
 > Source column names for Invoices/Statements/Balances are confirmed against the
 > live DB during the first office-side dry-run; the SQL is isolated in
 > `innovations-sync.js` for easy adjustment.
 
-**Financial minimization:** only *summary* figures cross the wire — a single
-current balance per customer, and invoice/statement **headers** (number, date,
-total, status). No line items, no full AR ledger, no payment instruments.
+**Financial minimization:** a single current balance per customer, invoice
+headers, and posted-statement data cross the wire. Statement lines are limited
+to the fields shown to the mapped customer: order type, posting date, invoice
+and order IDs, patient, payment method, reference, and amount. Hidden statement
+items and void statements are excluded; no full AR ledger or payment instrument
+details are sent.
 
 ## 3. Field maps
 
@@ -85,9 +90,19 @@ total, status). No line items, no full AR ledger, no payment instruments.
 `innovations_invoice_id` (unique), `customer_id` (fk), `invoice_number`,
 `invoice_date`, `total`, `currency`, `status`.
 
-### Statements → `public.statements` (new, headers only)
+### Statements → `public.statements` (posted statements)
 `innovations_statement_id` (unique), `customer_id` (fk), `statement_date`,
-`opening_balance`, `closing_balance`, `currency`.
+`from_date`, `to_date` (with the period end from `FinARPeriods` when needed),
+`due_date`, `opening_balance`, `transactions`, `finance_charges`, `payments`,
+`discount`, `allowance`, `volume_discount`, `aging_amount_1` through
+`aging_amount_4`, `closing_balance`, `status`, `void`, `printed`, and currency.
+
+### Statement lines → `public.statement_lines`
+`innovations_statement_item_id` (unique), `innovations_statement_id` (fk),
+`order_type`, `order_type_name`, `post_date`, `invoice_id`, `order_id`,
+`patient`, `payment_method`, `reference`, and `amount`. The source query joins
+the parent statement and filters `HideFromStatement = 0` and `Void = 0` before
+the data is sent.
 
 ## 4. Receive endpoint
 
@@ -119,5 +134,5 @@ Behaviour:
   the office DB is unaffected (read-only).
 
 ## 7. Out of scope (v1)
-Full AR ledger, invoice/statement **line items**, payment details, two-way
-write-back to Innovations, near-real-time streaming.
+Full AR ledger beyond posted statement lines, payment instrument details,
+two-way write-back to Innovations, near-real-time streaming.

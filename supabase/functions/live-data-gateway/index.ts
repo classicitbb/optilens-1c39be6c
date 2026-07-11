@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-11.1";
+const VERSION = "2026-07-11.2";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -16,6 +16,7 @@ const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:writ
 const OPERATIONS = {
   "innovations.customer_account": { source: "innovations", feature: "statements" },
   "innovations.customer_statement": { source: "innovations", feature: "statements" },
+  "innovations.customer_rx_order_status": { source: "innovations", feature: "private-orders" },
   "optilens.customer_deliveries": { source: "optilens", feature: "private-orders" },
 } as const;
 
@@ -120,13 +121,22 @@ function statementPayload(row: JsonObject): JsonObject {
   return {
     id: row.innovations_statement_id ?? row.id,
     account_number: row.account_number ?? null,
+    statement_date: row.statement_date ?? null,
     period_start: row.from_date ?? null,
     period_end: row.to_date ?? null,
+    volume_discount: row.volume_discount ?? null,
     opening_balance: row.opening_balance ?? null,
+    transactions: row.transactions ?? null,
     closing_balance: row.closing_balance ?? null,
     payments: row.payments ?? null,
     finance_charges: row.finance_charges ?? null,
     discount: row.discount ?? null,
+    allowance: row.allowance ?? null,
+    discounts_allowance: Number(row.discount ?? 0) + Number(row.allowance ?? 0),
+    aging_amount_1: row.aging_amount_1 ?? null,
+    aging_amount_2: row.aging_amount_2 ?? null,
+    aging_amount_3: row.aging_amount_3 ?? null,
+    aging_amount_4: row.aging_amount_4 ?? null,
     due_date: row.due_date ?? null,
     status: row.status ?? null,
     void: row.void ?? null,
@@ -135,7 +145,7 @@ function statementPayload(row: JsonObject): JsonObject {
 }
 
 async function cachedStatements(supabase: SupabaseClient, customer: CustomerMapping) {
-  const select = "id,innovations_statement_id,account_number,from_date,to_date,opening_balance,closing_balance,payments,finance_charges,discount,due_date,status,void,printed,synced_at";
+  const select = "id,innovations_statement_id,account_number,statement_date,from_date,to_date,volume_discount,opening_balance,transactions,closing_balance,payments,finance_charges,discount,allowance,aging_amount_1,aging_amount_2,aging_amount_3,aging_amount_4,due_date,status,void,printed,synced_at";
   const query = (column: string, value: string | number) => supabase
     .from("statements")
     .select(select)
@@ -246,13 +256,13 @@ async function cachedLiveDataResponse(
     if (!statementId) return null;
     const { data: statement } = await supabase
       .from("statements")
-      .select("id,innovations_statement_id,account_number,from_date,to_date,opening_balance,closing_balance,payments,finance_charges,discount,due_date,status,void,printed,synced_at")
+      .select("id,innovations_statement_id,account_number,statement_date,from_date,to_date,volume_discount,opening_balance,transactions,closing_balance,payments,finance_charges,discount,allowance,aging_amount_1,aging_amount_2,aging_amount_3,aging_amount_4,due_date,status,void,printed,synced_at")
       .eq("innovations_statement_id", statementId)
       .maybeSingle();
     if (!statement) return null;
     const { data: lines } = await supabase
       .from("statement_lines")
-      .select("id,innovations_statement_id,order_type,invoice_id,reference,patient,post_date,amount")
+      .select("id,innovations_statement_id,order_type,order_type_name,invoice_id,order_id,reference,patient,payment_method,post_date,amount")
       .eq("innovations_statement_id", statementId)
       .order("post_date", { ascending: true, nullsFirst: false })
       .order("id", { ascending: true });
@@ -277,6 +287,10 @@ function offlineLiveDataResponse(operation: Operation, customer: CustomerMapping
 
   if (operation === "optilens.customer_deliveries") {
     return { ...base, deliveries: [] };
+  }
+
+  if (operation === "innovations.customer_rx_order_status") {
+    return { ...base, orders: [] };
   }
 
   if (operation === "innovations.customer_account") {

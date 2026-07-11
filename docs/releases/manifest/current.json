@@ -1,28 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-06-24T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-11T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Direct reads on `addons`, `lenses`, and `supplies` now require admin/operator edit access so viewer/customer roles cannot read cost-bearing columns.",
-    "Public product browsing remains available through existing cost-free public views.",
-    "Public analytics writes now validate UUID-shaped visitor IDs, safe path values, known web-vital metrics, ratings, and bounded values.",
-    "npm dependency refresh resolved the reported audit vulnerability; `npm audit` now reports zero vulnerabilities."
+    "Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.",
+    "My Orders adds a live Rx-only status table with order, invoice, patient, and current-status dates; existing delivery tracking remains available."
   ],
   "moduleImpact": [
     {
-      "module": "supabase/migrations",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
-    },
-    {
-      "module": "src/tests/integration",
-      "impact": "medium",
-      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
-    },
-    {
-      "module": "supabase/functions",
-      "impact": "medium",
-      "notes": "Updated as part of Product Cost RLS + Analytics Insert Hardening."
+      "notes": "Updated as part of Portal Statements and Rx Status."
     }
   ],
   "migrationNotes": [

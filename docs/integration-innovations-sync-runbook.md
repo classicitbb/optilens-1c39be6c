@@ -9,11 +9,11 @@ full contract.
 | Field | Value |
 | ----- | ----- |
 | Provider | `innovations` (on-prem MS SQL, `Innovations` on `MSSQL-SVR`) |
-| Purpose | Mirror customers + contacts (later: balances, invoices, statements) into CV cloud for the Customer Journey Hub |
+| Purpose | Mirror customers, contacts, balances, invoices, posted statements, and statement lines into CV cloud for the Customer Journey Hub |
 | Direction | Outbound push, office → cloud (office DB never exposed inbound) |
-| Auth | `x-api-key: cv_live_…`; scopes `customers:write` + `contacts:write`, verified by `verify_api_key` |
+| Auth | `x-api-key: cv_live_…`; scopes `customers:write`, `contacts:write`, and `statements:write`, verified by `verify_api_key` |
 | Office env var | `OPTILENS_SYNC_TOKEN` (vault token, for unattended runs) |
-| CV tables written | `customers`, `contacts` (upsert by `innovations_customer_id` / `innovations_contact_id`) |
+| CV tables written | `customers`, `contacts`, `customer_balances`, `invoices`, `statements`, `statement_lines` (upsert by Innovations identifiers) |
 | Observability | `innovations_sync_runs`, `innovations_sync_dead_letters` |
 | Fallback | On cloud outage the office logs + retries next run; office DB unaffected (read-only) |
 | Human approval | Dry-run reviewed before first commit; key minted by an admin |
@@ -21,18 +21,26 @@ full contract.
 ## One-time setup
 
 **CV cloud**
-1. Apply migration `supabase/migrations/20260630120000_innovations_sync_v1.sql`
-   (adds external-id columns, observability tables, `innovations` provider).
-2. Deploy the edge function: `supabase functions deploy innovations-sync`.
+1. Apply `supabase/migrations/20260630120000_innovations_sync_v1.sql` and
+   `supabase/migrations/20260711090000_portal_statement_and_rx_status.sql`
+   (external-id columns, observability tables, statement fields, and the Rx
+   gateway operation).
+2. Deploy both edge functions: `supabase functions deploy innovations-sync` and
+   `supabase functions deploy live-data-gateway`.
 3. Mint an API key: **Settings → API Keys**, tick **`customers:write`** and
-   **`contacts:write`** (both already on that screen). Copy the `cv_live_…`
+   **`contacts:write`**, and **`statements:write`**. Copy the `cv_live_…`
    value (shown once).
 
 **OptiLens Local (office)**
 4. Unlock the vault, then save the key under the CV API connector
    (`/api/connectors/cvapi/config` — same place the catalog pull uses).
-5. Dry-run from the admin action or CLI (below) and review the sample/counts.
-6. When the sample looks right, commit, then install the scheduled task.
+5. Under the InnovaAPI connector, save the base URL (`https://localhost/api/v2`)
+   and bearer token. It is encrypted in the existing OptiLens Local vault and
+   is never sent to the browser.
+6. Restart the local app/gateway worker, then confirm its status advertises
+   `innovations.customer_rx_order_status`.
+7. Dry-run from the admin action or CLI (below) and review the sample/counts.
+8. When the sample looks right, commit, then install the scheduled task.
 
 ## Running it
 
@@ -44,7 +52,8 @@ The token below is obtained by unlocking the vault with your passphrase
 POST /api/connectors/innovations-sync/run
 { "token": "<vault-token>", "commit": false }        # dry-run (default)
 { "token": "<vault-token>", "commit": true,
-  "entities": ["customers","contacts"] }              # write
+  "entities": ["customers","contacts","customer_balances","invoices","statements","statement_lines"],
+  "suppress_email": true }                                # initial/backfill write
 ```
 
 **Unattended (scheduled)** — the CLI is a separate process, so it takes the
@@ -90,14 +99,17 @@ back (`POST _requests/complete`); the card shows pending → done.
 | Symptom | Cause / fix |
 | ------- | ----------- |
 | `401 Missing/invalid x-api-key` | Key not saved in vault, or wrong value. Re-save under CV API connector. |
-| `403 Missing required scope: customers:write` (or `contacts:write`) | Key lacks that scope. Mint a key with both `customers:write` and `contacts:write`. |
-| `404 Unknown entity` | Only `customers`, `contacts` supported in v1. |
+| `403 Missing required scope` | Key lacks the required entity scope. Mint a key with `customers:write`, `contacts:write`, and `statements:write`. |
+| `404 Unknown entity` | Check the entity name against the sync contract and confirm the current `innovations-sync` Edge Function is deployed. |
 | Cloud “Sync now” stays pending | Confirm the request-poller task is installed and the office log contains `queue.request.claimed` followed by `queue.request.finished`. |
 | `422` / `failed` status | Upsert errors — inspect `innovations_sync_dead_letters.last_error`. |
 | `Invalid column name` in office logs | The `contacts` SQL uses assumed `dbo.Contacts` columns. Adjust `ENTITIES.contacts.sql` / `.map` in `lib/innovations-sync.js` to the real columns, re-run dry-run. |
 | Duplicate rows | Should not happen (unique index on `innovations_*_id`). If seen, confirm the migration's unique indexes were applied. |
 
 ## Notes
-- Cost/financial minimization: v1 sends no financial figures. Balances, invoice,
-  and statement **headers** are a planned v2 once their source columns are confirmed.
+- The first historical statement sync must set `suppress_email: true`; this
+  prevents old posted statements from triggering customer emails.
+- Statement lines exclude `HideFromStatement = 1` and rows whose parent
+  statement is void. The portal receives financial display fields only, not a
+  full AR ledger or payment instrument data.
 - Re-runs are safe: every entity upserts on an immutable Innovations id.

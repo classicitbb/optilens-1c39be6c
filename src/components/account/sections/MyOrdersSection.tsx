@@ -58,10 +58,38 @@ type LiveDeliveriesResponse = {
   retrieved_at: string;
 };
 
+type LiveRxOrder = {
+  order_id: number | null;
+  start_date: string | null;
+  invoice_id: number | null;
+  rx_number: string | null;
+  patient: string | null;
+  status_name: string | null;
+  status_date: string | null;
+};
+
+type LiveRxOrdersResponse = {
+  orders: LiveRxOrder[];
+  retrieved_at: string;
+};
+
+const formatLiveDate = (value: string | null) => {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : format(parsed, "MM/dd/yyyy HH:mm");
+};
+
 const MyOrdersSection = () => {
   const { orders, loading } = useOrders();
   const { canAccessFeature, identity } = usePortalIdentity();
   const canSeePrivateOrders = canAccessFeature("private-orders");
+  const rxOrdersQuery = useQuery({
+    queryKey: ["live-innovations-rx-order-status", identity?.crmCustomerId],
+    enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
+    queryFn: ({ signal }) => requestLiveData<LiveRxOrdersResponse>("innovations.customer_rx_order_status", {}, { signal }),
+    staleTime: 30_000,
+    retry: 1,
+  });
   const deliveriesQuery = useQuery({
     queryKey: ["live-optilens-deliveries", identity?.crmCustomerId],
     enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
@@ -90,6 +118,71 @@ const MyOrdersSection = () => {
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
         ) : null}
       </header>
+
+      {canSeePrivateOrders ? (
+        <section className="space-y-3" aria-labelledby="rx-orders-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 id="rx-orders-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Package className="h-5 w-5" /> My Rx Order Status
+              </h3>
+              <p className="text-sm text-muted-foreground">Live Rx orders from Innovations for your LMS account.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => rxOrdersQuery.refetch()} disabled={rxOrdersQuery.isFetching}>
+              {rxOrdersQuery.isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Refresh Rx status
+            </Button>
+          </div>
+
+          {rxOrdersQuery.isError ? (
+            <Alert variant="destructive" role="alert">
+              <AlertDescription>
+                {rxOrdersQuery.error instanceof Error ? rxOrdersQuery.error.message : "Rx order status is temporarily unavailable."}
+              </AlertDescription>
+            </Alert>
+          ) : rxOrdersQuery.isLoading ? (
+            <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
+          ) : (rxOrdersQuery.data?.orders.length ?? 0) === 0 ? (
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No Rx orders were found for this account.</CardContent></Card>
+          ) : (
+            <Card>
+              <CardContent className="overflow-x-auto p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>Invoice ID</TableHead>
+                      <TableHead>Rx Number</TableHead>
+                      <TableHead>Patient</TableHead>
+                      <TableHead>Current Status</TableHead>
+                      <TableHead>Current Status Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rxOrdersQuery.data?.orders.map((order) => (
+                      <TableRow key={order.order_id ?? `${order.rx_number}-${order.start_date}`}>
+                        <TableCell className="font-medium">{order.order_id ?? "—"}</TableCell>
+                        <TableCell>{formatLiveDate(order.start_date)}</TableCell>
+                        <TableCell>{order.invoice_id ?? "—"}</TableCell>
+                        <TableCell>{order.rx_number ?? "—"}</TableCell>
+                        <TableCell>{order.patient ?? "—"}</TableCell>
+                        <TableCell><Badge variant="outline">{order.status_name ?? "—"}</Badge></TableCell>
+                        <TableCell>{formatLiveDate(order.status_date)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+          {rxOrdersQuery.data?.retrieved_at ? (
+            <p className="text-xs text-muted-foreground" role="status">
+              Live response received {format(new Date(rxOrdersQuery.data.retrieved_at), "PPP 'at' p")}.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       {canSeePrivateOrders ? (
         <section className="space-y-3" aria-labelledby="live-deliveries-heading">
