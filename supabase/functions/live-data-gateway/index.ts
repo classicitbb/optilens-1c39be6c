@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-11.2";
+const VERSION = "2026-07-11.3";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -389,7 +389,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
 
   if (!hasLiveCustomerLink(resolvedCustomer)) {
     const offline = offlineLiveDataResponse(operation, resolvedCustomer);
-    if (!isStaff && offline) return json(req, { ...offline, source_status: "unlinked", error: "Customer account is not linked to Innovations or OptiLens Local." }, 200);
+    if (offline) return json(req, { ...offline, source_status: "unlinked", error: "Customer account is not linked to Innovations or OptiLens Local." }, 200);
     return json(req, { error: "Customer account is not linked to Innovations or OptiLens Local." }, 409);
   }
 
