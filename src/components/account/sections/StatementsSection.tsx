@@ -579,11 +579,12 @@ const StatementsSection = () => {
                 size="icon"
                 className="h-10 w-10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800"
                 onClick={() => setStatementPreviewOpen(true)}
-                disabled={!activeStatement}
-                title="Preview and print statement"
+                disabled={!activeStatement || isCurrentPeriod}
+                title={isCurrentPeriod ? "Not printable — current period is unbilled" : "Preview and print statement"}
               >
                 <Printer className="h-4 w-4" />
               </Button>
+
             </div>
           </div>
         </div>
