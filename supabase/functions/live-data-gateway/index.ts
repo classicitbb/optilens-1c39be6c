@@ -232,18 +232,51 @@ async function customerByInnovationsId(supabase: SupabaseClient, innovationsCust
   return data as CustomerMapping | null;
 }
 
+async function customerByContactId(supabase: SupabaseClient, contactId: string | null) {
+  if (!contactId) return null;
+  const { data } = await supabase
+    .from("customers")
+    .select("id,account_number,innovations_customer_id")
+    .eq("contact_id", contactId)
+    .order("updated_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  return data as CustomerMapping | null;
+}
+
 async function mappedCustomerFromPortalContact(supabase: SupabaseClient, contactId: string | null) {
   if (!contactId) return null;
   const { data: contact } = await supabase
     .from("contacts")
-    .select("linked_customer_id,innovations_parent_customer_id")
+    .select("parent_id,linked_customer_id,innovations_parent_customer_id")
     .eq("id", contactId)
     .maybeSingle();
-  const contactMapping = contact as { linked_customer_id?: unknown; innovations_parent_customer_id?: unknown } | null;
+  const contactMapping = contact as { parent_id?: unknown; linked_customer_id?: unknown; innovations_parent_customer_id?: unknown } | null;
   const linkedCustomer = await customerById(supabase, integer(contactMapping?.linked_customer_id));
   if (hasLiveCustomerLink(linkedCustomer)) return linkedCustomer;
   const innovationsCustomer = await customerByInnovationsId(supabase, integer(contactMapping?.innovations_parent_customer_id));
-  return hasLiveCustomerLink(innovationsCustomer) ? innovationsCustomer : null;
+  if (hasLiveCustomerLink(innovationsCustomer)) return innovationsCustomer;
+
+  if (typeof contactMapping?.parent_id !== "string") {
+    const contactCustomer = await customerByContactId(supabase, contactId);
+    return hasLiveCustomerLink(contactCustomer) ? contactCustomer : null;
+  }
+  const { data: parent } = await supabase
+    .from("contacts")
+    .select("id,linked_customer_id,innovations_parent_customer_id")
+    .eq("id", contactMapping.parent_id)
+    .maybeSingle();
+  const parentMapping = parent as { id?: unknown; linked_customer_id?: unknown; innovations_parent_customer_id?: unknown } | null;
+  const parentLinkedCustomer = await customerById(supabase, integer(parentMapping?.linked_customer_id));
+  if (hasLiveCustomerLink(parentLinkedCustomer)) return parentLinkedCustomer;
+  const parentInnovationsCustomer = await customerByInnovationsId(supabase, integer(parentMapping?.innovations_parent_customer_id));
+  if (hasLiveCustomerLink(parentInnovationsCustomer)) return parentInnovationsCustomer;
+  const parentContactCustomer = typeof parentMapping?.id === "string"
+    ? await customerByContactId(supabase, parentMapping.id)
+    : null;
+  if (hasLiveCustomerLink(parentContactCustomer)) return parentContactCustomer;
+  const contactCustomer = await customerByContactId(supabase, contactId);
+  return hasLiveCustomerLink(contactCustomer) ? contactCustomer : null;
 }
 
 async function cachedLiveDataResponse(
@@ -400,9 +433,9 @@ async function handleClientRequest(req: Request, body: JsonObject) {
 
   let resolvedCustomer = customer as CustomerMapping;
   let resolvedWebsiteCustomerId = websiteCustomerId;
-  if (!isStaff && !hasLiveCustomerLink(resolvedCustomer)) {
+  if (!isStaff) {
     const mappedCustomer = await mappedCustomerFromPortalContact(auth.supabaseAdminClient, profile?.crm_contact_id ?? null);
-    if (mappedCustomer) {
+    if (hasLiveCustomerLink(mappedCustomer) && mappedCustomer.id !== resolvedCustomer.id) {
       resolvedCustomer = mappedCustomer;
       resolvedWebsiteCustomerId = mappedCustomer.id;
       await auth.supabaseAdminClient.from("profiles").update({ crm_customer_id: mappedCustomer.id }).eq("user_id", auth.user.id);
