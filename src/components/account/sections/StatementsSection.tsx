@@ -287,6 +287,8 @@ const StatementsSection = () => {
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   const liveAccountQuery = useQuery({
     queryKey: ["live-innovations-customer-account", crmCustomerId],
@@ -296,16 +298,53 @@ const StatementsSection = () => {
     retry: 1,
   });
 
-  const statements = useMemo(() => (liveAccountQuery.data?.statements ?? []).map((statement) => ({
+  const publishedStatements = useMemo(() => (liveAccountQuery.data?.statements ?? []).map((statement) => ({
     ...statement,
     id: String(statement.id),
   })) as StatementRow[], [liveAccountQuery.data?.statements]);
+
+  const balance = liveAccountQuery.data?.balance ?? null;
+
+  // Synthesize a "current period" statement covering activity after the last
+  // published statement, so users can see today's balance in context even
+  // before month-end billing runs.
+  const currentPeriodStatement = useMemo<StatementRow | null>(() => {
+    if (!balance) return null;
+    const lastPublished = publishedStatements[0] ?? null;
+    const lastClosing = lastPublished?.closing_balance ?? balance.last_statement_amount ?? 0;
+    const periodStart = lastPublished?.to_date
+      ? new Date(new Date(lastPublished.to_date).getTime() + 86_400_000).toISOString().slice(0, 10)
+      : (balance.last_statement_date ?? null);
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      id: CURRENT_PERIOD_ID,
+      account_number: balance.account_number ?? lastPublished?.account_number ?? null,
+      period_start: periodStart,
+      period_end: today,
+      opening_balance: lastClosing,
+      closing_balance: balance.current_balance ?? 0,
+      payments: null,
+      finance_charges: null,
+      discount: null,
+      due_date: null,
+      status: null,
+      void: false,
+      printed: false,
+    };
+  }, [balance, publishedStatements]);
+
+  const statements = useMemo<StatementRow[]>(
+    () => (currentPeriodStatement ? [currentPeriodStatement, ...publishedStatements] : publishedStatements),
+    [currentPeriodStatement, publishedStatements],
+  );
+
   const activeStatementId = selectedStatementId ?? statements[0]?.id ?? null;
   const activeStatement = statements.find((s) => s.id === activeStatementId) ?? null;
+  const isCurrentPeriod = activeStatementId === CURRENT_PERIOD_ID;
 
   const linesQuery = useQuery({
     queryKey: ["live-innovations-statement", activeStatementId],
-    enabled: !!activeStatementId,
+    enabled: !!activeStatementId && !isCurrentPeriod,
     queryFn: ({ signal }) => requestLiveData<LiveStatementResponse>(
       "innovations.customer_statement",
       { statement_id: Number(activeStatementId) },
@@ -314,7 +353,8 @@ const StatementsSection = () => {
     staleTime: 30_000,
     retry: 1,
   });
-  const lines = useMemo(() => linesQuery.data?.lines ?? [], [linesQuery.data?.lines]);
+  const rawLines = useMemo(() => (isCurrentPeriod ? [] : linesQuery.data?.lines ?? []), [isCurrentPeriod, linesQuery.data?.lines]);
+
 
   const paymentProfileQuery = useQuery({
     queryKey: ["customer-payment-profile", crmCustomerId],
