@@ -658,10 +658,15 @@ const StatementsSection = () => {
                 {sortedLines.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                      No transactions on this statement.
+                      {isCurrentPeriod
+                        ? "Live transactions for the current period are not yet available. The current balance above reflects live activity — line-item detail appears once the on-prem connector publishes it."
+                        : (fromDate || toDate)
+                          ? "No transactions match the selected date range."
+                          : "No line-item detail has been synced for this statement yet."}
                     </td>
                   </tr>
                 )}
+
               </tbody>
             </table>
           </div>
