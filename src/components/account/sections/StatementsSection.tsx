@@ -312,8 +312,8 @@ const StatementsSection = () => {
     if (!balance) return null;
     const lastPublished = publishedStatements[0] ?? null;
     const lastClosing = lastPublished?.closing_balance ?? balance.last_statement_amount ?? 0;
-    const periodStart = lastPublished?.to_date
-      ? new Date(new Date(lastPublished.to_date).getTime() + 86_400_000).toISOString().slice(0, 10)
+    const periodStart = lastPublished?.period_end
+      ? new Date(new Date(lastPublished.period_end).getTime() + 86_400_000).toISOString().slice(0, 10)
       : (balance.last_statement_date ?? null);
     const today = new Date().toISOString().slice(0, 10);
     return {
