@@ -1,6 +1,6 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-10T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-11T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
     "A compact role-aware homepage now puts ordering, tracking, lens guidance, help, account access, and retailer discovery first and remembers the professional/patient choice on that device.",
@@ -8,7 +8,9 @@
     "Signed-in customers are sent to a command centre that brings together onboarding, website orders, Rx drafts, balances, statements, tickets, assigned pricing, and clear source/freshness labels.",
     "The controlled lens assistant validates prescription and frame information, applies only staff-published catalogue rules, and never substitutes a generic price or invented turnaround.",
     "Recommendations can be saved as owner-private drafts and reviewed beside LabLink; LabLink remains the final submission system and the website never claims that saving a draft submitted an order.",
-    "Ask Classic can explain permitted account data and lens-tool results, while patient mode remains educational and unsupported Innovations job lookup is stated plainly."
+    "Ask Classic can explain permitted account data and lens-tool results, while patient mode remains educational and unsupported Innovations job lookup is stated plainly.",
+    "Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.",
+    "My Orders adds a live Rx-only status table with order, invoice, patient, and current-status dates; existing delivery tracking remains available."
   ],
   "moduleImpact": [
     {
@@ -25,6 +27,18 @@
       "module": "docs/architecture",
       "impact": "medium",
       "notes": "Updated as part of Smart Customer Journey First Release."
+    },
+  "releaseDateTimeUtc": "2026-07-11T00:00:00.000Z",
+  "environment": "production",
+  "releaseSummary": [
+    "Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.",
+    "My Orders adds a live Rx-only status table with order, invoice, patient, and current-status dates; existing delivery tracking remains available."
+  ],
+  "moduleImpact": [
+    {
+      "module": "general",
+      "impact": "medium",
+      "notes": "Updated as part of Portal Statements and Rx Status."
     }
   ],
   "migrationNotes": [

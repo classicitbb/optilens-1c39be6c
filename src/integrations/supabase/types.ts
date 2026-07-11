@@ -5967,8 +5967,11 @@ export type Database = {
           innovations_statement_id: number
           innovations_statement_item_id: number
           invoice_id: number | null
+          order_id: number | null
           order_type: number | null
+          order_type_name: string | null
           patient: string | null
+          payment_method: string | null
           post_date: string | null
           reference: string | null
           synced_at: string
@@ -5980,8 +5983,11 @@ export type Database = {
           innovations_statement_id: number
           innovations_statement_item_id: number
           invoice_id?: number | null
+          order_id?: number | null
           order_type?: number | null
+          order_type_name?: string | null
           patient?: string | null
+          payment_method?: string | null
           post_date?: string | null
           reference?: string | null
           synced_at?: string
@@ -5993,8 +5999,11 @@ export type Database = {
           innovations_statement_id?: number
           innovations_statement_item_id?: number
           invoice_id?: number | null
+          order_id?: number | null
           order_type?: number | null
+          order_type_name?: string | null
           patient?: string | null
+          payment_method?: string | null
           post_date?: string | null
           reference?: string | null
           synced_at?: string
@@ -6016,6 +6025,7 @@ export type Database = {
           aging_amount_2: number | null
           aging_amount_3: number | null
           aging_amount_4: number | null
+          allowance: number | null
           closing_balance: number | null
           created_at: string
           customer_id: number | null
@@ -6029,6 +6039,8 @@ export type Database = {
           innovations_statement_id: number
           opening_balance: number | null
           payments: number | null
+          transactions: number | null
+          volume_discount: number | null
           portal_emailed_at: string | null
           printed: boolean
           statement_date: string | null
@@ -6043,6 +6055,7 @@ export type Database = {
           aging_amount_2?: number | null
           aging_amount_3?: number | null
           aging_amount_4?: number | null
+          allowance?: number | null
           closing_balance?: number | null
           created_at?: string
           customer_id?: number | null
@@ -6056,6 +6069,8 @@ export type Database = {
           innovations_statement_id: number
           opening_balance?: number | null
           payments?: number | null
+          transactions?: number | null
+          volume_discount?: number | null
           portal_emailed_at?: string | null
           printed?: boolean
           statement_date?: string | null
@@ -6070,6 +6085,7 @@ export type Database = {
           aging_amount_2?: number | null
           aging_amount_3?: number | null
           aging_amount_4?: number | null
+          allowance?: number | null
           closing_balance?: number | null
           created_at?: string
           customer_id?: number | null
@@ -6083,6 +6099,8 @@ export type Database = {
           innovations_statement_id?: number
           opening_balance?: number | null
           payments?: number | null
+          transactions?: number | null
+          volume_discount?: number | null
           portal_emailed_at?: string | null
           printed?: boolean
           statement_date?: string | null

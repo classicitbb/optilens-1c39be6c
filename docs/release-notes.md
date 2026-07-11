@@ -12,6 +12,12 @@ Summarized release outcomes for each major date-stamped update.
 - Recommendations can be saved as owner-private drafts and reviewed beside LabLink; LabLink remains the final submission system and the website never claims that saving a draft submitted an order.
 - Ask Classic can explain permitted account data and lens-tool results, while patient mode remains educational and unsupported Innovations job lookup is stated plainly.
 
+## 2026-07-11 — Portal Statements and Rx Status
+
+### Release Notes
+- Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.
+- My Orders adds a live Rx-only status table with order, invoice, patient, and current-status dates; existing delivery tracking remains available.
+
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 
 ### Release Notes

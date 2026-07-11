@@ -13,6 +13,12 @@ Operational notes and change context for code in `src/**`.
 - At phone widths the shared header keeps the logo on one line and reduces sign-in/shop actions to accessible icon buttons so the smart journey is not clipped.
 - The smart homepage ends with the shared site footer, preserving company, support, legal, social, address, and contact navigation below the compact action-first experience.
 
+## 2026-07-11 — Portal financial and order status data
+
+- `StatementsSection` consumes real posted Innovations statements. It presents statement ID, volume discount, due date, aging buckets, financial totals, and transaction rows with order/payment references.
+- `MyOrdersSection` requests the identity-scoped `innovations.customer_rx_order_status` live-gateway operation. The portal only renders source rows whose InnovaAPI `orderTypeName` is `Rx`; shipment tracking remains a separate panel.
+- The browser never submits an LMS account number. The Edge Function resolves the signed-in user's mapped customer record before queuing the on-premises lookup.
+
 ## 2026-06-24 — Security hardening support tests
 
 - Product-cost exposure is guarded at the database policy layer: browser-facing catalog/product flows should continue to read `addons_public`, `lenses_public`, `supplies_public`, and other cost-free customer views.
