@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type LiveDataOperation =
   | "innovations.customer_account"
   | "innovations.customer_statement"
-  | "innovations.customer_rx_order_status"
+  | "innovations.customer_orders"
   | "optilens.customer_deliveries";
 
 type GatewayEnvelope<T> = {

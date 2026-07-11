@@ -2,11 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
-## 2026-07-11 — Portal Statements and Rx Status
+## 2026-07-11 — Portal Statements and Order Status
 
 ### Release Notes
 - Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.
-- My Orders adds a live Rx-only status table with order, invoice, patient, and current-status dates; existing delivery tracking remains available.
+- My Orders adds live Innovations order status from MSSQL-SVR with order type, invoice, patient, and current-status dates; existing delivery tracking remains available.
 
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 

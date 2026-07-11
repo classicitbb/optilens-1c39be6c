@@ -4,15 +4,15 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
-## 2026-07-11 — Portal Statements and Rx Status
+## 2026-07-11 — Portal Statements and Order Status
 
 ### Release Notes
 - Customer statements now use posted Innovations statements with full aging, balance, and transaction detail instead of a synthetic current-period record.
-- My Orders now includes live Rx-only status from InnovaAPI while retaining delivery tracking and website order history.
+- My Orders now includes live Innovations order status from the MSSQL-SVR gateway while retaining delivery tracking and website order history.
+- Customer account-number linking now blocks duplicate Innovations account numbers and exposes a duplicate audit view.
 
 ### Technical Changelog
-- Extended the live gateway, statement sync, and portal views with the posted-statement and Rx-order fields required by the customer portal.
-- Added encrypted on-premises InnovaAPI bearer-token storage; the token remains server-side.
+- Extended the live gateway, statement sync, and portal views with the posted-statement and order-status fields required by the customer portal.
 
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 

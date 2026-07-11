@@ -5,7 +5,7 @@ Operational notes and change context for code in `src/**`.
 ## 2026-07-11 — Portal financial and order status data
 
 - `StatementsSection` consumes real posted Innovations statements. It presents statement ID, volume discount, due date, aging buckets, financial totals, and transaction rows with order/payment references.
-- `MyOrdersSection` requests the identity-scoped `innovations.customer_rx_order_status` live-gateway operation. The portal only renders source rows whose InnovaAPI `orderTypeName` is `Rx`; shipment tracking remains a separate panel.
+- `MyOrdersSection` requests the identity-scoped `innovations.customer_orders` live-gateway operation. The portal renders order status rows sourced from MSSQL-SVR through OptiLens Local; shipment tracking remains a separate panel.
 - The browser never submits an LMS account number. The Edge Function resolves the signed-in user's mapped customer record before queuing the on-premises lookup.
 
 ## 2026-06-24 — Security hardening support tests
