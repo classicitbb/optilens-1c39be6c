@@ -364,7 +364,7 @@ const WebsitePortalsPage = () => {
         description: error.message || "Failed to update account number.",
         variant: "destructive",
         action: isConflict ? (
-          <ToastAction altText="Open ERP contacts" onClick={() => navigate("/admin/erp/contacts")}>
+          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/erp/contacts?erpCustomer=${error.result.conflict_customer_id}`)}>
             Open contacts
           </ToastAction>
         ) : undefined,
