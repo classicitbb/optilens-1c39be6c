@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-10.3";
+const VERSION = "2026-07-11.1";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -26,6 +26,12 @@ type CustomerMapping = {
   id: number;
   account_number: string | null;
   innovations_customer_id: number | null;
+};
+
+type PortalProfile = {
+  crm_customer_id: number | null;
+  crm_contact_id: string | null;
+  portal_access_status: string | null;
 };
 
 const corsPolicy = createCorsPolicy({
@@ -174,6 +180,46 @@ async function cachedBalance(supabase: SupabaseClient, customer: CustomerMapping
   return null;
 }
 
+function hasLiveCustomerLink(customer: CustomerMapping | null): customer is CustomerMapping {
+  return !!customer && (!!customer.account_number || !!customer.innovations_customer_id);
+}
+
+async function customerById(supabase: SupabaseClient, id: number | null) {
+  if (!id) return null;
+  const { data } = await supabase
+    .from("customers")
+    .select("id,account_number,innovations_customer_id")
+    .eq("id", id)
+    .maybeSingle();
+  return data as CustomerMapping | null;
+}
+
+async function customerByInnovationsId(supabase: SupabaseClient, innovationsCustomerId: number | null) {
+  if (!innovationsCustomerId) return null;
+  const { data } = await supabase
+    .from("customers")
+    .select("id,account_number,innovations_customer_id")
+    .eq("innovations_customer_id", innovationsCustomerId)
+    .order("updated_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  return data as CustomerMapping | null;
+}
+
+async function mappedCustomerFromPortalContact(supabase: SupabaseClient, contactId: string | null) {
+  if (!contactId) return null;
+  const { data: contact } = await supabase
+    .from("contacts")
+    .select("linked_customer_id,innovations_parent_customer_id")
+    .eq("id", contactId)
+    .maybeSingle();
+  const contactMapping = contact as { linked_customer_id?: unknown; innovations_parent_customer_id?: unknown } | null;
+  const linkedCustomer = await customerById(supabase, integer(contactMapping?.linked_customer_id));
+  if (hasLiveCustomerLink(linkedCustomer)) return linkedCustomer;
+  const innovationsCustomer = await customerByInnovationsId(supabase, integer(contactMapping?.innovations_parent_customer_id));
+  return hasLiveCustomerLink(innovationsCustomer) ? innovationsCustomer : null;
+}
+
 async function cachedLiveDataResponse(
   supabase: SupabaseClient,
   operation: Operation,
@@ -249,16 +295,32 @@ async function clientContext(req: Request) {
   const auth = await requireAuthenticatedUser(req, getCorsHeaders(req, corsPolicy));
   if (auth instanceof Response) return { response: auth };
 
-  const [{ data: roles }, { data: profile, error: profileError }] = await Promise.all([
-    auth.supabaseAdminClient.from("user_roles").select("role").eq("user_id", auth.user.id),
-    auth.supabaseAdminClient
-      .from("profiles")
-      .select("crm_customer_id,portal_access_status")
-      .eq("user_id", auth.user.id)
-      .maybeSingle(),
-  ]);
-  if (profileError) return { response: json(req, { error: "Could not resolve portal identity." }, 500) };
+  const { data: roles } = await auth.supabaseAdminClient.from("user_roles").select("role").eq("user_id", auth.user.id);
   const isStaff = (roles ?? []).some((row: { role: string }) => ["admin", "editor", "author"].includes(row.role));
+
+  let profile: PortalProfile | null = null;
+  if (!isStaff) {
+    const { data: syncedIdentity } = await auth.supabaseAdminClient.rpc("sync_customer_portal_identity", { p_user_id: auth.user.id });
+    const syncedRow = Array.isArray(syncedIdentity) ? syncedIdentity[0] : syncedIdentity;
+    if (syncedRow) {
+      profile = {
+        crm_customer_id: integer(syncedRow.crm_customer_id),
+        crm_contact_id: typeof syncedRow.crm_contact_id === "string" ? syncedRow.crm_contact_id : null,
+        portal_access_status: typeof syncedRow.portal_access_status === "string" ? syncedRow.portal_access_status : null,
+      };
+    }
+  }
+
+  if (!profile) {
+    const { data, error: profileError } = await auth.supabaseAdminClient
+      .from("profiles")
+      .select("crm_customer_id,crm_contact_id,portal_access_status")
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+    if (profileError) return { response: json(req, { error: "Could not resolve portal identity." }, 500) };
+    profile = data as PortalProfile | null;
+  }
+
   return { auth, profile, isStaff };
 }
 
@@ -299,7 +361,21 @@ async function handleClientRequest(req: Request, body: JsonObject) {
     .eq("id", websiteCustomerId)
     .maybeSingle();
   if (customerError || !customer) return json(req, { error: "Customer account mapping was not found." }, 404);
-  if (!customer.account_number && !customer.innovations_customer_id) {
+
+  let resolvedCustomer = customer as CustomerMapping;
+  let resolvedWebsiteCustomerId = websiteCustomerId;
+  if (!isStaff && !hasLiveCustomerLink(resolvedCustomer)) {
+    const mappedCustomer = await mappedCustomerFromPortalContact(auth.supabaseAdminClient, profile?.crm_contact_id ?? null);
+    if (mappedCustomer) {
+      resolvedCustomer = mappedCustomer;
+      resolvedWebsiteCustomerId = mappedCustomer.id;
+      await auth.supabaseAdminClient.from("profiles").update({ crm_customer_id: mappedCustomer.id }).eq("user_id", auth.user.id);
+    }
+  }
+
+  if (!hasLiveCustomerLink(resolvedCustomer)) {
+    const offline = offlineLiveDataResponse(operation, resolvedCustomer);
+    if (!isStaff && offline) return json(req, { ...offline, source_status: "unlinked", error: "Customer account is not linked to Innovations or OptiLens Local." }, 200);
     return json(req, { error: "Customer account is not linked to Innovations or OptiLens Local." }, 409);
   }
 
@@ -313,9 +389,9 @@ async function handleClientRequest(req: Request, body: JsonObject) {
     Array.isArray(agent.capabilities) && agent.capabilities.includes(operation)
   );
   if (!hasAgent) {
-    const cached = await cachedLiveDataResponse(auth.supabaseAdminClient, operation, customer as CustomerMapping, argumentsBody);
+    const cached = await cachedLiveDataResponse(auth.supabaseAdminClient, operation, resolvedCustomer, argumentsBody);
     if (cached) return json(req, cached, 200);
-    const offline = offlineLiveDataResponse(operation, customer as CustomerMapping);
+    const offline = offlineLiveDataResponse(operation, resolvedCustomer);
     if (offline) return json(req, offline, 200);
     return json(req, { error: "The private live-data connector is offline." }, 503);
   }
@@ -325,13 +401,13 @@ async function handleClientRequest(req: Request, body: JsonObject) {
     .from("live_data_gateway_requests")
     .insert({
       requested_by: auth.user.id,
-      website_customer_id: websiteCustomerId,
+      website_customer_id: resolvedWebsiteCustomerId,
       source: config.source,
       operation,
       target: {
-        website_customer_id: websiteCustomerId,
-        innovations_customer_id: customer.innovations_customer_id ?? null,
-        account_number: customer.account_number ?? null,
+        website_customer_id: resolvedWebsiteCustomerId,
+        innovations_customer_id: resolvedCustomer.innovations_customer_id ?? null,
+        account_number: resolvedCustomer.account_number ?? null,
       },
       arguments: argumentsBody,
       expires_at: new Date(now + REQUEST_TTL_MS).toISOString(),
