@@ -19,9 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowUpDown, ArrowUpRight, Loader2, Printer, ReceiptText, X } from "lucide-react";
+import { ArrowUpDown, ArrowUpRight, Info, Loader2, Printer, ReceiptText, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { COMPANY_CONTACT } from "@/config/companyContact";
 import { requestLiveData } from "@/lib/liveDataGateway";
+
+const CURRENT_PERIOD_ID = "__current__";
 
 // Live Innovations data is fetched on demand through the private OptiLens
 // gateway. Payment routing remains a narrow CV-owned portal configuration.
