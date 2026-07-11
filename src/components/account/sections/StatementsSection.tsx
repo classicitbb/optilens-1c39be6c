@@ -20,8 +20,12 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowUpDown, ArrowUpRight, Loader2, Printer, ReceiptText, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { COMPANY_CONTACT } from "@/config/companyContact";
 import { requestLiveData } from "@/lib/liveDataGateway";
+
+const CURRENT_PERIOD_ID = "__current__";
 
 // Live Innovations data is fetched on demand through the private OptiLens
 // gateway. Payment routing remains a narrow CV-owned portal configuration.
@@ -283,6 +287,8 @@ const StatementsSection = () => {
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   const liveAccountQuery = useQuery({
     queryKey: ["live-innovations-customer-account", crmCustomerId],
@@ -292,16 +298,53 @@ const StatementsSection = () => {
     retry: 1,
   });
 
-  const statements = useMemo(() => (liveAccountQuery.data?.statements ?? []).map((statement) => ({
+  const publishedStatements = useMemo(() => (liveAccountQuery.data?.statements ?? []).map((statement) => ({
     ...statement,
     id: String(statement.id),
   })) as StatementRow[], [liveAccountQuery.data?.statements]);
+
+  const balance = liveAccountQuery.data?.balance ?? null;
+
+  // Synthesize a "current period" statement covering activity after the last
+  // published statement, so users can see today's balance in context even
+  // before month-end billing runs.
+  const currentPeriodStatement = useMemo<StatementRow | null>(() => {
+    if (!balance) return null;
+    const lastPublished = publishedStatements[0] ?? null;
+    const lastClosing = lastPublished?.closing_balance ?? balance.last_statement_amount ?? 0;
+    const periodStart = lastPublished?.period_end
+      ? new Date(new Date(lastPublished.period_end).getTime() + 86_400_000).toISOString().slice(0, 10)
+      : (balance.last_statement_date ?? null);
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      id: CURRENT_PERIOD_ID,
+      account_number: balance.account_number ?? lastPublished?.account_number ?? null,
+      period_start: periodStart,
+      period_end: today,
+      opening_balance: lastClosing,
+      closing_balance: balance.current_balance ?? 0,
+      payments: null,
+      finance_charges: null,
+      discount: null,
+      due_date: null,
+      status: null,
+      void: false,
+      printed: false,
+    };
+  }, [balance, publishedStatements]);
+
+  const statements = useMemo<StatementRow[]>(
+    () => (currentPeriodStatement ? [currentPeriodStatement, ...publishedStatements] : publishedStatements),
+    [currentPeriodStatement, publishedStatements],
+  );
+
   const activeStatementId = selectedStatementId ?? statements[0]?.id ?? null;
   const activeStatement = statements.find((s) => s.id === activeStatementId) ?? null;
+  const isCurrentPeriod = activeStatementId === CURRENT_PERIOD_ID;
 
   const linesQuery = useQuery({
     queryKey: ["live-innovations-statement", activeStatementId],
-    enabled: !!activeStatementId,
+    enabled: !!activeStatementId && !isCurrentPeriod,
     queryFn: ({ signal }) => requestLiveData<LiveStatementResponse>(
       "innovations.customer_statement",
       { statement_id: Number(activeStatementId) },
@@ -310,7 +353,8 @@ const StatementsSection = () => {
     staleTime: 30_000,
     retry: 1,
   });
-  const lines = useMemo(() => linesQuery.data?.lines ?? [], [linesQuery.data?.lines]);
+  const rawLines = useMemo(() => (isCurrentPeriod ? [] : linesQuery.data?.lines ?? []), [isCurrentPeriod, linesQuery.data?.lines]);
+
 
   const paymentProfileQuery = useQuery({
     queryKey: ["customer-payment-profile", crmCustomerId],
@@ -350,6 +394,17 @@ const StatementsSection = () => {
       setSortDirection("asc");
     }
   };
+
+  const lines = useMemo(() => {
+    if (!fromDate && !toDate) return rawLines;
+    const fromMs = fromDate ? new Date(fromDate).getTime() : -Infinity;
+    const toMs = toDate ? new Date(toDate).getTime() + 86_399_000 : Infinity;
+    return rawLines.filter((l) => {
+      if (!l.post_date) return false;
+      const t = new Date(l.post_date).getTime();
+      return t >= fromMs && t <= toMs;
+    });
+  }, [rawLines, fromDate, toDate]);
 
   const sortedLines = useMemo(() => {
     if (!sortColumn) return lines;
@@ -438,7 +493,7 @@ const StatementsSection = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:gap-8">
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                  Opening Balance {activeStatement ? `(${periodLabel(activeStatement)})` : ""}
+                  Opening Balance {activeStatement ? `(${isCurrentPeriod ? "since last statement" : periodLabel(activeStatement)})` : ""}
                 </p>
                 <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
                   ${money(activeStatement?.opening_balance)}
@@ -446,15 +501,15 @@ const StatementsSection = () => {
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                  Payments This Period
+                  {isCurrentPeriod ? "Statement Closing (last posted)" : "Payments This Period"}
                 </p>
                 <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
-                  ${money(activeStatement?.payments)}
+                  ${money(isCurrentPeriod ? (publishedStatements[0]?.closing_balance ?? 0) : activeStatement?.payments)}
                 </p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                  Current Balance
+                  Current Balance (live)
                 </p>
                 <p className="text-lg font-semibold text-primary dark:text-emerald-400 sm:text-xl">
                   ${money(currentBalance)}
@@ -476,12 +531,41 @@ const StatementsSection = () => {
                 <SelectContent className="dark:bg-slate-900 dark:border-slate-700">
                   {statements.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
-                      {periodLabel(s)} · ${money(s.closing_balance)}
+                      {s.id === CURRENT_PERIOD_ID ? "Current period (unbilled)" : periodLabel(s)} · ${money(s.closing_balance)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="space-y-1">
+                <Label htmlFor="stmt-from" className="text-xs text-muted-foreground">From</Label>
+                <Input
+                  id="stmt-from"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="h-10 w-[150px] bg-white dark:bg-slate-900"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="stmt-to" className="text-xs text-muted-foreground">To</Label>
+                <Input
+                  id="stmt-to"
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="h-10 w-[150px] bg-white dark:bg-slate-900"
+                />
+              </div>
+              {(fromDate || toDate) && (
+                <Button variant="ghost" size="sm" className="h-10" onClick={() => { setFromDate(""); setToDate(""); }}>
+                  Clear
+                </Button>
+              )}
+            </div>
+
 
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
@@ -495,11 +579,12 @@ const StatementsSection = () => {
                 size="icon"
                 className="h-10 w-10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800"
                 onClick={() => setStatementPreviewOpen(true)}
-                disabled={!activeStatement}
-                title="Preview and print statement"
+                disabled={!activeStatement || isCurrentPeriod}
+                title={isCurrentPeriod ? "Not printable — current period is unbilled" : "Preview and print statement"}
               >
                 <Printer className="h-4 w-4" />
               </Button>
+
             </div>
           </div>
         </div>
@@ -574,10 +659,15 @@ const StatementsSection = () => {
                 {sortedLines.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                      No transactions on this statement.
+                      {isCurrentPeriod
+                        ? "Live transactions for the current period are not yet available. The current balance above reflects live activity — line-item detail appears once the on-prem connector publishes it."
+                        : (fromDate || toDate)
+                          ? "No transactions match the selected date range."
+                          : "No line-item detail has been synced for this statement yet."}
                     </td>
                   </tr>
                 )}
+
               </tbody>
             </table>
           </div>
