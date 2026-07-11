@@ -395,6 +395,17 @@ const StatementsSection = () => {
     }
   };
 
+  const lines = useMemo(() => {
+    if (!fromDate && !toDate) return rawLines;
+    const fromMs = fromDate ? new Date(fromDate).getTime() : -Infinity;
+    const toMs = toDate ? new Date(toDate).getTime() + 86_399_000 : Infinity;
+    return rawLines.filter((l) => {
+      if (!l.post_date) return false;
+      const t = new Date(l.post_date).getTime();
+      return t >= fromMs && t <= toMs;
+    });
+  }, [rawLines, fromDate, toDate]);
+
   const sortedLines = useMemo(() => {
     if (!sortColumn) return lines;
     const sorted = [...lines];
