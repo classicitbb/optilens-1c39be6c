@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowUpDown, ArrowUpRight, Info, Loader2, Printer, ReceiptText, X } from "lucide-react";
+import { ArrowUpDown, ArrowUpRight, Loader2, Printer, ReceiptText, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { COMPANY_CONTACT } from "@/config/companyContact";
