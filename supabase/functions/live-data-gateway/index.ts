@@ -144,6 +144,22 @@ function statementPayload(row: JsonObject): JsonObject {
   };
 }
 
+function statementLinePayload(row: JsonObject): JsonObject {
+  return {
+    id: row.id ?? null,
+    statement_id: row.innovations_statement_id ?? row.statement_id ?? null,
+    account_number: row.account_number ?? null,
+    order_type_name: row.order_type_name ?? null,
+    invoice_id: row.invoice_id ?? null,
+    order_id: row.order_id ?? null,
+    reference: row.reference ?? null,
+    patient: row.patient ?? null,
+    payment_method: row.payment_method ?? null,
+    post_date: row.post_date ?? null,
+    amount: row.amount ?? null,
+  };
+}
+
 async function cachedStatements(supabase: SupabaseClient, customer: CustomerMapping) {
   const select = "id,innovations_statement_id,account_number,statement_date,from_date,to_date,volume_discount,opening_balance,transactions,closing_balance,payments,finance_charges,discount,allowance,aging_amount_1,aging_amount_2,aging_amount_3,aging_amount_4,due_date,status,void,printed,synced_at";
   const query = (column: string, value: string | number) => supabase
@@ -256,10 +272,16 @@ async function cachedLiveDataResponse(
     if (!statementId) return null;
     const { data: statement } = await supabase
       .from("statements")
-      .select("id,innovations_statement_id,account_number,statement_date,from_date,to_date,volume_discount,opening_balance,transactions,closing_balance,payments,finance_charges,discount,allowance,aging_amount_1,aging_amount_2,aging_amount_3,aging_amount_4,due_date,status,void,printed,synced_at")
+      .select("id,customer_id,innovations_customer_id,innovations_statement_id,account_number,statement_date,from_date,to_date,volume_discount,opening_balance,transactions,closing_balance,payments,finance_charges,discount,allowance,aging_amount_1,aging_amount_2,aging_amount_3,aging_amount_4,due_date,status,void,printed,synced_at")
       .eq("innovations_statement_id", statementId)
       .maybeSingle();
     if (!statement) return null;
+    const statementRow = statement as JsonObject;
+    const belongsToCustomer =
+      statementRow.customer_id === customer.id ||
+      statementRow.innovations_customer_id === customer.innovations_customer_id ||
+      (!!statementRow.account_number && statementRow.account_number === customer.account_number);
+    if (!belongsToCustomer) return null;
     const { data: lines } = await supabase
       .from("statement_lines")
       .select("id,innovations_statement_id,order_type,order_type_name,invoice_id,order_id,reference,patient,payment_method,post_date,amount")
@@ -267,8 +289,8 @@ async function cachedLiveDataResponse(
       .order("post_date", { ascending: true, nullsFirst: false })
       .order("id", { ascending: true });
     return {
-      statement: statementPayload(statement as JsonObject),
-      lines: lines ?? [],
+      statement: statementPayload(statementRow),
+      lines: (lines ?? []).map((line) => statementLinePayload(line as JsonObject)),
       retrieved_at: new Date().toISOString(),
       source_status: "cached",
     };

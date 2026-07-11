@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BellRing,
@@ -33,6 +33,12 @@ import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
 import { Separator } from "@/components/ui/separator";
+import { ToastAction } from "@/components/ui/toast";
+import {
+  AccountNumberAssignmentError,
+  assignCustomerAccountNumber,
+  normalizeAccountNumberInput,
+} from "@/lib/accountNumberAssignment";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 
 interface PortalCustomerListItem {
@@ -111,6 +117,7 @@ const getCartStatusLabel = (status: PortalCustomerListItem["cartStatus"]) => {
 
 const WebsitePortalsPage = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { users, resetPassword, isLoading: usersLoading } = useAdminUsers();
@@ -344,18 +351,25 @@ const WebsitePortalsPage = () => {
   const updateAccountNumber = useMutation({
     mutationFn: async (nextAccountNumber: string) => {
       if (!selectedCustomer?.crmCustomerId) throw new Error("Customer must be approved (have a CRM customer record) before an account number can be linked.");
-      const trimmed = nextAccountNumber.trim() || null;
-      const { error } = await (supabase as any)
-        .from("customers")
-        .update({ account_number: trimmed })
-        .eq("id", selectedCustomer.crmCustomerId);
-      if (error) throw error;
+      return assignCustomerAccountNumber(selectedCustomer.crmCustomerId, nextAccountNumber);
     },
     onSuccess: async () => {
       await detailQuery.refetch();
       toast({ title: "Account number updated", description: "This is the only field that links the account to Innovations and online statements." });
     },
-    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to update account number.", variant: "destructive" }),
+    onError: (error: any) => {
+      const isConflict = error instanceof AccountNumberAssignmentError && error.result.status === "conflict";
+      toast({
+        title: isConflict ? "Account number already linked" : "Error",
+        description: error.message || "Failed to update account number.",
+        variant: "destructive",
+        action: isConflict ? (
+          <ToastAction altText="Open ERP contacts" onClick={() => navigate("/admin/erp/contacts")}>
+            Open contacts
+          </ToastAction>
+        ) : undefined,
+      });
+    },
   });
 
   const updateCustomerProfile = useMutation({
@@ -663,7 +677,11 @@ const WebsitePortalsPage = () => {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => updateAccountNumber.mutate(accountNumberDraft)}
-                                  disabled={updateAccountNumber.isPending || !detailQuery.data.crmCustomerId || accountNumberDraft.trim() === (detailQuery.data.accountNumber ?? "")}
+                                  disabled={
+                                    updateAccountNumber.isPending ||
+                                    !detailQuery.data.crmCustomerId ||
+                                    normalizeAccountNumberInput(accountNumberDraft) === normalizeAccountNumberInput(detailQuery.data.accountNumber)
+                                  }
                                 >
                                   {updateAccountNumber.isPending ? "Saving…" : "Save"}
                                 </Button>
