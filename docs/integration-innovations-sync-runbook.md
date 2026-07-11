@@ -76,6 +76,14 @@ back (`POST _requests/complete`); the card shows pending → done.
 - `select * from innovations_sync_dead_letters where status='pending';`
   — records that failed upsert, with the source payload for replay.
 - CV row counts: `select count(*) from customers where innovations_customer_id is not null;`
+- Office run history: `GET /api/connectors/innovations-sync/logs` (requires the
+  local `integrations.read` permission). It records timestamps, entity counts,
+  and sanitised failures only—never the API key or source payloads. The active
+  log is `data/logs/innovations-sync.jsonl` and rotates at 5 MB.
+- The two installer commands intentionally create different tasks by default:
+  **OptiLens Innovations Sync** (hourly full push) and **OptiLens Innovations
+  Sync Requests** (three-minute cloud request poller). Confirm both exist in
+  Task Scheduler; installing the poller must not replace the full push.
 
 ## Troubleshooting
 
@@ -84,6 +92,7 @@ back (`POST _requests/complete`); the card shows pending → done.
 | `401 Missing/invalid x-api-key` | Key not saved in vault, or wrong value. Re-save under CV API connector. |
 | `403 Missing required scope: customers:write` (or `contacts:write`) | Key lacks that scope. Mint a key with both `customers:write` and `contacts:write`. |
 | `404 Unknown entity` | Only `customers`, `contacts` supported in v1. |
+| Cloud “Sync now” stays pending | Confirm the request-poller task is installed and the office log contains `queue.request.claimed` followed by `queue.request.finished`. |
 | `422` / `failed` status | Upsert errors — inspect `innovations_sync_dead_letters.last_error`. |
 | `Invalid column name` in office logs | The `contacts` SQL uses assumed `dbo.Contacts` columns. Adjust `ENTITIES.contacts.sql` / `.map` in `lib/innovations-sync.js` to the real columns, re-run dry-run. |
 | Duplicate rows | Should not happen (unique index on `innovations_*_id`). If seen, confirm the migration's unique indexes were applied. |

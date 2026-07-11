@@ -20,7 +20,7 @@ import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts"
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "content-type, x-api-key",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 // Per-entity upsert config: target table, conflict key, the write scope required
@@ -168,7 +168,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-02.4-contact-customer-linking";
+const VERSION = "2026-07-10.5-sync-request-polling";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 // Customers get individual resolution instead of a blind onConflict(innovations_customer_id)
@@ -367,8 +367,6 @@ Deno.serve(async (req: Request) => {
     return json({ name: "innovations-sync", version: VERSION, entities: Object.keys(ENTITIES) });
   }
 
-  if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
-
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false },
   });
@@ -427,6 +425,8 @@ Deno.serve(async (req: Request) => {
     }
     return json({ error: "Unsupported _requests operation." }, 404);
   }
+
+  if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   const cfg = ENTITIES[entity];
   if (!cfg) {
