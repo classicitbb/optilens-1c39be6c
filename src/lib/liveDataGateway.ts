@@ -33,10 +33,13 @@ async function invokeGateway<T>(body: Record<string, unknown>): Promise<GatewayE
   const { data, error } = await supabase.functions.invoke("live-data-gateway", { body });
   if (error) {
     let message = error.message || "Live-data gateway request failed.";
-    const context = (error as { context?: Response }).context;
-    if (context) {
+    const context = (error as { context?: unknown }).context;
+    if (context instanceof Response) {
       const payload = await context.clone().json().catch(() => null) as { error?: string } | null;
       if (payload?.error) message = payload.error;
+    } else if (context && typeof context === "object" && "error" in context) {
+      const contextError = (context as { error?: unknown }).error;
+      if (typeof contextError === "string" && contextError.trim()) message = contextError;
     }
     throw new Error(message);
   }
