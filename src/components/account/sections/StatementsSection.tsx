@@ -493,7 +493,7 @@ const StatementsSection = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:gap-8">
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                  Opening Balance {activeStatement ? `(${periodLabel(activeStatement)})` : ""}
+                  Opening Balance {activeStatement ? `(${isCurrentPeriod ? "since last statement" : periodLabel(activeStatement)})` : ""}
                 </p>
                 <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
                   ${money(activeStatement?.opening_balance)}
@@ -501,15 +501,15 @@ const StatementsSection = () => {
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                  Payments This Period
+                  {isCurrentPeriod ? "Statement Closing (last posted)" : "Payments This Period"}
                 </p>
                 <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">
-                  ${money(activeStatement?.payments)}
+                  ${money(isCurrentPeriod ? (publishedStatements[0]?.closing_balance ?? 0) : activeStatement?.payments)}
                 </p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
-                  Current Balance
+                  Current Balance (live)
                 </p>
                 <p className="text-lg font-semibold text-primary dark:text-emerald-400 sm:text-xl">
                   ${money(currentBalance)}
@@ -531,12 +531,41 @@ const StatementsSection = () => {
                 <SelectContent className="dark:bg-slate-900 dark:border-slate-700">
                   {statements.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
-                      {periodLabel(s)} · ${money(s.closing_balance)}
+                      {s.id === CURRENT_PERIOD_ID ? "Current period (unbilled)" : periodLabel(s)} · ${money(s.closing_balance)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="space-y-1">
+                <Label htmlFor="stmt-from" className="text-xs text-muted-foreground">From</Label>
+                <Input
+                  id="stmt-from"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="h-10 w-[150px] bg-white dark:bg-slate-900"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="stmt-to" className="text-xs text-muted-foreground">To</Label>
+                <Input
+                  id="stmt-to"
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="h-10 w-[150px] bg-white dark:bg-slate-900"
+                />
+              </div>
+              {(fromDate || toDate) && (
+                <Button variant="ghost" size="sm" className="h-10" onClick={() => { setFromDate(""); setToDate(""); }}>
+                  Clear
+                </Button>
+              )}
+            </div>
+
 
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
