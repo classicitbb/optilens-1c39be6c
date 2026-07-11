@@ -6318,15 +6318,15 @@ export type Database = {
           innovations_statement_id: number
           opening_balance: number | null
           payments: number | null
-          transactions: number | null
-          volume_discount: number | null
           portal_emailed_at: string | null
           printed: boolean
           statement_date: string | null
           status: number | null
           synced_at: string
           to_date: string | null
+          transactions: number | null
           void: boolean
+          volume_discount: number | null
         }
         Insert: {
           account_number?: string | null
@@ -6348,15 +6348,15 @@ export type Database = {
           innovations_statement_id: number
           opening_balance?: number | null
           payments?: number | null
-          transactions?: number | null
-          volume_discount?: number | null
           portal_emailed_at?: string | null
           printed?: boolean
           statement_date?: string | null
           status?: number | null
           synced_at?: string
           to_date?: string | null
+          transactions?: number | null
           void?: boolean
+          volume_discount?: number | null
         }
         Update: {
           account_number?: string | null
@@ -6378,15 +6378,15 @@ export type Database = {
           innovations_statement_id?: number
           opening_balance?: number | null
           payments?: number | null
-          transactions?: number | null
-          volume_discount?: number | null
           portal_emailed_at?: string | null
           printed?: boolean
           statement_date?: string | null
           status?: number | null
           synced_at?: string
           to_date?: string | null
+          transactions?: number | null
           void?: boolean
+          volume_discount?: number | null
         }
         Relationships: [
           {
