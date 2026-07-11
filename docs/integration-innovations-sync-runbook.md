@@ -9,11 +9,11 @@ full contract.
 | Field | Value |
 | ----- | ----- |
 | Provider | `innovations` (on-prem MS SQL, `Innovations` on `MSSQL-SVR`) |
-| Purpose | Mirror customers, contacts, balances, invoices, posted statements, and statement lines into CV cloud for the Customer Journey Hub |
+| Purpose | Mirror customers, contacts, balances, posted statements, and statement lines into CV cloud for the Customer Journey Hub |
 | Direction | Outbound push, office → cloud (office DB never exposed inbound) |
-| Auth | `x-api-key: cv_live_…`; scopes `customers:write`, `contacts:write`, and `statements:write`, verified by `verify_api_key` |
+| Auth | `x-api-key: cv_live_…`; scopes `customers:write`, `contacts:write`, `balances:write`, `statements:write`, and `gateway:agent`, verified by `verify_api_key` |
 | Office env var | `OPTILENS_SYNC_TOKEN` (vault token, for unattended runs) |
-| CV tables written | `customers`, `contacts`, `customer_balances`, `invoices`, `statements`, `statement_lines` (upsert by Innovations identifiers) |
+| CV tables written | `customers`, `contacts`, `customer_balances`, `statements`, `statement_lines` (upsert by Innovations identifiers) |
 | Observability | `innovations_sync_runs`, `innovations_sync_dead_letters` |
 | Fallback | On cloud outage the office logs + retries next run; office DB unaffected (read-only) |
 | Human approval | Dry-run reviewed before first commit; key minted by an admin |
@@ -22,23 +22,23 @@ full contract.
 
 **CV cloud**
 1. Apply `supabase/migrations/20260630120000_innovations_sync_v1.sql` and
-   `supabase/migrations/20260711090000_portal_statement_and_rx_status.sql`
-   (external-id columns, observability tables, statement fields, and the Rx
-   gateway operation).
+   `supabase/migrations/20260711090000_portal_statement_and_rx_status.sql`,
+   then `supabase/migrations/20260711110000_mssql_gateway_orders_and_account_guard.sql`
+   (external-id columns, observability tables, statement fields, MSSQL-backed
+   order gateway operation, and customer account-number duplicate guard).
 2. Deploy both edge functions: `supabase functions deploy innovations-sync` and
    `supabase functions deploy live-data-gateway`.
 3. Mint an API key: **Settings → API Keys**, tick **`customers:write`** and
-   **`contacts:write`**, and **`statements:write`**. Copy the `cv_live_…`
-   value (shown once).
+   **`contacts:write`**, **`balances:write`**, **`statements:write`**, and
+   **`gateway:agent`**. Copy the `cv_live_…` value (shown once).
 
 **OptiLens Local (office)**
 4. Unlock the vault, then save the key under the CV API connector
    (`/api/connectors/cvapi/config` — same place the catalog pull uses).
-5. Under the InnovaAPI connector, save the base URL (`https://localhost/api/v2`)
-   and bearer token. It is encrypted in the existing OptiLens Local vault and
-   is never sent to the browser.
+5. Confirm the local Innovations/MSSQL connection is configured and reachable.
+   No InnovaAPI connector or bearer token is required for portal orders.
 6. Restart the local app/gateway worker, then confirm its status advertises
-   `innovations.customer_rx_order_status`.
+   `innovations.customer_orders`.
 7. Dry-run from the admin action or CLI (below) and review the sample/counts.
 8. When the sample looks right, commit, then install the scheduled task.
 
@@ -52,7 +52,7 @@ The token below is obtained by unlocking the vault with your passphrase
 POST /api/connectors/innovations-sync/run
 { "token": "<vault-token>", "commit": false }        # dry-run (default)
 { "token": "<vault-token>", "commit": true,
-  "entities": ["customers","contacts","customer_balances","invoices","statements","statement_lines"],
+  "entities": ["customers","contacts","balances","statements","statement_lines"],
   "suppress_email": true }                                # initial/backfill write
 ```
 
@@ -85,6 +85,16 @@ back (`POST _requests/complete`); the card shows pending → done.
 - `select * from innovations_sync_dead_letters where status='pending';`
   — records that failed upsert, with the source payload for replay.
 - CV row counts: `select count(*) from customers where innovations_customer_id is not null;`
+- Account-number duplicates: `select * from customer_account_number_duplicates;`
+  — must be empty before the normalized unique index can be created.
+- Office run history: `GET /api/connectors/innovations-sync/logs` (requires the
+  local `integrations.read` permission). It records timestamps, entity counts,
+  and sanitised failures only—never the API key or source payloads. The active
+  log is `data/logs/innovations-sync.jsonl` and rotates at 5 MB.
+- The two installer commands intentionally create different tasks by default:
+  **OptiLens Innovations Sync** (hourly full push) and **OptiLens Innovations
+  Sync Requests** (three-minute cloud request poller). Confirm both exist in
+   Task Scheduler; installing the poller must not replace the full push.
 
 ## Troubleshooting
 

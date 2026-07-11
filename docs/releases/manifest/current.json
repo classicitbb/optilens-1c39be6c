@@ -32,13 +32,13 @@
   "environment": "production",
   "releaseSummary": [
     "Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.",
-    "My Orders adds a live Rx-only status table with order, invoice, patient, and current-status dates; existing delivery tracking remains available."
+    "My Orders adds live Innovations order status from MSSQL-SVR with order type, invoice, patient, and current-status dates; existing delivery tracking remains available."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Portal Statements and Rx Status."
+      "notes": "Updated as part of Portal Statements and Order Status."
     }
   ],
   "migrationNotes": [

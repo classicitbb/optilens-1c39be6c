@@ -16,7 +16,7 @@ const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:writ
 const OPERATIONS = {
   "innovations.customer_account": { source: "innovations", feature: "statements" },
   "innovations.customer_statement": { source: "innovations", feature: "statements" },
-  "innovations.customer_rx_order_status": { source: "innovations", feature: "private-orders" },
+  "innovations.customer_orders": { source: "innovations", feature: "private-orders" },
   "optilens.customer_deliveries": { source: "optilens", feature: "private-orders" },
 } as const;
 
@@ -70,7 +70,7 @@ function sanitizeArguments(operation: Operation, raw: unknown): JsonObject {
     return { statement_id: statementId };
   }
 
-  if (operation === "optilens.customer_deliveries") {
+  if (operation === "optilens.customer_deliveries" || operation === "innovations.customer_orders") {
     const fromDate = dateOnly(input.from_date);
     const toDate = dateOnly(input.to_date);
     return {
@@ -289,7 +289,7 @@ function offlineLiveDataResponse(operation: Operation, customer: CustomerMapping
     return { ...base, deliveries: [] };
   }
 
-  if (operation === "innovations.customer_rx_order_status") {
+  if (operation === "innovations.customer_orders") {
     return { ...base, orders: [] };
   }
 

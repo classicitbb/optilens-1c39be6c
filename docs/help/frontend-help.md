@@ -12,11 +12,11 @@ Support-facing notes for the frontend runtime.
 - Ask Classic cannot search production Innovations/LabLink jobs by patient, PO, or job number until the deferred read-only jobs feed exists.
 - The smart homepage should end with the same shared footer used elsewhere; if it disappears, verify that `SmartHome` renders `Footer` after its main content.
 
-## 2026-07-11 — Statements and My Rx Order Status
+## 2026-07-11 — Statements and Innovations Order Status
 
 - Statements are posted financial records. The live current balance is displayed separately and is not a printable or selectable provisional statement.
 - If statement rows lack order/payment detail, verify the Innovations statement-line sync and the customer's LMS account mapping.
-- My Rx Order Status contains only `Rx` order-type records. Delivery tracking remains in the Live Delivery Status panel; a missing Rx table response usually means the local InnovaAPI connector is offline or its bearer token is not configured.
+- My Orders shows live Innovations order status from the local MSSQL gateway. Delivery tracking remains in the Live Delivery Status panel; a missing order response usually means the local live gateway/source MSSQL connection is offline, the customer has no linked account number, or duplicate account-number cleanup is still pending.
 
 ## 2026-06-24 — Product-cost and analytics hardening
 
