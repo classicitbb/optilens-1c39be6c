@@ -237,8 +237,8 @@ const WebsitePortalsPage = () => {
       const openAlertByUser = new Set(((alertRows ?? []) as Array<{ user_id: string }>).map((row) => row.user_id));
       const presenceByUser = new Map(((presenceRows ?? []) as Array<{ user_id: string; status: string; last_heartbeat_at: string }>).map((row) => [row.user_id, row]));
 
-      const portalAccounts = customerRoleAccounts
-        .map((entry) => {
+      const portalAccounts: PortalAccountRecord[] = customerRoleAccounts
+        .map((entry): PortalAccountRecord => {
           const profile = profileMap.get(entry.user_id);
           const cartItemCount = cartCountByUser[entry.user_id] ?? 0;
           const portalUser = {
@@ -268,7 +268,7 @@ const WebsitePortalsPage = () => {
             phone: portalUser.phone,
             organizationName: portalUser.organizationName,
             isErpCustomer: false,
-          } satisfies PortalAccountRecord;
+          };
         })
         .sort((a, b) => (a.fullName || a.email).localeCompare(b.fullName || b.email));
 
