@@ -8,13 +8,14 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 
 ### Release Notes
 - Customer statements now use posted Innovations statements with full aging, balance, and transaction detail instead of a synthetic current-period record.
-- My Orders now includes live Innovations order status from the MSSQL-SVR gateway while retaining delivery tracking and website order history.
+- My Orders now includes live Innovations WIP and same-day valid shipment status from the MSSQL-SVR gateway while retaining delivery tracking and website order history.
+- Sign in now uses a more spacious, modern form with password visibility and inline reset-password access.
 - Customer account-number linking now blocks duplicate Innovations account numbers and exposes a duplicate audit view.
 - My Orders now keeps every open shipment visible regardless of age, retains closed deliveries for 30 days, and lets customers expand a shipment to review its included work and tracking link.
 
 ### Technical Changelog
 - Extended the live gateway, statement sync, and portal views with the posted-statement and order-status fields required by the customer portal.
-- Added portal order-status search, section-count anchors, compact website-order cards, and a wider responsive account layout; the gateway now passes explicit active-order and open/recent-delivery scopes to OptiLens Local.
+- Added portal order-status search, section-count anchors, compact website-order cards, and a wider responsive account layout; the gateway now returns only Rx number, patient, received date, and status for the current account's active WIP and valid same-day shipments.
 
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 

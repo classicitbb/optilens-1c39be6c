@@ -6,7 +6,8 @@ Summarized release outcomes for each major date-stamped update.
 
 ### Release Notes
 - Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.
-- My Orders adds live Innovations order status from MSSQL-SVR with order type, invoice, patient, and current-status dates; existing delivery tracking remains available.
+- My Orders now shows active Innovations WIP and valid same-day shipments from MSSQL-SVR using only Rx number, patient, received date, and current status; existing delivery tracking remains available.
+- The sign-in form has a clearer modern layout, inline password-reset access, and a show/hide password control.
 - Open shipment records remain visible regardless of age; closed deliveries remain available for 30 days and can expand to show shipment work and an export tracking link when supplied.
 - Customers can jump to each order section from live count pills, search active lab work by patient or Rx number, and use the wider responsive account layout.
 

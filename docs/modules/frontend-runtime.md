@@ -5,8 +5,8 @@ Operational notes and change context for code in `src/**`.
 ## 2026-07-11 — Portal financial and order status data
 
 - `StatementsSection` consumes real posted Innovations statements. It presents statement ID, volume discount, due date, aging buckets, financial totals, and transaction rows with order/payment references.
-- `MyOrdersSection` requests the identity-scoped `innovations.customer_orders` live-gateway operation. The portal renders order status rows sourced from MSSQL-SVR through OptiLens Local; shipment tracking remains a separate panel.
-- The order-status request uses `status_scope: "active"`, which includes unshipped work and work in an open shipment but excludes work after its Innovations shipment closes. The delivery request uses `include_open: true` with a 30-day `closed_since` boundary, so older open shipments remain visible.
+- `MyOrdersSection` requests the identity-scoped `innovations.customer_orders` live-gateway operation. The portal renders four customer-facing columns—Rx number, patient, received date, and status—sourced from MSSQL-SVR through OptiLens Local; shipment tracking remains a separate panel.
+- The order query mirrors the lab WIP view: active Rx/stock jobs plus non-cancelled terminating shipments created on the current MSSQL server date. The delivery request uses `include_open: true` with a 30-day `closed_since` boundary, so older open shipments remain visible.
 - Shipments are expandable portal tiles. The local connector may return per-shipment `orders`, `tracking_number`, and an `http(s)` `tracking_url`; the frontend rejects non-web tracking links before rendering them.
 - `AccountLayout` uses a wider responsive container and adaptive sidebar width so account pages use large screens without compressing the portal content.
 - The browser never submits an LMS account number. The Edge Function resolves the signed-in user's mapped customer record before queuing the on-premises lookup.

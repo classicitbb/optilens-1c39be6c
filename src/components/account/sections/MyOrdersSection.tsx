@@ -72,15 +72,10 @@ type LiveDeliveriesResponse = {
 };
 
 type LiveInnovationsOrder = {
-  order_id: number | null;
-  invoice_id: number | null;
-  order_type_name: string | null;
-  start_date: string | null;
   rx_number: string | null;
   patient: string | null;
+  received_at: string | null;
   status_name: string | null;
-  status_date: string | null;
-  shipment_id?: string | number | null;
 };
 
 type LiveInnovationsOrdersResponse = {
@@ -176,7 +171,7 @@ const MyOrdersSection = () => {
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
     enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
-    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", { status_scope: "active" }, { signal }),
+    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal }),
     staleTime: 30_000,
     retry: 1,
   });
@@ -231,7 +226,7 @@ const MyOrdersSection = () => {
               <h3 id="innovations-orders-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
                 <Package className="h-5 w-5" /> Innovations order status
               </h3>
-              <p className="text-sm text-muted-foreground">Live lab orders from Innovations for your LMS account.</p>
+              <p className="text-sm text-muted-foreground">Active lab work and valid shipments made today for your LMS account.</p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <div className="relative sm:w-64">
@@ -268,29 +263,21 @@ const MyOrdersSection = () => {
             <Card>
               <CardContent className="overflow-x-auto p-0">
                 <Table>
-                  <TableHeader>
+                    <TableHeader>
                       <TableRow>
-                        <TableHead>Order ID</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Start Date</TableHead>
-                        <TableHead>Invoice ID</TableHead>
                         <TableHead>Rx Number</TableHead>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Current Status</TableHead>
-                      <TableHead>Current Status Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                        <TableHead>Patient</TableHead>
+                        <TableHead>Received</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                     {filteredInnovationsOrders.map((order) => (
-                      <TableRow key={order.order_id ?? `${order.rx_number}-${order.start_date}`}>
-                        <TableCell className="font-medium">{order.order_id ?? "—"}</TableCell>
-                        <TableCell>{order.order_type_name ?? "—"}</TableCell>
-                        <TableCell>{formatLiveDate(order.start_date)}</TableCell>
-                        <TableCell>{order.invoice_id ?? "—"}</TableCell>
+                      <TableRow key={`${order.rx_number ?? "order"}-${order.received_at ?? "unknown"}`}>
                         <TableCell>{order.rx_number ?? "—"}</TableCell>
                         <TableCell>{order.patient ?? "—"}</TableCell>
+                        <TableCell>{formatLiveDate(order.received_at)}</TableCell>
                         <TableCell><Badge variant="outline">{order.status_name ?? "—"}</Badge></TableCell>
-                        <TableCell>{formatLiveDate(order.status_date)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

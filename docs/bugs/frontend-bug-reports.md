@@ -4,6 +4,16 @@ Track frontend regressions and customer-facing issues.
 
 ## 2026-07-11 — Closed issues
 
+### Portal order-status list did not match the lab WIP report
+- Surface: customer My Orders
+- Symptom: the portal returned broad historical order rows and exposed extra internal columns instead of the active WIP and valid same-day shipments in the lab report.
+- Resolution: the local MSSQL connector now uses the report's active-job and valid-terminating-shipment filters for the identity-mapped customer, and sends only Rx number, patient, received date, and status to the portal.
+
+### Sign-in form was visually dated and had no password visibility control
+- Surface: `/auth?mode=signin`
+- Symptom: the compact form made the sign-in flow feel disconnected from the current portal UI and required blind password entry.
+- Resolution: rebuilt the sign-in presentation with a focused card, larger form controls, inline reset-password access, and a keyboard-accessible show/hide password button.
+
 ### Synthetic current-period statement presented as a posted statement
 - Surface: customer Statements & Billing
 - Symptom: the newest entry was calculated from balance data and had no source statement ID or line items.
