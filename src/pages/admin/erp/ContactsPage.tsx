@@ -1802,9 +1802,6 @@ const ContactsPage = () => {
             <SelectItem value="country">Country</SelectItem>
           </SelectContent>
         </Select>}
-        {!isErpAccountsMode && <span className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
-          Export mirrors current filters and optionally country grouping.
-        </span>}
         {isErpAccountsMode && (
           <span className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
             Imported Innovations customer rows. Create a linked contact here before deleting old duplicate contacts.
