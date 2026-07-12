@@ -386,7 +386,7 @@ const UsersPage = () => {
               disabled={inviteUser.isPending || !inviteEmail.includes("@")}
               onClick={async () => {
                 try {
-                  await inviteUser.mutateAsync(inviteEmail);
+                  await inviteUser.mutateAsync({ email: inviteEmail });
                   toast({ title: "Invitation sent", description: `Invite email sent to ${inviteEmail}.` });
                   setInviteOpen(false);
                 } catch {

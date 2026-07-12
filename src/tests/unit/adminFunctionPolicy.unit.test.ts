@@ -48,6 +48,22 @@ describe("admin function policy", () => {
         },
       })
     ).toThrow("displayName must not exceed");
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "create-user",
+        payload: { email: "customer@example.com", password: "short" },
+      })
+    ).toThrow("password must be 12-128 characters");
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "create-user",
+        payload: { email: "customer@example.com", password: "x".repeat(129) },
+      })
+    ).toThrow("password must be 12-128 characters");
   });
 
   it("accepts sanitized admin payload", () => {
@@ -82,5 +98,38 @@ describe("admin function policy", () => {
       password: "strong-passphrase-123",
       displayName: undefined,
     });
+  });
+
+  it("permits an approved ERP customer to be attached to a customer invite", () => {
+    expect(
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "invite-user",
+        payload: { email: "customer@example.com", customerId: 42, displayName: "Customer Contact" },
+      })
+    ).toEqual({
+      action: "invite-user",
+      email: "customer@example.com",
+      customerId: 42,
+      displayName: "Customer Contact",
+    });
+  });
+
+  it("rejects an invalid ERP customer identifier", () => {
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "create-user",
+        payload: { email: "customer@example.com", password: "strong-passphrase-123", customerId: 0 },
+      })
+    ).toThrow("customerId must be a positive integer");
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "invite-user",
+        payload: { email: "customer@example.com", customerId: 1.5 },
+      })
+    ).toThrow("customerId must be a positive integer");
   });
 });

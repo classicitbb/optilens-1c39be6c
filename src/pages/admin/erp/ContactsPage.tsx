@@ -236,22 +236,24 @@ const isBooleanLike = (value: string) => {
 
 const normalizeValue = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
-const getDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
+const getDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null; is_company?: boolean | null }) => {
+  const contactKind = row.is_company ? "company" : "person";
   const email = normalizeValue(row.email);
-  if (email) return `email:${email}`;
+  if (email) return `${contactKind}:email:${email}`;
   const name = normalizeValue(row.name);
   const phone = normalizeValue(row.phone);
-  if (name && phone) return `name_phone:${name}|${phone}`;
-  if (name) return `name:${name}`;
+  if (name && phone) return `${contactKind}:name_phone:${name}|${phone}`;
+  if (name) return `${contactKind}:name:${name}`;
   return "";
 };
 
-const getImportDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
+const getImportDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null; is_company?: boolean | null }) => {
+  const contactKind = row.is_company ? "company" : "person";
   const email = normalizeValue(row.email);
-  if (email) return `email:${email}`;
+  if (email) return `${contactKind}:email:${email}`;
   const name = normalizeValue(row.name);
   const phone = normalizeValue(row.phone);
-  if (name && phone) return `name_phone:${name}|${phone}`;
+  if (name && phone) return `${contactKind}:name_phone:${name}|${phone}`;
   return "";
 };
 
@@ -421,6 +423,17 @@ const ContactsPage = () => {
     setFilter("erp_accounts");
     setSearch(erpCustomerId);
   }, [searchParams]);
+
+  useEffect(() => {
+    const contactId = searchParams.get("contact");
+    if (!contactId) return;
+    const contact = contacts.find((entry) => entry.id === contactId);
+    if (!contact) return;
+    setEditContact(contact);
+    setInitialParentId(contact.parent_id ?? null);
+    setSelectedTagIds([]);
+    setBusinessCardFile(null);
+  }, [contacts, searchParams]);
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["contact-opportunity-links"],
@@ -1255,6 +1268,7 @@ const ContactsPage = () => {
           name: rawName,
           email: String(row.email ?? ""),
           phone: String(row.phone ?? ""),
+          is_company: row.is_company === true,
         });
         if (duplicateKey && (existingImportKeys.has(duplicateKey))) {
           return { rowNumber, displayName: rawName, row, linkedName: null, status: "duplicate" as const, reason: "Duplicate by email or by name+phone" };
@@ -1359,6 +1373,7 @@ const ContactsPage = () => {
             name: linkedName.personName,
             email: String(personRow.email ?? ""),
             phone: String(personRow.phone ?? ""),
+            is_company: false,
           })}|parent:${companyId}`;
           if (!personScopedKey.startsWith("|") && importSeenKeys.has(personScopedKey)) {
             duplicates += 1;
@@ -1387,6 +1402,7 @@ const ContactsPage = () => {
         name: String(row.name ?? ""),
         email: String(row.email ?? ""),
         phone: String(row.phone ?? ""),
+        is_company: row.is_company === true,
       });
       const rawNameKey = normalizeValue(String(row.name ?? ""));
       if (rawNameKey && existingContactByName.has(rawNameKey)) {
