@@ -7220,6 +7220,15 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_account_number_duplicates: {
+        Row: {
+          account_number: string | null
+          customer_ids: number[] | null
+          customer_names: string[] | null
+          duplicate_count: number | null
+        }
+        Relationships: []
+      }
       customer_payment_profile_public: {
         Row: {
           account_number: string | null
@@ -7693,6 +7702,19 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
+      assign_customer_account_number: {
+        Args: { p_account_number: string; p_customer_id: number }
+        Returns: {
+          account_number: string
+          conflict_account_number: string
+          conflict_customer_id: number
+          conflict_customer_name: string
+          customer_id: number
+          message: string
+          ok: boolean
+          status: string
+        }[]
+      }
       can_access_customer_portal_feature: {
         Args: { p_feature_key?: string; p_user_id?: string }
         Returns: boolean
@@ -7729,6 +7751,15 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      find_customer_by_account_number: {
+        Args: { p_account_number: string }
+        Returns: {
+          account_number: string
+          id: number
+          innovations_customer_id: number
+          name: string
+        }[]
       }
       get_addons_safe: {
         Args: never
@@ -7911,6 +7942,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      normalized_customer_account_number: {
+        Args: { p_account_number: string }
+        Returns: string
       }
       place_customer_order: {
         Args: {
