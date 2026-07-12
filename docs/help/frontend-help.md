@@ -17,6 +17,8 @@ Support-facing notes for the frontend runtime.
 - Statements are posted financial records. The live current balance is displayed separately and is not a printable or selectable provisional statement.
 - If statement rows lack order/payment detail, verify the Innovations statement-line sync and the customer's LMS account mapping.
 - My Orders shows live Innovations order status from the local MSSQL gateway. Delivery tracking remains in the Live Delivery Status panel; a missing order response usually means the local live gateway/source MSSQL connection is offline, the customer has no linked account number, or duplicate account-number cleanup is still pending.
+- Active lab work includes orders not yet assigned a shipment and orders in an open shipment; it is removed once that Innovations shipment closes. The patient/Rx search narrows the already returned active result set.
+- Live Delivery Status keeps all open shipments, even older records such as shipment 10419, plus deliveries closed within 30 days. If a shipment lacks its contents or a tracking link, verify the OptiLens Local gateway response includes `orders` and a safe `tracking_url`.
 
 ## 2026-06-24 — Product-cost and analytics hardening
 

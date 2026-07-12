@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-11.3";
+const VERSION = "2026-07-11.4";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -70,12 +70,25 @@ function sanitizeArguments(operation: Operation, raw: unknown): JsonObject {
     return { statement_id: statementId };
   }
 
-  if (operation === "optilens.customer_deliveries" || operation === "innovations.customer_orders") {
+  if (operation === "innovations.customer_orders") {
     const fromDate = dateOnly(input.from_date);
     const toDate = dateOnly(input.to_date);
     return {
       ...(fromDate ? { from_date: fromDate } : {}),
       ...(toDate ? { to_date: toDate } : {}),
+      ...(input.status_scope === "active" ? { status_scope: "active" } : {}),
+    };
+  }
+
+  if (operation === "optilens.customer_deliveries") {
+    const fromDate = dateOnly(input.from_date);
+    const toDate = dateOnly(input.to_date);
+    const closedSince = dateOnly(input.closed_since);
+    return {
+      ...(fromDate ? { from_date: fromDate } : {}),
+      ...(toDate ? { to_date: toDate } : {}),
+      ...(input.include_open === true ? { include_open: true } : {}),
+      ...(closedSince ? { closed_since: closedSince } : {}),
     };
   }
 

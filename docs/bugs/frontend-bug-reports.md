@@ -41,6 +41,11 @@ Track frontend regressions and customer-facing issues.
 - Symptom: the live panel showed shipment sessions rather than the current LMS order status.
 - Resolution: added a separate MSSQL-backed Innovations Order Status table without removing shipment tracking.
 
+### Older open shipment omitted from customer delivery status
+- Surface: customer My Orders
+- Symptom: the delivery panel applied a 90-day cutoff, hiding still-open shipment 10419 and preventing customers from expanding a shipment to inspect its work.
+- Resolution: the live request now asks for all open shipments plus closed deliveries from the last 30 days; shipment rows expand to show supplied order/item details and a tracking link.
+
 ## 2026-06-24 — Closed issues
 
 ### Product cost columns readable through direct table SELECT
