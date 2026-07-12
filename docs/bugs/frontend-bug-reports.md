@@ -4,6 +4,11 @@ Track frontend regressions and customer-facing issues.
 
 ## 2026-07-11 — Closed issues
 
+### Account profile hid the ERP account number and required navigation to sign out
+- Surface: customer My Account
+- Symptom: customers could not confirm their linked ERP account from the profile form, and Sign out was only available through the account menu.
+- Resolution: My Account now displays the source-managed account number (or `ACC#` until linked) and provides a Sign out button next to Save Changes.
+
 ### Portal order-status list did not match the lab WIP report
 - Surface: customer My Orders
 - Symptom: the portal returned broad historical order rows and exposed extra internal columns instead of the active WIP and valid same-day shipments in the lab report.
