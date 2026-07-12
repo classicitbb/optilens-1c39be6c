@@ -1,6 +1,7 @@
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, Loader2, Package, RefreshCw, ShoppingBag, Truck } from "lucide-react";
+import { Clock, ExternalLink, Loader2, Package, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { requestLiveData } from "@/lib/liveDataGateway";
 
 
@@ -49,8 +51,19 @@ type LiveDelivery = {
   started_at: string | null;
   closed_at: string | null;
   tracking_number: string | null;
+  tracking_url?: string | null;
   shipping_method_name: string | null;
   item_count: number | null;
+  orders?: LiveDeliveryItem[] | null;
+};
+
+type LiveDeliveryItem = {
+  order_id: string | number | null;
+  rx_number?: string | null;
+  patient?: string | null;
+  description?: string | null;
+  quantity?: number | null;
+  status_name?: string | null;
 };
 
 type LiveDeliveriesResponse = {
@@ -67,6 +80,7 @@ type LiveInnovationsOrder = {
   patient: string | null;
   status_name: string | null;
   status_date: string | null;
+  shipment_id?: string | number | null;
 };
 
 type LiveInnovationsOrdersResponse = {
@@ -80,25 +94,111 @@ const formatLiveDate = (value: string | null) => {
   return Number.isNaN(parsed.getTime()) ? value : format(parsed, "MM/dd/yyyy HH:mm");
 };
 
+const liveDeliveryId = (delivery: LiveDelivery) => delivery.source_shipment_id ?? delivery.shipment_session_id.slice(0, 8);
+
+const isSafeTrackingUrl = (value?: string | null) => {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
+const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
+  const trackingUrl = isSafeTrackingUrl(delivery.tracking_url);
+  const shipmentItems = delivery.orders ?? [];
+  const isOpen = !delivery.closed_at;
+
+  return (
+    <Accordion type="single" collapsible className="rounded-lg border bg-card px-3 sm:px-4">
+      <AccordionItem value={delivery.shipment_session_id} className="border-none">
+        <AccordionTrigger className="py-3 text-left hover:no-underline">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 pr-3">
+            <span className="font-medium text-foreground">Shipment #{liveDeliveryId(delivery)}</span>
+            <Badge variant="outline">{isOpen ? "Open" : "Closed"}</Badge>
+            <span className="text-sm text-muted-foreground">{delivery.shipping_method_name || "Delivery method pending"}</span>
+            <span className="text-sm text-muted-foreground">{delivery.item_count ?? shipmentItems.length} item{(delivery.item_count ?? shipmentItems.length) === 1 ? "" : "s"}</span>
+            {delivery.tracking_number ? (
+              trackingUrl ? (
+                <a
+                  href={trackingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  Track {delivery.tracking_number} <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              ) : <span className="text-sm text-muted-foreground">Tracking {delivery.tracking_number}</span>
+            ) : null}
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="pb-3">
+          {shipmentItems.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Rx</TableHead>
+                  <TableHead>Patient / item</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shipmentItems.map((item, index) => (
+                  <TableRow key={`${item.order_id ?? "item"}-${item.rx_number ?? index}`}>
+                    <TableCell className="font-medium">{item.order_id ?? "—"}</TableCell>
+                    <TableCell>{item.rx_number ?? "—"}</TableCell>
+                    <TableCell>{item.patient || item.description || "—"}</TableCell>
+                    <TableCell className="text-right">{item.quantity ?? "—"}</TableCell>
+                    <TableCell>{item.status_name ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground">Shipment details are not available yet.</p>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+};
+
 const MyOrdersSection = () => {
   const { orders, loading } = useOrders();
   const { canAccessFeature, identity } = usePortalIdentity();
   const canSeePrivateOrders = canAccessFeature("private-orders");
+  const [innovationsSearch, setInnovationsSearch] = useState("");
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
     enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
-    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal }),
+    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", { status_scope: "active" }, { signal }),
     staleTime: 30_000,
     retry: 1,
   });
   const deliveriesQuery = useQuery({
     queryKey: ["live-optilens-deliveries", identity?.crmCustomerId],
     enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
-    queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>("optilens.customer_deliveries", {}, { signal }),
+    queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>(
+      "optilens.customer_deliveries",
+      { include_open: true, closed_since: format(subDays(new Date(), 30), "yyyy-MM-dd") },
+      { signal },
+    ),
     staleTime: 30_000,
     retry: 1,
   });
   const liveDeliveries = deliveriesQuery.data?.deliveries ?? [];
+  const filteredInnovationsOrders = useMemo(() => {
+    const query = innovationsSearch.trim().toLocaleLowerCase();
+    if (!query) return innovationsOrdersQuery.data?.orders ?? [];
+    return (innovationsOrdersQuery.data?.orders ?? []).filter((order) =>
+      [order.patient, order.rx_number].some((value) => value?.toLocaleLowerCase().includes(query)),
+    );
+  }, [innovationsOrdersQuery.data?.orders, innovationsSearch]);
   const pendingOrders = orders.filter((order) => ["draft", "pending", "confirmed", "processing"].includes(order.status));
   const completedOrders = orders.filter((order) => order.status === "completed");
   const otherOrders = orders.filter((order) => !["draft", "pending", "confirmed", "processing", "completed"].includes(order.status));
@@ -114,7 +214,11 @@ const MyOrdersSection = () => {
       <header className="space-y-1">
         <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
         <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
-        {pendingOrders.length ? <Badge className="w-fit bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingOrders.length}</Badge> : null}
+        <nav className="flex flex-wrap gap-2 pt-1" aria-label="Jump to order sections">
+          {pendingOrders.length ? <Badge asChild className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500"><a href="#pending-orders">Pending {pendingOrders.length}</a></Badge> : null}
+          {canSeePrivateOrders ? <Badge asChild variant="outline" className="cursor-pointer"><a href="#innovations-orders-heading">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</a></Badge> : null}
+          {canSeePrivateOrders ? <Badge asChild variant="outline" className="cursor-pointer"><a href="#live-deliveries-heading">Shipments {liveDeliveries.length}</a></Badge> : null}
+        </nav>
         {!canSeePrivateOrders ? (
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
         ) : null}
@@ -129,10 +233,23 @@ const MyOrdersSection = () => {
               </h3>
               <p className="text-sm text-muted-foreground">Live lab orders from Innovations for your LMS account.</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => innovationsOrdersQuery.refetch()} disabled={innovationsOrdersQuery.isFetching}>
-              {innovationsOrdersQuery.isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Refresh order status
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <div className="relative sm:w-64">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  type="search"
+                  value={innovationsSearch}
+                  onChange={(event) => setInnovationsSearch(event.target.value)}
+                  placeholder="Search patient or Rx #"
+                  aria-label="Search Innovations orders by patient name or Rx number"
+                  className="pl-9"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={() => innovationsOrdersQuery.refetch()} disabled={innovationsOrdersQuery.isFetching}>
+                {innovationsOrdersQuery.isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Refresh order status
+              </Button>
+            </div>
           </div>
 
           {innovationsOrdersQuery.isError ? (
@@ -144,7 +261,9 @@ const MyOrdersSection = () => {
           ) : innovationsOrdersQuery.isLoading ? (
             <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : (innovationsOrdersQuery.data?.orders.length ?? 0) === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No Innovations orders were found for this account.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active Innovations orders were found for this account.</CardContent></Card>
+          ) : filteredInnovationsOrders.length === 0 ? (
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active Innovations orders match that patient name or Rx number.</CardContent></Card>
           ) : (
             <Card>
               <CardContent className="overflow-x-auto p-0">
@@ -162,7 +281,7 @@ const MyOrdersSection = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {innovationsOrdersQuery.data?.orders.map((order) => (
+                    {filteredInnovationsOrders.map((order) => (
                       <TableRow key={order.order_id ?? `${order.rx_number}-${order.start_date}`}>
                         <TableCell className="font-medium">{order.order_id ?? "—"}</TableCell>
                         <TableCell>{order.order_type_name ?? "—"}</TableCell>
@@ -211,34 +330,12 @@ const MyOrdersSection = () => {
           ) : deliveriesQuery.isLoading ? (
             <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : liveDeliveries.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No OptiLens deliveries were found in the last 90 days.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No open shipments or recently closed deliveries were found.</CardContent></Card>
           ) : (
-            <Card>
-              <CardContent className="overflow-x-auto p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Delivery</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Tracking</TableHead>
-                      <TableHead className="text-right">Items</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {liveDeliveries.map((delivery) => (
-                      <TableRow key={delivery.shipment_session_id}>
-                        <TableCell className="font-medium">#{delivery.source_shipment_id ?? delivery.shipment_session_id.slice(0, 8)}</TableCell>
-                        <TableCell><Badge variant="outline">{delivery.source_shipped ? "Shipped" : delivery.app_status || "Preparing"}</Badge></TableCell>
-                        <TableCell>{delivery.shipping_method_name || "—"}</TableCell>
-                        <TableCell>{delivery.tracking_number || "Not assigned"}</TableCell>
-                        <TableCell className="text-right">{delivery.item_count ?? 0}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 30 days.</p>
+              {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} />)}
+            </div>
           )}
           {deliveriesQuery.data?.retrieved_at ? (
             <p className="text-xs text-muted-foreground" role="status">
@@ -263,15 +360,15 @@ const MyOrdersSection = () => {
       ) : (
         <div className="space-y-6">
           {groupedOrders.map((group) => (
-            <section key={group.key} className="space-y-3">
+            <section key={group.key} id={`${group.key}-orders`} className="space-y-3 scroll-mt-6">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">{group.title}</h3>
                 <p className="text-sm text-muted-foreground">{group.description}</p>
               </div>
               {group.orders.map((order, index) => (
                 <Card key={order.id} className="animate-fade-in opacity-0" style={{ animationDelay: `${index * 50}ms` }}>
-                  <CardHeader>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <CardHeader className="p-3 sm:px-4 sm:py-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <CardTitle className="flex items-center gap-2 text-lg">
                           <Package className="h-5 w-5" />
@@ -290,10 +387,10 @@ const MyOrdersSection = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-3 pb-3 sm:px-4 sm:pb-3">
                     <Accordion type="single" collapsible>
                       <AccordionItem value="items" className="border-none">
-                        <AccordionTrigger className="py-2 text-sm hover:no-underline">
+                        <AccordionTrigger className="py-1 text-sm hover:no-underline">
                           View {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? "s" : ""}
                         </AccordionTrigger>
                         <AccordionContent>
