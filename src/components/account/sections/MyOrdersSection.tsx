@@ -215,9 +215,9 @@ const MyOrdersSection = () => {
         <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
         <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
         <nav className="flex flex-wrap gap-2 pt-1" aria-label="Jump to order sections">
-          {pendingOrders.length ? <Badge asChild className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500"><a href="#pending-orders">Pending {pendingOrders.length}</a></Badge> : null}
-          {canSeePrivateOrders ? <Badge asChild variant="outline" className="cursor-pointer"><a href="#innovations-orders-heading">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</a></Badge> : null}
-          {canSeePrivateOrders ? <Badge asChild variant="outline" className="cursor-pointer"><a href="#live-deliveries-heading">Shipments {liveDeliveries.length}</a></Badge> : null}
+          {pendingOrders.length ? <a href="#pending-orders"><Badge className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingOrders.length}</Badge></a> : null}
+          {canSeePrivateOrders ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</Badge></a> : null}
+          {canSeePrivateOrders ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {liveDeliveries.length}</Badge></a> : null}
         </nav>
         {!canSeePrivateOrders ? (
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
