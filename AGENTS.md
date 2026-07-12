@@ -39,6 +39,7 @@ relevant to your work area — do not load everything upfront.
 ## Environment
 
 - Install dependencies with `npm ci` when `package-lock.json` exists
+- Use the repo's pinned `npm@10` toolchain from `package.json`
 - When dependency fixes are required, keep npm as the package manager and update
   `package.json`/`package-lock.json` together through npm commands.
 - Do not switch package managers
@@ -50,6 +51,7 @@ relevant to your work area — do not load everything upfront.
 - Run `npm run lint`
 - Run `npm run test -- --runInBand`
 - Run `npm run build`
+- Run `npm run qa:vercel-headers` and `npm run test:headers` when touching `security/http-header-policy.json`, `vercel.json`, or the header sync scripts/tests
 - Run `npm run qa:smoke` when touching admin routing, legacy redirects, or runtime error logging wiring
 
 ## Rules
