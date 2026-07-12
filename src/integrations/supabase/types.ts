@@ -7837,6 +7837,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_portal_erp_account_number: { Args: never; Returns: string }
       get_quote_lines_safe: {
         Args: { p_quote_id: string }
         Returns: {
