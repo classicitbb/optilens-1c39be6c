@@ -35,6 +35,18 @@ type EntityConfig = {
 };
 
 const ENTITIES: Record<string, EntityConfig> = {
+  // The local office service reads this catalog from dbo.EFTInstitutions. It
+  // intentionally cannot write portal_url or notes: those are verified and
+  // curated by admins in the Bank Payment Portals screen.
+  banks: {
+    table: "bank_payment_portals",
+    conflictKey: "innovations_eft_institution_id",
+    required: "innovations_eft_institution_id",
+    // Reuse the source's existing customer sync authority; an institution
+    // directory is required to route customer EFT payments.
+    scope: "customers:write",
+    allow: ["innovations_eft_institution_id", "bank_name"],
+  },
   customers: {
     table: "customers",
     conflictKey: "innovations_customer_id",

@@ -3,6 +3,12 @@
 Track frontend regressions and customer-facing issues.
 
 ## 2026-07-13
+- Area: EFT statement payment routing
+- Impact: the bank-payment directory was manual-only, so a newly configured Innovations EFT institution could leave a customer without a matching payment destination; forcing every source record to a URL also risked redirecting legacy placeholder values to an unrelated bank.
+- Resolution: OptiLens Local now synchronizes `dbo.EFTInstitutions` by immutable ID while preserving the exact source display name. Verified retail sign-in URLs are seeded, source-managed names cannot be edited, and rows with no verified customer sign-in endpoint retain the existing support fallback.
+- Follow-up: confirm a new source institution's customer login page before adding its URL; do not use a generic bank homepage as a payment redirect.
+
+## 2026-07-13
 - Area: admin settings email operations
 - Impact: administrators previously had no single, safe interface to identify or inspect the authentication and transactional email templates configured by the application.
 - Resolution: added `/admin/settings/email-previews` with a route-tested split list/preview workspace, source-path visibility, and sample-only personalization controls. No email is sent or altered from the review screen.

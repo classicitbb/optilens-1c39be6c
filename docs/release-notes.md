@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-13 — Innovations EFT Bank Portal Directory
+
+### Release Notes
+- Bank Payment Portals automatically receives the exact bank names configured in Innovations for EFT customers.
+- Customers are sent only to verified online-banking destinations; the system shows a support fallback when a source value is a placeholder, non-retail institution, or otherwise lacks a verified sign-in page.
+
 ## 2026-07-13 — Admin Email Preview Center
 
 ### Release Notes

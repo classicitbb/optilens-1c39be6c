@@ -524,20 +524,23 @@ export type Database = {
       bank_payment_portals: {
         Row: {
           bank_name: string
+          innovations_eft_institution_id: number | null
           notes: string | null
-          portal_url: string
+          portal_url: string | null
           updated_at: string
         }
         Insert: {
           bank_name: string
+          innovations_eft_institution_id?: number | null
           notes?: string | null
-          portal_url: string
+          portal_url?: string | null
           updated_at?: string
         }
         Update: {
           bank_name?: string
+          innovations_eft_institution_id?: number | null
           notes?: string | null
-          portal_url?: string
+          portal_url?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -3,14 +3,14 @@
   "releaseDateTimeUtc": "2026-07-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Settings now includes Email Previews, a split workspace for reviewing all active auth and application emails.",
-    "Operators can switch between templates and change sample name, recipient, and subject values to review personalized preview copy without sending messages."
+    "Bank Payment Portals automatically receives the exact bank names configured in Innovations for EFT customers.",
+    "Customers are sent only to verified online-banking destinations; the system shows a support fallback when a source value is a placeholder, non-retail institution, or otherwise lacks a verified sign-in page."
   ],
   "moduleImpact": [
     {
-      "module": "admin/settings",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Admin Email Preview Center."
+      "notes": "Updated as part of Innovations EFT Bank Portal Directory."
     }
   ],
   "migrationNotes": [

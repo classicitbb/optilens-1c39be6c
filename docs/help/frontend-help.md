@@ -2,6 +2,11 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-13 — Bank Payment Portals
+
+- Bank names labeled **Synced from Innovations** are managed by `dbo.EFTInstitutions`; do not rename them in the admin screen. The name must remain an exact match for the EFT customer routing field.
+- Add a URL only after confirming it is the bank's customer sign-in page. A row without a verified URL does not redirect the customer and instead shows the account-support payment message.
+
 ## 2026-07-13 — Email Previews
 
 - Find the review workspace at Admin → Settings → Email Previews.

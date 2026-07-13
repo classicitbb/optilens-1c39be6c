@@ -10,10 +10,20 @@ import { useToast } from "@/hooks/use-toast";
 
 type BankPaymentPortal = {
   bank_name: string;
-  portal_url: string;
+  innovations_eft_institution_id: number | null;
+  portal_url: string | null;
   notes: string | null;
   updated_at: string;
 };
+
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
 
 const BankPaymentPortalsPage = () => {
   const { toast } = useToast();
@@ -42,7 +52,7 @@ const BankPaymentPortalsPage = () => {
     if (!q) return rows;
     return rows.filter((r) =>
       r.bank_name.toLowerCase().includes(q) ||
-      r.portal_url.toLowerCase().includes(q) ||
+      (r.portal_url ?? "").toLowerCase().includes(q) ||
       (r.notes ?? "").toLowerCase().includes(q)
     );
   }, [rows, search]);
@@ -60,14 +70,18 @@ const BankPaymentPortalsPage = () => {
   async function handleSave() {
     const bankName = editItem?.bank_name?.trim();
     const portalUrl = editItem?.portal_url?.trim();
-    if (!bankName || !portalUrl) {
-      toast({ title: "Bank name and portal URL are required", variant: "destructive" });
+    if (!bankName) {
+      toast({ title: "Bank name is required", variant: "destructive" });
+      return;
+    }
+    if (portalUrl && !isHttpUrl(portalUrl)) {
+      toast({ title: "Portal URL must use http:// or https://", variant: "destructive" });
       return;
     }
     setSaving(true);
     const payload = {
       bank_name: bankName,
-      portal_url: portalUrl,
+      portal_url: portalUrl || null,
       notes: editItem?.notes?.trim() || null,
       updated_at: new Date().toISOString(),
     };
@@ -108,8 +122,9 @@ const BankPaymentPortalsPage = () => {
 
       <p className="max-w-2xl text-sm text-muted-foreground">
         EFT customers are routed to their own bank to pay a statement instead of a card form.
-        Map each bank name exactly as it arrives from Innovations (dbo.EFTInstitutions.EFTInstitutionName,
-        synced onto <code>customers.eft_institution_name</code>) to that bank's online banking URL.
+        Banks sync from Innovations (<code>dbo.EFTInstitutions.EFTInstitutionName</code>) and their names must match
+        <code>customers.eft_institution_name</code> exactly. Add or verify a sign-in URL only where the bank has a
+        customer online-banking portal.
       </p>
 
       <div className="relative max-w-sm">
@@ -138,20 +153,27 @@ const BankPaymentPortalsPage = () => {
                     <Building2 className="h-5 w-5 text-accent" aria-hidden="true" />
                   </div>
                   <CardTitle className="text-base leading-tight">{row.bank_name}</CardTitle>
+                  {row.innovations_eft_institution_id !== null ? (
+                    <p className="text-[11px] font-medium text-muted-foreground">Synced from Innovations</p>
+                  ) : null}
                   {row.notes ? (
                     <CardDescription className="text-xs">{row.notes}</CardDescription>
                   ) : null}
                 </CardHeader>
                 <CardContent className="mt-auto space-y-3">
-                  <a
-                    href={row.portal_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex max-w-full items-center gap-1 truncate text-xs text-primary hover:underline"
-                  >
-                    <span className="truncate">{row.portal_url}</span>
-                    <ExternalLink className="h-3 w-3 shrink-0" />
-                  </a>
+                  {row.portal_url ? (
+                    <a
+                      href={row.portal_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex max-w-full items-center gap-1 truncate text-xs text-primary hover:underline"
+                    >
+                      <span className="truncate">{row.portal_url}</span>
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                  ) : (
+                    <p className="text-xs text-amber-700 dark:text-amber-400">No verified sign-in URL</p>
+                  )}
                   <div className="flex gap-2 border-t pt-3">
                     <Button
                       variant="outline"
@@ -192,16 +214,21 @@ const BankPaymentPortalsPage = () => {
                   value={editItem.bank_name ?? ""}
                   onChange={(e) => setEditItem({ ...editItem, bank_name: e.target.value })}
                   placeholder="Must match Innovations EFTInstitutionName exactly"
+                  disabled={editItem.innovations_eft_institution_id !== undefined && editItem.innovations_eft_institution_id !== null}
                 />
+                {editItem.innovations_eft_institution_id !== undefined && editItem.innovations_eft_institution_id !== null ? (
+                  <p className="mt-1 text-[11px] text-muted-foreground">Managed by the Innovations EFT institution sync.</p>
+                ) : null}
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium">Portal URL *</label>
+                <label className="mb-1 block text-xs font-medium">Portal URL</label>
                 <Input
                   className="h-8 text-xs"
                   value={editItem.portal_url ?? ""}
                   onChange={(e) => setEditItem({ ...editItem, portal_url: e.target.value })}
                   placeholder="https://onlinebanking.example.com"
                 />
+                <p className="mt-1 text-[11px] text-muted-foreground">Leave blank only when no verified customer sign-in page exists.</p>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium">Notes</label>

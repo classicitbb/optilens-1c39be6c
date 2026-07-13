@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-13 — Innovations EFT Bank Portal Directory
+
+### Release Notes
+- Bank Payment Portals now receives the exact EFT-institution directory from Innovations and identifies source-managed rows.
+- Verified retail online-banking destinations are seeded; ambiguous, placeholder, and non-retail entries remain intentionally unmapped instead of redirecting a customer to the wrong institution.
+
+### Technical Changelog
+- Added immutable `innovations_eft_institution_id` matching, a cloud receiver entity, and a read-only OptiLens Local `dbo.EFTInstitutions` sync entity that preserves the exact source bank name.
+- Made portal URLs nullable only for entries without a verified customer sign-in page; the customer payment dialog now safely falls back to support when no URL exists.
+
 ## 2026-07-13 — Admin Email Preview Center
 
 ### Release Notes
