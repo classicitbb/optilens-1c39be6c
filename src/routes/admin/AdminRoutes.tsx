@@ -59,6 +59,7 @@ const HelpdeskTicketDetailPage = lazy(() => import("@/pages/admin/helpdesk/Helpd
 const WebsitePortalsPage = lazy(() => import("@/pages/admin/WebsitePortalsPage"));
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
+const LensAssistantRulesPage = lazy(() => import("@/pages/admin/LensAssistantRulesPage"));
 const OrdersPage = lazy(() => import("@/pages/admin/OrdersPage"));
 
 const AdminRoutes = () => (
@@ -130,6 +131,7 @@ const AdminRoutes = () => (
       <Route path="website/features" element={<PlaceholderPage />} />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
       <Route path="website/store" element={<WebsiteStorePage />} />
+      <Route path="website/store/lens-assistant" element={<LensAssistantRulesPage />} />
       <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
 
       <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />

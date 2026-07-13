@@ -41,7 +41,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
           {/* Left: back to website */}
           <div className="min-w-0">
             <Button variant="ghost" asChild className="h-7 max-w-full gap-1.5 px-2 text-xs sm:text-sm">
-              <Link to="/">
+              <Link to="/?view=public">
                 <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Website</span>
               </Link>

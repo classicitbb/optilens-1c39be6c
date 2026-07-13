@@ -1,5 +1,14 @@
 # Automation and QA Module Docs
 
+## 2026-07-10 — Windows smoke-server launcher
+
+- `scripts/admin_smoke_and_error_checks.mjs` now starts the repository-installed Vite entrypoint with the current Node executable instead of spawning an npm command shim.
+- This keeps `npm run qa:smoke` compatible with Windows and Node 25, where directly spawning `npm` or `npm.cmd` can fail before the application starts.
+- The smoke route list now includes `/admin/website/store/lens-assistant` so the new governed admin surface is exercised with the existing admin routes.
+- Static route/auth wiring checks now inspect the centralized `src/routes/admin/AdminRoutes.tsx` module and the current email/password authentication copy instead of obsolete pre-route-split and Google-sign-in snippets.
+- Individual route requests retry up to three times with short backoff so Vite's first-run dependency optimization cannot create a false one-off network failure; persistent HTTP or missing-root failures still fail the suite.
+- `npm run build:sites-preview` creates an isolated SPA-compatible Sites package with a navigation fallback; the standard Vite/Vercel `dist` output and production domain configuration are unchanged.
+
 ## Purpose
 This module covers repository automation scripts in `scripts/**`, including PR checks and quality gates.
 
