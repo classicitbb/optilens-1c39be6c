@@ -10,8 +10,10 @@ import {
   Img,
   Link,
   Preview,
+  Row,
   Section,
   Text,
+  Column,
 } from 'npm:@react-email/components@0.0.22'
 
 interface ClassicVisionsEmailLayoutProps {
@@ -40,17 +42,21 @@ export const ClassicVisionsEmailLayout = ({
     <Body style={main}>
       <Container style={card}>
         <Section style={header}>
-          <Img
-            alt="Classic Visions"
-            height="44"
-            src="https://classicvisions.net/favicon.ico"
-            style={logo}
-            width="44"
-          />
-          <Section style={wordmark}>
-            <Text style={brandName}>CLASSIC VISIONS</Text>
-            <Text style={brandTagline}>OPTICAL · BARBADOS</Text>
-          </Section>
+          <Row>
+            <Column style={logoCell}>
+              <Img
+                alt="Classic Visions"
+                height="44"
+                src="https://classicvisions.net/favicon.ico"
+                style={logo}
+                width="44"
+              />
+            </Column>
+            <Column style={wordmarkCell}>
+              <Text style={brandName}>CLASSIC VISIONS</Text>
+              <Text style={brandTagline}>OPTICAL · BARBADOS</Text>
+            </Column>
+          </Row>
         </Section>
 
         <Section style={content}>
@@ -103,8 +109,9 @@ const card = {
 }
 
 const header = { backgroundColor: '#ffffff', borderBottom: '2px solid #C89130', padding: '28px 44px 20px' }
-const logo = { display: 'inline-block', height: '44px', verticalAlign: 'middle', width: '44px' }
-const wordmark = { display: 'inline-block', marginLeft: '13px', verticalAlign: 'middle' }
+const logoCell = { padding: '0 13px 0 0', verticalAlign: 'middle', width: '44px' }
+const logo = { display: 'block', height: '44px', width: '44px' }
+const wordmarkCell = { padding: '0', verticalAlign: 'middle' }
 const brandName = { color: '#0B1E35', fontSize: '18px', fontWeight: '800' as const, letterSpacing: '0.04em', lineHeight: '1', margin: '0' }
 const brandTagline = { color: '#1A8A9C', fontSize: '8.5px', fontWeight: '700' as const, letterSpacing: '0.3em', lineHeight: '1.4', margin: '6px 0 0' }
 const content = { padding: '38px 44px 30px' }
