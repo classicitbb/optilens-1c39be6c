@@ -345,6 +345,7 @@ const ContactsPage = () => {
   const [countryFilter, setCountryFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
+  const [editTab, setEditTab] = useState<"details" | "account-settings" | "notes">("details");
   const [initialParentId, setInitialParentId] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
@@ -404,18 +405,48 @@ const ContactsPage = () => {
     queryFn: async () => {
       if (!editContact?.id) return null;
       const { data, error } = await (supabase.from("customers") as any)
-        .select("id,account_number")
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
         .eq("contact_id", editContact.id as any)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: number; account_number: string | null } | null;
+      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
     },
-    enabled: !!editContact?.id && !!editContact?.is_customer,
+    enabled: !!editContact?.id,
+  });
+  const { data: linkedErpAccount } = useQuery({
+    queryKey: ["contact-linked-erp-account", editContact?.linked_customer_id],
+    queryFn: async () => {
+      if (typeof editContact?.linked_customer_id !== "number") return null;
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+        .eq("id", editContact.linked_customer_id as any)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
+    },
+    enabled: typeof editContact?.linked_customer_id === "number",
+  });
+  const accountSettingsCustomer = linkedCustomerRecord ?? linkedErpAccount ?? null;
+  const accountSettingsIsInherited = !linkedCustomerRecord && !!linkedErpAccount;
+  const { data: linkedPortalProfile } = useQuery({
+    queryKey: ["contact-linked-portal-profile", editContact?.id, accountSettingsCustomer?.id],
+    queryFn: async () => {
+      const query = (supabase.from("profiles") as any)
+        .select("id,user_id,full_name,organization_name,portal_access_status,crm_contact_id,crm_customer_id")
+        .limit(1);
+      if (editContact?.id) query.eq("crm_contact_id", editContact.id);
+      else if (accountSettingsCustomer?.id) query.eq("crm_customer_id", accountSettingsCustomer.id);
+      else return null;
+      const { data, error } = await query.maybeSingle();
+      if (error) throw error;
+      return data as { id: string; user_id: string; full_name: string | null; organization_name: string | null; portal_access_status: string | null; crm_contact_id: string | null; crm_customer_id: number | null } | null;
+    },
+    enabled: !!editContact?.id || !!accountSettingsCustomer?.id,
   });
   const [accountNumber, setAccountNumber] = useState("");
   useEffect(() => {
-    setAccountNumber(linkedCustomerRecord?.account_number ?? "");
-  }, [linkedCustomerRecord?.id, linkedCustomerRecord?.account_number, editContact?.id]);
+    setAccountNumber(accountSettingsCustomer?.account_number ?? "");
+  }, [accountSettingsCustomer?.id, accountSettingsCustomer?.account_number, editContact?.id]);
 
   useEffect(() => {
     const erpCustomerId = searchParams.get("erpCustomer");
@@ -430,6 +461,7 @@ const ContactsPage = () => {
     const contact = contacts.find((entry) => entry.id === contactId);
     if (!contact) return;
     setEditContact(contact);
+    setEditTab(searchParams.get("tab") === "account-settings" ? "account-settings" : "details");
     setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
     setBusinessCardFile(null);
@@ -789,6 +821,7 @@ const ContactsPage = () => {
   const closeEditDialog = useCallback(() => {
     stopDictation();
     setEditContact(null);
+    setEditTab("details");
   }, [stopDictation]);
 
   const companies = contacts.filter((c) => c.is_company);
@@ -1615,6 +1648,7 @@ const ContactsPage = () => {
   const openEdit = (contact: Contact) => {
     stopDictation();
     setEditContact(contact);
+    setEditTab("details");
     setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
     setBusinessCardFile(null);
@@ -1626,6 +1660,7 @@ const ContactsPage = () => {
   const openNew = (isCompany: boolean) => {
     stopDictation();
     setEditContact(emptyContact(isCompany));
+    setEditTab("details");
     setInitialParentId(null);
     setSelectedTagIds([]);
     setBusinessCardFile(null);
@@ -2053,9 +2088,22 @@ const ContactsPage = () => {
                 </DialogHeader>
 
                 {/* Body with tabs */}
-                <Tabs defaultValue="details" className="flex flex-col min-h-0 flex-1">
+                <Tabs
+                  value={editTab}
+                  onValueChange={(value) => {
+                    const nextTab = value as "details" | "account-settings" | "notes";
+                    setEditTab(nextTab);
+                    if (searchParams.has("contact")) {
+                      const nextParams = new URLSearchParams(searchParams);
+                      nextParams.set("tab", nextTab);
+                      setSearchParams(nextParams, { replace: true });
+                    }
+                  }}
+                  className="flex flex-col min-h-0 flex-1"
+                >
                   <TabsList className="px-4 pt-2 pb-0 h-auto bg-transparent justify-start gap-2 shrink-0">
                     <TabsTrigger value="details" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Details</TabsTrigger>
+                    <TabsTrigger value="account-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Account Settings</TabsTrigger>
                     <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
                   </TabsList>
 
@@ -2363,6 +2411,95 @@ const ContactsPage = () => {
                             )}
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="account-settings" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                    <div className="mx-auto grid max-w-4xl gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                      <div className="space-y-4">
+                        <div className="rounded-xl border p-4" style={{ borderColor: "hsl(var(--border))" }}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="text-sm font-semibold">ERP account connection</h3>
+                              <p className="mt-1 text-xs text-muted-foreground">This is the shared account identity used by Innovations, statements, pricing, and the website portal.</p>
+                            </div>
+                            <Badge variant={accountSettingsCustomer ? "default" : "secondary"} className="shrink-0">
+                              {accountSettingsCustomer ? "Connected" : "Not connected"}
+                            </Badge>
+                          </div>
+                          {accountSettingsCustomer ? (
+                            <div className="mt-4 space-y-3">
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-lg bg-muted/40 p-3">
+                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Innovations account</p>
+                                  <p className="mt-1 text-sm font-medium">{accountSettingsCustomer.name || editContact.name || "Unnamed account"}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">ID {accountSettingsCustomer.innovations_customer_id ?? "Pending sync"}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/40 p-3">
+                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website portal</p>
+                                  <p className="mt-1 text-sm font-medium">{linkedPortalProfile ? "Profile linked" : "No profile linked"}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">{linkedPortalProfile?.portal_access_status?.replace(/_/g, " ") || "Login can be created or invited"}</p>
+                                </div>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label htmlFor="account-settings-account-number" className="text-xs">Account number</Label>
+                                <Input
+                                  id="account-settings-account-number"
+                                  name="account_number"
+                                  autoComplete="off"
+                                  className="h-8 text-xs"
+                                  placeholder="e.g. RETAIL"
+                                  value={accountNumber}
+                                  onChange={(event) => setAccountNumber(event.target.value)}
+                                  disabled={accountSettingsIsInherited || !editContact.is_company || !editContact.is_customer}
+                                />
+                                <p className="text-[11px] text-muted-foreground">
+                                  {accountSettingsIsInherited
+                                    ? "Inherited from the linked company. Edit the company account to change it."
+                                    : editContact.is_company && editContact.is_customer
+                                      ? "The only field that links this contact to Innovations and online statements."
+                                      : "Enable Customer and Company on Details to create or edit an ERP account link."}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs"
+                                  onClick={() => accountSettingsCustomer && navigate(`/admin/website/portals?account=erp:${accountSettingsCustomer.id}`)}
+                                  disabled={!accountSettingsCustomer}
+                                >
+                                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                                  View Account
+                                </Button>
+                                {linkedCompany ? (
+                                  <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => openEdit(linkedCompany)}>
+                                    Edit Linked Company
+                                  </Button>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-4 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                              Save this contact as a customer to create the Innovations account link. A website login can be added later or invited from Website Portals.
+                            </div>
+                          )}
+                        </div>
+                        <div className="rounded-xl border p-4" style={{ borderColor: "hsl(var(--border))" }}>
+                          <h3 className="text-sm font-semibold">Connectivity</h3>
+                          <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                            <div><span className="text-muted-foreground">Innovations</span><p className="font-medium">{accountSettingsCustomer?.innovations_customer_id ? "Synced" : "Pending"}</p></div>
+                            <div><span className="text-muted-foreground">CRM contact</span><p className="font-medium">{editContact.id ? "Linked" : "Unsaved"}</p></div>
+                            <div><span className="text-muted-foreground">Website</span><p className="font-medium">{linkedPortalProfile ? "Linked" : "Not linked"}</p></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border bg-muted/20 p-4 text-xs text-muted-foreground">
+                        <h3 className="text-sm font-semibold text-foreground">One edit surface</h3>
+                        <p className="mt-2">People, companies, ERP customer records, and optional website profiles stay connected here. Portal actions remain available from View Account, while identity and account linkage are edited in this contact record.</p>
+                        <p className="mt-3">A lead can become a contact, a contact can become a customer, and an invited person can inherit the company’s ERP account without creating a second account number.</p>
                       </div>
                     </div>
                   </TabsContent>

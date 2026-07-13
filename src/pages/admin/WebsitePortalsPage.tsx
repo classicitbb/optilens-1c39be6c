@@ -324,17 +324,6 @@ const WebsitePortalsPage = () => {
     });
   }, [customersQuery.data, search]);
 
-  useEffect(() => {
-    if (customersQuery.isLoading) return;
-    if (!selectedAccountId && accounts[0]) {
-      setSelectedAccountId(accounts[0].id);
-      return;
-    }
-    if (selectedAccountId && accounts.length > 0 && !accounts.some((account) => account.id === selectedAccountId)) {
-      setSelectedAccountId(accounts[0]?.id ?? null);
-    }
-  }, [accounts, selectedAccountId, customersQuery.isLoading]);
-
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null;
   const selectedCustomer = selectedAccount?.portalUser ?? null;
 
@@ -647,9 +636,23 @@ const WebsitePortalsPage = () => {
 
   const openErpAccount = (customerId: number | null, contactId: string | null) => {
     if (!customerId) return;
-    const params = new URLSearchParams({ erpCustomer: String(customerId) });
+    const params = new URLSearchParams({ erpCustomer: String(customerId), tab: "account-settings" });
     if (contactId) params.set("contact", contactId);
     navigate(`/admin/contacts?${params.toString()}`);
+  };
+
+  const openPortalContact = (account: PortalAccountRecord) => {
+    if (account.crmCustomerId && account.crmContactId) {
+      openErpAccount(account.crmCustomerId, account.crmContactId);
+      return;
+    }
+    setSelectedAccountId(account.id);
+    setAccountDialogOpen(true);
+  };
+
+  const handleAccountDialogOpenChange = (open: boolean) => {
+    setAccountDialogOpen(open);
+    if (!open) setSelectedAccountId(null);
   };
 
 
@@ -667,8 +670,8 @@ const WebsitePortalsPage = () => {
         </AdminPageHeader>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <Card className="flex min-h-0 flex-col overflow-hidden shadow-none hover:shadow-none">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden shadow-none hover:shadow-none">
           <CardHeader className="space-y-3 pb-3">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -682,53 +685,66 @@ const WebsitePortalsPage = () => {
               <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="pl-9" />
             </div>
           </CardHeader>
-          <CardContent className="min-h-0 flex-1 overflow-auto px-0 pb-0">
-            <table className="w-full min-w-[620px] text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-muted/95 text-xs text-muted-foreground backdrop-blur">
-                <tr className="border-y">
-                  <th className="px-4 py-2.5 font-medium">Account</th>
-                  <th className="px-3 py-2.5 font-medium">ERP</th>
-                  <th className="px-3 py-2.5 font-medium">Login</th>
-                  <th className="px-3 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accounts.map((account) => {
-                  const user = account.portalUser;
-                  return (
-                    <tr
-                      key={account.id}
-                      onClick={() => { setSelectedAccountId(account.id); setAccountDialogOpen(true); }}
-                      className={`cursor-pointer border-b align-top transition-colors ${selectedAccountId === account.id ? "bg-[hsl(var(--admin-accent)/0.08)]" : "hover:bg-muted/60"}`}
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-foreground">{account.fullName || account.email || "Unnamed account"}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{account.email || "No email on file"}</p>
-                      </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground">
-                        {account.isErpCustomer ? <span>{account.accountNumber || "ERP customer"}</span> : "—"}
-                      </td>
-                      <td className="px-3 py-3">
-                        {user ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Not created</Badge>}
-                      </td>
-                      <td className="px-3 py-3">
-                        {user ? (
-                          <span className="space-y-1">
-                            <Badge variant={user.crmCustomerId ? "default" : "secondary"}>{user.crmCustomerId ? "Approved" : user.portalAccessStatus.replace(/_/g, " ")}</Badge>
-                            {user.cartStatus === "abandoned" ? <Badge className="ml-1" variant="destructive">Cart alert</Badge> : null}
-                          </span>
-                        ) : account.isErpCustomer ? <Badge variant="outline">Approved</Badge> : <Badge variant="secondary">Needs review</Badge>}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {!accounts.length ? <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
-              </tbody>
-            </table>
+          <CardContent className="min-h-0 flex-1 overflow-hidden px-0 pb-0">
+            <div className="h-full overflow-auto border-t">
+              <table className="w-full min-w-[820px] table-fixed text-left text-sm">
+                <thead className="sticky top-0 z-10 bg-background text-xs text-muted-foreground shadow-sm">
+                  <tr className="border-y">
+                    <th className="w-[28%] px-4 py-3 font-medium">Account name</th>
+                    <th className="w-[28%] px-4 py-3 font-medium">Email</th>
+                    <th className="w-[16%] px-4 py-3 font-medium">ERP ACC#</th>
+                    <th className="w-[14%] px-4 py-3 font-medium">Login</th>
+                    <th className="w-[14%] px-4 py-3 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accounts.map((account) => {
+                    const user = account.portalUser;
+                    return (
+                      <tr
+                        key={account.id}
+                        onClick={() => openPortalContact(account)}
+                        className={`cursor-pointer border-b align-top transition-colors ${selectedAccountId === account.id ? "bg-[hsl(var(--admin-accent)/0.08)]" : "hover:bg-muted/60"}`}
+                      >
+                        <td className="px-4 py-3">
+                          {account.crmContactId ? (
+                            <button
+                              type="button"
+                              className="text-left font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              onClick={(event) => { event.stopPropagation(); openPortalContact(account); }}
+                            >
+                              {account.fullName || account.email || "Unnamed account"}
+                            </button>
+                          ) : (
+                            <p className="font-medium text-foreground">{account.fullName || account.email || "Unnamed account"}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{account.email || "No email on file"}</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          {account.isErpCustomer ? <span>{account.accountNumber || "ERP customer"}</span> : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {user ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Not created</Badge>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {user ? (
+                            <span className="space-y-1">
+                              <Badge variant={user.crmCustomerId ? "default" : "secondary"}>{user.crmCustomerId ? "Approved" : user.portalAccessStatus.replace(/_/g, " ")}</Badge>
+                              {user.cartStatus === "abandoned" ? <Badge className="ml-1" variant="destructive">Cart alert</Badge> : null}
+                            </span>
+                          ) : account.isErpCustomer ? <Badge variant="outline">Approved</Badge> : <Badge variant="secondary">Needs review</Badge>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!accounts.length ? <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
 
-        <Dialog open={accountDialogOpen && !!selectedAccount} onOpenChange={setAccountDialogOpen}>
+        <Dialog open={accountDialogOpen && !!selectedAccount} onOpenChange={handleAccountDialogOpenChange}>
           <DialogContent className={`flex max-w-6xl flex-col overflow-hidden p-0 ${selectedCustomer ? "h-[min(860px,calc(100vh-3rem))]" : "max-h-[calc(100vh-3rem)]"}`}>
             <DialogTitle className="sr-only">{selectedAccount?.fullName || selectedAccount?.email || "Customer account"}</DialogTitle>
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4">
@@ -761,7 +777,7 @@ const WebsitePortalsPage = () => {
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button onClick={() => openProvisioning("create")} disabled={!selectedAccount.email}><UserPlus className="mr-2 h-4 w-4" />Create login</Button>
                     <Button variant="outline" onClick={() => openProvisioning("invite")} disabled={!selectedAccount.email}><Mail className="mr-2 h-4 w-4" />Send invite</Button>
-                    <Button variant="ghost" onClick={() => openErpAccount(selectedAccount.crmCustomerId, selectedAccount.crmContactId)}>Open ERP account</Button>
+                  <Button variant="ghost" onClick={() => openErpAccount(selectedAccount.crmCustomerId, selectedAccount.crmContactId)}>Edit account &amp; contact</Button>
                   </div>
                   {!selectedAccount.email ? <p className="mt-3 text-xs text-amber-700">Add an email address in the ERP contact before creating or inviting this account.</p> : null}
                 </div>
