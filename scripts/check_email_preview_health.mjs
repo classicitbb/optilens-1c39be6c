@@ -57,7 +57,7 @@ for (const { name, local } of entries) {
   if (!existsSync(filePath)) { fail(`${name}: file missing (${rel})`); continue }
   const src = readFileSync(filePath, 'utf8')
   const problems = []
-  if (!/export\s+const\s+template\s*=/.test(src)) problems.push('missing `export const template`')
+  if (!/export\s+const\s+template\b/.test(src)) problems.push('missing `export const template`')
   if (!/component\s*:/.test(src)) problems.push('missing `component`')
   if (!/subject\s*:/.test(src)) problems.push('missing `subject`')
   if (!/displayName\s*:/.test(src)) problems.push('missing `displayName` (needed for Cloud → Emails label)')
