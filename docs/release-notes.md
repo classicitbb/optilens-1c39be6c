@@ -2,21 +2,37 @@
 
 Summarized release outcomes for each major date-stamped update.
 
-## 2026-07-10 — Smart Customer Journey First Release
+## 2026-07-13 — Specialty Lenses
 
 ### Release Notes
-- A compact role-aware homepage now puts ordering, tracking, lens guidance, help, account access, and retailer discovery first and remembers the professional/patient choice on that device.
-- The action-first homepage still includes the full shared footer and its company, support, legal, social, address, and contact links.
-- Signed-in customers are sent to a command centre that brings together onboarding, website orders, Rx drafts, balances, statements, tickets, assigned pricing, and clear source/freshness labels.
-- The controlled lens assistant validates prescription and frame information, applies only staff-published catalogue rules, and never substitutes a generic price or invented turnaround.
-- Recommendations can be saved as owner-private drafts and reviewed beside LabLink; LabLink remains the final submission system and the website never claims that saving a draft submitted an order.
-- Ask Classic can explain permitted account data and lens-tool results, while patient mode remains educational and unsupported Innovations job lookup is stated plainly.
+- Added a Specialty Lenses page for Endless Pilot Progressive and OmniLux NAL, with expandable on-page information instead of separate product pages.
+- The page is available under Lifestyle Lenses. The desktop column now reads House Brands, and the mobile menu opens as a full-screen frosted panel.
+
+## 2026-07-13 — Innovations EFT Bank Portal Directory
+
+### Release Notes
+- Bank Payment Portals automatically receives the exact bank names configured in Innovations for EFT customers.
+- Customers are sent only to verified online-banking destinations; the system shows a support fallback when a source value is a placeholder, non-retail institution, or otherwise lacks a verified sign-in page.
+
+## 2026-07-13 — Admin Email Preview Center
+
+### Release Notes
+- Settings now includes Email Previews, a split workspace for reviewing all active auth and application emails.
+- Operators can switch between templates and change sample name, recipient, and subject values to review personalized preview copy without sending messages.
+
+## 2026-07-13 — Storefront Cost-Access Regression Guard
+
+### Release Notes
+- Public storefront prices render for anonymous visitors through safe product RPCs.
+- Cost-bearing base tables remain inaccessible to anonymous and non-editor authenticated users, with CI blocking unsafe migration changes.
 
 ## 2026-07-11 — Portal Statements and Order Status
 
 ### Release Notes
 - Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.
-- My Orders adds live Innovations order status from MSSQL-SVR with order type, invoice, patient, and current-status dates; existing delivery tracking remains available.
+- My Orders now shows active Innovations WIP and valid same-day shipments from MSSQL-SVR using only Rx number, patient, received date, and current status; existing delivery tracking remains available.
+- The sign-in form has a clearer modern layout, inline password-reset access, and a show/hide password control.
+- My Account now displays the linked ERP account number (or `ACC#` until one is linked) and places Sign out beside Save Changes.
 - Open shipment records remain visible regardless of age; closed deliveries remain available for 30 days and can expand to show shipment work and an export tracking link when supplied.
 - Customers can jump to each order section from live count pills, search active lab work by patient or Rx number, and use the wider responsive account layout.
 

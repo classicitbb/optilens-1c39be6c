@@ -67,6 +67,44 @@ const getPasswordRedirectTo = (req: Request) => {
   return `${origin}/reset-password`;
 };
 
+async function linkCustomerPortalAccount(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+  customerId: number | undefined,
+  displayName?: string,
+) {
+  if (!customerId) return;
+
+  const { data: customer, error: customerError } = await (adminClient.from("customers") as any)
+    .select("id,contact_id")
+    .eq("id", customerId)
+    .maybeSingle();
+  if (customerError) throw customerError;
+  if (!customer) throw new Error("The selected ERP customer no longer exists.");
+
+  const { data: existingRole, error: roleLookupError } = await (adminClient.from("user_roles") as any)
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (roleLookupError) throw roleLookupError;
+
+  const roleWrite = existingRole
+    ? (adminClient.from("user_roles") as any).update({ role: "customer" }).eq("id", existingRole.id)
+    : (adminClient.from("user_roles") as any).insert({ user_id: userId, role: "customer" });
+  const { error: roleError } = await roleWrite;
+  if (roleError) throw roleError;
+
+  const profilePayload: Record<string, unknown> = {
+    user_id: userId,
+    crm_customer_id: customer.id,
+    crm_contact_id: customer.contact_id,
+  };
+  if (displayName?.trim()) profilePayload.full_name = displayName.trim();
+  const { error: profileError } = await (adminClient.from("profiles") as any)
+    .upsert(profilePayload, { onConflict: "user_id" });
+  if (profileError) throw profileError;
+}
+
 const allowedActions = new Set([
   "list-users",
   "reset-password",
@@ -156,30 +194,56 @@ Deno.serve(async (req) => {
     }
 
     if (action === "invite-user") {
-      const { email } = body;
+      const { email, customerId, displayName } = body;
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
+      }
+      if (customerId !== undefined && (!Number.isInteger(customerId) || customerId <= 0)) {
+        return jsonResponse(req, 400, { error: "customerId must be a positive integer" });
+      }
+      if (customerId) {
+        const { data: customer, error: customerError } = await (adminClient.from("customers") as any)
+          .select("id")
+          .eq("id", customerId)
+          .maybeSingle();
+        if (customerError) throw customerError;
+        if (!customer) return jsonResponse(req, 404, { error: "The selected ERP customer no longer exists" });
       }
       const { data: inviteData, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
         redirectTo: getPasswordRedirectTo(req),
       });
       if (error) throw error;
 
+      if (inviteData?.user?.id) {
+        await linkCustomerPortalAccount(adminClient, inviteData.user.id, customerId, displayName);
+      }
+
       // Trigger onboarding: assign default pricelist + send welcome email
       if (inviteData?.user?.id) {
-        await triggerCustomerOnboarding(req, inviteData.user.id, email);
+        await triggerCustomerOnboarding(req, inviteData.user.id, email, displayName);
       }
 
       return jsonResponse(req, 200, { success: true });
     }
 
     if (action === "create-user") {
-      const { email, password, displayName } = body;
+      const { email, password, displayName, customerId } = body;
       if (!email || !password) {
         return jsonResponse(req, 400, { error: "Email and password are required" });
       }
       if (password.length < 8) {
         return jsonResponse(req, 400, { error: "Password must be at least 8 characters" });
+      }
+      if (customerId !== undefined && (!Number.isInteger(customerId) || customerId <= 0)) {
+        return jsonResponse(req, 400, { error: "customerId must be a positive integer" });
+      }
+      if (customerId) {
+        const { data: customer, error: customerError } = await (adminClient.from("customers") as any)
+          .select("id")
+          .eq("id", customerId)
+          .maybeSingle();
+        if (customerError) throw customerError;
+        if (!customer) return jsonResponse(req, 404, { error: "The selected ERP customer no longer exists" });
       }
       const { data: newUser, error } = await adminClient.auth.admin.createUser({
         email,
@@ -187,11 +251,13 @@ Deno.serve(async (req) => {
         email_confirm: true,
       });
       if (error) throw error;
-      if (displayName && newUser?.user) {
-        await adminClient
-          .from("profiles")
-          .update({ display_name: displayName })
-          .eq("user_id", newUser.user.id);
+      if (newUser?.user) {
+        await linkCustomerPortalAccount(adminClient, newUser.user.id, customerId, displayName);
+        if (displayName) {
+          await (adminClient.from("profiles") as any)
+            .update({ display_name: displayName })
+            .eq("user_id", newUser.user.id);
+        }
       }
 
       // Trigger onboarding: assign default pricelist + send welcome email

@@ -10,12 +10,12 @@ Track issues and exceptions related to QA automation and PR checks.
 - Resolution
 - Follow-up actions
 
-## 2026-07-10
-- Script(s): `scripts/admin_smoke_and_error_checks.mjs`
-- Impact: `npm run qa:smoke` first failed with `spawn npm ENOENT`/`spawn EINVAL` on Windows, then reported obsolete snippets and a one-off route fetch failure during Vite dependency optimization.
-- Root cause: the harness relied on the platform npm command shim, inspected pre-route-split wiring plus removed Google-sign-in copy, and treated a single transient fetch error as a persistent route failure.
-- Resolution: launch `node_modules/vite/bin/vite.js` through `process.execPath`, inspect `AdminRoutes.tsx`, align authentication assertions with the current email/password flow, include the lens-assistant route, and retry transient route probes with bounded backoff.
-- Follow-up actions: keep child-process entrypoints shell-independent and run the smoke suite on Windows after launcher changes.
+## 2026-07-13
+- Script(s): `scripts/audit_product_cost_rls.mjs`, `scripts/pr_checks.mjs`
+- Impact: a later migration could re-grant direct reads on `addons`, `lenses`, or `supplies`, exposing cost-bearing columns despite earlier RLS hardening.
+- Root cause: the existing PR checks did not inspect subsequent database grants and SELECT policies after the original hardening migration.
+- Resolution: added a migration-bound policy audit to every PR check plus an optional service-role live-database audit RPC.
+- Follow-up actions: run `npm run security:product-cost-rls-audit` with service-role credentials before applying database-security migrations to a shared environment.
 
 ## 2026-05-27
 - Script(s): `scripts/check_lockfiles.mjs`, `scripts/pr_checks.mjs`, `scripts/sync_vercel_security_headers.mjs`

@@ -26,8 +26,9 @@ lib/innovations-sync.js (OptiLens Local)         ──HTTPS, x-api-key──▶
   dry-run by default; commit:true to write                              scope sync:write)
                                                                           │ upsert by
                                                                           ▼ innovations_* id
-                                                              public.customers / contacts /
-                                                              invoices / statements / statement_lines /
+                                                              public.bank_payment_portals /
+                                                              customers / contacts / invoices /
+                                                              statements / statement_lines /
                                                               customer_balances
 ```
 
@@ -41,6 +42,7 @@ duplicate. Each lands in a dedicated `innovations_<id>` column with a UNIQUE ind
 
 | Entity     | Source (Innovations)                         | Match key      | CV target table        |
 | ---------- | -------------------------------------------- | -------------- | ---------------------- |
+| Banks      | `dbo.EFTInstitutions`                        | `EFTInstitutionID` | `bank_payment_portals` |
 | Customers  | `dbo.Customers` (+ `Countries`)              | `CustomerID`   | `customers` (extended) |
 | Addresses  | `dbo.CustomerAddresses`                      | `CustomerID`   | folded onto `customers`|
 | Contacts   | `dbo.Contacts`                               | `ContactID`    | `contacts` (extended)  |
@@ -61,6 +63,13 @@ items and void statements are excluded; no full AR ledger or payment instrument
 details are sent.
 
 ## 3. Field maps
+
+### Banks → `public.bank_payment_portals`
+`innovations_eft_institution_id` is the immutable key and `bank_name` is the
+unmodified `EFTInstitutionName`. This preserves the exact value used by
+`customers.eft_institution_name` for payment routing — including legacy
+capitalization or whitespace. The office sync cannot write `portal_url` or
+`notes`; admins curate verified customer sign-in pages in Bank Payment Portals.
 
 ### Customers → `public.customers`
 | CV column                | Source                                   |

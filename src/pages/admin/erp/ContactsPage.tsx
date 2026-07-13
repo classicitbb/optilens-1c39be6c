@@ -17,7 +17,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
@@ -50,7 +50,7 @@ const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { COUNTRY_OPTIONS, ensureOption, getCityOptionsByCountry, getStateOptionsByCountry } from "@/lib/locationOptions";
 
-type FilterMode = "all" | "companies" | "persons" | "customers";
+type FilterMode = "all" | "companies" | "persons" | "customers" | "erp_accounts";
 type GroupByMode = "none" | "country";
 type ImportPreviewStatus = "ready" | "duplicate" | "invalid";
 type ImportPreviewRow = {
@@ -60,6 +60,19 @@ type ImportPreviewRow = {
   linkedName: ReturnType<typeof splitLinkedContactName>;
   status: ImportPreviewStatus;
   reason?: string;
+};
+
+type ImportedCustomer = {
+  id: number;
+  name: string;
+  account_number: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  country_code: string | null;
+  innovations_customer_id: number | null;
+  contact_id: string | null;
+  updated_at: string | null;
 };
 
 type SpeechRecognitionErrorCode = "aborted" | "audio-capture" | "bad-grammar" | "language-not-supported" | "network" | "no-speech" | "not-allowed" | "phrases-not-supported" | "service-not-allowed";
@@ -223,22 +236,24 @@ const isBooleanLike = (value: string) => {
 
 const normalizeValue = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
-const getDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
+const getDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null; is_company?: boolean | null }) => {
+  const contactKind = row.is_company ? "company" : "person";
   const email = normalizeValue(row.email);
-  if (email) return `email:${email}`;
+  if (email) return `${contactKind}:email:${email}`;
   const name = normalizeValue(row.name);
   const phone = normalizeValue(row.phone);
-  if (name && phone) return `name_phone:${name}|${phone}`;
-  if (name) return `name:${name}`;
+  if (name && phone) return `${contactKind}:name_phone:${name}|${phone}`;
+  if (name) return `${contactKind}:name:${name}`;
   return "";
 };
 
-const getImportDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null }) => {
+const getImportDuplicateKey = (row: { name?: string | null; email?: string | null; phone?: string | null; is_company?: boolean | null }) => {
+  const contactKind = row.is_company ? "company" : "person";
   const email = normalizeValue(row.email);
-  if (email) return `email:${email}`;
+  if (email) return `${contactKind}:email:${email}`;
   const name = normalizeValue(row.name);
   const phone = normalizeValue(row.phone);
-  if (name && phone) return `name_phone:${name}|${phone}`;
+  if (name && phone) return `${contactKind}:name_phone:${name}|${phone}`;
   return "";
 };
 
@@ -281,6 +296,13 @@ const emptyContact = (isCompany: boolean): Partial<Contact> => ({
 
 const EMPTY_CONTACTS: Contact[] = [];
 const EMPTY_STRING_LIST: string[] = [];
+const FILTER_LABELS: Record<FilterMode, string> = {
+  all: "All",
+  companies: "Companies",
+  persons: "Persons",
+  customers: "Customers",
+  erp_accounts: "ERP accounts",
+};
 
 const ContactsPage = () => {
   const { data: contactsData, isLoading } = useContacts();
@@ -315,12 +337,15 @@ const ContactsPage = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [filter, setFilter] = useState<FilterMode>("all");
+  const isErpAccountsMode = filter === "erp_accounts";
   const [groupBy, setGroupBy] = useState<GroupByMode>("none");
   const [countryFilter, setCountryFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
+  const [editTab, setEditTab] = useState<"details" | "account-settings" | "notes">("details");
   const [initialParentId, setInitialParentId] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
@@ -342,6 +367,18 @@ const ContactsPage = () => {
   const [isImportPreviewOpen, setIsImportPreviewOpen] = useState(false);
   const [importPreviewRows, setImportPreviewRows] = useState<ImportPreviewRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+
+  const { data: importedCustomers = [], isLoading: isLoadingImportedCustomers } = useQuery({
+    queryKey: ["erp-imported-customers"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,name,account_number,email,phone,address,country_code,innovations_customer_id,contact_id,updated_at")
+        .not("innovations_customer_id", "is", null)
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as ImportedCustomer[];
+    },
+  });
 
   // Load tags when editing
   const { data: editTagIdsData } = useContactTagLinks(editContact?.id);
@@ -368,18 +405,67 @@ const ContactsPage = () => {
     queryFn: async () => {
       if (!editContact?.id) return null;
       const { data, error } = await (supabase.from("customers") as any)
-        .select("id,account_number")
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
         .eq("contact_id", editContact.id as any)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: number; account_number: string | null } | null;
+      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
     },
-    enabled: !!editContact?.id && !!editContact?.is_customer,
+    enabled: !!editContact?.id,
+  });
+  const { data: linkedErpAccount } = useQuery({
+    queryKey: ["contact-linked-erp-account", editContact?.linked_customer_id],
+    queryFn: async () => {
+      if (typeof editContact?.linked_customer_id !== "number") return null;
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+        .eq("id", editContact.linked_customer_id as any)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
+    },
+    enabled: typeof editContact?.linked_customer_id === "number",
+  });
+  const accountSettingsCustomer = linkedCustomerRecord ?? linkedErpAccount ?? null;
+  const accountSettingsIsInherited = !linkedCustomerRecord && !!linkedErpAccount;
+  const { data: linkedPortalProfile } = useQuery({
+    queryKey: ["contact-linked-portal-profile", editContact?.id, accountSettingsCustomer?.id],
+    queryFn: async () => {
+      const query = (supabase.from("profiles") as any)
+        .select("id,user_id,full_name,organization_name,portal_access_status,crm_contact_id,crm_customer_id")
+        .limit(1);
+      if (editContact?.id) query.eq("crm_contact_id", editContact.id);
+      else if (accountSettingsCustomer?.id) query.eq("crm_customer_id", accountSettingsCustomer.id);
+      else return null;
+      const { data, error } = await query.maybeSingle();
+      if (error) throw error;
+      return data as { id: string; user_id: string; full_name: string | null; organization_name: string | null; portal_access_status: string | null; crm_contact_id: string | null; crm_customer_id: number | null } | null;
+    },
+    enabled: !!editContact?.id || !!accountSettingsCustomer?.id,
   });
   const [accountNumber, setAccountNumber] = useState("");
   useEffect(() => {
-    setAccountNumber(linkedCustomerRecord?.account_number ?? "");
-  }, [linkedCustomerRecord?.id, linkedCustomerRecord?.account_number, editContact?.id]);
+    setAccountNumber(accountSettingsCustomer?.account_number ?? "");
+  }, [accountSettingsCustomer?.id, accountSettingsCustomer?.account_number, editContact?.id]);
+
+  useEffect(() => {
+    const erpCustomerId = searchParams.get("erpCustomer");
+    if (!erpCustomerId) return;
+    setFilter("erp_accounts");
+    setSearch(erpCustomerId);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const contactId = searchParams.get("contact");
+    if (!contactId) return;
+    const contact = contacts.find((entry) => entry.id === contactId);
+    if (!contact) return;
+    setEditContact(contact);
+    setEditTab(searchParams.get("tab") === "account-settings" ? "account-settings" : "details");
+    setInitialParentId(contact.parent_id ?? null);
+    setSelectedTagIds([]);
+    setBusinessCardFile(null);
+  }, [contacts, searchParams]);
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["contact-opportunity-links"],
@@ -491,6 +577,27 @@ const ContactsPage = () => {
     }
     return list;
   }, [contacts, countryFilter, filter, search, showArchived]);
+
+  const filteredImportedCustomers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return importedCustomers.filter((customer) => {
+      if (countryFilter !== "all" && customer.country_code !== countryFilter) return false;
+      if (!q) return true;
+      return [
+        customer.id,
+        customer.innovations_customer_id,
+        customer.name,
+        customer.account_number,
+        customer.email,
+        customer.phone,
+        customer.address,
+      ]
+        .filter((value) => value !== null && value !== undefined)
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [countryFilter, importedCustomers, search]);
 
   const groupedByCountry = useMemo(() => {
     if (groupBy !== "country") return [] as { countryCode: string; contacts: Contact[] }[];
@@ -714,6 +821,7 @@ const ContactsPage = () => {
   const closeEditDialog = useCallback(() => {
     stopDictation();
     setEditContact(null);
+    setEditTab("details");
   }, [stopDictation]);
 
   const companies = contacts.filter((c) => c.is_company);
@@ -931,6 +1039,62 @@ const ContactsPage = () => {
     });
   };
 
+  const renderImportedCustomerRow = (customer: ImportedCustomer) => {
+    const linkedContact = customer.contact_id ? contacts.find((entry) => entry.id === customer.contact_id) : null;
+    return (
+      <TableRow key={customer.id}>
+        <TableCell className="font-medium text-xs">
+          <div className="flex flex-col gap-1">
+            <span>{customer.name}</span>
+            <span className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Customer #{customer.id}</span>
+          </div>
+        </TableCell>
+        <TableCell className="text-xs">
+          <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}>
+            {customer.account_number || "No account #"}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-xs">{customer.innovations_customer_id ?? "—"}</TableCell>
+        <TableCell className="text-xs">{customer.email || "—"}</TableCell>
+        <TableCell className="text-xs">{customer.phone || "—"}</TableCell>
+        <TableCell className="text-xs">{customer.country_code || "—"}</TableCell>
+        <TableCell className="text-xs">
+          {customer.contact_id ? (
+            <span>
+              {linkedContact?.name ?? "Linked contact"}
+              {linkedContact?.is_archived && <span style={{ color: "hsl(215 15% 55%)" }}> (archived)</span>}
+            </span>
+          ) : (
+            <span style={{ color: "hsl(215 15% 55%)" }}>Not visible in Contacts yet</span>
+          )}
+        </TableCell>
+        <TableCell className="text-right">
+          {customer.contact_id ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[10px]"
+              onClick={() => openLinkedImportedCustomerContact(customer)}
+            >
+              Open contact
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[10px]"
+              onClick={() => createContactFromImportedCustomer(customer)}
+            >
+              Create contact
+            </Button>
+          )}
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   const renderContactRow = (c: Contact) => (
     <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
       <TableCell className="w-10" onClick={(event) => event.stopPropagation()}>
@@ -1137,6 +1301,7 @@ const ContactsPage = () => {
           name: rawName,
           email: String(row.email ?? ""),
           phone: String(row.phone ?? ""),
+          is_company: row.is_company === true,
         });
         if (duplicateKey && (existingImportKeys.has(duplicateKey))) {
           return { rowNumber, displayName: rawName, row, linkedName: null, status: "duplicate" as const, reason: "Duplicate by email or by name+phone" };
@@ -1241,6 +1406,7 @@ const ContactsPage = () => {
             name: linkedName.personName,
             email: String(personRow.email ?? ""),
             phone: String(personRow.phone ?? ""),
+            is_company: false,
           })}|parent:${companyId}`;
           if (!personScopedKey.startsWith("|") && importSeenKeys.has(personScopedKey)) {
             duplicates += 1;
@@ -1269,6 +1435,7 @@ const ContactsPage = () => {
         name: String(row.name ?? ""),
         email: String(row.email ?? ""),
         phone: String(row.phone ?? ""),
+        is_company: row.is_company === true,
       });
       const rawNameKey = normalizeValue(String(row.name ?? ""));
       if (rawNameKey && existingContactByName.has(rawNameKey)) {
@@ -1412,7 +1579,7 @@ const ContactsPage = () => {
         description: e.message,
         variant: "destructive",
         action: isConflict ? (
-          <ToastAction altText="Open ERP contacts" onClick={() => navigate("/admin/erp/contacts")}>
+          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/erp/contacts?erpCustomer=${e.result.conflict_customer_id}`)}>
             Open contacts
           </ToastAction>
         ) : undefined,
@@ -1481,6 +1648,7 @@ const ContactsPage = () => {
   const openEdit = (contact: Contact) => {
     stopDictation();
     setEditContact(contact);
+    setEditTab("details");
     setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
     setBusinessCardFile(null);
@@ -1492,11 +1660,72 @@ const ContactsPage = () => {
   const openNew = (isCompany: boolean) => {
     stopDictation();
     setEditContact(emptyContact(isCompany));
+    setEditTab("details");
     setInitialParentId(null);
     setSelectedTagIds([]);
     setBusinessCardFile(null);
     if (businessCardInputRef.current) {
       businessCardInputRef.current.value = "";
+    }
+  };
+
+  const openLinkedImportedCustomerContact = (customer: ImportedCustomer) => {
+    if (!customer.contact_id) return;
+    const contact = contacts.find((entry) => entry.id === customer.contact_id);
+    if (!contact) {
+      toast({
+        title: "Linked contact not loaded",
+        description: "Refresh contacts and try again. The imported customer has a contact_id, but the contact row was not in the current list.",
+        variant: "destructive",
+      });
+      return;
+    }
+    openEdit(contact);
+  };
+
+  const createContactFromImportedCustomer = async (customer: ImportedCustomer) => {
+    if (customer.contact_id) {
+      openLinkedImportedCustomerContact(customer);
+      return;
+    }
+
+    try {
+      const { data: inserted, error: insertError } = await (supabase.from("contacts") as any)
+        .insert({
+          name: customer.name || customer.account_number || `Customer #${customer.id}`,
+          business_name: customer.name || null,
+          is_company: true,
+          email: customer.email ?? "",
+          phone: customer.phone ?? "",
+          country_code: customer.country_code ?? "",
+          notes: [
+            "Created from imported Innovations customer.",
+            customer.account_number ? `Account: ${customer.account_number}` : "",
+            customer.innovations_customer_id ? `Innovations Customer ID: ${customer.innovations_customer_id}` : "",
+            customer.address ? `Address: ${customer.address}` : "",
+          ].filter(Boolean).join("\n"),
+          is_customer: true,
+          pipeline_stage: "Active Customer",
+          status: "active",
+        } as any)
+        .select("*")
+        .single();
+      if (insertError) throw insertError;
+
+      const { error: updateError } = await (supabase.from("customers") as any)
+        .update({ contact_id: inserted.id })
+        .eq("id", customer.id);
+      if (updateError) throw updateError;
+
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["contacts"] }),
+        qc.invalidateQueries({ queryKey: ["erp-imported-customers"] }),
+        qc.invalidateQueries({ queryKey: ["customers-list"] }),
+      ]);
+      toast({ title: "Imported account added to Contacts", description: `${customer.name} is now visible as a linked customer contact.` });
+      openEdit(inserted as Contact);
+    } catch (error: any) {
+      toast({ title: "Could not create contact", description: error.message ?? "Please try again.", variant: "destructive" });
     }
   };
 
@@ -1576,31 +1805,34 @@ const ContactsPage = () => {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
           <Input
-            placeholder="Search contacts..."
+            placeholder={isErpAccountsMode ? "Search ERP accounts..." : "Search contacts..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-8 text-xs"
           />
         </div>
         <div className="flex items-center border rounded-md overflow-hidden" style={{ borderColor: "hsl(215 25% 88%)" }}>
-          {(["all", "companies", "persons", "customers"] as FilterMode[]).map((f) => (
+          {(["all", "companies", "persons", "customers", "erp_accounts"] as FilterMode[]).map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
-              className="px-3 py-1.5 text-xs font-medium capitalize transition-colors"
+              onClick={() => {
+                setFilter(f);
+                if (f !== "erp_accounts" && searchParams.has("erpCustomer")) setSearchParams({});
+              }}
+              className="px-3 py-1.5 text-xs font-medium transition-colors"
               style={{
                 background: filter === f ? "hsl(168 76% 42%)" : "transparent",
                 color: filter === f ? "white" : "hsl(215 15% 50%)",
               }}
             >
-              {f}
+              {FILTER_LABELS[f]}
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+        {!isErpAccountsMode && <label className="flex items-center gap-1.5 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
           Archived
-        </label>
+        </label>}
         <Select value={countryFilter} onValueChange={setCountryFilter}>
           <SelectTrigger className="h-8 text-xs w-[150px]">
             <SelectValue placeholder="Country" />
@@ -1612,7 +1844,7 @@ const ContactsPage = () => {
             ))}
           </SelectContent>
         </Select>
-        <Select value={groupBy} onValueChange={(value) => setGroupBy(value as GroupByMode)}>
+        {!isErpAccountsMode && <Select value={groupBy} onValueChange={(value) => setGroupBy(value as GroupByMode)}>
           <SelectTrigger className="h-8 text-xs w-[130px]">
             <SelectValue placeholder="Group by" />
           </SelectTrigger>
@@ -1620,11 +1852,13 @@ const ContactsPage = () => {
             <SelectItem value="none">No grouping</SelectItem>
             <SelectItem value="country">Country</SelectItem>
           </SelectContent>
-        </Select>
-        <span className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
-          Export mirrors current filters and optionally country grouping.
-        </span>
-        {selectedContactIds.length > 0 && (
+        </Select>}
+        {isErpAccountsMode && (
+          <span className="text-[11px]" style={{ color: "hsl(215 15% 50%)" }}>
+            Imported Innovations customer rows. Create a linked contact here before deleting old duplicate contacts.
+          </span>
+        )}
+        {!isErpAccountsMode && selectedContactIds.length > 0 && (
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-[11px]">{selectedContactIds.length} selected</Badge>
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setBulkAction("archive")}>Archive selected</Button>
@@ -1632,7 +1866,9 @@ const ContactsPage = () => {
           </div>
         )}
         <span className="text-xs ml-auto" style={{ color: "hsl(215 15% 50%)" }}>
-          {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
+          {isErpAccountsMode
+            ? `${filteredImportedCustomers.length} ERP account${filteredImportedCustomers.length !== 1 ? "s" : ""}`
+            : `${filtered.length} contact${filtered.length !== 1 ? "s" : ""}`}
         </span>
       </div>
 
@@ -1641,26 +1877,55 @@ const ContactsPage = () => {
         <div className="h-full overflow-y-auto">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background">
-            <TableRow>
-              <TableHead className="w-10">
-                <Checkbox
-                  checked={isAllVisibleSelected}
-                  onCheckedChange={(checked) => toggleSelectAllVisible(checked === true)}
-                  aria-label="Select all visible contacts"
-                />
-              </TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Salesperson</TableHead>
-              <TableHead>City</TableHead>
-              <TableHead>Country</TableHead>
-              <TableHead className="text-right">Connections</TableHead>
-            </TableRow>
+            {isErpAccountsMode ? (
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Account #</TableHead>
+                <TableHead>Innovations ID</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Country</TableHead>
+                <TableHead>Contact link</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            ) : (
+              <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={isAllVisibleSelected}
+                    onCheckedChange={(checked) => toggleSelectAllVisible(checked === true)}
+                    aria-label="Select all visible contacts"
+                  />
+                </TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Salesperson</TableHead>
+                <TableHead>City</TableHead>
+                <TableHead>Country</TableHead>
+                <TableHead className="text-right">Connections</TableHead>
+              </TableRow>
+            )}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isErpAccountsMode ? (
+              isLoadingImportedCustomers ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                    Loading imported ERP accounts...
+                  </TableCell>
+                </TableRow>
+              ) : filteredImportedCustomers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                    No imported ERP accounts match the current search.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredImportedCustomers.map((customer) => renderImportedCustomerRow(customer))
+              )
+            ) : isLoading ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                   Loading...
@@ -1823,9 +2088,22 @@ const ContactsPage = () => {
                 </DialogHeader>
 
                 {/* Body with tabs */}
-                <Tabs defaultValue="details" className="flex flex-col min-h-0 flex-1">
+                <Tabs
+                  value={editTab}
+                  onValueChange={(value) => {
+                    const nextTab = value as "details" | "account-settings" | "notes";
+                    setEditTab(nextTab);
+                    if (searchParams.has("contact")) {
+                      const nextParams = new URLSearchParams(searchParams);
+                      nextParams.set("tab", nextTab);
+                      setSearchParams(nextParams, { replace: true });
+                    }
+                  }}
+                  className="flex flex-col min-h-0 flex-1"
+                >
                   <TabsList className="px-4 pt-2 pb-0 h-auto bg-transparent justify-start gap-2 shrink-0">
                     <TabsTrigger value="details" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Details</TabsTrigger>
+                    <TabsTrigger value="account-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Account Settings</TabsTrigger>
                     <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
                   </TabsList>
 
@@ -2133,6 +2411,95 @@ const ContactsPage = () => {
                             )}
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="account-settings" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                    <div className="mx-auto grid max-w-4xl gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                      <div className="space-y-4">
+                        <div className="rounded-xl border p-4" style={{ borderColor: "hsl(var(--border))" }}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="text-sm font-semibold">ERP account connection</h3>
+                              <p className="mt-1 text-xs text-muted-foreground">This is the shared account identity used by Innovations, statements, pricing, and the website portal.</p>
+                            </div>
+                            <Badge variant={accountSettingsCustomer ? "default" : "secondary"} className="shrink-0">
+                              {accountSettingsCustomer ? "Connected" : "Not connected"}
+                            </Badge>
+                          </div>
+                          {accountSettingsCustomer ? (
+                            <div className="mt-4 space-y-3">
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-lg bg-muted/40 p-3">
+                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Innovations account</p>
+                                  <p className="mt-1 text-sm font-medium">{accountSettingsCustomer.name || editContact.name || "Unnamed account"}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">ID {accountSettingsCustomer.innovations_customer_id ?? "Pending sync"}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/40 p-3">
+                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website portal</p>
+                                  <p className="mt-1 text-sm font-medium">{linkedPortalProfile ? "Profile linked" : "No profile linked"}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">{linkedPortalProfile?.portal_access_status?.replace(/_/g, " ") || "Login can be created or invited"}</p>
+                                </div>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label htmlFor="account-settings-account-number" className="text-xs">Account number</Label>
+                                <Input
+                                  id="account-settings-account-number"
+                                  name="account_number"
+                                  autoComplete="off"
+                                  className="h-8 text-xs"
+                                  placeholder="e.g. RETAIL"
+                                  value={accountNumber}
+                                  onChange={(event) => setAccountNumber(event.target.value)}
+                                  disabled={accountSettingsIsInherited || !editContact.is_company || !editContact.is_customer}
+                                />
+                                <p className="text-[11px] text-muted-foreground">
+                                  {accountSettingsIsInherited
+                                    ? "Inherited from the linked company. Edit the company account to change it."
+                                    : editContact.is_company && editContact.is_customer
+                                      ? "The only field that links this contact to Innovations and online statements."
+                                      : "Enable Customer and Company on Details to create or edit an ERP account link."}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs"
+                                  onClick={() => accountSettingsCustomer && navigate(`/admin/website/portals?account=erp:${accountSettingsCustomer.id}`)}
+                                  disabled={!accountSettingsCustomer}
+                                >
+                                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                                  View Account
+                                </Button>
+                                {linkedCompany ? (
+                                  <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => openEdit(linkedCompany)}>
+                                    Edit Linked Company
+                                  </Button>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-4 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                              Save this contact as a customer to create the Innovations account link. A website login can be added later or invited from Website Portals.
+                            </div>
+                          )}
+                        </div>
+                        <div className="rounded-xl border p-4" style={{ borderColor: "hsl(var(--border))" }}>
+                          <h3 className="text-sm font-semibold">Connectivity</h3>
+                          <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                            <div><span className="text-muted-foreground">Innovations</span><p className="font-medium">{accountSettingsCustomer?.innovations_customer_id ? "Synced" : "Pending"}</p></div>
+                            <div><span className="text-muted-foreground">CRM contact</span><p className="font-medium">{editContact.id ? "Linked" : "Unsaved"}</p></div>
+                            <div><span className="text-muted-foreground">Website</span><p className="font-medium">{linkedPortalProfile ? "Linked" : "Not linked"}</p></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border bg-muted/20 p-4 text-xs text-muted-foreground">
+                        <h3 className="text-sm font-semibold text-foreground">One edit surface</h3>
+                        <p className="mt-2">People, companies, ERP customer records, and optional website profiles stay connected here. Portal actions remain available from View Account, while identity and account linkage are edited in this contact record.</p>
+                        <p className="mt-3">A lead can become a contact, a contact can become a customer, and an invited person can inherit the company’s ERP account without creating a second account number.</p>
                       </div>
                     </div>
                   </TabsContent>

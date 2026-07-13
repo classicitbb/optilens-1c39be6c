@@ -2,27 +2,41 @@
 
 Support-facing notes for the frontend runtime.
 
-## 2026-07-10 — Smart journey support notes
+## 2026-07-13 — Specialty Lenses
 
-- Public visitors can switch between “Optical professional” and “Patient or visitor” on the homepage; the device remembers the last choice and patient mode intentionally omits trade prices and ordering actions.
-- Signed-in customers visiting `/` normally land on `/profile`. Staff can use “View public site” to inspect the public homepage without signing out.
-- A missing lens price means the customer has no matching assigned-pricelist row; do not replace it with a retail or generic price. A missing approved turnaround is displayed as “Confirm with the lab.”
-- Saving a lens recommendation creates an editable website draft only. The order is not submitted until the customer completes the existing LabLink workflow.
-- If recommendations are unavailable, confirm that a rule set has been reviewed and published and that every referenced product is active and in the approved catalogue.
-- Ask Classic cannot search production Innovations/LabLink jobs by patient, PO, or job number until the deferred read-only jobs feed exists.
-- The smart homepage should end with the same shared footer used elsewhere; if it disappears, verify that `SmartHome` renders `Footer` after its main content.
+- Find Endless Pilot Progressive and OmniLux NAL under Lenses → Lifestyle Lenses → Specialty Lenses.
+- Use Read more to open the full information in place. Opening another lens closes the first card; this is expected and helps keep long product information manageable on mobile.
+- View My Price and Order This Lens retain the requested lens name in the destination URL. The price-request form and LabLink must be updated separately before they can automatically preselect that lens.
+
+## 2026-07-13 — Bank Payment Portals
+
+- Bank names labeled **Synced from Innovations** are managed by `dbo.EFTInstitutions`; do not rename them in the admin screen. The name must remain an exact match for the EFT customer routing field.
+- Add a URL only after confirming it is the bank's customer sign-in page. A row without a verified URL does not redirect the customer and instead shows the account-support payment message.
+
+## 2026-07-13 — Email Previews
+
+- Find the review workspace at Admin → Settings → Email Previews.
+- Select a template in the left-hand list to inspect its sample recipient, subject, trigger, and full email layout. The sample name, recipient, and subject controls update only the review preview and never send an email.
+- The source path shown for a template identifies the live source-managed email. If production wording needs changing, update that template through the normal release process so every existing sender keeps the same secure rendering path.
+
+## 2026-07-13 — Storefront product pricing
+
+- The public storefront fetches products only through the `get_*_safe` Supabase RPCs. Do not replace those calls with direct reads from `lenses`, `supplies`, or `addons`.
+- Anonymous visitors should see published sell prices, but the UI must never render base cost or add-on cost values. Run `npm run test -- --runInBand` after changing the product card or store data hook.
 
 ## 2026-07-11 — Statements and Innovations Order Status
 
 - Statements are posted financial records. The live current balance is displayed separately and is not a printable or selectable provisional statement.
 - If statement rows lack order/payment detail, verify the Innovations statement-line sync and the customer's LMS account mapping.
-- My Orders shows live Innovations order status from the local MSSQL gateway. Delivery tracking remains in the Live Delivery Status panel; a missing order response usually means the local live gateway/source MSSQL connection is offline, the customer has no linked account number, or duplicate account-number cleanup is still pending.
-- Active lab work includes orders not yet assigned a shipment and orders in an open shipment; it is removed once that Innovations shipment closes. The patient/Rx search narrows the already returned active result set.
+- My Orders shows live Innovations WIP plus valid shipments created today from the local MSSQL gateway. It shows only Rx number, patient, received date, and status; delivery tracking remains in the Live Delivery Status panel. A missing order response usually means the local live gateway/source MSSQL connection is offline, the customer has no linked account number, or duplicate account-number cleanup is still pending.
+- The patient/Rx search narrows the returned WIP and same-day shipment result set.
+- The sign-in form supports ordinary keyboard entry, password visibility, and reset-password access. Reset requests require the email field first; clipboard access is not required.
+- My Account displays the linked ERP account number below Organization / Company. `ACC#` means the customer has not been linked to an ERP account yet; account-number changes are made by staff in the portal/ERP administration tools.
 - Live Delivery Status keeps all open shipments, even older records such as shipment 10419, plus deliveries closed within 30 days. If a shipment lacks its contents or a tracking link, verify the OptiLens Local gateway response includes `orders` and a safe `tracking_url`.
 
 ## 2026-06-24 — Product-cost and analytics hardening
 
-- If viewer or customer users cannot query `addons`, `lenses`, or `supplies` directly, that is expected; customer-safe product reads should use the public views that omit cost fields.
+- If viewer or customer users cannot query `addons`, `lenses`, or `supplies` directly, that is expected; customer-safe storefront reads use the `get_*_safe` RPCs that redact cost values.
 - If public analytics rows fail to insert, check that `visitor_id` is UUID-shaped, `pathname` starts with `/`, web-vital metric names are one of `CLS`, `FCP`, `INP`, `LCP`, or `TTFB`, and ratings are recognized values.
 - If Auth onboarding tests fail around country selection, keep the form requirement intact and adjust the test fixture or Select mock rather than weakening validation.
 

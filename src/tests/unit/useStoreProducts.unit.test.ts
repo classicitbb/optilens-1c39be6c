@@ -3,6 +3,7 @@ import { fetchStoreProducts } from "@/hooks/useStoreProducts";
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
+  rpc: vi.fn(),
   pricing: {
     data: {
       fx_rates: { USD: 2 },
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: mocks.from,
+    rpc: mocks.rpc,
   },
 }));
 
@@ -36,25 +38,29 @@ const createQueryBuilder = (table: string) => {
 describe("fetchStoreProducts", () => {
   beforeEach(() => {
     mocks.from.mockReset();
+    mocks.rpc.mockReset();
     mocks.from.mockImplementation((table: string) => createQueryBuilder(table));
+    mocks.rpc.mockImplementation((functionName: string) =>
+      Promise.resolve(mocks.results[functionName] ?? { data: [], error: null }),
+    );
     mocks.results = {
-      lenses_public: { data: [], error: null },
-      supplies_public: { data: [], error: null },
-      addons_public: { data: [], error: null },
+      get_lenses_safe: { data: [], error: null },
+      get_supplies_safe: { data: [], error: null },
+      get_addons_safe: { data: [], error: null },
       store_product_media: { data: [], error: null },
       store_product_overrides: { data: [], error: null },
       store_product_variant_summary: { data: [], error: null },
     };
   });
 
-  it("keeps available products when optional public catalog views are missing", async () => {
-    const missingViewError = {
+  it("keeps available products when optional safe RPCs are missing", async () => {
+    const missingRpcError = {
       code: "PGRST205",
-      message: "Could not find the table in the schema cache",
+      message: "Could not find the function in the schema cache",
     };
-    mocks.results.lenses_public = { data: null, error: missingViewError };
-    mocks.results.addons_public = { data: null, error: missingViewError };
-    mocks.results.supplies_public = {
+    mocks.results.get_lenses_safe = { data: null, error: missingRpcError };
+    mocks.results.get_addons_safe = { data: null, error: missingRpcError };
+    mocks.results.get_supplies_safe = {
       data: [
         {
           id: "supply-1",
@@ -80,12 +86,18 @@ describe("fetchStoreProducts", () => {
       sell_price: 40,
       sell_price_usd: 20,
     });
+    expect(mocks.rpc).toHaveBeenCalledWith("get_lenses_safe");
+    expect(mocks.rpc).toHaveBeenCalledWith("get_supplies_safe");
+    expect(mocks.rpc).toHaveBeenCalledWith("get_addons_safe");
+    expect(mocks.from).not.toHaveBeenCalledWith("lenses");
+    expect(mocks.from).not.toHaveBeenCalledWith("supplies");
+    expect(mocks.from).not.toHaveBeenCalledWith("addons");
   });
 
-  it("still fails for non-optional catalog query errors", async () => {
-    mocks.results.supplies_public = {
+  it("still fails for non-optional safe RPC errors", async () => {
+    mocks.results.get_supplies_safe = {
       data: null,
-      error: { code: "42501", message: "permission denied for relation supplies_public" },
+      error: { code: "42501", message: "permission denied for function get_supplies_safe" },
     };
 
     await expect(fetchStoreProducts()).rejects.toMatchObject({

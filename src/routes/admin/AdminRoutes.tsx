@@ -48,6 +48,7 @@ const IntegrationsPage = lazy(() => import("@/pages/admin/settings/IntegrationsP
 const ApiKeysPage = lazy(() => import("@/pages/admin/settings/ApiKeysPage"));
 const BankPaymentPortalsPage = lazy(() => import("@/pages/admin/settings/BankPaymentPortalsPage"));
 const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
+const EmailPreviewsPage = lazy(() => import("@/pages/admin/settings/EmailPreviewsPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
 const HelpdeskTeamsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTeamsPage"));
 const HelpdeskSlaPoliciesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskSlaPoliciesPage"));
@@ -147,6 +148,7 @@ const AdminRoutes = () => (
       <Route path="settings/bank-payment-portals" element={<AdminOnlyRoute><BankPaymentPortalsPage /></AdminOnlyRoute>} />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
+      <Route path="settings/email-previews" element={<EmailPreviewsPage />} />
 
       <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="reference" element={<Navigate to="/admin/pricing/reference" replace />} />

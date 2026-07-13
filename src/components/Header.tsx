@@ -49,6 +49,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Progressive", description: "Premium multifocal options for all-day use", to: "/lenses/progressive" },
     { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
+    { label: "Sport", description: "Endless Sport for golfers, bikers, and boaters", to: "/lenses/sport" },
     { label: "Anti-Fatigue", description: "Digital comfort with near support boost", to: "/lenses/anti-fatigue" },
     { label: "Single Vision", description: "Everyday distance and near correction", to: "/lenses/single-vision" },
     { label: "Bifocals", description: "Classic bifocal options and freeform alternatives", to: "/lenses/bifocals" }]
@@ -62,11 +63,12 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Blue Filter", description: "Lens options for long digital sessions", to: "/lenses/blue-filter" },
     { label: "Polarized", description: "Outdoor glare-cutting sun lens solutions", to: "/lenses/polarized" },
     { label: "Tints & Fashion Colors", description: "Style and performance tint palettes", to: "/lenses/tints-fashion-colors" },
-    { label: "Myopia Control", description: "Evidence-based options for slowing myopia progression", to: "/lenses/myopia-control" }]
+    { label: "Myopia Control", description: "Evidence-based options for slowing myopia progression", to: "/lenses/myopia-control" },
+    { label: "Specialty Lenses", description: "Innovative solutions for unique visual needs", to: "/lenses/specialty" }]
 
   },
   {
-    title: "ZenVue Collection",
+    title: "House Brands",
     links: [
     { label: "Brilliance™ Progressive", description: "Featured progressive product page", to: "/zenvue/brilliance" },
     { label: "Single Vision", description: "Featured single-vision product page", to: "/zenvue/single-vision" },
@@ -287,6 +289,15 @@ const getBreadcrumbLabel = (segment: string) => {
 const getLabLinkNavigationProps = (preserveLabLinkSession: boolean) =>
   preserveLabLinkSession ? { target: "_blank", rel: "noopener noreferrer" } : {};
 
+const getMegaMenuColumns = (item: PrimaryMenuItem) => {
+  if (item.label === "Lenses") {
+    const [everydayVision, lifestyleLenses, houseBrands, technicalSpecs] = item.sections;
+    return [[everydayVision, technicalSpecs], [lifestyleLenses], [houseBrands]];
+  }
+
+  return item.sections.map((section) => [section]);
+};
+
 const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; preserveLabLinkSession: boolean;}) => {
   const [open, setOpen] = useState(false);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
@@ -294,6 +305,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const columns = getMegaMenuColumns(item);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -360,11 +372,13 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
           className="absolute -top-1.5 z-10 h-3 w-3 -translate-x-1/2 rotate-45 rounded-[2px] border shadow-none border-amber-400 bg-[#e7b318]" />
 
           <div className="grid gap-4 md:grid-cols-3">
-          {item.sections.map((section) =>
-          <div key={section.title}>
-              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
-              <div className="grid gap-1">
-                {section.links.map((link) =>
+          {columns.map((sections, columnIndex) =>
+          <div key={`${item.label}-column-${columnIndex}`} className="space-y-6">
+            {sections.map((section) =>
+            <div key={section.title}>
+                <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>
+                <div className="grid gap-1">
+                  {section.links.map((link) =>
               link.href ?
               <a
                 key={link.label}
@@ -404,7 +418,9 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
 
 
               )}
+                </div>
               </div>
+            )}
             </div>
           )}
           </div>
@@ -507,7 +523,7 @@ const Header = () => {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 border-border/50 bg-background/80 backdrop-blur-md">
+            <SheetContent side="left" className="!w-screen !max-w-none border-0 bg-background/80 backdrop-blur-md sm:!max-w-none">
               <SheetTitle className="mb-6 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center">
                   <img src={cleanLogoSmooth} alt="Classic Visions" className="h-6 w-6" />

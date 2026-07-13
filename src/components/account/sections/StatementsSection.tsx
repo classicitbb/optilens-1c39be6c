@@ -98,7 +98,7 @@ interface LiveStatementResponse {
 
 interface BankPortal {
   bank_name: string;
-  portal_url: string;
+  portal_url: string | null;
 }
 
 type SortColumn = "order_type_name" | "post_date" | "invoice_id" | "order_id" | "patient" | "payment_method" | "reference" | "amount" | null;
@@ -608,7 +608,7 @@ const StatementsSection = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {paymentProfile?.pay_by_eft && bankPortal ? (
+          {paymentProfile?.pay_by_eft && bankPortal?.portal_url ? (
             <>
               <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-900/20">
                 <AlertDescription className="text-blue-900 dark:text-blue-300">

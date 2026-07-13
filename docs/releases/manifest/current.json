@@ -1,46 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-11T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "A compact role-aware homepage now puts ordering, tracking, lens guidance, help, account access, and retailer discovery first and remembers the professional/patient choice on that device.",
-    "The action-first homepage still includes the full shared footer and its company, support, legal, social, address, and contact links.",
-    "Signed-in customers are sent to a command centre that brings together onboarding, website orders, Rx drafts, balances, statements, tickets, assigned pricing, and clear source/freshness labels.",
-    "The controlled lens assistant validates prescription and frame information, applies only staff-published catalogue rules, and never substitutes a generic price or invented turnaround.",
-    "Recommendations can be saved as owner-private drafts and reviewed beside LabLink; LabLink remains the final submission system and the website never claims that saving a draft submitted an order.",
-    "Ask Classic can explain permitted account data and lens-tool results, while patient mode remains educational and unsupported Innovations job lookup is stated plainly.",
-    "Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.",
-    "My Orders adds a live Rx-only status table with order, invoice, patient, and current-status dates; existing delivery tracking remains available."
+    "Added a Specialty Lenses page for Endless Pilot Progressive and OmniLux NAL, with expandable on-page information instead of separate product pages.",
+    "The page is available under Lifestyle Lenses. The desktop column now reads House Brands, and the mobile menu opens as a full-screen frosted panel."
   ],
   "moduleImpact": [
     {
-      "module": "profile/rx-drafts",
+      "module": "lenses/specialty",
       "impact": "medium",
-      "notes": "Updated as part of Smart Customer Journey First Release."
-    },
-    {
-      "module": "admin/website",
-      "impact": "medium",
-      "notes": "Updated as part of Smart Customer Journey First Release."
-    },
-    {
-      "module": "docs/architecture",
-      "impact": "medium",
-      "notes": "Updated as part of Smart Customer Journey First Release."
-    },
-  "releaseDateTimeUtc": "2026-07-11T00:00:00.000Z",
-  "environment": "production",
-  "releaseSummary": [
-    "Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.",
-    "My Orders adds live Innovations order status from MSSQL-SVR with order type, invoice, patient, and current-status dates; existing delivery tracking remains available.",
-    "Open shipment records remain visible regardless of age; closed deliveries remain available for 30 days and can expand to show shipment work and an export tracking link when supplied.",
-    "Customers can jump to each order section from live count pills, search active lab work by patient or Rx number, and use the wider responsive account layout."
-  ],
-  "moduleImpact": [
-    {
-      "module": "general",
-      "impact": "medium",
-      "notes": "Updated as part of Portal Statements and Order Status."
+      "notes": "Updated as part of Specialty Lenses."
     }
   ],
   "migrationNotes": [

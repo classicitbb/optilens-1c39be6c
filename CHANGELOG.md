@@ -4,38 +4,59 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
-## 2026-07-10 — Smart Customer Journey First Release
-
-### Plan
-- Replace the long public homepage with a compact role-aware starting point and route signed-in customers to a self-service command centre.
-- Add deterministic, catalogue-controlled lens guidance with private Rx drafts and an honest LabLink handoff.
-- Extend Ask Classic with permission-scoped customer information without implying access to unavailable Innovations job data.
+## 2026-07-13 — Specialty Lenses
 
 ### Release Notes
-- The homepage now presents professional or patient actions, remembers the selected audience on the device, and keeps trade pricing out of the patient path.
-- The compact homepage retains the established shared footer for company, support, legal, social, address, and contact navigation.
-- `/profile` now summarizes attention items, website orders, balances, statements, drafts, tickets, assigned pricing, and source freshness in one command-centre view.
-- The new lens assistant validates Rx and frame inputs, returns only published rule outcomes, shows assigned-pricelist prices only when present, and saves editable Rx drafts before opening LabLink.
-- Staff can prepare and publish versioned lens recommendation rules from `/admin/website/store/lens-assistant`; invalid or inactive product references block publication.
+- Added the new Specialty Lenses page with accessible expandable details for Endless Pilot Progressive and OmniLux NAL.
+- Specialty Lenses is now available from the Lifestyle Lenses menu; the House Brands heading and full-screen mobile navigation have also been refined.
 
 ### Technical Changelog
-- Added customer-scoped `get_customer_command_center()` and deterministic `recommend_lenses(jsonb)` database functions, versioned recommendation tables, and owner-private `rx_order_drafts` with RLS.
-- Added canonical routes for `/lens-assistant`, `/profile/rx-drafts/:draftId`, and `/admin/website/store/lens-assistant`, with synchronized route registry and navigation.
-- Centralized public company contact details and extended Ask Classic to read permitted account summaries while explicitly declining unsupported LabLink/Innovations job searches.
-- Added unit and integration coverage for audience mappings, Rx/prism validation, ranking, pricing visibility, publication checks, draft privacy, route synchronization, and assistant boundaries.
-- Added the end-to-end service blueprint under `docs/architecture/` to govern customer journeys, operational states, system ownership, correlation identifiers, and the OptiLens Local integration boundary.
+- Added the canonical `/lenses/specialty` route, typed specialty-lens content, reusable action URLs that retain the selected lens identifier, and accordion interaction coverage.
+
+## 2026-07-13 — Innovations EFT Bank Portal Directory
+
+### Release Notes
+- Bank Payment Portals now receives the exact EFT-institution directory from Innovations and identifies source-managed rows.
+- Verified retail online-banking destinations are seeded; ambiguous, placeholder, and non-retail entries remain intentionally unmapped instead of redirecting a customer to the wrong institution.
+
+### Technical Changelog
+- Added immutable `innovations_eft_institution_id` matching, a cloud receiver entity, and a read-only OptiLens Local `dbo.EFTInstitutions` sync entity that preserves the exact source bank name.
+- Made portal URLs nullable only for entries without a verified customer sign-in page; the customer payment dialog now safely falls back to support when no URL exists.
+
+## 2026-07-13 — Admin Email Preview Center
+
+### Release Notes
+- Administrators can now review the authentication and application emails wired into Classic Visions from Settings → Email Previews.
+- The split workspace identifies each email's trigger and recipient, and previews personalized sample copy without sending an email.
+
+### Technical Changelog
+- Added canonical admin route `/admin/settings/email-previews`, sidebar navigation, and route-accessibility coverage.
+- The preview catalog covers six authentication templates and eight registered transactional templates while retaining the existing source-managed, authenticated email send pipeline.
+
+## 2026-07-13 — Storefront Cost-Access Regression Guard
+
+### Release Notes
+- Anonymous storefront visitors can see published sell prices without receiving product-cost values.
+- Direct reads of cost-bearing product tables remain blocked for anonymous and ordinary authenticated users.
+
+### Technical Changelog
+- Added safe-RPC storefront reads, a rendered anonymous storefront regression test, and a database-policy audit RPC for `addons`, `lenses`, and `supplies`.
+- Added `npm run security:product-cost-rls-audit` to the required PR checks so future migrations cannot re-grant direct product-table SELECT access or add unsafe SELECT policies.
 
 ## 2026-07-11 — Portal Statements and Order Status
 
 ### Release Notes
 - Customer statements now use posted Innovations statements with full aging, balance, and transaction detail instead of a synthetic current-period record.
-- My Orders now includes live Innovations order status from the MSSQL-SVR gateway while retaining delivery tracking and website order history.
+- My Orders now includes live Innovations WIP and same-day valid shipment status from the MSSQL-SVR gateway while retaining delivery tracking and website order history.
+- Sign in now uses a more spacious, modern form with password visibility and inline reset-password access.
+- My Account now shows the linked ERP account number and includes a Sign out action beside Save Changes.
 - Customer account-number linking now blocks duplicate Innovations account numbers and exposes a duplicate audit view.
 - My Orders now keeps every open shipment visible regardless of age, retains closed deliveries for 30 days, and lets customers expand a shipment to review its included work and tracking link.
 
 ### Technical Changelog
 - Extended the live gateway, statement sync, and portal views with the posted-statement and order-status fields required by the customer portal.
-- Added portal order-status search, section-count anchors, compact website-order cards, and a wider responsive account layout; the gateway now passes explicit active-order and open/recent-delivery scopes to OptiLens Local.
+- Added portal order-status search, section-count anchors, compact website-order cards, and a wider responsive account layout; the gateway now returns only Rx number, patient, received date, and status for the current account's active WIP and valid same-day shipments.
+- Added an authenticated, source-managed ERP account-number lookup for My Account; customers can view the resolved value but cannot edit the integration link from their profile.
 
 ## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
 

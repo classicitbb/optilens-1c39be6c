@@ -80,21 +80,6 @@ const ContactForm = () => {
   }, [searchParams, form]);
 
   const onSubmit = async (data: ContactFormData) => {
-    const elapsedMs = startedAt ? Date.now() - Date.parse(startedAt) : 0;
-    const looksLikeBot = Boolean(honeypot) || elapsedMs < 3000;
-
-    if (looksLikeBot) {
-      // Silent success — do not tip off bots, do not send to server.
-      toast({
-        title: "Message Sent!",
-        description: "Thank you for your inquiry. We'll get back to you shortly.",
-      });
-      form.reset();
-      setHoneypot("");
-      setStartedAt(new Date().toISOString());
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await submitPublicInquiry({

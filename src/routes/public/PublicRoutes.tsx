@@ -55,6 +55,7 @@ const LabProcessOverviewPage = lazy(() => import("@/pages/professionals/LabProce
 const LensOrderingTipsPage = lazy(() => import("@/pages/professionals/LensOrderingTipsPage"));
 const ProgressivePage = lazy(() => import("@/pages/lenses/ProgressivePage"));
 const OfficeOccupationalPage = lazy(() => import("@/pages/lenses/OfficeOccupationalPage"));
+const SportPage = lazy(() => import("@/pages/lenses/SportPage"));
 const AntiFatiguePage = lazy(() => import("@/pages/lenses/AntiFatiguePage"));
 const SingleVisionPage = lazy(() => import("@/pages/lenses/SingleVisionPage"));
 const BifocalsPage = lazy(() => import("@/pages/lenses/BifocalsPage"));
@@ -63,6 +64,7 @@ const LedProPage = lazy(() => import("@/pages/lenses/LedProPage"));
 const BlueFilterPage = lazy(() => import("@/pages/lenses/BlueFilterPage"));
 const PolarizedPage = lazy(() => import("@/pages/lenses/PolarizedPage"));
 const TintsFashionColorsPage = lazy(() => import("@/pages/lenses/TintsFashionColorsPage"));
+const SpecialtyLensesPage = lazy(() => import("@/pages/lenses/SpecialtyLensesPage"));
 const MaterialsPage = lazy(() => import("@/pages/lenses/MaterialsPage"));
 const ThicknessChartPage = lazy(() => import("@/pages/lenses/ThicknessChartPage"));
 const ZenvueHome = lazy(() => import("@/pages/zenvue/ZenvueHome"));
@@ -132,6 +134,7 @@ const PublicRoutes = () => (
     <Route path="lenses/lens-types" element={<LensDesignGuidePage />} />
     <Route path="lenses/progressive" element={<ProgressivePage />} />
     <Route path="lenses/office-occupational" element={<OfficeOccupationalPage />} />
+    <Route path="lenses/sport" element={<SportPage />} />
     <Route path="lenses/anti-fatigue" element={<AntiFatiguePage />} />
     <Route path="lenses/single-vision" element={<SingleVisionPage />} />
     <Route path="lenses/bifocals" element={<BifocalsPage />} />
@@ -140,6 +143,7 @@ const PublicRoutes = () => (
     <Route path="lenses/blue-filter" element={<BlueFilterPage />} />
     <Route path="lenses/polarized" element={<PolarizedPage />} />
     <Route path="lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
+    <Route path="lenses/specialty" element={<SpecialtyLensesPage />} />
     <Route path="lenses/materials" element={<MaterialsPage />} />
     <Route path="lenses/thickness-chart" element={<ThicknessChartPage />} />
 

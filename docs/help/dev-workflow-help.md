@@ -15,6 +15,16 @@ npm run qa:pr-checks
 
 This includes lockfile policy, documentation symmetry, release-ledger drift, Vercel security-header sync, and wiki build-version validation.
 
+## Product-cost RLS audit
+
+Run the migration and optional live-database policy audit with:
+
+```bash
+npm run security:product-cost-rls-audit
+```
+
+The migration audit always runs. To include the live database check, provide both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; the service-role RPC must return no violations.
+
 ## Lockfile policy
 
 - This repository standardizes on npm.

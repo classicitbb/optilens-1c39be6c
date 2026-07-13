@@ -147,16 +147,21 @@ const OfficeOccupationalPage = () => {
             Everyday Vision
           </p>
           <h1 className="mt-3 text-4xl font-bold text-foreground sm:text-5xl">
-            Office / Occupational Lenses
+            Endless Office
           </h1>
-          <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Personalized occupational lenses with maximum near and intermediate
-            vision zones for superb vision in the workspace. Choose from three
-            distance configurations to match your patient's environment.
+          <p className="mt-2 text-lg font-medium text-muted-foreground">
+            Office / Occupational Lenses
           </p>
-          <Badge variant="outline" className="mt-4">
-            Personalized · IOT Digital Ray-Path 2
-          </Badge>
+          <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+            Endless Office is our personalized occupational lens — engineered with
+            maximum near and intermediate vision zones for superb vision in the
+            workspace. Choose from three distance configurations to match your
+            patient's environment.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Badge className="bg-accent text-accent-foreground">Endless Office</Badge>
+            <Badge variant="outline">Personalized · IOT Digital Ray-Path 2</Badge>
+          </div>
         </section>
 
         {/* ── Configurations ─────────────────────────────── */}

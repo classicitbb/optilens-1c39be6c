@@ -11,6 +11,7 @@ import {
   Search,
   ShieldCheck,
   ShoppingCart,
+  UserPlus,
   UserRound,
   WalletCards,
 } from "lucide-react";
@@ -34,6 +35,7 @@ import AddressBookSection from "@/components/account/sections/AddressBookSection
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
 import { Separator } from "@/components/ui/separator";
 import { ToastAction } from "@/components/ui/toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AccountNumberAssignmentError,
   assignCustomerAccountNumber,
@@ -105,6 +107,19 @@ interface PortalCustomerDetail extends PortalCustomerListItem {
   }>;
 }
 
+interface PortalAccountRecord {
+  id: string;
+  portalUser: PortalCustomerListItem | null;
+  crmCustomerId: number | null;
+  crmContactId: string | null;
+  accountNumber: string | null;
+  fullName: string;
+  email: string;
+  phone: string;
+  organizationName: string;
+  isErpCustomer: boolean;
+}
+
 const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "statements"] as const;
 
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
@@ -120,32 +135,66 @@ const WebsitePortalsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { users, resetPassword, isLoading: usersLoading } = useAdminUsers();
+  const { users, resetPassword, inviteUser, createUser, isLoading: usersLoading } = useAdminUsers();
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [search, setSearch] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
-  // selectedUserId is read from & written to the URL (?customer=<userId>)
-  const selectedUserId = searchParams.get("customer");
-  const setSelectedUserId = (id: string | null) =>
-    setSearchParams(id ? { customer: id } : {}, { replace: true });
+  // Keep a stable account selection in the URL. Older customer links remain readable.
+  const selectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
+  const setSelectedAccountId = (id: string | null) =>
+    setSearchParams(id ? { account: id } : {}, { replace: true });
   const [cutoffHours, setCutoffHours] = useState("24");
   const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
   const [accountNumberDraft, setAccountNumberDraft] = useState("");
+  const [provisioningMode, setProvisioningMode] = useState<"create" | "invite" | null>(null);
+  const [provisioningEmail, setProvisioningEmail] = useState("");
+  const [provisioningName, setProvisioningName] = useState("");
+  const [provisioningPassword, setProvisioningPassword] = useState("");
+  const [accountDialogOpen, setAccountDialogOpen] = useState(() => searchParams.has("account") || searchParams.has("customer"));
 
   const customersQuery = useQuery({
     queryKey: ["website-portals-customers"],
     queryFn: async () => {
-      const portalUsers = users.filter((entry) => !["admin", "operator", "viewer"].includes(entry.role ?? ""));
-      const portalUserIds = portalUsers.map((entry) => entry.user_id);
-
-      if (portalUserIds.length === 0) return [];
-
-      const { data, error } = await (supabase as any)
-        .from("profiles")
-        .select("id,user_id,full_name,phone,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
-        .in("user_id", portalUserIds)
-        .order("updated_at", { ascending: false });
+      const portalUserIds = users.map((entry) => entry.user_id);
+      const [{ data, error }, { data: erpCustomers, error: erpCustomersError }] = await Promise.all([
+        portalUserIds.length
+          ? (supabase as any)
+              .from("profiles")
+              .select("id,user_id,full_name,phone,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
+              .in("user_id", portalUserIds)
+              .order("updated_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        (supabase as any)
+          .from("customers")
+          .select("id,name,email,phone,account_number,assigned_pricelist_id,innovations_customer_id,contact_id")
+          .not("innovations_customer_id", "is", null)
+          .order("name"),
+      ]);
       if (error) throw error;
+      if (erpCustomersError) throw erpCustomersError;
+
+      const erpCustomerRows = (erpCustomers ?? []) as Array<Record<string, any>>;
+      const erpCustomerIds = erpCustomerRows.map((customer) => Number(customer.id)).filter(Number.isFinite);
+      const directContactIds = erpCustomerRows
+        .map((customer) => typeof customer.contact_id === "string" ? customer.contact_id : null)
+        .filter((id): id is string => !!id);
+      const [{ data: directContactRows, error: directContactError }, { data: resolvedContactRows, error: resolvedContactError }] = await Promise.all([
+        directContactIds.length
+          ? (supabase as any).from("contacts").select("id,email,phone").in("id", directContactIds)
+          : Promise.resolve({ data: [], error: null }),
+        erpCustomerIds.length
+          ? (supabase as any).from("contacts").select("id,email,phone,linked_customer_id").in("linked_customer_id", erpCustomerIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (directContactError) throw directContactError;
+      if (resolvedContactError) throw resolvedContactError;
+
+      const directContactById = new Map(((directContactRows ?? []) as Array<Record<string, any>>).map((contact) => [String(contact.id), contact]));
+      const resolvedContactByCustomerId = new Map(
+        ((resolvedContactRows ?? []) as Array<Record<string, any>>)
+          .filter((contact) => typeof contact.linked_customer_id === "number")
+          .map((contact) => [Number(contact.linked_customer_id), contact]),
+      );
 
       const profileMap = new Map(
         ((data ?? []) as Record<string, any>[]).map((row) => [
@@ -154,20 +203,26 @@ const WebsitePortalsPage = () => {
         ]),
       );
 
+      const customerRoleAccounts = users.filter((entry) => {
+        const profile = profileMap.get(entry.user_id);
+        return entry.role === "customer" || typeof profile?.crm_customer_id === "number";
+      });
+      const customerUserIds = customerRoleAccounts.map((entry) => entry.user_id);
+
       const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }] = await Promise.all([
         (supabase as any)
           .from("cart_items")
           .select("user_id,quantity")
-          .in("user_id", portalUserIds),
+          .in("user_id", customerUserIds),
         (supabase as any)
           .from("abandoned_cart_alerts")
           .select("user_id,status")
-          .in("user_id", portalUserIds)
+          .in("user_id", customerUserIds)
           .eq("status", "open"),
         (supabase as any)
           .from("user_presence")
           .select("user_id,status,last_heartbeat_at")
-          .in("user_id", portalUserIds),
+          .in("user_id", customerUserIds),
       ]);
 
       if (cartError) throw cartError;
@@ -182,11 +237,11 @@ const WebsitePortalsPage = () => {
       const openAlertByUser = new Set(((alertRows ?? []) as Array<{ user_id: string }>).map((row) => row.user_id));
       const presenceByUser = new Map(((presenceRows ?? []) as Array<{ user_id: string; status: string; last_heartbeat_at: string }>).map((row) => [row.user_id, row]));
 
-      return portalUsers
-        .map((entry) => {
+      const portalAccounts: PortalAccountRecord[] = customerRoleAccounts
+        .map((entry): PortalAccountRecord => {
           const profile = profileMap.get(entry.user_id);
           const cartItemCount = cartCountByUser[entry.user_id] ?? 0;
-          return {
+          const portalUser = {
             userId: entry.user_id,
             profileId: profile?.id ? String(profile.id) : `pending:${entry.user_id}`,
             email: entry.email ?? "",
@@ -202,13 +257,63 @@ const WebsitePortalsPage = () => {
             cartStatus: openAlertByUser.has(entry.user_id) ? "abandoned" : cartItemCount > 0 ? "in_progress" : "empty",
             presenceStatus: presenceByUser.get(entry.user_id)?.status ?? "offline",
           } satisfies PortalCustomerListItem;
+          return {
+            id: `user:${entry.user_id}`,
+            portalUser,
+            crmCustomerId: portalUser.crmCustomerId,
+            crmContactId: portalUser.crmContactId,
+            accountNumber: null,
+            fullName: portalUser.fullName,
+            email: portalUser.email,
+            phone: portalUser.phone,
+            organizationName: portalUser.organizationName,
+            isErpCustomer: false,
+          };
         })
-        .sort((a, b) => (b.fullName || b.email).localeCompare(a.fullName || a.email));
+        .sort((a, b) => (a.fullName || a.email).localeCompare(b.fullName || b.email));
+
+      const accountByCustomerId = new Map<number, PortalAccountRecord>();
+      for (const account of portalAccounts) {
+        if (account.crmCustomerId) accountByCustomerId.set(account.crmCustomerId, account);
+      }
+
+      for (const erpCustomer of erpCustomerRows) {
+        const customerId = Number(erpCustomer.id);
+        const directContactId = typeof erpCustomer.contact_id === "string" ? erpCustomer.contact_id : null;
+        const linkedContact = (directContactId ? directContactById.get(directContactId) : null) ?? resolvedContactByCustomerId.get(customerId) ?? null;
+        const contactEmail = typeof linkedContact?.email === "string" ? linkedContact.email : "";
+        const contactPhone = typeof linkedContact?.phone === "string" ? linkedContact.phone : "";
+        const contactId = typeof linkedContact?.id === "string" ? linkedContact.id : directContactId;
+        const existing = accountByCustomerId.get(customerId);
+        if (existing) {
+          existing.accountNumber = typeof erpCustomer.account_number === "string" ? erpCustomer.account_number : null;
+          existing.isErpCustomer = true;
+          existing.crmContactId ||= contactId;
+          existing.fullName ||= String(erpCustomer.name ?? "");
+          existing.email ||= String(contactEmail || erpCustomer.email || "");
+          existing.phone ||= String(contactPhone || erpCustomer.phone || "");
+          continue;
+        }
+        portalAccounts.push({
+          id: `erp:${customerId}`,
+          portalUser: null,
+          crmCustomerId: customerId,
+          crmContactId: contactId,
+          accountNumber: typeof erpCustomer.account_number === "string" ? erpCustomer.account_number : null,
+          fullName: String(erpCustomer.name ?? "ERP customer"),
+          email: String(contactEmail || erpCustomer.email || ""),
+          phone: String(contactPhone || erpCustomer.phone || ""),
+          organizationName: "",
+          isErpCustomer: true,
+        });
+      }
+
+      return portalAccounts.sort((a, b) => (a.fullName || a.email).localeCompare(b.fullName || b.email));
     },
     enabled: !usersLoading,
   });
 
-  const customers = useMemo(() => {
+  const accounts = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (customersQuery.data ?? []).filter((customer) => {
       if (!q) return true;
@@ -219,18 +324,8 @@ const WebsitePortalsPage = () => {
     });
   }, [customersQuery.data, search]);
 
-  useEffect(() => {
-    if (customersQuery.isLoading) return;
-    if (!selectedUserId && customers[0]) {
-      setSelectedUserId(customers[0].userId);
-      return;
-    }
-    if (selectedUserId && customers.length > 0 && !customers.some((customer) => customer.userId === selectedUserId)) {
-      setSelectedUserId(customers[0]?.userId ?? null);
-    }
-  }, [customers, selectedUserId, customersQuery.isLoading]);
-
-  const selectedCustomer = customers.find((customer) => customer.userId === selectedUserId) ?? null;
+  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null;
+  const selectedCustomer = selectedAccount?.portalUser ?? null;
 
   const detailQuery = useQuery({
     queryKey: ["website-portals-customer-detail", selectedCustomer?.userId],
@@ -364,7 +459,7 @@ const WebsitePortalsPage = () => {
         description: error.message || "Failed to update account number.",
         variant: "destructive",
         action: isConflict ? (
-          <ToastAction altText="Open ERP contacts" onClick={() => navigate("/admin/erp/contacts")}>
+          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/contacts?erpCustomer=${error.result.conflict_customer_id}`)}>
             Open contacts
           </ToastAction>
         ) : undefined,
@@ -384,12 +479,23 @@ const WebsitePortalsPage = () => {
           organization_name: payload.organization_name.trim(),
         }, { onConflict: "user_id" });
       if (error) throw error;
+      if (selectedCustomer.crmContactId) {
+        const { error: contactError } = await (supabase as any)
+          .from("contacts")
+          .update({
+            name: payload.full_name.trim(),
+            phone: payload.phone.trim(),
+            business_name: payload.organization_name.trim() || null,
+          })
+          .eq("id", selectedCustomer.crmContactId);
+        if (contactError) throw contactError;
+      }
       await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: selectedCustomer.userId });
     },
     onSuccess: async () => {
       await detailQuery.refetch();
       await queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] });
-      toast({ title: "Profile updated", description: "Customer profile details were saved and resynced." });
+      toast({ title: "Profile updated", description: selectedCustomer.crmContactId ? "Customer profile and linked ERP contact were updated." : "Customer profile details were saved and resynced." });
     },
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to update customer profile.", variant: "destructive" }),
   });
@@ -493,6 +599,62 @@ const WebsitePortalsPage = () => {
     setAccountNumberDraft(detailQuery.data.accountNumber || "");
   }, [detailQuery.data]);
 
+  const openProvisioning = (mode: "create" | "invite") => {
+    if (!selectedAccount?.crmCustomerId) return;
+    setAccountDialogOpen(false);
+    setProvisioningMode(mode);
+    setProvisioningEmail(selectedAccount.email);
+    setProvisioningName(selectedAccount.fullName);
+    setProvisioningPassword("");
+  };
+
+  const provisionAccount = async () => {
+    if (!selectedAccount?.crmCustomerId || !provisioningMode) return;
+    try {
+      if (provisioningMode === "invite") {
+        await inviteUser.mutateAsync({
+          email: provisioningEmail,
+          customerId: selectedAccount.crmCustomerId,
+          displayName: provisioningName,
+        });
+        toast({ title: "Invite sent", description: `The existing customer invitation email was sent to ${provisioningEmail}.` });
+      } else {
+        await createUser.mutateAsync({
+          email: provisioningEmail,
+          password: provisioningPassword,
+          displayName: provisioningName,
+          customerId: selectedAccount.crmCustomerId,
+        });
+        toast({ title: "Customer account created", description: "The login is linked to this approved ERP customer." });
+      }
+      setProvisioningMode(null);
+      await queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] });
+    } catch (error: any) {
+      toast({ title: "Account setup failed", description: error.message || "Unable to create the customer account.", variant: "destructive" });
+    }
+  };
+
+  const openErpAccount = (customerId: number | null, contactId: string | null) => {
+    if (!customerId) return;
+    const params = new URLSearchParams({ erpCustomer: String(customerId), tab: "account-settings" });
+    if (contactId) params.set("contact", contactId);
+    navigate(`/admin/contacts?${params.toString()}`);
+  };
+
+  const openPortalContact = (account: PortalAccountRecord) => {
+    if (account.crmCustomerId && account.crmContactId) {
+      openErpAccount(account.crmCustomerId, account.crmContactId);
+      return;
+    }
+    setSelectedAccountId(account.id);
+    setAccountDialogOpen(true);
+  };
+
+  const handleAccountDialogOpenChange = (open: boolean) => {
+    setAccountDialogOpen(open);
+    if (!open) setSelectedAccountId(null);
+  };
+
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden p-4">
@@ -508,53 +670,121 @@ const WebsitePortalsPage = () => {
         </AdminPageHeader>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden xl:grid-cols-[320px_minmax(0,1fr)]">
-        <Card className="flex min-h-0 flex-col overflow-hidden shadow-none hover:shadow-none">
-          <CardHeader className="space-y-3">
-            <CardTitle className="text-base">Customers</CardTitle>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden shadow-none hover:shadow-none">
+          <CardHeader className="space-y-3 pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">Customer accounts</CardTitle>
+                <CardDescription className="mt-1">ERP customers are approved by default. A website login is optional until it is needed.</CardDescription>
+              </div>
+              <Badge variant="outline">{accounts.length}</Badge>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search customers" className="pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="pl-9" />
             </div>
-            <CardDescription>{customers.length} customer portal profile(s)</CardDescription>
           </CardHeader>
-          <CardContent className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-            {customers.map((customer) => (
-              <button
-                key={customer.userId}
-                type="button"
-                onClick={() => setSelectedUserId(customer.userId)}
-                aria-pressed={selectedUserId === customer.userId}
-                className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${selectedUserId === customer.userId ? "border-[hsl(var(--admin-accent))] bg-[hsl(var(--admin-accent)/0.08)]" : "border-border hover:border-[hsl(var(--admin-accent)/0.35)]"}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-foreground">{customer.fullName || customer.email || "Customer"}</p>
-                    <p className="text-xs text-muted-foreground">{customer.email || "No email on file"}</p>
-                    {customer.organizationName ? <p className="mt-1 text-xs text-muted-foreground">{customer.organizationName}</p> : null}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Cart: {getCartStatusLabel(customer.cartStatus)} ({customer.cartItemCount} item{customer.cartItemCount === 1 ? "" : "s"})
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <Badge variant="outline">{customer.portalAccessStatus.replace(/_/g, " ")}</Badge>
-                    <Badge variant={customer.presenceStatus === "online" ? "default" : "secondary"}>{customer.presenceStatus}</Badge>
-                    {customer.cartStatus === "abandoned" ? <Badge variant="destructive">Abandoned</Badge> : null}
-                    {customer.cartStatus === "in_progress" ? <Badge className="bg-amber-500 text-amber-950 hover:bg-amber-500">In progress</Badge> : null}
-                  </div>
-                </div>
-              </button>
-            ))}
+          <CardContent className="min-h-0 flex-1 overflow-hidden px-0 pb-0">
+            <div className="h-full overflow-auto border-t">
+              <table className="w-full min-w-[820px] table-fixed text-left text-sm">
+                <thead className="sticky top-0 z-10 bg-background text-xs text-muted-foreground shadow-sm">
+                  <tr className="border-y">
+                    <th className="w-[28%] px-4 py-3 font-medium">Account name</th>
+                    <th className="w-[28%] px-4 py-3 font-medium">Email</th>
+                    <th className="w-[16%] px-4 py-3 font-medium">ERP ACC#</th>
+                    <th className="w-[14%] px-4 py-3 font-medium">Login</th>
+                    <th className="w-[14%] px-4 py-3 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accounts.map((account) => {
+                    const user = account.portalUser;
+                    return (
+                      <tr
+                        key={account.id}
+                        onClick={() => openPortalContact(account)}
+                        className={`cursor-pointer border-b align-top transition-colors ${selectedAccountId === account.id ? "bg-[hsl(var(--admin-accent)/0.08)]" : "hover:bg-muted/60"}`}
+                      >
+                        <td className="px-4 py-3">
+                          {account.crmContactId ? (
+                            <button
+                              type="button"
+                              className="text-left font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              onClick={(event) => { event.stopPropagation(); openPortalContact(account); }}
+                            >
+                              {account.fullName || account.email || "Unnamed account"}
+                            </button>
+                          ) : (
+                            <p className="font-medium text-foreground">{account.fullName || account.email || "Unnamed account"}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{account.email || "No email on file"}</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          {account.isErpCustomer ? <span>{account.accountNumber || "ERP customer"}</span> : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {user ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Not created</Badge>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {user ? (
+                            <span className="space-y-1">
+                              <Badge variant={user.crmCustomerId ? "default" : "secondary"}>{user.crmCustomerId ? "Approved" : user.portalAccessStatus.replace(/_/g, " ")}</Badge>
+                              {user.cartStatus === "abandoned" ? <Badge className="ml-1" variant="destructive">Cart alert</Badge> : null}
+                            </span>
+                          ) : account.isErpCustomer ? <Badge variant="outline">Approved</Badge> : <Badge variant="secondary">Needs review</Badge>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!accounts.length ? <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
 
-        <div className="flex min-h-0 flex-col gap-4 overflow-hidden">
-          {!selectedCustomer || !detailQuery.data ? (
+        <Dialog open={accountDialogOpen && !!selectedAccount} onOpenChange={handleAccountDialogOpenChange}>
+          <DialogContent className={`flex max-w-6xl flex-col overflow-hidden p-0 ${selectedCustomer ? "h-[min(860px,calc(100vh-3rem))]" : "max-h-[calc(100vh-3rem)]"}`}>
+            <DialogTitle className="sr-only">{selectedAccount?.fullName || selectedAccount?.email || "Customer account"}</DialogTitle>
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4">
+          {!selectedAccount ? (
             <Card className="shadow-none hover:shadow-none">
               <CardContent className="flex min-h-[320px] items-center justify-center text-sm text-muted-foreground">
-                Select a customer to review their portal profile, cart, orders, pricing access, and support history.
+                Select an account to review its ERP relationship, login readiness, and portal activity.
               </CardContent>
             </Card>
+          ) : !selectedCustomer ? (
+            <Card className="min-h-[320px] shadow-none hover:shadow-none">
+              <CardHeader>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{selectedAccount.fullName || "ERP customer"}</CardTitle>
+                    <CardDescription>This approved ERP customer does not have a website login yet. Set one up when they need portal access; purchases are not required.</CardDescription>
+                  </div>
+                  <Badge variant="outline">ERP approved</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border p-3"><p className="text-xs uppercase text-muted-foreground">Email</p><p className="mt-1 text-sm font-medium">{selectedAccount.email || "Missing"}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs uppercase text-muted-foreground">Phone</p><p className="mt-1 text-sm font-medium">{selectedAccount.phone || "Missing"}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs uppercase text-muted-foreground">Account number</p><p className="mt-1 text-sm font-medium">{selectedAccount.accountNumber || "Not linked"}</p></div>
+                </div>
+                <div className="rounded-xl border border-dashed p-4">
+                  <p className="font-medium text-foreground">Finish account setup</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Create a login and password for the customer, or use the established invitation template to let them choose their own password.</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button onClick={() => openProvisioning("create")} disabled={!selectedAccount.email}><UserPlus className="mr-2 h-4 w-4" />Create login</Button>
+                    <Button variant="outline" onClick={() => openProvisioning("invite")} disabled={!selectedAccount.email}><Mail className="mr-2 h-4 w-4" />Send invite</Button>
+                  <Button variant="ghost" onClick={() => openErpAccount(selectedAccount.crmCustomerId, selectedAccount.crmContactId)}>Edit account &amp; contact</Button>
+                  </div>
+                  {!selectedAccount.email ? <p className="mt-3 text-xs text-amber-700">Add an email address in the ERP contact before creating or inviting this account.</p> : null}
+                </div>
+              </CardContent>
+            </Card>
+          ) : !detailQuery.data ? (
+            <Card className="shadow-none hover:shadow-none"><CardContent className="flex min-h-[320px] items-center justify-center text-sm text-muted-foreground">Loading customer account…</CardContent></Card>
           ) : (
             <>
               <Card className="shrink-0 shadow-none hover:shadow-none">
@@ -572,6 +802,15 @@ const WebsitePortalsPage = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {(!detailQuery.data.email || !detailQuery.data.fullName || !detailQuery.data.phone || !detailQuery.data.organizationName) ? (
+                    <div className="md:col-span-2 xl:col-span-4 flex flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-medium text-foreground">Finish account setup</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{detailQuery.data.crmCustomerId ? "Complete the missing contact details, then save the profile to update the linked ERP contact." : "Add the missing contact details so this account can complete customer approval."}</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => document.getElementById("portal-profile-tab")?.click()}>Complete profile</Button>
+                    </div>
+                  ) : null}
                   <div className="rounded-xl border p-4">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">Email</p>
                     <p className="mt-2 font-medium text-foreground">{detailQuery.data.email || "—"}</p>
@@ -596,7 +835,7 @@ const WebsitePortalsPage = () => {
               <Tabs defaultValue="operations" className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
                 <TabsList className="flex w-full shrink-0 flex-wrap justify-start gap-2">
                   <TabsTrigger value="operations">Operations</TabsTrigger>
-                  <TabsTrigger value="profile">Profile</TabsTrigger>
+                  <TabsTrigger id="portal-profile-tab" value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="orders">Orders</TabsTrigger>
                   <TabsTrigger value="addresses">Addresses</TabsTrigger>
                   <TabsTrigger value="payments">Payments</TabsTrigger>
@@ -898,8 +1137,43 @@ const WebsitePortalsPage = () => {
               </Tabs>
             </>
           )}
-        </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      <Dialog open={provisioningMode !== null} onOpenChange={(open) => !open && setProvisioningMode(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {provisioningMode === "create" ? <UserPlus className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
+              {provisioningMode === "create" ? "Create customer login" : "Invite customer"}
+            </DialogTitle>
+            <DialogDescription>
+              This account will be linked to the selected approved ERP customer. {provisioningMode === "invite" ? "The existing invitation email template will let them set their own password." : "Share the password with the customer through your approved channel."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5"><Label>Customer name</Label><Input value={provisioningName} onChange={(event) => setProvisioningName(event.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={provisioningEmail} onChange={(event) => setProvisioningEmail(event.target.value)} /></div>
+            {provisioningMode === "create" ? <div className="space-y-1.5"><Label>Temporary password</Label><Input type="password" value={provisioningPassword} onChange={(event) => setProvisioningPassword(event.target.value)} placeholder="At least 12 characters" /></div> : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProvisioningMode(null)}>Cancel</Button>
+            <Button
+              onClick={provisionAccount}
+              disabled={
+                !provisioningEmail.includes("@") ||
+                (provisioningMode === "create" && provisioningPassword.length < 12) ||
+                inviteUser.isPending ||
+                createUser.isPending
+              }
+            >
+              {provisioningMode === "create" ? (createUser.isPending ? "Creating…" : "Create login") : (inviteUser.isPending ? "Sending…" : "Send invite")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

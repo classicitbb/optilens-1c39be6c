@@ -123,6 +123,14 @@ describe("public route accessibility", () => {
     expect(source).toContain('<Route path="lenses/led-pro" element={<LedProPage />} />');
   });
 
+  it("registers and declares the canonical specialty lenses route", () => {
+    expect(APP_ROUTE_REGISTRY.find((route) => route.id === "public.lenses.specialty" && route.path === "/lenses/specialty" && route.status === "active")).toBeTruthy();
+
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+    expect(source).toContain('<Route path="lenses/specialty" element={<SpecialtyLensesPage />} />');
+  });
+
   it("declares a runtime route for /professionals/freight-delivery-policy", () => {
     const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
     const source = fs.readFileSync(publicRoutesPath, "utf8");

@@ -1,6 +1,6 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { ArrowRight, Building2, CheckCircle2, ChevronLeft, FileBadge, Globe, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, ChevronLeft, Eye, EyeOff, FileBadge, Globe, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
@@ -56,6 +56,7 @@ const Auth = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [successState, setSuccessState] = useState<SuccessState | null>(null);
   const [leadSignalSent, setLeadSignalSent] = useState(false);
 
@@ -344,16 +345,17 @@ const Auth = () => {
           : "You’re exactly where you need to be.";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <main id="main-content" className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-4 py-6 sm:py-8">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+    <div className={`min-h-screen text-foreground ${isReturningVisitor ? "bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.12),_transparent_42%),linear-gradient(145deg,_hsl(var(--background)),_hsl(var(--muted)/0.65))]" : "bg-background"}`}>
+      <main id="main-content" className={`mx-auto flex min-h-screen flex-col justify-center px-4 py-6 sm:py-8 ${isReturningVisitor ? "max-w-xl" : "max-w-2xl"}`}>
+        <div className={`relative overflow-hidden border bg-card ${isReturningVisitor ? "rounded-3xl p-6 shadow-2xl shadow-primary/10 sm:p-8" : "rounded-2xl p-5 shadow-sm sm:p-6"}`}>
+          {isReturningVisitor ? <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" aria-hidden="true" /> : null}
           {/* Header */}
           <div className="flex items-center justify-between gap-3">
-            <Link to="/" className="inline-flex items-center gap-2 text-foreground">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+            <Link to="/" className="inline-flex items-center gap-2 text-foreground transition-opacity hover:opacity-80">
+              <span className={`flex h-9 w-9 items-center justify-center ${isReturningVisitor ? "rounded-full bg-primary/10 shadow-sm" : "rounded-xl bg-primary/10"}`}>
                 <img src={cleanLogoSmooth} alt="Classic Visions" className="h-5 w-5" width={20} height={20} />
               </span>
-              <span className="text-sm font-semibold">Classic Visions</span>
+              <span className="text-sm font-semibold tracking-tight">Classic Visions</span>
             </Link>
             {mode === "signup" && currentStep !== "welcome" && currentStep !== "success" ? (
               <Button
@@ -371,7 +373,8 @@ const Auth = () => {
             ) : null}
           </div>
 
-          <h1 className="mt-4 text-xl font-semibold tracking-tight sm:text-2xl">{headingText}</h1>
+          <h1 className={`mt-5 font-semibold tracking-tight ${isReturningVisitor ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl"}`}>{headingText}</h1>
+          {isReturningVisitor ? <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Sign in to manage your account, orders, and saved work.</p> : null}
           {mode === "signup" && currentStep === "details" && selectedAudience === "professional" ? (
             <p className="mt-1 text-sm text-muted-foreground">
               Business details qualify you for trade pricing and immediate ordering.
@@ -460,7 +463,7 @@ const Auth = () => {
             </div>
           ) : (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleContinueFromDetails)} className="mt-5 space-y-3" noValidate>
+              <form onSubmit={form.handleSubmit(handleContinueFromDetails)} className={`mt-5 ${isReturningVisitor ? "space-y-5" : "space-y-3"}`} noValidate>
                 {mode === "signup" ? (
                   <>
                     <FormField
@@ -570,18 +573,18 @@ const Auth = () => {
                   </>
                 ) : null}
 
-                <div className="grid gap-3">
+                <div className={`grid ${isReturningVisitor ? "gap-4" : "gap-3"}`}>
 
                   <FormField
                     control={form.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel className={isReturningVisitor ? "text-sm font-medium" : undefined}>Email</FormLabel>
                         <div className="relative">
                           <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                           <FormControl>
-                            <Input {...field} type="email" autoComplete="email" spellCheck={false} placeholder="you@example.com" className="pl-9" />
+                            <Input {...field} type="email" autoComplete="email" spellCheck={false} placeholder="you@example.com" className={`pl-9 ${isReturningVisitor ? "h-11 rounded-xl bg-background/80" : ""}`} />
                           </FormControl>
                         </div>
                         <FormMessage />
@@ -594,18 +597,54 @@ const Auth = () => {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <div className="flex items-center justify-between gap-3">
+                          <FormLabel className={isReturningVisitor ? "text-sm font-medium" : undefined}>Password</FormLabel>
+                          {mode === "signin" ? (
+                            <button
+                              type="button"
+                              className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                              onClick={async () => {
+                                const email = form.getValues("email").trim();
+                                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                                  toast({ title: "Enter your email", description: "Please enter your email address first.", variant: "destructive" });
+                                  return;
+                                }
+                                try {
+                                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                                    redirectTo: `${window.location.origin}/reset-password`,
+                                  });
+                                  if (error) throw error;
+                                  toast({ title: "Reset email sent", description: `Check ${email} for a reset link.` });
+                                } catch {
+                                  toast({ title: "Error", description: "Failed to send reset email.", variant: "destructive" });
+                                }
+                              }}
+                            >
+                              Forgot password?
+                            </button>
+                          ) : null}
+                        </div>
                         <div className="relative">
                           <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                           <FormControl>
                             <Input
                               {...field}
-                              type="password"
+                              type={mode === "signin" && isPasswordVisible ? "text" : "password"}
                               autoComplete={mode === "signin" ? "current-password" : "new-password"}
                               placeholder={mode === "signin" ? "Your password" : "Min. 6 characters"}
-                              className="pl-9"
+                              className={`pl-9 ${isReturningVisitor ? "h-11 rounded-xl bg-background/80 pr-11" : ""}`}
                             />
                           </FormControl>
+                          {mode === "signin" ? (
+                            <button
+                              type="button"
+                              className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                              onClick={() => setIsPasswordVisible((visible) => !visible)}
+                            >
+                              {isPasswordVisible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                            </button>
+                          ) : null}
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -642,7 +681,7 @@ const Auth = () => {
                 <Button
                   type={mode === "signup" && currentStep === "intent" ? "button" : "submit"}
                   size="default"
-                  className="w-full"
+                  className={`w-full ${isReturningVisitor ? "h-11 rounded-xl shadow-md shadow-primary/20" : ""}`}
                   disabled={isSubmitting}
                   onClick={mode === "signup" && currentStep === "intent" ? handleCreateAccount : undefined}
                 >
@@ -655,37 +694,13 @@ const Auth = () => {
                         : "Continue"}
                 </Button>
 
-                {mode === "signin" ? (
-                  <button
-                    type="button"
-                    className="block text-xs font-medium text-primary hover:underline"
-                    onClick={async () => {
-                      const email = form.getValues("email").trim();
-                      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                        toast({ title: "Enter your email", description: "Please enter your email address first.", variant: "destructive" });
-                        return;
-                      }
-                      try {
-                        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                          redirectTo: `${window.location.origin}/reset-password`,
-                        });
-                        if (error) throw error;
-                        toast({ title: "Reset email sent", description: `Check ${email} for a reset link.` });
-                      } catch {
-                        toast({ title: "Error", description: "Failed to send reset email.", variant: "destructive" });
-                      }
-                    }}
-                  >
-                    Forgot your password?
-                  </button>
-                ) : null}
               </form>
             </Form>
           )}
 
           {currentStep !== "success" ? (
             <>
-              <div className="mt-4 text-center text-xs text-muted-foreground">
+              <div className={`mt-5 text-center text-xs text-muted-foreground ${isReturningVisitor ? "border-t border-border/70 pt-5" : ""}`}>
                 {mode === "signin" ? (
                   <span>
                     New here?{" "}

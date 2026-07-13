@@ -524,20 +524,23 @@ export type Database = {
       bank_payment_portals: {
         Row: {
           bank_name: string
+          innovations_eft_institution_id: number | null
           notes: string | null
-          portal_url: string
+          portal_url: string | null
           updated_at: string
         }
         Insert: {
           bank_name: string
+          innovations_eft_institution_id?: number | null
           notes?: string | null
-          portal_url: string
+          portal_url?: string | null
           updated_at?: string
         }
         Update: {
           bank_name?: string
+          innovations_eft_institution_id?: number | null
           notes?: string | null
-          portal_url?: string
+          portal_url?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -3715,6 +3718,115 @@ export type Database = {
         }
         Relationships: []
       }
+      lens_recommendation_rule_sets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          published_at: string | null
+          published_by: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      lens_recommendation_rules: {
+        Row: {
+          coating: string | null
+          conditions: Json
+          created_at: string
+          id: string
+          priority: number
+          product_id: string
+          reasons: string[]
+          rule_set_id: string
+          tier: string
+          turnaround_max_days: number | null
+          turnaround_min_days: number | null
+          updated_at: string
+          warnings: string[]
+        }
+        Insert: {
+          coating?: string | null
+          conditions?: Json
+          created_at?: string
+          id?: string
+          priority?: number
+          product_id: string
+          reasons?: string[]
+          rule_set_id: string
+          tier: string
+          turnaround_max_days?: number | null
+          turnaround_min_days?: number | null
+          updated_at?: string
+          warnings?: string[]
+        }
+        Update: {
+          coating?: string | null
+          conditions?: Json
+          created_at?: string
+          id?: string
+          priority?: number
+          product_id?: string
+          reasons?: string[]
+          rule_set_id?: string
+          tier?: string
+          turnaround_max_days?: number | null
+          turnaround_min_days?: number | null
+          updated_at?: string
+          warnings?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_recommendation_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_recommendation_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_recommendation_rules_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "lens_recommendation_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lenses: {
         Row: {
           add_max: number | null
@@ -3877,6 +3989,129 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      live_data_gateway_agents: {
+        Row: {
+          agent_name: string
+          agent_version: string | null
+          api_key_id: string
+          capabilities: string[]
+          connected_at: string
+          last_error: string | null
+          last_seen_at: string
+        }
+        Insert: {
+          agent_name?: string
+          agent_version?: string | null
+          api_key_id: string
+          capabilities?: string[]
+          connected_at?: string
+          last_error?: string | null
+          last_seen_at?: string
+        }
+        Update: {
+          agent_name?: string
+          agent_version?: string | null
+          api_key_id?: string
+          capabilities?: string[]
+          connected_at?: string
+          last_error?: string | null
+          last_seen_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_data_gateway_agents_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: true
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_data_gateway_requests: {
+        Row: {
+          arguments: Json
+          claimed_at: string | null
+          claimed_by: string | null
+          completed_at: string | null
+          consumed_at: string | null
+          error_code: string | null
+          error_message: string | null
+          expires_at: string
+          id: string
+          operation: string
+          purge_after: string
+          requested_at: string
+          requested_by: string
+          response_payload: Json | null
+          source: string
+          status: string
+          target: Json
+          website_customer_id: number
+        }
+        Insert: {
+          arguments?: Json
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          consumed_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          expires_at?: string
+          id?: string
+          operation: string
+          purge_after?: string
+          requested_at?: string
+          requested_by: string
+          response_payload?: Json | null
+          source: string
+          status?: string
+          target?: Json
+          website_customer_id: number
+        }
+        Update: {
+          arguments?: Json
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          consumed_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          expires_at?: string
+          id?: string
+          operation?: string
+          purge_after?: string
+          requested_at?: string
+          requested_by?: string
+          response_payload?: Json | null
+          source?: string
+          status?: string
+          target?: Json
+          website_customer_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_data_gateway_requests_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_data_gateway_requests_website_customer_id_fkey"
+            columns: ["website_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "live_data_gateway_requests_website_customer_id_fkey"
+            columns: ["website_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       material_upgrades: {
         Row: {
@@ -5527,6 +5762,53 @@ export type Database = {
           },
         ]
       }
+      rx_order_drafts: {
+        Row: {
+          created_at: string
+          id: string
+          input_payload: Json
+          name: string
+          patient_reference: string | null
+          recommendation_snapshot: Json | null
+          rule_set_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_payload?: Json
+          name: string
+          patient_reference?: string | null
+          recommendation_snapshot?: Json | null
+          rule_set_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_payload?: Json
+          name?: string
+          patient_reference?: string | null
+          recommendation_snapshot?: Json | null
+          rule_set_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_order_drafts_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "lens_recommendation_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rx_price_categories: {
         Row: {
           created_at: string
@@ -6047,7 +6329,9 @@ export type Database = {
           status: number | null
           synced_at: string
           to_date: string | null
+          transactions: number | null
           void: boolean
+          volume_discount: number | null
         }
         Insert: {
           account_number?: string | null
@@ -6077,7 +6361,9 @@ export type Database = {
           status?: number | null
           synced_at?: string
           to_date?: string | null
+          transactions?: number | null
           void?: boolean
+          volume_discount?: number | null
         }
         Update: {
           account_number?: string | null
@@ -6107,7 +6393,9 @@ export type Database = {
           status?: number | null
           synced_at?: string
           to_date?: string | null
+          transactions?: number | null
           void?: boolean
+          volume_discount?: number | null
         }
         Relationships: [
           {
@@ -6941,6 +7229,15 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_account_number_duplicates: {
+        Row: {
+          account_number: string | null
+          customer_ids: number[] | null
+          customer_names: string[] | null
+          duplicate_count: number | null
+        }
+        Relationships: []
+      }
       customer_payment_profile_public: {
         Row: {
           account_number: string | null
@@ -7414,6 +7711,19 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
+      assign_customer_account_number: {
+        Args: { p_account_number: string; p_customer_id: number }
+        Returns: {
+          account_number: string
+          conflict_account_number: string
+          conflict_customer_id: number
+          conflict_customer_name: string
+          customer_id: number
+          message: string
+          ok: boolean
+          status: string
+        }[]
+      }
       can_access_customer_portal_feature: {
         Args: { p_feature_key?: string; p_user_id?: string }
         Returns: boolean
@@ -7421,6 +7731,17 @@ export type Database = {
       cancel_integration_sync_job: {
         Args: { p_sync_job_id: string }
         Returns: undefined
+      }
+      claim_live_data_gateway_request: {
+        Args: { p_agent_key_id: string }
+        Returns: {
+          arguments: Json
+          expires_at: string
+          id: string
+          operation: string
+          source: string
+          target: Json
+        }[]
       }
       close_helpdesk_ticket_by_token: {
         Args: { p_token: string }
@@ -7439,6 +7760,15 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      find_customer_by_account_number: {
+        Args: { p_account_number: string }
+        Returns: {
+          account_number: string
+          id: number
+          innovations_customer_id: number
+          name: string
+        }[]
       }
       get_addons_safe: {
         Args: never
@@ -7477,6 +7807,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_customer_command_center: { Args: never; Returns: Json }
       get_integration_connection_secret: {
         Args: { p_connection_id: string }
         Returns: string
@@ -7515,6 +7846,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_portal_erp_account_number: { Args: never; Returns: string }
       get_quote_lines_safe: {
         Args: { p_quote_id: string }
         Returns: {
@@ -7621,6 +7953,10 @@ export type Database = {
         }
         Returns: number
       }
+      normalized_customer_account_number: {
+        Args: { p_account_number: string }
+        Returns: string
+      }
       place_customer_order: {
         Args: {
           p_actor_user_id?: string
@@ -7639,6 +7975,10 @@ export type Database = {
         }
         Returns: string
       }
+      publish_lens_recommendation_rule_set: {
+        Args: { p_rule_set_id: string }
+        Returns: undefined
+      }
       queue_abandoned_cart_alerts: {
         Args: { p_cutoff_hours?: number }
         Returns: Json
@@ -7651,6 +7991,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recommend_lenses: { Args: { p_input: Json }; Returns: Json }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       resolve_contact_customer_links: { Args: never; Returns: number }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }

@@ -94,7 +94,7 @@ back (`POST _requests/complete`); the card shows pending → done.
 - The two installer commands intentionally create different tasks by default:
   **OptiLens Innovations Sync** (hourly full push) and **OptiLens Innovations
   Sync Requests** (three-minute cloud request poller). Confirm both exist in
-   Task Scheduler; installing the poller must not replace the full push.
+  Task Scheduler; installing the poller must not replace the full push.
 
 ## Troubleshooting
 
