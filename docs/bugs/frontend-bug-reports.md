@@ -3,6 +3,12 @@
 Track frontend regressions and customer-facing issues.
 
 ## 2026-07-13
+- Area: public lens navigation and mobile menu
+- Impact: specialty lens information had no single discoverable public page, the branded-lens column used an outdated heading, and the mobile menu left a dark partial-screen scrim rather than matching the site's frosted mega-menu presentation.
+- Resolution: added the accessible `/lenses/specialty` accordion page with typed content for Endless Pilot Progressive and OmniLux NAL, linked it under Lifestyle Lenses, renamed the heading to House Brands, and made the mobile sheet full-screen with the shared translucent blurred surface.
+- Follow-up: if the pricing request or LabLink flow gains a lens-preselection API, consume the existing `selectedLens` URL value at the destination before removing the documented integration boundary.
+
+## 2026-07-13
 - Area: EFT statement payment routing
 - Impact: the bank-payment directory was manual-only, so a newly configured Innovations EFT institution could leave a customer without a matching payment destination; forcing every source record to a URL also risked redirecting legacy placeholder values to an unrelated bank.
 - Resolution: OptiLens Local now synchronizes `dbo.EFTInstitutions` by immutable ID while preserving the exact source display name. Verified retail sign-in URLs are seeded, source-managed names cannot be edited, and rows with no verified customer sign-in endpoint retain the existing support fallback.

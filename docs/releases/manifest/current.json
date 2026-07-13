@@ -3,14 +3,14 @@
   "releaseDateTimeUtc": "2026-07-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Bank Payment Portals automatically receives the exact bank names configured in Innovations for EFT customers.",
-    "Customers are sent only to verified online-banking destinations; the system shows a support fallback when a source value is a placeholder, non-retail institution, or otherwise lacks a verified sign-in page."
+    "Added a Specialty Lenses page for Endless Pilot Progressive and OmniLux NAL, with expandable on-page information instead of separate product pages.",
+    "The page is available under Lifestyle Lenses. The desktop column now reads House Brands, and the mobile menu opens as a full-screen frosted panel."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "lenses/specialty",
       "impact": "medium",
-      "notes": "Updated as part of Innovations EFT Bank Portal Directory."
+      "notes": "Updated as part of Specialty Lenses."
     }
   ],
   "migrationNotes": [

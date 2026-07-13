@@ -43,4 +43,20 @@ describe("public inquiry routing", () => {
     expect(source).toContain("contact-inquiry-notification");
     expect(source).toContain("inquiry-confirmation");
   });
+
+  it("does not use elapsed form time as a public-inquiry spam decision", () => {
+    const edgeFunction = read("supabase/functions/contact-inquiry/index.ts");
+    const contactForm = read("src/components/ContactForm.tsx");
+
+    expect(edgeFunction).not.toContain("form_fill_too_fast");
+    expect(edgeFunction).not.toContain("HOMEPAGE_MIN_FILL_MS");
+    expect(contactForm).not.toContain("elapsedMs");
+    expect(contactForm).not.toContain("looksLikeBot");
+  });
+
+  it("uses the inquiry identifier for a collision-resistant helpdesk ticket number", () => {
+    const source = read("supabase/functions/contact-inquiry/index.ts");
+
+    expect(source).toContain("TCK-${insertedInquiry.id.slice(0, 8).toUpperCase()}");
+  });
 });
