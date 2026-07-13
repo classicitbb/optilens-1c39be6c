@@ -9,7 +9,7 @@ import {
   Ticket, UsersRound, ShieldCheck,
   Layout, Palette, UserCircle, Store,
   BookMarked, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail,
   Rocket, LayoutDashboard as MsBoard, ListChecks, MessageSquare, TrendingUp, Mountain, CheckSquare, AlertCircle, FileText as MsPlan, Wrench as MsTools, Users as MsUsers,
   type LucideIcon,
 } from 'lucide-react';
@@ -157,6 +157,7 @@ export const ADMIN_APPS = {
       { label: 'Bank Payment Portals', route: '/admin/settings/bank-payment-portals', icon: Landmark },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
+      { label: 'Email Previews', route: '/admin/settings/email-previews', icon: Mail },
     ] satisfies SidebarItem[],
   },
   moonshot: {

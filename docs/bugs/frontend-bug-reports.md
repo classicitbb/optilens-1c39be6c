@@ -3,6 +3,12 @@
 Track frontend regressions and customer-facing issues.
 
 ## 2026-07-13
+- Area: admin settings email operations
+- Impact: administrators previously had no single, safe interface to identify or inspect the authentication and transactional email templates configured by the application.
+- Resolution: added `/admin/settings/email-previews` with a route-tested split list/preview workspace, source-path visibility, and sample-only personalization controls. No email is sent or altered from the review screen.
+- Follow-up: keep this catalog synchronized when an auth template or the transactional template registry gains a new entry.
+
+## 2026-07-13
 - Area: public storefront product catalog
 - Impact: a storefront data-source regression could query cost-bearing product tables directly, or a product-card change could render cost-shaped values to anonymous visitors.
 - Root cause: public catalog access had drifted between views and direct base-table policies without an end-to-end DOM regression guard.

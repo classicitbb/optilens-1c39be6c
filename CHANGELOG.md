@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-13 — Admin Email Preview Center
+
+### Release Notes
+- Administrators can now review the authentication and application emails wired into Classic Visions from Settings → Email Previews.
+- The split workspace identifies each email's trigger and recipient, and previews personalized sample copy without sending an email.
+
+### Technical Changelog
+- Added canonical admin route `/admin/settings/email-previews`, sidebar navigation, and route-accessibility coverage.
+- The preview catalog covers six authentication templates and eight registered transactional templates while retaining the existing source-managed, authenticated email send pipeline.
+
 ## 2026-07-13 — Storefront Cost-Access Regression Guard
 
 ### Release Notes

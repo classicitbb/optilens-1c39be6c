@@ -3,14 +3,14 @@
   "releaseDateTimeUtc": "2026-07-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Public storefront prices render for anonymous visitors through safe product RPCs.",
-    "Cost-bearing base tables remain inaccessible to anonymous and non-editor authenticated users, with CI blocking unsafe migration changes."
+    "Settings now includes Email Previews, a split workspace for reviewing all active auth and application emails.",
+    "Operators can switch between templates and change sample name, recipient, and subject values to review personalized preview copy without sending messages."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "admin/settings",
       "impact": "medium",
-      "notes": "Updated as part of Storefront Cost-Access Regression Guard."
+      "notes": "Updated as part of Admin Email Preview Center."
     }
   ],
   "migrationNotes": [

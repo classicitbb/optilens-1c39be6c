@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-13 — Admin Email Preview Center
+
+### Release Notes
+- Settings now includes Email Previews, a split workspace for reviewing all active auth and application emails.
+- Operators can switch between templates and change sample name, recipient, and subject values to review personalized preview copy without sending messages.
+
 ## 2026-07-13 — Storefront Cost-Access Regression Guard
 
 ### Release Notes

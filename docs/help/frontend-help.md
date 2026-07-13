@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-13 — Email Previews
+
+- Find the review workspace at Admin → Settings → Email Previews.
+- Select a template in the left-hand list to inspect its sample recipient, subject, trigger, and full email layout. The sample name, recipient, and subject controls update only the review preview and never send an email.
+- The source path shown for a template identifies the live source-managed email. If production wording needs changing, update that template through the normal release process so every existing sender keeps the same secure rendering path.
+
 ## 2026-07-13 — Storefront product pricing
 
 - The public storefront fetches products only through the `get_*_safe` Supabase RPCs. Do not replace those calls with direct reads from `lenses`, `supplies`, or `addons`.
