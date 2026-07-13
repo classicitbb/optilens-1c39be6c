@@ -2,6 +2,12 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-07-13 — Safe storefront product reads
+
+- `src/hooks/useStoreProducts.ts` loads lenses, supplies, and add-ons through `get_lenses_safe`, `get_supplies_safe`, and `get_addons_safe` RPCs rather than querying the cost-bearing base tables or public views.
+- The public store renders sell prices for anonymous visitors, while the product card has no cost-field rendering path.
+- `src/tests/e2e/anonStorefrontCostSafety.e2e.test.tsx` covers the anonymous `/store` page with a cost-shaped input payload and asserts that only the sell price reaches the DOM.
+
 ## 2026-07-11 — Portal financial and order status data
 
 - `StatementsSection` consumes real posted Innovations statements. It presents statement ID, volume discount, due date, aging buckets, financial totals, and transaction rows with order/payment references.
@@ -14,7 +20,7 @@ Operational notes and change context for code in `src/**`.
 
 ## 2026-06-24 — Security hardening support tests
 
-- Product-cost exposure is guarded at the database policy layer: browser-facing catalog/product flows should continue to read `addons_public`, `lenses_public`, `supplies_public`, and other cost-free customer views.
+- Product-cost exposure is guarded at the database policy layer: storefront product reads use the `get_*_safe` RPCs, while legacy cost-free views must never be replaced with direct base-table reads.
 - Staff admin product editors still read/write the base product tables through `has_edit_role()` access.
 - Runtime website analytics still uses direct public inserts for pageviews and web vitals, but rows must match the stricter migration checks for visitor IDs, paths, metric names, ratings, and bounded numeric values.
 - Auth onboarding tests now fill the required country field and mock Select primitives in the unit test so jsdom does not depend on Radix dropdown scrolling behavior.

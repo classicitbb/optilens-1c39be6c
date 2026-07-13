@@ -27,6 +27,11 @@ const checks = [
     command: "npm",
     args: ["run", "qa:wiki-build-version"],
   },
+  {
+    name: "Product-cost RLS migration audit",
+    command: "npm",
+    args: ["run", "security:product-cost-rls-audit"],
+  },
 ];
 
 for (const check of checks) {

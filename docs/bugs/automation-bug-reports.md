@@ -10,6 +10,13 @@ Track issues and exceptions related to QA automation and PR checks.
 - Resolution
 - Follow-up actions
 
+## 2026-07-13
+- Script(s): `scripts/audit_product_cost_rls.mjs`, `scripts/pr_checks.mjs`
+- Impact: a later migration could re-grant direct reads on `addons`, `lenses`, or `supplies`, exposing cost-bearing columns despite earlier RLS hardening.
+- Root cause: the existing PR checks did not inspect subsequent database grants and SELECT policies after the original hardening migration.
+- Resolution: added a migration-bound policy audit to every PR check plus an optional service-role live-database audit RPC.
+- Follow-up actions: run `npm run security:product-cost-rls-audit` with service-role credentials before applying database-security migrations to a shared environment.
+
 ## 2026-05-27
 - Script(s): `scripts/check_lockfiles.mjs`, `scripts/pr_checks.mjs`, `scripts/sync_vercel_security_headers.mjs`
 - Impact: stale Bun lockfiles and unsynchronized Vercel edge headers could pass local QA despite violating the npm-only and security-policy contracts.

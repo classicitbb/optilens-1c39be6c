@@ -14,6 +14,12 @@ When changing automation behavior, update:
 - `scripts/check_doc_symmetry.mjs`
 - `docs/ai/module-doc-index.json`
 
+## 2026-07-13 — Product-cost RLS migration audit
+
+- `npm run security:product-cost-rls-audit` scans migrations added after `20260713150000_product_cost_rpc_access_and_audit.sql` and fails on direct `SELECT` grants for `anon`/`authenticated` or SELECT policies that do not require `has_edit_role()` on `addons`, `lenses`, or `supplies`.
+- The command is part of `npm run qa:pr-checks`, which is required by the PR validation workflow.
+- With `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set, it also invokes the live `audit_product_cost_rls()` database RPC; it must return no rows.
+
 ## 2026-05-27 — npm lockfile and Vercel header sync checks
 
 - `scripts/check_lockfiles.mjs` enforces the npm-only repository contract by requiring `package-lock.json` and rejecting both `bun.lock` and `bun.lockb`.

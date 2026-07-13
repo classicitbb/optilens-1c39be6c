@@ -2,6 +2,11 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-13 — Storefront product pricing
+
+- The public storefront fetches products only through the `get_*_safe` Supabase RPCs. Do not replace those calls with direct reads from `lenses`, `supplies`, or `addons`.
+- Anonymous visitors should see published sell prices, but the UI must never render base cost or add-on cost values. Run `npm run test -- --runInBand` after changing the product card or store data hook.
+
 ## 2026-07-11 — Statements and Innovations Order Status
 
 - Statements are posted financial records. The live current balance is displayed separately and is not a printable or selectable provisional statement.
@@ -14,7 +19,7 @@ Support-facing notes for the frontend runtime.
 
 ## 2026-06-24 — Product-cost and analytics hardening
 
-- If viewer or customer users cannot query `addons`, `lenses`, or `supplies` directly, that is expected; customer-safe product reads should use the public views that omit cost fields.
+- If viewer or customer users cannot query `addons`, `lenses`, or `supplies` directly, that is expected; customer-safe storefront reads use the `get_*_safe` RPCs that redact cost values.
 - If public analytics rows fail to insert, check that `visitor_id` is UUID-shaped, `pathname` starts with `/`, web-vital metric names are one of `CLS`, `FCP`, `INP`, `LCP`, or `TTFB`, and ratings are recognized values.
 - If Auth onboarding tests fail around country selection, keep the form requirement intact and adjust the test fixture or Select mock rather than weakening validation.
 

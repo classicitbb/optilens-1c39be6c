@@ -1,44 +1,21 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
 import * as React from 'npm:react@18.3.1'
+import { Text } from 'npm:@react-email/components@0.0.22'
+import { ClassicVisionsEmailLayout } from './classic-visions-layout.tsx'
 
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Preview,
-  Text,
-} from 'npm:@react-email/components@0.0.22'
-
-interface ReauthenticationEmailProps {
-  token: string
-}
+interface ReauthenticationEmailProps { token: string }
 
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Your verification code</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Verify your identity</Heading>
-        <Text style={text}>Use the code below to confirm your identity:</Text>
-        <Text style={codeStyle}>{token}</Text>
-        <Text style={footer}>
-          This code will expire shortly. If you didn't request this, you can
-          safely ignore this email.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
+  <ClassicVisionsEmailLayout preview="Your verification code" title="Verify your identity">
+    <Text style={text}>Use the code below to confirm your identity:</Text>
+    <Text style={codeStyle}>{token}</Text>
+    <Text style={footer}>This code will expire shortly. If you didn&apos;t request this, you can safely ignore this email.</Text>
+  </ClassicVisionsEmailLayout>
 )
 
 export default ReauthenticationEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: "'Plus Jakarta Sans', Arial, sans-serif" }
-const container = { padding: '40px 32px' }
-const h1 = { fontSize: '24px', fontWeight: 'bold' as const, color: '#1f2d3d', margin: '0 0 20px' }
-const text = { fontSize: '15px', color: '#5c6a7a', lineHeight: '1.6', margin: '0 0 28px' }
-const codeStyle = { fontFamily: "'Plus Jakarta Sans', Courier, monospace", fontSize: '28px', fontWeight: 'bold' as const, color: '#3a4a5c', letterSpacing: '4px', margin: '0 0 32px' }
-const footer = { fontSize: '13px', color: '#8a96a6', margin: '32px 0 0' }
+const text = { fontSize: '15px', color: '#3d4a57', lineHeight: '1.62', margin: '0 0 14px' }
+const codeStyle = { color: '#0B1E35', fontFamily: "'Plus Jakarta Sans', Courier, monospace", fontSize: '28px', fontWeight: '800' as const, letterSpacing: '4px', margin: '0 0 16px' }
+const footer = { fontSize: '15px', color: '#3d4a57', fontStyle: 'italic' as const, lineHeight: '1.62', margin: '14px 0 0' }

@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-13 — Storefront Cost-Access Regression Guard
+
+### Release Notes
+- Public storefront prices render for anonymous visitors through safe product RPCs.
+- Cost-bearing base tables remain inaccessible to anonymous and non-editor authenticated users, with CI blocking unsafe migration changes.
+
 ## 2026-07-11 — Portal Statements and Order Status
 
 ### Release Notes

@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-13
+- Area: public storefront product catalog
+- Impact: a storefront data-source regression could query cost-bearing product tables directly, or a product-card change could render cost-shaped values to anonymous visitors.
+- Root cause: public catalog access had drifted between views and direct base-table policies without an end-to-end DOM regression guard.
+- Resolution: route storefront reads through safe RPCs and cover the anonymous page with a product payload containing sentinel cost values that must not render.
+- Follow-up: retain the safe RPC boundary and update `anonStorefrontCostSafety.e2e.test.tsx` when product-card rendering changes.
+
 ## 2026-07-11 — Closed issues
 
 ### Account profile hid the ERP account number and required navigation to sign out

@@ -16,6 +16,7 @@
     "qa:release-ledger": "node scripts/sync_release_ledger.mjs --check",
     "qa:vercel-headers": "node scripts/sync_vercel_security_headers.mjs --check",
     "qa:wiki-build-version": "node scripts/validate_wiki_build_versions.mjs",
+    "security:product-cost-rls-audit": "node scripts/audit_product_cost_rls.mjs",
     "qa:smoke": "node scripts/admin_smoke_and_error_checks.mjs",
     "security:audit": "node scripts/audit-policy.mjs",
     "release-ledger:sync": "node scripts/sync_release_ledger.mjs",

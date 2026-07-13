@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-13 — Storefront Cost-Access Regression Guard
+
+### Release Notes
+- Anonymous storefront visitors can see published sell prices without receiving product-cost values.
+- Direct reads of cost-bearing product tables remain blocked for anonymous and ordinary authenticated users.
+
+### Technical Changelog
+- Added safe-RPC storefront reads, a rendered anonymous storefront regression test, and a database-policy audit RPC for `addons`, `lenses`, and `supplies`.
+- Added `npm run security:product-cost-rls-audit` to the required PR checks so future migrations cannot re-grant direct product-table SELECT access or add unsafe SELECT policies.
+
 ## 2026-07-11 — Portal Statements and Order Status
 
 ### Release Notes

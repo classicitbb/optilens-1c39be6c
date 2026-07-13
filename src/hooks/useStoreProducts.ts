@@ -61,15 +61,9 @@ const readRows = <T,>(response: { data: T[] | null; error: any }, options?: { op
 
 export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
   const [lensRes, supplyRes, addonRes, mediaRes, overrideRes, variantSummaryRes] = await Promise.all([
-    (supabase as any).from("lenses_public")
-      .select("id, name, sell_price, notes, lenstype:lenstypes(name), material:materials(name), mftype:mftypes(name)")
-      .order("name"),
-    (supabase.from("supplies_public") as any)
-      .select("id, name, description, sell_price, category, unit, quantity_per_unit, image_url")
-      .order("name"),
-    (supabase as any).from("addons_public")
-      .select("id, name, description, category, price")
-      .order("name"),
+    (supabase.rpc as any)("get_lenses_safe"),
+    (supabase.rpc as any)("get_supplies_safe"),
+    (supabase.rpc as any)("get_addons_safe"),
     (supabase.from("store_product_media") as any)
       .select("product_type, product_id, image_url, sort_order, is_active")
       .eq("is_active", true)
@@ -130,9 +124,9 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     sell_price_usd: normalizeUsdPrice(l.sell_price),
     is_vat_taxable: Boolean(overrideMap.get(`lens:${l.id}`)?.is_vat_taxable),
     product_type: "lens" as const,
-    category: l.lenstype?.name || "Lens",
-    subcategory: l.material?.name || "",
-    tags: [l.mftype?.name, l.material?.name, l.lenstype?.name, ...(overrideMap.get(`lens:${l.id}`)?.website_badges ?? [])].filter(Boolean),
+    category: "Lens",
+    subcategory: "",
+    tags: [...(overrideMap.get(`lens:${l.id}`)?.website_badges ?? [])].filter(Boolean),
     image_url: (mediaMap.get(`lens:${l.id}`) ?? [])[0] || null,
     image_urls: mediaMap.get(`lens:${l.id}`) ?? [],
     has_variants: (variantSummaryMap.get(`lens:${l.id}`) ?? 0) > 0,

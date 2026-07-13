@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Search, Eye, Expand, Lock, ArrowDownUp, LayoutGrid, List } from "lucide-react";
+import { ShoppingCart, Search, Eye, Expand, ArrowDownUp, LayoutGrid, List } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -91,12 +91,12 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
             </div>
           ) : (
             <div className="flex w-full items-center justify-between gap-3 md:w-auto md:min-w-[260px]">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Lock className="h-4 w-4" />
-                <span className="text-sm font-medium">Unlock trade pricing</span>
+              <div className="text-2xl font-bold text-foreground">
+                ${product.sell_price_usd.toFixed(2)}
+                <span className="text-sm font-normal text-muted-foreground">{product.product_type === "supply" ? "/unit" : "/pair"}</span>
               </div>
               <Button variant="hero" size="sm" asChild>
-                <Link to={createAuthHref({ mode: "signup", audience: "professional", intent: "products", redirect: "/store" })}>Start Trade Signup</Link>
+                <Link to={createAuthHref({ mode: "signup", audience: "professional", intent: "products", redirect: "/store" })}>Create Trade Account</Link>
               </Button>
             </div>
           )}
@@ -187,12 +187,14 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
           </>
         ) : (
           <div className="flex w-full items-center justify-between">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Lock className="h-4 w-4" />
-              <span className="text-sm font-medium">Unlock trade pricing</span>
+            <div className="text-2xl font-bold text-foreground">
+              ${product.sell_price_usd.toFixed(2)}
+              <span className="text-sm font-normal text-muted-foreground">
+                {product.product_type === "supply" ? "/unit" : "/pair"}
+              </span>
             </div>
             <Button variant="hero" size="sm" asChild>
-              <Link to={createAuthHref({ mode: "signup", audience: "professional", intent: "products", redirect: "/store" })}>Start Trade Signup</Link>
+              <Link to={createAuthHref({ mode: "signup", audience: "professional", intent: "products", redirect: "/store" })}>Create Trade Account</Link>
             </Button>
           </div>
         )}
