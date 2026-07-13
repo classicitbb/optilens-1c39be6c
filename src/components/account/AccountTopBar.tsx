@@ -49,7 +49,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
           </div>
 
           {/* Center: title */}
-          <h1 className="px-2 text-sm font-semibold tracking-tight text-foreground">My Account</h1>
+          <Link to="/profile" className="px-2 text-sm font-semibold tracking-tight text-foreground hover:text-primary transition-colors">My Account</Link>
 
           {/* Right: mobile hamburger (< lg) | desktop avatar + help (>= lg) */}
           <div className="flex items-center justify-end gap-1">
@@ -97,12 +97,14 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
               <span className="max-w-28 truncate text-sm font-medium text-foreground">
                 {displayName}
               </span>
-              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 rounded-full">
-                <Avatar className="h-7 w-7">
-                  <AvatarFallback className="text-[10px] uppercase">
-                    {displayName.slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 rounded-full" asChild>
+                <Link to="/profile/account">
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="text-[10px] uppercase">
+                      {displayName.slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
               </Button>
             </div>
           </div>

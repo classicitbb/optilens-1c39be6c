@@ -104,18 +104,18 @@ export const useAdminUsers = () => {
   });
 
   const inviteUser = useMutation({
-    mutationFn: async (email: string) => {
+    mutationFn: async ({ email, customerId, displayName }: { email: string; customerId?: number; displayName?: string }) => {
       await callAdminUserManagement(
-        validateAdminFunctionRequest({ actorRole: role, action: "invite-user", payload: { email } })
+        validateAdminFunctionRequest({ actorRole: role, action: "invite-user", payload: { email, customerId, displayName } })
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
   const createUser = useMutation({
-    mutationFn: async ({ email, password, displayName }: { email: string; password: string; displayName?: string }) => {
+    mutationFn: async ({ email, password, displayName, customerId }: { email: string; password: string; displayName?: string; customerId?: number }) => {
       return callAdminUserManagement<{ success: boolean; userId?: string }>(
-        validateAdminFunctionRequest({ actorRole: role, action: "create-user", payload: { email, password, displayName } })
+        validateAdminFunctionRequest({ actorRole: role, action: "create-user", payload: { email, password, displayName, customerId } })
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),

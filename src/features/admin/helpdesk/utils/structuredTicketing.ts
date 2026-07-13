@@ -8,7 +8,7 @@ export interface StructuredTicketInput {
   description: string;
   subtype: HelpdeskTicketSubtype;
   tenantKey?: string;
-  sourceChannel?: "manual" | "email" | "phone" | "chat" | "portal" | "api" | "odoo_sync" | "ai_assistant";
+  sourceChannel?: "manual" | "email" | "phone" | "chat" | "portal" | "api" | "ai_assistant";
   sourceSessionId?: string;
   sourceRoleMode?: string;
   sourceRouteContext?: string;

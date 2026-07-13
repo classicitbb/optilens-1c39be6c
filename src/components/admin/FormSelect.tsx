@@ -92,7 +92,7 @@ const FormSelect = ({
           }}
           onFocus={() => setSearchOpen(true)}
           onBlur={(event) => commitSearch(event.target.value)}
-          className="h-7 w-full rounded-md border border-input bg-background px-2 pr-7 text-xs text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-7 w-full rounded-md border border-input bg-background px-2 pr-7 text-xs text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-inset focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {searchOpen && !disabled ? (
           <div className="absolute left-0 right-0 top-full z-[9500] mt-1 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg">
@@ -139,7 +139,7 @@ const FormSelect = ({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className="h-7 w-full appearance-none rounded-md border border-input bg-background px-2 pr-7 text-xs text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-7 w-full appearance-none rounded-md border border-input bg-background px-2 pr-7 text-xs text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-inset focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {nullable ? <option value="">{placeholder === "None" ? "None" : `None${placeholder ? ` (${placeholder})` : ""}`}</option> : null}
         {!nullable && !value ? <option value="" disabled>{placeholder}</option> : null}

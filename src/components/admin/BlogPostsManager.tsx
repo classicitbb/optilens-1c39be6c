@@ -76,6 +76,80 @@ const asTagString = (value?: string[] | null) => (value ?? []).join(", ");
 const fromTagString = (value: string) =>
   [...new Set(value.split(",").map((part) => part.trim()).filter(Boolean))];
 
+const extractFirstImage = (html: string): { src: string; alt: string } | null => {
+  if (!html) return null;
+  const match = html.match(/<img[^>]*>/i);
+  if (!match) return null;
+  const tag = match[0];
+  const srcMatch = tag.match(/\ssrc=["']([^"']+)["']/i);
+  const altMatch = tag.match(/\salt=["']([^"']*)["']/i);
+  if (!srcMatch) return null;
+  return { src: srcMatch[1], alt: altMatch?.[1] ?? "" };
+};
+
+const readFileAsDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+const handleCoverPaste = async (
+  event: React.ClipboardEvent<HTMLInputElement>,
+  editing: BlogPostDraft,
+  setEditing: (draft: BlogPostDraft) => void,
+) => {
+  const dt = event.clipboardData;
+  if (!dt) return;
+  const fileItem = Array.from(dt.items).find((item) => item.kind === "file" && item.type.startsWith("image/"));
+  if (fileItem) {
+    const file = fileItem.getAsFile();
+    if (file) {
+      event.preventDefault();
+      const dataUrl = await readFileAsDataUrl(file);
+      setEditing({ ...editing, cover_image_url: dataUrl });
+      return;
+    }
+  }
+  const html = dt.getData("text/html");
+  if (html) {
+    const found = extractFirstImage(html);
+    if (found) {
+      event.preventDefault();
+      setEditing({
+        ...editing,
+        cover_image_url: found.src,
+        cover_image_alt: editing.cover_image_alt || found.alt || "",
+      });
+      return;
+    }
+  }
+  const text = dt.getData("text/plain")?.trim();
+  if (text && (/^https?:\/\//i.test(text) || /^data:image\//i.test(text))) {
+    event.preventDefault();
+    setEditing({ ...editing, cover_image_url: text });
+  }
+};
+
+const handleCoverDrop = async (
+  event: React.DragEvent<HTMLInputElement>,
+  editing: BlogPostDraft,
+  setEditing: (draft: BlogPostDraft) => void,
+) => {
+  event.preventDefault();
+  const file = Array.from(event.dataTransfer?.files ?? []).find((f) => f.type.startsWith("image/"));
+  if (file) {
+    const dataUrl = await readFileAsDataUrl(file);
+    setEditing({ ...editing, cover_image_url: dataUrl });
+    return;
+  }
+  const uri = event.dataTransfer?.getData("text/uri-list") || event.dataTransfer?.getData("text/plain");
+  if (uri && (/^https?:\/\//i.test(uri) || /^data:image\//i.test(uri))) {
+    setEditing({ ...editing, cover_image_url: uri.trim() });
+  }
+};
+
 const buildNewDraft = (): BlogPostDraft => ({
   title: "",
   slug: "",
@@ -281,13 +355,38 @@ const BlogPostsManager = ({
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Cover image URL</label>
-                    <Input
-                      value={editing.cover_image_url || ""}
-                      onChange={(event) => setEditing({ ...editing, cover_image_url: event.target.value })}
-                      className="h-9 text-sm"
-                      placeholder="https://..."
-                    />
+                    <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                      Cover image URL <span className="text-muted-foreground/70">(paste image, URL, or drop file)</span>
+                    </label>
+                    <div className="flex items-start gap-2">
+                      {editing.cover_image_url ? (
+                        <img
+                          src={editing.cover_image_url}
+                          alt=""
+                          className="h-9 w-14 flex-shrink-0 rounded border border-border object-cover"
+                        />
+                      ) : null}
+                      <Input
+                        value={editing.cover_image_url || ""}
+                        onChange={(event) => setEditing({ ...editing, cover_image_url: event.target.value })}
+                        onPaste={(event) => handleCoverPaste(event, editing, setEditing)}
+                        onDrop={(event) => handleCoverDrop(event, editing, setEditing)}
+                        onDragOver={(event) => event.preventDefault()}
+                        className="h-9 text-sm"
+                        placeholder="Paste an image or https://..."
+                      />
+                      {editing.cover_image_url ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 px-2"
+                          onClick={() => setEditing({ ...editing, cover_image_url: "" })}
+                        >
+                          Clear
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                   <div>
                     <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Cover image alt</label>
@@ -382,7 +481,19 @@ const BlogPostsManager = ({
                   <Suspense fallback={<div className="h-[420px] animate-pulse rounded-lg border border-border bg-muted/20" />}>
                     <RichTextEditor
                       content={editing.content || ""}
-                      onChange={(html) => setEditing({ ...editing, content: html })}
+                      onChange={(html) => {
+                        const next: BlogPostDraft = { ...editing, content: html };
+                        if (!editing.cover_image_url) {
+                          const found = extractFirstImage(html);
+                          if (found) {
+                            next.cover_image_url = found.src;
+                            if (!editing.cover_image_alt && found.alt) {
+                              next.cover_image_alt = found.alt;
+                            }
+                          }
+                        }
+                        setEditing(next);
+                      }}
                       placeholder="Write the article body..."
                       minHeight="420px"
                     />

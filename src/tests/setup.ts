@@ -60,6 +60,10 @@ if (typeof globalThis !== "undefined" && typeof globalThis.ResizeObserver === "u
   });
 }
 
+if (typeof Element !== "undefined" && typeof Element.prototype.scrollIntoView !== "function") {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 afterEach(() => {
   cleanup();
 });

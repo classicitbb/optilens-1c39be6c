@@ -4,6 +4,69 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-13 — Innovations EFT Bank Portal Directory
+
+### Release Notes
+- Bank Payment Portals now receives the exact EFT-institution directory from Innovations and identifies source-managed rows.
+- Verified retail online-banking destinations are seeded; ambiguous, placeholder, and non-retail entries remain intentionally unmapped instead of redirecting a customer to the wrong institution.
+
+### Technical Changelog
+- Added immutable `innovations_eft_institution_id` matching, a cloud receiver entity, and a read-only OptiLens Local `dbo.EFTInstitutions` sync entity that preserves the exact source bank name.
+- Made portal URLs nullable only for entries without a verified customer sign-in page; the customer payment dialog now safely falls back to support when no URL exists.
+
+## 2026-07-13 — Admin Email Preview Center
+
+### Release Notes
+- Administrators can now review the authentication and application emails wired into Classic Visions from Settings → Email Previews.
+- The split workspace identifies each email's trigger and recipient, and previews personalized sample copy without sending an email.
+
+### Technical Changelog
+- Added canonical admin route `/admin/settings/email-previews`, sidebar navigation, and route-accessibility coverage.
+- The preview catalog covers six authentication templates and eight registered transactional templates while retaining the existing source-managed, authenticated email send pipeline.
+
+## 2026-07-13 — Storefront Cost-Access Regression Guard
+
+### Release Notes
+- Anonymous storefront visitors can see published sell prices without receiving product-cost values.
+- Direct reads of cost-bearing product tables remain blocked for anonymous and ordinary authenticated users.
+
+### Technical Changelog
+- Added safe-RPC storefront reads, a rendered anonymous storefront regression test, and a database-policy audit RPC for `addons`, `lenses`, and `supplies`.
+- Added `npm run security:product-cost-rls-audit` to the required PR checks so future migrations cannot re-grant direct product-table SELECT access or add unsafe SELECT policies.
+
+## 2026-07-11 — Portal Statements and Order Status
+
+### Release Notes
+- Customer statements now use posted Innovations statements with full aging, balance, and transaction detail instead of a synthetic current-period record.
+- My Orders now includes live Innovations WIP and same-day valid shipment status from the MSSQL-SVR gateway while retaining delivery tracking and website order history.
+- Sign in now uses a more spacious, modern form with password visibility and inline reset-password access.
+- My Account now shows the linked ERP account number and includes a Sign out action beside Save Changes.
+- Customer account-number linking now blocks duplicate Innovations account numbers and exposes a duplicate audit view.
+- My Orders now keeps every open shipment visible regardless of age, retains closed deliveries for 30 days, and lets customers expand a shipment to review its included work and tracking link.
+
+### Technical Changelog
+- Extended the live gateway, statement sync, and portal views with the posted-statement and order-status fields required by the customer portal.
+- Added portal order-status search, section-count anchors, compact website-order cards, and a wider responsive account layout; the gateway now returns only Rx number, patient, received date, and status for the current account's active WIP and valid same-day shipments.
+- Added an authenticated, source-managed ERP account-number lookup for My Account; customers can view the resolved value but cannot edit the integration link from their profile.
+
+## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
+
+### Plan
+- Close reported cost-data exposure on `addons`, `lenses`, and `supplies` without changing public catalog routes or staff editing flows.
+- Keep website analytics ingestion available while rejecting malformed public write payloads.
+- Refresh npm dependencies within the existing npm lockfile workflow and preserve the current site behavior.
+
+### Release Notes
+- Direct reads on cost-bearing product tables are now limited to admin/operator edit roles; public and customer-facing product reads continue through cost-free views.
+- Website analytics session, pageview, and web-vitals inserts now validate IDs, paths, metric names, ratings, and bounded numeric fields instead of accepting unrestricted rows.
+- Dependency audit now reports zero vulnerabilities after npm lockfile refresh.
+
+### Technical Changelog
+- Added `supabase/migrations/20260624090000_harden_product_cost_rls_and_analytics_inserts.sql` to replace broad `has_any_role()` product SELECT policies with `has_edit_role()` policies and tighten analytics INSERT checks.
+- Updated `src/tests/integration/supabaseRlsHardening.integration.test.ts` to assert product-cost RLS and analytics policy hardening.
+- Resolved an API v1 merge-conflict marker in `supabase/functions/api-v1/index.ts` while preserving the default-order fallback behavior.
+- Updated auth flow tests and shared test setup so required country selection is covered without depending on Radix Select browser internals in jsdom.
+
 ## 2026-06-05 — Shipment Costing Fixes + Security/Print Hardening
 
 ### Plan

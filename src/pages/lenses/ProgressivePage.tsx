@@ -19,6 +19,9 @@ import {
   Users,
   Laptop,
   BookOpen,
+  Trophy,
+  Bike,
+  Anchor,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -62,7 +65,7 @@ const PRODUCTS = [
     technologies: ["Steady Methodology"],
   },
   {
-    name: "Classic",
+    name: "Classic PAL",
     tier: "Good",
     tierColor: "bg-primary text-primary-foreground",
     personalized: false,
@@ -78,16 +81,31 @@ const PRODUCTS = [
     technologies: ["Digital Surfacing"],
   },
   {
-    name: "Adapt",
-    tier: "Basic",
+    name: "Conventional PAL",
+    tier: "Adept",
     tierColor: "bg-muted text-muted-foreground",
     personalized: false,
-    tagline: "Basic conventional progressive lens",
+    tagline: "Dependable conventional progressive lens",
     description:
-      "Traditional progressive design for wearers seeking an affordable, reliable multifocal solution.",
+      "Traditional (Adept) progressive design for wearers seeking an affordable, reliable multifocal solution.",
     mfh: "14, 17 mm",
     features: ["Balanced near and distance fields", "Fixed inset"],
     technologies: ["Conventional Design"],
+  },
+];
+
+const SPORT_DESIGNS = [
+  {
+    label: "For Golfers",
+    text: "A stable, wide intermediate-to-distance field that keeps the ball, the fairway, and the scorecard in crisp focus without head-tilt hunting.",
+  },
+  {
+    label: "For Bikers & Cyclists",
+    text: "Rock-steady peripheral vision and minimal swim at speed, engineered for wrap frames and an upright, forward gaze.",
+  },
+  {
+    label: "For Boaters",
+    text: "Optimized distance clarity with pairing for polarized and mirror treatments to cut glare off the water while holding the horizon sharp.",
   },
 ];
 
@@ -270,6 +288,53 @@ const ProgressivePage = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </section>
+
+        {/* ── Endless Sport ──────────────────────────────── */}
+        <section className="container mx-auto mt-20 max-w-6xl px-4 lg:px-8">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge className="bg-accent text-accent-foreground">Endless Sport</Badge>
+            <Badge variant="outline" className="text-xs">
+              Activity-Tuned Progressive
+            </Badge>
+          </div>
+          <h2 className="mt-3 text-2xl font-bold text-foreground">
+            Built for the way active wearers move
+          </h2>
+          <p className="mt-1 max-w-2xl text-muted-foreground">
+            Endless Sport is a specialized progressive design tuned for dynamic,
+            outdoor vision — pairing our best free-form optics with wrap-friendly
+            geometry and treatment options for players who don't sit still.
+          </p>
+
+          <div className="mt-8 grid gap-6 sm:grid-cols-3">
+            {SPORT_DESIGNS.map((s, i) => (
+              <Card key={s.label} className="border-border">
+                <CardContent className="flex flex-col gap-3 p-6">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/10 text-accent">
+                    {i === 0 ? (
+                      <Trophy className="h-6 w-6" />
+                    ) : i === 1 ? (
+                      <Bike className="h-6 w-6" />
+                    ) : (
+                      <Anchor className="h-6 w-6" />
+                    )}
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    {s.label}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{s.text}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="mt-6">
+            <Button variant="outline" asChild>
+              <Link to="/lenses/sport">
+                Explore Endless Sport <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </section>
 

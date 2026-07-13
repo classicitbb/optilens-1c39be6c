@@ -1,43 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-05-27T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "npm dependencies were refreshed through npm 10 and the lockfile now audits cleanly.",
-    "The stale Bun lockfile was removed, and lockfile policy now rejects both Bun lockfile formats.",
-    "Vercel now applies the shared security header policy at the edge, with a new QA check preventing config drift.",
-    "Vite now uses the standard React plugin recommended for this setup, and router chunking targets `react-router`."
+    "Bank Payment Portals automatically receives the exact bank names configured in Innovations for EFT customers.",
+    "Customers are sent only to verified online-banking destinations; the system shows a support fallback when a source value is a placeholder, non-retail institution, or otherwise lacks a verified sign-in page."
   ],
   "moduleImpact": [
     {
-      "module": "scripts/check_lockfiles.mjs",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "scripts/sync_vercel_security_headers.mjs",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "scripts/pr_checks.mjs",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "security/http-header-policy.json",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "@vitejs/plugin-react-swc",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
-    },
-    {
-      "module": "@vitejs/plugin-react",
-      "impact": "medium",
-      "notes": "Updated as part of Infrastructure Dependency and Edge Security Refresh."
+      "notes": "Updated as part of Innovations EFT Bank Portal Directory."
     }
   ],
   "migrationNotes": [

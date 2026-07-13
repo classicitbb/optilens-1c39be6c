@@ -18,16 +18,10 @@ project_id = "xstmeirxhfbiyayrrsob"
   [functions.send-transactional-email]
     verify_jwt = true
   [functions.preview-transactional-email]
-    verify_jwt = true
+    verify_jwt = false
   [functions.handle-email-unsubscribe]
     verify_jwt = false
   [functions.handle-email-suppression]
-    verify_jwt = false
-  [functions.odoo-sync-pull-contacts]
-    verify_jwt = true
-  [functions.odoo-sync-push-contacts]
-    verify_jwt = true
-  [functions.odoo-sync-webhook]
     verify_jwt = false
   [functions.helpdesk-inbound-email]
     verify_jwt = false
@@ -41,3 +35,18 @@ project_id = "xstmeirxhfbiyayrrsob"
     schedule = "*/10 * * * *"
   [functions.customer-onboarding]
     verify_jwt = true
+  [functions.api-v1]
+    verify_jwt = false
+  # Innovations -> CV outbound sync receiver. Auth is x-api-key in code
+  # (verify_api_key + per-resource write scope), so the platform JWT gate is off.
+  [functions.innovations-sync]
+    verify_jwt = false
+  # On-demand CV Web -> office gateway. Browser requests authenticate in code;
+  # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
+  [functions.live-data-gateway]
+    verify_jwt = false
+  # Scotia eCom+ (IPG Connect) hosted-payment helper. Public preflight/CORS is
+  # handled in code; the buyer's browser calls "prepare". Set verify_jwt=true
+  # before production so only authenticated checkout sessions can request a hash.
+  [functions.scotia-payment]
+    verify_jwt = false

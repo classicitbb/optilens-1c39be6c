@@ -1,8 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import * as React from "npm:react@18.3.1";
+import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { z } from "npm:zod@3.25.76";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
 import { getSmtpConfig, sendViaSMTP } from "../_shared/email/smtp.ts";
+import { template as notificationTemplate } from "../_shared/transactional-email-templates/contact-inquiry-notification.tsx";
+import { template as confirmationTemplate } from "../_shared/transactional-email-templates/inquiry-confirmation.tsx";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -70,75 +74,6 @@ const inquirySchema = z.object({
   startedAt: z.string().datetime({ offset: true }),
 });
 
-function buildNotificationHtml(opts: {
-  name: string;
-  email: string;
-  phone: string;
-  businessName: string;
-  message: string;
-  inquiryType: string;
-  pageSlug: string;
-  submittedAt: string;
-}): string {
-  const safeMessage = opts.message
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/\n/g, "<br>");
-  const phoneLine = opts.phone
-    ? `<tr><td style="padding:6px 0;font-weight:600;color:#374151;width:110px">Phone</td><td style="padding:6px 0;color:#374151">${opts.phone}</td></tr>`
-    : "";
-  const bizLine = opts.businessName
-    ? `<tr><td style="padding:6px 0;font-weight:600;color:#374151">Business</td><td style="padding:6px 0;color:#374151">${opts.businessName}</td></tr>`
-    : "";
-
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:sans-serif;background:#f9fafb;margin:0;padding:32px 16px">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e5e7eb;padding:32px">
-    <h2 style="color:#111827;margin-top:0;font-size:20px">New Contact Inquiry — ${SITE_NAME}</h2>
-    <table style="width:100%;border-collapse:collapse;font-size:14px">
-      <tr><td style="padding:6px 0;font-weight:600;color:#374151;width:110px">Name</td><td style="padding:6px 0;color:#374151">${opts.name}</td></tr>
-      <tr><td style="padding:6px 0;font-weight:600;color:#374151">Email</td><td style="padding:6px 0"><a href="mailto:${opts.email}" style="color:#2563eb">${opts.email}</a></td></tr>
-      ${phoneLine}
-      ${bizLine}
-      <tr><td style="padding:6px 0;font-weight:600;color:#374151">Page</td><td style="padding:6px 0;color:#6b7280;font-size:13px">${opts.pageSlug}</td></tr>
-      <tr><td style="padding:6px 0;font-weight:600;color:#374151">Type</td><td style="padding:6px 0;color:#6b7280;font-size:13px">${opts.inquiryType}</td></tr>
-      <tr><td style="padding:6px 0;font-weight:600;color:#374151">Sent</td><td style="padding:6px 0;color:#6b7280;font-size:13px">${opts.submittedAt}</td></tr>
-    </table>
-    <div style="margin-top:20px;background:#f9fafb;border-left:3px solid #111827;padding:16px;border-radius:4px">
-      <p style="margin:0;font-size:14px;color:#374151;line-height:1.6">${safeMessage}</p>
-    </div>
-    <p style="margin-top:20px;font-size:13px;color:#6b7280">Reply directly to this email to respond to ${opts.name}.</p>
-  </div>
-</body>
-</html>`;
-}
-
-function buildConfirmationHtml(opts: { name: string; message: string }): string {
-  const safeMessage = opts.message
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/\n/g, "<br>");
-
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:sans-serif;background:#f9fafb;margin:0;padding:32px 16px">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e5e7eb;padding:32px">
-    <h2 style="color:#111827;margin-top:0;font-size:20px">We received your message</h2>
-    <p style="color:#374151">Hi ${opts.name},</p>
-    <p style="color:#374151">Thank you for contacting <strong>${SITE_NAME}</strong>. We've received your message and our team will get back to you within 24 hours.</p>
-    <div style="margin:20px 0;background:#f9fafb;border-left:3px solid #111827;padding:16px;border-radius:4px">
-      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#6b7280">YOUR MESSAGE</p>
-      <p style="margin:0;font-size:14px;color:#374151;line-height:1.6">${safeMessage}</p>
-    </div>
-    <p style="color:#6b7280;font-size:13px">If you didn't send this, you can safely ignore this email.</p>
-    <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-    <p style="color:#9ca3af;font-size:12px;margin:0">${SITE_NAME} · Automated confirmation — please do not reply to this email.</p>
-  </div>
-</body>
-</html>`;
-}
-
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
   if (preflight) return preflight;
@@ -180,18 +115,30 @@ Deno.serve(async (req) => {
     const ipHint = getIpHintFromRequest(req);
     const userAgent = getUserAgentFromRequest(req) ?? "unknown";
 
+    const isHomepageContactForm = payload.inquiryType === "contact";
+    const HOMEPAGE_MIN_FILL_MS = 3000;
+
+    // Silent success response used only for the homepage contact form so bots
+    // cannot learn they were blocked. Mirrors the shape of a real success.
+    const silentSuccess = () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
     if (payload.honeypot.trim()) {
       await logSecurityAuditEvent({
         category: "edge_security",
         eventType: "abuse.bot_detected",
         severity: "high",
-        statusCode: 400,
+        statusCode: isHomepageContactForm ? 200 : 400,
         sourceFunction: "contact-inquiry",
         sourcePath,
         ipHint,
         userAgent,
-        payload: { reason: "honeypot_populated" },
+        payload: { reason: "honeypot_populated", inquiryType: payload.inquiryType, silent: isHomepageContactForm },
       });
+      if (isHomepageContactForm) return silentSuccess();
       return new Response(JSON.stringify({ error: "Spam rejected" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -199,18 +146,20 @@ Deno.serve(async (req) => {
     }
 
     const startedAtMs = Date.parse(payload.startedAt);
-    if (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs < MIN_FORM_FILL_MS) {
+    const minFillMs = isHomepageContactForm ? HOMEPAGE_MIN_FILL_MS : MIN_FORM_FILL_MS;
+    if (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs < minFillMs) {
       await logSecurityAuditEvent({
         category: "edge_security",
         eventType: "abuse.bot_detected",
         severity: "medium",
-        statusCode: 400,
+        statusCode: isHomepageContactForm ? 200 : 400,
         sourceFunction: "contact-inquiry",
         sourcePath,
         ipHint,
         userAgent,
-        payload: { reason: "form_fill_too_fast", minFillMs: MIN_FORM_FILL_MS },
+        payload: { reason: "form_fill_too_fast", minFillMs, inquiryType: payload.inquiryType, silent: isHomepageContactForm },
       });
+      if (isHomepageContactForm) return silentSuccess();
       return new Response(JSON.stringify({ error: "Submission blocked by bot protection" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -374,6 +323,24 @@ Deno.serve(async (req) => {
 
     // Send both emails immediately via SMTP (your own mail server)
     if (smtpConfig) {
+      const notificationHtml = await renderAsync(React.createElement(notificationTemplate.component, {
+        inquiryType: payload.inquiryType,
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone || "",
+        businessName: payload.businessName || "",
+        message: payload.message,
+        pageSlug: payload.pageSlug,
+        sourceChannel: payload.sourceChannel,
+        submittedAt,
+        notes: payload.notes || "",
+      }));
+      const confirmationHtml = await renderAsync(React.createElement(confirmationTemplate.component, {
+        name: payload.name,
+        inquiryType: payload.inquiryType,
+        message: payload.message,
+        siteUrl: "https://classicvisions.net",
+      }));
       await Promise.allSettled([
         sendViaSMTP(
           {
@@ -382,16 +349,7 @@ Deno.serve(async (req) => {
             subject: payload.inquiryType === "website-design-lead"
               ? `Website design quote request from ${payload.name} — ${SITE_NAME}`
               : `New Inquiry from ${payload.name} — ${SITE_NAME}`,
-            html: buildNotificationHtml({
-              name: payload.name,
-              email: payload.email,
-              phone: payload.phone || "",
-              businessName: payload.businessName || "",
-              message: payload.message,
-              inquiryType: payload.inquiryType,
-              pageSlug: payload.pageSlug,
-              submittedAt,
-            }),
+            html: notificationHtml,
           },
           smtpConfig,
         ).catch((err) => console.error("SMTP admin notification failed", { error: String(err) })),
@@ -400,10 +358,7 @@ Deno.serve(async (req) => {
           {
             to: payload.email,
             subject: `We received your message — ${SITE_NAME}`,
-            html: buildConfirmationHtml({
-              name: payload.name,
-              message: payload.message,
-            }),
+            html: confirmationHtml,
           },
           smtpConfig,
         ).catch((err) => console.error("SMTP customer confirmation failed", { error: String(err) })),
@@ -430,10 +385,14 @@ Deno.serve(async (req) => {
         replyTo?: string,
       ) => {
         const messageId = crypto.randomUUID();
-        const html = await renderAsync(React.createElement(template.component, data));
-        const text = await renderAsync(React.createElement(template.component, data), { plainText: true });
-        const subject = typeof template.subject === "function" ? template.subject(data) : template.subject;
         const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient);
+        const renderData = {
+          ...data,
+          unsubscribeUrl: `https://classicvisions.net/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
+        };
+        const html = await renderAsync(React.createElement(template.component, renderData));
+        const text = await renderAsync(React.createElement(template.component, renderData), { plainText: true });
+        const subject = typeof template.subject === "function" ? template.subject(data) : template.subject;
 
         await supabase.from("email_send_log").insert({
           message_id: messageId,

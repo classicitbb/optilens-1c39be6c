@@ -54,6 +54,14 @@ const assertDisplayName = (value: unknown) => {
   return displayName || undefined;
 };
 
+const assertCustomerId = (value: unknown) => {
+  if (value == null) return undefined;
+  if (!Number.isInteger(value) || Number(value) <= 0) {
+    throw new AdminActionPolicyError("customerId must be a positive integer.");
+  }
+  return Number(value);
+};
+
 export interface AdminActionValidationInput {
   actorRole: AppRole | null;
   action: string;
@@ -75,13 +83,27 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
     case "reset-password":
       return { action: "reset-password" as const, email: assertEmail(payload.email) };
     case "invite-user":
-      return { action: "invite-user" as const, email: assertEmail(payload.email) };
+      {
+      const customerId = assertCustomerId(payload.customerId);
+      const displayName = assertDisplayName(payload.displayName);
+      return {
+        action: "invite-user" as const,
+        email: assertEmail(payload.email),
+        ...(customerId !== undefined ? { customerId } : {}),
+        ...(displayName !== undefined ? { displayName } : {}),
+      };
+      }
     case "create-user":
+      {
+      const customerId = assertCustomerId(payload.customerId);
+      const displayName = assertDisplayName(payload.displayName);
       return {
         action: "create-user" as const,
         email: assertEmail(payload.email),
         password: assertPassword(payload.password),
-        displayName: assertDisplayName(payload.displayName),
+        displayName,
+        ...(customerId !== undefined ? { customerId } : {}),
       };
+      }
   }
 };

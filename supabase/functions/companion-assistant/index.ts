@@ -120,8 +120,15 @@ serve(async (req) => {
   const originBlocked = rejectDisallowedOrigin(req, corsPolicy);
   if (originBlocked) return originBlocked;
 
-  const rateLimited = checkRateLimit(getClientIp(req), corsHeaders, 20, 60_000);
-  if (rateLimited) return rateLimited;
+  // Public visitor-facing assistant (no auth required for marketing site UX).
+  // AI cost exposure is mitigated by: strict same-origin CORS (rejectDisallowedOrigin),
+  // a tight per-IP rate limit, and a hard ceiling per hour. The Lovable AI Gateway
+  // also enforces project-level quotas server-side.
+  const ip = getClientIp(req);
+  const perMinute = checkRateLimit(ip, corsHeaders, 6, 60_000);
+  if (perMinute) return perMinute;
+  const perHour = checkRateLimit(`hour:${ip}`, corsHeaders, 60, 60 * 60_000);
+  if (perHour) return perHour;
 
   try {
     const payload = (await req.json()) as CompanionRequest;

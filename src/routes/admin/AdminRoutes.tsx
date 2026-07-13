@@ -45,7 +45,10 @@ const CrmActivitiesPage = lazy(() => import("@/pages/admin/crm/CrmActivitiesPage
 const CrmDashboardPage = lazy(() => import("@/pages/admin/crm/CrmDashboardPage"));
 const RuntimeErrorsPage = lazy(() => import("@/pages/admin/RuntimeErrorsPage"));
 const IntegrationsPage = lazy(() => import("@/pages/admin/settings/IntegrationsPage"));
+const ApiKeysPage = lazy(() => import("@/pages/admin/settings/ApiKeysPage"));
+const BankPaymentPortalsPage = lazy(() => import("@/pages/admin/settings/BankPaymentPortalsPage"));
 const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
+const EmailPreviewsPage = lazy(() => import("@/pages/admin/settings/EmailPreviewsPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
 const HelpdeskTeamsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTeamsPage"));
 const HelpdeskSlaPoliciesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskSlaPoliciesPage"));
@@ -139,8 +142,11 @@ const AdminRoutes = () => (
       <Route path="settings/roles" element={<RolesPermissionsPage />} />
       <Route path="settings/audit" element={<AuditLogPage />} />
       <Route path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>} />
+      <Route path="settings/api-keys" element={<AdminOnlyRoute><ApiKeysPage /></AdminOnlyRoute>} />
+      <Route path="settings/bank-payment-portals" element={<AdminOnlyRoute><BankPaymentPortalsPage /></AdminOnlyRoute>} />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
+      <Route path="settings/email-previews" element={<EmailPreviewsPage />} />
 
       <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="reference" element={<Navigate to="/admin/pricing/reference" replace />} />

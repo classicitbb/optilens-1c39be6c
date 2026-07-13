@@ -27,7 +27,9 @@ export function useAdminNotifications() {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 20);
     },
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: false,
+    staleTime: 60_000,
   });
   const receiptsQuery = useQuery({
     queryKey: ["admin-notification-receipts", user?.id],
@@ -40,7 +42,9 @@ export function useAdminNotifications() {
       if (error) throw error;
       return (data ?? []) as Array<{ notification_id: string; read_at: string | null; dismissed_at: string | null }>;
     },
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: false,
+    staleTime: 60_000,
   });
 
   const notifications = notificationsQuery.data ?? [];

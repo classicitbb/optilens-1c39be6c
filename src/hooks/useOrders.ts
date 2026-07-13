@@ -182,6 +182,48 @@ export const useOrders = (targetUserId?: string) => {
     }
   };
 
+  /**
+   * Record a verified Scotia eCom+ gateway outcome against an existing order.
+   * The response hash is validated server-side (scotia-payment Edge Function)
+   * before this is called; `gateway` carries only whitelisted, verified fields.
+   */
+  const settleScotiaPayment = async (
+    orderId: string,
+    gateway: {
+      approved: boolean;
+      oid?: string | null;
+      association_response_code?: string | null;
+      fail_rc?: string | null;
+      hosteddataid?: string | null;
+      card_brand?: string | null;
+      card_last4?: string | null;
+      cardholder_name?: string | null;
+      expiry_month?: number | null;
+      expiry_year?: number | null;
+      save_token?: boolean;
+    },
+    actorUserId?: string,
+  ): Promise<boolean> => {
+    try {
+      const { error } = await (supabase.rpc as any)("settle_scotia_payment", {
+        p_order_id: orderId,
+        p_gateway: gateway,
+        p_actor_user_id: actorUserId ?? user?.id ?? effectiveUserId,
+      });
+      if (error) throw error;
+      await fetchOrders();
+      return true;
+    } catch (error) {
+      safeError("Error settling Scotia payment:", error);
+      toast({
+        title: "Payment recorded with issues",
+        description: getErrorMessage(error),
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const approvePayment = async (orderId: string): Promise<boolean> => {
     try {
       const { error } = await (supabase.rpc as any)("approve_pending_payment", {
@@ -218,6 +260,7 @@ export const useOrders = (targetUserId?: string) => {
     orders,
     loading,
     createOrder,
+    settleScotiaPayment,
     approvePayment,
     refetch: fetchOrders,
   };

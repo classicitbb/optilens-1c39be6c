@@ -44,7 +44,7 @@ const BlogCarousel = () => {
             ))}
           </div>
         ) : (
-          <div className="relative px-10">
+          <div className="relative px-14">
             <Carousel
               opts={{ align: "start", loop: false }}
               className="w-full"
@@ -113,8 +113,8 @@ const BlogCarousel = () => {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="left-0" />
-              <CarouselNext className="right-0" />
+              <CarouselPrevious />
+              <CarouselNext />
             </Carousel>
           </div>
         )}

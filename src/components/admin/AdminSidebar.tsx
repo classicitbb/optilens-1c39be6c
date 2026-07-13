@@ -44,11 +44,10 @@ const AdminSidebar = () => {
   const activeApp = activeAppKey ? ADMIN_APPS[activeAppKey] : null;
 
   const { data: integrationStatus } = useQuery({
-    queryKey: ["integration-connection-status", "odoo"],
+    queryKey: ["payment-gateway-status"],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("integration_connections") as any)
+      const { data, error } = await ((supabase as any).from("payment_gateway_settings") as any)
         .select("status")
-        .eq("provider", "odoo")
         .eq("tenant_key", "default")
         .maybeSingle();
       if (error) throw error;

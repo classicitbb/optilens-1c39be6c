@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles, Settings, Palette, ShoppingCart } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
@@ -48,6 +49,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Progressive", description: "Premium multifocal options for all-day use", to: "/lenses/progressive" },
     { label: "Office / Occupational", description: "Task-focused near and intermediate designs", to: "/lenses/office-occupational" },
+    { label: "Sport", description: "Endless Sport for golfers, bikers, and boaters", to: "/lenses/sport" },
     { label: "Anti-Fatigue", description: "Digital comfort with near support boost", to: "/lenses/anti-fatigue" },
     { label: "Single Vision", description: "Everyday distance and near correction", to: "/lenses/single-vision" },
     { label: "Bifocals", description: "Classic bifocal options and freeform alternatives", to: "/lenses/bifocals" }]
@@ -296,7 +298,10 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideTrigger = ref.current?.contains(target);
+      const insidePanel = panelRef.current?.contains(target);
+      if (!insideTrigger && !insidePanel) {
         setOpen(false);
         setIsPinnedOpen(false);
       }
@@ -348,12 +353,13 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
       </button>
 
       {open &&
-      <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background p-4 shadow-lg">
+      createPortal(
+        <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border/50 bg-background/80 p-4 shadow-lg backdrop-blur-md">
           {/* Arrow pointing up at the trigger button */}
           <div
           style={{ left: arrowLeft }}
           className="absolute -top-1.5 z-10 h-3 w-3 -translate-x-1/2 rotate-45 rounded-[2px] border shadow-none border-amber-400 bg-[#e7b318]" />
-        
+
           <div className="grid gap-4 md:grid-cols-3">
           {item.sections.map((section) =>
           <div key={section.title}>
@@ -368,7 +374,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
                 rel="noopener noreferrer"
                 onClick={handleLinkClick}
                 className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}>
-                
+
                       <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                       <p className="text-xs text-muted-foreground">{link.description}</p>
                       {link.externalLabel && <p className="text-[11px] font-semibold text-primary">{link.externalLabel}</p>}
@@ -381,7 +387,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
                 {...getLabLinkNavigationProps(preserveLabLinkSession)}
                 onClick={handleLinkClick}
                 className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}>
-                
+
                         <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                         <p className="text-xs text-muted-foreground">{link.description}</p>
                       </a> :
@@ -392,7 +398,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
                 {...getLabLinkNavigationProps(preserveLabLinkSession)}
                 onClick={handleLinkClick}
                 className={`rounded-lg px-2 py-2 transition-colors ${link.isCta ? "border border-primary/40 bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"}`}>
-                
+
                       <p className={`text-sm font-medium ${link.isCta ? "text-primary" : "text-foreground"}`}>{link.label}</p>
                       <p className="text-xs text-muted-foreground">{link.description}</p>
                     </Link>
@@ -403,8 +409,9 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
             </div>
           )}
           </div>
-        </div>
-      }
+        </div>,
+        document.body
+      )}
     </div>);
 
 };
@@ -501,7 +508,7 @@ const Header = () => {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80">
+            <SheetContent side="left" className="w-80 border-border/50 bg-background/80 backdrop-blur-md">
               <SheetTitle className="mb-6 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center">
                   <img src={cleanLogoSmooth} alt="Classic Visions" className="h-6 w-6" />
@@ -603,7 +610,7 @@ const Header = () => {
                   <DropdownMenuContent
                     align="end"
                     sideOffset={10}
-                    className="w-[min(88vw,18rem)] rounded-2xl border-border/60 bg-background/95 p-0 shadow-2xl shadow-black/10 backdrop-blur-xl"
+                    className="w-[min(88vw,18rem)] rounded-2xl border-border/50 bg-background/80 p-0 shadow-2xl shadow-black/10 backdrop-blur-md"
                   >
                     <div className="space-y-1 p-2.5 sm:p-3">
                       <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">

@@ -13,7 +13,7 @@ export interface CreateHelpdeskTicketInput {
   ownerUserId?: string | null;
   priority?: number;
   deadline?: string | null;
-  sourceChannel?: "manual" | "email" | "phone" | "chat" | "portal" | "api" | "odoo_sync" | "ai_assistant";
+  sourceChannel?: "manual" | "email" | "phone" | "chat" | "portal" | "api" | "ai_assistant";
 }
 
 const generateTicketNumber = () => `TCK-${Date.now().toString().slice(-8)}`;

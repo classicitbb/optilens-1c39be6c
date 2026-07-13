@@ -203,6 +203,7 @@ Deno.serve(async (req) => {
     totalAmount: Number(order.total_amount ?? 0),
     shippingAddress: formatAddress(order.shipping_address),
     siteUrl: SITE_URL,
+    unsubscribeUrl: `${SITE_URL}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
   }
 
   const html = await renderAsync(React.createElement(template.component, templateData))

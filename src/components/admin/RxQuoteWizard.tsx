@@ -46,7 +46,7 @@ const RxInput = ({ value, onChange, validate, placeholder = "", small = false }:
       onChange={onChange}
       placeholder={placeholder}
       className={cn(
-        "w-full rounded border bg-background text-center text-[11px] focus:outline-none focus:ring-1 focus:ring-ring",
+        "w-full rounded border bg-background text-left text-[11px] focus:outline-none focus:ring-1 focus:ring-inset focus:ring-ring",
         small ? "h-6 px-0.5" : "h-7 px-1",
         isInvalid && value ? "border-destructive bg-destructive/5" : "border-input"
       )}
@@ -110,11 +110,11 @@ const EditableLensRow = ({ l, canEdit, updateLineMutation, deleteLineMutation }:
         <label className="text-[10px] text-muted-foreground">Cost:</label>
         <Input type="number" value={editCost} onChange={e => setEditCost(e.target.value)}
           onBlur={() => { const cost = parseFloat(editCost) || 0; const profit = computeLineProfit(l.unit_sell_price_bbd, cost, l.qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { unit_cost_landed_bbd: cost, ...profit } }); }}
-          className="h-6 text-xs w-16 p-1 text-right font-mono" step={0.01} />
+          className="h-6 text-xs w-16 p-1 text-left font-mono" step={0.01} />
         <label className="text-[10px] text-muted-foreground">Sell:</label>
         <Input type="number" value={editSell} onChange={e => setEditSell(e.target.value)}
           onBlur={() => { const sell = parseFloat(editSell) || 0; const profit = computeLineProfit(sell, l.unit_cost_landed_bbd, l.qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { unit_sell_price_bbd: sell, price_override: sell !== l.unit_base_price_bbd, ...profit } }); }}
-          className="h-6 text-xs w-16 p-1 text-right font-mono" step={0.01} />
+          className="h-6 text-xs w-16 p-1 text-left font-mono" step={0.01} />
       </div>
       {canEdit && <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10"><Trash2 className="h-3 w-3 text-destructive" /></button>}
     </div>
@@ -135,7 +135,7 @@ const EditableAddonRow = ({ l, canEdit, updateLineMutation, deleteLineMutation }
           className="h-6 text-xs flex-1 p-1" placeholder="Description" />
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-[10px] text-muted-foreground">Qty:</span>
-          <Input type="number" value={l.qty} onChange={e => { const qty = Number(e.target.value) || 1; const profit = computeLineProfit(l.unit_sell_price_bbd, l.unit_cost_landed_bbd, qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { qty, ...profit } }); }} className="h-6 text-xs w-10 p-1 text-center" min={1} />
+          <Input type="number" value={l.qty} onChange={e => { const qty = Number(e.target.value) || 1; const profit = computeLineProfit(l.unit_sell_price_bbd, l.unit_cost_landed_bbd, qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { qty, ...profit } }); }} className="h-6 text-xs w-10 p-1 text-left" min={1} />
         </div>
         {canEdit && <button onClick={() => deleteLineMutation.mutate(l.id)} className="p-0.5 rounded hover:bg-destructive/10 shrink-0"><Trash2 className="h-3 w-3 text-destructive" /></button>}
       </div>
@@ -143,11 +143,11 @@ const EditableAddonRow = ({ l, canEdit, updateLineMutation, deleteLineMutation }
         <label className="text-[10px] text-muted-foreground">Cost:</label>
         <Input type="number" value={editCost} onChange={e => setEditCost(e.target.value)}
           onBlur={() => { const cost = parseFloat(editCost) || 0; const profit = computeLineProfit(l.unit_sell_price_bbd, cost, l.qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { unit_cost_landed_bbd: cost, ...profit } }); }}
-          className="h-6 text-xs w-16 p-1 text-right font-mono" step={0.01} />
+          className="h-6 text-xs w-16 p-1 text-left font-mono" step={0.01} />
         <label className="text-[10px] text-muted-foreground">Sell:</label>
         <Input type="number" value={editSell} onChange={e => setEditSell(e.target.value)}
           onBlur={() => { const sell = parseFloat(editSell) || 0; const profit = computeLineProfit(sell, l.unit_cost_landed_bbd, l.qty, "RX"); updateLineMutation.mutate({ id: l.id, updates: { unit_sell_price_bbd: sell, price_override: true, ...profit } }); }}
-          className="h-6 text-xs w-16 p-1 text-right font-mono" step={0.01} />
+          className="h-6 text-xs w-16 p-1 text-left font-mono" step={0.01} />
         <span className="text-[10px] text-muted-foreground ml-auto">Total: <span className="font-mono font-medium">${(l.qty * l.unit_sell_price_bbd).toFixed(2)}</span></span>
       </div>
     </div>
@@ -766,23 +766,23 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
               </div>
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">Bridge (mm)</label>
-                <Input type="number" value={frameBridge} onChange={e => setFrameBridge(e.target.value)} className="h-8 text-xs text-center" />
+                <Input type="number" value={frameBridge} onChange={e => setFrameBridge(e.target.value)} className="h-8 text-xs text-left" />
               </div>
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">Eye Size A (mm)</label>
-                <Input type="number" value={frameA} onChange={e => setFrameA(e.target.value)} className="h-8 text-xs text-center" />
+                <Input type="number" value={frameA} onChange={e => setFrameA(e.target.value)} className="h-8 text-xs text-left" />
               </div>
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">Eye Size B (mm)</label>
-                <Input type="number" value={frameB} onChange={e => setFrameB(e.target.value)} className="h-8 text-xs text-center" />
+                <Input type="number" value={frameB} onChange={e => setFrameB(e.target.value)} className="h-8 text-xs text-left" />
               </div>
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">ED (mm)</label>
-                <Input type="number" value={frameEd} onChange={e => setFrameEd(e.target.value)} className="h-8 text-xs text-center" />
+                <Input type="number" value={frameEd} onChange={e => setFrameEd(e.target.value)} className="h-8 text-xs text-left" />
               </div>
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">DBL (mm)</label>
-                <Input type="number" value={frameDbl} onChange={e => setFrameDbl(e.target.value)} className="h-8 text-xs text-center" />
+                <Input type="number" value={frameDbl} onChange={e => setFrameDbl(e.target.value)} className="h-8 text-xs text-left" />
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 rounded border border-border bg-muted/20">

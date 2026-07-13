@@ -8,15 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useCartContext } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import SaveDraftDialog from "@/components/cart/SaveDraftDialog";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 import { cn } from "@/lib/utils";
 
 const CartPage = () => {
   const { items, totalPrice, totalItems, updateQuantity, removeFromCart, loading } = useCartContext();
   const { data: storeProducts = [] } = useStoreProducts();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [poNumber, setPoNumber] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
+  const [saveDraftOpen, setSaveDraftOpen] = useState(false);
 
   const shippingEstimate = 28;
   const grandTotal = totalPrice + shippingEstimate;
@@ -46,7 +52,7 @@ const CartPage = () => {
         <Header />
         <main className="container mx-auto flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 pt-24 text-center">
           <ShoppingCart className="h-12 w-12 text-muted-foreground" aria-hidden="true" />
-          <h1 className="font-serif text-2xl text-foreground">Your cart is empty</h1>
+          <h1 className="text-2xl text-foreground">Your cart is empty</h1>
           <p className="text-muted-foreground">Add some products and come back.</p>
           <Button variant="outline" asChild className="mt-2">
             <Link to="/store">Browse products</Link>
@@ -63,14 +69,33 @@ const CartPage = () => {
       <main className="container mx-auto px-4 pb-16 pt-24 sm:px-6">
         {/* Page header */}
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="font-serif text-2xl text-foreground">
+          <h1 className="text-2xl text-foreground">
             Shopping Cart
             <span className="ml-2 font-sans text-base font-normal text-muted-foreground">
               ({totalItems} {totalItems === 1 ? "item" : "items"})
             </span>
           </h1>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+            <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+              <Link to="/profile/drafts">View drafts</Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+              disabled={items.length === 0}
+              onClick={() => {
+                if (!user) {
+                  toast({
+                    title: "Sign in required",
+                    description: "Please sign in to save a draft.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSaveDraftOpen(true);
+              }}
+            >
               <FileText className="h-3.5 w-3.5" aria-hidden="true" />
               Save draft
             </Button>
@@ -141,7 +166,7 @@ const CartPage = () => {
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-foreground transition-colors hover:border-secondary hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-foreground transition-colors hover:border-secondary hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                               aria-label={`Decrease quantity of ${item.product_name}`}
                             >
                               <Minus className="h-3 w-3" />
@@ -152,7 +177,7 @@ const CartPage = () => {
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-foreground transition-colors hover:border-secondary hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="flex h-7 w-7 items-center justify-center rounded border border-border bg-background text-foreground transition-colors hover:border-secondary hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                               aria-label={`Increase quantity of ${item.product_name}`}
                             >
                               <Plus className="h-3 w-3" />
@@ -168,7 +193,7 @@ const CartPage = () => {
                           <button
                             type="button"
                             onClick={() => removeFromCart(item.id)}
-                            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                             aria-label={`Remove ${item.product_name} from cart`}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -207,7 +232,7 @@ const CartPage = () => {
                   rows={3}
                   className={cn(
                     "w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                   )}
                 />
               </div>
@@ -278,6 +303,7 @@ const CartPage = () => {
         </div>
       </main>
       <Footer />
+      <SaveDraftDialog open={saveDraftOpen} onOpenChange={setSaveDraftOpen} items={items} />
     </div>
   );
 };

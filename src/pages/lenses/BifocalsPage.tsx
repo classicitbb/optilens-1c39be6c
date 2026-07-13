@@ -15,7 +15,7 @@ const WHY_PATIENTS_ASK = [
 
 const COMPARISON = [
   {
-    title: "Conventional Flat-Top Bifocals",
+    title: "Conventional Flat-Top Bifocals — Adept",
     icon: <SplitSquareHorizontal className="h-5 w-5" />,
     points: [
       "A trusted, practical, and cost-effective lens format with clear distance and near separation.",

@@ -2,13 +2,48 @@
 
 Summarized release outcomes for each major date-stamped update.
 
-## 2026-05-27 — Infrastructure Dependency and Edge Security Refresh
+## 2026-07-13 — Innovations EFT Bank Portal Directory
 
 ### Release Notes
-- npm dependencies were refreshed through npm 10 and the lockfile now audits cleanly.
-- The stale Bun lockfile was removed, and lockfile policy now rejects both Bun lockfile formats.
-- Vercel now applies the shared security header policy at the edge, with a new QA check preventing config drift.
-- Vite now uses the standard React plugin recommended for this setup, and router chunking targets `react-router`.
+- Bank Payment Portals automatically receives the exact bank names configured in Innovations for EFT customers.
+- Customers are sent only to verified online-banking destinations; the system shows a support fallback when a source value is a placeholder, non-retail institution, or otherwise lacks a verified sign-in page.
+
+## 2026-07-13 — Admin Email Preview Center
+
+### Release Notes
+- Settings now includes Email Previews, a split workspace for reviewing all active auth and application emails.
+- Operators can switch between templates and change sample name, recipient, and subject values to review personalized preview copy without sending messages.
+
+## 2026-07-13 — Storefront Cost-Access Regression Guard
+
+### Release Notes
+- Public storefront prices render for anonymous visitors through safe product RPCs.
+- Cost-bearing base tables remain inaccessible to anonymous and non-editor authenticated users, with CI blocking unsafe migration changes.
+
+## 2026-07-11 — Portal Statements and Order Status
+
+### Release Notes
+- Statements show only real posted Innovations records, including aging buckets, statement totals, and itemized financial activity.
+- My Orders now shows active Innovations WIP and valid same-day shipments from MSSQL-SVR using only Rx number, patient, received date, and current status; existing delivery tracking remains available.
+- The sign-in form has a clearer modern layout, inline password-reset access, and a show/hide password control.
+- My Account now displays the linked ERP account number (or `ACC#` until one is linked) and places Sign out beside Save Changes.
+- Open shipment records remain visible regardless of age; closed deliveries remain available for 30 days and can expand to show shipment work and an export tracking link when supplied.
+- Customers can jump to each order section from live count pills, search active lab work by patient or Rx number, and use the wider responsive account layout.
+
+## 2026-06-24 — Product Cost RLS + Analytics Insert Hardening
+
+### Release Notes
+- Direct reads on `addons`, `lenses`, and `supplies` now require admin/operator edit access so viewer/customer roles cannot read cost-bearing columns.
+- Public product browsing remains available through existing cost-free public views.
+- Public analytics writes now validate UUID-shaped visitor IDs, safe path values, known web-vital metrics, ratings, and bounded values.
+- npm dependency refresh resolved the reported audit vulnerability; `npm audit` now reports zero vulnerabilities.
+
+## 2026-06-05 — Shipment Costing Fixes + Security/Print Hardening
+
+### Release Notes
+- Shipment Detail no longer overwrites charge edits with line-item edits, and the FOB column is now preserved as read-only in the admin costing view.
+- Admin UI polish fixes landed for sidebar behavior plus shared input/select rendering to address the text cutoff issues merged this week.
+- The DEV merge hardened quote printing, transactional-email authorization/CORS handling, and Vercel security-header synchronization while removing Bun lockfile drift from the npm-only workflow.
 
 ## 2026-04-13 — LED PRO Public Lens Page + Admin Rendering Safeguards
 

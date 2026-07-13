@@ -832,7 +832,7 @@ const ListCatalogTab = ({
           <div className="flex items-center gap-1">
             {isPending && <span className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" title="Pending — save to confirm" />}
             {isEditingThisDesc ?
-            <input autoFocus className="flex-1 text-xs border rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-primary/30" value={editingDesc.value}
+            <input autoFocus className="flex-1 text-xs border rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-inset focus:ring-primary/30" value={editingDesc.value}
             onChange={(e) => setEditingDesc({ key: row.key, value: e.target.value })}
             onBlur={() => commitDesc(rowType, section, row.key, editingDesc.value)}
             onKeyDown={(e) => {if (e.key === "Enter") commitDesc(rowType, section, row.key, editingDesc.value);if (e.key === "Escape") setEditingDesc(null);}} /> :
@@ -865,7 +865,7 @@ const ListCatalogTab = ({
             {isEditingThisPrice ?
             <input
               autoFocus
-              className="w-24 rounded border px-1 py-0.5 text-right text-xs text-foreground outline-none focus:ring-1 focus:ring-primary/30"
+              className="w-24 rounded border px-1 py-0.5 text-left text-xs text-foreground outline-none focus:ring-1 focus:ring-inset focus:ring-primary/30"
               value={editingPrice.value}
               onChange={(e) => setEditingPrice({ key: row.key, value: e.target.value })}
               onBlur={() => commitPrice(row, section, rowType, editingPrice.value)}

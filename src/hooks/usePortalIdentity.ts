@@ -4,7 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
-export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders";
+export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "statements";
+
+export type PaymentTerms = "credit" | "cash" | "standard";
 
 export interface PortalIdentity {
   profileId: string;
@@ -14,9 +16,11 @@ export interface PortalIdentity {
   profileCompleted: boolean;
   crmContactId: string | null;
   crmCustomerId: number | null;
+  accountNumber: string | null;
   assignedPricelistId: number | null;
   organizationName: string | null;
   customerName: string | null;
+  paymentTerms: PaymentTerms;
   featureOverrides: Partial<Record<PortalFeature, boolean>>;
 }
 
@@ -25,6 +29,7 @@ const featureTitles: Record<PortalFeature, string> = {
   helpdesk: "Helpdesk",
   pricelists: "Pricelists",
   "private-orders": "Private orders",
+  statements: "Statements",
 };
 
 const normalizeIdentity = (
@@ -38,9 +43,13 @@ const normalizeIdentity = (
   profileCompleted: row.profile_completed === true,
   crmContactId: typeof row.crm_contact_id === "string" ? row.crm_contact_id : null,
   crmCustomerId: typeof row.crm_customer_id === "number" ? row.crm_customer_id : null,
+  accountNumber: typeof row.account_number === "string" && row.account_number.trim() ? row.account_number.trim() : null,
   assignedPricelistId: typeof row.assigned_pricelist_id === "number" ? row.assigned_pricelist_id : null,
   organizationName: typeof row.organization_name === "string" ? row.organization_name : null,
   customerName: typeof row.customer_name === "string" ? row.customer_name : null,
+  paymentTerms: (row.payment_terms === "credit_approved" ? "credit"
+               : row.payment_terms === "cash_only"       ? "cash"
+               : "standard") as PaymentTerms,
   featureOverrides,
 });
 
@@ -115,17 +124,23 @@ export const usePortalIdentity = () => {
     enabled: !!user,
     queryFn: async () => {
       if (!user) return null;
-      const [{ data, error }, { data: overrides, error: overridesError }] = await Promise.all([
-        (supabase.rpc as any)("sync_customer_portal_identity", {
-          p_user_id: user.id,
-        }),
+      const { data, error } = await (supabase.rpc as any)("sync_customer_portal_identity", {
+        p_user_id: user.id,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+
+      const [{ data: accountNumber, error: accountNumberError }, { data: overrides, error: overridesError }] = await Promise.all([
+        typeof row?.crm_customer_id === "number"
+          ? (supabase.rpc as any)("get_portal_erp_account_number")
+          : Promise.resolve({ data: null, error: null }),
         (supabase as any)
           .from("customer_portal_feature_overrides")
           .select("feature_key,enabled")
           .eq("user_id", user.id),
       ]);
 
-      if (error) throw error;
+      if (accountNumberError) throw accountNumberError;
       if (overridesError) throw overridesError;
 
       const overrideMap = ((overrides ?? []) as Array<{ feature_key: PortalFeature; enabled: boolean }>).reduce(
@@ -133,8 +148,7 @@ export const usePortalIdentity = () => {
         {} as Partial<Record<PortalFeature, boolean>>,
       );
 
-      const row = Array.isArray(data) ? data[0] : data;
-      return row ? normalizeIdentity(row, overrideMap) : null;
+      return row ? normalizeIdentity({ ...row, account_number: accountNumber }, overrideMap) : null;
     },
   });
 

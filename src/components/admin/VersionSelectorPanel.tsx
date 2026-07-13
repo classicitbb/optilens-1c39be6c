@@ -566,11 +566,11 @@ const VersionSelectorPanel = ({
             <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium mb-1 block text-muted-foreground">Markup %</label>
-                  <Input type="number" step="0.01" min="0" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} className="h-8 text-xs text-right" />
+                  <Input type="number" step="0.01" min="0" value={markupPct} onChange={(e) => setMarkupPct(e.target.value)} className="h-8 text-xs text-left" />
                 </div>
                 <div>
                   <label className="text-xs font-medium mb-1 block text-muted-foreground">Discount %</label>
-                  <Input type="number" step="0.01" min="0" value={discountPct} onChange={(e) => setDiscountPct(e.target.value)} className="h-8 text-xs text-right" />
+                  <Input type="number" step="0.01" min="0" value={discountPct} onChange={(e) => setDiscountPct(e.target.value)} className="h-8 text-xs text-left" />
                 </div>
               </div>
             }
@@ -581,14 +581,14 @@ const VersionSelectorPanel = ({
                 <div>
                   <label className="text-xs font-medium mb-1 block text-muted-foreground">Master Markup %</label>
                   <div className="relative">
-                    <Input type="number" step="0.01" min="0" value={masterMarkupPct} onChange={(e) => setMasterMarkupPct(e.target.value)} className="h-8 text-xs text-right pr-6" placeholder="0" />
+                    <Input type="number" step="0.01" min="0" value={masterMarkupPct} onChange={(e) => setMasterMarkupPct(e.target.value)} className="h-8 text-xs text-left pr-6" placeholder="0" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium mb-1 block text-muted-foreground">Master Discount %</label>
                   <div className="relative">
-                    <Input type="number" step="0.01" min="0" value={masterDiscountPct} onChange={(e) => setMasterDiscountPct(e.target.value)} className="h-8 text-xs text-right pr-6" placeholder="0" />
+                    <Input type="number" step="0.01" min="0" value={masterDiscountPct} onChange={(e) => setMasterDiscountPct(e.target.value)} className="h-8 text-xs text-left pr-6" placeholder="0" />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                   </div>
                 </div>
@@ -605,14 +605,14 @@ const VersionSelectorPanel = ({
                       <div>
                         <label className="text-[11px] font-medium mb-1 block text-muted-foreground">Child Markup %</label>
                         <div className="relative">
-                          <Input type="number" step="0.01" min="0" value={childSections[st].markup} onChange={(e) => updateChild(st, "markup", e.target.value)} className="h-7 text-xs text-right pr-6" placeholder="0" />
+                          <Input type="number" step="0.01" min="0" value={childSections[st].markup} onChange={(e) => updateChild(st, "markup", e.target.value)} className="h-7 text-xs text-left pr-6" placeholder="0" />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
                         </div>
                       </div>
                       <div>
                         <label className="text-[11px] font-medium mb-1 block text-muted-foreground">Child Discount %</label>
                         <div className="relative">
-                          <Input type="number" step="0.01" min="0" value={childSections[st].discount} onChange={(e) => updateChild(st, "discount", e.target.value)} className="h-7 text-xs text-right pr-6" placeholder="0" />
+                          <Input type="number" step="0.01" min="0" value={childSections[st].discount} onChange={(e) => updateChild(st, "discount", e.target.value)} className="h-7 text-xs text-left pr-6" placeholder="0" />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
                         </div>
                       </div>

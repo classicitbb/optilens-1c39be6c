@@ -424,13 +424,13 @@ const QuoteEditorPage = () => {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs text-right">
-                            {canEdit ? <Input type="number" value={line.qty} onChange={e => handleQtyChange(line, Number(e.target.value) || 1)} className="h-6 text-xs text-right w-12 p-1" min={1} /> : line.qty}
+                            {canEdit ? <Input type="number" value={line.qty} onChange={e => handleQtyChange(line, Number(e.target.value) || 1)} className="h-6 text-xs text-left w-12 p-1" min={1} /> : line.qty}
                           </TableCell>
                           <TableCell className="text-xs text-right font-mono text-muted-foreground">{line.unit_cost_landed_bbd.toFixed(2)}</TableCell>
                           <TableCell className="text-xs text-right font-mono text-muted-foreground">{line.unit_base_price_bbd.toFixed(2)}</TableCell>
                           <TableCell className="text-xs text-right">
                             {canEdit
-                              ? <Input type="number" defaultValue={line.unit_sell_price_bbd} onBlur={e => handleSellPriceChange(line, Number(e.target.value) || 0)} className="h-6 text-xs text-right w-16 p-1 font-mono" step={0.01} />
+                              ? <Input type="number" defaultValue={line.unit_sell_price_bbd} onBlur={e => handleSellPriceChange(line, Number(e.target.value) || 0)} className="h-6 text-xs text-left w-16 p-1 font-mono" step={0.01} />
                               : <span className="font-mono">{line.unit_sell_price_bbd.toFixed(2)}</span>}
                           </TableCell>
                           <TableCell className="text-xs text-right font-mono font-medium">{lineTotal.toFixed(2)}</TableCell>

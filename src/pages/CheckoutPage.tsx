@@ -37,6 +37,14 @@ import { cn } from "@/lib/utils";
 import { createAuthHref } from "@/lib/authFlow";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import SecurityTrustBar from "@/components/checkout/SecurityTrustBar";
+import { COUNTRY_OPTIONS, getStateOptionsByCountry } from "@/lib/locationOptions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isScotiaEnabled, type ScotiaValidationResult } from "@/lib/payments/scotiaConnect";
+import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
+
+// Scotia eCom+ embedded gateway. Off unless VITE_SCOTIA_ENABLED=true — the
+// existing offline methods + on-account always remain available as fallback.
+const SCOTIA_ENABLED = isScotiaEnabled();
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -126,7 +134,7 @@ const PickCard = ({
     onClick={onClick}
     className={cn(
       "w-full rounded-lg border px-3.5 py-3 text-left transition-all duration-150",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
       selected && !accent && "border-secondary bg-secondary/5 dark:bg-secondary/10",
       selected && accent && "border-primary bg-primary/5 dark:bg-primary/10",
       !selected && "border-border hover:border-secondary/60 bg-card",
@@ -221,14 +229,17 @@ const OrderSummarySidebar = ({
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { items, totalPrice, clearCart } = useCartContext();
+  const { items, totalPrice, clearCart, loading: cartLoading } = useCartContext();
   const { user } = useAuth();
-  const { createOrder } = useOrders();
+  const { createOrder, settleScotiaPayment } = useOrders();
   const { identity, isLoading: identityLoading } = usePortalIdentity();
   const { addresses, defaultShipping, defaultBilling, isLoading: addressesLoading } = useCustomerAddresses();
-  const { defaultPaymentMethod, isLoading: paymentMethodsLoading } = useCustomerPaymentMethods();
+  const { defaultPaymentMethod, paymentMethods, isLoading: paymentMethodsLoading } = useCustomerPaymentMethods();
+  const savedScotiaCards = paymentMethods.filter((m) => m.provider === "scotia" && m.status === "active");
 
   const isVerifiedB2B = identity?.portalAccessStatus === "approved_customer";
+  const canPayOnAccount = isVerifiedB2B && identity?.paymentTerms === "credit";
+  const isCashOnly = isVerifiedB2B && identity?.paymentTerms === "cash";
 
   // ── State ──
   const [step, setStep] = useState<Step>(1);
@@ -246,6 +257,72 @@ const CheckoutPage = () => {
     (location.state as { orderNotes?: string } | null)?.orderNotes ?? "",
   );
 
+  // Scotia eCom+ embedded payment: selected within the Payment step. Kept in
+  // local state so it never alters the existing checkoutMethod union (offline
+  // methods + on-account stay fully intact as the fallback path).
+  const [payWithScotia, setPayWithScotia] = useState(false);
+  const [saveScotiaCard, setSaveScotiaCard] = useState(false);
+  // Token of a previously-saved Scotia card to reuse (CVV-only), or null for a new card.
+  const [selectedScotiaToken, setSelectedScotiaToken] = useState<string | null>(null);
+  const [scotiaError, setScotiaError] = useState<string | null>(null);
+
+  const handleScotiaResult = async (
+    result: ScotiaValidationResult,
+    raw: Record<string, string>,
+  ) => {
+    if (!result.hashValid) {
+      setScotiaError("Payment response could not be verified. Please try again.");
+      return;
+    }
+    if (!result.approved) {
+      setScotiaError(
+        result.softDecline
+          ? "Your bank declined the payment but a retry may succeed."
+          : "Your bank declined the payment. Please use a different card or payment method.",
+      );
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // 1. Record the order (payment already approved at the gateway).
+      const order = await createOrder(items, totalPrice, {
+        ...formData,
+        checkoutMethod: "scotia_ecom",
+        billingAddress: sameAsShipping ? formData.shippingAddress : formData.billingAddress,
+        billingAddressId: sameAsShipping ? formData.shippingAddressId : formData.billingAddressId,
+        fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+      });
+      if (!order) {
+        setScotiaError("Payment approved, but we couldn't record your order. Please contact support.");
+        return;
+      }
+
+      // 2. Settle: persist gateway result + (optionally) the saved card token.
+      const last4 = (raw.cardnumber ?? "").replace(/\D/g, "").slice(-4);
+      await settleScotiaPayment(order.id, {
+        approved: true,
+        oid: result.oid ?? raw.oid ?? null,
+        association_response_code: result.associationResponseCode || null,
+        fail_rc: result.failRc,
+        hosteddataid: result.hosteddataid ?? raw.hosteddataid ?? null,
+        card_brand: raw.ccbrand ?? raw.paymentMethod ?? null,
+        card_last4: last4 || null,
+        cardholder_name: raw.bname ?? formData.cardholderName ?? null,
+        expiry_month: raw.expmonth ? Number(raw.expmonth) : null,
+        expiry_year: raw.expyear ? Number(raw.expyear) : null,
+        save_token: saveScotiaCard,
+      });
+
+      setIsComplete(true);
+      await clearCart();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const shippingCost =
     step >= 2
       ? shippingMethod === "express"
@@ -261,10 +338,11 @@ const CheckoutPage = () => {
       navigate(createAuthHref({ mode: "signin", redirect: "/checkout" }), { replace: true });
       return;
     }
-    if (!isComplete && items.length === 0) {
+    // Wait for the cart to finish loading before deciding to bounce back.
+    if (!cartLoading && !isComplete && items.length === 0) {
       navigate("/cart", { replace: true });
     }
-  }, [items.length, navigate, user, isComplete]);
+  }, [items.length, navigate, user, isComplete, cartLoading]);
 
   // ── Load profile ──
   useEffect(() => {
@@ -294,7 +372,7 @@ const CheckoutPage = () => {
     if (identityLoading || addressesLoading || paymentMethodsLoading) return;
     setFormData((prev) => ({
       ...prev,
-      checkoutMethod: isVerifiedB2B ? "on_account" : "stripe_offline",
+      checkoutMethod: canPayOnAccount ? "on_account" : "stripe_offline",
       shippingAddressId: defaultShipping?.id ?? prev.shippingAddressId,
       shippingAddress: defaultShipping ? toProfileAddress(defaultShipping) : prev.shippingAddress,
       billingAddressId: defaultBilling?.id ?? defaultShipping?.id ?? prev.billingAddressId,
@@ -304,10 +382,25 @@ const CheckoutPage = () => {
           ? toProfileAddress(defaultShipping)
           : prev.billingAddress,
     }));
-  }, [identityLoading, addressesLoading, paymentMethodsLoading, isVerifiedB2B, defaultShipping, defaultBilling]);
+  }, [identityLoading, addressesLoading, paymentMethodsLoading, canPayOnAccount, defaultShipping, defaultBilling]);
 
   // ── Derived ──
   const isLoading = isLoadingProfile || addressesLoading || paymentMethodsLoading || identityLoading;
+
+  // 1stPay and BimPay are Caribbean payment networks only available when shipping to Barbados.
+  const isBarbadosShipment = formData.shippingAddress.country === "Barbados";
+  const availableOfflineMethods = isBarbadosShipment
+    ? OFFLINE_METHODS
+    : OFFLINE_METHODS.filter((method) => method.id !== "firstpay_offline" && method.id !== "bimpay_offline");
+
+  useEffect(() => {
+    if (
+      !isBarbadosShipment &&
+      (formData.checkoutMethod === "firstpay_offline" || formData.checkoutMethod === "bimpay_offline")
+    ) {
+      setFormData((prev) => ({ ...prev, checkoutMethod: "stripe_offline" }));
+    }
+  }, [isBarbadosShipment, formData.checkoutMethod]);
 
   const completedOrderNum = useMemo(
     () => `CV-${new Date().getFullYear()}-${String(Math.floor(10000 + Math.random() * 90000)).slice(0, 5)}`,
@@ -389,7 +482,7 @@ const CheckoutPage = () => {
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-secondary/10">
               <CheckCircle className="h-9 w-9 text-secondary" aria-hidden="true" />
             </div>
-            <h1 className="mb-2 font-serif text-2xl text-foreground">
+            <h1 className="mb-2 text-2xl text-foreground">
               {formData.checkoutMethod === "on_account"
                 ? "Order placed on account"
                 : "Order received"}
@@ -435,8 +528,9 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Breadcrumb */}
-      <div className="border-b border-border bg-card">
+      {/* Breadcrumb (offset for fixed header) */}
+      <div className="border-b border-border bg-card pt-16">
+
         <div className="container mx-auto flex items-center gap-1 px-4 py-2.5 text-xs sm:px-6">
           <Link to="/store" className="text-muted-foreground hover:text-foreground transition-colors">
             Store
@@ -467,7 +561,7 @@ const CheckoutPage = () => {
                     onClick={() => done && setStep(n)}
                     className={cn(
                       "flex cursor-default items-center gap-2 border-b-2 px-4 py-3.5 text-sm transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                       done && "cursor-pointer border-secondary text-secondary hover:text-secondary/80",
                       active && "border-primary text-foreground font-semibold",
                       !done && !active && "border-transparent text-muted-foreground",
@@ -497,7 +591,7 @@ const CheckoutPage = () => {
       </div>
 
       {/* Main layout */}
-      <main className="container mx-auto px-4 pb-16 pt-24 sm:px-6">
+      <main className="container mx-auto px-4 pb-16 pt-8 sm:px-6">
         {isLoading ? (
           <div className="flex min-h-[40vh] items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -678,10 +772,17 @@ const CheckoutPage = () => {
                         <Label htmlFor="ship-state">Parish / State</Label>
                         <Input
                           id="ship-state"
+                          list="ship-state-suggestions"
                           value={formData.shippingAddress.state}
                           onChange={(e) => updateShippingAddress({ ...formData.shippingAddress, state: e.target.value })}
                           placeholder="St. Michael"
+                          autoComplete="address-level1"
                         />
+                        <datalist id="ship-state-suggestions">
+                          {getStateOptionsByCountry(formData.shippingAddress.country).map((opt) => (
+                            <option key={opt.value} value={opt.value} />
+                          ))}
+                        </datalist>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="ship-postal">Postal code</Label>
@@ -699,17 +800,37 @@ const CheckoutPage = () => {
                         >
                           Country
                         </Label>
-                        <Input
-                          id="ship-country"
-                          value={formData.shippingAddress.country}
-                          onChange={(e) => {
-                            updateShippingAddress({ ...formData.shippingAddress, country: e.target.value });
+                        <Select
+                          value={formData.shippingAddress.country || undefined}
+                          onValueChange={(value) => {
+                            const currentStates = getStateOptionsByCountry(formData.shippingAddress.country).map((o) => o.value);
+                            const nextStates = getStateOptionsByCountry(value).map((o) => o.value);
+                            const currentState = formData.shippingAddress.state;
+                            // Clear state if it belonged to the prior country's suggestion list and isn't valid for the new one
+                            const shouldClearState = currentState && currentStates.includes(currentState) && !nextStates.includes(currentState);
+                            updateShippingAddress({
+                              ...formData.shippingAddress,
+                              country: value,
+                              state: shouldClearState ? "" : currentState,
+                            });
                             setFieldErrors((p) => ({ ...p, addressCountry: undefined }));
                           }}
-                          placeholder="Barbados"
-                          aria-invalid={!!fieldErrors.addressCountry}
-                          className={cn(fieldErrors.addressCountry && "border-destructive focus-visible:ring-destructive")}
-                        />
+                        >
+                          <SelectTrigger
+                            id="ship-country"
+                            aria-invalid={!!fieldErrors.addressCountry}
+                            className={cn(fieldErrors.addressCountry && "border-destructive focus-visible:ring-destructive")}
+                          >
+                            <SelectValue placeholder="Select a country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COUNTRY_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FieldError message={fieldErrors.addressCountry} />
                       </div>
                     </div>
@@ -738,7 +859,7 @@ const CheckoutPage = () => {
                         }
                         className={cn(
                           "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                           sameAsShipping ? "bg-secondary" : "bg-muted",
                         )}
                       >
@@ -802,12 +923,37 @@ const CheckoutPage = () => {
                   <SectionHead>Payment method</SectionHead>
 
                   <div className="space-y-2">
+                    {/* Scotia eCom+ embedded card payment (flag-gated). */}
+                    {SCOTIA_ENABLED && (
+                      <PickCard
+                        selected={payWithScotia}
+                        accent
+                        onClick={() => {
+                          setPayWithScotia(true);
+                          setScotiaError(null);
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                          <div>
+                            <p className="text-sm font-medium text-foreground">Credit / Debit card</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              Secure card payment processed by Scotiabank. You stay on this page.
+                            </p>
+                          </div>
+                        </div>
+                      </PickCard>
+                    )}
+
                     {/* On Account — shown first for verified B2B */}
-                    {isVerifiedB2B && (
+                    {canPayOnAccount && (
                       <PickCard
                         selected={formData.checkoutMethod === "on_account"}
                         accent
-                        onClick={() => setFormData((p) => ({ ...p, checkoutMethod: "on_account", paymentMethodId: null }))}
+                        onClick={() => {
+                          setPayWithScotia(false);
+                          setFormData((p) => ({ ...p, checkoutMethod: "on_account", paymentMethodId: null }));
+                        }}
                       >
                         <div className="flex items-start gap-3">
                           <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
@@ -837,15 +983,16 @@ const CheckoutPage = () => {
                     )}
 
                     {/* Offline payment methods */}
-                    {OFFLINE_METHODS.map((method) => {
+                    {availableOfflineMethods.map((method) => {
                       const Icon = method.icon;
                       return (
                         <PickCard
                           key={method.id}
-                          selected={formData.checkoutMethod === method.id}
-                          onClick={() =>
-                            setFormData((p) => ({ ...p, checkoutMethod: method.id, paymentMethodId: null }))
-                          }
+                          selected={!payWithScotia && formData.checkoutMethod === method.id}
+                          onClick={() => {
+                            setPayWithScotia(false);
+                            setFormData((p) => ({ ...p, checkoutMethod: method.id, paymentMethodId: null }));
+                          }}
                         >
                           <div className="flex items-start gap-3">
                             <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -859,8 +1006,82 @@ const CheckoutPage = () => {
                     })}
                   </div>
 
+                  {/* Embedded Scotia gateway — buyer pays without leaving the page. */}
+                  {SCOTIA_ENABLED && payWithScotia && (
+                    <div className="mt-4">
+                      {scotiaError && (
+                        <div className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-xs text-destructive" role="alert">
+                          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <span>{scotiaError}</span>
+                        </div>
+                      )}
+                      {/* Saved Scotia cards — reuse with CVV only */}
+                      {savedScotiaCards.length > 0 && (
+                        <div className="mb-3 space-y-2">
+                          <p className="font-mono text-[9.5px] uppercase tracking-wide text-muted-foreground">
+                            Saved cards
+                          </p>
+                          {savedScotiaCards.map((card) => (
+                            <PickCard
+                              key={card.id}
+                              selected={selectedScotiaToken === card.paymentToken}
+                              onClick={() => {
+                                setSelectedScotiaToken(card.paymentToken);
+                                setScotiaError(null);
+                              }}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm text-foreground">
+                                  {card.brand} ···· {card.last4}
+                                </span>
+                                <span className="font-mono text-[10px] text-muted-foreground">
+                                  CVV only
+                                </span>
+                              </div>
+                            </PickCard>
+                          ))}
+                          <PickCard
+                            selected={selectedScotiaToken === null}
+                            onClick={() => {
+                              setSelectedScotiaToken(null);
+                              setScotiaError(null);
+                            }}
+                          >
+                            <span className="text-sm text-foreground">Use a new card</span>
+                          </PickCard>
+                        </div>
+                      )}
+
+                      {selectedScotiaToken === null && (
+                        <label className="mb-3 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={saveScotiaCard}
+                            onChange={(e) => setSaveScotiaCard(e.target.checked)}
+                            className="h-3.5 w-3.5 rounded border-border"
+                          />
+                          Securely save this card for faster checkout next time
+                        </label>
+                      )}
+
+                      <ScotiaPaymentFrame
+                        key={selectedScotiaToken ?? "new-card"}
+                        payment={{
+                          chargetotal: totalPrice + (shippingCost ?? 0),
+                          responseSuccessURL: `${window.location.origin}/checkout`,
+                          responseFailURL: `${window.location.origin}/checkout`,
+                          orderId: poNumber || undefined,
+                          hosteddataid: selectedScotiaToken ?? undefined,
+                          assignToken: selectedScotiaToken === null ? saveScotiaCard : undefined,
+                        }}
+                        onResult={handleScotiaResult}
+                        onError={(message) => setScotiaError(message)}
+                      />
+                    </div>
+                  )}
+
                   {/* Pending-payment notice for non-B2B */}
-                  {formData.checkoutMethod !== "on_account" && (
+                  {!payWithScotia && formData.checkoutMethod !== "on_account" && (
                     <div className="mt-4 flex items-start gap-2 rounded-lg border border-accent/20 bg-accent/5 px-3 py-2.5 text-xs text-muted-foreground">
                       <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden="true" />
                       <span>
@@ -875,14 +1096,25 @@ const CheckoutPage = () => {
                     </div>
                   )}
 
-                  {!isVerifiedB2B && (
+                  {isCashOnly ? (
+                    <p className="mt-4 text-xs text-muted-foreground">
+                      This account is set to <strong>cash only</strong>. Contact us to discuss credit terms.
+                    </p>
+                  ) : !canPayOnAccount && isVerifiedB2B ? (
+                    <p className="mt-4 text-xs text-muted-foreground">
+                      Want to pay on account?{" "}
+                      <a href="/contact" className="text-secondary underline underline-offset-2 hover:text-secondary/80">
+                        Apply for a credit account.
+                      </a>
+                    </p>
+                  ) : !isVerifiedB2B ? (
                     <p className="mt-4 text-xs text-muted-foreground">
                       Want to pay on account?{" "}
                       <a href="/contact" className="text-secondary underline underline-offset-2 hover:text-secondary/80">
                         Apply for a verified B2B account.
                       </a>
                     </p>
-                  )}
+                  ) : null}
                 </div>
               )}
 
@@ -972,7 +1204,7 @@ const CheckoutPage = () => {
                           <button
                             type="button"
                             onClick={() => setStep(goTo)}
-                            className="font-mono text-[10px] text-secondary underline underline-offset-2 hover:text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                            className="font-mono text-[10px] text-secondary underline underline-offset-2 hover:text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded"
                           >
                             Edit
                           </button>

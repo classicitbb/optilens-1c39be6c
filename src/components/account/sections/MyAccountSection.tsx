@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, Phone, Save, Shield, User } from "lucide-react";
+import { KeyRound, LogOut, Phone, Save, Shield, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +35,7 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 };
 
 const MyAccountSection = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { role, hasAccess } = useUserRole();
   const { identity } = usePortalIdentity();
   const { toast } = useToast();
@@ -306,6 +306,16 @@ const MyAccountSection = () => {
                 </FormItem>
               )}
             />
+            <div className="space-y-2">
+              <FormLabel>ERP Account Number</FormLabel>
+              <div
+                className="flex h-10 w-full items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-foreground"
+                role="status"
+                aria-label="ERP Account Number"
+              >
+                {identity?.accountNumber || "ACC#"}
+              </div>
+            </div>
             <FormField
               control={form.control}
               name="avatar_url"
@@ -319,10 +329,16 @@ const MyAccountSection = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={saving}>
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="submit" className="flex-1" disabled={saving}>
+                <Save className="mr-2 h-4 w-4" />
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button type="button" variant="outline" className="sm:w-auto" onClick={() => { void signOut(); }}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </Button>
+            </div>
           </form>
         </Form>
 
