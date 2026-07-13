@@ -4,6 +4,15 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-13 — Specialty Lenses
+
+### Release Notes
+- Added the new Specialty Lenses page with accessible expandable details for Endless Pilot Progressive and OmniLux NAL.
+- Specialty Lenses is now available from the Lifestyle Lenses menu; the House Brands heading and full-screen mobile navigation have also been refined.
+
+### Technical Changelog
+- Added the canonical `/lenses/specialty` route, typed specialty-lens content, reusable action URLs that retain the selected lens identifier, and accordion interaction coverage.
+
 ## 2026-07-13 — Innovations EFT Bank Portal Directory
 
 ### Release Notes

@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-13 — Specialty Lenses
+
+### Release Notes
+- Added a Specialty Lenses page for Endless Pilot Progressive and OmniLux NAL, with expandable on-page information instead of separate product pages.
+- The page is available under Lifestyle Lenses. The desktop column now reads House Brands, and the mobile menu opens as a full-screen frosted panel.
+
 ## 2026-07-13 — Innovations EFT Bank Portal Directory
 
 ### Release Notes

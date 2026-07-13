@@ -63,6 +63,7 @@ const LedProPage = lazy(() => import("@/pages/lenses/LedProPage"));
 const BlueFilterPage = lazy(() => import("@/pages/lenses/BlueFilterPage"));
 const PolarizedPage = lazy(() => import("@/pages/lenses/PolarizedPage"));
 const TintsFashionColorsPage = lazy(() => import("@/pages/lenses/TintsFashionColorsPage"));
+const SpecialtyLensesPage = lazy(() => import("@/pages/lenses/SpecialtyLensesPage"));
 const MaterialsPage = lazy(() => import("@/pages/lenses/MaterialsPage"));
 const ThicknessChartPage = lazy(() => import("@/pages/lenses/ThicknessChartPage"));
 const ZenvueHome = lazy(() => import("@/pages/zenvue/ZenvueHome"));
@@ -140,6 +141,7 @@ const PublicRoutes = () => (
     <Route path="lenses/blue-filter" element={<BlueFilterPage />} />
     <Route path="lenses/polarized" element={<PolarizedPage />} />
     <Route path="lenses/tints-fashion-colors" element={<TintsFashionColorsPage />} />
+    <Route path="lenses/specialty" element={<SpecialtyLensesPage />} />
     <Route path="lenses/materials" element={<MaterialsPage />} />
     <Route path="lenses/thickness-chart" element={<ThicknessChartPage />} />
 

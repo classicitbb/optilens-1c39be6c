@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-13 — Specialty Lenses
+
+- Find Endless Pilot Progressive and OmniLux NAL under Lenses → Lifestyle Lenses → Specialty Lenses.
+- Use Read more to open the full information in place. Opening another lens closes the first card; this is expected and helps keep long product information manageable on mobile.
+- View My Price and Order This Lens retain the requested lens name in the destination URL. The price-request form and LabLink must be updated separately before they can automatically preselect that lens.
+
 ## 2026-07-13 — Bank Payment Portals
 
 - Bank names labeled **Synced from Innovations** are managed by `dbo.EFTInstitutions`; do not rename them in the admin screen. The name must remain an exact match for the EFT customer routing field.

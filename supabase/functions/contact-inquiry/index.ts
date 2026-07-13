@@ -54,7 +54,6 @@ async function getOrCreateUnsubscribeToken(
   return (stored?.token as string) ?? token;
 }
 
-const MIN_FORM_FILL_MS = 2500;
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
@@ -71,7 +70,9 @@ const inquirySchema = z.object({
   pageSlug: z.string().trim().min(1).max(255).default("/"),
   sourceChannel: z.string().trim().min(1).max(50).default("website"),
   honeypot: z.string().optional().default(""),
-  startedAt: z.string().datetime({ offset: true }),
+  // Kept optional for clients that include it, but it is not used as a spam
+  // decision: rapid typing and password-manager autofill are valid input.
+  startedAt: z.string().datetime({ offset: true }).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -116,7 +117,6 @@ Deno.serve(async (req) => {
     const userAgent = getUserAgentFromRequest(req) ?? "unknown";
 
     const isHomepageContactForm = payload.inquiryType === "contact";
-    const HOMEPAGE_MIN_FILL_MS = 3000;
 
     // Silent success response used only for the homepage contact form so bots
     // cannot learn they were blocked. Mirrors the shape of a real success.
@@ -140,27 +140,6 @@ Deno.serve(async (req) => {
       });
       if (isHomepageContactForm) return silentSuccess();
       return new Response(JSON.stringify({ error: "Spam rejected" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const startedAtMs = Date.parse(payload.startedAt);
-    const minFillMs = isHomepageContactForm ? HOMEPAGE_MIN_FILL_MS : MIN_FORM_FILL_MS;
-    if (!Number.isFinite(startedAtMs) || Date.now() - startedAtMs < minFillMs) {
-      await logSecurityAuditEvent({
-        category: "edge_security",
-        eventType: "abuse.bot_detected",
-        severity: "medium",
-        statusCode: isHomepageContactForm ? 200 : 400,
-        sourceFunction: "contact-inquiry",
-        sourcePath,
-        ipHint,
-        userAgent,
-        payload: { reason: "form_fill_too_fast", minFillMs, inquiryType: payload.inquiryType, silent: isHomepageContactForm },
-      });
-      if (isHomepageContactForm) return silentSuccess();
-      return new Response(JSON.stringify({ error: "Submission blocked by bot protection" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -263,8 +242,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (matchedContact) contactId = matchedContact.id;
 
-      const ticketNumber = `TCK-${Date.now().toString().slice(-8)}`;
-      const isTradeAccount = payload.inquiryType === "trade_account";
+      const ticketNumber = `TCK-${insertedInquiry.id.slice(0, 8).toUpperCase()}`;
       const titleName = (payload.businessName?.trim() || payload.name).slice(0, 200);
       const TICKET_TITLE_LABELS: Record<string, string> = {
         trade_account: `Trade Account: ${titleName}`,
