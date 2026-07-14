@@ -149,6 +149,8 @@ serve(async (req) => {
   const parts = url.pathname.split("/").filter(Boolean);
   const base = parts.indexOf("docstudio-api");
   const route = parts.slice(base + 1);
+  // Older bridge builds forwarded the full /api/docstudio/... path — accept both.
+  if (route[0] === "docstudio") route.shift();
   const method = req.method;
   // deno-lint-ignore no-explicit-any
   const body: any = method === "POST" || method === "PUT" ? await req.json().catch(() => ({})) : {};
@@ -160,7 +162,86 @@ serve(async (req) => {
       return json((data ?? []).map((c) => ({ name: c.name, account: c.account_number })));
     }
     if (route[0] === "pricelists") return json([]);
-    if (route[0] === "statement") return json({ error: "Statements come from the portal in the cloud version." }, 404);
+
+    // Statement populate for the studio's Statement tab: id is the Innovations
+    // statement id; data comes from the synced statements / statement_lines /
+    // customers tables. Fields the cloud can't derive stay empty — the studio
+    // falls back to its manual values for those.
+    if (route[0] === "statement" && route[1]) {
+      const stmtId = Number(route[1]);
+      if (!Number.isFinite(stmtId)) return json({ error: "Statement id must be numeric" }, 400);
+
+      const { data: stmt } = await supabase
+        .from("statements")
+        .select("*")
+        .eq("innovations_statement_id", stmtId)
+        .maybeSingle();
+      if (!stmt) return json({ error: `Statement ${stmtId} not found` }, 404);
+
+      let customer: { name?: string; account_number?: string; address?: string } | null = null;
+      if (stmt.customer_id) {
+        const { data } = await supabase.from("customers").select("name,account_number,address").eq("id", stmt.customer_id).maybeSingle();
+        customer = data;
+      }
+      if (!customer && stmt.innovations_customer_id) {
+        const { data } = await supabase
+          .from("customers")
+          .select("name,account_number,address")
+          .eq("innovations_customer_id", stmt.innovations_customer_id)
+          .maybeSingle();
+        customer = data;
+      }
+
+      const { data: lines } = await supabase
+        .from("statement_lines")
+        .select("post_date,order_type_name,reference,invoice_id,order_id,patient,amount")
+        .eq("innovations_statement_id", stmtId)
+        .order("post_date", { ascending: true });
+
+      let invoiceTotal = 0;
+      let creditTotal = 0;
+      const transactions = (lines ?? []).map((l) => {
+        const amount = Number(l.amount ?? 0);
+        if (amount >= 0) invoiceTotal += amount;
+        else creditTotal += Math.abs(amount);
+        const ref = l.reference || l.invoice_id || l.order_id || "";
+        return {
+          date: l.post_date ?? "",
+          desc: [l.order_type_name, ref].filter(Boolean).join(" "),
+          patient: l.patient ?? "",
+          debit: amount >= 0 ? amount.toFixed(2) : "",
+          credit: amount < 0 ? Math.abs(amount).toFixed(2) : "",
+        };
+      });
+
+      const aging = [stmt.aging_amount_1, stmt.aging_amount_2, stmt.aging_amount_3, stmt.aging_amount_4].map((v) => Number(v ?? 0));
+      const closing = Number(stmt.closing_balance ?? 0);
+      const currentDue = closing - aging.reduce((a, b) => a + b, 0);
+
+      return json({
+        statement: {
+          statementId: stmt.innovations_statement_id,
+          customerName: customer?.name ?? "",
+          accountNumber: customer?.account_number ?? "",
+          address: customer?.address ?? "",
+          periodFrom: stmt.from_date ?? "",
+          periodTo: stmt.to_date ?? "",
+          dueDate: stmt.due_date ?? "",
+          openingBalance: stmt.opening_balance,
+          closingBalance: stmt.closing_balance,
+          currentDue: Number.isFinite(currentDue) ? currentDue.toFixed(2) : null,
+          agingAmount1: stmt.aging_amount_1,
+          agingAmount2: stmt.aging_amount_2,
+          agingAmount3: stmt.aging_amount_3,
+          agingAmount4: stmt.aging_amount_4,
+          invoiceTotal: invoiceTotal ? invoiceTotal.toFixed(2) : null,
+          creditTotal: creditTotal ? creditTotal.toFixed(2) : null,
+          debitTotal: invoiceTotal ? invoiceTotal.toFixed(2) : null,
+          netAmount: transactions.length ? (invoiceTotal - creditTotal).toFixed(2) : null,
+          transactions,
+        },
+      });
+    }
 
     if (route[0] === "users") return json({ users: [] });
 
