@@ -180,7 +180,7 @@ const MyOrdersSection = () => {
     enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
     queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>(
       "optilens.customer_deliveries",
-      { include_open: true, closed_since: format(subDays(new Date(), 30), "yyyy-MM-dd") },
+      { include_open: true, closed_since: format(subDays(new Date(), 45), "yyyy-MM-dd") },
       { signal },
     ),
     staleTime: 30_000,
@@ -320,7 +320,7 @@ const MyOrdersSection = () => {
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No open shipments or recently closed deliveries were found.</CardContent></Card>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 30 days.</p>
+              <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>
               {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} />)}
             </div>
           )}
