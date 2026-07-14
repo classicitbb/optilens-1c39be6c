@@ -123,6 +123,7 @@ export const ADMIN_APPS = {
       { label: 'Website Portals', route: '/admin/website/portals', icon: UserCircle },
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
+      { label: 'Doc Studio', route: '/admin/website/documents', icon: FileEdit },
     ] satisfies SidebarItem[],
   },
   knowledge: {
