@@ -621,13 +621,17 @@ const WebsitePortalsPage = () => {
         });
         toast({ title: "Invite sent", description: `The existing customer invitation email was sent to ${provisioningEmail}.` });
       } else {
-        await createUser.mutateAsync({
+        const result = await createUser.mutateAsync({
           email: provisioningEmail,
           password: provisioningPassword,
           displayName: provisioningName,
           customerId: selectedAccount.crmCustomerId,
         });
-        toast({ title: "Customer account created", description: "The login is linked to this approved ERP customer." });
+        if ((result as any)?.alreadyExisted) {
+          toast({ title: "Existing login linked", description: `An account for ${provisioningEmail} already existed and has been linked to this customer. The submitted password was ignored — send a reset if they need one.` });
+        } else {
+          toast({ title: "Customer account created", description: "The login is linked to this approved ERP customer." });
+        }
       }
       setProvisioningMode(null);
       await queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] });
