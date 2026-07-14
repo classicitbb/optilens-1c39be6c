@@ -268,7 +268,13 @@ Deno.serve(async (req) => {
         password,
         email_confirm: true,
       });
-      if (error) throw error;
+      if (error) {
+        const msg = error.message ?? "";
+        if (/already been registered|already registered|already exists/i.test(msg)) {
+          return jsonResponse(req, 409, { error: "A user with this email already exists. Use Invite or reset their password instead." });
+        }
+        throw error;
+      }
       if (newUser?.user) {
         await linkCustomerPortalAccount(adminClient, newUser.user.id, customerId, displayName);
         if (displayName) {
