@@ -280,6 +280,7 @@ const HelpdeskConfigPage = () => {
       {section === "teams" && <HelpdeskTeamsPage embedded />}
       {section === "stages" && <HelpdeskStagesPage embedded />}
       {section === "general" && <>
+      <div className="grid gap-6 xl:grid-cols-2">
 
       {/* ── Priorities ── */}
       <Card>
@@ -288,9 +289,9 @@ const HelpdeskConfigPage = () => {
             Priorities <Badge variant="outline">{priorities.length}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 overflow-x-auto">
           {canEditConfig && (
-            <div className="flex gap-2 items-end">
+            <div className="flex flex-wrap items-end gap-2">
               <Input value={prioLevel} onChange={(e) => setPrioLevel(e.target.value)} placeholder="Level (0-5)" type="number" className="h-8 text-xs w-24" />
               <Input value={prioLabel} onChange={(e) => setPrioLabel(e.target.value)} placeholder="Label" className="h-8 text-xs w-40" />
               <input type="color" value={prioColor} onChange={(e) => setPrioColor(e.target.value)} className="h-8 w-10 rounded border border-border cursor-pointer" />
@@ -360,9 +361,9 @@ const HelpdeskConfigPage = () => {
             Ticket Types <Badge variant="outline">{types.length}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 overflow-x-auto">
           {canEditConfig && (
-            <div className="flex gap-2 items-end">
+            <div className="flex flex-wrap items-end gap-2">
               <Input value={typeName} onChange={(e) => setTypeName(e.target.value)} placeholder="Type name" className="h-8 text-xs w-64" />
               <Button size="sm" className="h-8 text-xs" disabled={createType.isPending || !typeName.trim()} onClick={() => { createType.mutate({ name: typeName.trim() }); setTypeName(""); }}>Add Type</Button>
             </div>
@@ -421,9 +422,9 @@ const HelpdeskConfigPage = () => {
             Ticket Tags <Badge variant="outline">{tags.length}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 overflow-x-auto">
           {canEditConfig && (
-            <div className="flex gap-2 items-end">
+            <div className="flex flex-wrap items-end gap-2">
               <Input value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="Tag name" className="h-8 text-xs w-52" />
               <input type="color" value={tagColor} onChange={(e) => setTagColor(e.target.value)} className="h-8 w-10 rounded border border-border cursor-pointer" />
               <Button size="sm" className="h-8 text-xs" disabled={createTag.isPending || !tagName.trim()} onClick={() => { createTag.mutate({ name: tagName.trim(), color: tagColor }); setTagName(""); }}>Add Tag</Button>
@@ -479,11 +480,11 @@ const HelpdeskConfigPage = () => {
 
       {/* ── SLA Policies ── */}
       {canViewSla && (
-        <Card>
+        <Card className="xl:col-span-2">
           <CardHeader className="py-3">
-            <CardTitle className="text-sm flex items-center justify-between">
+            <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" />SLA Policies</span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">{filteredPolicies.length}</Badge>
                 <Select value={slaStatusFilter} onValueChange={(v: "all" | "active" | "inactive") => setSlaStatusFilter(v)}>
                   <SelectTrigger className="h-7 w-36 text-xs"><SelectValue /></SelectTrigger>
@@ -501,7 +502,7 @@ const HelpdeskConfigPage = () => {
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             {policiesLoading && <p className="text-xs text-muted-foreground">Loading SLA policies…</p>}
             {policiesError && (
               <div className="space-y-2">
@@ -576,6 +577,7 @@ const HelpdeskConfigPage = () => {
           </CardContent>
         </Card>
       )}
+      </div>
 
       {/* ── SLA Create Dialog ── */}
       <Dialog open={createSlaOpen} onOpenChange={setCreateSlaOpen}>
