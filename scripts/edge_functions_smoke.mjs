@@ -83,6 +83,17 @@ const FUNCTIONS = [
 ];
 
 /**
+ * Functions without an OPTIONS/CORS handler (webhooks, cron-only, JWT-gated
+ * endpoints that reject preflight). For these we accept any non-5xx response
+ * as "the function booted and is routing requests".
+ */
+const NO_CORS_FUNCTIONS = new Set([
+  "handle-email-suppression",
+  "helpdesk-followup",
+  "process-email-queue",
+]);
+
+/**
  * Optional deep health probes. Each entry hits a safe, side-effect-free
  * public endpoint and asserts on the response body/status.
  */
