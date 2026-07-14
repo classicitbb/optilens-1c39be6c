@@ -20,8 +20,9 @@ export const NAVIGATION_REGISTRY: NavigationDefinition[] = [
   { id: "admin.crm", routeId: "admin.crm", label: "CRM", context: "admin-console", group: "launcher", appKey: "crm", order: 5, status: "active" },
   { id: "admin.helpdesk", routeId: "admin.helpdesk", label: "Helpdesk", context: "admin-console", group: "launcher", appKey: "helpdesk", order: 6, status: "active" },
   { id: "admin.website", routeId: "admin.website", label: "Website", context: "admin-console", group: "launcher", appKey: "website", order: 7, status: "active" },
-  { id: "admin.knowledge", routeId: "admin.knowledge", label: "Knowledge", context: "admin-console", group: "launcher", appKey: "knowledge", order: 8, status: "active" },
-  { id: "admin.settings", routeId: "admin.settings", label: "Settings", context: "admin-console", group: "launcher", appKey: "settings", order: 9, status: "active" },
+  { id: "admin.docstudio", routeId: "admin.docstudio", label: "Doc Studio", context: "admin-console", group: "launcher", appKey: "docstudio", order: 8, status: "active" },
+  { id: "admin.knowledge", routeId: "admin.knowledge", label: "Knowledge", context: "admin-console", group: "launcher", appKey: "knowledge", order: 9, status: "active" },
+  { id: "admin.settings", routeId: "admin.settings", label: "Settings", context: "admin-console", group: "launcher", appKey: "settings", order: 10, status: "active" },
 ];
 
 export const ACTIVE_NAVIGATION_REGISTRY = NAVIGATION_REGISTRY.filter((item) => item.status === "active");

@@ -88,7 +88,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/website/content": "content",
   "/admin/website/portals": "website",
   "/admin/website/store": "website",
-  "/admin/website/documents": "website",
+  "/admin/docs/studio": "website",
   // Knowledge
   "/admin/knowledge/wiki": "wiki",
   // Settings
