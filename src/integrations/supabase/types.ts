@@ -7507,6 +7507,33 @@ export type Database = {
           },
         ]
       }
+      website_features: {
+        Row: {
+          description: string | null
+          enabled: boolean
+          key: string
+          label: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean
+          key: string
+          label: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean
+          key?: string
+          label?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wholesale_inquiries: {
         Row: {
           business_name: string
