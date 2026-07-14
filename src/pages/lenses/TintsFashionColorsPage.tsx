@@ -404,7 +404,7 @@ const TintsFashionColorsPage = () => {
                 <Link to="/store">Shop tinted lens options</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link to="/professionals/dispensing-tips">Professional dispensing guidance</Link>
+                <Link to="/dispensing-tips">Professional dispensing guidance</Link>
               </Button>
             </div>
           </section>

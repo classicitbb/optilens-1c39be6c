@@ -18,7 +18,6 @@ const APP_COLORS: Record<string, string> = {
   website: "hsl(200 60% 50%)",
   knowledge: "hsl(140 50% 45%)",
   settings: "hsl(215 15% 50%)",
-  moonshot: "hsl(168 76% 42%)",
 };
 
 const LAUNCH_PAD_APP = {

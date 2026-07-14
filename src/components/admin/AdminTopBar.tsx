@@ -27,7 +27,6 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const ROUTE_LABELS: [string, string][] = [
-["/admin/pricing/publisher-old", "Pricing · Lens Catalog Builder"],
 ["/admin/pricing/publisher", "Pricing · Lens Catalog Builder"],
 ["/admin/pricing/catalog", "Pricing · Product Catalog"],
 ["/admin/pricing/rx-lenses", "Pricing · RX Lens Prices"],

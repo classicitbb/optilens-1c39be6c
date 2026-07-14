@@ -36,14 +36,6 @@ const GuardedApp = () => (
         }
       />
       <Route
-        path="/admin/moonshot/*"
-        element={
-          <AdminProtectedRoute>
-            <div>Moonshot Surface</div>
-          </AdminProtectedRoute>
-        }
-      />
-      <Route
         path="/ops/*"
         element={
           <AdminProtectedRoute>
@@ -71,7 +63,7 @@ describe("admin route authorization boundaries", () => {
 
     expect(container.querySelector(".animate-spin")).toBeInTheDocument();
   });
-  it.each(["/admin/settings", "/admin/website/store", "/admin/website/store/variants/lens/demo", "/admin/pricing/compare", "/admin/moonshot/workspace", "/ops/jobs"])(
+  it.each(["/admin/settings", "/admin/website/store", "/admin/website/store/variants/lens/demo", "/admin/pricing/compare", "/ops/jobs"])(
     "redirects unauthenticated traffic away from %s",
     (path) => {
       authState.user = null;
@@ -90,7 +82,7 @@ describe("admin route authorization boundaries", () => {
     }
   );
 
-  it.each(["/admin/settings", "/admin/website/store", "/admin/website/store/variants/lens/demo", "/admin/pricing/compare", "/admin/moonshot/workspace", "/ops/jobs"])(
+  it.each(["/admin/settings", "/admin/website/store", "/admin/website/store/variants/lens/demo", "/admin/pricing/compare", "/ops/jobs"])(
     "renders forbidden state for authenticated non-admin at %s",
     (path) => {
       authState.user = { id: "u-1" };

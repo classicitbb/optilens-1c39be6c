@@ -18,7 +18,6 @@ const PublicRoutes = lazy(() => import("@/routes/public/PublicRoutes"));
 const PortalRoutes = lazy(() => import("@/routes/portal/PortalRoutes"));
 const OpsRoutes = lazy(() => import("@/routes/ops/OpsRoutes"));
 const AdminRoutes = lazy(() => import("@/routes/admin/AdminRoutes"));
-const MoonshotRoutes = lazy(() => import("@/routes/moonshot/MoonshotRoutes"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -96,7 +95,6 @@ const App = () => (
               <Suspense fallback={<RouteLoadingFallback />}>
                 <Routes>
                   <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />
-                  <Route path="/admin/moonshot/*" element={<AdminProtectedRoute><MoonshotRoutes /></AdminProtectedRoute>} />
                   <Route path="/admin/*" element={<AdminProtectedRoute><AdminRoutes /></AdminProtectedRoute>} />
 
                   <Route element={<CustomerShell />}>
@@ -108,7 +106,6 @@ const App = () => (
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/profile/*" element={<PortalRoutes />} />
-                    <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
                     <Route path="/portal" element={<Navigate to="/profile" replace />} />
                     <Route path="/*" element={<PublicRoutes />} />
                   </Route>

@@ -13,10 +13,7 @@ type CampaignActivationProfileRow = {
 };
 
 const PLACEHOLDER_ROUTES = [
-  "/admin/sales/web-orders",
-  "/admin/sales/rx-orders",
   "/admin/crm/activities",
-  "/admin/helpdesk/sla",
 ] as const;
 
 export async function getTaskReminderNotifications(): Promise<AdminNotificationEvent[]> {

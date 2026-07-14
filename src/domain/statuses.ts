@@ -38,11 +38,3 @@ export type TicketStatus = (typeof TICKET_STATUSES)[number];
 export const ASSISTANT_SESSION_STATUSES = ["open", "idle", "resolved", "closed"] as const;
 export type AssistantSessionStatus = (typeof ASSISTANT_SESSION_STATUSES)[number];
 
-export const MOONSHOT_MEETING_STATUSES = ["scheduled", "in_progress", "completed", "draft"] as const;
-export type MoonshotMeetingStatus = (typeof MOONSHOT_MEETING_STATUSES)[number];
-
-export const MOONSHOT_ROCK_STATUSES = ["on_track", "at_risk", "off_track", "completed"] as const;
-export type MoonshotRockStatus = (typeof MOONSHOT_ROCK_STATUSES)[number];
-
-export const MOONSHOT_ISSUE_STATUSES = ["open", "in_progress", "resolved"] as const;
-export type MoonshotIssueStatus = (typeof MOONSHOT_ISSUE_STATUSES)[number];

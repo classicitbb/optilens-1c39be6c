@@ -13,7 +13,6 @@ All admin-only business logic and UI. Each subfolder is a discrete feature:
 | `dashboard/` | Admin dashboard metrics and widgets |
 | `helpdesk/` | Internal helpdesk / ticket views |
 | `leads/` | Lead targeting and CRM seeding |
-| `moonshot/` | Moonshot tools — separate route surface, separate auth guard |
 | `notifications/` | Admin notification system |
 | `print/` | Print/PDF output utilities |
 | `rx-pricing/` | Rx pricing structure definitions |
@@ -23,7 +22,6 @@ All admin-only business logic and UI. Each subfolder is a discrete feature:
 
 - All routes under `/admin/**` must be behind `AdminProtectedRoute` — no exceptions.
 - The admin sidebar links are driven by `src/features/admin/core/config/apps.ts`. If you add a route, update that file or the link will be dead.
-- `/admin/moonshot/**` uses a separate route file (`src/routes/moonshot/MoonshotRoutes.tsx`) — keep it isolated.
 - Do not add business logic to `core/` — it is layout and config only.
 
 ## Active development focus (2026-05-26)

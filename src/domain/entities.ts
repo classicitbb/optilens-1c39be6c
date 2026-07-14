@@ -2,9 +2,6 @@ import type {
   AssistantSessionStatus,
   InvoiceStatus,
   JobStatus,
-  MoonshotIssueStatus,
-  MoonshotMeetingStatus,
-  MoonshotRockStatus,
   OrderStatus,
   PaymentStatus,
   QuoteStatus,
@@ -155,21 +152,3 @@ export interface AssistantSessionEntity extends CanonicalRecord<AssistantSession
   userId: string;
 }
 
-export interface MoonshotTeamEntity extends CanonicalRecord {
-  name: string;
-  purpose: string;
-}
-
-export interface MoonshotMeetingEntity extends CanonicalRecord<MoonshotMeetingStatus> {
-  title: string;
-  date: string;
-}
-
-export interface MoonshotRockEntity extends CanonicalRecord<MoonshotRockStatus> {
-  title: string;
-  dueDate: string;
-}
-
-export interface MoonshotIssueEntity extends CanonicalRecord<MoonshotIssueStatus> {
-  title: string;
-}

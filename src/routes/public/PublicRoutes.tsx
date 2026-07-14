@@ -5,12 +5,6 @@ import {
   LABLINK_PORTAL_URL,
   LABLINK_TRACKING_URL,
 } from "@/config/externalLinks";
-import {
-  PUBLIC_COATINGS_REDIRECTS,
-  PUBLIC_LENSES_REDIRECTS,
-  PUBLIC_LEGAL_REDIRECTS,
-  PUBLIC_MISC_REDIRECTS,
-} from "@/config/routeRegistry";
 
 const Index = lazy(() => import("@/pages/Index"));
 const VizionizeCleanerPage = lazy(() => import("@/pages/VizionizeCleanerPage"));
@@ -119,16 +113,6 @@ const PublicRoutes = () => (
     <Route path="knowledge/:articleSlug" element={<Knowledge />} />
     <Route path="legal/:slug" element={<LegalPage />} />
 
-    {PUBLIC_MISC_REDIRECTS.map((route) => (
-      <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
-    ))}
-    {PUBLIC_LEGAL_REDIRECTS.map((route) => (
-      <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
-    ))}
-    {PUBLIC_LENSES_REDIRECTS.map((route) => (
-      <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
-    ))}
-
     <Route path="lenses/lens-types" element={<LensDesignGuidePage />} />
     <Route path="lenses/progressive" element={<ProgressivePage />} />
     <Route path="lenses/office-occupational" element={<OfficeOccupationalPage />} />
@@ -152,10 +136,6 @@ const PublicRoutes = () => (
     <Route path="coatings/scratch-resistant" element={<ScratchResistantPage />} />
     <Route path="coatings/uv-shield" element={<UVShieldPage />} />
     <Route path="coatings/hydrophobic-oleophobic" element={<HydrophobicOleophobicPage />} />
-    {PUBLIC_COATINGS_REDIRECTS.map((route) => (
-      <Route key={route.id} path={toRelativePath(route.path)} element={<Navigate to={route.redirectTo ?? "/"} replace />} />
-    ))}
-
     <Route path="professionals" element={<ProfessionalsPage />} />
     <Route path="patients" element={<PatientsPage />} />
     <Route path="patients/lens-differences" element={<LensDifferencesPage />} />
@@ -172,7 +152,6 @@ const PublicRoutes = () => (
     <Route path="dispensing-tips" element={<DispensingTipsPage />} />
     <Route path="professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
     <Route path="professionals/customer-supplied-frames-policy" element={<CustomerSuppliedFramesPolicyPage />} />
-    <Route path="professionals/dispensing-tips" element={<Navigate to="/dispensing-tips" replace />} />
     <Route path="professionals/freight-delivery-policy" element={<FreightDeliveryPolicyPage />} />
     <Route path="professionals/repairs-policy" element={<RepairsPolicyPage />} />
     <Route path="professionals/returns-replacements" element={<ReturnsReplacementsPage />} />
