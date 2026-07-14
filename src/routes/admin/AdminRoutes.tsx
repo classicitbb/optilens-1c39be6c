@@ -41,6 +41,7 @@ const LeadsAiAssistantPage = lazy(() => import("@/pages/admin/leads/LeadsAiAssis
 const LeadSettingsPage = lazy(() => import("@/pages/admin/leads/LeadSettingsPage"));
 const CrmPipelinePage = lazy(() => import("@/pages/admin/crm/CrmPipelinePage"));
 const CrmActivitiesPage = lazy(() => import("@/pages/admin/crm/CrmActivitiesPage"));
+const CrmOutboxPage = lazy(() => import("@/pages/admin/crm/CrmOutboxPage"));
 const CrmDashboardPage = lazy(() => import("@/pages/admin/crm/CrmDashboardPage"));
 const RuntimeErrorsPage = lazy(() => import("@/pages/admin/RuntimeErrorsPage"));
 const IntegrationsPage = lazy(() => import("@/pages/admin/settings/IntegrationsPage"));
@@ -49,8 +50,6 @@ const BankPaymentPortalsPage = lazy(() => import("@/pages/admin/settings/BankPay
 const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazy(() => import("@/pages/admin/settings/EmailPreviewsPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
-const HelpdeskTeamsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTeamsPage"));
-const HelpdeskStagesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskStagesPage"));
 const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskConfigPage"));
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
 const HelpdeskTicketDetailPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketDetailPage"));
@@ -101,13 +100,14 @@ const AdminRoutes = () => (
       <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
       <Route path="crm/dashboard" element={<CrmDashboardPage />} />
       <Route path="crm/pipeline" element={<CrmPipelinePage />} />
+      <Route path="crm/outbox" element={<CrmOutboxPage />} />
       <Route path="crm/activities" element={<CrmActivitiesPage />} />
       <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/overview" replace />} />
       <Route path="helpdesk/overview" element={<HelpdeskOverviewPage />} />
       <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
       <Route path="helpdesk/tickets/:id" element={<HelpdeskTicketDetailPage />} />
-      <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
-      <Route path="helpdesk/stages" element={<HelpdeskStagesPage />} />
+      <Route path="helpdesk/teams" element={<Navigate to="/admin/helpdesk/config?section=teams" replace />} />
+      <Route path="helpdesk/stages" element={<Navigate to="/admin/helpdesk/config?section=stages" replace />} />
       <Route path="helpdesk/config" element={<HelpdeskConfigPage />} />
 
       <Route path="website" element={<Navigate to="/admin/website/content" replace />} />

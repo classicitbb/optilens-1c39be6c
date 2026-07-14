@@ -42,7 +42,11 @@ interface UserOption {
   email?: string;
 }
 
-const HelpdeskTeamsPage = () => {
+interface HelpdeskTeamsPageProps {
+  embedded?: boolean;
+}
+
+const HelpdeskTeamsPage = ({ embedded = false }: HelpdeskTeamsPageProps) => {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
@@ -227,21 +231,23 @@ const HelpdeskTeamsPage = () => {
     return <p className="text-sm text-muted-foreground">You do not have access to Helpdesk teams.</p>;
   }
 
+  const pageControls = (
+    <div className="flex gap-2 flex-wrap items-center">
+      <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search teams…" className="h-8 w-72 text-xs" />
+      <Select value={activeFilter} onValueChange={(v: "all" | "active" | "inactive") => setActiveFilter(v)}>
+        <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all" className="text-xs">All teams</SelectItem>
+          <SelectItem value="active" className="text-xs">Active</SelectItem>
+          <SelectItem value="inactive" className="text-xs">Inactive</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="Helpdesk Teams" icon={UsersRound}>
-        <div className="flex gap-2 flex-wrap items-center">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search teams…" className="h-8 w-72 text-xs" />
-          <Select value={activeFilter} onValueChange={(v: "all" | "active" | "inactive") => setActiveFilter(v)}>
-            <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-xs">All teams</SelectItem>
-              <SelectItem value="active" className="text-xs">Active</SelectItem>
-              <SelectItem value="inactive" className="text-xs">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </AdminPageHeader>
+      {embedded ? pageControls : <AdminPageHeader title="Helpdesk Teams" icon={UsersRound}>{pageControls}</AdminPageHeader>}
 
       {canEditTeams && (
         <Card>

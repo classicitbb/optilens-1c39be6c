@@ -23,7 +23,11 @@ interface HelpdeskStage {
   created_at: string;
 }
 
-const HelpdeskStagesPage = () => {
+interface HelpdeskStagesPageProps {
+  embedded?: boolean;
+}
+
+const HelpdeskStagesPage = ({ embedded = false }: HelpdeskStagesPageProps) => {
   const { canView, canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
   const canViewStages = canView("helpdesk");
@@ -72,7 +76,7 @@ const HelpdeskStagesPage = () => {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="Ticket Stages" icon={Layers} />
+      {!embedded && <AdminPageHeader title="Ticket Stages" icon={Layers} />}
 
       {canEditStages && (
         <Card>
