@@ -4,12 +4,13 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-05-26
+Last updated: 2026-07-14
 
 ---
 
 ## Active work
 
+- **Classic Visions MCP deployment** — Codex is registered against the streamable-HTTP endpoint and the local OAuth-protected function exposes three read-only tools. The live endpoint still returns `404 Requested function was not found`; direct deployment is blocked because the currently authenticated Supabase account returns `403` for function access.
 - **Catalog editor wizard** — `NewCatalogDialog` component not yet shipped.
   Implementation prompts exist in `plan.md` (Codex handoff sequence). Three
   component prompts + one SQL migration for the `status` column are queued.
