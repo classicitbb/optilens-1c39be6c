@@ -38,7 +38,11 @@
       );
     }
 
-    var target = "https://" + session.ref + ".supabase.co/functions/v1/docstudio-api" + url.slice(4);
+    // Strip the local-server prefix: /api/docstudio/files -> /files, while
+    // reference-data routes (/api/pl/customers, /api/statement/:id) keep their
+    // first segment: /api/statement/123 -> /statement/123.
+    var path = url.indexOf("/api/docstudio/") === 0 ? url.slice(14) : url.slice(4);
+    var target = "https://" + session.ref + ".supabase.co/functions/v1/docstudio-api" + path;
     var options = Object.assign({}, init);
     var headers = new Headers((init && init.headers) || {});
     headers.set("Authorization", "Bearer " + session.token);
