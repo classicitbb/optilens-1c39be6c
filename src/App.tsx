@@ -20,6 +20,7 @@ const OpsRoutes = lazy(() => import("@/routes/ops/OpsRoutes"));
 const AdminRoutes = lazy(() => import("@/routes/admin/AdminRoutes"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const OAuthConsent = lazy(() => import("@/pages/OAuthConsent"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Store = lazy(() => import("@/pages/Store"));
 const StoreProductPage = lazy(() => import("@/pages/StoreProductPage"));
