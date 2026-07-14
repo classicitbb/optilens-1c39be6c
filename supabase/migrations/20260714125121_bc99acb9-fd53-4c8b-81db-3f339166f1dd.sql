@@ -1,0 +1,2 @@
+ALTER TABLE public.live_data_gateway_requests DROP CONSTRAINT live_data_gateway_requests_operation_check;
+ALTER TABLE public.live_data_gateway_requests ADD CONSTRAINT live_data_gateway_requests_operation_check CHECK (operation = ANY (ARRAY['innovations.customer_account','innovations.customer_statement','innovations.customer_rx_order_status','innovations.customer_orders','optilens.customer_deliveries']));
