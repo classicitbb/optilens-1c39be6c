@@ -20,6 +20,7 @@ const OpsRoutes = lazy(() => import("@/routes/ops/OpsRoutes"));
 const AdminRoutes = lazy(() => import("@/routes/admin/AdminRoutes"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const OAuthConsent = lazy(() => import("@/pages/OAuthConsent"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Store = lazy(() => import("@/pages/Store"));
 const StoreProductPage = lazy(() => import("@/pages/StoreProductPage"));
@@ -100,6 +101,7 @@ const App = () => (
                   <Route element={<CustomerShell />}>
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                     <Route path="/unsubscribe" element={<Unsubscribe />} />
                     <Route path="/store" element={<Store />} />
                     <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />

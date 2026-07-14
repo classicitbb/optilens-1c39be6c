@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 import path from "path";
 
 // https://vitejs.dev/config/
@@ -9,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: Number(process.env.PORT) || 8080,
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), mcpPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
