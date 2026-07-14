@@ -127,7 +127,7 @@
 
       <!-- ---------- EMAIL ---------- -->
       <sc-if value="{{ isEmail }}" hint-placeholder-val="{{ true }}">
-      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:20px">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
 
         <div>
           <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Header style</div>
@@ -330,7 +330,7 @@
 
       <!-- ---------- SIGNATURE ---------- -->
       <sc-if value="{{ isSig }}" hint-placeholder-val="{{ false }}">
-      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:14px">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
         <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Full name</div><input class="cv-in" value="{{ f.sgName.v }}" onChange="{{ f.sgName.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 14px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Position / title</div><input class="cv-in" value="{{ f.sgTitle.v }}" onChange="{{ f.sgTitle.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Phone / mobile</div><input class="cv-in" value="{{ f.sgPhone.v }}" onChange="{{ f.sgPhone.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
@@ -442,7 +442,7 @@
 
       <!-- ---------- PRICE LIST ---------- -->
       <sc-if value="{{ isPricelist }}" hint-placeholder-val="{{ false }}">
-      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:14px">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
         <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Saved pricelist</div><select class="cv-in" value="{{ selectedPricelistId }}" onChange="{{ applySavedPricelist }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"><option value="">Select saved pricelist</option><sc-for list="{{ savedPricelistOptions }}" as="p" hint-placeholder-count="0"><option value="{{ p.id }}">{{ p.label }}</option></sc-for></select></div>
         <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Customer / addressee</div><input class="cv-in" value="{{ f.plCustomer.v }}" onChange="{{ f.plCustomer.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Attention</div><input class="cv-in" value="{{ f.plAttn.v }}" onChange="{{ f.plAttn.on }}" placeholder="Buyer / contact name" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
@@ -500,7 +500,7 @@
 
       <!-- ---------- CUSTOMER STATEMENT ---------- -->
       <sc-if value="{{ isStatement }}" hint-placeholder-val="{{ false }}">
-      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:14px">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
 
         <!-- Statement type -->
         <div>
@@ -988,8 +988,20 @@
     </div>
   </sc-if>
 
+  <sc-if value="{{ hasLibraryDeleteConfirm }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(11,30,53,.32);z-index:80"></div>
+    <div id="ds-library-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="ds-library-delete-title" tabindex="-1" onKeyDown="{{ handleLibraryDeleteKeydown }}" style="position:fixed;top:50%;left:50%;width:360px;max-width:calc(100vw - 40px);transform:translate(-50%,-50%);z-index:81;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 24px 64px -16px rgba(11,30,53,.45);padding:20px">
+      <h2 id="ds-library-delete-title" style="margin:0;font:800 17px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Delete {{ libraryDeleteLabel }}?</h2>
+      <p style="margin:9px 0 0;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#5b6b7c">This removes the saved item from this browser. This action cannot be undone.</p>
+      <div style="display:flex;justify-content:flex-end;gap:9px;margin-top:20px">
+        <button onClick="{{ cancelLibraryDelete }}" style="height:36px;padding:0 14px;border:1px solid #d9d7cf;border-radius:8px;background:#fff;color:#0B1E35;font:700 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Cancel</button>
+        <button onClick="{{ confirmLibraryDelete }}" style="height:36px;padding:0 14px;border:0;border-radius:8px;background:#a23b3b;color:#fff;font:700 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Delete</button>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ copied }}" hint-placeholder-val="">
-    <div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#0B1E35;color:#F4F2ED;padding:12px 22px;border-radius:11px;font:600 13px/1 'Plus Jakarta Sans',sans-serif;box-shadow:0 12px 34px rgba(11,30,53,.35);z-index:60">{{ copied }}</div>
+    <div role="status" aria-live="polite" aria-atomic="true" style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#0B1E35;color:#F4F2ED;padding:12px 22px;border-radius:11px;font:600 13px/1 'Plus Jakarta Sans',sans-serif;box-shadow:0 12px 34px rgba(11,30,53,.35);z-index:60">{{ copied }}</div>
   </sc-if>
 
 </div>
@@ -1050,7 +1062,7 @@ class Component extends DCLogic {
     sgWeb: 'www.classicvisions.net', sgTagline: '', sgLogo: true,
     emailLib: [], letterLib: [], sigLib: [], snippets: [],
     smFormat: 'instagram', smStyle: 'navy', smHeadline: 'Vision starts here.', smHeadlineAlign: 'left', smHeadlineItalic: false, smBody: '', smSub: '', smHandle: '@classicvisions', smPostLib: [],
-    copied: '',
+    copied: '', libraryDelete: null,
     // Price list
     plCustomer: '', plAttn: '', plDate: '', plValidity: '30 days', plCurrency: 'BBD', plNote: '',
     plRows: [{ id: '1', code: '', desc: '', price: '' }],
@@ -1116,10 +1128,60 @@ class Component extends DCLogic {
     this.loadFileShareUsers();
     this.loadBillShareUsers();
     setTimeout(() => { this._billingReady = true; }, 900);
+    this.scheduleControlMetadata();
   }
 
+  componentDidUpdate() {
+    this.scheduleControlMetadata();
+    this.focusLibraryDeleteDialog();
+  }
+
+  scheduleControlMetadata = () => {
+    cancelAnimationFrame(this._controlMetadataFrame);
+    this._controlMetadataFrame = requestAnimationFrame(() => this.applyControlMetadata());
+  };
+
+  applyControlMetadata = () => {
+    const root = document.getElementById('dc-root');
+    if (!root) return;
+    const names = new Map();
+    const labelFor = (control) => {
+      const caption = [...(control.parentElement?.children || [])]
+        .find((sibling) => sibling !== control && sibling.tagName === 'DIV')
+        ?.textContent?.replace(/\s+/g, ' ').trim();
+      return caption || control.getAttribute('placeholder') || 'Document field';
+    };
+
+    root.querySelectorAll('input.cv-in, textarea.cv-in, select.cv-in').forEach((control) => {
+      const label = labelFor(control);
+      const key = this.slug(label);
+      const occurrence = (names.get(key) || 0) + 1;
+      names.set(key, occurrence);
+      control.setAttribute('aria-label', label);
+      control.setAttribute('name', `doc-studio-${this.state.tab}-${key}-${occurrence}`);
+      control.setAttribute('autocomplete', 'off');
+    });
+
+    root.querySelectorAll('button').forEach((button) => {
+      if (button.textContent.trim() !== '×' || button.hasAttribute('aria-label')) return;
+      const nearby = button.parentElement?.textContent?.toLowerCase() || '';
+      const label = /(brand details|share billing file|share file)/.test(nearby) ? 'Close dialog' : 'Remove item';
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+    });
+  };
+
+  focusLibraryDeleteDialog = () => {
+    const pending = this.state.libraryDelete;
+    const key = pending ? `${pending.collection}:${pending.id}` : '';
+    if (!key) { this._focusedLibraryDelete = ''; return; }
+    if (this._focusedLibraryDelete === key) return;
+    this._focusedLibraryDelete = key;
+    requestAnimationFrame(() => document.getElementById('ds-library-delete-dialog')?.focus());
+  };
+
   // ---------- persistence ----------
-  persist = () => { try { const { copied, brandOpen, dlOpen, docxOpen, dsCustomers, dsPricelists, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, dsPricelists, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
   set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
@@ -1706,7 +1768,24 @@ class Component extends DCLogic {
   insertSnippet = (html) => { const ed = this.activeTiny(); if (!ed) return; ed.focus(); ed.insertContent(html); };
 
   // ---------- libraries ----------
-  delLib = (key, id) => { this.setState(s => ({ [key]: s[key].filter(x => x.id !== id) }), this.persist); };
+  delLib = (collection, id, label) => this.setState({ libraryDelete: { collection, id, label } });
+  cancelLibraryDelete = () => this.setState({ libraryDelete: null });
+  confirmLibraryDelete = () => {
+    const pending = this.state.libraryDelete;
+    if (!pending) return;
+    this.setState(
+      (state) => ({
+        [pending.collection]: (state[pending.collection] || []).filter((item) => item.id !== pending.id),
+        libraryDelete: null,
+      }),
+      () => { this.persist(); this.toast(`${pending.label} deleted`); },
+    );
+  };
+  handleLibraryDeleteKeydown = (event) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    this.cancelLibraryDelete();
+  };
   loadEmail = (it) => { this.setState({ ...it.fields }, () => { const ed = this.TINY.email; if (ed) { try { ed.setContent(this.state.emBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded “' + it.name + '”'); };
   loadLetter = (it) => { this.setState({ ...it.fields }, () => { const ed = this.TINY.letter; if (ed) { try { ed.setContent(this.state.ltBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded “' + it.name + '”'); };
   loadSig = (it) => { this.setState({ ...it.fields }, this.persist); this.toast('Loaded “' + it.name + '”'); };
@@ -1843,6 +1922,9 @@ class Component extends DCLogic {
   };
   customerLabel = (c) => `${c.name || c.customerName || c.account || 'Customer'}${c.account ? ' (' + c.account + ')' : ''}`;
   customerAddressBlock = (c) => {
+    // ERP customers store their preferred billing address as one formatted
+    // value. Preserve it before trying the legacy, split-address shapes.
+    if (c.address && String(c.address).trim()) return String(c.address).trim();
     const lines = [
       c.address1 || c.addressLine1 || c.street || c.street1,
       c.address2 || c.addressLine2 || c.street2,
@@ -3122,10 +3204,10 @@ class Component extends DCLogic {
     // avoid the runtime reconciling one shared list across two mount points.
     const _tabBarHtml = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['pricelist', 'Price List'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => `<button onclick="window._dsApp.switchTab('${k}')" style="${this.tabStyle(tab === k)}">${l}</button>`).join('');
     const _mkTabBar = () => React.createElement('div', { style: { display: 'contents' }, dangerouslySetInnerHTML: { __html: _tabBarHtml } });
-    const emailLib = (d.emailLib || []).map(it => ({ name: it.name, load: () => this.loadEmail(it), del: () => this.delLib('emailLib', it.id) }));
-    const letterLib = (d.letterLib || []).map(it => ({ name: it.name, load: () => this.loadLetter(it), del: () => this.delLib('letterLib', it.id) }));
-    const sigLib = (d.sigLib || []).map(it => ({ name: it.name, load: () => this.loadSig(it), del: () => this.delLib('sigLib', it.id) }));
-    const snippetItems = (d.snippets || []).map(s => ({ label: s.label, insert: () => this.insertSnippet(s.html), del: () => this.delLib('snippets', s.id) }));
+    const emailLib = (d.emailLib || []).map(it => ({ name: it.name, load: () => this.loadEmail(it), del: () => this.delLib('emailLib', it.id, 'saved email') }));
+    const letterLib = (d.letterLib || []).map(it => ({ name: it.name, load: () => this.loadLetter(it), del: () => this.delLib('letterLib', it.id, 'saved letterhead') }));
+    const sigLib = (d.sigLib || []).map(it => ({ name: it.name, load: () => this.loadSig(it), del: () => this.delLib('sigLib', it.id, 'saved signature') }));
+    const snippetItems = (d.snippets || []).map(s => ({ label: s.label, insert: () => this.insertSnippet(s.html), del: () => this.delLib('snippets', s.id, 'saved snippet') }));
     const letterheadBlocks = this.LH_BLOCKS.map(bk => ({ label: bk.label, insert: () => this.insertSnippet(bk.html) }));
     const isBizColl = d.docType === 'business' || d.docType === 'collection';
     const brandFields = [['Company name', 'bCompany'], ['Website', 'bWebsite'], ['Email', 'bEmail'], ['Phone', 'bPhone'], ['Phone 2', 'bPhone2'], ['Registered address', 'bAddress'], ['VAT registration no.', 'bVatReg'], ['Company registration no.', 'bRegNo']].map(([label, key]) => ({ label, v: d[key] == null ? '' : d[key], on: (e) => this.set(key, e.target.value) }));
@@ -3141,7 +3223,7 @@ class Component extends DCLogic {
       const active = (d.smStyle||'navy') === o.k;
       return { label: o.l, onClick: () => this.set('smStyle', o.k), style: `flex:1;padding:9px 6px;border-radius:8px;border:${active?'2.5px':'1px'} solid ${active?o.ring:'#d9d7cf'};background:${o.bg};color:${o.txt};font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:center;transition:.12s` };
     });
-    const smPostLib = (d.smPostLib||[]).map(it => ({ name: it.name, load: () => this.loadPost(it), del: () => this.delLib('smPostLib', it.id) }));
+    const smPostLib = (d.smPostLib||[]).map(it => ({ name: it.name, load: () => this.loadPost(it), del: () => this.delLib('smPostLib', it.id, 'saved post') }));
     const customerOptions = (d.dsCustomers || [])
       .slice()
       .sort((a, b) => this.customerLabel(a).localeCompare(this.customerLabel(b)))
@@ -3172,8 +3254,8 @@ class Component extends DCLogic {
         del: () => this.delBlRow(i)
       };
     });
-    const lineItemLibViews = (d.lineItemLib || []).map(it => ({ label: (it.code ? it.code + ' · ' : '') + (it.desc || 'item'), insert: () => this.insertLineItem(it), del: () => this.delLib('lineItemLib', it.id) }));
-    const billDraftViews = (d.billDrafts || []).map(it => ({ name: it.name, meta: (this.BILL_META[it.type] ? this.BILL_META[it.type].title : '') + (it.savedAt ? ' · ' + it.savedAt : ''), load: () => this.loadBillDraft(it), del: () => this.delLib('billDrafts', it.id) }));
+    const lineItemLibViews = (d.lineItemLib || []).map(it => ({ label: (it.code ? it.code + ' · ' : '') + (it.desc || 'item'), insert: () => this.insertLineItem(it), del: () => this.delLib('lineItemLib', it.id, 'saved line item') }));
+    const billDraftViews = (d.billDrafts || []).map(it => ({ name: it.name, meta: (this.BILL_META[it.type] ? this.BILL_META[it.type].title : '') + (it.savedAt ? ' · ' + it.savedAt : ''), load: () => this.loadBillDraft(it), del: () => this.delLib('billDrafts', it.id, 'local recovery draft') }));
     const billPaperOpts = [['letter', 'Letter'], ['a4', 'A4']].map(([k, l]) => ({ label: l, onClick: () => this.set('billPaperSize', k), style: this.segStyle((d.billPaperSize || 'letter') === k) }));
     const billFileMeta = (doc) => {
       const title = this.BILL_META[doc.documentType] ? this.BILL_META[doc.documentType].title : String(doc.documentType || '').toUpperCase();
@@ -3343,6 +3425,11 @@ class Component extends DCLogic {
       saveBillingFile: this.saveBillingFile, saveBillingFileAs: this.saveBillingFileAs, renameBillingFile: this.renameBillingFile, deleteBillingFile: this.deleteBillingFile,
       blSubtotalStr: fmtMoney(bt.subtotal), blVatStr: fmtMoney(bt.vat), blTotalStr: fmtMoney(bt.total),
       blVatRowLabel: `VAT @ ${d.blVatRate || '0'}%`, blPaidStr: fmtMoney(bt.amountPaid), blBalanceStr: fmtMoney(bt.balance),
+      hasLibraryDeleteConfirm: !!d.libraryDelete,
+      libraryDeleteLabel: d.libraryDelete?.label || 'saved item',
+      cancelLibraryDelete: this.cancelLibraryDelete,
+      confirmLibraryDelete: this.confirmLibraryDelete,
+      handleLibraryDeleteKeydown: this.handleLibraryDeleteKeydown,
       copied: d.copied
     };
   }

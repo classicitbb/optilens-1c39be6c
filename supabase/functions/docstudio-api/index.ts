@@ -158,8 +158,25 @@ serve(async (req) => {
   try {
     // ---- reference data used by the pricelist/statement tabs ----
     if (route[0] === "pl" && route[1] === "customers") {
-      const { data } = await supabase.from("customers").select("name,account_number").order("name").limit(500);
-      return json((data ?? []).map((c) => ({ name: c.name, account: c.account_number })));
+      // The Studio's statement/customer controls must only show customers with
+      // an Innovations account number. A CRM-only customer can have the same
+      // display fields, but cannot produce a valid statement reference.
+      const { data, error } = await supabase
+        .from("customers")
+        .select("name,account_number,address,phone,email,innovations_customer_id")
+        .not("account_number", "is", null)
+        .neq("account_number", "")
+        .order("name")
+        .limit(500);
+      if (error) throw error;
+      return json((data ?? []).map((c) => ({
+        name: c.name,
+        account: c.account_number,
+        address: c.address,
+        phone: c.phone,
+        email: c.email,
+        innovationsCustomerId: c.innovations_customer_id,
+      })));
     }
     if (route[0] === "pricelists") return json([]);
 

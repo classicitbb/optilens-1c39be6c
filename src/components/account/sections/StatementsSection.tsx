@@ -132,6 +132,16 @@ const StatementTemplate = ({
   accountNumber: string | null;
 }) => {
   const currentDate = new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+  const currentDue = (statement.closing_balance ?? 0)
+    - [statement.aging_amount_1, statement.aging_amount_2, statement.aging_amount_3, statement.aging_amount_4]
+      .reduce((total, amount) => total + (amount ?? 0), 0);
+  const aging = [
+    ["Current", currentDue, "#0B1E35", "700"],
+    ["30 Days", statement.aging_amount_1, "#3b5268", "400"],
+    ["60 Days", statement.aging_amount_2, "#3b5268", "400"],
+    ["90 Days", statement.aging_amount_3, "#3b5268", "400"],
+    ["Overdue (120+ Days)", statement.aging_amount_4, "#a83220", "700"],
+  ] as const;
 
   return (
     <div
@@ -149,19 +159,23 @@ const StatementTemplate = ({
       {/* Header */}
       <div
         style={{
-          background: "#0B1E35",
-          padding: "18px 24px 16px",
+          background: "#ffffff",
+          padding: "18px 24px 14px",
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
           gap: "16px",
+          borderBottom: "1px solid #e4e9ee",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <div style={{ fontSize: "20pt", fontWeight: "800", color: "#F4F2ED", letterSpacing: "-0.03em" }}>
+          <div style={{ fontSize: "20pt", fontWeight: "800", color: "#0B1E35", letterSpacing: "-0.03em" }}>
             CLASSIC VISIONS
           </div>
-          <div style={{ color: "rgba(244,242,237,0.75)", fontSize: "6.5pt", lineHeight: "1.65", letterSpacing: "0.01em" }}>
+          <div style={{ color: "#1A8A9C", fontSize: "6pt", fontWeight: "700", letterSpacing: "0.22em", textTransform: "uppercase", marginTop: "-4px" }}>
+            Optical · Barbados
+          </div>
+          <div style={{ color: "#8a9aaa", fontSize: "6.5pt", lineHeight: "1.65", letterSpacing: "0.01em" }}>
             {COMPANY_CONTACT.addressLine}
             <br />
             TIN# 1000006494000
@@ -175,19 +189,19 @@ const StatementTemplate = ({
           <div style={{ fontSize: "6pt", fontWeight: "700", letterSpacing: "0.22em", textTransform: "uppercase", color: "#1A8A9C" }}>
             Account Statement
           </div>
-          <div style={{ fontSize: "28pt", fontWeight: "800", letterSpacing: "-0.03em", color: "rgba(244,242,237,0.15)", lineHeight: "1", textTransform: "uppercase" }}>
+          <div style={{ fontSize: "36pt", fontWeight: "800", letterSpacing: "-0.03em", color: "rgba(11,30,53,0.07)", lineHeight: "0.9", textTransform: "uppercase", userSelect: "none" }}>
             Statement
           </div>
         </div>
       </div>
 
-      <div style={{ height: "3px", background: "linear-gradient(90deg, #C89130 0%, rgba(200,145,48,0.2) 100%)" }}></div>
+      <div style={{ height: "2px", background: "linear-gradient(90deg, #C89130 0%, rgba(200,145,48,0.15) 100%)" }}></div>
 
       {/* Body */}
       <div style={{ padding: "18px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
         {/* Meta fields */}
         <div style={{ display: "flex", gap: "16px" }}>
-          <div style={{ flex: 1, border: "1.5px solid #c9d4de", borderLeft: "3px solid #C89130", borderRadius: "4px", padding: "10px 12px", background: "#F4F2ED" }}>
+          <div style={{ flex: 1, border: "1px solid #dde3ea", borderLeft: "3px solid #C89130", borderRadius: "4px", padding: "10px 12px", background: "#fafaf8" }}>
             {[
               ["Customer", customerName || "—"],
               ["Account #", accountNumber || "—"],
@@ -216,9 +230,9 @@ const StatementTemplate = ({
             ))}
           </div>
 
-          <div style={{ width: "210px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ border: "1.5px solid #c9d4de", borderRadius: "4px", overflow: "hidden" }}>
-              <div style={{ background: "#0B1E35", color: "#F4F2ED", fontSize: "6pt", fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase", padding: "5px 10px" }}>
+          <div style={{ width: "220px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ border: "1px solid #dde3ea", borderRadius: "4px", overflow: "hidden" }}>
+              <div style={{ background: "#f2f6f8", color: "#1A8A9C", fontSize: "6pt", fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase", padding: "5px 10px", borderBottom: "1px solid #dde3ea" }}>
                 Account Summary
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", fontSize: "7pt", borderBottom: "1px solid #c9d4de" }}>
@@ -237,47 +251,55 @@ const StatementTemplate = ({
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", background: "#0B1E35", color: "#F4F2ED", fontWeight: "700", fontSize: "7pt" }}>
-                <span>Closing Balance</span>
+                <span>New Balance</span>
                 <span style={{ color: "#C89130", fontSize: "8pt", fontVariantNumeric: "tabular-nums" }}>${money(statement.closing_balance)}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Transaction table */}
-        <div style={{ marginTop: "8px" }}>
-          <div style={{ fontSize: "6.5pt", fontWeight: "700", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1A8A9C", marginBottom: "8px" }}>
-            Transaction Detail
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "6.5pt", fontWeight: "700", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1A8A9C", marginBottom: "8px" }}>
+            Ageing <div style={{ flex: 1, height: "1px", background: "#c9d4de", marginLeft: "4px" }}></div>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "7pt" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #dde3ea", borderRadius: "4px", overflow: "hidden" }}>
+            <thead><tr style={{ background: "#f2f6f8" }}>
+              {aging.map(([label], index) => <th key={label} style={{ padding: "6px 10px", fontSize: "6.5pt", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", textAlign: "center", color: index === 4 ? "#a83220" : "#0B1E35", borderRight: index < 4 ? "1px solid #dde3ea" : undefined, borderBottom: "1px solid #dde3ea" }}>{label}</th>)}
+            </tr></thead>
+            <tbody><tr>
+              {aging.map(([label, amount, color, weight], index) => <td key={label} style={{ padding: "7px 10px", fontSize: index === 0 ? "8pt" : "7.5pt", fontWeight: weight, textAlign: "center", fontVariantNumeric: "tabular-nums", color, borderRight: index < 4 ? "1px solid #dde3ea" : undefined }}>{money(amount)}</td>)}
+            </tr></tbody>
+          </table>
+        </div>
+
+        {/* Transaction table */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "6.5pt", fontWeight: "700", letterSpacing: "0.2em", textTransform: "uppercase", color: "#1A8A9C", marginBottom: "8px" }}>
+            Transaction Detail <div style={{ flex: 1, height: "1px", background: "#c9d4de", marginLeft: "4px" }}></div>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "7pt", border: "1px solid #dde3ea" }}>
             <thead>
-              <tr style={{ background: "#0B1E35", color: "#F4F2ED" }}>
-                {["Order Type", "Posting Date", "Invoice ID", "Order ID", "Patient", "Payment Method", "Reference"].map((h) => (
-                  <th key={h} style={{ padding: "6px 8px", fontSize: "6.5pt", fontWeight: "700", textAlign: "left", borderRight: "1px solid rgba(244,242,237,0.1)" }}>
+              <tr style={{ background: "#f2f6f8", color: "#3b5268" }}>
+                {["Date", "Patient", "Description", "Debit", "Credit"].map((h, index) => (
+                  <th key={h} style={{ padding: "6px 8px", fontSize: "6.5pt", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", textAlign: index > 2 ? "right" : "left", color: h === "Debit" ? "#c0392b" : h === "Credit" ? "#1A8A9C" : "#3b5268", borderRight: index < 4 ? "1px solid #dde3ea" : undefined, borderBottom: "1px solid #dde3ea" }}>
                     {h}
                   </th>
                 ))}
-                <th style={{ padding: "6px 8px", fontSize: "6.5pt", fontWeight: "700", textAlign: "right" }}>Amount</th>
               </tr>
             </thead>
             <tbody>
               {lines.map((row, idx) => (
                 <tr key={row.id ?? idx} style={{ background: idx % 2 === 0 ? "#ffffff" : "#F4F2ED", borderBottom: "1px solid #c9d4de" }}>
-                  <td style={{ padding: "4px 8px" }}>{row.order_type_name || "—"}</td>
                   <td style={{ padding: "4px 8px" }}>{fmtDate(row.post_date, { month: "2-digit", day: "2-digit", year: "2-digit" })}</td>
-                  <td style={{ padding: "4px 8px" }}>{row.invoice_id ?? "—"}</td>
-                  <td style={{ padding: "4px 8px" }}>{row.order_id ?? "—"}</td>
                   <td style={{ padding: "4px 8px" }}>{row.patient || "—"}</td>
-                  <td style={{ padding: "4px 8px" }}>{row.payment_method || "—"}</td>
-                  <td style={{ padding: "4px 8px", fontWeight: "600" }}>{row.reference || "—"}</td>
-                  <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: "600", fontVariantNumeric: "tabular-nums", color: (row.amount ?? 0) < 0 ? "#c0392b" : "#0B1E35" }}>
-                    ${money(Math.abs(row.amount ?? 0))}
-                  </td>
+                  <td style={{ padding: "4px 8px" }}>{[row.order_type_name, lineDetail(row)].filter(Boolean).join(" · ") || "—"}</td>
+                  <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: "600", fontVariantNumeric: "tabular-nums", color: "#c0392b" }}>{(row.amount ?? 0) >= 0 ? money(row.amount) : ""}</td>
+                  <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: "600", fontVariantNumeric: "tabular-nums", color: "#1c7a52" }}>{(row.amount ?? 0) < 0 ? money(Math.abs(row.amount ?? 0)) : ""}</td>
                 </tr>
               ))}
               {lines.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: "16px 8px", textAlign: "center", color: "#5a7490" }}>
+                  <td colSpan={5} style={{ padding: "16px 8px", textAlign: "center", color: "#5a7490" }}>
                     No transactions on this statement.
                   </td>
                 </tr>
@@ -287,11 +309,16 @@ const StatementTemplate = ({
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={{ marginTop: "auto", padding: "16px 24px", background: "#0B1E35", color: "rgba(244,242,237,0.8)", fontSize: "6.5pt", lineHeight: "1.6", borderTop: "2px solid #C89130" }}>
-        <strong style={{ color: "#F4F2ED" }}>Payment Due:</strong> {fmtDate(statement.due_date)}
-        <br />
-        Questions about this statement? Contact <strong style={{ color: "#F4F2ED" }}>{COMPANY_CONTACT.email}</strong> or {COMPANY_CONTACT.phoneDisplay}.
+      {/* Shared document footer treatment: use the same rules and palette as Doc Studio. */}
+      <div style={{ padding: "0 24px 18px", display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={{ border: "1px solid #cfe2e7", borderLeft: "3px solid #1A8A9C", borderRadius: "4px", padding: "9px 12px", background: "#f6fbfc", fontSize: "6.5pt", lineHeight: "1.65", color: "#5a7490" }}>
+          Payment due: <strong style={{ color: "#0B1E35" }}>{fmtDate(statement.due_date)}</strong>. Questions about this statement? Contact <strong style={{ color: "#0B1E35" }}>{COMPANY_CONTACT.email}</strong> or {COMPANY_CONTACT.phoneDisplay}.
+          <div style={{ color: "#1A8A9C", fontStyle: "italic", fontWeight: "600", marginTop: "4px" }}>Thank you for your business.</div>
+        </div>
+        <div style={{ border: "1px solid #dde3ea", borderTop: "2px solid #C89130", borderRadius: "4px", padding: "8px 14px", background: "#fdf6e3", fontSize: "6.5pt", lineHeight: "1.7", color: "#3b5268" }}>
+          <div style={{ color: "#C89130", fontSize: "5.5pt", fontWeight: "700", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "5px" }}>Bank Transfer Information</div>
+          <strong style={{ color: "#0B1E35" }}>Payment due:</strong> 30 days from date of statement
+        </div>
       </div>
     </div>
   );
