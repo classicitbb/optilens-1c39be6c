@@ -146,6 +146,10 @@ async function checkPreflight(fn) {
   );
   // Consume body to avoid resource leaks
   await res.text().catch(() => "");
+  if (NO_CORS_FUNCTIONS.has(fn)) {
+    if (res.status >= 500) return `booted-but-crashing (status ${res.status})`;
+    return null;
+  }
   if (res.status !== 200 && res.status !== 204) {
     return `preflight status ${res.status}`;
   }
