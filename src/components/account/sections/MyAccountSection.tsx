@@ -37,14 +37,14 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 const MyAccountSection = () => {
   const { user, signOut } = useAuth();
   const { role, hasAccess } = useUserRole();
-  const { identity } = usePortalIdentity();
+  const { identity, emulation, effectiveUserId } = usePortalIdentity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resettingPw, setResettingPw] = useState(false);
   const [searchParams] = useSearchParams();
-  const { addresses } = useCustomerAddresses();
+  const { addresses } = useCustomerAddresses(emulation?.userId);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -54,29 +54,30 @@ const MyAccountSection = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
+      const profileUserId = effectiveUserId ?? user.id;
       const { data, error } = await (supabase.from("profiles") as any)
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", profileUserId)
         .maybeSingle() as { data: Record<string, any> | null; error: any };
 
       if (error) {
         toast({ title: "Error", description: "Failed to load profile", variant: "destructive" });
       } else if (data) {
         form.reset({
-          full_name: data.full_name || resolveUserFullName(user),
+          full_name: data.full_name || (emulation ? "" : resolveUserFullName(user)),
           phone: data.phone || "",
           display_name: data.display_name || "",
           bio: data.bio || "",
-          avatar_url: data.avatar_url || resolveUserAvatar(user),
+          avatar_url: data.avatar_url || (emulation ? "" : resolveUserAvatar(user)),
           organization_name: data.organization_name || "",
         });
       } else {
         form.reset({
-          full_name: resolveUserFullName(user),
+          full_name: emulation ? "" : resolveUserFullName(user),
           phone: "",
           display_name: "",
           bio: "",
-          avatar_url: resolveUserAvatar(user),
+          avatar_url: emulation ? "" : resolveUserAvatar(user),
           organization_name: "",
         });
       }
@@ -84,7 +85,7 @@ const MyAccountSection = () => {
     };
 
     fetchProfile();
-  }, [user, form, toast]);
+  }, [user, effectiveUserId, emulation, form, toast]);
 
   useEffect(() => {
     const focus = searchParams.get("focus");
@@ -95,6 +96,10 @@ const MyAccountSection = () => {
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) return;
+    if (emulation) {
+      toast({ title: "Read-only while emulating", description: "Exit emulation to edit your own profile." });
+      return;
+    }
 
     setSaving(true);
     const { error } = await (supabase.from("profiles") as any)

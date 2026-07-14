@@ -40,9 +40,10 @@ const EmulationBanner = () => {
 const AccountLayout = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { emulation } = usePortalIdentity();
   usePresenceHeartbeat("customer");
 
-  const displayName = getDisplayName(user?.email);
+  const displayName = emulation ? emulation.label : getDisplayName(user?.email);
 
   return (
     <div className="min-h-screen bg-background">

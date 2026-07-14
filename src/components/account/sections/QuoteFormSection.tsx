@@ -8,22 +8,33 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const QuoteFormSection = () => {
   const { user } = useAuth();
+  const { emulation } = usePortalIdentity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes] = useState("");
   const { data: quotes = [], isLoading } = useQuery({
-    queryKey: ["customer-quotes", user?.id],
+    queryKey: ["customer-quotes", emulation?.userId ?? user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("quotes_customer")
-        .select("id,quote_number,status,quote_type,created_at,notes_customer")
-        .order("created_at", { ascending: false })
-        .limit(20);
+      // The quotes_customer view is bound to the signed-in user server-side;
+      // under admin emulation read the base table (admin RLS) for the target.
+      const { data, error } = emulation
+        ? await (supabase as any)
+            .from("quotes")
+            .select("id,quote_number,status,quote_type,created_at,notes_customer")
+            .eq("created_by", emulation.userId)
+            .order("created_at", { ascending: false })
+            .limit(20)
+        : await (supabase as any)
+            .from("quotes_customer")
+            .select("id,quote_number,status,quote_type,created_at,notes_customer")
+            .order("created_at", { ascending: false })
+            .limit(20);
       if (error) throw error;
       return data as Array<{ id: string; quote_number: string; status: string; quote_type: string; created_at: string; notes_customer: string | null }>;
     },
@@ -62,7 +73,7 @@ const QuoteFormSection = () => {
         <div className="space-y-3 rounded-lg border p-4">
           <Input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Customer/business name" />
           <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Tell us what products and quantities you need." />
-          <Button onClick={submitQuote}>
+          <Button onClick={submitQuote} disabled={!!emulation} title={emulation ? "Submitting is disabled while emulating a customer" : undefined}>
             <Plus className="mr-2 h-4 w-4" />
             Submit quote request
           </Button>

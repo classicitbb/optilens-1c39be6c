@@ -164,8 +164,8 @@ const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
 };
 
 const MyOrdersSection = () => {
-  const { orders, loading } = useOrders();
   const { canAccessFeature, identity, emulation } = usePortalIdentity();
+  const { orders, loading } = useOrders(emulation?.userId);
   const canSeePrivateOrders = canAccessFeature("private-orders");
   // Under admin emulation the gateway must fetch the emulated customer's data,
   // not the admin's; staff-only override honored server-side.

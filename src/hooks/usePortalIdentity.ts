@@ -216,6 +216,12 @@ export const usePortalIdentity = () => {
     identity: query.data ?? null,
     isStaff,
     emulation: activeEmulation,
+    /**
+     * The user id every portal data surface should query by: the emulated
+     * account's during admin emulation, otherwise the signed-in user's.
+     * RLS admin-read policies enforce who may actually see foreign rows.
+     */
+    effectiveUserId: activeEmulation?.userId ?? user?.id ?? null,
     canAccessFeature: (feature: PortalFeature) =>
       isStaff || canAccessPortalFeature(query.data ?? null, feature),
   };
