@@ -1,5 +1,5 @@
 // Innovations -> CV cloud sync receiver (customers, contacts, statements,
-// statement_lines, balances). New statements auto-enqueue a "statement ready"
+// statement_lines, balances, order_activity). New statements auto-enqueue a "statement ready"
 // email to the linked customer — see enqueueStatementReadyEmail below.
 // Server-to-server. Auth: x-api-key (scope `sync:write`), verified via
 // public.verify_api_key. Idempotent upsert by immutable Innovations id.
@@ -170,6 +170,27 @@ const ENTITIES: Record<string, EntityConfig> = {
       "last_payment_date",
     ],
   },
+  // Per-customer order-activity snapshot (source: Innovations order/job data,
+  // pushed by optilens-local — see docs/codex/SPEC_A_order_activity_kickoff.md).
+  // Drives the CRM retention alarm via public.customer_order_health. Lands on
+  // the generic batch-upsert path keyed on innovations_customer_id; the
+  // order_activity_link_contact trigger resolves contact_id on write. Reuses
+  // balances:write — same optilens-local per-customer snapshot authority, so the
+  // existing push key needs no new scope.
+  order_activity: {
+    table: "order_activity",
+    conflictKey: "innovations_customer_id",
+    required: "innovations_customer_id",
+    scope: "balances:write",
+    allow: [
+      "innovations_customer_id",
+      "last_order_date",
+      "orders_last_7_days",
+      "orders_last_30_days",
+      "orders_last_90_days",
+      "avg_gap_days",
+    ],
+  },
 };
 
 function json(body: unknown, status = 200): Response {
@@ -186,7 +207,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-10.5-sync-request-polling";
+const VERSION = "2026-07-13.1-order-activity";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 // Customers get individual resolution instead of a blind onConflict(innovations_customer_id)

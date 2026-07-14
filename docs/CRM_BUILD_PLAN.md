@@ -23,7 +23,7 @@
 | 2 | ✅ DONE (2026-07-13) — Pipeline board (contact-based, pipeline selector, 9 stages + nurture, manual stage move, classifier for unclassified pool), Today queue on CRM dashboard (tasks due + retention alarms). Files: usePipeline.ts, useCustomerHealth.ts, CrmPipelinePage.tsx (rewritten), CrmDashboardPage.tsx. Follow-up SQL pending: `ALTER VIEW public.customer_order_health SET (security_invoker = on); GRANT SELECT ON public.customer_order_health TO authenticated;` (run in Lovable SQL editor so the health view respects RLS + is readable once the feed flows). | **Claude** |
 | 3 | Cadence engine: enrollment, step scheduler, AI draft edge function, outbox review UI | **Claude** |
 | 4 | Document Creation System port (templates: email, letter, invoice/quote/proforma/receipt, statement) | **Codex** — Spec B/C below |
-| 5 | order_activity push: local extraction (Codex, Spec A) + innovations-sync edge function entity handler (Claude) | **split** |
+| 5 | order_activity push: local extraction (Codex, Spec A ✅) + innovations-sync edge function entity handler (Claude ✅ 2026-07-13 — added `order_activity` to ENTITIES map, reuses generic batch-upsert + order_activity_link_contact trigger, scope balances:write, VERSION 2026-07-13.1-order-activity). Needs deploy to Lovable Cloud + verify push sends `dry_run:false`. | **split** |
 | 6 | Retention alarm engine wired into Today queue | **Claude** |
 
 Fastest usable prototype = Phases 1+2 (manual CRM works before automation lands).
