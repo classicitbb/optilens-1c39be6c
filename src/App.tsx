@@ -101,6 +101,7 @@ const App = () => (
                   <Route element={<CustomerShell />}>
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                     <Route path="/unsubscribe" element={<Unsubscribe />} />
                     <Route path="/store" element={<Store />} />
                     <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
