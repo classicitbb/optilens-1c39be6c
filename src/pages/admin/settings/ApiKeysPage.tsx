@@ -15,7 +15,6 @@ const ALL_SCOPES = [
   "customers:read", "customers:write",
   "orders:read", "orders:write",
   "products:read", "products:write",
-  "moonshot:read", "moonshot:write",
   // Billing data ingested from Innovations via optilens-local. :read scopes
   // are for portal/api-v1 consumers; :write scopes are for optilens-local's
   // push key calling innovations-sync's statements/balances entities.

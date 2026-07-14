@@ -7,7 +7,6 @@ const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
 const AdminHomeRedirect = lazy(() => import("@/components/admin/AdminHomeRedirect"));
 const AdminDashboardHomePage = lazy(() => import("@/pages/admin/AdminDashboardHomePage"));
 const ReferenceDataPage = lazy(() => import("@/pages/admin/ReferenceDataPage"));
-const PlaceholderPage = lazy(() => import("@/pages/admin/PlaceholderPage"));
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
 const ProductCatalogPage = lazy(() => import("@/pages/admin/ProductCatalogPage"));
 const RxLensPricesPage = lazy(() => import("@/pages/admin/RxLensPricesPage"));
@@ -51,7 +50,6 @@ const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazy(() => import("@/pages/admin/settings/EmailPreviewsPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
 const HelpdeskTeamsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTeamsPage"));
-const HelpdeskSlaPoliciesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskSlaPoliciesPage"));
 const HelpdeskStagesPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskStagesPage"));
 const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskConfigPage"));
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
@@ -73,7 +71,6 @@ const AdminRoutes = () => (
       <Route path="pricing/supplies" element={<BuySellPricesPage />} />
       <Route path="pricing/compare" element={<PricingComparePage />} />
       <Route path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
-      <Route path="pricing/publisher-old" element={<Navigate to="/admin/pricing/publisher" replace />} />
       <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
       <Route path="pricing/publisher/:id/canvas" element={<CanvasEditorPage />} />
       <Route path="pricing/costings" element={<ImportCostingsPage />} />
@@ -83,8 +80,6 @@ const AdminRoutes = () => (
       <Route path="pricing/reference" element={<ReferenceDataPage />} />
       <Route path="pricing/imports" element={<ImportsPage />} />
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
-      <Route path="pricing/legacy" element={<Navigate to="/admin/pricing/catalog" replace />} />
-
       <Route path="orders" element={<OrdersPage />} />
 
       <Route path="sales" element={<Navigate to="/admin/sales/quotations" replace />} />
@@ -92,9 +87,6 @@ const AdminRoutes = () => (
       <Route path="sales/quotations" element={<QuotationsListPage />} />
       <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
       <Route path="sales/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
-      <Route path="sales/web-orders" element={<OrdersPage />} />
-      <Route path="sales/rx-orders" element={<PlaceholderPage />} />
-
       <Route path="contacts" element={<ContactsPage />} />
       <Route path="contacts/config/tags" element={<ContactTagsConfigPage />} />
       <Route path="contacts/config/industries" element={<IndustriesConfigPage />} />
@@ -105,29 +97,22 @@ const AdminRoutes = () => (
       <Route path="leads/reports" element={<LeadAuditReportsPage />} />
       <Route path="leads/ai" element={<LeadsAiAssistantPage />} />
       <Route path="leads/settings" element={<LeadSettingsPage />} />
-      <Route path="leads/proposals" element={<Navigate to="/admin/sales/proposals" replace />} />
-      <Route path="leads/catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
 
       <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
       <Route path="crm/dashboard" element={<CrmDashboardPage />} />
       <Route path="crm/pipeline" element={<CrmPipelinePage />} />
       <Route path="crm/activities" element={<CrmActivitiesPage />} />
-      <Route path="crm/proposals" element={<Navigate to="/admin/sales/proposals" replace />} />
-      <Route path="crm/catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
-
       <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/overview" replace />} />
       <Route path="helpdesk/overview" element={<HelpdeskOverviewPage />} />
       <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
       <Route path="helpdesk/tickets/:id" element={<HelpdeskTicketDetailPage />} />
       <Route path="helpdesk/teams" element={<HelpdeskTeamsPage />} />
-      <Route path="helpdesk/sla" element={<HelpdeskSlaPoliciesPage />} />
       <Route path="helpdesk/stages" element={<HelpdeskStagesPage />} />
       <Route path="helpdesk/config" element={<HelpdeskConfigPage />} />
 
       <Route path="website" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="website/content" element={<ContentManagerPage />} />
       <Route path="website/microsites" element={<Navigate to="/admin/website/content" replace />} />
-      <Route path="website/features" element={<PlaceholderPage />} />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
       <Route path="website/store" element={<WebsiteStorePage />} />
       <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
@@ -173,8 +158,6 @@ const AdminRoutes = () => (
       <Route path="erp/config/industries" element={<Navigate to="/admin/contacts/config/industries" replace />} />
       <Route path="erp/crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
       <Route path="erp/helpdesk" element={<Navigate to="/admin/helpdesk/tickets" replace />} />
-      <Route path="erp/web-orders" element={<Navigate to="/admin/sales/web-orders" replace />} />
-      <Route path="erp/rx-orders" element={<Navigate to="/admin/sales/rx-orders" replace />} />
       <Route path="erp/website" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="history" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

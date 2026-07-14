@@ -33,7 +33,6 @@ const CATEGORY_DEFAULT_CONTEXT: Record<string, string> = {
   "crm-app": "crm/dashboard",
   "helpdesk-app": "helpdesk/tickets",
   "website-app": "website/content",
-  "moonshot-app": "moonshot/dashboard",
   "knowledge-app": "knowledge/wiki",
   "settings-app": "settings/company",
 };

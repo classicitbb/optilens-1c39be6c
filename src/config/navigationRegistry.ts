@@ -4,7 +4,7 @@ export interface NavigationDefinition {
   id: string;
   routeId: string;
   label: string;
-  context: "public-site" | "customer-portal" | "operations-console" | "admin-console" | "moonshot";
+  context: "public-site" | "customer-portal" | "operations-console" | "admin-console";
   group: string;
   appKey?: AppKey;
   order: number;
@@ -22,15 +22,13 @@ export const NAVIGATION_REGISTRY: NavigationDefinition[] = [
   { id: "admin.website", routeId: "admin.website", label: "Website", context: "admin-console", group: "launcher", appKey: "website", order: 7, status: "active" },
   { id: "admin.knowledge", routeId: "admin.knowledge", label: "Knowledge", context: "admin-console", group: "launcher", appKey: "knowledge", order: 8, status: "active" },
   { id: "admin.settings", routeId: "admin.settings", label: "Settings", context: "admin-console", group: "launcher", appKey: "settings", order: 9, status: "active" },
-  { id: "moonshot.workspace", routeId: "moonshot.workspace", label: "Moonshot", context: "moonshot", group: "launcher", appKey: "moonshot", order: 10, status: "active" },
-  { id: "moonshot.feedback", routeId: "moonshot.feedback", label: "Give Feedback", context: "moonshot", group: "footer", order: 999, status: "hidden" },
 ];
 
 export const ACTIVE_NAVIGATION_REGISTRY = NAVIGATION_REGISTRY.filter((item) => item.status === "active");
 
 
 export const NAVIGATION_REGISTRY_BY_CONTEXT = new Map(
-  ["public-site", "customer-portal", "operations-console", "admin-console", "moonshot"].map((context) => [
+  ["public-site", "customer-portal", "operations-console", "admin-console"].map((context) => [
     context,
     ACTIVE_NAVIGATION_REGISTRY.filter((item) => item.context === context),
   ]),

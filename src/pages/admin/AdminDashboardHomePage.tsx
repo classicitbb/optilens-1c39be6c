@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Rocket, Settings, ShoppingCart, Target, Users } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Settings, ShoppingCart, Target, Users } from "lucide-react";
 import { Link } from "react-router";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -61,12 +61,6 @@ const appTiles = [
     description: "Manage company settings, users, permissions, integrations, and audit controls.",
     route: "/admin/settings/company",
     icon: Settings,
-  },
-  {
-    title: "Moonshot",
-    description: "Run strategic planning with scorecards, meetings, rocks, and execution tools.",
-    route: "/admin/moonshot/dashboard",
-    icon: Rocket,
   },
 ];
 
