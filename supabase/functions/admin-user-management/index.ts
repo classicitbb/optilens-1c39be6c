@@ -212,7 +212,25 @@ Deno.serve(async (req) => {
       const { data: inviteData, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
         redirectTo: getPasswordRedirectTo(req),
       });
-      if (error) throw error;
+      if (error) {
+        const msg = error.message ?? "";
+        if (/already been registered|already registered|already exists/i.test(msg)) {
+          // User already exists — link them to the customer (if provided) and send a recovery email
+          const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+          const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+          if (!existing) {
+            return jsonResponse(req, 409, { error: "A user with this email already exists." });
+          }
+          await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName);
+          await adminClient.auth.admin.generateLink({
+            type: "recovery",
+            email,
+            options: { redirectTo: getPasswordRedirectTo(req) },
+          });
+          return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
+        }
+        throw error;
+      }
 
       if (inviteData?.user?.id) {
         await linkCustomerPortalAccount(adminClient, inviteData.user.id, customerId, displayName);
