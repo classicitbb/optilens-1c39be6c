@@ -6,12 +6,12 @@
  * are redirected to the docstudio-api edge function by public/ds/cloud-bridge.js.
  */
 const DocStudioPage = () => (
-  <div className="-m-1 h-[calc(100vh-6rem)] overflow-hidden rounded-lg border border-border/70 bg-background">
+  <div className="flex min-h-0 flex-1 overflow-hidden">
     <iframe
       src="/ds/studio.html?embedded=1"
       title="Doc Studio"
       allow="clipboard-write"
-      className="h-full w-full border-0"
+      className="min-h-0 w-full flex-1 border-0"
     />
   </div>
 );
