@@ -271,7 +271,14 @@ Deno.serve(async (req) => {
       if (error) {
         const msg = error.message ?? "";
         if (/already been registered|already registered|already exists/i.test(msg)) {
-          return jsonResponse(req, 409, { error: "A user with this email already exists. Use Invite or reset their password instead." });
+          // User already exists — link them to the customer instead of failing.
+          const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+          const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+          if (existing) {
+            await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName);
+            return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
+          }
+          return jsonResponse(req, 409, { error: "A user with this email already exists." });
         }
         throw error;
       }
