@@ -1,3 +1,4 @@
+declare const process: { env: Record<string, string | undefined> };
 import { defineTool } from "@lovable.dev/mcp-js";
 
 export default defineTool({
