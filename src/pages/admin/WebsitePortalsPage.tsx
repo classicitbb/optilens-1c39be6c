@@ -5,6 +5,7 @@ import {
   BellRing,
   CreditCard,
   ExternalLink,
+  Eye,
   LifeBuoy,
   Mail,
   Package,
@@ -15,6 +16,7 @@ import {
   UserRound,
   WalletCards,
 } from "lucide-react";
+import { startPortalEmulation } from "@/lib/portalEmulation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -724,7 +726,24 @@ const WebsitePortalsPage = () => {
                           {account.isErpCustomer ? <span>{account.accountNumber || "ERP customer"}</span> : "—"}
                         </td>
                         <td className="px-4 py-3">
-                          {user ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Not created</Badge>}
+                          {user ? (
+                            <span className="flex items-center gap-2">
+                              <Badge variant="outline">Active</Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[11px]"
+                                title="View the customer portal as this account (no login needed)"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  startPortalEmulation({ userId: user.userId, label: account.fullName || account.email || "customer" });
+                                  navigate("/profile");
+                                }}
+                              >
+                                <Eye className="mr-1 h-3 w-3" /> Emulate
+                              </Button>
+                            </span>
+                          ) : <Badge variant="secondary">Not created</Badge>}
                         </td>
                         <td className="px-4 py-3">
                           {user ? (

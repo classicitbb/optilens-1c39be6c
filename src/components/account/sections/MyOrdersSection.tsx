@@ -165,13 +165,16 @@ const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
 
 const MyOrdersSection = () => {
   const { orders, loading } = useOrders();
-  const { canAccessFeature, identity } = usePortalIdentity();
+  const { canAccessFeature, identity, emulation } = usePortalIdentity();
   const canSeePrivateOrders = canAccessFeature("private-orders");
+  // Under admin emulation the gateway must fetch the emulated customer's data,
+  // not the admin's; staff-only override honored server-side.
+  const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
   const [innovationsSearch, setInnovationsSearch] = useState("");
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
     enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
-    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal }),
+    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal, websiteCustomerId }),
     staleTime: 30_000,
     retry: 1,
   });
@@ -181,7 +184,7 @@ const MyOrdersSection = () => {
     queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>(
       "optilens.customer_deliveries",
       { include_open: true, closed_since: format(subDays(new Date(), 45), "yyyy-MM-dd") },
-      { signal },
+      { signal, websiteCustomerId },
     ),
     staleTime: 30_000,
     retry: 1,

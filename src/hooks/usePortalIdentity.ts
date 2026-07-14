@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { getPortalEmulation, onPortalEmulationChange } from "@/lib/portalEmulation";
 
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
 export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "statements";
@@ -115,15 +117,72 @@ export const getPortalFeatureBlockedReason = (identity: PortalIdentity | null, f
   }
 };
 
+/**
+ * Read-only identity for an emulated portal account: built from the same
+ * tables the admin portals screen reads, deliberately NOT via the
+ * sync_customer_portal_identity RPC (which creates/mutates rows for the
+ * caller). Staff-only — RLS on profiles/customers enforces it server-side.
+ */
+const fetchEmulatedIdentity = async (targetUserId: string): Promise<PortalIdentity | null> => {
+  const { data: profile, error: profileError } = await (supabase as any)
+    .from("profiles")
+    .select("id,user_id,full_name,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) return null;
+
+  const [{ data: customer }, { data: overrides }] = await Promise.all([
+    typeof profile.crm_customer_id === "number"
+      ? (supabase as any)
+          .from("customers")
+          .select("name,account_number,assigned_pricelist_id")
+          .eq("id", profile.crm_customer_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    (supabase as any)
+      .from("customer_portal_feature_overrides")
+      .select("feature_key,enabled")
+      .eq("user_id", targetUserId),
+  ]);
+
+  const overrideMap = ((overrides ?? []) as Array<{ feature_key: PortalFeature; enabled: boolean }>).reduce(
+    (accumulator, row) => ({ ...accumulator, [row.feature_key]: row.enabled }),
+    {} as Partial<Record<PortalFeature, boolean>>,
+  );
+
+  return normalizeIdentity(
+    {
+      profile_id: profile.id,
+      portal_access_status: profile.portal_access_status,
+      portal_access_note: profile.portal_access_note,
+      email_verified: true,
+      profile_completed: true,
+      crm_contact_id: profile.crm_contact_id,
+      crm_customer_id: profile.crm_customer_id,
+      account_number: customer?.account_number ?? null,
+      assigned_pricelist_id: customer?.assigned_pricelist_id ?? null,
+      organization_name: profile.organization_name,
+      customer_name: customer?.name ?? profile.full_name ?? null,
+    },
+    overrideMap,
+  );
+};
+
 export const usePortalIdentity = () => {
   const { user } = useAuth();
   const { canEdit: isStaff } = useUserRole();
 
+  const [emulation, setEmulation] = useState(() => getPortalEmulation());
+  useEffect(() => onPortalEmulationChange(() => setEmulation(getPortalEmulation())), []);
+  const activeEmulation = isStaff && emulation ? emulation : null;
+
   const query = useQuery({
-    queryKey: ["portal-identity", user?.id],
+    queryKey: ["portal-identity", user?.id, activeEmulation?.userId ?? "self"],
     enabled: !!user,
     queryFn: async () => {
       if (!user) return null;
+      if (activeEmulation) return fetchEmulatedIdentity(activeEmulation.userId);
       const { data, error } = await (supabase.rpc as any)("sync_customer_portal_identity", {
         p_user_id: user.id,
       });
@@ -156,6 +215,7 @@ export const usePortalIdentity = () => {
     ...query,
     identity: query.data ?? null,
     isStaff,
+    emulation: activeEmulation,
     canAccessFeature: (feature: PortalFeature) =>
       isStaff || canAccessPortalFeature(query.data ?? null, feature),
   };
