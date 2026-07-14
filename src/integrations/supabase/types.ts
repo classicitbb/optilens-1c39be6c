@@ -2096,6 +2096,135 @@ export type Database = {
           },
         ]
       }
+      docstudio_billing_documents: {
+        Row: {
+          autosave_content: Json | null
+          autosave_rendered_html: string | null
+          autosave_totals: Json | null
+          billing_number: string | null
+          content: Json
+          created_at: string
+          customer_account: string | null
+          customer_company: string | null
+          customer_name: string | null
+          deleted_at: string | null
+          document_name: string
+          document_type: string
+          id: string
+          latest_autosave_at: string | null
+          owner_user_id: string
+          paper_size: string
+          rendered_html: string
+          status: string
+          totals: Json
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          autosave_content?: Json | null
+          autosave_rendered_html?: string | null
+          autosave_totals?: Json | null
+          billing_number?: string | null
+          content?: Json
+          created_at?: string
+          customer_account?: string | null
+          customer_company?: string | null
+          customer_name?: string | null
+          deleted_at?: string | null
+          document_name: string
+          document_type: string
+          id?: string
+          latest_autosave_at?: string | null
+          owner_user_id: string
+          paper_size?: string
+          rendered_html?: string
+          status?: string
+          totals?: Json
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          autosave_content?: Json | null
+          autosave_rendered_html?: string | null
+          autosave_totals?: Json | null
+          billing_number?: string | null
+          content?: Json
+          created_at?: string
+          customer_account?: string | null
+          customer_company?: string | null
+          customer_name?: string | null
+          deleted_at?: string | null
+          document_name?: string
+          document_type?: string
+          id?: string
+          latest_autosave_at?: string | null
+          owner_user_id?: string
+          paper_size?: string
+          rendered_html?: string
+          status?: string
+          totals?: Json
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      docstudio_files: {
+        Row: {
+          autosave_content: Json | null
+          autosave_rendered_html: string | null
+          content: Json
+          created_at: string
+          customer_account: string | null
+          customer_name: string | null
+          deleted_at: string | null
+          file_name: string
+          file_type: string
+          id: string
+          latest_autosave_at: string | null
+          metadata: Json
+          owner_user_id: string
+          rendered_html: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          autosave_content?: Json | null
+          autosave_rendered_html?: string | null
+          content?: Json
+          created_at?: string
+          customer_account?: string | null
+          customer_name?: string | null
+          deleted_at?: string | null
+          file_name: string
+          file_type: string
+          id?: string
+          latest_autosave_at?: string | null
+          metadata?: Json
+          owner_user_id: string
+          rendered_html?: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          autosave_content?: Json | null
+          autosave_rendered_html?: string | null
+          content?: Json
+          created_at?: string
+          customer_account?: string | null
+          customer_name?: string | null
+          deleted_at?: string | null
+          file_name?: string
+          file_type?: string
+          id?: string
+          latest_autosave_at?: string | null
+          metadata?: Json
+          owner_user_id?: string
+          rendered_html?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
