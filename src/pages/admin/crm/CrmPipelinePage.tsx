@@ -21,6 +21,7 @@ import {
   type PipelineKey,
   type PipelineStageKey,
 } from "@/features/admin/crm/hooks/usePipeline";
+import { useCadences, useEnrollContact } from "@/features/admin/crm/hooks/useCadences";
 import { useToast } from "@/hooks/use-toast";
 
 const isOverdue = (iso: string | null) => !!iso && new Date(iso).getTime() < Date.now();
@@ -37,8 +38,19 @@ const CrmPipelinePage = () => {
   const [showClassify, setShowClassify] = useState(false);
 
   const { data = [], isLoading } = usePipelineContacts(pipeline);
+  const { data: cadences = [] } = useCadences(pipeline);
   const setStage = useSetContactStage();
   const removeFromPipeline = useRemoveFromPipeline();
+  const enroll = useEnrollContact();
+
+  const handleEnroll = async (contact: PipelineContact, cadenceId: string) => {
+    try {
+      await enroll.mutateAsync({ contactId: contact.id, cadenceId });
+      toast({ title: `${contact.name} enrolled — outreach drafting in the Outbox` });
+    } catch (e: any) {
+      toast({ title: "Unable to enrol", description: e?.message, variant: "destructive" });
+    }
+  };
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -104,7 +116,9 @@ const CrmPipelinePage = () => {
             title={col.title}
             hint={col.hint}
             rows={byStage[col.key] ?? []}
+            cadences={cadences}
             onMove={handleMove}
+            onEnroll={handleEnroll}
             onRemove={(c) => removeFromPipeline.mutate(c.id)}
             onBuildPackage={(c) => navigate("/admin/sales/proposals", { state: { contactId: c.id, country: c.country } })}
           />
@@ -113,7 +127,9 @@ const CrmPipelinePage = () => {
           title={NURTURE_STAGE.title}
           hint={NURTURE_STAGE.hint}
           rows={byStage[NURTURE_STAGE.key] ?? []}
+          cadences={cadences}
           onMove={handleMove}
+          onEnroll={handleEnroll}
           onRemove={(c) => removeFromPipeline.mutate(c.id)}
           muted
         />
@@ -133,13 +149,15 @@ interface StageColumnProps {
   title: string;
   hint: string;
   rows: PipelineContact[];
+  cadences: { id: string; name: string }[];
   onMove: (c: PipelineContact, stage: PipelineStageKey) => void;
+  onEnroll: (c: PipelineContact, cadenceId: string) => void;
   onRemove: (c: PipelineContact) => void;
   onBuildPackage?: (c: PipelineContact) => void;
   muted?: boolean;
 }
 
-const StageColumn = ({ title, hint, rows, onMove, onRemove, onBuildPackage, muted }: StageColumnProps) => (
+const StageColumn = ({ title, hint, rows, cadences, onMove, onEnroll, onRemove, onBuildPackage, muted }: StageColumnProps) => (
   <div className="w-64 flex-shrink-0">
     <Card className={muted ? "bg-muted/30" : undefined}>
       <CardHeader className="py-3">
@@ -168,6 +186,16 @@ const StageColumn = ({ title, hint, rows, onMove, onRemove, onBuildPackage, mute
                 ))}
               </SelectContent>
             </Select>
+            {cadences.length ? (
+              <Select value="" onValueChange={(v) => onEnroll(c, v)}>
+                <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="Enrol in cadence…" /></SelectTrigger>
+                <SelectContent>
+                  {cadences.map((cad) => (
+                    <SelectItem key={cad.id} value={cad.id} className="text-xs">{cad.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
             <div className="flex gap-1">
               {onBuildPackage ? (
                 <Button size="sm" variant="outline" className="h-6 flex-1 text-[10px]" onClick={() => onBuildPackage(c)}>

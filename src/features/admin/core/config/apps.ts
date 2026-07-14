@@ -4,9 +4,9 @@ import {
   FileEdit,
   Contact, Tags, Factory,
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
-  Kanban, CalendarCheck,
+  Kanban, CalendarCheck, Inbox,
   LayoutDashboard,
-  Ticket, UsersRound,
+  Ticket,
   Layout, UserCircle, Store,
   BookMarked, HelpCircle,
   Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail,
@@ -95,6 +95,7 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Dashboard', route: '/admin/crm/dashboard', icon: LayoutDashboard },
       { label: 'Pipeline', route: '/admin/crm/pipeline', icon: Kanban },
+      { label: 'Outbox', route: '/admin/crm/outbox', icon: Inbox },
       { label: 'Activities', route: '/admin/crm/activities', icon: CalendarCheck },
     ] satisfies SidebarItem[],
   },
@@ -108,8 +109,6 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Overview', route: '/admin/helpdesk/overview', icon: LayoutDashboard },
       { label: 'Tickets', route: '/admin/helpdesk/tickets', icon: Ticket },
-      { label: 'Teams', route: '/admin/helpdesk/teams', icon: UsersRound },
-      { label: 'Stages', route: '/admin/helpdesk/stages', icon: Layers },
       { label: 'Config', route: '/admin/helpdesk/config', icon: Settings },
     ] satisfies SidebarItem[],
   },

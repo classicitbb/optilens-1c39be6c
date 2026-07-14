@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Settings2, ShieldCheck } from "lucide-react";
+import { Layers, Plus, Settings2, ShieldCheck, UsersRound } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,8 @@ import {
 } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import { sanitizeRichTextHtml } from "@/lib/sanitizeRichTextHtml";
+import HelpdeskStagesPage from "./HelpdeskStagesPage";
+import HelpdeskTeamsPage from "./HelpdeskTeamsPage";
 
 interface TicketType { id: string; name: string; is_active: boolean; created_at: string; }
 interface TicketTag { id: string; name: string; color: string; created_at: string; }
@@ -55,12 +58,14 @@ const descriptionCellClassName =
   "max-h-24 min-w-[14rem] overflow-y-auto rounded border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-overlay-surface-muted))] px-2 py-1.5 text-xs leading-relaxed text-[hsl(var(--admin-content-fg))]";
 
 const HelpdeskConfigPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
   const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
   const canViewConfig = canView("helpdesk");
   const canEditConfig = canEditFeature("helpdesk");
+  const canViewTeams = canView("helpdesk-teams");
   const canViewSla = canView("helpdesk-sla");
   const canEditSla = canEditFeature("helpdesk-sla");
 
@@ -238,13 +243,43 @@ const HelpdeskConfigPage = () => {
     setEditPolicy(null);
   };
 
-  if (!canViewConfig) {
+  const section = searchParams.get("section") === "teams"
+    ? "teams"
+    : searchParams.get("section") === "stages"
+      ? "stages"
+      : "general";
+  const selectSection = (next: "general" | "teams" | "stages") => {
+    const params = new URLSearchParams(searchParams);
+    if (next === "general") params.delete("section");
+    else params.set("section", next);
+    setSearchParams(params, { replace: true });
+  };
+
+  if (!canViewConfig && (section !== "teams" || !canViewTeams)) {
     return <p className="text-sm text-muted-foreground">You do not have access to Helpdesk config.</p>;
   }
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title="Helpdesk Configuration" icon={Settings2} />
+      <AdminPageHeader title="Helpdesk Configuration" icon={Settings2}>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant={section === "general" ? "default" : "outline"} className="h-8 gap-1.5 text-xs" onClick={() => selectSection("general")}>
+            <Settings2 className="h-3.5 w-3.5" /> General & SLA
+          </Button>
+          {canViewTeams && (
+            <Button size="sm" variant={section === "teams" ? "default" : "outline"} className="h-8 gap-1.5 text-xs" onClick={() => selectSection("teams")}>
+              <UsersRound className="h-3.5 w-3.5" /> Teams
+            </Button>
+          )}
+          <Button size="sm" variant={section === "stages" ? "default" : "outline"} className="h-8 gap-1.5 text-xs" onClick={() => selectSection("stages")}>
+            <Layers className="h-3.5 w-3.5" /> Stages
+          </Button>
+        </div>
+      </AdminPageHeader>
+
+      {section === "teams" && <HelpdeskTeamsPage embedded />}
+      {section === "stages" && <HelpdeskStagesPage embedded />}
+      {section === "general" && <>
 
       {/* ── Priorities ── */}
       <Card>
@@ -653,6 +688,7 @@ const HelpdeskConfigPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>}
     </div>
   );
 };
