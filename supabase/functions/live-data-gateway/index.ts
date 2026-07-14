@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-11.4";
+const VERSION = "2026-07-14.1";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -370,7 +370,59 @@ function offlineLiveDataResponse(operation: Operation, customer: CustomerMapping
     };
   }
 
+  if (operation === "innovations.customer_statement") {
+    return { ...base, statement: null, lines: [] };
+  }
+
   return null;
+}
+
+function isFallbackableSourceFailure(code: unknown, message: unknown) {
+  const normalizedCode = typeof code === "string" ? code.toUpperCase() : "";
+  const normalizedMessage = typeof message === "string" ? message.toLowerCase() : "";
+  return (
+    normalizedCode === "ELOGIN" ||
+    normalizedCode === "ETIMEOUT" ||
+    normalizedCode === "ESOCKET" ||
+    normalizedCode === "ECONNRESET" ||
+    normalizedCode === "SOURCE_ERROR" ||
+    normalizedMessage.includes("login failed") ||
+    normalizedMessage.includes("password of the account has expired") ||
+    normalizedMessage.includes("timed out") ||
+    normalizedMessage.includes("connection")
+  );
+}
+
+function customerFromRequestRow(row: { website_customer_id?: unknown; target?: unknown }): CustomerMapping {
+  const target = isObject(row.target) ? row.target : {};
+  return {
+    id: integer(row.website_customer_id) ?? 0,
+    account_number: typeof target.account_number === "string" && target.account_number.trim()
+      ? target.account_number.trim()
+      : null,
+    innovations_customer_id: integer(target.innovations_customer_id),
+  };
+}
+
+async function fallbackForFailedRequest(
+  supabase: SupabaseClient,
+  operation: Operation,
+  row: { website_customer_id?: unknown; target?: unknown; arguments?: unknown; error_code?: unknown; error_message?: unknown },
+) {
+  const customer = customerFromRequestRow(row);
+  const argumentsBody = isObject(row.arguments) ? row.arguments : {};
+  const cached = await cachedLiveDataResponse(supabase, operation, customer, argumentsBody);
+  const fallback = cached
+    ? { ...cached, fallback: true, source_status: "cached" }
+    : offlineLiveDataResponse(operation, customer);
+  if (!fallback) return null;
+  return {
+    ...fallback,
+    source_error: {
+      code: typeof row.error_code === "string" ? row.error_code : "source_error",
+      message: typeof row.error_message === "string" ? row.error_message : "The private source request failed.",
+    },
+  };
 }
 
 async function clientContext(req: Request) {
@@ -511,7 +563,7 @@ async function handleClientStatus(req: Request, body: JsonObject) {
 
   const { data: row, error } = await auth.supabaseAdminClient
     .from("live_data_gateway_requests")
-    .select("id,status,operation,response_payload,error_code,error_message,requested_at,completed_at,expires_at")
+    .select("id,status,operation,website_customer_id,target,arguments,response_payload,error_code,error_message,requested_at,completed_at,expires_at")
     .eq("id", requestId)
     .eq("requested_by", auth.user.id)
     .maybeSingle();
@@ -526,7 +578,23 @@ async function handleClientStatus(req: Request, body: JsonObject) {
       data: row.response_payload,
     });
   }
-  if (row.status === "failed") return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 502);
+  if (row.status === "failed") {
+    const operation = typeof row.operation === "string" && row.operation in OPERATIONS ? row.operation as Operation : null;
+    if (operation && isFallbackableSourceFailure(row.error_code, row.error_message)) {
+      const fallback = await fallbackForFailedRequest(auth.supabaseAdminClient, operation, row);
+      if (fallback) {
+        await auth.supabaseAdminClient.from("live_data_gateway_requests").update({ consumed_at: new Date().toISOString() }).eq("id", row.id);
+        return json(req, {
+          request_id: row.id,
+          status: "completed",
+          operation,
+          retrieved_at: row.completed_at ?? new Date().toISOString(),
+          data: fallback,
+        });
+      }
+    }
+    return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 200);
+  }
   if (row.status === "expired") return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 504);
   return json(req, { request_id: row.id, status: row.status, expires_at: row.expires_at, poll_after_ms: 500 }, 202);
 }
