@@ -123,7 +123,17 @@ export const ADMIN_APPS = {
       { label: 'Website Portals', route: '/admin/website/portals', icon: UserCircle },
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
-      { label: 'Doc Studio', route: '/admin/website/documents', icon: FileEdit },
+    ] satisfies SidebarItem[],
+  },
+  docstudio: {
+    key: 'docstudio' as const,
+    title: 'Doc Studio',
+    icon: FileEdit,
+    baseRoute: '/admin/docs',
+    defaultRoute: '/admin/docs/studio',
+    featurePrefix: 'website',
+    sidebarItems: [
+      { label: 'Studio', route: '/admin/docs/studio', icon: FileEdit },
     ] satisfies SidebarItem[],
   },
   knowledge: {

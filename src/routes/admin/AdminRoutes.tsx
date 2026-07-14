@@ -115,7 +115,9 @@ const AdminRoutes = () => (
       <Route path="website/content" element={<ContentManagerPage />} />
       <Route path="website/microsites" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
-      <Route path="website/documents" element={<DocStudioPage />} />
+      <Route path="website/documents" element={<Navigate to="/admin/docs/studio" replace />} />
+      <Route path="docs" element={<Navigate to="/admin/docs/studio" replace />} />
+      <Route path="docs/studio" element={<DocStudioPage />} />
       <Route path="website/store" element={<WebsiteStorePage />} />
       <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
 
