@@ -113,7 +113,53 @@ implying sibling rows for the same combo, different suppliers, already exist to 
   most, a gap-check (flag any supplier quote present in the JSON but absent from `lenses` for
   manual catalog entry — never silently written into a shadow table).
 
-## New entity: `pricing_items` (natural key for everything downstream)
+## `pricing_items` combo key — RESOLVED (2026-07-15, later same day)
+
+The deferral below turned out to be the right call: the combo key isn't derivable from any
+combination of `lenses` FK columns at all. It's `C:\DEV\pricelist-automation\lens-classifier.js`'s
+`${treatment}||${tier}||${material}`, where each piece comes from **parsing `lenses.name` text**
+(`normMaterial`, `normTreatment`) plus a **hand-curated `TIER_MAP`** keyed on
+`${mftype.name}|${lenstype.name}` encoding which specific product design belongs at which
+quality tier (e.g. "Progressive|Endless Steady" → "Progressive - Best" vs.
+"Progressive|Physio" → "Progressive - Adept") — business knowledge with no structural
+representation in the schema, including inline `// FLAG:` notes on ambiguous cases the operator
+had already caught by hand. No amount of grouping `lenses` FK columns was ever going to surface
+this. Full plan to port it: `docs/issues/BS1-05-pricing-computation-service.md`.
+
+## `pricing_items` — DEFERRED to BS1-05, not built in BS1-02 (2026-07-15) — superseded above
+
+BS1-02 shipped (see `20260715120000_lens_anchor_exclusion_and_pricing_audit.sql`:
+`lenses.excluded_from_anchor/excluded_reason/excluded_by/excluded_at` +
+`toggle_anchor_exclusion()` RPC + `pricing_audit` table). It does not depend on how `lenses`
+rows group into combos, so it's done and correct regardless of what follows here.
+
+The combo-grouping table/view (originally BS1-02 task 4, `pricing_item_supplier_costs`) is
+**deferred to BS1-05**, where the actual anchor/floor logic gets built. Two guesses at the
+combo key were checked against live data and both failed:
+
+1. **`(pricing_category, pricing_index, finishtype_id)`** — wrong. Live query: 0 of 1108 active
+   `lenses` rows have `pricing_category` or `pricing_index` populated. Dead columns, despite
+   existing in the schema and in `catalog_live`'s indirect neighborhood — not referenced
+   anywhere in `src/` either. Do not use them.
+2. **`(lenstype_id, material_id, mftype_id, finishtype_id, index_value)`** — closer (this IS
+   fully populated, and does group multiple suppliers together sensibly: sampled groups show
+   4-5 distinct suppliers), but still not 1 row = 1 supplier. Live query on the sampled groups
+   shows `supplier_rows` running ~3-4× `distinct_suppliers` — e.g. one group had 5 distinct
+   suppliers across 19 total rows. So a single supplier has multiple `lenses` rows within what
+   this key calls "one combo." Most likely explanation (unconfirmed): sph/cyl/add power-range
+   tiers priced differently within the same design/material/finish/index — but that needs
+   eyeballing actual sample rows (not aggregate counts) to confirm, and possibly operator
+   knowledge of what actually varies.
+
+**Before building `pricing_items` in BS1-05:** pull 15-20 individual `lenses` rows from one of
+the multi-row-per-supplier groups above (e.g. `finishtype_id = '9fb1d86a-ff10-4870-ac05-a3c0606b11ce'
+AND index_value = 1.50 AND lenstype_id = 'b64c04f0-80a6-4111-80ae-643a51fca2ca' AND material_id =
+'73cbda13-a280-415c-be01-4b81ddbf5b0d'` — 24 rows, single supplier) and look at what actually
+differs row to row (sph/cyl/add ranges? name/brand? genuine duplicates?) before deciding whether
+the combo key needs a 6th dimension or whether the anchor calc should operate per-tier instead
+of per-combo.
+
+## New entity: `pricing_items` (natural key for everything downstream) — design carries forward from BS1-01, population/grouping logic moves to BS1-05 per above
 
 Every BS1-02+ table (`cost_models` overrides, `pricelist_lines`, `price_change_proposals`,
 `pricelist_drift`) needs a stable item reference that exists independent of any one

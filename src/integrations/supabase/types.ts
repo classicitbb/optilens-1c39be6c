@@ -4199,6 +4199,10 @@ export type Database = {
           created_at: string
           cyl_max: number
           cyl_min: number
+          excluded_at: string | null
+          excluded_by: string | null
+          excluded_from_anchor: boolean
+          excluded_reason: string | null
           finishtype_id: string | null
           full_lab: boolean
           id: string
@@ -4228,6 +4232,10 @@ export type Database = {
           created_at?: string
           cyl_max: number
           cyl_min: number
+          excluded_at?: string | null
+          excluded_by?: string | null
+          excluded_from_anchor?: boolean
+          excluded_reason?: string | null
           finishtype_id?: string | null
           full_lab?: boolean
           id?: string
@@ -4257,6 +4265,10 @@ export type Database = {
           created_at?: string
           cyl_max?: number
           cyl_min?: number
+          excluded_at?: string | null
+          excluded_by?: string | null
+          excluded_from_anchor?: boolean
+          excluded_reason?: string | null
           finishtype_id?: string | null
           full_lab?: boolean
           id?: string
@@ -5175,6 +5187,39 @@ export type Database = {
           web_enabled?: boolean | null
           web_price?: number | null
           wspl_enabled?: boolean | null
+        }
+        Relationships: []
+      }
+      pricing_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          after: Json | null
+          at: string
+          before: Json | null
+          entity: string
+          entity_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          entity: string
+          entity_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          entity?: string
+          entity_id?: string
+          id?: string
         }
         Relationships: []
       }
@@ -8550,6 +8595,10 @@ export type Database = {
         }[]
       }
       timeout_stale_integration_sync_jobs: { Args: never; Returns: number }
+      toggle_anchor_exclusion: {
+        Args: { p_excluded: boolean; p_lens_id: string; p_reason?: string }
+        Returns: undefined
+      }
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
         Returns: string

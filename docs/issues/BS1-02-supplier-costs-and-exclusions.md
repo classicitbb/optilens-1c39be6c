@@ -34,11 +34,16 @@ not a new join table.
    catalog fields).
 3. RPC: `toggle_anchor_exclusion(p_lens_id uuid, p_excluded boolean, p_reason text)` —
    editor-role only, sets the four columns atomically, logs to `pricing_audit` (BS1-08).
-4. View `pricing_item_supplier_costs` (per `docs/PRICING_SCHEMA.md`): joins `lenses` to
-   `pricing_items` (BS1-01) via the `(pricing_category, pricing_index, finishtype_id)` combo
-   match, `WHERE is_active AND NOT excluded_from_anchor`, exposing
-   `(pricing_item_id, lens_id, supplier_id, base_price)`. This is the read path BS1-05's
-   anchor/floor engine consumes — no separate cost table to keep in sync.
+4. ~~View `pricing_item_supplier_costs`~~ — **MOVED to BS1-05**, resolved 2026-07-15 (same day,
+   later). Two guessed combo keys both failed against live data (`pricing_category`/`pricing_index`
+   dead — 0/1108 populated; the 5-column FK grouping left ~3-4 rows per supplier per combo
+   unexplained). The actual answer wasn't guessable from `lenses` columns at all: it's
+   `C:\DEV\pricelist-automation\lens-classifier.js`'s `${treatment}||${tier}||${material}`, derived
+   by parsing `lenses.name` text plus a hand-curated tier-mapping table — real business knowledge,
+   not a structural key. The "~3-4 rows per supplier" mystery is also explained: a supplier can
+   have several product-name sub-variants that all classify into the same combo; the local tool
+   takes the cheapest as that supplier's representative quote. Full port plan:
+   `docs/issues/BS1-05-pricing-computation-service.md`.
 5. Gap-check (not an import): compare `pricelist-automation/lens-data.json` combos against
    `lenses` and report any supplier quote present in the JSON but absent from the live catalog,
    for manual entry by an operator. Do not write JSON data into any table automatically — the
@@ -47,9 +52,8 @@ not a new join table.
 
 ## Acceptance
 
-- No new cost-storage table created; `lenses` + `pricing_item_supplier_costs` view are the only
-  schema additions.
-- Excluding one supplier's `lenses` row changes ONLY that row's participation in its combo's
-  anchor calc; next-highest-cost sibling row governs.
-- `pricing_item_supplier_costs` view returns correct multi-supplier rows for a sampled combo,
-  matching what `/admin/pricing/compare` already shows for the same lenses.
+- [x] No new cost-storage table created; only new columns on `lenses` + `pricing_audit`.
+- [x] Excluding one supplier's `lenses` row changes ONLY that row's participation in its combo's
+  anchor calc; next-highest-cost sibling row governs (mechanically true — exclusion is a WHERE
+  filter, independent of however the combo grouping ends up being defined).
+- [ ] `pricing_item_supplier_costs` view — moved to BS1-05, see task 4.
