@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Settings, ShoppingCart, Target, Users } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Settings, ShoppingCart, Target, Users } from "lucide-react";
 import { Link } from "react-router";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,12 @@ const appTiles = [
     description: "Browse and maintain internal wiki articles, process docs, and shared references.",
     route: "/admin/knowledge/wiki",
     icon: BookOpen,
+  },
+  {
+    title: "Function Status",
+    description: "Review live edge-function readiness, the latest smoke result, and any active failures.",
+    route: "/admin/settings/edge-functions",
+    icon: Activity,
   },
   {
     title: "Settings",

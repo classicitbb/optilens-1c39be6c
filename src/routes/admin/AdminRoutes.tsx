@@ -49,6 +49,7 @@ const ApiKeysPage = lazy(() => import("@/pages/admin/settings/ApiKeysPage"));
 const BankPaymentPortalsPage = lazy(() => import("@/pages/admin/settings/BankPaymentPortalsPage"));
 const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazy(() => import("@/pages/admin/settings/EmailPreviewsPage"));
+const EdgeFunctionStatusPage = lazy(() => import("@/pages/admin/settings/EdgeFunctionStatusPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
 const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskConfigPage"));
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
@@ -138,6 +139,7 @@ const AdminRoutes = () => (
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
       <Route path="settings/email-previews" element={<EmailPreviewsPage />} />
+      <Route path="settings/edge-functions" element={<EdgeFunctionStatusPage />} />
 
       <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="reference" element={<Navigate to="/admin/pricing/reference" replace />} />

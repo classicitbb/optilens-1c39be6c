@@ -15,6 +15,7 @@ const NotificationBell = () => {
   const { notifications, unreadCount, markRead, markAllRead, clearNotification, clearAll } =
   useAdminNotifications();
   const [open, setOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -26,12 +27,19 @@ const NotificationBell = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleClick = (id: string, href?: string) => {
-    markRead(id);
+  const handleClick = async (id: string, href?: string) => {
+    await markRead(id);
     if (href) {
       navigate(href);
       setOpen(false);
     }
+  };
+
+  const runAction = async (action: () => Promise<boolean>, closeAfter = false) => {
+    setIsUpdating(true);
+    const succeeded = await action();
+    setIsUpdating(false);
+    if (succeeded && closeAfter) setOpen(false);
   };
 
   return (
@@ -65,12 +73,12 @@ const NotificationBell = () => {
             <span className="text-xs font-semibold">Notifications</span>
             <div className="flex gap-1">
               {unreadCount > 0 &&
-            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={markAllRead}>
+              <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" disabled={isUpdating} onClick={() => void runAction(markAllRead)}>
                   Mark all read
                 </Button>
             }
               {notifications.length > 0 &&
-            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => {clearAll();setOpen(false);}}>
+            <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" disabled={isUpdating} onClick={() => void runAction(clearAll, true)}>
                   Clear all
                 </Button>
             }
@@ -88,13 +96,14 @@ const NotificationBell = () => {
 
                   <button
               className="min-w-0 flex-1 text-left"
-              onClick={() => handleClick(n.id, n.href)}>
+              onClick={() => void handleClick(n.id, n.href)}>
                     <p className={`text-xs font-medium truncate ${severityColor[n.severity] ?? ""}`}>{n.title}</p>
                     <p className="text-[11px] line-clamp-2 text-[hsl(var(--admin-muted-fg))]">{n.message}</p>
                   </button>
                   <button
               className="shrink-0 text-[hsl(var(--admin-muted-fg))] hover:text-[hsl(var(--admin-fg))] text-xs mt-0.5"
-              onClick={(e) => {e.stopPropagation();clearNotification(n.id);}}
+              onClick={(e) => {e.stopPropagation();void runAction(() => clearNotification(n.id));}}
+              disabled={isUpdating}
               aria-label="Dismiss">
 
                     ✕

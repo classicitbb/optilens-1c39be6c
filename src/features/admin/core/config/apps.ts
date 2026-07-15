@@ -9,7 +9,7 @@ import {
   Ticket,
   Layout, UserCircle, Store,
   BookMarked, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -166,6 +166,7 @@ export const ADMIN_APPS = {
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
       { label: 'Email Previews', route: '/admin/settings/email-previews', icon: Mail },
+      { label: 'Edge Function Status', route: '/admin/settings/edge-functions', icon: Activity },
     ] satisfies SidebarItem[],
   },
 } as const;
