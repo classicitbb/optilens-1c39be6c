@@ -13,7 +13,8 @@
 
 ## Task
 1. Port engine to a shared TypeScript module in cvweb (`src/lib/pricing/engine.ts`) — keep it pure/UI-free.
-2. Wire inputs from DB (supplier_item_costs + cost_models) instead of JSON.
+2. Wire inputs from DB (`pricing_item_supplier_costs` view, per BS1-02 revision — NOT a
+   standalone cost table; costs come live from `lenses` — + `cost_models`) instead of JSON.
 3. `recompute_master_prices()` job/RPC: recompute standard prices when costs change; changed rows staged for review, not auto-published.
 4. Port `pricing-engine.test.js` to vitest; all fixtures must pass identically.
 5. Add `default_markup` config (global + per rx_price_category) above the 15% floor.
