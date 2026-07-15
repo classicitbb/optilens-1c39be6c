@@ -4,6 +4,17 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-14 — Website Portal Contact Editing
+
+### Release Notes
+- `/admin/website` now opens Website Portals first.
+- Selecting a portal account opens the existing Contacts editor in place, rather than navigating away to Contacts.
+
+### Technical Changelog
+- Website Portals now uses the signup-synchronized `profiles.email` value and reuses the Contacts edit dialog for linked customer contacts.
+- Recorded the Customer Contact as the canonical editable surface for CRM, Innovations linkage, and optional portal access.
+- Customer rows now open the shared dialog on Portal Settings; their right-click menu provides Edit contact, Edit portal, Emulate, and Create login actions.
+
 ## 2026-07-13 — Specialty Lenses
 
 ### Release Notes

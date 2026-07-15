@@ -2,6 +2,13 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-07-14 — Website Portals and Contacts
+
+- `/admin/website` is a redirect to `/admin/website/portals`; Website Content remains available at its explicit route.
+- `WebsitePortalsPage` prefers `profiles.email`, which is synchronized from the signup identity, before using the optional admin user-list email.
+- The Contacts editor supports an embedded mode so Website Portals can open the same editor overlay for a linked CRM contact without route navigation. Customer Contact is the canonical editable record; Website Portals remains an activity/access surface.
+- The embedded editor now has a Portal Settings tab containing operations, orders, addresses, payments, and support. Normal row clicks choose that tab; row context-menu actions select Details, Portal Settings, emulation, or login creation deliberately.
+
 ## 2026-07-13 — Specialty Lenses public page
 
 - Canonical public route: `/lenses/specialty`; it is registered in `src/routes/public/PublicRoutes.tsx` and `src/config/routeRegistry.ts`, with coverage in `src/tests/integration/publicRouteAccessibility.integration.test.ts`.

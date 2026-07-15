@@ -1,6 +1,6 @@
 # Customer Experience Plan — Pricing, Ordering, and the Three Experiences
 
-**Date:** 2026-07-14 · **Source:** operator vision session · **Status:** phase 0 (foundations landing)
+**Date:** 2026-07-14 · **Source:** operator vision session + quiz session (same day) · **Status:** phase 0 (foundations landing) — design decisions locked, see below
 **Read this with `docs/CRM_BUILD_PLAN.md`** — that covers capture (getting customers); this covers serving them.
 
 ## The goal, in one line
@@ -60,8 +60,31 @@ One drafts surface holding three order types, resumable any time:
 | 6 | Draft orders (3 types) | 4 |
 | 7 | Service orders/subscriptions | 6 |
 
-## Open questions for the operator
+## Operator decisions — quiz session 2026-07-14 (all former open questions RESOLVED)
 
-1. Access expiry: exact inactivity window for portal pricelist access (e.g., 21 days)? Password issued manually via helpdesk, or auto-issued on request with admin approval?
-2. Custom-pricelist maintenance: when the MASTER price changes for an item a customer has custom-priced, does their custom price hold (likely yes) — and should the variance report show drift from master so it can be reviewed periodically?
-3. Rx live pricing: which parameters drive price today in the quoting logic (index, design, coatings, prism, oversize?) — confirm the list so the form pricing matches invoicing exactly.
+### Pricing engine
+- **Margin rule:** 15% over the most-expensive supplier is the never-go-below FLOOR; normal pricing targets a higher default markup. (Exact default markup TBD per category — capture when porting the builder.)
+- **Supplier price kick-out = per-item exclusion flag.** Mark one supplier's price on one item as excluded from the max-cost calc; the next-highest price governs. Not a whole-supplier disable.
+- **Fork drift:** when a MASTER price changes on a custom-priced item, the customer's custom price HOLDS. A variance/drift report shows deviation from master for periodic review.
+- **Price-match permissions:** staff PROPOSE a match; **owner/manager approval required** to apply it (and thereby fork the account). Log who/when/why.
+
+### Portal
+- **Auth:** full customer accounts (email + password). The expiring pricelist token is a lightweight extra path, not the main auth.
+- **Pricelist access expiry:** **14 days** of inactivity. Customer clicks "request access" → auto-issue flow → **admin approves** with one click → new password sent.
+- **Order status:** show the FULL pipeline — Received → In production/at supplier → Coating → QC → Shipped (with tracking) → Delivered. Maps to internal lab states.
+- **Statements v1:** view balance + statement/invoice history AND **pay invoices online** (needs payment provider selection — open item below).
+- **Helpdesk:** use the **already-existing helpdesk system**; portal ticket actions route into it.
+
+### Rx order form
+- **Users:** optical shops (B2B) only — no consumer mode in v1.
+- **Validation:** FULL Rx validation (axis 0–180, add ranges, impossible-prescription blocking).
+- **Price-driving parameters (confirmed, all):** index, design, coating, prism, oversize/large diameter, tint/photochromic add-ons. Form live-pricing must match invoicing on all of these.
+
+### Draft orders
+- **Explicit "save draft" button** (no continuous auto-save) for all three order types.
+
+## Remaining open items
+
+1. **Payment provider** for online invoice payment (v1 statements includes pay-online). Which processor, and card vs bank transfer?
+2. **Default markup targets** above the 15% floor — flat or per category? Capture during pricelist-builder port.
+3. **Helpdesk integration detail:** confirm which existing helpdesk system and its API/entry point for portal-originated tickets.

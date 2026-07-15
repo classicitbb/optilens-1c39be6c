@@ -24,6 +24,20 @@ All admin-only business logic and UI. Each subfolder is a discrete feature:
 - The admin sidebar links are driven by `src/features/admin/core/config/apps.ts`. If you add a route, update that file or the link will be dead.
 - Do not add business logic to `core/` — it is layout and config only.
 
+## Language
+
+**Customer contact**:
+The canonical CRM record for a person or company, including its editable identity, contact details, and customer linkage.
+_Avoid_: Portal profile, portal customer record
+
+**Portal account**:
+The optional website-login relationship for a customer contact; it is not a second editable customer record.
+_Avoid_: Portal contact, duplicate account
+
+**Innovations account number**:
+The customer account identifier that connects a customer contact to its Innovations data and online statements.
+_Avoid_: Generic account number, portal account number
+
 ## Active development focus (2026-05-26)
 
 The catalog editor (`catalog-editor-v2/`) is the current primary work area.

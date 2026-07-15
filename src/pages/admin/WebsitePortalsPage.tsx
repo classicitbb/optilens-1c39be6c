@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -32,12 +32,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
+import ContactsPage from "@/pages/admin/erp/ContactsPage";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
 import { Separator } from "@/components/ui/separator";
 import { ToastAction } from "@/components/ui/toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 import {
   AccountNumberAssignmentError,
   assignCustomerAccountNumber,
@@ -141,10 +143,11 @@ const WebsitePortalsPage = () => {
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [search, setSearch] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
-  // Keep a stable account selection in the URL. Older customer links remain readable.
-  const selectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
-  const setSelectedAccountId = (id: string | null) =>
-    setSearchParams(id ? { account: id } : {}, { replace: true });
+  // Older deep links still open the requested account, but ordinary row clicks
+  // keep their selection in component state and do not change the page URL.
+  const legacySelectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(() => legacySelectedAccountId);
+  const dismissedLegacyAccountRef = useRef<string | null>(null);
   const [cutoffHours, setCutoffHours] = useState("24");
   const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
   const [accountNumberDraft, setAccountNumberDraft] = useState("");
@@ -152,7 +155,25 @@ const WebsitePortalsPage = () => {
   const [provisioningEmail, setProvisioningEmail] = useState("");
   const [provisioningName, setProvisioningName] = useState("");
   const [provisioningPassword, setProvisioningPassword] = useState("");
-  const [accountDialogOpen, setAccountDialogOpen] = useState(() => searchParams.has("account") || searchParams.has("customer"));
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [contactEditor, setContactEditor] = useState<{ contactId: string; initialTab: "details" | "account-settings" | "portal-settings" } | null>(null);
+
+  useEffect(() => {
+    if (!legacySelectedAccountId) {
+      dismissedLegacyAccountRef.current = null;
+      return;
+    }
+    if (dismissedLegacyAccountRef.current === legacySelectedAccountId) return;
+    setSelectedAccountId(legacySelectedAccountId);
+  }, [legacySelectedAccountId]);
+
+  const clearSelectedAccount = () => {
+    if (legacySelectedAccountId) {
+      dismissedLegacyAccountRef.current = legacySelectedAccountId;
+      setSearchParams({}, { replace: true });
+    }
+    setSelectedAccountId(null);
+  };
 
   const customersQuery = useQuery({
     queryKey: ["website-portals-customers"],
@@ -162,7 +183,7 @@ const WebsitePortalsPage = () => {
         portalUserIds.length
           ? (supabase as any)
               .from("profiles")
-              .select("id,user_id,full_name,phone,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
+              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
               .in("user_id", portalUserIds)
               .order("updated_at", { ascending: false })
           : Promise.resolve({ data: [], error: null }),
@@ -246,7 +267,9 @@ const WebsitePortalsPage = () => {
           const portalUser = {
             userId: entry.user_id,
             profileId: profile?.id ? String(profile.id) : `pending:${entry.user_id}`,
-            email: entry.email ?? "",
+            // profiles.email is maintained from auth.users at signup. It remains
+            // available even when the admin-only user-list endpoint is offline.
+            email: String(profile?.email || entry.email || ""),
             fullName: String(profile?.full_name ?? entry.display_name ?? ""),
             phone: String(profile?.phone ?? ""),
             organizationName: String(profile?.organization_name ?? ""),
@@ -328,6 +351,17 @@ const WebsitePortalsPage = () => {
 
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null;
   const selectedCustomer = selectedAccount?.portalUser ?? null;
+
+  // Retain support for legacy links that identify a portal account in the URL.
+  // Normal row clicks open the contact editor directly without route navigation.
+  useEffect(() => {
+    if (!selectedAccountId || !selectedAccount || contactEditor) return;
+    if (selectedAccount.crmContactId) {
+      openContactEditor(selectedAccount.crmContactId, "portal-settings");
+      return;
+    }
+    setAccountDialogOpen(true);
+  }, [contactEditor, selectedAccount, selectedAccountId]);
 
   const detailQuery = useQuery({
     queryKey: ["website-portals-customer-detail", selectedCustomer?.userId],
@@ -640,25 +674,108 @@ const WebsitePortalsPage = () => {
     }
   };
 
-  const openErpAccount = (customerId: number | null, contactId: string | null) => {
-    if (!customerId) return;
-    const params = new URLSearchParams({ erpCustomer: String(customerId), tab: "account-settings" });
-    if (contactId) params.set("contact", contactId);
-    navigate(`/admin/contacts?${params.toString()}`);
+  const openContactEditor = (contactId: string, initialTab: "details" | "account-settings" | "portal-settings" = "details") => {
+    setContactEditor({ contactId, initialTab });
+  };
+
+  const openPortalContactEditor = (account: PortalAccountRecord, initialTab: "details" | "account-settings" | "portal-settings") => {
+    setSelectedAccountId(account.id);
+    if (account.crmContactId) openContactEditor(account.crmContactId, initialTab);
   };
 
   const openPortalContact = (account: PortalAccountRecord) => {
-    if (account.crmCustomerId && account.crmContactId) {
-      openErpAccount(account.crmCustomerId, account.crmContactId);
+    // Keep the selected portal identity available so its profile-to-contact
+    // synchronization completes before the shared editor is shown.
+    if (account.crmContactId) {
+      openPortalContactEditor(account, "portal-settings");
       return;
     }
     setSelectedAccountId(account.id);
     setAccountDialogOpen(true);
   };
 
+  const emulatePortalAccount = (account: PortalAccountRecord) => {
+    if (!account.portalUser) return;
+    startPortalEmulation({ userId: account.portalUser.userId, label: account.fullName || account.email || "customer" });
+    navigate("/profile");
+  };
+
+  const createPortalLogin = (account: PortalAccountRecord) => {
+    if (!account.crmCustomerId) {
+      toast({ title: "Customer approval required", description: "Approve or link this customer before creating a website login.", variant: "destructive" });
+      return;
+    }
+    setSelectedAccountId(account.id);
+    setProvisioningMode("create");
+    setProvisioningEmail(account.email);
+    setProvisioningName(account.fullName);
+    setProvisioningPassword("");
+  };
+
+  const portalSettings = !selectedAccount ? null : !selectedCustomer ? (
+    <Card className="shadow-none hover:shadow-none">
+      <CardHeader>
+        <CardTitle>Portal access</CardTitle>
+        <CardDescription>This approved customer has no website login yet. Create one when portal access is needed.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button onClick={() => createPortalLogin(selectedAccount)} disabled={!selectedAccount.email}>
+          <UserPlus className="mr-2 h-4 w-4" />Create login
+        </Button>
+      </CardContent>
+    </Card>
+  ) : !detailQuery.data ? (
+    <Card className="shadow-none hover:shadow-none"><CardContent className="py-10 text-sm text-muted-foreground">Loading portal settings…</CardContent></Card>
+  ) : (
+    <Tabs defaultValue="operations" className="space-y-4">
+      <TabsList className="flex w-full flex-wrap justify-start gap-2">
+        <TabsTrigger value="operations">Operations</TabsTrigger>
+        <TabsTrigger value="orders">Orders</TabsTrigger>
+        <TabsTrigger value="addresses">Addresses</TabsTrigger>
+        <TabsTrigger value="payments">Payments</TabsTrigger>
+        <TabsTrigger value="support">Support</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="operations" className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="shadow-none hover:shadow-none">
+            <CardHeader><CardTitle className="text-base">Feature access</CardTitle><CardDescription>Overrides become available for the linked website account.</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              {FEATURE_KEYS.map((feature) => {
+                const enabled = detailQuery.data.featureOverrides[feature];
+                return <Button key={feature} type="button" variant={enabled ? "default" : "outline"} className="w-full justify-between capitalize" onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}>
+                  {feature.replace(/-/g, " ")}<span className="text-xs">{enabled ? "Enabled" : "Default"}</span>
+                </Button>;
+              })}
+            </CardContent>
+          </Card>
+          <Card className="shadow-none hover:shadow-none">
+            <CardHeader><CardTitle className="text-base">Account actions</CardTitle><CardDescription>Customer identity is edited on Details and Account Settings.</CardDescription></CardHeader>
+            <CardContent className="space-y-3">
+              <Button variant="outline" className="w-full justify-start" onClick={async () => { try { await resetPassword.mutateAsync(detailQuery.data.email); toast({ title: "Reset sent", description: "Password reset email has been sent." }); } catch (error: any) { toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" }); } }} disabled={!detailQuery.data.email || resetPassword.isPending}>
+                <Mail className="mr-2 h-4 w-4" />{resetPassword.isPending ? "Sending reset…" : "Send password reset"}
+              </Button>
+              <div className="space-y-2"><Label>Assigned pricelist</Label><Select value={detailQuery.data.assignedPricelistId ? String(detailQuery.data.assignedPricelistId) : "none"} onValueChange={(value) => assignPricelist.mutate(value === "none" ? null : Number(value))}><SelectTrigger><SelectValue placeholder="Select a pricelist" /></SelectTrigger><SelectContent><SelectItem value="none">No assigned pricelist</SelectItem>{pricelistVersions.map((version) => <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Innovations account number</Label><div className="flex gap-2"><Input value={accountNumberDraft} onChange={(event) => setAccountNumberDraft(event.target.value)} placeholder="e.g. RETAIL" disabled={!detailQuery.data.crmCustomerId} /><Button size="sm" variant="outline" onClick={() => updateAccountNumber.mutate(accountNumberDraft)} disabled={updateAccountNumber.isPending || !detailQuery.data.crmCustomerId || normalizeAccountNumberInput(accountNumberDraft) === normalizeAccountNumberInput(detailQuery.data.accountNumber)}>{updateAccountNumber.isPending ? "Saving…" : "Save"}</Button></div></div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Current cart</CardTitle><CardDescription>{detailQuery.data.cartItems.length} item(s) in progress.</CardDescription></CardHeader><CardContent className="space-y-2">{detailQuery.data.cartItems.length ? detailQuery.data.cartItems.map((item) => <div key={item.id} className="flex justify-between rounded border px-3 py-2 text-sm"><span>{item.product_name} × {item.quantity}</span><span>{formatMoney(item.product_price * item.quantity)}</span></div>) : <p className="text-sm text-muted-foreground">No active cart items.</p>}<Button className="w-full" onClick={() => placeOnBehalfOrder.mutate()} disabled={placeOnBehalfOrder.isPending || !detailQuery.data.cartItems.length}><ShoppingCart className="mr-2 h-4 w-4" />{placeOnBehalfOrder.isPending ? "Placing order…" : "Place order on behalf"}</Button></CardContent></Card>
+          <Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Abandoned carts</CardTitle><CardDescription>{detailQuery.data.abandonedAlerts.filter((alert) => alert.status === "open").length} open alert(s).</CardDescription></CardHeader><CardContent className="space-y-2">{detailQuery.data.abandonedAlerts.length ? detailQuery.data.abandonedAlerts.map((alert) => <div key={alert.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm"><span>{alert.total_items} item(s) · {formatMoney(alert.total_amount)}</span>{alert.status === "open" ? <Button size="sm" variant="outline" onClick={() => resolveAlert.mutate(alert.id)} disabled={resolveAlert.isPending}>Resolve</Button> : <Badge variant="secondary">Resolved</Badge>}</div>) : <p className="text-sm text-muted-foreground">No abandoned cart alerts.</p>}</CardContent></Card>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="orders"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Orders and payments</CardTitle></CardHeader><CardContent className="space-y-2">{ordersLoading ? <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" /> : orders.length ? orders.map((order) => <div key={order.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm"><span>#{order.id.slice(0, 8).toUpperCase()} · {order.status}</span><Badge variant="outline">{formatMoney(order.totalAmount)}</Badge></div>) : <p className="text-sm text-muted-foreground">No orders on file.</p>}</CardContent></Card></TabsContent>
+      <TabsContent value="addresses"><AddressBookSection targetUserId={selectedCustomer.userId} title="Customer addresses" description="Update saved checkout addresses." /></TabsContent>
+      <TabsContent value="payments"><PaymentMethodsSection targetUserId={selectedCustomer.userId} title="Saved payment methods" description="Manage saved payment methods for this customer." /></TabsContent>
+      <TabsContent value="support"><div className="grid gap-4 xl:grid-cols-3"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Helpdesk tickets</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => <div key={ticket.id} className="rounded border p-2 text-sm"><p className="font-medium">{ticket.ticket_number}</p><p className="text-muted-foreground">{ticket.title}</p></div>) : <p className="text-sm text-muted-foreground">No linked tickets.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Submitted forms</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.inquiries.length ? detailQuery.data.inquiries.map((inquiry) => <div key={inquiry.id} className="rounded border p-2 text-sm"><p className="font-medium">{inquiry.inquiry_type}</p><p className="line-clamp-2 text-muted-foreground">{inquiry.message || "No message"}</p></div>) : <p className="text-sm text-muted-foreground">No form submissions.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Quote requests</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.quotes.length ? detailQuery.data.quotes.map((quote) => <div key={quote.id} className="rounded border p-2 text-sm"><p className="font-medium">{quote.quote_number}</p><p className="text-muted-foreground">{formatMoney(quote.grand_total)} · {quote.status}</p></div>) : <p className="text-sm text-muted-foreground">No quote requests.</p>}</CardContent></Card></div></TabsContent>
+    </Tabs>
+  );
+
   const handleAccountDialogOpenChange = (open: boolean) => {
     setAccountDialogOpen(open);
-    if (!open) setSelectedAccountId(null);
+    if (!open) clearSelectedAccount();
   };
 
 
@@ -707,8 +824,9 @@ const WebsitePortalsPage = () => {
                   {accounts.map((account) => {
                     const user = account.portalUser;
                     return (
+                      <ContextMenu key={account.id}>
+                      <ContextMenuTrigger asChild>
                       <tr
-                        key={account.id}
                         onClick={() => openPortalContact(account)}
                         className={`cursor-pointer border-b align-top transition-colors ${selectedAccountId === account.id ? "bg-[hsl(var(--admin-accent)/0.08)]" : "hover:bg-muted/60"}`}
                       >
@@ -738,11 +856,7 @@ const WebsitePortalsPage = () => {
                                 variant="ghost"
                                 className="h-6 px-2 text-[11px]"
                                 title="View the customer portal as this account (no login needed)"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  startPortalEmulation({ userId: user.userId, label: account.fullName || account.email || "customer" });
-                                  navigate("/profile");
-                                }}
+                                onClick={(event) => { event.stopPropagation(); emulatePortalAccount(account); }}
                               >
                                 <Eye className="mr-1 h-3 w-3" /> Emulate
                               </Button>
@@ -758,6 +872,15 @@ const WebsitePortalsPage = () => {
                           ) : account.isErpCustomer ? <Badge variant="outline">Approved</Badge> : <Badge variant="secondary">Needs review</Badge>}
                         </td>
                       </tr>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onSelect={() => account.crmContactId && openPortalContactEditor(account, "details")} disabled={!account.crmContactId}>Edit contact</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser}>Emulate</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser}>Create login</ContextMenuItem>
+                      </ContextMenuContent>
+                      </ContextMenu>
                     );
                   })}
                   {!accounts.length ? <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
@@ -800,7 +923,7 @@ const WebsitePortalsPage = () => {
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button onClick={() => openProvisioning("create")} disabled={!selectedAccount.email}><UserPlus className="mr-2 h-4 w-4" />Create login</Button>
                     <Button variant="outline" onClick={() => openProvisioning("invite")} disabled={!selectedAccount.email}><Mail className="mr-2 h-4 w-4" />Send invite</Button>
-                  <Button variant="ghost" onClick={() => openErpAccount(selectedAccount.crmCustomerId, selectedAccount.crmContactId)}>Edit account &amp; contact</Button>
+                  {selectedAccount.crmContactId ? <Button variant="ghost" onClick={() => openContactEditor(selectedAccount.crmContactId)}>Edit account &amp; contact</Button> : null}
                   </div>
                   {!selectedAccount.email ? <p className="mt-3 text-xs text-amber-700">Add an email address in the ERP contact before creating or inviting this account.</p> : null}
                 </div>
@@ -1164,6 +1287,18 @@ const WebsitePortalsPage = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {contactEditor ? (
+        <ContactsPage
+          embeddedContactId={contactEditor.contactId}
+          embeddedInitialTab={contactEditor.initialTab}
+          embeddedPortalSettings={portalSettings}
+          onEmbeddedClose={() => {
+            setContactEditor(null);
+            clearSelectedAccount();
+          }}
+        />
+      ) : null}
 
       <Dialog open={provisioningMode !== null} onOpenChange={(open) => !open && setProvisioningMode(null)}>
         <DialogContent className="sm:max-w-md">

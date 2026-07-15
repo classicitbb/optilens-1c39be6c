@@ -2,6 +2,17 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-14
+- Area: Website Portals customer editing
+- Impact: selecting a customer navigated admins away from Website Portals into a separate Contacts page, while the portal dialog duplicated profile/account edits and could display an empty email when the optional admin user-list request was unavailable.
+- Resolution: Website Portals now opens the shared Contacts editor in place and reads the signup-synchronized profile email. The Website parent route now opens the Portals workspace first.
+- Follow-up: keep customer identity, Innovations linkage, and optional portal access in the shared Customer Contact edit surface; do not add a competing editable portal profile.
+
+## 2026-07-14
+- Area: Website Portals row actions and shared customer editing
+- Impact: portal settings were not visible after the contact editor became the in-place surface, and admins had no concise way to choose contact editing, portal editing, emulation, or account creation from a customer row.
+- Resolution: moved portal operations, orders, addresses, payments, and support into the shared Contact modal's Portal Settings tab. Normal clicks select that tab; a right-click menu exposes the four account-specific actions.
+
 ## 2026-07-13
 - Area: public lens navigation and mobile menu
 - Impact: specialty lens information had no single discoverable public page, the branded-lens column used an outdated heading, and the mobile menu left a dark partial-screen scrim rather than matching the site's frosted mega-menu presentation.

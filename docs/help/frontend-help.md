@@ -2,6 +2,13 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-14 — Website Portals
+
+- Admin → Website now opens Website Portals. Website page content management remains at Admin → Website → Content.
+- Select a customer account to open its Contacts edit modal without leaving Website Portals. Use Details for the signup email and contact details, and Account Settings for the Innovations account number.
+- A missing website email after this release indicates an incomplete signup/profile synchronization issue, not a portal display-only field. Confirm the profile email in the customer contact flow.
+- A normal click opens Portal Settings in the shared dialog. Right-click a customer row for Edit contact, Edit portal, Emulate, or Create login; unavailable actions are disabled until the customer is linked or has a website login.
+
 ## 2026-07-13 — Specialty Lenses
 
 - Find Endless Pilot Progressive and OmniLux NAL under Lenses → Lifestyle Lenses → Specialty Lenses.

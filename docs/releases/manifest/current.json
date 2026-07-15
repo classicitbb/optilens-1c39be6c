@@ -1,16 +1,18 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-13T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-14T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Added a Specialty Lenses page for Endless Pilot Progressive and OmniLux NAL, with expandable on-page information instead of separate product pages.",
-    "The page is available under Lifestyle Lenses. The desktop column now reads House Brands, and the mobile menu opens as a full-screen frosted panel."
+    "Opening Admin → Website now lands on Website Portals.",
+    "Choose a customer from Website Portals to edit their contact and Innovations account linkage in the familiar Contacts modal without leaving the page.",
+    "Portal accounts now display the email stored for the website signup even when the admin user-list service is unavailable.",
+    "A normal row click opens Portal Settings in that same modal. Right-click a row for direct Contact, Portal, Emulate, or Create login actions."
   ],
   "moduleImpact": [
     {
-      "module": "lenses/specialty",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Specialty Lenses."
+      "notes": "Updated as part of Website Portal Contact Editing."
     }
   ],
   "migrationNotes": [

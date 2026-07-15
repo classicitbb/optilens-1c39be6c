@@ -2,6 +2,14 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-14 — Website Portal Contact Editing
+
+### Release Notes
+- Opening Admin → Website now lands on Website Portals.
+- Choose a customer from Website Portals to edit their contact and Innovations account linkage in the familiar Contacts modal without leaving the page.
+- Portal accounts now display the email stored for the website signup even when the admin user-list service is unavailable.
+- A normal row click opens Portal Settings in that same modal. Right-click a row for direct Contact, Portal, Emulate, or Create login actions.
+
 ## 2026-07-13 — Specialty Lenses
 
 ### Release Notes
