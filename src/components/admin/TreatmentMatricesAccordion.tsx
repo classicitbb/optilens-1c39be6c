@@ -42,10 +42,10 @@ import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixRowKey, buildMatrixSectionLabel } from "@/features/admin/rx-pricing/structure";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
-import { buildCombos, lensIdFor, upsertPricingItems, type ComboWithProvenance } from "@/lib/pricing/combos";
+import { buildCombos, excludeLensFromAnchor, lensIdFor, upsertPricingItems, type ComboWithProvenance } from "@/lib/pricing/combos";
 import { pricedMatrix } from "@/lib/pricing/engine";
 import { categoryKeyFor, groupingKeyFor, materialKeyFor } from "@/lib/pricing/groupingMap";
-import { Sparkles } from "lucide-react";
+import { Ban, Sparkles } from "lucide-react";
 
 interface AutoPricePlanItem {
   groupingKey: string;
@@ -55,8 +55,16 @@ interface AutoPricePlanItem {
   materialKey: string;
   lensId: string;
   lensName: string;
+  preferredSupplier: string;
   priceUSD: number;
   allocatedBbd: number;
+  // Which supplier's cost the price is actually floored against, and the
+  // specific lens row that represents it — so the operator can review and,
+  // if it's not who they want setting the floor, exclude it right here
+  // rather than hunting the row down in the catalog separately.
+  anchorSupplier: string;
+  anchorCost: number;
+  anchorLensId: string | null;
 }
 
 interface AutoPricePlan {
@@ -431,9 +439,21 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
       const items: AutoPricePlanItem[] = [];
       let skippedExisting = 0;
       let skippedUnmapped = 0;
+      let skippedUnsafe = 0;
 
       for (const row of priced) {
-        if (!row.available || !row.key || !row.treatment || !row.tier || !row.material || !row.preferredSupplier) continue;
+        if (!row.available || !row.key || !row.treatment || !row.tier || !row.material || !row.preferredSupplier || !row.anchorSupplier) continue;
+
+        // Defense in depth: standardPrice() computes prices that should
+        // ALWAYS clear the floor margin against every available supplier by
+        // construction (price is derived FROM the anchor, then only ever
+        // rounded up). Never write a row where that isn't true, even though
+        // it should be mathematically impossible — "should be impossible"
+        // isn't the same guarantee as "provably didn't happen."
+        if (row.safe === false) {
+          skippedUnsafe++;
+          continue;
+        }
 
         const groupingKey = groupingKeyFor(row.treatment);
         const categoryKey = categoryKeyFor(row.tier);
@@ -464,6 +484,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
 
         const lensName = combo.provenance[row.preferredSupplier]?.sourceName ?? row.preferredSupplier;
         const allocatedBbd = fxRate > 0 ? row.priceUSD! / fxRate : row.priceUSD!;
+        const anchorLensId = lensIdFor(combo, row.anchorSupplier);
 
         items.push({
           groupingKey,
@@ -473,13 +494,24 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           materialKey,
           lensId,
           lensName,
+          preferredSupplier: row.preferredSupplier,
           priceUSD: row.priceUSD!,
           allocatedBbd: Math.round(allocatedBbd * 100) / 100,
+          anchorSupplier: row.anchorSupplier,
+          anchorCost: row.anchorCost!,
+          anchorLensId,
         });
       }
 
       setAutoPricePlan({ items, skippedExisting, skippedUnmapped });
-      if (!items.length) {
+      if (skippedUnsafe) {
+        toast({
+          title: "Unsafe prices blocked",
+          description: `${skippedUnsafe} combo(s) computed a price that didn't clear the floor margin against every available supplier and were NOT staged. This should not be possible — worth reporting if you see it.`,
+          variant: "destructive",
+        });
+      }
+      if (!items.length && !skippedUnsafe) {
         toast({
           title: "Nothing to price",
           description: skippedExisting
@@ -490,6 +522,19 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     } catch (error: any) {
       toast({ title: "Auto Price failed", description: error.message, variant: "destructive" });
     } finally {
+      setAutoPriceComputing(false);
+    }
+  };
+
+  const excludeAnchorAndRecompute = async (item: AutoPricePlanItem) => {
+    if (!item.anchorLensId) return;
+    setAutoPriceComputing(true);
+    try {
+      await excludeLensFromAnchor(item.anchorLensId, `Excluded during Auto Price review (was anchor for ${item.groupingName} / ${item.categoryName} / ${item.materialKey})`);
+      toast({ title: "Supplier excluded", description: `${item.anchorSupplier}'s price no longer counts toward the anchor for this cell. Recomputing…` });
+      await computeAutoPricePlan();
+    } catch (error: any) {
+      toast({ title: "Exclude failed", description: error.message, variant: "destructive" });
       setAutoPriceComputing(false);
     }
   };
@@ -918,35 +963,98 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!autoPricePlan} onOpenChange={(value) => !value && !autoPriceApplying && setAutoPricePlan(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-sm font-semibold">Apply Auto Price?</AlertDialogTitle>
-            <AlertDialogDescription className="text-xs space-y-1">
-              <span className="block">
-                Will fill <strong>{autoPricePlan?.items.length ?? 0}</strong> empty matrix cell{autoPricePlan?.items.length === 1 ? "" : "s"} — each linked to
-                the highest-priority available supplier's lens, priced at the anchor-cost floor margin.
-              </span>
-              {!!autoPricePlan?.skippedExisting && (
-                <span className="block text-muted-foreground">{autoPricePlan.skippedExisting} cell(s) already linked by hand were left untouched.</span>
-              )}
-              {!!autoPricePlan?.skippedUnmapped && (
-                <span className="block text-muted-foreground">
-                  {autoPricePlan.skippedUnmapped} classified combo(s) have no matching grouping/category/material cell and were skipped.
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="h-7 text-xs" disabled={autoPriceApplying}>
+      <Dialog open={!!autoPricePlan} onOpenChange={(value) => !value && !autoPriceApplying && !autoPriceComputing && setAutoPricePlan(null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
+            <DialogTitle className="text-sm font-semibold">Review Auto Price</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Every price floors against the <strong>anchor</strong> — the most expensive available, non-excluded supplier for that
+              cell — so margin holds no matter which supplier actually fulfils the order. Exclude a supplier below to drop it from
+              the anchor calc and recompute before anything is written.
+            </p>
+          </DialogHeader>
+
+          <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+            <span>
+              <strong className="text-foreground">{autoPricePlan?.items.length ?? 0}</strong> cell{autoPricePlan?.items.length === 1 ? "" : "s"} to fill
+            </span>
+            {!!autoPricePlan?.skippedExisting && <span>{autoPricePlan.skippedExisting} already linked by hand (untouched)</span>}
+            {!!autoPricePlan?.skippedUnmapped && <span>{autoPricePlan.skippedUnmapped} unmapped (no matching cell)</span>}
+          </div>
+
+          <div className="overflow-y-auto flex-1">
+            {autoPriceComputing ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : !autoPricePlan?.items.length ? (
+              <p className="text-xs text-muted-foreground text-center py-8">Nothing to review.</p>
+            ) : (
+              <table className="w-full text-xs border-collapse">
+                <thead className="sticky top-0 bg-background border-b border-border">
+                  <tr>
+                    <th className="px-3 py-1.5 text-left font-semibold text-foreground">Cell</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-foreground">Anchor supplier (floors the price)</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-foreground">Links to</th>
+                    <th className="px-3 py-1.5 text-right font-semibold text-foreground">Price</th>
+                    <th className="px-3 py-1.5 text-right font-semibold text-foreground" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {autoPricePlan.items.map((item) => (
+                    <tr key={`${item.groupingKey}::${item.categoryKey}::${item.materialKey}`} className="border-b border-border/60 hover:bg-muted/30">
+                      <td className="px-3 py-1.5 whitespace-nowrap align-top">
+                        <div className="font-medium text-foreground">{item.categoryName}</div>
+                        <div className="text-muted-foreground text-[10px]">{item.groupingName} · {item.materialKey}</div>
+                      </td>
+                      <td className="px-3 py-1.5 align-top">
+                        <div className="font-medium text-foreground">{item.anchorSupplier}</div>
+                        <div className="text-muted-foreground text-[10px]">${item.anchorCost.toFixed(2)} USD · worst case this cell must clear</div>
+                      </td>
+                      <td className="px-3 py-1.5 align-top max-w-[220px] truncate" title={item.lensName}>
+                        {item.lensName}
+                        {item.preferredSupplier !== item.anchorSupplier && (
+                          <div className="text-muted-foreground text-[10px]">{item.preferredSupplier} — cheaper than anchor, floor still holds</div>
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono align-top">
+                        {showUSD ? `$${item.priceUSD.toFixed(2)}` : item.allocatedBbd.toFixed(2)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right align-top">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-1.5 text-[10px] gap-1 text-destructive hover:text-destructive"
+                          disabled={autoPriceComputing || autoPriceApplying || !item.anchorLensId}
+                          onClick={() => excludeAnchorAndRecompute(item)}
+                          title={`Exclude ${item.anchorSupplier} from this cell's anchor calculation and recompute`}
+                        >
+                          <Ban className="h-3 w-3" />
+                          Exclude
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <DialogFooter className="px-4 py-3 border-t border-border shrink-0">
+            <Button variant="outline" className="h-7 text-xs" disabled={autoPriceApplying} onClick={() => setAutoPricePlan(null)}>
               Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction className="h-7 text-xs" disabled={autoPriceApplying || !autoPricePlan?.items.length} onClick={applyAutoPricePlan}>
+            </Button>
+            <Button
+              className="h-7 text-xs"
+              disabled={autoPriceApplying || autoPriceComputing || !autoPricePlan?.items.length}
+              onClick={applyAutoPricePlan}
+            >
+              {autoPriceApplying ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
               Fill {autoPricePlan?.items.length ?? 0} Cell{autoPricePlan?.items.length === 1 ? "" : "s"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={resetConfirmOpen} onOpenChange={(value) => !resetting && setResetConfirmOpen(value)}>
         <AlertDialogContent>

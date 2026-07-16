@@ -71,11 +71,19 @@ produced (`pricelist_versions` + `matrix_allocations` + the new `pricelists`/`pr
    (`TreatmentMatricesAccordion.tsx`). Done 2026-07-15: computes a plan (classify live `lenses` →
    `pricedMatrix()` → map onto real grouping/category/material keys via `groupingMap.ts` → skip
    cells already manually linked → resolve the *preferred*-supplier's `lens_id` via `lensIdFor()`,
-   not the anchor's, since anchor is cost-basis only, not necessarily who fulfils), shows a
-   confirmation dialog with counts (fill / already-linked / unmapped), then applies via the
-   existing `upsertMutation` + `syncToCatalog` path — identical write path to a manual 🔍 pick,
-   so the Price List/PDF export stays in sync automatically. Existing 🔍 manual-link UI untouched
-   for cells the classifier can't reach.
+   not the anchor's, since anchor is cost-basis only, not necessarily who fulfils), then applies
+   via the existing `upsertMutation` + `syncToCatalog` path — identical write path to a manual 🔍
+   pick, so the Price List/PDF export stays in sync automatically. Existing 🔍 manual-link UI
+   untouched for cells the classifier can't reach.
+   **Revised same day, operator requirement:** the review step is a full audit table, not a bare
+   count summary — every row shows the *anchor* supplier (the one the floor price is set against)
+   and its cost, separately from which lens actually gets linked, with an inline "Exclude" action
+   per row wired to BS1-02's `toggle_anchor_exclusion` RPC (persistent, not session-only) that
+   recomputes the whole plan on click. Also added a defensive `skippedUnsafe` check: any row
+   where `standardPrice()`'s `safe` flag isn't `true` is never staged, even though it should be
+   mathematically impossible given how the price is derived from the anchor — belt-and-suspenders
+   on the core guarantee (touch nothing, any available non-excluded supplier still clears the
+   floor margin) rather than trusting the math silently.
 6. **Reset — descoped, not a separate action.** This component writes every manual pick
    *immediately* to the DB (`handlePick` → `upsertMutation.mutateAsync`, no draft/unsaved layer
    anywhere in the existing editor) — unlike the local tool's client-side `prices` object that
@@ -121,6 +129,25 @@ addition without a mapping entry fails the test loudly instead of Auto Price sil
 combos) + migration `20260715170000_rx_taxonomy_reconciliation.sql` (label renames + one
 additive insert only — `matrix_allocations` matches by key *string*, not id, so nothing existing
 can break).
+
+## Trans Gen S™ fill bug — root cause found and fixed (2026-07-15)
+
+Traced a live-data dump against `TIER_MAP` by hand first (~145 of ~150 sampled rows classified
+correctly; found and fixed two real `TIER_MAP` gaps — "Varilux Comfort 3" and "Digital Executive
+60mm Blended" — neither explained "nothing filled"). Actual cause, confirmed by the operator: a
+third live naming variant, **"Gray 8 SRC"** (e.g. `"1.50 SF BF Round Seg 24 Gray 8 SRC"`),
+contains no "trans" substring at all and fell through every `normTreatment()` pattern to the
+`Clear` default — not just unmapped, silently misclassified into the wrong grouping, diluting the
+Clear anchor calculation with Trans-Gen-S-specific costs. Fixed in `classifier.ts`; added
+`src/tests/unit/pricingClassifier.test.ts` (didn't exist before) so this class of regression
+fails a test instead of requiring another live-data round-trip to catch.
+
+**Second, independent cause, also confirmed live and fixed:** `rx_price_groupings.is_active =
+false` for `transitions_gen_s` itself (migration `20260715190000_activate_transitions_gen_s.sql`)
+— the entire grouping was invisible to `buildRxPricingStructure()` regardless of whether
+classification was correct. Both causes had to be fixed for Trans Gen S™ to actually fill:
+the naming gap (lenses would classify into the grouping) and the inactive flag (the grouping
+itself would render at all).
 
 ## Open question, not blocking
 

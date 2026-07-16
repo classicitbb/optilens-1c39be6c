@@ -184,3 +184,17 @@ export async function upsertPricingItems(combos: ComboWithProvenance[]): Promise
   });
   if (error) throw error;
 }
+
+// Wraps BS1-02's toggle_anchor_exclusion RPC — persistent, catalog-wide
+// exclusion of one lens row from every combo's anchor calculation, not a
+// session-only override. Used by Auto Price's review step so excluding a
+// supplier there has the same lasting effect as excluding it from
+// /admin/pricing/catalog directly.
+export async function excludeLensFromAnchor(lensId: string, reason: string): Promise<void> {
+  const { error } = await (supabase.rpc as any)("toggle_anchor_exclusion", {
+    p_lens_id: lensId,
+    p_excluded: true,
+    p_reason: reason,
+  });
+  if (error) throw error;
+}

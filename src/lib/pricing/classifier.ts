@@ -41,7 +41,12 @@ export function normTreatment(name: string | null | undefined): string {
   const isBrown = /brown|amber/.test(n);
   if (/xtractive/.test(n) && /polar/.test(n)) return "Trans® XtrActive® Polarized";
   if (/xtractive/.test(n)) return "Trans® XtrActive® New Gen";
-  if (/trans\s*8|tgns|trans\s*gen|trans8/.test(n)) return "Trans Gen S™";
+  // "Gray 8 SRC" added 2026-07-15 (operator-confirmed): a third live naming
+  // variant for TGNS/Trans Gen S lenses, alongside "Trans 8 Gray"/"TGNS".
+  // Without it, e.g. "1.50 SF BF Round Seg 24 Gray 8 SRC" fell through every
+  // pattern below and silently misclassified as Clear — not just unmapped,
+  // wrongly bucketed, diluting the Clear anchor with Trans-Gen-S costs.
+  if (/trans\s*8|tgns|trans\s*gen|trans8|gray\s*8\s*src/.test(n)) return "Trans Gen S™";
   if (/drivewear/.test(n)) return "Polarized";
   if (/polar/.test(n)) return "Polarized";
   if (/photo/.test(n) || /\bpch\b/.test(n)) return isBrown ? "Photochromic - Brown" : "Photochromic - Gray";
@@ -96,6 +101,7 @@ export const TIER_MAP: Record<string, string> = {
   "Progressive|Precise":          "Progressive - Adept",
   "Progressive|Novel":            "Progressive - Adept",
   "Progressive|Novel Coppertone": "Progressive - Adept",
+  "Progressive|Varilux Comfort 3": "Progressive - Adept", // added 2026-07-15: found live, unmapped (Varilux Comfort line is conventional PAL)
   "Progressive|Eyezen+ 0":        "Progressive - Adept", // FLAG: Essilor digital — confirm Adept vs Anti-Fatigue
   "Progressive|Ideal Sport":      "Specific Use - Sport", // FLAG: routed to Sport
 
@@ -117,6 +123,7 @@ export const TIER_MAP: Record<string, string> = {
   "Bifocal|Essilor FT28":         "Specific Use - Adept Bifocal",
   "Trifocal|Flat Top 7x28":       "Specific Use - Adept Bifocal",
   "Trifocal|Flat Top 8x35":       "Specific Use - Adept Bifocal",
+  "Bifocal|Digital Executive 60mm Blended": "Specific Use - Adept Bifocal", // FLAG: added 2026-07-15, found live unmapped — name says "Digital" but Executive-style bifocals are historically conventional; defaulted to Adept Bifocal, confirm with operator
 
   // Conventional single vision → SV Regular
   "Single Vision|Single Vision":   "Single Vision - Regular",
