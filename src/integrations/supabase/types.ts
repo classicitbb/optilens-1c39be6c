@@ -8537,6 +8537,14 @@ export type Database = {
           status: string
         }[]
       }
+      audit_product_cost_rls: {
+        Args: never
+        Returns: {
+          issue: string
+          object_name: string
+          object_type: string
+        }[]
+      }
       bulk_toggle_anchor_exclusion: {
         Args: { p_excluded: boolean; p_lens_ids: string[]; p_reason?: string }
         Returns: number
