@@ -42,6 +42,28 @@ import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixRowKey, buildMatrixSectionLabel } from "@/features/admin/rx-pricing/structure";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { buildCombos, lensIdFor, upsertPricingItems, type ComboWithProvenance } from "@/lib/pricing/combos";
+import { pricedMatrix } from "@/lib/pricing/engine";
+import { categoryKeyFor, groupingKeyFor, materialKeyFor } from "@/lib/pricing/groupingMap";
+import { Sparkles } from "lucide-react";
+
+interface AutoPricePlanItem {
+  groupingKey: string;
+  groupingName: string;
+  categoryKey: string;
+  categoryName: string;
+  materialKey: string;
+  lensId: string;
+  lensName: string;
+  priceUSD: number;
+  allocatedBbd: number;
+}
+
+interface AutoPricePlan {
+  items: AutoPricePlanItem[];
+  skippedExisting: number;
+  skippedUnmapped: number;
+}
 
 interface TreatmentMatricesAccordionProps {
   versionId: number;
@@ -268,6 +290,9 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     | { mode: "rename-category"; title: string; value: string; categoryId: number }
   >(null);
   const [archiveDialog, setArchiveDialog] = useState<null | { type: "group"; id: number; key: string; name: string; protected?: boolean } | { type: "category"; id: number; groupingKey: string; key: string; name: string }>(null);
+  const [autoPriceComputing, setAutoPriceComputing] = useState(false);
+  const [autoPriceApplying, setAutoPriceApplying] = useState(false);
+  const [autoPricePlan, setAutoPricePlan] = useState<AutoPricePlan | null>(null);
 
   const catalogLensIds = useMemo(() => new Set(catalogRows.filter((row) => row.item_id).map((row) => row.item_id as string)), [catalogRows]);
   const lensNameMap = useMemo(() => new Map((allLenses ?? []).map((lens) => [lens.id, lens.name])), [allLenses]);
@@ -389,6 +414,122 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     setClearConfirmOpen(false);
   };
 
+  // Auto Price: classify the live lenses catalog into anchor-priced combos
+  // (src/lib/pricing), map each combo onto a real matrix cell, and stage
+  // only the EMPTY cells for confirmation — never overwrites a cell someone
+  // already linked by hand. Nothing is written until the plan is confirmed.
+  const computeAutoPricePlan = async () => {
+    setAutoPriceComputing(true);
+    try {
+      const { combos } = await buildCombos();
+      if (combos.length) await upsertPricingItems(combos);
+      const priced = pricedMatrix(combos, { floorMargin: 0.15, rounding: 0.5 });
+      const comboByKey = new Map<string, ComboWithProvenance>(combos.map((combo) => [combo.key, combo]));
+
+      const items: AutoPricePlanItem[] = [];
+      let skippedExisting = 0;
+      let skippedUnmapped = 0;
+
+      for (const row of priced) {
+        if (!row.available || !row.key || !row.treatment || !row.tier || !row.material || !row.preferredSupplier) continue;
+
+        const groupingKey = groupingKeyFor(row.treatment);
+        const categoryKey = categoryKeyFor(row.tier);
+        const materialKey = materialKeyFor(row.material);
+        if (!groupingKey || !categoryKey || !materialKey) {
+          skippedUnmapped++;
+          continue;
+        }
+
+        const grouping = structure.find((candidate) => candidate.key === groupingKey);
+        const category = grouping?.categories.find((candidate) => candidate.key === categoryKey);
+        if (!grouping || !category) {
+          skippedUnmapped++;
+          continue;
+        }
+
+        if (getAllocation(groupingKey, categoryKey, materialKey)?.lens_id) {
+          skippedExisting++;
+          continue;
+        }
+
+        const combo = comboByKey.get(row.key);
+        const lensId = combo ? lensIdFor(combo, row.preferredSupplier) : null;
+        if (!combo || !lensId) {
+          skippedUnmapped++;
+          continue;
+        }
+
+        const lensName = combo.provenance[row.preferredSupplier]?.sourceName ?? row.preferredSupplier;
+        const allocatedBbd = fxRate > 0 ? row.priceUSD! / fxRate : row.priceUSD!;
+
+        items.push({
+          groupingKey,
+          groupingName: grouping.name,
+          categoryKey,
+          categoryName: category.name,
+          materialKey,
+          lensId,
+          lensName,
+          priceUSD: row.priceUSD!,
+          allocatedBbd: Math.round(allocatedBbd * 100) / 100,
+        });
+      }
+
+      setAutoPricePlan({ items, skippedExisting, skippedUnmapped });
+      if (!items.length) {
+        toast({
+          title: "Nothing to price",
+          description: skippedExisting
+            ? `${skippedExisting} matching cells are already linked; nothing else classified.`
+            : "No live lens rows classified into an empty matrix cell.",
+        });
+      }
+    } catch (error: any) {
+      toast({ title: "Auto Price failed", description: error.message, variant: "destructive" });
+    } finally {
+      setAutoPriceComputing(false);
+    }
+  };
+
+  const applyAutoPricePlan = async () => {
+    if (!autoPricePlan) return;
+    setAutoPriceApplying(true);
+    let applied = 0;
+    try {
+      for (const item of autoPricePlan.items) {
+        await upsertMutation.mutateAsync({
+          category: item.categoryKey,
+          material_index: item.materialKey,
+          treatment_type: item.groupingKey,
+          lens_id: item.lensId,
+          allocated_price_bbd: item.allocatedBbd,
+        });
+        await syncToCatalog(
+          item.groupingKey,
+          item.groupingName,
+          item.categoryKey,
+          item.categoryName,
+          item.materialKey,
+          item.lensId,
+          item.lensName,
+          item.allocatedBbd
+        );
+        applied++;
+      }
+      toast({ title: "Auto Price applied", description: `${applied} cell${applied === 1 ? "" : "s"} priced and linked.` });
+    } catch (error: any) {
+      toast({
+        title: "Auto Price stopped partway",
+        description: `${applied} of ${autoPricePlan.items.length} cells applied before this error: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setAutoPriceApplying(false);
+      setAutoPricePlan(null);
+    }
+  };
+
   const handleNameSubmit = async () => {
     if (!nameDialog) return;
     try {
@@ -480,6 +621,17 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => toast({ title: "Deltas recalculated", description: "All delta rows updated." })}>
             <RefreshCw className="h-3.5 w-3.5" />
             Recalculate All Deltas
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={computeAutoPricePlan}
+            disabled={autoPriceComputing || autoPriceApplying}
+            title="Classify the live lens catalog and fill empty matrix cells with anchor-priced lenses"
+          >
+            {autoPriceComputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Auto Price
           </Button>
         </div>
       </div>
@@ -718,6 +870,36 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
             <AlertDialogCancel className="h-7 text-xs">Cancel</AlertDialogCancel>
             <AlertDialogAction className="h-7 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleClearConfirm}>
               Yes, Clear Cell
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!autoPricePlan} onOpenChange={(value) => !value && !autoPriceApplying && setAutoPricePlan(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold">Apply Auto Price?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs space-y-1">
+              <span className="block">
+                Will fill <strong>{autoPricePlan?.items.length ?? 0}</strong> empty matrix cell{autoPricePlan?.items.length === 1 ? "" : "s"} — each linked to
+                the highest-priority available supplier's lens, priced at the anchor-cost floor margin.
+              </span>
+              {!!autoPricePlan?.skippedExisting && (
+                <span className="block text-muted-foreground">{autoPricePlan.skippedExisting} cell(s) already linked by hand were left untouched.</span>
+              )}
+              {!!autoPricePlan?.skippedUnmapped && (
+                <span className="block text-muted-foreground">
+                  {autoPricePlan.skippedUnmapped} classified combo(s) have no matching grouping/category/material cell and were skipped.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs" disabled={autoPriceApplying}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs" disabled={autoPriceApplying || !autoPricePlan?.items.length} onClick={applyAutoPricePlan}>
+              Fill {autoPricePlan?.items.length ?? 0} Cell{autoPricePlan?.items.length === 1 ? "" : "s"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -67,20 +67,60 @@ produced (`pricelist_versions` + `matrix_allocations` + the new `pricelists`/`pr
    exclusion is now `lenses.excluded_from_anchor` (BS1-02), filtered upstream in
    `fetchApprovedLensRows()` before combos are even built, so there's no separate disabled-overrides
    layer to carry over. Whole-combo disable remains the open question below.
-5. Build **Auto Price** in `/admin/pricing/rx-lenses`'s matrix editor: for every combo cell not
-   already manually linked, compute the price via steps 2-4 and auto-link
-   `matrix_allocations.lens_id` to the *preferred*-supplier row (`preferredOf()`, priority-list
-   based — NOT the anchor row, which is cost-basis only, not necessarily who fulfils). Keep the
-   existing 🔍 manual-link UI for cells the classifier can't reach. **NOT STARTED.**
-6. Build **Reset**: client-side clear of not-yet-saved Auto Price results (matches the local
-   tool's trivial confirm+clear — no backend involved). **NOT STARTED.**
+5. [x] Build **Auto Price** in `/admin/pricing/rx-lenses`'s matrix editor
+   (`TreatmentMatricesAccordion.tsx`). Done 2026-07-15: computes a plan (classify live `lenses` →
+   `pricedMatrix()` → map onto real grouping/category/material keys via `groupingMap.ts` → skip
+   cells already manually linked → resolve the *preferred*-supplier's `lens_id` via `lensIdFor()`,
+   not the anchor's, since anchor is cost-basis only, not necessarily who fulfils), shows a
+   confirmation dialog with counts (fill / already-linked / unmapped), then applies via the
+   existing `upsertMutation` + `syncToCatalog` path — identical write path to a manual 🔍 pick,
+   so the Price List/PDF export stays in sync automatically. Existing 🔍 manual-link UI untouched
+   for cells the classifier can't reach.
+6. **Reset — descoped, not a separate action.** This component writes every manual pick
+   *immediately* to the DB (`handlePick` → `upsertMutation.mutateAsync`, no draft/unsaved layer
+   anywhere in the existing editor) — unlike the local tool's client-side `prices` object that
+   only persists on explicit Save. A literal "clear not-yet-saved results" button doesn't map onto
+   this architecture. Substituted the confirmation dialog (task 5) as the equivalent safety net —
+   nothing is written until confirmed — and the pre-existing per-cell ✕ "Clear" button already
+   undoes any individual cell, auto-priced or manual, same as it always has.
 7. Wire **Save** / **Save As New** to BS1-04's `pricelists`/`pricelist_lines` write paths: Save
    → the canonical master; Save As New against a customer → that customer's fork, writing only
    the cells whose computed price differs from the master's (sparse, not a full copy).
-   **BLOCKED on BS1-04** — `pricelists`/`pricelist_lines`/`effective_price()` don't exist yet.
+   **NOT STARTED** — BS1-04 now exists so this is unblocked, just not built yet. Note this is a
+   distinct action from Auto Price: Auto Price fills `matrix_allocations` (the structural
+   "which lens fulfils this cell" layer, unchanged table); Save/Save As New would separately
+   write the resolved price into `pricelist_lines` (the price-authority layer) via
+   `set_master_price()`/`set_custom_price()`, keyed on `pricing_items.id`, not the matrix cell.
 8. [x] Port `pricing-engine.test.js` to vitest (`src/tests/unit/pricingEngine.test.ts`, 17/17
    passing, matches originals). Added `src/tests/unit/pricingCombos.test.ts` (7 tests) covering
    `combosFromRows`'s take-cheapest-per-supplier behavior specifically.
+
+## Taxonomy reconciliation (resolved 2026-07-15, live-data check)
+
+Auto Price needs to turn a classifier combo (`treatment||tier||material`) into a real
+`matrix_allocations` write, which is keyed on `rx_price_groupings.key`/`rx_price_categories.key`
+— not the classifier's human-readable strings. Pulled the live grouping/category table via the
+operator; it did NOT line up cleanly. Resolved with the operator (locked decision: the local
+tool's taxonomy is authoritative, live DB conforms to it, not the other way around):
+
+- `Photochromic - Brown` has no live grouping → lumped into `photochromic_gray`.
+- Live DB had two near-duplicate transitions groupings (`transitions_gen_s` /
+  `transitions_gen_s_2`) → `transitions_gen_s` is canonical, `_2` deactivated.
+- `Progressive - Adept` (classifier) vs. live `Progressive - Adapt` → relabel to "Adept".
+- `Anti-Fatigue` (classifier, one shared tier for both progressive and single-vision designs) vs.
+  live `single_vision_antifatigue` (SV-only) → relabel to "Anti-Fatigue", reused for both.
+- `Specific Use - Sport` had no live category at all → added, one row per active grouping
+  (`rx_price_categories` has one row per (grouping, key) pair, not a single shared row).
+- Live DB split bifocals by shape (`specific_use_bifocal_round`/`_ft`); classifier splits by
+  digital-vs-conventional → collapsed onto the classifier's split (operator confirmed round vs.
+  FT carries no real price distinction today).
+
+Implemented as `src/lib/pricing/groupingMap.ts` (`groupingKeyFor`/`categoryKeyFor`, tested for
+completeness against every value `classifier.ts` can actually produce — a future `TIER_MAP`
+addition without a mapping entry fails the test loudly instead of Auto Price silently dropping
+combos) + migration `20260715170000_rx_taxonomy_reconciliation.sql` (label renames + one
+additive insert only — `matrix_allocations` matches by key *string*, not id, so nothing existing
+can break).
 
 ## Open question, not blocking
 
@@ -92,10 +132,14 @@ sufficient. Decide during implementation, not upfront.
 
 ## Acceptance
 
-- Test parity with `pricing-engine.test.js`, including `smoothLadder`.
-- `TIER_MAP` ported with zero entries changed from the source file.
-- Auto Price fills every combo cell with a live, non-excluded supplier on a sampled pricelist,
-  without manual 🔍 linking.
-- Cost change → staged recompute diff visible; nothing silently republished (unchanged from
-  original scope).
-- Save As New against a customer produces sparse `pricelist_lines`, not a full-catalog copy.
+- [x] Test parity with `pricing-engine.test.js`, including `smoothLadder` (17/17).
+- [x] `TIER_MAP` ported with zero entries changed from the source file.
+- [x] Auto Price fills combo cells with a live, non-excluded, preferred supplier without manual
+  🔍 linking, skipping cells already linked by hand — verified by code path + 30 unit tests
+  (engine/combos/groupingMap) + existing `TreatmentMatricesAccordion.test.tsx` still passing.
+  **Not yet exercised against a live pricelist_version in a real browser session** — same caveat
+  as BS1-02/04: no DB execution access from this environment.
+- Cost change → staged recompute diff visible; nothing silently republished — unchanged from
+  original scope, not yet built (no `cost_models`/BS1-03 staging layer exists yet).
+- Save As New against a customer produces sparse `pricelist_lines`, not a full-catalog copy —
+  **not yet built**, see task 7.
