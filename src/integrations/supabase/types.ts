@@ -5190,155 +5190,6 @@ export type Database = {
         }
         Relationships: []
       }
-      pricing_audit: {
-        Row: {
-          action: string
-          actor: string | null
-          after: Json | null
-          at: string
-          before: Json | null
-          entity: string
-          entity_id: string
-          id: string
-        }
-        Insert: {
-          action: string
-          actor?: string | null
-          after?: Json | null
-          at?: string
-          before?: Json | null
-          entity: string
-          entity_id: string
-          id?: string
-        }
-        Update: {
-          action?: string
-          actor?: string | null
-          after?: Json | null
-          at?: string
-          before?: Json | null
-          entity?: string
-          entity_id?: string
-          id?: string
-        }
-        Relationships: []
-      }
-      pricelists: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          customer_id: number | null
-          id: string
-          kind: string
-          name: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          customer_id?: number | null
-          id?: string
-          kind: string
-          name?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          customer_id?: number | null
-          id?: string
-          kind?: string
-          name?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pricelists_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pricelist_lines: {
-        Row: {
-          approved_by: string | null
-          created_at: string
-          created_by: string | null
-          custom_price: number
-          id: string
-          item_ref: string
-          pricelist_id: string
-          reason: string | null
-          source: string
-          updated_at: string
-        }
-        Insert: {
-          approved_by?: string | null
-          created_at?: string
-          created_by?: string | null
-          custom_price: number
-          id?: string
-          item_ref: string
-          pricelist_id: string
-          reason?: string | null
-          source?: string
-          updated_at?: string
-        }
-        Update: {
-          approved_by?: string | null
-          created_at?: string
-          created_by?: string | null
-          custom_price?: number
-          id?: string
-          item_ref?: string
-          pricelist_id?: string
-          reason?: string | null
-          source?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pricelist_lines_pricelist_id_fkey"
-            columns: ["pricelist_id"]
-            isOneToOne: false
-            referencedRelation: "pricelists"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pricelist_lines_item_ref_fkey"
-            columns: ["item_ref"]
-            isOneToOne: false
-            referencedRelation: "pricing_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pricing_items: {
-        Row: {
-          created_at: string
-          id: string
-          material: string
-          tier: string
-          treatment: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          material: string
-          tier: string
-          treatment: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          material?: string
-          tier?: string
-          treatment?: string
-        }
-        Relationships: []
-      }
       price_matrix: {
         Row: {
           category: string
@@ -5507,6 +5358,60 @@ export type Database = {
           },
         ]
       }
+      pricelist_lines: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          custom_price: number
+          id: string
+          item_ref: string
+          pricelist_id: string
+          reason: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_price: number
+          id?: string
+          item_ref: string
+          pricelist_id: string
+          reason?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_price?: number
+          id?: string
+          item_ref?: string
+          pricelist_id?: string
+          reason?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelist_lines_item_ref_fkey"
+            columns: ["item_ref"]
+            isOneToOne: false
+            referencedRelation: "pricing_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricelist_lines_pricelist_id_fkey"
+            columns: ["pricelist_id"]
+            isOneToOne: false
+            referencedRelation: "pricelists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricelist_notes: {
         Row: {
           content: string | null
@@ -5608,6 +5513,84 @@ export type Database = {
         }
         Relationships: []
       }
+      pricelists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: number | null
+          id: string
+          kind: string
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: number | null
+          id?: string
+          kind: string
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: number | null
+          id?: string
+          kind?: string
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          after: Json | null
+          at: string
+          before: Json | null
+          entity: string
+          entity_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          entity: string
+          entity_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          entity?: string
+          entity_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       pricing_input_rows: {
         Row: {
           batch_id: string
@@ -5665,6 +5648,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pricing_items: {
+        Row: {
+          created_at: string
+          id: string
+          material: string
+          tier: string
+          treatment: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material: string
+          tier: string
+          treatment: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material?: string
+          tier?: string
+          treatment?: string
+        }
+        Relationships: []
       }
       pricing_settings: {
         Row: {
@@ -7772,33 +7779,6 @@ export type Database = {
       }
     }
     Views: {
-      pricelist_variance: {
-        Row: {
-          customer_id: number | null
-          item_ref: string | null
-          master_price: number | null
-          custom_price: number | null
-          delta: number | null
-          pct: number | null
-        }
-        Insert: {
-          customer_id?: number | null
-          item_ref?: string | null
-          master_price?: number | null
-          custom_price?: number | null
-          delta?: number | null
-          pct?: number | null
-        }
-        Update: {
-          customer_id?: number | null
-          item_ref?: string | null
-          master_price?: number | null
-          custom_price?: number | null
-          delta?: number | null
-          pct?: number | null
-        }
-        Relationships: []
-      }
       addons_public: {
         Row: {
           auto_rule: Json | null
@@ -8060,6 +8040,39 @@ export type Database = {
             columns: ["mftype_id"]
             isOneToOne: false
             referencedRelation: "mftypes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricelist_variance: {
+        Row: {
+          custom_price: number | null
+          customer_id: number | null
+          delta: number | null
+          item_ref: string | null
+          master_price: number | null
+          pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelist_lines_item_ref_fkey"
+            columns: ["item_ref"]
+            isOneToOne: false
+            referencedRelation: "pricing_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -8481,6 +8494,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      effective_price: {
+        Args: { p_customer_id: number; p_item_ref: string }
+        Returns: number
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
       enqueue_email: {
@@ -8720,7 +8737,29 @@ export type Database = {
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       resolve_contact_customer_links: { Args: never; Returns: number }
+      revert_account_to_master: {
+        Args: { p_customer_id: number }
+        Returns: undefined
+      }
+      revert_line_to_master: {
+        Args: { p_customer_id: number; p_item_ref: string }
+        Returns: undefined
+      }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
+      set_custom_price: {
+        Args: {
+          p_customer_id: number
+          p_item_ref: string
+          p_price: number
+          p_reason?: string
+          p_source?: string
+        }
+        Returns: undefined
+      }
+      set_master_price: {
+        Args: { p_item_ref: string; p_price: number }
+        Returns: undefined
+      }
       sync_customer_portal_identity: {
         Args: { p_user_id?: string }
         Returns: {
@@ -8740,26 +8779,6 @@ export type Database = {
       timeout_stale_integration_sync_jobs: { Args: never; Returns: number }
       toggle_anchor_exclusion: {
         Args: { p_excluded: boolean; p_lens_id: string; p_reason?: string }
-        Returns: undefined
-      }
-      effective_price: {
-        Args: { p_customer_id: number; p_item_ref: string }
-        Returns: number
-      }
-      set_master_price: {
-        Args: { p_item_ref: string; p_price: number }
-        Returns: undefined
-      }
-      set_custom_price: {
-        Args: { p_customer_id: number; p_item_ref: string; p_price: number; p_reason?: string; p_source?: string }
-        Returns: undefined
-      }
-      revert_line_to_master: {
-        Args: { p_customer_id: number; p_item_ref: string }
-        Returns: undefined
-      }
-      revert_account_to_master: {
-        Args: { p_customer_id: number }
         Returns: undefined
       }
       trigger_integration_sync_job: {
