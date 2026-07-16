@@ -45,6 +45,10 @@ function getDefaultOriginsForEnv(environment: string): string[] {
     "https://optilens.lovable.app",
     "https://d568bffd-cdad-4066-b271-1e09c9a376d6.lovableproject.com",
     "https://id-preview--d568bffd-cdad-4066-b271-1e09c9a376d6.lovable.app",
+    // The public portal is served locally on these exact origins during
+    // authenticated, real-browser verification against cloud functions.
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
   ];
 
   if (environment === "staging") {

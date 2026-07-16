@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-16 — Portal Statements and Live Order Status
+
+### Release Notes
+- Approved customer accounts can open Statements; only an explicit statements-feature disablement keeps the link locked.
+- The local portal server at `http://localhost:8081` can call the live-data gateway, so the live order and delivery panels no longer fail with the generic Edge Function transport message during local public-site testing.
+
 ## 2026-07-14 — Website Portal Contact Editing
 
 ### Release Notes

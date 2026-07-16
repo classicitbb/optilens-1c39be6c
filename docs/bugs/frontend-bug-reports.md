@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-16
+- Area: customer portal Statements navigation and My Orders live panels
+- Impact: an approved customer could still see Statements locked because the sidebar required a staff role, and local public-site testing on port 8081 showed generic Edge Function failures in both live order-status panels.
+- Root cause: the sidebar bypassed the shared `statements` feature decision, while the shared Edge Function CORS policy did not recognize the local port-8081 origin. The browser therefore hid the CORS rejection as a transport failure.
+- Resolution: Statements now follows `canAccessFeature("statements")`, and the shared CORS policy permits `localhost` and `127.0.0.1` on port 8081. Regression tests cover both access state and the CORS allowlist.
+
 ## 2026-07-14
 - Area: Website Portals customer editing
 - Impact: selecting a customer navigated admins away from Website Portals into a separate Contacts page, while the portal dialog duplicated profile/account edits and could display an empty email when the optional admin user-list request was unavailable.

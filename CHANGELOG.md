@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-16 — Portal Statements and Live Order Status
+
+### Release Notes
+- Approved customers can now open Statements without needing a staff role.
+- Local portal testing on port 8081 can reach the live-data gateway, restoring live order and delivery status requests.
+
+### Technical Changelog
+- The account sidebar now uses the shared `statements` feature decision, and regression tests cover both enabled and disabled access.
+- The shared Edge Function CORS policy explicitly permits the local Vite origin used by the portal test server.
+
 ## 2026-07-14 — Website Portal Contact Editing
 
 ### Release Notes

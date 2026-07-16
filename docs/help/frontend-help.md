@@ -2,6 +2,11 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-16 — Statements and live status access
+
+- An approved customer should see Statements as an active account-navigation link. If it remains locked, review that customer's Statements feature override in the portal administration screen.
+- If My Orders shows “Failed to send a request to the Edge Function” during local testing at `http://localhost:8081`, confirm the deployed Edge Functions include the latest CORS release. This is a browser request-origin issue, not an order-data result.
+
 ## 2026-07-14 — Website Portals
 
 - Admin → Website now opens Website Portals. Website page content management remains at Admin → Website → Content.
