@@ -116,7 +116,7 @@ var list_my_orders_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "xstmeirxhfbiyayrrsob";
+var projectRef = "dzsalnvmlvjoatryhqfz";
 var mcp_default = defineMcp({
   name: "classic-visions-mcp",
   title: "Classic Visions",

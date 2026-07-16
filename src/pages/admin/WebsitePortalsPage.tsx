@@ -56,6 +56,9 @@ interface PortalCustomerListItem {
   organizationName: string;
   portalAccessStatus: string;
   portalAccessNote: string;
+  portalAccessApprovedOverride: boolean;
+  portalAccessApprovedAt: string | null;
+  portalAccessApprovedNote: string | null;
   crmContactId: string | null;
   crmCustomerId: number | null;
   assignedPricelistId: number | null;
@@ -67,6 +70,7 @@ interface PortalCustomerListItem {
 interface PortalCustomerDetail extends PortalCustomerListItem {
   featureOverrides: Record<string, boolean>;
   accountNumber: string | null;
+  canAccessStatements: boolean;
   cartItems: Array<{
     id: string;
     product_name: string;
@@ -183,7 +187,7 @@ const WebsitePortalsPage = () => {
         portalUserIds.length
           ? (supabase as any)
               .from("profiles")
-              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
+              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,portal_access_approved_override,portal_access_approved_at,portal_access_approved_note,crm_contact_id,crm_customer_id")
               .in("user_id", portalUserIds)
               .order("updated_at", { ascending: false })
           : Promise.resolve({ data: [], error: null }),
@@ -275,6 +279,9 @@ const WebsitePortalsPage = () => {
             organizationName: String(profile?.organization_name ?? ""),
             portalAccessStatus: String(profile?.portal_access_status ?? "pending_profile"),
             portalAccessNote: String(profile?.portal_access_note ?? "Profile not completed yet."),
+            portalAccessApprovedOverride: profile?.portal_access_approved_override === true,
+            portalAccessApprovedAt: typeof profile?.portal_access_approved_at === "string" ? profile.portal_access_approved_at : null,
+            portalAccessApprovedNote: typeof profile?.portal_access_approved_note === "string" ? profile.portal_access_approved_note : null,
             crmContactId: typeof profile?.crm_contact_id === "string" ? profile.crm_contact_id : null,
             crmCustomerId: typeof profile?.crm_customer_id === "number" ? profile.crm_customer_id : null,
             assignedPricelistId: null,
@@ -373,7 +380,7 @@ const WebsitePortalsPage = () => {
         p_user_id: selectedCustomer.userId,
       });
 
-      const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }] = await Promise.all([
+      const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }, { data: canAccessStatements, error: statementsAccessError }] = await Promise.all([
         (supabase as any)
           .from("customer_portal_feature_overrides")
           .select("feature_key,enabled")
@@ -415,6 +422,7 @@ const WebsitePortalsPage = () => {
               .eq("id", selectedCustomer.crmCustomerId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
+        (supabase.rpc as any)("can_access_customer_statement", { p_user_id: selectedCustomer.userId }),
       ]);
 
       if (featureError) throw featureError;
@@ -424,6 +432,7 @@ const WebsitePortalsPage = () => {
       if (quotesError) throw quotesError;
       if (ticketsError) throw ticketsError;
       if (customerError) throw customerError;
+      if (statementsAccessError) throw statementsAccessError;
 
       const featureOverrides = ((featureRows ?? []) as Array<{ feature_key: string; enabled: boolean }>).reduce<Record<string, boolean>>(
         (accumulator, row) => ({ ...accumulator, [row.feature_key]: row.enabled }),
@@ -433,6 +442,7 @@ const WebsitePortalsPage = () => {
       return {
         ...selectedCustomer,
         featureOverrides,
+        canAccessStatements: canAccessStatements === true,
         assignedPricelistId: typeof (customerRow as any)?.assigned_pricelist_id === "number" ? (customerRow as any).assigned_pricelist_id : null,
         accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : null,
         cartItems: (cartRows ?? []) as PortalCustomerDetail["cartItems"],
@@ -503,6 +513,30 @@ const WebsitePortalsPage = () => {
     },
   });
 
+  const setPortalApproval = useMutation({
+    mutationFn: async (approved: boolean) => {
+      if (!selectedCustomer) throw new Error("Select a customer first.");
+      if (approved && !selectedCustomer.crmCustomerId) throw new Error("Link this portal account to an ERP customer before approving access.");
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .upsert({
+          user_id: selectedCustomer.userId,
+          portal_access_approved_override: approved,
+          portal_access_approved_by: approved ? user?.id ?? null : null,
+          portal_access_approved_at: approved ? new Date().toISOString() : null,
+          portal_access_approved_note: approved ? "Approved by Classic Visions for portal access before profile completion." : null,
+        }, { onConflict: "user_id" });
+      if (error) throw error;
+      await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: selectedCustomer.userId });
+    },
+    onSuccess: async () => {
+      await detailQuery.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] });
+      toast({ title: "Portal approval updated", description: "The account access state has been resynced." });
+    },
+    onError: (error: any) => toast({ title: "Approval failed", description: error.message || "Failed to update portal approval.", variant: "destructive" }),
+  });
+
   const updateCustomerProfile = useMutation({
     mutationFn: async (payload: { full_name: string; phone: string; organization_name: string }) => {
       if (!selectedCustomer) throw new Error("Select a customer first.");
@@ -516,15 +550,17 @@ const WebsitePortalsPage = () => {
         }, { onConflict: "user_id" });
       if (error) throw error;
       if (selectedCustomer.crmContactId) {
-        const { error: contactError } = await (supabase as any)
-          .from("contacts")
-          .update({
-            name: payload.full_name.trim(),
-            phone: payload.phone.trim(),
-            business_name: payload.organization_name.trim() || null,
-          })
-          .eq("id", selectedCustomer.crmContactId);
-        if (contactError) throw contactError;
+        const contactPatch: Record<string, string | null> = {};
+        if (payload.full_name.trim()) contactPatch.name = payload.full_name.trim();
+        if (payload.phone.trim()) contactPatch.phone = payload.phone.trim();
+        if (payload.organization_name.trim()) contactPatch.business_name = payload.organization_name.trim();
+        if (Object.keys(contactPatch).length) {
+          const { error: contactError } = await (supabase as any)
+            .from("contacts")
+            .update(contactPatch)
+            .eq("id", selectedCustomer.crmContactId);
+          if (contactError) throw contactError;
+        }
       }
       await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: selectedCustomer.userId });
     },
@@ -651,6 +687,7 @@ const WebsitePortalsPage = () => {
         await inviteUser.mutateAsync({
           email: provisioningEmail,
           customerId: selectedAccount.crmCustomerId,
+          contactId: selectedAccount.crmContactId ?? undefined,
           displayName: provisioningName,
         });
         toast({ title: "Invite sent", description: `The existing customer invitation email was sent to ${provisioningEmail}.` });
@@ -660,6 +697,7 @@ const WebsitePortalsPage = () => {
           password: provisioningPassword,
           displayName: provisioningName,
           customerId: selectedAccount.crmCustomerId,
+          contactId: selectedAccount.crmContactId ?? undefined,
         });
         if ((result as any)?.alreadyExisted) {
           toast({ title: "Existing login linked", description: `An account for ${provisioningEmail} already existed and has been linked to this customer. The submitted password was ignored — send a reset if they need one.` });
@@ -944,6 +982,7 @@ const WebsitePortalsPage = () => {
                       <Badge variant="outline">{detailQuery.data.portalAccessStatus.replace(/_/g, " ")}</Badge>
                       <Badge variant={selectedCustomer?.presenceStatus === "online" ? "default" : "secondary"}>{selectedCustomer?.presenceStatus ?? "offline"}</Badge>
                       {detailQuery.data.crmCustomerId ? <Badge variant="outline">Approved customer</Badge> : <Badge variant="secondary">Pending approval</Badge>}
+                      {detailQuery.data.canAccessStatements ? <Badge variant="outline">Statements allowed</Badge> : <Badge variant="secondary">Statements gated</Badge>}
                     </div>
                   </div>
                 </CardHeader>
@@ -1013,7 +1052,9 @@ const WebsitePortalsPage = () => {
                                 >
                                   <span>
                                     <span className="block text-sm font-medium capitalize text-foreground">{feature.replace(/-/g, " ")}</span>
-                                    <span className="block text-xs text-muted-foreground">Explicit override for this portal workflow.</span>
+                                    <span className="block text-xs text-muted-foreground">
+                                      {feature === "statements" ? "Owner/CEO/Buyer tag required; disabled override can still block it." : "Explicit override for this portal workflow."}
+                                    </span>
                                   </span>
                                   <span className="text-xs font-semibold text-primary">{enabled ? "Enabled" : "Default"}</span>
                                 </button>
@@ -1028,6 +1069,37 @@ const WebsitePortalsPage = () => {
                             <p className="text-xs text-muted-foreground">High-trust actions are logged through auth or order/payment records.</p>
                           </div>
                           <div className="space-y-3">
+                            <div className="rounded-lg border p-3">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">Portal access approval</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {detailQuery.data.portalAccessApprovedOverride
+                                      ? `Approved${detailQuery.data.portalAccessApprovedAt ? ` ${formatDateTime(detailQuery.data.portalAccessApprovedAt)}` : ""}.`
+                                      : "Use this when the ERP customer is valid but the customer has not finished every profile field."}
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={detailQuery.data.portalAccessApprovedOverride ? "outline" : "default"}
+                                  onClick={() => setPortalApproval.mutate(!detailQuery.data.portalAccessApprovedOverride)}
+                                  disabled={setPortalApproval.isPending || !detailQuery.data.crmCustomerId}
+                                >
+                                  {setPortalApproval.isPending
+                                    ? "Saving..."
+                                    : detailQuery.data.portalAccessApprovedOverride
+                                      ? "Remove approval"
+                                      : "Approve portal access"}
+                                </Button>
+                              </div>
+                              {!detailQuery.data.crmCustomerId ? (
+                                <p className="mt-2 text-xs text-amber-700">Link this portal account to an ERP customer before approving access.</p>
+                              ) : null}
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Owner/CEO/Buyer tag required"}.
+                              </p>
+                            </div>
                             <Button variant="outline" className="w-full justify-start" onClick={async () => { try { await resetPassword.mutateAsync(detailQuery.data.email); toast({ title: "Reset sent", description: "Password reset email has been sent." }); } catch (error: any) { toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" }); } }} disabled={!detailQuery.data.email || resetPassword.isPending}>
                               <Mail className="mr-2 h-4 w-4" />
                               {resetPassword.isPending ? "Sending reset…" : "Send password reset"}
@@ -1159,6 +1231,22 @@ const WebsitePortalsPage = () => {
                       <CardDescription>Keep customer account identity complete and synchronized.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      <div className="rounded-lg border p-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">Portal access</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Approval lets this login use portal workflows even if profile cleanup is still pending. Statements still require an Owner, CEO, or Buyer tag.
+                            </p>
+                          </div>
+                          <Badge variant={detailQuery.data.portalAccessApprovedOverride ? "default" : "secondary"}>
+                            {detailQuery.data.portalAccessApprovedOverride ? "Override approved" : "No override"}
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Owner/CEO/Buyer tag required"}.
+                        </p>
+                      </div>
                       <div className="space-y-2">
                         <Label>Full name</Label>
                         <Input value={profileDraft.full_name} onChange={(event) => setProfileDraft((prev) => ({ ...prev, full_name: event.target.value }))} />
@@ -1178,7 +1266,7 @@ const WebsitePortalsPage = () => {
                       </div>
                       <Button
                         onClick={() => updateCustomerProfile.mutate(profileDraft)}
-                        disabled={updateCustomerProfile.isPending || !profileDraft.full_name.trim() || !profileDraft.phone.trim() || !profileDraft.organization_name.trim()}
+                        disabled={updateCustomerProfile.isPending}
                       >
                         Save & resync profile
                       </Button>

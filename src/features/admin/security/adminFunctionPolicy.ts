@@ -21,6 +21,7 @@ const MAX_EMAIL_LENGTH = 254;
 const MIN_PASSWORD_LENGTH = 12;
 const MAX_PASSWORD_LENGTH = 128;
 const MAX_DISPLAY_NAME_LENGTH = 80;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const assertString = (value: unknown, field: string) => {
   if (typeof value !== "string") {
@@ -62,6 +63,15 @@ const assertCustomerId = (value: unknown) => {
   return Number(value);
 };
 
+const assertContactId = (value: unknown) => {
+  if (value == null) return undefined;
+  const contactId = assertString(value, "contactId");
+  if (!UUID_RE.test(contactId)) {
+    throw new AdminActionPolicyError("contactId must be a valid contact id.");
+  }
+  return contactId;
+};
+
 export interface AdminActionValidationInput {
   actorRole: AppRole | null;
   action: string;
@@ -85,17 +95,20 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
     case "invite-user":
       {
       const customerId = assertCustomerId(payload.customerId);
+      const contactId = assertContactId(payload.contactId);
       const displayName = assertDisplayName(payload.displayName);
       return {
         action: "invite-user" as const,
         email: assertEmail(payload.email),
         ...(customerId !== undefined ? { customerId } : {}),
+        ...(contactId !== undefined ? { contactId } : {}),
         ...(displayName !== undefined ? { displayName } : {}),
       };
       }
     case "create-user":
       {
       const customerId = assertCustomerId(payload.customerId);
+      const contactId = assertContactId(payload.contactId);
       const displayName = assertDisplayName(payload.displayName);
       return {
         action: "create-user" as const,
@@ -103,6 +116,7 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
         password: assertPassword(payload.password),
         displayName,
         ...(customerId !== undefined ? { customerId } : {}),
+        ...(contactId !== undefined ? { contactId } : {}),
       };
       }
   }

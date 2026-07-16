@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-14.1";
+const VERSION = "2026-07-16.1";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -430,7 +430,7 @@ async function clientContext(req: Request) {
   if (auth instanceof Response) return { response: auth };
 
   const { data: roles } = await auth.supabaseAdminClient.from("user_roles").select("role").eq("user_id", auth.user.id);
-  const isStaff = (roles ?? []).some((row: { role: string }) => ["admin", "editor", "author"].includes(row.role));
+  const isStaff = (roles ?? []).some((row: { role: string }) => ["admin", "operator"].includes(row.role));
 
   let profile: PortalProfile | null = null;
   if (!isStaff) {
@@ -490,6 +490,17 @@ async function handleClientRequest(req: Request, body: JsonObject) {
       .maybeSingle();
     if (override?.enabled === false || (override?.enabled !== true && profile?.portal_access_status !== "approved_customer")) {
       return json(req, { error: "This live-data feature is not enabled for the customer account." }, 403);
+    }
+
+    if (config.feature === "statements") {
+      const { data: canAccessStatement, error: statementAccessError } = await auth.supabaseAdminClient
+        .rpc("can_access_customer_statement", { p_user_id: auth.user.id });
+      if (statementAccessError) {
+        return json(req, { error: "Could not verify statement access.", detail: statementAccessError.message }, 500);
+      }
+      if (canAccessStatement !== true) {
+        return json(req, { error: "Statements are available only to contacts tagged Owner, CEO, or Buyer." }, 403);
+      }
     }
   }
 

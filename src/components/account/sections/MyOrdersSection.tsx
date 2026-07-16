@@ -227,9 +227,9 @@ const MyOrdersSection = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 id="innovations-orders-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <Package className="h-5 w-5" /> Innovations order status
+                <Package className="h-5 w-5" /> Order status
               </h3>
-              <p className="text-sm text-muted-foreground">Active lab work and valid shipments made today for your LMS account.</p>
+              <p className="text-sm text-muted-foreground">Active lab work and valid shipments made today for your account.</p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <div className="relative sm:w-64">
@@ -239,7 +239,7 @@ const MyOrdersSection = () => {
                   value={innovationsSearch}
                   onChange={(event) => setInnovationsSearch(event.target.value)}
                   placeholder="Search patient or Rx #"
-                  aria-label="Search Innovations orders by patient name or Rx number"
+                  aria-label="Search lab orders by patient name or Rx number"
                   className="pl-9"
                 />
               </div>
@@ -259,9 +259,9 @@ const MyOrdersSection = () => {
           ) : innovationsOrdersQuery.isLoading ? (
             <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : (innovationsOrdersQuery.data?.orders.length ?? 0) === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active Innovations orders were found for this account.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders were found for this account.</CardContent></Card>
           ) : filteredInnovationsOrders.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active Innovations orders match that patient name or Rx number.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders match that patient name or Rx number.</CardContent></Card>
           ) : (
             <Card>
               <CardContent className="overflow-x-auto p-0">
@@ -290,7 +290,7 @@ const MyOrdersSection = () => {
           )}
           {innovationsOrdersQuery.data?.retrieved_at ? (
             <p className="text-xs text-muted-foreground" role="status">
-              Live response received {format(new Date(innovationsOrdersQuery.data.retrieved_at), "PPP 'at' p")}.
+              Response received {format(new Date(innovationsOrdersQuery.data.retrieved_at), "PPP 'at' p")}.
             </p>
           ) : null}
         </section>
@@ -301,20 +301,20 @@ const MyOrdersSection = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 id="live-deliveries-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <Truck className="h-5 w-5" /> Live delivery status
+                <Truck className="h-5 w-5" /> Delivery status
               </h3>
-              <p className="text-sm text-muted-foreground">Fetched from OptiLens Local only when this page is opened.</p>
+              <p className="text-sm text-muted-foreground">Fetched from your account data.</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => deliveriesQuery.refetch()} disabled={deliveriesQuery.isFetching}>
               {deliveriesQuery.isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Refresh live status
+              Refresh status
             </Button>
           </div>
 
           {deliveriesQuery.isError ? (
             <Alert variant="destructive" role="alert">
               <AlertDescription>
-                {deliveriesQuery.error instanceof Error ? deliveriesQuery.error.message : "Live delivery status is temporarily unavailable."}
+                {deliveriesQuery.error instanceof Error ? deliveriesQuery.error.message : "Delivery status is temporarily unavailable."}
               </AlertDescription>
             </Alert>
           ) : deliveriesQuery.isLoading ? (
@@ -329,7 +329,7 @@ const MyOrdersSection = () => {
           )}
           {deliveriesQuery.data?.retrieved_at ? (
             <p className="text-xs text-muted-foreground" role="status">
-              Live response received {format(new Date(deliveriesQuery.data.retrieved_at), "PPP 'at' p")}.
+              Response received {format(new Date(deliveriesQuery.data.retrieved_at), "PPP 'at' p")}.
             </p>
           ) : null}
         </section>

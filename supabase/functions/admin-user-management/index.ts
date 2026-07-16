@@ -72,15 +72,49 @@ async function linkCustomerPortalAccount(
   userId: string,
   customerId: number | undefined,
   displayName?: string,
+  contactId?: string,
 ) {
   if (!customerId) return;
 
   const { data: customer, error: customerError } = await (adminClient.from("customers") as any)
-    .select("id,contact_id")
+    .select("id,contact_id,innovations_customer_id")
     .eq("id", customerId)
     .maybeSingle();
   if (customerError) throw customerError;
   if (!customer) throw new Error("The selected ERP customer no longer exists.");
+
+  let resolvedContactId = customer.contact_id ?? null;
+  if (contactId) {
+    const { data: contact, error: contactError } = await (adminClient.from("contacts") as any)
+      .select("id,parent_id,linked_customer_id,innovations_parent_customer_id")
+      .eq("id", contactId)
+      .maybeSingle();
+    if (contactError) throw contactError;
+    if (!contact) throw new Error("The selected contact no longer exists.");
+
+    const belongsDirectly =
+      contact.id === customer.contact_id ||
+      contact.parent_id === customer.contact_id ||
+      contact.linked_customer_id === customer.id ||
+      (customer.innovations_customer_id && contact.innovations_parent_customer_id === customer.innovations_customer_id);
+
+    if (!belongsDirectly && contact.parent_id) {
+      const { data: parent, error: parentError } = await (adminClient.from("contacts") as any)
+        .select("id,linked_customer_id,innovations_parent_customer_id")
+        .eq("id", contact.parent_id)
+        .maybeSingle();
+      if (parentError) throw parentError;
+      const parentBelongs =
+        parent?.id === customer.contact_id ||
+        parent?.linked_customer_id === customer.id ||
+        (customer.innovations_customer_id && parent?.innovations_parent_customer_id === customer.innovations_customer_id);
+      if (!parentBelongs) throw new Error("The selected contact is not linked to this ERP customer.");
+    } else if (!belongsDirectly) {
+      throw new Error("The selected contact is not linked to this ERP customer.");
+    }
+
+    resolvedContactId = contact.id;
+  }
 
   const { data: existingRole, error: roleLookupError } = await (adminClient.from("user_roles") as any)
     .select("id")
@@ -97,7 +131,7 @@ async function linkCustomerPortalAccount(
   const profilePayload: Record<string, unknown> = {
     user_id: userId,
     crm_customer_id: customer.id,
-    crm_contact_id: customer.contact_id,
+    crm_contact_id: resolvedContactId,
   };
   if (displayName?.trim()) profilePayload.full_name = displayName.trim();
   const { error: profileError } = await (adminClient.from("profiles") as any)
@@ -194,7 +228,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "invite-user") {
-      const { email, customerId, displayName } = body;
+      const { email, customerId, displayName, contactId } = body;
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
@@ -221,7 +255,7 @@ Deno.serve(async (req) => {
           if (!existing) {
             return jsonResponse(req, 409, { error: "A user with this email already exists." });
           }
-          await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName);
+          await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
           await adminClient.auth.admin.generateLink({
             type: "recovery",
             email,
@@ -233,7 +267,7 @@ Deno.serve(async (req) => {
       }
 
       if (inviteData?.user?.id) {
-        await linkCustomerPortalAccount(adminClient, inviteData.user.id, customerId, displayName);
+        await linkCustomerPortalAccount(adminClient, inviteData.user.id, customerId, displayName, contactId);
       }
 
       // Trigger onboarding: assign default pricelist + send welcome email
@@ -245,7 +279,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "create-user") {
-      const { email, password, displayName, customerId } = body;
+      const { email, password, displayName, customerId, contactId } = body;
       if (!email || !password) {
         return jsonResponse(req, 400, { error: "Email and password are required" });
       }
@@ -275,7 +309,7 @@ Deno.serve(async (req) => {
           const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
           const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
           if (existing) {
-            await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName);
+            await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
             return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
           }
           return jsonResponse(req, 409, { error: "A user with this email already exists." });
@@ -283,7 +317,7 @@ Deno.serve(async (req) => {
         throw error;
       }
       if (newUser?.user) {
-        await linkCustomerPortalAccount(adminClient, newUser.user.id, customerId, displayName);
+        await linkCustomerPortalAccount(adminClient, newUser.user.id, customerId, displayName, contactId);
         if (displayName) {
           await (adminClient.from("profiles") as any)
             .update({ display_name: displayName })
