@@ -475,7 +475,11 @@ async function handleClientRequest(req: Request, body: JsonObject) {
 
   const requestedCustomerId = isStaff ? integer(body.website_customer_id) : null;
   const websiteCustomerId = requestedCustomerId ?? integer(profile?.crm_customer_id);
-  if (!websiteCustomerId) return json(req, { error: "No approved customer account is linked to this user." }, 403);
+  if (!websiteCustomerId) {
+    const offline = offlineLiveDataResponse(operation, { id: 0, account_number: null, innovations_customer_id: null } as CustomerMapping);
+    if (offline) return json(req, { ...offline, source_status: "unlinked", error: "No approved customer account is linked to this user." }, 200);
+    return json(req, { error: "No approved customer account is linked to this user." }, 403);
+  }
 
   if (!isStaff) {
     const { data: override } = await auth.supabaseAdminClient

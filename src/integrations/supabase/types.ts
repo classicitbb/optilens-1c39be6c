@@ -8537,6 +8537,10 @@ export type Database = {
           status: string
         }[]
       }
+      bulk_toggle_anchor_exclusion: {
+        Args: { p_excluded: boolean; p_lens_ids: string[]; p_reason?: string }
+        Returns: number
+      }
       can_access_customer_portal_feature: {
         Args: { p_feature_key?: string; p_user_id?: string }
         Returns: boolean
@@ -8571,6 +8575,16 @@ export type Database = {
       effective_price: {
         Args: { p_customer_id: number; p_item_ref: string }
         Returns: number
+      }
+      effective_prices_for_customer: {
+        Args: { p_customer_id: number }
+        Returns: {
+          item_ref: string
+          material: string
+          price: number
+          tier: string
+          treatment: string
+        }[]
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
@@ -8664,16 +8678,6 @@ export type Database = {
         }[]
       }
       get_portal_erp_account_number: { Args: never; Returns: string }
-      portal_assigned_pricelist_matrix: {
-        Args: never
-        Returns: {
-          allocated_price_bbd: number
-          category: string
-          material_index: string
-          treatment_type: string
-        }[]
-      }
-      portal_assigned_pricelist_updated_at: { Args: never; Returns: string }
       get_quote_lines_safe: {
         Args: { p_quote_id: string }
         Returns: {
@@ -8802,6 +8806,16 @@ export type Database = {
         }
         Returns: string
       }
+      portal_assigned_pricelist_matrix: {
+        Args: never
+        Returns: {
+          allocated_price_bbd: number
+          category: string
+          material_index: string
+          treatment_type: string
+        }[]
+      }
+      portal_assigned_pricelist_updated_at: { Args: never; Returns: string }
       publish_lens_recommendation_rule_set: {
         Args: { p_rule_set_id: string }
         Returns: undefined
@@ -8869,33 +8883,6 @@ export type Database = {
         Args: { p_excluded: boolean; p_lens_id: string; p_reason?: string }
         Returns: undefined
       }
-<<<<<<< Updated upstream
-=======
-      bulk_toggle_anchor_exclusion: {
-        Args: { p_lens_ids: string[]; p_excluded: boolean; p_reason?: string }
-        Returns: number
-      }
-      effective_price: {
-        Args: { p_customer_id: number; p_item_ref: string }
-        Returns: number
-      }
-      set_master_price: {
-        Args: { p_item_ref: string; p_price: number }
-        Returns: undefined
-      }
-      set_custom_price: {
-        Args: { p_customer_id: number; p_item_ref: string; p_price: number; p_reason?: string; p_source?: string }
-        Returns: undefined
-      }
-      revert_line_to_master: {
-        Args: { p_customer_id: number; p_item_ref: string }
-        Returns: undefined
-      }
-      revert_account_to_master: {
-        Args: { p_customer_id: number }
-        Returns: undefined
-      }
->>>>>>> Stashed changes
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
         Returns: string
