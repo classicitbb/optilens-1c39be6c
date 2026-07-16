@@ -2225,6 +2225,80 @@ export type Database = {
         }
         Relationships: []
       }
+      edge_function_health: {
+        Row: {
+          checked_at: string
+          consecutive_failures: number
+          function_name: string
+          is_healthy: boolean
+          last_error: string | null
+          last_failure_at: string | null
+          last_healthy_at: string | null
+          last_run_id: string | null
+        }
+        Insert: {
+          checked_at: string
+          consecutive_failures?: number
+          function_name: string
+          is_healthy: boolean
+          last_error?: string | null
+          last_failure_at?: string | null
+          last_healthy_at?: string | null
+          last_run_id?: string | null
+        }
+        Update: {
+          checked_at?: string
+          consecutive_failures?: number
+          function_name?: string
+          is_healthy?: boolean
+          last_error?: string | null
+          last_failure_at?: string | null
+          last_healthy_at?: string | null
+          last_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edge_function_health_last_run_id_fkey"
+            columns: ["last_run_id"]
+            isOneToOne: false
+            referencedRelation: "edge_function_health_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      edge_function_health_runs: {
+        Row: {
+          checks: Json
+          created_at: string
+          failed_count: number
+          function_count: number
+          id: string
+          is_healthy: boolean
+          release_sha: string | null
+          source: string
+        }
+        Insert: {
+          checks?: Json
+          created_at?: string
+          failed_count?: number
+          function_count?: number
+          id?: string
+          is_healthy: boolean
+          release_sha?: string | null
+          source: string
+        }
+        Update: {
+          checks?: Json
+          created_at?: string
+          failed_count?: number
+          function_count?: number
+          id?: string
+          is_healthy?: boolean
+          release_sha?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -8735,6 +8809,10 @@ export type Database = {
         }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
+      record_edge_function_health: {
+        Args: { p_checks: Json; p_release_sha: string; p_source: string }
+        Returns: string
+      }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       resolve_contact_customer_links: { Args: never; Returns: number }
       revert_account_to_master: {
