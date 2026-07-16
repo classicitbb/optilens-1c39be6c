@@ -8664,6 +8664,16 @@ export type Database = {
         }[]
       }
       get_portal_erp_account_number: { Args: never; Returns: string }
+      portal_assigned_pricelist_matrix: {
+        Args: never
+        Returns: {
+          allocated_price_bbd: number
+          category: string
+          material_index: string
+          treatment_type: string
+        }[]
+      }
+      portal_assigned_pricelist_updated_at: { Args: never; Returns: string }
       get_quote_lines_safe: {
         Args: { p_quote_id: string }
         Returns: {
