@@ -5999,6 +5999,10 @@ export type Database = {
           id: string
           organization_name: string | null
           phone: string | null
+          portal_access_approved_at: string | null
+          portal_access_approved_by: string | null
+          portal_access_approved_note: string | null
+          portal_access_approved_override: boolean
           portal_access_note: string | null
           portal_access_status: string | null
           profile_completed_at: string | null
@@ -6020,6 +6024,10 @@ export type Database = {
           id?: string
           organization_name?: string | null
           phone?: string | null
+          portal_access_approved_at?: string | null
+          portal_access_approved_by?: string | null
+          portal_access_approved_note?: string | null
+          portal_access_approved_override?: boolean
           portal_access_note?: string | null
           portal_access_status?: string | null
           profile_completed_at?: string | null
@@ -6041,6 +6049,10 @@ export type Database = {
           id?: string
           organization_name?: string | null
           phone?: string | null
+          portal_access_approved_at?: string | null
+          portal_access_approved_by?: string | null
+          portal_access_approved_note?: string | null
+          portal_access_approved_override?: boolean
           portal_access_note?: string | null
           portal_access_status?: string | null
           profile_completed_at?: string | null
@@ -8551,6 +8563,10 @@ export type Database = {
       }
       can_access_customer_portal_feature: {
         Args: { p_feature_key?: string; p_user_id?: string }
+        Returns: boolean
+      }
+      can_access_customer_statement: {
+        Args: { p_user_id?: string }
         Returns: boolean
       }
       cancel_integration_sync_job: {
