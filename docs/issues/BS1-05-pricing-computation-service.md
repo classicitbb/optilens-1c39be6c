@@ -50,34 +50,37 @@ produced (`pricelist_versions` + `matrix_allocations` + the new `pricelists`/`pr
 
 ## Task
 
-1. Port `lens-classifier.js` verbatim to `src/lib/pricing/classifier.ts` (`APPROVED`,
-   `normMaterial`, `normTreatment`, `TIER_MAP`, `QUOTE_ONLY`). No reinterpretation — copy the
-   `TIER_MAP` entries and their `FLAG` comments as-is; resolving a flagged ambiguity is a
-   separate, explicit follow-up with the operator, not a silent judgment call during the port.
-2. Port `combosFromRows()`'s classify-and-aggregate logic to `src/lib/pricing/combos.ts`, wired
-   to query `lenses` directly (reuse the `useLenses.ts` direct-select pattern for admin/editor
-   context) instead of an external REST pull. Populate `pricing_items` (BS1-01) from the
-   distinct combo keys this produces — one row per `${treatment}||${tier}||${material}`, not
-   per raw FK tuple.
-3. Port `pricing-engine.js`'s `standardPrice`/`evaluateOverride`/`retailFrom`/`smoothLadder`/
-   `marginAt` to `src/lib/pricing/engine.ts` — keep pure/UI-free, per the original plan.
-   `pricing_item_supplier_costs` (BS1-01/02) feeds it live `lenses` cost data instead of JSON.
-4. Port `pricedMatrix()`'s `smoothLadder` group-and-apply pass (grouped by `treatment+tier`,
-   sorted by material order) — this was missing from the original BS1-05 scope entirely.
+1. [x] Port `lens-classifier.js` verbatim to `src/lib/pricing/classifier.ts` (`APPROVED`,
+   `normMaterial`, `normTreatment`, `TIER_MAP`, `QUOTE_ONLY`). Done 2026-07-15 — `TIER_MAP`
+   entries and `FLAG` comments copied unchanged; zero reinterpretation.
+2. [x] Port `combosFromRows()`'s classify-and-aggregate logic to `src/lib/pricing/combos.ts`,
+   wired to query `lenses` directly (`fetchApprovedLensRows()`, reusing the `useLenses.ts`
+   direct-select pattern) instead of an external REST pull. `combosFromRows()` itself kept pure
+   and unit-tested separately from the fetch, mirroring the original file's own split.
+   `upsertPricingItems()` populates `pricing_items` (new migration
+   `20260715150000_pricing_items.sql`) from the distinct combo keys this produces.
+3. [x] Port `pricing-engine.js`'s `standardPrice`/`evaluateOverride`/`retailFrom`/`smoothLadder`/
+   `marginAt`/`landedCostFor`/`anchorOf`/`preferredOf` to `src/lib/pricing/engine.ts` — pure/UI-free.
+4. [x] Port `pricedMatrix()`'s `smoothLadder` group-and-apply pass into `engine.ts` as
+   `pricedMatrix()` (grouped by `treatment+tier`, sorted by material order). Note: the original's
+   `applyDisabled()` (whole-combo / per-supplier JSON overrides) was NOT ported — per-item
+   exclusion is now `lenses.excluded_from_anchor` (BS1-02), filtered upstream in
+   `fetchApprovedLensRows()` before combos are even built, so there's no separate disabled-overrides
+   layer to carry over. Whole-combo disable remains the open question below.
 5. Build **Auto Price** in `/admin/pricing/rx-lenses`'s matrix editor: for every combo cell not
    already manually linked, compute the price via steps 2-4 and auto-link
    `matrix_allocations.lens_id` to the *preferred*-supplier row (`preferredOf()`, priority-list
    based — NOT the anchor row, which is cost-basis only, not necessarily who fulfils). Keep the
-   existing 🔍 manual-link UI for cells the classifier can't reach.
+   existing 🔍 manual-link UI for cells the classifier can't reach. **NOT STARTED.**
 6. Build **Reset**: client-side clear of not-yet-saved Auto Price results (matches the local
-   tool's trivial confirm+clear — no backend involved).
+   tool's trivial confirm+clear — no backend involved). **NOT STARTED.**
 7. Wire **Save** / **Save As New** to BS1-04's `pricelists`/`pricelist_lines` write paths: Save
    → the canonical master; Save As New against a customer → that customer's fork, writing only
    the cells whose computed price differs from the master's (sparse, not a full copy).
-8. Port `pricing-engine.test.js` to vitest; all fixtures must pass identically. Add fixtures for
-   `smoothLadder` (missing from the original test scope) and for `combosFromRows`'s
-   take-cheapest-per-supplier behavior (explains the "multiple `lenses` rows per supplier per
-   combo" finding from the live-data check earlier this session).
+   **BLOCKED on BS1-04** — `pricelists`/`pricelist_lines`/`effective_price()` don't exist yet.
+8. [x] Port `pricing-engine.test.js` to vitest (`src/tests/unit/pricingEngine.test.ts`, 17/17
+   passing, matches originals). Added `src/tests/unit/pricingCombos.test.ts` (7 tests) covering
+   `combosFromRows`'s take-cheapest-per-supplier behavior specifically.
 
 ## Open question, not blocking
 

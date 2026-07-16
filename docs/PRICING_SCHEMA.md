@@ -238,13 +238,18 @@ erDiagram
   originally-planned standalone `supplier_item_costs` table — see correction above.
 - **`cost_models`** / **`cost_model_freight`** — BS1-03. Landed-cost parameters
   (freight/duty/levies/clearance/brokerage), one default + optional per-pricelist override.
-- **`pricelists`** — BS1-04. `(id, kind: master|custom, customer_id integer nullable REFERENCES
-  customers(id) — null = master, forked_from_version, created_at)`. Exactly one active master
-  enforced by partial unique index. **Not** the same table as `pricelist_versions`, which after
-  this cutover holds exactly one canonical structure row shared by all customers (see
-  reconciliation section above) rather than one row per customer.
-- **`pricelist_lines`** — BS1-04. Per-customer delta lines: `(pricelist_id, item_ref, custom_price,
-  reason, source: price_match|manual, created_by, approved_by)`. **Not** `pricelist_overrides`.
+- **`pricelists`** — BS1-04, built 2026-07-15 (`20260715160000_pricelists_master_fork_model.sql`).
+  `(id, kind: master|custom, customer_id integer nullable REFERENCES customers(id) — null =
+  master, name, created_by, created_at, updated_at)`. Exactly one active master enforced by
+  partial unique index; single master row seeded by the migration. **Not** the same table as
+  `pricelist_versions`, which after the BS1-08 cutover holds exactly one canonical structure row
+  shared by all customers (see reconciliation section above) rather than one row per customer.
+- **`pricelist_lines`** — BS1-04, built 2026-07-15. Per-customer delta lines: `(pricelist_id,
+  item_ref, custom_price, reason, source: price_match|manual|auto_price, created_by,
+  approved_by)`. **Not** `pricelist_overrides`. Read via `effective_price(customer_id, item_ref)`;
+  written via `set_master_price()`/`set_custom_price()` (the latter auto-forks on first write);
+  reverted via `revert_line_to_master()`/`revert_account_to_master()`. Variance via the
+  `pricelist_variance` view.
 - **`price_change_proposals`** — BS1-06. Staff-proposed price matches requiring owner/manager
   approval before they apply a `pricelist_lines` fork.
 - **`pricelist_drift`** — BS1-07. View/RPC (not a stored table) comparing a forked line's
