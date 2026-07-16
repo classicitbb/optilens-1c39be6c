@@ -91,14 +91,25 @@ produced (`pricelist_versions` + `matrix_allocations` + the new `pricelists`/`pr
    this architecture. Substituted the confirmation dialog (task 5) as the equivalent safety net —
    nothing is written until confirmed — and the pre-existing per-cell ✕ "Clear" button already
    undoes any individual cell, auto-priced or manual, same as it always has.
-7. Wire **Save** / **Save As New** to BS1-04's `pricelists`/`pricelist_lines` write paths: Save
-   → the canonical master; Save As New against a customer → that customer's fork, writing only
-   the cells whose computed price differs from the master's (sparse, not a full copy).
-   **NOT STARTED** — BS1-04 now exists so this is unblocked, just not built yet. Note this is a
-   distinct action from Auto Price: Auto Price fills `matrix_allocations` (the structural
-   "which lens fulfils this cell" layer, unchanged table); Save/Save As New would separately
-   write the resolved price into `pricelist_lines` (the price-authority layer) via
-   `set_master_price()`/`set_custom_price()`, keyed on `pricing_items.id`, not the matrix cell.
+7. [x] Wire **Save** / **Save As New** to BS1-04's `pricelists`/`pricelist_lines` write paths.
+   Done 2026-07-16. `src/lib/pricing/save.ts`: `resolveComboForLens()` (pure — given a linked
+   lens, which pricing_item its price belongs to; deliberately skips `classifyLensRows()`'s
+   eligibility gates, since a linked matrix cell is already the operator's decision, not
+   something to re-validate) → `computeSavePlan()`/`applySavePlan()` (writes every linked cell's
+   price to master via `set_master_price()`) and `computeForkPlan()`/`applyForkPlan()` (diffs
+   against the master's current `pricelist_lines` — fetched once, not per-item — and only forks
+   cells that actually differ, sparse per the BS1-04 design, via `set_custom_price()`). New
+   `CustomerPickerModal` in `TreatmentMatricesAccordion.tsx` (same fetch-once/filter-client-side
+   pattern as `LensPickerModal` and `CatalogPublisherPage`'s `AssignDialog` — confirmed via
+   research this is the established codebase convention for `customers`, not an invented one).
+   BBD→USD conversion via the same `fxRate` already used for display (`allocated_price_bbd × fxRate`).
+   Caught and fixed a real regression during this build: `CustomerPickerModal`'s bare `useQuery`
+   broke `TreatmentMatricesAccordion.test.tsx` (no `QueryClientProvider` in that test's render
+   tree — every other hook in the component is mocked out, this was the first live react-query
+   call) — fixed by wrapping the test's render calls, not by avoiding `useQuery`.
+   Verified live: both buttons render, customer picker opens and searches real customer data
+   correctly. Did not execute an actual Save or fork — those are real, permanent writes to the
+   master pricelist / a customer's fork that weren't requested to actually run yet.
 8. [x] Port `pricing-engine.test.js` to vitest (`src/tests/unit/pricingEngine.test.ts`, 17/17
    passing, matches originals). Added `src/tests/unit/pricingCombos.test.ts` (7 tests) covering
    `combosFromRows`'s take-cheapest-per-supplier behavior specifically.

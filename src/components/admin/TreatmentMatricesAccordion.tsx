@@ -48,7 +48,18 @@ import { categoryKeyFor, groupingKeyFor, materialKeyFor } from "@/lib/pricing/gr
 import { APPROVED } from "@/lib/pricing/classifier";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Ban, Filter, Sparkles } from "lucide-react";
+import { Ban, Filter, Save as SaveIcon, Sparkles, UserPlus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  computeSavePlan,
+  applySavePlan,
+  computeForkPlan,
+  applyForkPlan,
+  type SavePlan,
+  type ForkPlan,
+  type LensLookupRow,
+} from "@/lib/pricing/save";
 
 interface AutoPricePlanItem {
   groupingKey: string;
@@ -265,6 +276,81 @@ const LensPickerModal = ({
   );
 };
 
+interface PickedCustomer {
+  id: number;
+  name: string;
+  accountNumber: string | null;
+}
+
+interface CustomerPickerModalProps {
+  open: boolean;
+  onClose: () => void;
+  onPick: (customer: PickedCustomer) => void;
+}
+
+// Same pattern as LensPickerModal and CatalogPublisherPage's AssignDialog —
+// fetch the whole table once, filter client-side. customers stays small
+// enough (every other consumer in this codebase does the same, no
+// pagination anywhere) that a server-side search would be inconsistent
+// with the rest of the app, not more correct.
+const CustomerPickerModal = ({ open, onClose, onPick }: CustomerPickerModalProps) => {
+  const [search, setSearch] = useState("");
+  const { data: customers = [], isLoading } = useQuery<PickedCustomer[]>({
+    queryKey: ["customers-picker"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("customers") as any).select("id,name,account_number").order("name");
+      if (error) throw error;
+      return (data ?? []).map((c: any) => ({ id: c.id, name: c.name, accountNumber: c.account_number }));
+    },
+    enabled: open,
+  });
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return customers;
+    const q = search.toLowerCase();
+    return customers.filter((c) => c.name.toLowerCase().includes(q) || c.accountNumber?.toLowerCase().includes(q));
+  }, [customers, search]);
+
+  return (
+    <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+      <DialogContent className="sm:max-w-md max-h-[70vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
+          <DialogTitle className="text-sm font-semibold">Save As New — pick a customer</DialogTitle>
+        </DialogHeader>
+        <div className="px-4 py-3 border-b border-border shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or account #…" className="pl-8 h-8 text-xs" />
+          </div>
+        </div>
+        <div className="overflow-y-auto flex-1 px-2 py-1">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-8">No customers found.</p>
+          ) : (
+            filtered.map((customer) => (
+              <button
+                key={customer.id}
+                onClick={() => {
+                  onPick(customer);
+                  setSearch("");
+                }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors"
+              >
+                <span className="text-xs font-medium text-primary">{customer.name}</span>
+                {customer.accountNumber && <span className="text-[10px] text-muted-foreground">{customer.accountNumber}</span>}
+              </button>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChange }: TreatmentMatricesAccordionProps) => {
   const { toast } = useToast();
   const { isAdmin } = useAdminRole();
@@ -317,6 +403,29 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
 
   const catalogLensIds = useMemo(() => new Set(catalogRows.filter((row) => row.item_id).map((row) => row.item_id as string)), [catalogRows]);
   const lensNameMap = useMemo(() => new Map((allLenses ?? []).map((lens) => [lens.id, lens.name])), [allLenses]);
+  const lensLookup = useMemo(
+    () =>
+      new Map<string, LensLookupRow>(
+        (allLenses ?? []).map((lens) => [
+          lens.id,
+          { name: lens.name, mftype: lens.mftype?.name ?? null, lenstype: lens.lenstype?.name ?? null, material: lens.material?.name ?? null },
+        ])
+      ),
+    [allLenses]
+  );
+
+  // Save / Save As New — BS1-05 task 7. Commits the matrix's CURRENT state
+  // (auto-priced or hand-linked, doesn't matter) into pricelist_lines, the
+  // layer effective_price() actually reads. Auto Price only ever wrote
+  // matrix_allocations; this is the separate step that makes prices real.
+  const [savePlan, setSavePlan] = useState<SavePlan | null>(null);
+  const [saveComputing, setSaveComputing] = useState(false);
+  const [saveApplying, setSaveApplying] = useState(false);
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const [forkCustomer, setForkCustomer] = useState<PickedCustomer | null>(null);
+  const [forkPlan, setForkPlan] = useState<ForkPlan | null>(null);
+  const [forkComputing, setForkComputing] = useState(false);
+  const [forkApplying, setForkApplying] = useState(false);
 
   const allocationMap = useMemo(() => {
     const map = new Map<string, MatrixAllocation>();
@@ -634,6 +743,72 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     }
   };
 
+  const computeSave = async () => {
+    setSaveComputing(true);
+    try {
+      const plan = await computeSavePlan(allocations, lensLookup, fxRate);
+      setSavePlan(plan);
+      if (!plan.items.length) {
+        toast({ title: "Nothing to save", description: "No linked cells resolve to a price-able item." });
+      }
+    } catch (error: any) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    } finally {
+      setSaveComputing(false);
+    }
+  };
+
+  const applySave = async () => {
+    if (!savePlan) return;
+    setSaveApplying(true);
+    try {
+      const applied = await applySavePlan(savePlan.items);
+      toast({ title: "Saved to master", description: `${applied} price${applied === 1 ? "" : "s"} committed to the master pricelist.` });
+    } catch (error: any) {
+      toast({ title: "Save stopped partway", description: error.message, variant: "destructive" });
+    } finally {
+      setSaveApplying(false);
+      setSavePlan(null);
+    }
+  };
+
+  const onCustomerPicked = async (customer: PickedCustomer) => {
+    setForkCustomer(customer);
+    setCustomerPickerOpen(false);
+    setForkComputing(true);
+    try {
+      const plan = await computeForkPlan(allocations, lensLookup, fxRate);
+      setForkPlan(plan);
+      if (!plan.items.length) {
+        toast({
+          title: "Nothing to fork",
+          description: plan.skippedNoChange
+            ? `Every linked cell already matches ${customer.name}'s current effective price — nothing to save as new.`
+            : "No linked cells resolve to a price-able item.",
+        });
+      }
+    } catch (error: any) {
+      toast({ title: "Save As New failed", description: error.message, variant: "destructive" });
+    } finally {
+      setForkComputing(false);
+    }
+  };
+
+  const applyFork = async () => {
+    if (!forkPlan || !forkCustomer) return;
+    setForkApplying(true);
+    try {
+      const applied = await applyForkPlan(forkCustomer.id, forkPlan.items, `Save As New from pricelist version ${versionId}`);
+      toast({ title: "Forked", description: `${applied} custom price${applied === 1 ? "" : "s"} saved for ${forkCustomer.name}.` });
+    } catch (error: any) {
+      toast({ title: "Save As New stopped partway", description: error.message, variant: "destructive" });
+    } finally {
+      setForkApplying(false);
+      setForkPlan(null);
+      setForkCustomer(null);
+    }
+  };
+
   const handleNameSubmit = async () => {
     if (!nameDialog) return;
     try {
@@ -759,6 +934,28 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           >
             {autoPriceComputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             Auto Price
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={computeSave}
+            disabled={saveComputing || saveApplying || !allocations.length}
+            title="Commit this matrix's current prices to the master pricelist (pricelist_lines) — what effective_price() actually reads"
+          >
+            {saveComputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SaveIcon className="h-3.5 w-3.5" />}
+            Save
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setCustomerPickerOpen(true)}
+            disabled={forkComputing || forkApplying || !allocations.length}
+            title="Fork this matrix's prices to one customer — only the cells that differ from the master price get saved"
+          >
+            {forkComputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
+            Save As New
           </Button>
         </div>
       </div>
@@ -1174,6 +1371,78 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
             </AlertDialogCancel>
             <AlertDialogAction className="h-7 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={resetting} onClick={handleResetMatrix}>
               Yes, Reset Matrix
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!savePlan} onOpenChange={(value) => !value && !saveApplying && setSavePlan(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold">Save to master pricelist?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs space-y-1">
+              <span className="block">
+                Will write <strong>{savePlan?.items.length ?? 0}</strong> price{savePlan?.items.length === 1 ? "" : "s"} to the
+                master pricelist — the read path <code className="text-[10px]">effective_price()</code> uses. This is the
+                canonical price for every customer without a custom fork.
+              </span>
+              {!!savePlan?.skippedUnlinked && (
+                <span className="block text-muted-foreground">{savePlan.skippedUnlinked} cell(s) have no linked lens or no price, skipped.</span>
+              )}
+              {!!savePlan?.skippedUnresolvable && (
+                <span className="block text-muted-foreground">
+                  {savePlan.skippedUnresolvable} linked lens(es) don't resolve to a combo (design/material gap), skipped.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs" disabled={saveApplying}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs" disabled={saveApplying || !savePlan?.items.length} onClick={applySave}>
+              Save {savePlan?.items.length ?? 0} Price{savePlan?.items.length === 1 ? "" : "s"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <CustomerPickerModal open={customerPickerOpen} onClose={() => setCustomerPickerOpen(false)} onPick={onCustomerPicked} />
+
+      <AlertDialog
+        open={!!forkPlan}
+        onOpenChange={(value) => {
+          if (!value && !forkApplying) {
+            setForkPlan(null);
+            setForkCustomer(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold">Save As New — {forkCustomer?.name}?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs space-y-1">
+              <span className="block">
+                Will fork <strong>{forkPlan?.items.length ?? 0}</strong> price{forkPlan?.items.length === 1 ? "" : "s"} to{" "}
+                {forkCustomer?.name}'s own custom pricelist — sparse, only where this matrix's price differs from the master's.
+              </span>
+              {!!forkPlan?.skippedNoChange && (
+                <span className="block text-muted-foreground">{forkPlan.skippedNoChange} cell(s) already match the master price, no fork line needed.</span>
+              )}
+              {!!forkPlan?.skippedUnlinked && (
+                <span className="block text-muted-foreground">{forkPlan.skippedUnlinked} cell(s) have no linked lens or no price, skipped.</span>
+              )}
+              {!!forkPlan?.skippedUnresolvable && (
+                <span className="block text-muted-foreground">{forkPlan.skippedUnresolvable} linked lens(es) don't resolve to a combo, skipped.</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs" disabled={forkApplying}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs" disabled={forkApplying || !forkPlan?.items.length} onClick={applyFork}>
+              Fork {forkPlan?.items.length ?? 0} Price{forkPlan?.items.length === 1 ? "" : "s"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

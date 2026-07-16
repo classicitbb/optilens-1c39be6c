@@ -274,14 +274,40 @@ export async function fetchAllLensRowsForReview(): Promise<LensRow[]> {
 // Upsert every distinct (treatment, tier, material) discovered into
 // pricing_items — the stable id downstream tables (pricelist_lines,
 // price_change_proposals, pricelist_drift) key off. Safe to call repeatedly.
+// Auto Price only needs the upsert side-effect (matrix_allocations doesn't
+// reference pricing_items); Save needs the ids back, hence the split below.
 export async function upsertPricingItems(combos: ComboWithProvenance[]): Promise<void> {
   if (!combos.length) return;
-  const rows = combos.map((c) => ({ treatment: c.treatment, tier: c.tier, material: c.material }));
-  const { error } = await (supabase.from("pricing_items") as any).upsert(rows, {
+  await upsertAndResolvePricingItemIds(combos.map((c) => ({ treatment: c.treatment, tier: c.tier, material: c.material })));
+}
+
+// Same upsert, but returns comboKey ("treatment||tier||material") -> id so
+// callers that need to write pricelist_lines (Save/Save As New) can resolve
+// item_ref without a second round trip per row.
+export async function upsertAndResolvePricingItemIds(
+  items: Array<{ treatment: string; tier: string; material: string }>
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (!items.length) return map;
+  const rows = items.map((i) => ({ treatment: i.treatment, tier: i.tier, material: i.material }));
+  const { error: upsertError } = await (supabase.from("pricing_items") as any).upsert(rows, {
     onConflict: "treatment,tier,material",
     ignoreDuplicates: true,
   });
-  if (error) throw error;
+  if (upsertError) throw upsertError;
+
+  // Upsert with ignoreDuplicates doesn't reliably return pre-existing rows,
+  // so re-select for exactly the treatments involved (cheap — pricing_items
+  // stays small, bounded by combo diversity, not by lens row count).
+  const distinctTreatments = [...new Set(items.map((i) => i.treatment))];
+  const { data, error: selectError } = await (supabase.from("pricing_items") as any)
+    .select("id,treatment,tier,material")
+    .in("treatment", distinctTreatments);
+  if (selectError) throw selectError;
+  for (const row of (data ?? []) as any[]) {
+    map.set(`${row.treatment}||${row.tier}||${row.material}`, row.id);
+  }
+  return map;
 }
 
 // Wraps BS1-02's toggle_anchor_exclusion RPC — persistent, catalog-wide
