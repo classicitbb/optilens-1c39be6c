@@ -21,7 +21,7 @@
  * Env: VITE_SUPABASE_URL (falls back to reading .env).
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 function loadEnv() {
@@ -52,35 +52,13 @@ const BASE = `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1`;
 const ORIGIN = "https://classicvisions.lovable.app";
 
 /**
- * Every deployed edge function. Update this list when adding/removing
- * functions under supabase/functions/.
+ * Discover functions from source so a new function is automatically included
+ * in both deploy and health gates. `_shared` is source-only and not deployable.
  */
-const FUNCTIONS = [
-  "admin-user-management",
-  "api-v1",
-  "auth-email-hook",
-  "companion-assistant",
-  "companion-web-search",
-  "contact-inquiry",
-  "crm-draft-outreach",
-  "customer-onboarding",
-  "docstudio-api",
-  "handle-email-suppression",
-  "handle-email-unsubscribe",
-  "helpdesk-email",
-  "helpdesk-followup",
-  "helpdesk-inbound-email",
-  "innovations-sync",
-  "lead-intelligence",
-  "lens-assistant",
-  "live-data-gateway",
-  "order-confirmation",
-  "preview-transactional-email",
-  "process-email-queue",
-  "scotia-payment",
-  "send-transactional-email",
-  "vercel-analytics-proxy",
-];
+const FUNCTIONS = readdirSync(resolve(process.cwd(), "supabase/functions"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_"))
+  .map((entry) => entry.name)
+  .sort();
 
 /**
  * Functions without an OPTIONS/CORS handler (webhooks, cron-only, JWT-gated
@@ -90,6 +68,7 @@ const FUNCTIONS = [
 const NO_CORS_FUNCTIONS = new Set([
   "handle-email-suppression",
   "helpdesk-followup",
+  "mcp",
   "process-email-queue",
 ]);
 
@@ -170,23 +149,51 @@ async function runHealthProbe(probe) {
   return probe.check(res);
 }
 
+async function reportHealth(checks, healthy) {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) return;
+
+  const response = await fetch(`${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/rpc/record_edge_function_health`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      p_source: process.env.EDGE_HEALTH_SOURCE ?? "manual",
+      p_release_sha: process.env.GITHUB_SHA ?? process.env.EDGE_HEALTH_RELEASE_SHA ?? null,
+      p_checks: checks,
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`health report failed (${response.status}): ${detail}`);
+  }
+
+  console.log(`Recorded ${checks.length} function check(s) as ${healthy ? "healthy" : "unhealthy"}.`);
+}
+
 async function main() {
   console.log(`Edge Functions smoke test → ${BASE}`);
   const failures = [];
+  const checks = [];
 
   // Preflight checks (parallel, capped concurrency)
   const results = await Promise.all(
     FUNCTIONS.map(async (fn) => {
       try {
         const err = await checkPreflight(fn);
-        return { fn, err };
+        return { fn, err, checkedAt: new Date().toISOString() };
       } catch (err) {
-        return { fn, err: err.message || String(err) };
+        return { fn, err: err.message || String(err), checkedAt: new Date().toISOString() };
       }
     }),
   );
 
-  for (const { fn, err } of results) {
+  for (const { fn, err, checkedAt } of results) {
+    checks.push({ name: fn, healthy: !err, error: err ?? null, checkedAt });
     if (err) {
       console.log(`  ✗ ${fn}  ${err}`);
       failures.push(`${fn}: ${err}`);
@@ -202,6 +209,13 @@ async function main() {
       if (err) {
         console.log(`  ✗ ${probe.name}  ${err}`);
         failures.push(`${probe.name}: ${err}`);
+        const functionName = probe.path.split("/").filter(Boolean)[0];
+        const functionCheck = checks.find((check) => check.name === functionName);
+        if (functionCheck) {
+          functionCheck.healthy = false;
+          functionCheck.error = `${probe.name}: ${err}`;
+          functionCheck.checkedAt = new Date().toISOString();
+        }
       } else {
         console.log(`  ✓ ${probe.name}`);
       }
@@ -209,7 +223,23 @@ async function main() {
       const msg = err.message || String(err);
       console.log(`  ✗ ${probe.name}  ${msg}`);
       failures.push(`${probe.name}: ${msg}`);
+      const functionName = probe.path.split("/").filter(Boolean)[0];
+      const functionCheck = checks.find((check) => check.name === functionName);
+      if (functionCheck) {
+        functionCheck.healthy = false;
+        functionCheck.error = `${probe.name}: ${msg}`;
+        functionCheck.checkedAt = new Date().toISOString();
+      }
     }
+  }
+
+  // The deployment/monitor workflow sets the service-role key. Local smoke
+  // runs remain side-effect-free when that key is absent.
+  try {
+    await reportHealth(checks, failures.length === 0);
+  } catch (err) {
+    console.error(`Unable to record health result: ${err.message || String(err)}`);
+    process.exit(2);
   }
 
   if (failures.length) {

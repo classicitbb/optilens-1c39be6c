@@ -66,4 +66,10 @@ export function getRuntimeErrorLog() {
 
 export function clearRuntimeErrorLog() {
   writeLogEntries([]);
+  if (isBrowser) window.dispatchEvent(new CustomEvent(RUNTIME_ERROR_LOG_EVENT));
+}
+
+export function clearRuntimeErrorLogEntry(id: string) {
+  writeLogEntries(readLogEntries().filter((entry) => entry.id !== id));
+  if (isBrowser) window.dispatchEvent(new CustomEvent(RUNTIME_ERROR_LOG_EVENT));
 }

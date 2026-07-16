@@ -13,6 +13,7 @@ const RxLensPricesPage = lazy(() => import("@/pages/admin/RxLensPricesPage"));
 const StockLensPricesPage = lazy(() => import("@/pages/admin/StockLensPricesPage"));
 const BuySellPricesPage = lazy(() => import("@/pages/admin/BuySellPricesPage"));
 const PricingComparePage = lazy(() => import("@/pages/admin/PricingComparePage"));
+const LensClassificationPage = lazy(() => import("@/pages/admin/LensClassificationPage"));
 const ImportsPage = lazy(() => import("@/pages/admin/ImportsPage"));
 const UsersPage = lazy(() => import("@/pages/admin/UsersPage"));
 const CompanySettingsPage = lazy(() => import("@/pages/admin/CompanySettingsPage"));
@@ -49,6 +50,7 @@ const ApiKeysPage = lazy(() => import("@/pages/admin/settings/ApiKeysPage"));
 const BankPaymentPortalsPage = lazy(() => import("@/pages/admin/settings/BankPaymentPortalsPage"));
 const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazy(() => import("@/pages/admin/settings/EmailPreviewsPage"));
+const EdgeFunctionStatusPage = lazy(() => import("@/pages/admin/settings/EdgeFunctionStatusPage"));
 const HelpdeskTicketsPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"));
 const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskConfigPage"));
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
@@ -71,6 +73,7 @@ const AdminRoutes = () => (
       <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
       <Route path="pricing/supplies" element={<BuySellPricesPage />} />
       <Route path="pricing/compare" element={<PricingComparePage />} />
+      <Route path="pricing/classification" element={<LensClassificationPage />} />
       <Route path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
       <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
       <Route path="pricing/publisher/:id/canvas" element={<CanvasEditorPage />} />
@@ -138,6 +141,7 @@ const AdminRoutes = () => (
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
       <Route path="settings/email-previews" element={<EmailPreviewsPage />} />
+      <Route path="settings/edge-functions" element={<EdgeFunctionStatusPage />} />
 
       <Route path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />} />
       <Route path="reference" element={<Navigate to="/admin/pricing/reference" replace />} />

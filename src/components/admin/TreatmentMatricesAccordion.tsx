@@ -42,6 +42,50 @@ import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixRowKey, buildMatrixSectionLabel } from "@/features/admin/rx-pricing/structure";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { buildCombos, excludeLensFromAnchor, lensIdFor, upsertPricingItems, type ComboWithProvenance } from "@/lib/pricing/combos";
+import { pricedMatrix } from "@/lib/pricing/engine";
+import { categoryKeyFor, groupingKeyFor, materialKeyFor } from "@/lib/pricing/groupingMap";
+import { APPROVED } from "@/lib/pricing/classifier";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Ban, Filter, Save as SaveIcon, Sparkles, UserPlus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  computeSavePlan,
+  applySavePlan,
+  computeForkPlan,
+  applyForkPlan,
+  type SavePlan,
+  type ForkPlan,
+  type LensLookupRow,
+} from "@/lib/pricing/save";
+
+interface AutoPricePlanItem {
+  groupingKey: string;
+  groupingName: string;
+  categoryKey: string;
+  categoryName: string;
+  materialKey: string;
+  lensId: string;
+  lensName: string;
+  preferredSupplier: string;
+  priceUSD: number;
+  allocatedBbd: number;
+  // Which supplier's cost the price is actually floored against, and the
+  // specific lens row that represents it — so the operator can review and,
+  // if it's not who they want setting the floor, exclude it right here
+  // rather than hunting the row down in the catalog separately.
+  anchorSupplier: string;
+  anchorCost: number;
+  anchorLensId: string | null;
+}
+
+interface AutoPricePlan {
+  items: AutoPricePlanItem[];
+  skippedExisting: number;
+  skippedUnmapped: number;
+}
 
 interface TreatmentMatricesAccordionProps {
   versionId: number;
@@ -232,6 +276,81 @@ const LensPickerModal = ({
   );
 };
 
+interface PickedCustomer {
+  id: number;
+  name: string;
+  accountNumber: string | null;
+}
+
+interface CustomerPickerModalProps {
+  open: boolean;
+  onClose: () => void;
+  onPick: (customer: PickedCustomer) => void;
+}
+
+// Same pattern as LensPickerModal and CatalogPublisherPage's AssignDialog —
+// fetch the whole table once, filter client-side. customers stays small
+// enough (every other consumer in this codebase does the same, no
+// pagination anywhere) that a server-side search would be inconsistent
+// with the rest of the app, not more correct.
+const CustomerPickerModal = ({ open, onClose, onPick }: CustomerPickerModalProps) => {
+  const [search, setSearch] = useState("");
+  const { data: customers = [], isLoading } = useQuery<PickedCustomer[]>({
+    queryKey: ["customers-picker"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("customers") as any).select("id,name,account_number").order("name");
+      if (error) throw error;
+      return (data ?? []).map((c: any) => ({ id: c.id, name: c.name, accountNumber: c.account_number }));
+    },
+    enabled: open,
+  });
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return customers;
+    const q = search.toLowerCase();
+    return customers.filter((c) => c.name.toLowerCase().includes(q) || c.accountNumber?.toLowerCase().includes(q));
+  }, [customers, search]);
+
+  return (
+    <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+      <DialogContent className="sm:max-w-md max-h-[70vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
+          <DialogTitle className="text-sm font-semibold">Save As New — pick a customer</DialogTitle>
+        </DialogHeader>
+        <div className="px-4 py-3 border-b border-border shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or account #…" className="pl-8 h-8 text-xs" />
+          </div>
+        </div>
+        <div className="overflow-y-auto flex-1 px-2 py-1">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-8">No customers found.</p>
+          ) : (
+            filtered.map((customer) => (
+              <button
+                key={customer.id}
+                onClick={() => {
+                  onPick(customer);
+                  setSearch("");
+                }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors"
+              >
+                <span className="text-xs font-medium text-primary">{customer.name}</span>
+                {customer.accountNumber && <span className="text-[10px] text-muted-foreground">{customer.accountNumber}</span>}
+              </button>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChange }: TreatmentMatricesAccordionProps) => {
   const { toast } = useToast();
   const { isAdmin } = useAdminRole();
@@ -268,9 +387,45 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     | { mode: "rename-category"; title: string; value: string; categoryId: number }
   >(null);
   const [archiveDialog, setArchiveDialog] = useState<null | { type: "group"; id: number; key: string; name: string; protected?: boolean } | { type: "category"; id: number; groupingKey: string; key: string; name: string }>(null);
+  const [autoPriceComputing, setAutoPriceComputing] = useState(false);
+  const [autoPriceApplying, setAutoPriceApplying] = useState(false);
+  const [autoPricePlan, setAutoPricePlan] = useState<AutoPricePlan | null>(null);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  // Supplier scope: per-run, NOT persisted to lenses.excluded_from_anchor —
+  // that flag is global/permanent (bad data, discontinued SKUs). This is
+  // for "don't let Essilor set the floor in THIS pricelist" or "only price
+  // this customer's list off Essilor" — different pricelists, different
+  // scope, same underlying catalog. Defaults to every approved supplier.
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [supplierScopeMode, setSupplierScopeMode] = useState<"all" | "exclude" | "only">("all");
+  const [supplierScopeSet, setSupplierScopeSet] = useState<Set<string>>(new Set());
 
   const catalogLensIds = useMemo(() => new Set(catalogRows.filter((row) => row.item_id).map((row) => row.item_id as string)), [catalogRows]);
   const lensNameMap = useMemo(() => new Map((allLenses ?? []).map((lens) => [lens.id, lens.name])), [allLenses]);
+  const lensLookup = useMemo(
+    () =>
+      new Map<string, LensLookupRow>(
+        (allLenses ?? []).map((lens) => [
+          lens.id,
+          { name: lens.name, mftype: lens.mftype?.name ?? null, lenstype: lens.lenstype?.name ?? null, material: lens.material?.name ?? null },
+        ])
+      ),
+    [allLenses]
+  );
+
+  // Save / Save As New — BS1-05 task 7. Commits the matrix's CURRENT state
+  // (auto-priced or hand-linked, doesn't matter) into pricelist_lines, the
+  // layer effective_price() actually reads. Auto Price only ever wrote
+  // matrix_allocations; this is the separate step that makes prices real.
+  const [savePlan, setSavePlan] = useState<SavePlan | null>(null);
+  const [saveComputing, setSaveComputing] = useState(false);
+  const [saveApplying, setSaveApplying] = useState(false);
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const [forkCustomer, setForkCustomer] = useState<PickedCustomer | null>(null);
+  const [forkPlan, setForkPlan] = useState<ForkPlan | null>(null);
+  const [forkComputing, setForkComputing] = useState(false);
+  const [forkApplying, setForkApplying] = useState(false);
 
   const allocationMap = useMemo(() => {
     const map = new Map<string, MatrixAllocation>();
@@ -389,6 +544,271 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     setClearConfirmOpen(false);
   };
 
+  // Auto Price: classify the live lenses catalog into anchor-priced combos
+  // (src/lib/pricing), map each combo onto a real matrix cell, and stage
+  // only the EMPTY cells for confirmation — never overwrites a cell someone
+  // already linked by hand. Nothing is written until the plan is confirmed.
+  // Resolve the current scope selection into engine.ts's `excluded` option —
+  // a supplier NAME list to drop from availableSuppliers()/anchorOf() for
+  // this run only. "only" mode is just "exclude everyone except these",
+  // computed here so the pure engine functions never need an "allowlist"
+  // concept of their own.
+  const scopedExcludedSuppliers = useMemo((): string[] => {
+    if (supplierScopeMode === "exclude") return [...supplierScopeSet];
+    if (supplierScopeMode === "only") return APPROVED.filter((s) => !supplierScopeSet.has(s));
+    return [];
+  }, [supplierScopeMode, supplierScopeSet]);
+
+  const scopeLabel = useMemo(() => {
+    if (supplierScopeMode === "all" || supplierScopeSet.size === 0) return "All suppliers";
+    const names = [...supplierScopeSet];
+    const preview = names.slice(0, 2).join(", ") + (names.length > 2 ? ` +${names.length - 2}` : "");
+    return supplierScopeMode === "exclude" ? `Excluding: ${preview}` : `Only: ${preview}`;
+  }, [supplierScopeMode, supplierScopeSet]);
+
+  const computeAutoPricePlan = async () => {
+    setAutoPriceComputing(true);
+    try {
+      const { combos } = await buildCombos();
+      if (combos.length) await upsertPricingItems(combos);
+      const priced = pricedMatrix(combos, { floorMargin: 0.15, rounding: 0.5, excluded: scopedExcludedSuppliers });
+      const comboByKey = new Map<string, ComboWithProvenance>(combos.map((combo) => [combo.key, combo]));
+
+      const items: AutoPricePlanItem[] = [];
+      let skippedExisting = 0;
+      let skippedUnmapped = 0;
+      let skippedUnsafe = 0;
+
+      for (const row of priced) {
+        if (!row.available || !row.key || !row.treatment || !row.tier || !row.material || !row.preferredSupplier || !row.anchorSupplier) continue;
+
+        // Defense in depth: standardPrice() computes prices that should
+        // ALWAYS clear the floor margin against every available supplier by
+        // construction (price is derived FROM the anchor, then only ever
+        // rounded up). Never write a row where that isn't true, even though
+        // it should be mathematically impossible — "should be impossible"
+        // isn't the same guarantee as "provably didn't happen."
+        if (row.safe === false) {
+          skippedUnsafe++;
+          continue;
+        }
+
+        const groupingKey = groupingKeyFor(row.treatment);
+        const categoryKey = categoryKeyFor(row.tier);
+        const materialKey = materialKeyFor(row.material);
+        if (!groupingKey || !categoryKey || !materialKey) {
+          skippedUnmapped++;
+          continue;
+        }
+
+        const grouping = structure.find((candidate) => candidate.key === groupingKey);
+        const category = grouping?.categories.find((candidate) => candidate.key === categoryKey);
+        if (!grouping || !category) {
+          skippedUnmapped++;
+          continue;
+        }
+
+        if (getAllocation(groupingKey, categoryKey, materialKey)?.lens_id) {
+          skippedExisting++;
+          continue;
+        }
+
+        const combo = comboByKey.get(row.key);
+        const lensId = combo ? lensIdFor(combo, row.preferredSupplier) : null;
+        if (!combo || !lensId) {
+          skippedUnmapped++;
+          continue;
+        }
+
+        const lensName = combo.provenance[row.preferredSupplier]?.sourceName ?? row.preferredSupplier;
+        const allocatedBbd = fxRate > 0 ? row.priceUSD! / fxRate : row.priceUSD!;
+        const anchorLensId = lensIdFor(combo, row.anchorSupplier);
+
+        items.push({
+          groupingKey,
+          groupingName: grouping.name,
+          categoryKey,
+          categoryName: category.name,
+          materialKey,
+          lensId,
+          lensName,
+          preferredSupplier: row.preferredSupplier,
+          priceUSD: row.priceUSD!,
+          allocatedBbd: Math.round(allocatedBbd * 100) / 100,
+          anchorSupplier: row.anchorSupplier,
+          anchorCost: row.anchorCost!,
+          anchorLensId,
+        });
+      }
+
+      setAutoPricePlan({ items, skippedExisting, skippedUnmapped });
+      if (skippedUnsafe) {
+        toast({
+          title: "Unsafe prices blocked",
+          description: `${skippedUnsafe} combo(s) computed a price that didn't clear the floor margin against every available supplier and were NOT staged. This should not be possible — worth reporting if you see it.`,
+          variant: "destructive",
+        });
+      }
+      if (!items.length && !skippedUnsafe) {
+        toast({
+          title: "Nothing to price",
+          description: skippedExisting
+            ? `${skippedExisting} matching cells are already linked; nothing else classified.`
+            : "No live lens rows classified into an empty matrix cell.",
+        });
+      }
+    } catch (error: any) {
+      toast({ title: "Auto Price failed", description: error.message, variant: "destructive" });
+    } finally {
+      setAutoPriceComputing(false);
+    }
+  };
+
+  const excludeAnchorAndRecompute = async (item: AutoPricePlanItem) => {
+    if (!item.anchorLensId) return;
+    setAutoPriceComputing(true);
+    try {
+      await excludeLensFromAnchor(item.anchorLensId, `Excluded during Auto Price review (was anchor for ${item.groupingName} / ${item.categoryName} / ${item.materialKey})`);
+      toast({ title: "Supplier excluded", description: `${item.anchorSupplier}'s price no longer counts toward the anchor for this cell. Recomputing…` });
+      await computeAutoPricePlan();
+    } catch (error: any) {
+      toast({ title: "Exclude failed", description: error.message, variant: "destructive" });
+      setAutoPriceComputing(false);
+    }
+  };
+
+  const applyAutoPricePlan = async () => {
+    if (!autoPricePlan) return;
+    setAutoPriceApplying(true);
+    let applied = 0;
+    try {
+      for (const item of autoPricePlan.items) {
+        await upsertMutation.mutateAsync({
+          category: item.categoryKey,
+          material_index: item.materialKey,
+          treatment_type: item.groupingKey,
+          lens_id: item.lensId,
+          allocated_price_bbd: item.allocatedBbd,
+        });
+        await syncToCatalog(
+          item.groupingKey,
+          item.groupingName,
+          item.categoryKey,
+          item.categoryName,
+          item.materialKey,
+          item.lensId,
+          item.lensName,
+          item.allocatedBbd
+        );
+        applied++;
+      }
+      toast({ title: "Auto Price applied", description: `${applied} cell${applied === 1 ? "" : "s"} priced and linked.` });
+    } catch (error: any) {
+      toast({
+        title: "Auto Price stopped partway",
+        description: `${applied} of ${autoPricePlan.items.length} cells applied before this error: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setAutoPriceApplying(false);
+      setAutoPricePlan(null);
+    }
+  };
+
+  // Reset Matrix: clear every allocation (and its synced Price List row) for
+  // the current version. Destructive and irreversible via undo — behind the
+  // structure lock, admin-only, same as Add Grouping. Not the local tool's
+  // "Reset" (that was clearing an unsaved draft; this editor has no draft
+  // layer — see BS1-05 task 6). This clears real, already-saved data, so it
+  // gets its own confirm dialog rather than reusing the single-cell one.
+  const handleResetMatrix = async () => {
+    setResetting(true);
+    let cleared = 0;
+    try {
+      for (const allocation of allocations) {
+        await deleteMutation.mutateAsync(allocation.id);
+        await deleteCatalogRow.mutateAsync(buildMatrixRowKey(allocation.treatment_type, allocation.category, allocation.material_index));
+        cleared++;
+      }
+      toast({ title: "Matrix reset", description: `Cleared ${cleared} cell${cleared === 1 ? "" : "s"}.` });
+    } catch (error: any) {
+      toast({
+        title: "Reset stopped partway",
+        description: `${cleared} of ${allocations.length} cells cleared before this error: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(false);
+      setResetConfirmOpen(false);
+    }
+  };
+
+  const computeSave = async () => {
+    setSaveComputing(true);
+    try {
+      const plan = await computeSavePlan(allocations, lensLookup, fxRate);
+      setSavePlan(plan);
+      if (!plan.items.length) {
+        toast({ title: "Nothing to save", description: "No linked cells resolve to a price-able item." });
+      }
+    } catch (error: any) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    } finally {
+      setSaveComputing(false);
+    }
+  };
+
+  const applySave = async () => {
+    if (!savePlan) return;
+    setSaveApplying(true);
+    try {
+      const applied = await applySavePlan(savePlan.items);
+      toast({ title: "Saved to master", description: `${applied} price${applied === 1 ? "" : "s"} committed to the master pricelist.` });
+    } catch (error: any) {
+      toast({ title: "Save stopped partway", description: error.message, variant: "destructive" });
+    } finally {
+      setSaveApplying(false);
+      setSavePlan(null);
+    }
+  };
+
+  const onCustomerPicked = async (customer: PickedCustomer) => {
+    setForkCustomer(customer);
+    setCustomerPickerOpen(false);
+    setForkComputing(true);
+    try {
+      const plan = await computeForkPlan(allocations, lensLookup, fxRate);
+      setForkPlan(plan);
+      if (!plan.items.length) {
+        toast({
+          title: "Nothing to fork",
+          description: plan.skippedNoChange
+            ? `Every linked cell already matches ${customer.name}'s current effective price — nothing to save as new.`
+            : "No linked cells resolve to a price-able item.",
+        });
+      }
+    } catch (error: any) {
+      toast({ title: "Save As New failed", description: error.message, variant: "destructive" });
+    } finally {
+      setForkComputing(false);
+    }
+  };
+
+  const applyFork = async () => {
+    if (!forkPlan || !forkCustomer) return;
+    setForkApplying(true);
+    try {
+      const applied = await applyForkPlan(forkCustomer.id, forkPlan.items, `Save As New from pricelist version ${versionId}`);
+      toast({ title: "Forked", description: `${applied} custom price${applied === 1 ? "" : "s"} saved for ${forkCustomer.name}.` });
+    } catch (error: any) {
+      toast({ title: "Save As New stopped partway", description: error.message, variant: "destructive" });
+    } finally {
+      setForkApplying(false);
+      setForkPlan(null);
+      setForkCustomer(null);
+    }
+  };
+
   const handleNameSubmit = async () => {
     if (!nameDialog) return;
     try {
@@ -470,16 +890,72 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                 {structureLocked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
               </Button>
               {showStructureControls && (
-                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setNameDialog({ mode: "create-group", title: "Add Grouping", value: "" })}>
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Grouping
-                </Button>
+                <>
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setNameDialog({ mode: "create-group", title: "Add Grouping", value: "" })}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Grouping
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive"
+                    onClick={() => setResetConfirmOpen(true)}
+                    disabled={resetting || !allocations.length}
+                    title="Clear every linked cell in this pricelist version"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Reset Matrix
+                  </Button>
+                </>
               )}
             </>
           )}
           <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => toast({ title: "Deltas recalculated", description: "All delta rows updated." })}>
             <RefreshCw className="h-3.5 w-3.5" />
             Recalculate All Deltas
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className={cn("h-8 text-xs gap-1.5", supplierScopeMode !== "all" && "border-amber-400 text-amber-700")}
+            onClick={() => setScopeDialogOpen(true)}
+            title="Which suppliers count toward this run's anchor/floor pricing — separate from lenses.excluded_from_anchor, applies only here"
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {scopeLabel}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={computeAutoPricePlan}
+            disabled={autoPriceComputing || autoPriceApplying}
+            title="Classify the live lens catalog and fill empty matrix cells with anchor-priced lenses"
+          >
+            {autoPriceComputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Auto Price
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={computeSave}
+            disabled={saveComputing || saveApplying || !allocations.length}
+            title="Commit this matrix's current prices to the master pricelist (pricelist_lines) — what effective_price() actually reads"
+          >
+            {saveComputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SaveIcon className="h-3.5 w-3.5" />}
+            Save
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setCustomerPickerOpen(true)}
+            disabled={forkComputing || forkApplying || !allocations.length}
+            title="Fork this matrix's prices to one customer — only the cells that differ from the master price get saved"
+          >
+            {forkComputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
+            Save As New
           </Button>
         </div>
       </div>
@@ -718,6 +1194,255 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
             <AlertDialogCancel className="h-7 text-xs">Cancel</AlertDialogCancel>
             <AlertDialogAction className="h-7 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleClearConfirm}>
               Yes, Clear Cell
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">Auto Price supplier scope</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Applies only to Auto Price runs in <strong>this pricelist version</strong> — not persisted to the catalog. For
+            permanently excluding a bad-data lens everywhere, use the Exclude action in the review step instead.
+          </p>
+          <RadioGroup value={supplierScopeMode} onValueChange={(v) => setSupplierScopeMode(v as typeof supplierScopeMode)} className="gap-2">
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="all" id="scope-all" />
+              <label htmlFor="scope-all" className="text-xs">All approved suppliers (default)</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="exclude" id="scope-exclude" />
+              <label htmlFor="scope-exclude" className="text-xs">Exclude selected suppliers — e.g. keep Essilor out of the main book</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="only" id="scope-only" />
+              <label htmlFor="scope-only" className="text-xs">Only selected suppliers — e.g. an Essilor-only pricelist for one customer</label>
+            </div>
+          </RadioGroup>
+          {supplierScopeMode !== "all" && (
+            <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto border border-border rounded-md p-2">
+              {APPROVED.map((supplier) => (
+                <label key={supplier} className="flex items-center gap-1.5 text-xs">
+                  <Checkbox
+                    checked={supplierScopeSet.has(supplier)}
+                    onCheckedChange={(checked) =>
+                      setSupplierScopeSet((prev) => {
+                        const next = new Set(prev);
+                        if (checked) next.add(supplier);
+                        else next.delete(supplier);
+                        return next;
+                      })
+                    }
+                  />
+                  {supplier}
+                </label>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => {
+                setSupplierScopeMode("all");
+                setSupplierScopeSet(new Set());
+              }}
+            >
+              Reset to all
+            </Button>
+            <Button className="h-7 text-xs" onClick={() => setScopeDialogOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!autoPricePlan} onOpenChange={(value) => !value && !autoPriceApplying && !autoPriceComputing && setAutoPricePlan(null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
+            <DialogTitle className="text-sm font-semibold">Review Auto Price</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Every price floors against the <strong>anchor</strong> — the most expensive available, non-excluded supplier for that
+              cell — so margin holds no matter which supplier actually fulfils the order. Exclude a supplier below to drop it from
+              the anchor calc and recompute before anything is written.
+            </p>
+            {supplierScopeMode !== "all" && (
+              <p className="text-xs font-medium text-amber-700">Supplier scope active for this run: {scopeLabel}</p>
+            )}
+          </DialogHeader>
+
+          <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+            <span>
+              <strong className="text-foreground">{autoPricePlan?.items.length ?? 0}</strong> cell{autoPricePlan?.items.length === 1 ? "" : "s"} to fill
+            </span>
+            {!!autoPricePlan?.skippedExisting && <span>{autoPricePlan.skippedExisting} already linked by hand (untouched)</span>}
+            {!!autoPricePlan?.skippedUnmapped && <span>{autoPricePlan.skippedUnmapped} unmapped (no matching cell)</span>}
+          </div>
+
+          <div className="overflow-y-auto flex-1">
+            {autoPriceComputing ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : !autoPricePlan?.items.length ? (
+              <p className="text-xs text-muted-foreground text-center py-8">Nothing to review.</p>
+            ) : (
+              <table className="w-full text-xs border-collapse">
+                <thead className="sticky top-0 bg-background border-b border-border">
+                  <tr>
+                    <th className="px-3 py-1.5 text-left font-semibold text-foreground">Cell</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-foreground">Anchor supplier (floors the price)</th>
+                    <th className="px-3 py-1.5 text-left font-semibold text-foreground">Links to</th>
+                    <th className="px-3 py-1.5 text-right font-semibold text-foreground">Price</th>
+                    <th className="px-3 py-1.5 text-right font-semibold text-foreground" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {autoPricePlan.items.map((item) => (
+                    <tr key={`${item.groupingKey}::${item.categoryKey}::${item.materialKey}`} className="border-b border-border/60 hover:bg-muted/30">
+                      <td className="px-3 py-1.5 whitespace-nowrap align-top">
+                        <div className="font-medium text-foreground">{item.categoryName}</div>
+                        <div className="text-muted-foreground text-[10px]">{item.groupingName} · {item.materialKey}</div>
+                      </td>
+                      <td className="px-3 py-1.5 align-top">
+                        <div className="font-medium text-foreground">{item.anchorSupplier}</div>
+                        <div className="text-muted-foreground text-[10px]">${item.anchorCost.toFixed(2)} USD · worst case this cell must clear</div>
+                      </td>
+                      <td className="px-3 py-1.5 align-top max-w-[220px] truncate" title={item.lensName}>
+                        {item.lensName}
+                        {item.preferredSupplier !== item.anchorSupplier && (
+                          <div className="text-muted-foreground text-[10px]">{item.preferredSupplier} — cheaper than anchor, floor still holds</div>
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono align-top">
+                        {showUSD ? `$${item.priceUSD.toFixed(2)}` : item.allocatedBbd.toFixed(2)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right align-top">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-1.5 text-[10px] gap-1 text-destructive hover:text-destructive"
+                          disabled={autoPriceComputing || autoPriceApplying || !item.anchorLensId}
+                          onClick={() => excludeAnchorAndRecompute(item)}
+                          title={`Exclude ${item.anchorSupplier} from this cell's anchor calculation and recompute`}
+                        >
+                          <Ban className="h-3 w-3" />
+                          Exclude
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <DialogFooter className="px-4 py-3 border-t border-border shrink-0">
+            <Button variant="outline" className="h-7 text-xs" disabled={autoPriceApplying} onClick={() => setAutoPricePlan(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="h-7 text-xs"
+              disabled={autoPriceApplying || autoPriceComputing || !autoPricePlan?.items.length}
+              onClick={applyAutoPricePlan}
+            >
+              {autoPriceApplying ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+              Fill {autoPricePlan?.items.length ?? 0} Cell{autoPricePlan?.items.length === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={resetConfirmOpen} onOpenChange={(value) => !resetting && setResetConfirmOpen(value)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold">Reset the entire matrix?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              This clears all <strong>{allocations.length}</strong> linked cell{allocations.length === 1 ? "" : "s"} in this pricelist version — every
+              lens link and its synced Price List row. This cannot be undone; re-run Auto Price or re-link cells by hand afterward.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs" disabled={resetting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={resetting} onClick={handleResetMatrix}>
+              Yes, Reset Matrix
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!savePlan} onOpenChange={(value) => !value && !saveApplying && setSavePlan(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold">Save to master pricelist?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs space-y-1">
+              <span className="block">
+                Will write <strong>{savePlan?.items.length ?? 0}</strong> price{savePlan?.items.length === 1 ? "" : "s"} to the
+                master pricelist — the read path <code className="text-[10px]">effective_price()</code> uses. This is the
+                canonical price for every customer without a custom fork.
+              </span>
+              {!!savePlan?.skippedUnlinked && (
+                <span className="block text-muted-foreground">{savePlan.skippedUnlinked} cell(s) have no linked lens or no price, skipped.</span>
+              )}
+              {!!savePlan?.skippedUnresolvable && (
+                <span className="block text-muted-foreground">
+                  {savePlan.skippedUnresolvable} linked lens(es) don't resolve to a combo (design/material gap), skipped.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs" disabled={saveApplying}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs" disabled={saveApplying || !savePlan?.items.length} onClick={applySave}>
+              Save {savePlan?.items.length ?? 0} Price{savePlan?.items.length === 1 ? "" : "s"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <CustomerPickerModal open={customerPickerOpen} onClose={() => setCustomerPickerOpen(false)} onPick={onCustomerPicked} />
+
+      <AlertDialog
+        open={!!forkPlan}
+        onOpenChange={(value) => {
+          if (!value && !forkApplying) {
+            setForkPlan(null);
+            setForkCustomer(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold">Save As New — {forkCustomer?.name}?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs space-y-1">
+              <span className="block">
+                Will fork <strong>{forkPlan?.items.length ?? 0}</strong> price{forkPlan?.items.length === 1 ? "" : "s"} to{" "}
+                {forkCustomer?.name}'s own custom pricelist — sparse, only where this matrix's price differs from the master's.
+              </span>
+              {!!forkPlan?.skippedNoChange && (
+                <span className="block text-muted-foreground">{forkPlan.skippedNoChange} cell(s) already match the master price, no fork line needed.</span>
+              )}
+              {!!forkPlan?.skippedUnlinked && (
+                <span className="block text-muted-foreground">{forkPlan.skippedUnlinked} cell(s) have no linked lens or no price, skipped.</span>
+              )}
+              {!!forkPlan?.skippedUnresolvable && (
+                <span className="block text-muted-foreground">{forkPlan.skippedUnresolvable} linked lens(es) don't resolve to a combo, skipped.</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs" disabled={forkApplying}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs" disabled={forkApplying || !forkPlan?.items.length} onClick={applyFork}>
+              Fork {forkPlan?.items.length ?? 0} Price{forkPlan?.items.length === 1 ? "" : "s"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

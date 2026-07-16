@@ -1,6 +1,7 @@
 import {
   DollarSign, ShoppingCart, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
   Package, Eye, Layers, BoxSelect, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
+  ListChecks,
   FileEdit,
   Contact, Tags, Factory,
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
@@ -9,7 +10,7 @@ import {
   Ticket,
   Layout, UserCircle, Store,
   BookMarked, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -35,6 +36,7 @@ export const ADMIN_APPS = {
       { label: 'Stock Lens Prices', route: '/admin/pricing/stock-lenses', icon: Layers },
       { label: 'Supplies Prices', route: '/admin/pricing/supplies', icon: BoxSelect },
       { label: 'Supplier Compare', route: '/admin/pricing/compare', icon: GitCompare },
+      { label: 'Lens Classification', route: '/admin/pricing/classification', icon: ListChecks },
       { label: 'Lens Catalog Builder', route: '/admin/pricing/publisher', icon: FileText },
       { label: 'Import Costings', route: '/admin/pricing/costings', icon: Ship },
       { label: 'Costing Reports', route: '/admin/pricing/costings/reports', icon: BarChart3 },
@@ -166,6 +168,7 @@ export const ADMIN_APPS = {
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
       { label: 'Email Previews', route: '/admin/settings/email-previews', icon: Mail },
+      { label: 'Edge Function Status', route: '/admin/settings/edge-functions', icon: Activity },
     ] satisfies SidebarItem[],
   },
 } as const;
