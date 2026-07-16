@@ -40,6 +40,7 @@ function getDefaultOriginsForEnv(environment: string): string[] {
   const alwaysAllowed = [
     "https://classicvisions.net",
     "https://www.classicvisions.net",
+    "https://admin.classicvisions.net",
     "https://classicvisions.lovable.app",
     "https://optilens.lovable.app",
     "https://d568bffd-cdad-4066-b271-1e09c9a376d6.lovableproject.com",
