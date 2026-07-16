@@ -1,6 +1,7 @@
 import {
   DollarSign, ShoppingCart, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
   Package, Eye, Layers, BoxSelect, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
+  ListChecks,
   FileEdit,
   Contact, Tags, Factory,
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
@@ -35,6 +36,7 @@ export const ADMIN_APPS = {
       { label: 'Stock Lens Prices', route: '/admin/pricing/stock-lenses', icon: Layers },
       { label: 'Supplies Prices', route: '/admin/pricing/supplies', icon: BoxSelect },
       { label: 'Supplier Compare', route: '/admin/pricing/compare', icon: GitCompare },
+      { label: 'Lens Classification', route: '/admin/pricing/classification', icon: ListChecks },
       { label: 'Lens Catalog Builder', route: '/admin/pricing/publisher', icon: FileText },
       { label: 'Import Costings', route: '/admin/pricing/costings', icon: Ship },
       { label: 'Costing Reports', route: '/admin/pricing/costings/reports', icon: BarChart3 },

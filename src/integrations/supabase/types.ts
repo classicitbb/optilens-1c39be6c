@@ -8859,6 +8859,33 @@ export type Database = {
         Args: { p_excluded: boolean; p_lens_id: string; p_reason?: string }
         Returns: undefined
       }
+<<<<<<< Updated upstream
+=======
+      bulk_toggle_anchor_exclusion: {
+        Args: { p_lens_ids: string[]; p_excluded: boolean; p_reason?: string }
+        Returns: number
+      }
+      effective_price: {
+        Args: { p_customer_id: number; p_item_ref: string }
+        Returns: number
+      }
+      set_master_price: {
+        Args: { p_item_ref: string; p_price: number }
+        Returns: undefined
+      }
+      set_custom_price: {
+        Args: { p_customer_id: number; p_item_ref: string; p_price: number; p_reason?: string; p_source?: string }
+        Returns: undefined
+      }
+      revert_line_to_master: {
+        Args: { p_customer_id: number; p_item_ref: string }
+        Returns: undefined
+      }
+      revert_account_to_master: {
+        Args: { p_customer_id: number }
+        Returns: undefined
+      }
+>>>>>>> Stashed changes
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
         Returns: string

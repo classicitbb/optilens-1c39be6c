@@ -79,6 +79,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "customer.profile", path: "/profile/*", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "active" },
   { id: "admin.root", path: "/admin", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.pricing.compare", path: "/admin/pricing/compare", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.pricing.classification", path: "/admin/pricing/classification", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.website.store", path: "/admin/website/store", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.website.store.variants", path: "/admin/website/store/variants/:productType/:productId", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.knowledge.wiki", path: "/admin/knowledge/wiki", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },

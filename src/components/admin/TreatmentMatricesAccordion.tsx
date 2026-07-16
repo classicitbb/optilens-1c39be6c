@@ -45,7 +45,10 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { buildCombos, excludeLensFromAnchor, lensIdFor, upsertPricingItems, type ComboWithProvenance } from "@/lib/pricing/combos";
 import { pricedMatrix } from "@/lib/pricing/engine";
 import { categoryKeyFor, groupingKeyFor, materialKeyFor } from "@/lib/pricing/groupingMap";
-import { Ban, Sparkles } from "lucide-react";
+import { APPROVED } from "@/lib/pricing/classifier";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Ban, Filter, Sparkles } from "lucide-react";
 
 interface AutoPricePlanItem {
   groupingKey: string;
@@ -303,6 +306,14 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   const [autoPricePlan, setAutoPricePlan] = useState<AutoPricePlan | null>(null);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  // Supplier scope: per-run, NOT persisted to lenses.excluded_from_anchor —
+  // that flag is global/permanent (bad data, discontinued SKUs). This is
+  // for "don't let Essilor set the floor in THIS pricelist" or "only price
+  // this customer's list off Essilor" — different pricelists, different
+  // scope, same underlying catalog. Defaults to every approved supplier.
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [supplierScopeMode, setSupplierScopeMode] = useState<"all" | "exclude" | "only">("all");
+  const [supplierScopeSet, setSupplierScopeSet] = useState<Set<string>>(new Set());
 
   const catalogLensIds = useMemo(() => new Set(catalogRows.filter((row) => row.item_id).map((row) => row.item_id as string)), [catalogRows]);
   const lensNameMap = useMemo(() => new Map((allLenses ?? []).map((lens) => [lens.id, lens.name])), [allLenses]);
@@ -428,12 +439,30 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   // (src/lib/pricing), map each combo onto a real matrix cell, and stage
   // only the EMPTY cells for confirmation — never overwrites a cell someone
   // already linked by hand. Nothing is written until the plan is confirmed.
+  // Resolve the current scope selection into engine.ts's `excluded` option —
+  // a supplier NAME list to drop from availableSuppliers()/anchorOf() for
+  // this run only. "only" mode is just "exclude everyone except these",
+  // computed here so the pure engine functions never need an "allowlist"
+  // concept of their own.
+  const scopedExcludedSuppliers = useMemo((): string[] => {
+    if (supplierScopeMode === "exclude") return [...supplierScopeSet];
+    if (supplierScopeMode === "only") return APPROVED.filter((s) => !supplierScopeSet.has(s));
+    return [];
+  }, [supplierScopeMode, supplierScopeSet]);
+
+  const scopeLabel = useMemo(() => {
+    if (supplierScopeMode === "all" || supplierScopeSet.size === 0) return "All suppliers";
+    const names = [...supplierScopeSet];
+    const preview = names.slice(0, 2).join(", ") + (names.length > 2 ? ` +${names.length - 2}` : "");
+    return supplierScopeMode === "exclude" ? `Excluding: ${preview}` : `Only: ${preview}`;
+  }, [supplierScopeMode, supplierScopeSet]);
+
   const computeAutoPricePlan = async () => {
     setAutoPriceComputing(true);
     try {
       const { combos } = await buildCombos();
       if (combos.length) await upsertPricingItems(combos);
-      const priced = pricedMatrix(combos, { floorMargin: 0.15, rounding: 0.5 });
+      const priced = pricedMatrix(combos, { floorMargin: 0.15, rounding: 0.5, excluded: scopedExcludedSuppliers });
       const comboByKey = new Map<string, ComboWithProvenance>(combos.map((combo) => [combo.key, combo]));
 
       const items: AutoPricePlanItem[] = [];
@@ -713,6 +742,16 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           <Button
             size="sm"
             variant="outline"
+            className={cn("h-8 text-xs gap-1.5", supplierScopeMode !== "all" && "border-amber-400 text-amber-700")}
+            onClick={() => setScopeDialogOpen(true)}
+            title="Which suppliers count toward this run's anchor/floor pricing — separate from lenses.excluded_from_anchor, applies only here"
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {scopeLabel}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             className="h-8 text-xs gap-1.5"
             onClick={computeAutoPricePlan}
             disabled={autoPriceComputing || autoPriceApplying}
@@ -963,6 +1002,67 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
         </AlertDialogContent>
       </AlertDialog>
 
+      <Dialog open={scopeDialogOpen} onOpenChange={setScopeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">Auto Price supplier scope</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Applies only to Auto Price runs in <strong>this pricelist version</strong> — not persisted to the catalog. For
+            permanently excluding a bad-data lens everywhere, use the Exclude action in the review step instead.
+          </p>
+          <RadioGroup value={supplierScopeMode} onValueChange={(v) => setSupplierScopeMode(v as typeof supplierScopeMode)} className="gap-2">
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="all" id="scope-all" />
+              <label htmlFor="scope-all" className="text-xs">All approved suppliers (default)</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="exclude" id="scope-exclude" />
+              <label htmlFor="scope-exclude" className="text-xs">Exclude selected suppliers — e.g. keep Essilor out of the main book</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="only" id="scope-only" />
+              <label htmlFor="scope-only" className="text-xs">Only selected suppliers — e.g. an Essilor-only pricelist for one customer</label>
+            </div>
+          </RadioGroup>
+          {supplierScopeMode !== "all" && (
+            <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto border border-border rounded-md p-2">
+              {APPROVED.map((supplier) => (
+                <label key={supplier} className="flex items-center gap-1.5 text-xs">
+                  <Checkbox
+                    checked={supplierScopeSet.has(supplier)}
+                    onCheckedChange={(checked) =>
+                      setSupplierScopeSet((prev) => {
+                        const next = new Set(prev);
+                        if (checked) next.add(supplier);
+                        else next.delete(supplier);
+                        return next;
+                      })
+                    }
+                  />
+                  {supplier}
+                </label>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => {
+                setSupplierScopeMode("all");
+                setSupplierScopeSet(new Set());
+              }}
+            >
+              Reset to all
+            </Button>
+            <Button className="h-7 text-xs" onClick={() => setScopeDialogOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!autoPricePlan} onOpenChange={(value) => !value && !autoPriceApplying && !autoPriceComputing && setAutoPricePlan(null)}>
         <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-4 pt-4 pb-3 border-b border-border shrink-0">
@@ -972,6 +1072,9 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
               cell — so margin holds no matter which supplier actually fulfils the order. Exclude a supplier below to drop it from
               the anchor calc and recompute before anything is written.
             </p>
+            {supplierScopeMode !== "all" && (
+              <p className="text-xs font-medium text-amber-700">Supplier scope active for this run: {scopeLabel}</p>
+            )}
           </DialogHeader>
 
           <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">

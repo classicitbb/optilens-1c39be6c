@@ -11,18 +11,22 @@
  * and fetchLenses()/pull() (IO).
  */
 import { supabase } from "@/integrations/supabase/client";
-import { APPROVED, normMaterial, normTreatment, TIER_MAP } from "./classifier";
+import { APPROVED, normMaterial, normTreatment, QUOTE_ONLY, TIER_MAP } from "./classifier";
 import type { Combo } from "./engine";
 
 export interface LensRow {
   id: string;
   name: string;
   supplier: string | null;
+  brand: string | null;
   mftype: string | null;
   lenstype: string | null;
   material: string | null;
   cost: number | null;
   active: boolean;
+  excludedFromAnchor?: boolean;
+  excludedReason?: string | null;
+  excludedAt?: string | null;
 }
 
 interface SupplierProvenance {
@@ -131,8 +135,70 @@ export function combosFromRows(rows: LensRow[]): CombosResult {
   return { combos, approved, mapped, supplierRowCounts };
 }
 
+// ── Per-row classification review (not just the aggregated combos) ─────────
+// Auto Price only needs the eligible/aggregated view (combosFromRows above).
+// The classification review page needs the OPPOSITE: every row, including
+// ineligible ones, with a reason it didn't classify — mirrors the same
+// filter chain as combosFromRows, in the same order, so the two can never
+// silently disagree about what counts as classified.
+export type ClassificationStatus =
+  | "classified"
+  | "unapproved_supplier"
+  | "inactive"
+  | "excluded_from_anchor"
+  | "invalid_cost"
+  | "quote_only"
+  | "unmapped_tier"
+  | "unmapped_material";
+
+export interface ClassifiedLensRow {
+  row: LensRow;
+  status: ClassificationStatus;
+  comboKey: string | null;
+  treatment: string | null;
+  tier: string | null;
+  material: string | null;
+}
+
+export function classifyLensRows(rows: LensRow[]): ClassifiedLensRow[] {
+  return rows.map((row): ClassifiedLensRow => {
+    const unclassified = (status: ClassificationStatus, tier: string | null = null): ClassifiedLensRow => ({
+      row,
+      status,
+      comboKey: null,
+      treatment: null,
+      tier,
+      material: null,
+    });
+
+    if (!row.supplier || !APPROVED.includes(row.supplier as (typeof APPROVED)[number])) {
+      return unclassified("unapproved_supplier");
+    }
+    if (row.active === false) return unclassified("inactive");
+    if (row.excludedFromAnchor) return unclassified("excluded_from_anchor");
+    const cost = Number(row.cost);
+    if (!Number.isFinite(cost) || cost <= 0) return unclassified("invalid_cost");
+
+    const designKey = `${row.mftype}|${row.lenstype}`;
+    // QUOTE_ONLY designs are deliberately absent from TIER_MAP (specialty
+    // items kept out of the standard matrix by design) — report them
+    // distinctly so the review page doesn't flag an intentional exclusion
+    // as if it were a gap needing a TIER_MAP entry.
+    if (QUOTE_ONLY.has(designKey)) return unclassified("quote_only");
+
+    const tier = TIER_MAP[designKey];
+    if (!tier) return unclassified("unmapped_tier");
+    const material = normMaterial(row.name, row.material);
+    if (!material) return unclassified("unmapped_material", tier);
+
+    const treatment = normTreatment(row.name);
+    return { row, status: "classified", comboKey: `${treatment}||${tier}||${material}`, treatment, tier, material };
+  });
+}
+
 // ── Live fetch (in-process — no external REST pull) ────────────────────────
-const SELECT = "id,name,base_price,is_active,excluded_from_anchor,supplier:suppliers(name),mftype:mftypes(name),lenstype:lenstypes(name),material:materials(name)";
+const SELECT =
+  "id,name,base_price,is_active,excluded_from_anchor,excluded_reason,excluded_at,supplier:suppliers(name),brand:brands(name),mftype:mftypes(name),lenstype:lenstypes(name),material:materials(name)";
 
 function pickName(v: { name: string } | { name: string }[] | null): string | null {
   if (!v) return null;
@@ -155,6 +221,7 @@ export async function fetchApprovedLensRows(): Promise<LensRow[]> {
         id: row.id,
         name: row.name,
         supplier: pickName(row.supplier),
+        brand: pickName(row.brand),
         mftype: pickName(row.mftype),
         lenstype: pickName(row.lenstype),
         material: pickName(row.material),
@@ -170,6 +237,38 @@ export async function fetchApprovedLensRows(): Promise<LensRow[]> {
 export async function buildCombos(): Promise<CombosResult> {
   const rows = await fetchApprovedLensRows();
   return combosFromRows(rows);
+}
+
+// Unfiltered — includes inactive/excluded rows and their excludedFromAnchor
+// flag, unlike fetchApprovedLensRows (which pre-filters for Auto Price, so
+// those rows never even reach it). Only the classification review page uses
+// this; Auto Price's eligibility filtering is unaffected by adding it.
+export async function fetchAllLensRowsForReview(): Promise<LensRow[]> {
+  const rows: LensRow[] = [];
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await (supabase.from("lenses") as any).select(SELECT).range(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    for (const row of data as any[]) {
+      rows.push({
+        id: row.id,
+        name: row.name,
+        supplier: pickName(row.supplier),
+        brand: pickName(row.brand),
+        mftype: pickName(row.mftype),
+        lenstype: pickName(row.lenstype),
+        material: pickName(row.material),
+        cost: row.base_price,
+        active: row.is_active,
+        excludedFromAnchor: row.excluded_from_anchor === true,
+        excludedReason: row.excluded_reason ?? null,
+        excludedAt: row.excluded_at ?? null,
+      });
+    }
+    if (data.length < PAGE) break;
+  }
+  return rows;
 }
 
 // Upsert every distinct (treatment, tier, material) discovered into
@@ -197,4 +296,18 @@ export async function excludeLensFromAnchor(lensId: string, reason: string): Pro
     p_reason: reason,
   });
   if (error) throw error;
+}
+
+// Bulk version — kicking out a whole supplier or brand one lens at a time
+// isn't practical past a handful of SKUs. p_excluded=false restores them
+// (same RPC handles both directions, matching toggle_anchor_exclusion).
+export async function bulkSetAnchorExclusion(lensIds: string[], excluded: boolean, reason?: string): Promise<number> {
+  if (!lensIds.length) return 0;
+  const { data, error } = await (supabase.rpc as any)("bulk_toggle_anchor_exclusion", {
+    p_lens_ids: lensIds,
+    p_excluded: excluded,
+    p_reason: reason ?? null,
+  });
+  if (error) throw error;
+  return (data as number) ?? 0;
 }

@@ -149,6 +149,45 @@ classification was correct. Both causes had to be fixed for Trans Gen S™ to ac
 the naming gap (lenses would classify into the grouping) and the inactive flag (the grouping
 itself would render at all).
 
+## Supplier scope + bulk exclusion + audit view (2026-07-16, operator requirement)
+
+Operator asked how to kick a supplier/brand out of anchor pricing, how to audit what's
+currently excluded, and how to give one customer (PriceSmart) a pricelist sourced only from one
+supplier (Essilor) without that conflicting with excluding the same supplier from the main book.
+That last part surfaced a real gap: `excluded_from_anchor` (BS1-02) is global and permanent — one
+flag, applied everywhere, forever. Using it to keep Essilor out of the main book would also make
+Essilor invisible to any attempt to Auto Price an Essilor-only book for another customer, since
+`fetchApprovedLensRows()` filters it out entirely.
+
+Resolved with two deliberately separate mechanisms, not one:
+- **Auto Price supplier scope** (`TreatmentMatricesAccordion.tsx`, new) — per-run, NOT persisted.
+  "Exclude selected" or "only selected" suppliers, threaded into `pricedMatrix()`'s existing
+  `excluded` option (the primitive was already there from the `pricing-engine.js` port; it just
+  had no UI). Solves both cases: exclude Essilor for the main book's run, only-Essilor for
+  PriceSmart's book — same catalog, different scope per pricelist, nothing persisted.
+- **Bulk exclude/restore by supplier or brand** (`LensClassificationPage.tsx`, new) — still global
+  and persistent, reserved for genuine bad-data/discontinued cases. New migration
+  `20260716100000_bulk_anchor_exclusion.sql` (`bulk_toggle_anchor_exclusion`, same audit trail as
+  the single-lens RPC, one `pricing_audit` row per lens not one bulk row). Verified live: 94
+  Essilor lenses computed correctly for the preview count (did not execute the write — that's a
+  real, permanent production change I wasn't asked to actually perform, just to verify works).
+- **Audit view** — "Currently excluded from anchor" table on the classification page, reads
+  `excluded_reason`/`excluded_by`/`excluded_at` directly. Verified live showing a real exclusion
+  from this session's earlier Auto Price review testing, reason string intact.
+
+## Every stat card is now a drill-down (2026-07-16, operator requirement: "we dont want to be lost or out of control")
+
+The classification page's 8 stat cards were static counts except two. Now every card is
+clickable and shows the actual rows behind it, with whatever action fits that status: `inactive`
+→ reactivate (new — direct `is_active` update, same pattern `useLenses.ts`'s
+`toggleActiveMutation` already uses elsewhere), `excluded_from_anchor` → restore (existing,
+folded into the same unified drill-down), everything else non-excluded → exclude. `unmapped_tier`
+keeps its grouped-by-design view (more useful than a flat row list for that specific gap); every
+other status gets a generic searchable, multi-select row table capped at 400 rows with a "search
+to narrow down" prompt past that. Verified live: Inactive (330 rows) and Excluded (1 row, the
+same real exclusion from earlier testing) both render and their action buttons update selection
+counts correctly.
+
 ## Open question, not blocking
 
 The local tool has a whole-combo "discontinue this cell" disable (`catalog-overrides.json`'s
