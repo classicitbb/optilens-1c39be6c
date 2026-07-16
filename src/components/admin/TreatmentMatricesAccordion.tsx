@@ -293,6 +293,8 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   const [autoPriceComputing, setAutoPriceComputing] = useState(false);
   const [autoPriceApplying, setAutoPriceApplying] = useState(false);
   const [autoPricePlan, setAutoPricePlan] = useState<AutoPricePlan | null>(null);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const catalogLensIds = useMemo(() => new Set(catalogRows.filter((row) => row.item_id).map((row) => row.item_id as string)), [catalogRows]);
   const lensNameMap = useMemo(() => new Map((allLenses ?? []).map((lens) => [lens.id, lens.name])), [allLenses]);
@@ -530,6 +532,34 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
     }
   };
 
+  // Reset Matrix: clear every allocation (and its synced Price List row) for
+  // the current version. Destructive and irreversible via undo — behind the
+  // structure lock, admin-only, same as Add Grouping. Not the local tool's
+  // "Reset" (that was clearing an unsaved draft; this editor has no draft
+  // layer — see BS1-05 task 6). This clears real, already-saved data, so it
+  // gets its own confirm dialog rather than reusing the single-cell one.
+  const handleResetMatrix = async () => {
+    setResetting(true);
+    let cleared = 0;
+    try {
+      for (const allocation of allocations) {
+        await deleteMutation.mutateAsync(allocation.id);
+        await deleteCatalogRow.mutateAsync(buildMatrixRowKey(allocation.treatment_type, allocation.category, allocation.material_index));
+        cleared++;
+      }
+      toast({ title: "Matrix reset", description: `Cleared ${cleared} cell${cleared === 1 ? "" : "s"}.` });
+    } catch (error: any) {
+      toast({
+        title: "Reset stopped partway",
+        description: `${cleared} of ${allocations.length} cells cleared before this error: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(false);
+      setResetConfirmOpen(false);
+    }
+  };
+
   const handleNameSubmit = async () => {
     if (!nameDialog) return;
     try {
@@ -611,10 +641,23 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                 {structureLocked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
               </Button>
               {showStructureControls && (
-                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setNameDialog({ mode: "create-group", title: "Add Grouping", value: "" })}>
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Grouping
-                </Button>
+                <>
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setNameDialog({ mode: "create-group", title: "Add Grouping", value: "" })}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Add Grouping
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive"
+                    onClick={() => setResetConfirmOpen(true)}
+                    disabled={resetting || !allocations.length}
+                    title="Clear every linked cell in this pricelist version"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Reset Matrix
+                  </Button>
+                </>
               )}
             </>
           )}
@@ -900,6 +943,26 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
             </AlertDialogCancel>
             <AlertDialogAction className="h-7 text-xs" disabled={autoPriceApplying || !autoPricePlan?.items.length} onClick={applyAutoPricePlan}>
               Fill {autoPricePlan?.items.length ?? 0} Cell{autoPricePlan?.items.length === 1 ? "" : "s"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={resetConfirmOpen} onOpenChange={(value) => !resetting && setResetConfirmOpen(value)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-semibold">Reset the entire matrix?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              This clears all <strong>{allocations.length}</strong> linked cell{allocations.length === 1 ? "" : "s"} in this pricelist version — every
+              lens link and its synced Price List row. This cannot be undone; re-run Auto Price or re-link cells by hand afterward.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-xs" disabled={resetting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={resetting} onClick={handleResetMatrix}>
+              Yes, Reset Matrix
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
