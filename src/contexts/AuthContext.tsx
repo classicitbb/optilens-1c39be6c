@@ -140,7 +140,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    // Local scope: only end this browser's session. The supabase-js default
+    // (global) revokes every session for the user, which silently killed
+    // still-open admin tabs on other domains when switching test accounts.
+    await supabase.auth.signOut({ scope: "local" });
   }, []);
 
   const value = useMemo(() => ({
