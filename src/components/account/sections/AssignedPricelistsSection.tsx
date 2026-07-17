@@ -18,6 +18,14 @@ interface MatrixRow {
   allocated_price_bbd: number;
 }
 
+interface AddonRow {
+  section: string | null;
+  display_description: string;
+  row_type: string;
+  bbd_price: number;
+  sort_order: number;
+}
+
 interface AssignedPricelistDetails {
   name: string | null;
   updated_at: string | null;
@@ -39,6 +47,16 @@ const AssignedPricelistsSection = () => {
       const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_matrix");
       if (error) throw error;
       return (data ?? []) as MatrixRow[];
+    },
+  });
+
+  const { data: addonRows = [], isLoading: addonsLoading } = useQuery<AddonRow[]>({
+    queryKey: ["portal-assigned-pricelist-addons", assignedPricelistId],
+    enabled: typeof assignedPricelistId === "number",
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_addons");
+      if (error) throw error;
+      return (data ?? []) as AddonRow[];
     },
   });
 
@@ -95,7 +113,19 @@ const AssignedPricelistsSection = () => {
       .filter((entry) => entry.activeCategories.length > 0);
   }, [structure, priceByKey]);
 
-  const isLoading = structureLoading || rowsLoading;
+  const addonsBySection = useMemo(() => {
+    const map = new Map<string, AddonRow[]>();
+    [...addonRows]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .forEach((row) => {
+        const section = row.section?.trim() || "Other";
+        if (!map.has(section)) map.set(section, []);
+        map.get(section)!.push(row);
+      });
+    return map;
+  }, [addonRows]);
+
+  const isLoading = structureLoading || rowsLoading || addonsLoading;
   const assignedPricelistName = pricelistDetails?.name?.trim() || null;
   const updatedAt = pricelistDetails?.updated_at ?? null;
 
@@ -103,12 +133,12 @@ const AssignedPricelistsSection = () => {
     <section className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold text-foreground">RX Lens Prices</h2>
+          <h2 className="text-2xl font-semibold text-foreground">RX Lens Prices + Add-ons</h2>
           <p className="text-sm text-muted-foreground">
             Your assigned wholesale pricing{updatedAt ? ` · updated ${new Date(updatedAt).toLocaleDateString()}` : ""}.
           </p>
         </div>
-        {rows.length > 0 && (
+        {(rows.length > 0 || addonRows.length > 0) && (
           <Button
             variant="outline"
             size="sm"
@@ -138,9 +168,11 @@ const AssignedPricelistsSection = () => {
             </div>
           ) : isError ? (
             <p className="text-sm text-destructive">Your pricelist couldn't be loaded. Please try again shortly.</p>
-          ) : groupings.length === 0 ? (
+          ) : groupings.length === 0 && addonsBySection.size === 0 ? (
             <p className="text-sm text-muted-foreground">Your assigned pricelist doesn't have any prices published yet.</p>
           ) : (
+            <div className="space-y-6">
+            {groupings.length > 0 && (
             <Accordion type="multiple" defaultValue={[groupings[0].grouping.key]} className="w-full">
               {groupings.map(({ grouping, visibleCols, activeCategories }) => (
                 <AccordionItem key={grouping.id} value={grouping.key}>
@@ -185,6 +217,38 @@ const AssignedPricelistsSection = () => {
                 </AccordionItem>
               ))}
             </Accordion>
+            )}
+
+            {addonsBySection.size > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold uppercase tracking-wide text-foreground">
+                  Add-ons, Extras &amp; Coatings
+                </h3>
+                {[...addonsBySection.entries()].map(([section, sectionRows]) => (
+                  <div key={section} className="overflow-x-auto rounded-md border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr style={{ background: "#1e4db7" }}>
+                          <th className="px-4 py-2 text-left font-bold uppercase tracking-wide text-white">{section}</th>
+                          <th className="w-32 px-3 py-2 text-right font-bold uppercase tracking-wide text-white">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sectionRows.map((row, index) => (
+                          <tr key={`${section}-${index}`} className="border-b last:border-b-0">
+                            <td className="px-4 py-2 font-medium text-foreground">{row.display_description}</td>
+                            <td className="px-3 py-2 text-right font-semibold text-foreground">
+                              <span className={cn(pricesHidden && "select-none blur-sm")}>{money(Number(row.bbd_price))}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            )}
+            </div>
           )}
         </CardContent>
       </Card>
