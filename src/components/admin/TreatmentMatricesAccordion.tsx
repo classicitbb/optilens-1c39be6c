@@ -51,6 +51,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Ban, Filter, Save as SaveIcon, Sparkles, UserPlus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import LineOverrideDialog from "@/components/admin/LineOverrideDialog";
+import { usePricingSettings } from "@/hooks/usePricingSettings";
 import {
   computeSavePlan,
   applySavePlan,
@@ -359,6 +361,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   const { upsertRow: upsertCatalogRow, deleteRow: deleteCatalogRow } = usePricelistCatalogRowUpsert(versionId, "rx");
   const { lineOverrides, hasOverride } = usePriceHierarchy(versionId);
   const { data: allLenses } = useLenses();
+  const { versions: pricingVersions } = usePricingSettings();
   const {
     structure,
     isLoading: structureLoading,
@@ -400,9 +403,24 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [supplierScopeMode, setSupplierScopeMode] = useState<"all" | "exclude" | "only">("all");
   const [supplierScopeSet, setSupplierScopeSet] = useState<Set<string>>(new Set());
+  const [overrideTarget, setOverrideTarget] = useState<null | {
+    allocationId: string;
+    itemName: string;
+    cost: number | null;
+    currentPrice: number | null;
+    cellLabel: string;
+    supplierLabel: string | null;
+    inclusionMode: "auto" | "manual";
+  }>(null);
 
   const catalogLensIds = useMemo(() => new Set(catalogRows.filter((row) => row.item_id).map((row) => row.item_id as string)), [catalogRows]);
   const lensNameMap = useMemo(() => new Map((allLenses ?? []).map((lens) => [lens.id, lens.name])), [allLenses]);
+  const lensMetaMap = useMemo(() => new Map((allLenses ?? []).map((lens) => [lens.id, lens])), [allLenses]);
+  const marginFloorPercent = useMemo(() => {
+    const active = pricingVersions.find((v) => v.is_active) ?? pricingVersions[0];
+    const floors = active?.category_margin_floors as Record<string, number> | undefined;
+    return ((floors?.lenses ?? 0.30) * 100);
+  }, [pricingVersions]);
   const lensLookup = useMemo(
     () =>
       new Map<string, LensLookupRow>(
@@ -461,6 +479,27 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   };
 
   const getAllocation = (groupKey: string, categoryKey: string, materialIndex: string) => allocationMap.get(`${groupKey}::${categoryKey}::${materialIndex}`);
+
+  const openMatrixOverride = (
+    allocation: MatrixAllocation,
+    groupingName: string,
+    categoryName: string,
+    materialKey: string,
+    wasAutoPriced: boolean
+  ) => {
+    if (!allocation.id) return;
+    const lens = allocation.lens_id ? lensMetaMap.get(allocation.lens_id) : null;
+    const lensName = lens?.name ?? (allocation.lens_id ? lensNameMap.get(allocation.lens_id) : null) ?? "Unlinked matrix cell";
+    setOverrideTarget({
+      allocationId: String(allocation.id),
+      itemName: lensName,
+      cost: lens?.base_price != null ? lens.base_price * 2 : null,
+      currentPrice: allocation.allocated_price_bbd,
+      cellLabel: `${groupingName} - ${categoryName} - ${materialKey}`,
+      supplierLabel: lens?.supplier?.abbrev || lens?.supplier?.name || null,
+      inclusionMode: wasAutoPriced ? "auto" : "manual",
+    });
+  };
 
   const getGroupColAvg = (groupKey: string, categoryKeys: string[], materialIndex: string) => {
     const values = categoryKeys
@@ -1079,6 +1118,19 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                                     {inCatalog && !isPending && <CheckCircle className="h-3 w-3 shrink-0 text-emerald-500 mr-0.5" />}
                                     {allocation && (
                                       <button
+                                        type="button"
+                                        onClick={() => openMatrixOverride(allocation, grouping.name, category.name, column.key, true)}
+                                        className={cn(
+                                          "shrink-0 px-1 py-1 rounded transition-colors hover:bg-primary/10",
+                                          isOverridden ? "text-amber-600" : "text-primary"
+                                        )}
+                                        title="Override price for this matrix cell"
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                    {allocation && (
+                                      <button
                                         onClick={() => handleClearRequest({ groupKey: grouping.key, groupName: grouping.name, categoryKey: category.key, categoryName: category.name, materialIndex: column.key })}
                                         className="shrink-0 px-1 py-1 rounded transition-colors opacity-0 group-hover/cell:opacity-100 hover:bg-destructive/10 text-destructive"
                                         title="Clear this matrix cell and delete the linked list row"
@@ -1156,6 +1208,32 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
         categoryFilter={pickerTarget?.categoryName}
         materialFilter={pickerTarget?.materialIndex}
         catalogLensIds={catalogLensIds}
+      />
+
+      <LineOverrideDialog
+        open={!!overrideTarget}
+        onOpenChange={(value) => {
+          if (!value) setOverrideTarget(null);
+        }}
+        versionId={versionId}
+        sectionType="RX Lens Prices"
+        referenceType="matrix_allocation"
+        referenceId={overrideTarget?.allocationId ?? ""}
+        itemName={overrideTarget?.itemName ?? ""}
+        cost={overrideTarget?.cost ?? null}
+        currentPrice={overrideTarget?.currentPrice ?? null}
+        marginFloor={marginFloorPercent}
+        context={overrideTarget ? {
+          cellLabel: overrideTarget.cellLabel,
+          sourceLabel: "Matrix allocation",
+          supplierLabel: overrideTarget.supplierLabel,
+          inclusionMode: overrideTarget.inclusionMode,
+          notes: [
+            "Auto Price can fill this cell from active, approved, positive-cost lens rows that classify into the same grouping, category, and material.",
+            "Manual lens selection still happens from the matrix search control beside this pencil.",
+            "This override changes only the matrix cell price; it does not remove the linked lens or disable Auto Price review.",
+          ],
+        } : undefined}
       />
 
       <Dialog open={!!nameDialog} onOpenChange={(value) => !value && setNameDialog(null)}>
