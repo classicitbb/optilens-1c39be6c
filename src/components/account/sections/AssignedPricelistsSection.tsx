@@ -18,6 +18,11 @@ interface MatrixRow {
   allocated_price_bbd: number;
 }
 
+interface AssignedPricelistDetails {
+  name: string | null;
+  updated_at: string | null;
+}
+
 const money = (value: number) => `$${value.toFixed(2)}`;
 
 const AssignedPricelistsSection = () => {
@@ -37,13 +42,34 @@ const AssignedPricelistsSection = () => {
     },
   });
 
-  const { data: updatedAt } = useQuery<string | null>({
-    queryKey: ["portal-assigned-pricelist-updated-at", assignedPricelistId],
+  const { data: pricelistDetails } = useQuery<AssignedPricelistDetails | null>({
+    queryKey: ["portal-assigned-pricelist-details", assignedPricelistId, identity?.crmCustomerId ?? null],
     enabled: typeof assignedPricelistId === "number",
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_updated_at");
-      if (error) throw error;
-      return (data as string | null) ?? null;
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_details", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
+      if (!error) {
+        const detail = Array.isArray(data) ? data[0] : data;
+        return detail ? {
+          name: typeof detail.name === "string" ? detail.name : null,
+          updated_at: typeof detail.updated_at === "string" ? detail.updated_at : null,
+        } : null;
+      }
+
+      const { data: version } = await (supabase.from("pricelist_versions") as any)
+        .select("name,updated_at")
+        .eq("id", assignedPricelistId)
+        .maybeSingle();
+      if (version) {
+        return {
+          name: typeof version.name === "string" ? version.name : null,
+          updated_at: typeof version.updated_at === "string" ? version.updated_at : null,
+        };
+      }
+
+      const { data: updatedAt } = await (supabase.rpc as any)("portal_assigned_pricelist_updated_at");
+      return { name: null, updated_at: (updatedAt as string | null) ?? null };
     },
   });
 
@@ -70,6 +96,8 @@ const AssignedPricelistsSection = () => {
   }, [structure, priceByKey]);
 
   const isLoading = structureLoading || rowsLoading;
+  const assignedPricelistName = pricelistDetails?.name?.trim() || null;
+  const updatedAt = pricelistDetails?.updated_at ?? null;
 
   return (
     <section className="space-y-6">
@@ -97,7 +125,7 @@ const AssignedPricelistsSection = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <BadgeDollarSign className="h-5 w-5" />
-            Assigned Pricelist
+            <span>Assigned Pricelist{assignedPricelistName ? ` - ${assignedPricelistName}` : ""}</span>
           </CardTitle>
           <CardDescription>Wholesale pricing, per pair, assigned to your approved customer account.</CardDescription>
         </CardHeader>

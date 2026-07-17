@@ -3,10 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, LogOut, Phone, Save, Shield, User } from "lucide-react";
+import { AtSign, Building2, CheckCircle2, IdCard, KeyRound, LogOut, Phone, Save, Shield, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -165,200 +165,261 @@ const MyAccountSection = () => {
     },
     identity,
   );
+  const fullName = form.watch("full_name");
+  const phone = form.watch("phone");
+  const organizationName = form.watch("organization_name");
+  const displayName = form.watch("display_name");
+  const profileName = fullName || displayName || "Your profile";
+  const initials = profileName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "ME";
+  const statusBadges = [
+    `Email ${identity?.emailVerified ? "verified" : "pending"}`,
+    `Profile ${identity?.profileCompleted ? "complete" : "incomplete"}`,
+    `Access ${identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}`,
+    ...(identity?.crmContactId ? ["CRM contact linked"] : []),
+    ...(identity?.crmCustomerId ? ["Customer approved"] : []),
+  ];
 
   return (
-    <Card className="mx-auto max-w-2xl">
-      <CardHeader className="text-center">
-        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-          <User className="h-10 w-10 text-primary" />
-        </div>
-        <CardTitle className="text-2xl">Your Profile</CardTitle>
-        <CardDescription>Manage your account details and preferences</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2 rounded-lg bg-muted p-4">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium">Full name:</span> {form.watch("full_name") || "—"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium">Email:</span> {user?.email}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium">Phone:</span> {form.watch("phone") || "—"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium">Organization:</span> {form.watch("organization_name") || "—"}
-          </p>
-          {role && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Role:</span>
-              <Badge
-                className="h-5 border-0 px-1.5 py-0 text-[10px] font-medium"
-                style={{ background: roleBadgeStyle[role]?.bg, color: roleBadgeStyle[role]?.color }}
-              >
-                {role}
-              </Badge>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-2 rounded-lg border bg-background p-4">
-          <p className="text-sm font-medium text-foreground">Customer workflow status</p>
-          <p className="text-sm text-muted-foreground">{identity?.portalAccessNote || "Complete setup to create your CRM contact and customer workflow."}</p>
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline">Email {identity?.emailVerified ? "verified" : "pending"}</Badge>
-            <Badge variant="outline">Profile {identity?.profileCompleted ? "complete" : "incomplete"}</Badge>
-            <Badge variant="outline">Access {identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}</Badge>
-            {identity?.crmContactId ? <Badge variant="outline">CRM contact linked</Badge> : null}
-            {identity?.crmCustomerId ? <Badge variant="outline">Customer approved</Badge> : null}
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <h2 className="truncate text-2xl font-semibold text-foreground">Your Profile</h2>
+            <p className="text-sm text-muted-foreground">Manage contact details, account access, and security.</p>
           </div>
         </div>
-        {missingRequirements.length ? (
-          <div className="space-y-2 rounded-lg border border-amber-400/50 bg-amber-50/40 p-4">
-            <p className="text-sm font-medium text-foreground">Profile setup required</p>
-            <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-              {missingRequirements.map((item) => (
-                <li key={item.key}>
-                  <Link to={`${item.route}?focus=${item.focus}`} className="underline underline-offset-2">
-                    Add {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        {hasAccess && (
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/admin">
-              <Shield className="mr-2 h-4 w-4" />
-              Go to Admin
-            </Link>
-          </Button>
-        )}
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="full_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your full name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input className="pl-9" placeholder="+1 (246) 555-0101" {...field} />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="display_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Display Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your display name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bio</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Tell us about yourself..."
-                      className="min-h-[100px] resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="organization_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Organization / Company</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Classic Visions" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="space-y-2">
-              <FormLabel>ERP Account Number</FormLabel>
-              <div
-                className="flex h-10 w-full items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-foreground"
-                role="status"
-                aria-label="ERP Account Number"
-              >
-                {identity?.accountNumber || "ACC#"}
-              </div>
-            </div>
-            <FormField
-              control={form.control}
-              name="avatar_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Avatar URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com/avatar.jpg" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="submit" className="flex-1" disabled={saving}>
-                <Save className="mr-2 h-4 w-4" />
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-              <Button type="button" variant="outline" className="sm:w-auto" onClick={() => { void signOut(); }}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </Button>
-            </div>
-          </form>
-        </Form>
-
-        <div className="border-t pt-6">
-          <h3 className="mb-2 text-sm font-semibold">Change Password</h3>
-          <p className="mb-3 text-xs text-muted-foreground">
-            We'll send a password reset link to your email address.
-          </p>
+        <div className="flex flex-wrap gap-2">
+          {hasAccess ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin">
+                <Shield className="mr-2 h-4 w-4" />
+                Admin
+              </Link>
+            </Button>
+          ) : null}
           <Button variant="outline" size="sm" onClick={handleChangePassword} disabled={resettingPw}>
             <KeyRound className="mr-2 h-4 w-4" />
-            {resettingPw ? "Sending…" : "Send Reset Email"}
+            {resettingPw ? "Sending..." : "Reset password"}
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => { void signOut(); }}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign out
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)]">
+        <div className="space-y-4">
+          <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
+            <CardContent className="space-y-4 p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-md bg-primary/10 p-2 text-primary">
+                  <User className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{profileName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user?.email || "No email on file"}</p>
+                </div>
+              </div>
+              <dl className="grid gap-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <AtSign className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <dt className="text-xs text-muted-foreground">Email</dt>
+                    <dd className="truncate font-medium text-foreground">{user?.email || "—"}</dd>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <dt className="text-xs text-muted-foreground">Phone</dt>
+                    <dd className="truncate font-medium text-foreground">{phone || "—"}</dd>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <dt className="text-xs text-muted-foreground">Organization</dt>
+                    <dd className="truncate font-medium text-foreground">{organizationName || "—"}</dd>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <IdCard className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <dt className="text-xs text-muted-foreground">ERP account</dt>
+                    <dd className="truncate font-mono font-medium text-foreground">{identity?.accountNumber || "ACC#"}</dd>
+                  </div>
+                </div>
+              </dl>
+              {role ? (
+                <Badge
+                  className="h-5 border-0 px-1.5 py-0 text-[10px] font-medium"
+                  style={{ background: roleBadgeStyle[role]?.bg, color: roleBadgeStyle[role]?.color }}
+                >
+                  {role}
+                </Badge>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Workflow status</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">{identity?.portalAccessNote || "Complete setup to create your CRM contact and customer workflow."}</p>
+              <div className="flex flex-wrap gap-2">
+                {statusBadges.map((item) => (
+                  <Badge key={item} variant="outline" className="text-xs">{item}</Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {missingRequirements.length ? (
+            <Card className="border-amber-400/50 bg-amber-50/40 shadow-sm dark:bg-amber-950/20">
+              <CardContent className="space-y-2 p-4">
+                <p className="text-sm font-medium text-foreground">Profile setup required</p>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                  {missingRequirements.map((item) => (
+                    <li key={item.key}>
+                      <Link to={`${item.route}?focus=${item.focus}`} className="underline underline-offset-2">
+                        Add {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+
+        <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
+          <CardContent className="p-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="full_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your full name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="display_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Display Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your display name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input className="pl-9" placeholder="+1 (246) 555-0101" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="organization_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Organization / Company</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Classic Visions" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="space-y-2">
+                    <FormLabel>ERP Account Number</FormLabel>
+                    <div
+                      className="flex h-10 w-full items-center rounded-md border border-border bg-muted/40 px-3 font-mono text-sm text-foreground"
+                      role="status"
+                      aria-label="ERP Account Number"
+                    >
+                      {identity?.accountNumber || "ACC#"}
+                    </div>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="avatar_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Avatar URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://example.com/avatar.jpg" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="bio"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Bio</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Tell us about yourself..."
+                            className="min-h-[84px] resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {emulation ? "Profile editing is read-only while emulating a customer." : "Changes update your portal profile and approval workflow."}
+                  </p>
+                  <Button type="submit" className="sm:w-auto" disabled={saving}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {saving ? "Saving..." : "Save changes"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
   );
 };
 

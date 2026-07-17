@@ -6,7 +6,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { getPortalEmulation, onPortalEmulationChange } from "@/lib/portalEmulation";
 
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
-export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "statements";
+export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "live-order-status" | "statements";
 
 export type PaymentTerms = "credit" | "cash" | "standard";
 
@@ -32,6 +32,7 @@ const featureTitles: Record<PortalFeature, string> = {
   helpdesk: "Helpdesk",
   pricelists: "Pricelists",
   "private-orders": "Private orders",
+  "live-order-status": "Live order status",
   statements: "Statements",
 };
 
@@ -65,6 +66,7 @@ export const canAccessPortalFeature = (identity: PortalIdentity | null, feature:
     return identity.portalAccessStatus === "approved_customer" && identity.canAccessStatements;
   }
   if (override === true) return true;
+  if (feature === "live-order-status") return false;
   if (feature === "private-orders") return identity.portalAccessStatus === "approved_customer";
   return identity.portalAccessStatus === "approved_customer";
 };

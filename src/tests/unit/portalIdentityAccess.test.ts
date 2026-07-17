@@ -27,6 +27,11 @@ describe("canAccessPortalFeature", () => {
     expect(canAccessPortalFeature(approved, "pricelists")).toBe(true);
   });
 
+  it("keeps live order status opt-in while the workflow is unfinished", () => {
+    expect(canAccessPortalFeature(identity(), "live-order-status")).toBe(false);
+    expect(canAccessPortalFeature(identity({ featureOverrides: { "live-order-status": true } }), "live-order-status")).toBe(true);
+  });
+
   it("keeps statements locked for approved contacts without billing tags", () => {
     expect(canAccessPortalFeature(identity({ canAccessStatements: false }), "statements")).toBe(false);
   });

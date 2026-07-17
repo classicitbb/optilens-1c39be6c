@@ -16,8 +16,8 @@ const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:writ
 const OPERATIONS = {
   "innovations.customer_account": { source: "innovations", feature: "statements" },
   "innovations.customer_statement": { source: "innovations", feature: "statements" },
-  "innovations.customer_orders": { source: "innovations", feature: "private-orders" },
-  "optilens.customer_deliveries": { source: "optilens", feature: "private-orders" },
+  "innovations.customer_orders": { source: "innovations", feature: "live-order-status" },
+  "optilens.customer_deliveries": { source: "optilens", feature: "live-order-status" },
 } as const;
 
 type Operation = keyof typeof OPERATIONS;
@@ -488,7 +488,8 @@ async function handleClientRequest(req: Request, body: JsonObject) {
       .eq("user_id", auth.user.id)
       .eq("feature_key", config.feature)
       .maybeSingle();
-    if (override?.enabled === false || (override?.enabled !== true && profile?.portal_access_status !== "approved_customer")) {
+    const requiresExplicitOverride = config.feature === "live-order-status";
+    if (override?.enabled === false || (override?.enabled !== true && (requiresExplicitOverride || profile?.portal_access_status !== "approved_customer"))) {
       return json(req, { error: "This live-data feature is not enabled for the customer account." }, 403);
     }
 

@@ -167,20 +167,21 @@ const MyOrdersSection = () => {
   const { canAccessFeature, identity, emulation } = usePortalIdentity();
   const { orders, loading } = useOrders(emulation?.userId);
   const canSeePrivateOrders = canAccessFeature("private-orders");
+  const canSeeLiveOrderStatus = canAccessFeature("live-order-status");
   // Under admin emulation the gateway must fetch the emulated customer's data,
   // not the admin's; staff-only override honored server-side.
   const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
   const [innovationsSearch, setInnovationsSearch] = useState("");
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
-    enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
+    enabled: canSeeLiveOrderStatus && typeof identity?.crmCustomerId === "number",
     queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal, websiteCustomerId }),
     staleTime: 30_000,
     retry: 1,
   });
   const deliveriesQuery = useQuery({
     queryKey: ["live-optilens-deliveries", identity?.crmCustomerId],
-    enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
+    enabled: canSeeLiveOrderStatus && typeof identity?.crmCustomerId === "number",
     queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>(
       "optilens.customer_deliveries",
       { include_open: true, closed_since: format(subDays(new Date(), 45), "yyyy-MM-dd") },
@@ -214,15 +215,15 @@ const MyOrdersSection = () => {
         <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
         <nav className="flex flex-wrap gap-2 pt-1" aria-label="Jump to order sections">
           {pendingOrders.length ? <a href="#pending-orders"><Badge className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingOrders.length}</Badge></a> : null}
-          {canSeePrivateOrders ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</Badge></a> : null}
-          {canSeePrivateOrders ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {liveDeliveries.length}</Badge></a> : null}
+          {canSeeLiveOrderStatus ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</Badge></a> : null}
+          {canSeeLiveOrderStatus ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {liveDeliveries.length}</Badge></a> : null}
         </nav>
         {!canSeePrivateOrders ? (
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
         ) : null}
       </header>
 
-      {canSeePrivateOrders ? (
+      {canSeeLiveOrderStatus ? (
         <section className="space-y-3" aria-labelledby="innovations-orders-heading">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -296,7 +297,7 @@ const MyOrdersSection = () => {
         </section>
       ) : null}
 
-      {canSeePrivateOrders ? (
+      {canSeeLiveOrderStatus ? (
         <section className="space-y-3" aria-labelledby="live-deliveries-heading">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

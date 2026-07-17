@@ -128,7 +128,25 @@ interface PortalAccountRecord {
   isErpCustomer: boolean;
 }
 
-const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "statements"] as const;
+const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements"] as const;
+
+const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
+  quotes: "Quotes",
+  helpdesk: "Helpdesk",
+  pricelists: "Pricelists",
+  "private-orders": "Private orders",
+  "live-order-status": "Live order status",
+  statements: "Statements",
+};
+
+const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
+  quotes: "Explicit override for quote requests.",
+  helpdesk: "Explicit override for helpdesk access.",
+  pricelists: "Explicit override for assigned pricelist viewing.",
+  "private-orders": "Approved customer access for private/manual order history.",
+  "live-order-status": "Opt-in only while live lab and delivery status is being finished.",
+  statements: "Owner/CEO/Buyer tag required; disabled override can still block it.",
+};
 
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "—");
@@ -781,8 +799,8 @@ const WebsitePortalsPage = () => {
             <CardContent className="space-y-2">
               {FEATURE_KEYS.map((feature) => {
                 const enabled = detailQuery.data.featureOverrides[feature];
-                return <Button key={feature} type="button" variant={enabled ? "default" : "outline"} className="w-full justify-between capitalize" onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}>
-                  {feature.replace(/-/g, " ")}<span className="text-xs">{enabled ? "Enabled" : "Default"}</span>
+                return <Button key={feature} type="button" variant={enabled ? "default" : "outline"} className="w-full justify-between" onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}>
+                  {FEATURE_LABELS[feature]}<span className="text-xs">{enabled ? "Enabled" : "Default"}</span>
                 </Button>;
               })}
             </CardContent>
@@ -1051,10 +1069,8 @@ const WebsitePortalsPage = () => {
                                   onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}
                                 >
                                   <span>
-                                    <span className="block text-sm font-medium capitalize text-foreground">{feature.replace(/-/g, " ")}</span>
-                                    <span className="block text-xs text-muted-foreground">
-                                      {feature === "statements" ? "Owner/CEO/Buyer tag required; disabled override can still block it." : "Explicit override for this portal workflow."}
-                                    </span>
+                                    <span className="block text-sm font-medium text-foreground">{FEATURE_LABELS[feature]}</span>
+                                    <span className="block text-xs text-muted-foreground">{FEATURE_DESCRIPTIONS[feature]}</span>
                                   </span>
                                   <span className="text-xs font-semibold text-primary">{enabled ? "Enabled" : "Default"}</span>
                                 </button>

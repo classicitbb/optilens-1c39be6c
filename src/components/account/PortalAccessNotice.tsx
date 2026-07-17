@@ -17,6 +17,7 @@ const featureLabels: Record<PortalFeature, string> = {
   helpdesk: "Helpdesk",
   pricelists: "Pricelists",
   "private-orders": "Private orders",
+  "live-order-status": "Live order status",
   statements: "Statements",
 };
 

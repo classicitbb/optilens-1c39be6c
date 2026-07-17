@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, CircleHelp, LogOut, Menu, Search } from "lucide-react";
+import { ArrowLeft, CircleHelp, LogOut, Menu, Monitor, Moon, Search, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +22,10 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const location = useLocation();
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
+  const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
+  const activeTheme = theme ?? "system";
 
   // Close the mobile sheet whenever the user navigates to a new page
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
@@ -81,6 +84,31 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
 
             {/* Desktop only: display name + help + avatar */}
             <div className="hidden items-center gap-2 lg:flex">
+              <div className="flex items-center rounded-full border bg-muted/30 p-0.5" aria-label="Appearance">
+                {[
+                  { value: "system", label: "Use system theme", icon: Monitor },
+                  { value: "dark", label: "Use dark theme", icon: Moon },
+                  { value: "light", label: "Use light theme", icon: Sun },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const selected = activeTheme === item.value;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      aria-label={item.label}
+                      title={item.label}
+                      aria-pressed={selected}
+                      onClick={() => setTheme(item.value)}
+                      className={`flex h-6 w-6 items-center justify-center rounded-full transition-colors ${
+                        selected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </button>
+                  );
+                })}
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
