@@ -314,6 +314,9 @@ Deno.serve(async (req) => {
           }
           return jsonResponse(req, 409, { error: "A user with this email already exists." });
         }
+        if (/weak|pwned|compromised|easy to guess/i.test(msg)) {
+          return jsonResponse(req, 400, { error: msg || "Password is too weak. Please choose a stronger password." });
+        }
         throw error;
       }
       if (newUser?.user) {
