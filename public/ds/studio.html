@@ -870,6 +870,7 @@
             </div>
           </sc-if>
           <sc-if value="{{ isEmail }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ openEmailSend }}" style="height:38px;padding:0 18px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Send Email</button>
             <div style="position:relative">
               <button onClick="{{ toggleDl }}" style="height:38px;padding:0 18px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">Download <span style="font-size:8px;opacity:.55;transform:translateY(1px)">▼</span></button>
               <sc-if value="{{ dlOpen }}" hint-placeholder-val="{{ false }}">
@@ -988,6 +989,80 @@
     </div>
   </sc-if>
 
+  <sc-if value="{{ emailSendOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeEmailSend }}" style="position:fixed;inset:0;background:rgba(11,30,53,.38);z-index:72"></div>
+    <div role="dialog" aria-modal="true" aria-labelledby="ds-email-send-title" style="position:fixed;top:42px;left:50%;width:min(980px,calc(100vw - 42px));max-height:calc(100vh - 84px);transform:translateX(-50%);z-index:73;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 28px 72px -18px rgba(11,30,53,.5);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #f0ede6;gap:16px">
+        <div style="min-width:0">
+          <div id="ds-email-send-title" style="font:800 17px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Send email</div>
+          <div style="font:400 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:3px">Sent from {{ emailFromLabel }}. Replies go to the editable reply-to address.</div>
+        </div>
+        <button onClick="{{ closeEmailSend }}" style="flex:none;background:none;border:0;color:#8a93a0;cursor:pointer;font-size:20px;line-height:1;padding:2px 6px">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);min-height:0;overflow:hidden">
+        <div style="padding:16px 18px;border-right:1px solid #f0ede6;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto">
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">From</div>
+            <div style="padding:9px 11px;border:1px solid #e7e4db;border-radius:8px;background:#f7f5ef;font:600 12.5px/1.35 'Plus Jakarta Sans',sans-serif;color:#0B1E35;word-break:break-word">{{ emailFromLabel }}</div>
+          </div>
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Reply-to</div>
+            <input class="cv-in" type="email" value="{{ emailReplyTo }}" onChange="{{ setEmailReplyTo }}" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C">To</div>
+              <button onClick="{{ toggleEmailContacts }}" style="background:none;border:0;color:#0B1E35;font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Contacts</button>
+            </div>
+            <textarea class="cv-in" value="{{ emailTo }}" onChange="{{ setEmailTo }}" placeholder="name@example.com, second@example.com" rows="3" style="width:100%;box-sizing:border-box;resize:vertical;min-height:74px;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.45 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></textarea>
+            <sc-if value="{{ emailContactsOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:8px;border:1px solid #e7e4db;border-radius:10px;background:#fff;box-shadow:0 14px 36px -18px rgba(11,30,53,.35);max-height:190px;overflow:auto">
+                <sc-for list="{{ emailContactOptions }}" as="c" hint-placeholder-count="0">
+                  <label style="display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-bottom:1px solid #f4f1ea;cursor:pointer">
+                    <input type="checkbox" checked="{{ c.checked }}" onChange="{{ c.toggle }}" style="width:15px;height:15px;margin-top:1px;accent-color:#1A8A9C;flex:none">
+                    <span style="min-width:0">
+                      <span style="display:block;font:700 12px/1.25 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+                      <span style="display:block;font:400 11px/1.35 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.email }}</span>
+                    </span>
+                  </label>
+                </sc-for>
+                <sc-if value="{{ noEmailContacts }}" hint-placeholder-val="{{ false }}"><div style="padding:12px;font:400 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#8a93a0">No contacts with email addresses loaded.</div></sc-if>
+              </div>
+            </sc-if>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onClick="{{ showEmailCc }}" style="{{ emailCcBtnStyle }}">Cc</button>
+            <button onClick="{{ showEmailBcc }}" style="{{ emailBccBtnStyle }}">Bcc</button>
+          </div>
+          <sc-if value="{{ emailCcOpen }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Cc</div>
+              <input class="cv-in" value="{{ emailCc }}" onChange="{{ setEmailCc }}" placeholder="cc@example.com" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+            </div>
+          </sc-if>
+          <sc-if value="{{ emailBccOpen }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Bcc</div>
+              <input class="cv-in" value="{{ emailBcc }}" onChange="{{ setEmailBcc }}" placeholder="bcc@example.com" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+            </div>
+          </sc-if>
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Subject</div>
+            <input class="cv-in" value="{{ emailSubject }}" onChange="{{ setEmailSubject }}" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+          </div>
+          <button onClick="{{ sendEmailNow }}" style="height:40px;border:0;border-radius:9px;background:#0B1E35;color:#F4F2ED;font:800 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;opacity:{{ emailSendButtonOpacity }}">{{ emailSendButtonLabel }}</button>
+          <sc-if value="{{ emailSendError }}" hint-placeholder-val="">
+            <div role="alert" style="font:600 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#a23b3b">{{ emailSendError }}</div>
+          </sc-if>
+        </div>
+        <div style="min-width:0;min-height:0;background:#e9e5da;overflow:auto;padding:22px">
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c;margin-bottom:12px">Email body preview</div>
+          {{ emailSendPreviewNode }}
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ hasLibraryDeleteConfirm }}" hint-placeholder-val="{{ false }}">
     <div style="position:fixed;inset:0;background:rgba(11,30,53,.32);z-index:80"></div>
     <div id="ds-library-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="ds-library-delete-title" tabindex="-1" onKeyDown="{{ handleLibraryDeleteKeydown }}" style="position:fixed;top:50%;left:50%;width:360px;max-width:calc(100vw - 40px);transform:translate(-50%,-50%);z-index:81;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 24px 64px -16px rgba(11,30,53,.45);padding:20px">
@@ -1099,6 +1174,9 @@ class Component extends DCLogic {
     myFiles: [], myFilesLoaded: false, fileTypeFilter: '', fileAccessFilter: '', myFilesViewMode: 'grid', myFilesSortCol: 'date', myFilesSortDir: -1,
     currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileAccess: 'owner', currentFileIsOwner: true,
     fileSaveState: 'DB save ready', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
+    emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
+    emailFromLabel: 'Classic Visions <support@classicvisions.net>', emailDefaultReplyTo: '', emailReplyTo: '', emailTo: '', emailCc: '', emailBcc: '', emailSubject: '',
+    emailContacts: [],
     dsCustomers: [], dsPricelists: [],
     selectedStatementCustomer: '', selectedShipCustomer: '', selectedBillingCustomer: '', selectedPricelistId: ''
   };
@@ -1181,7 +1259,7 @@ class Component extends DCLogic {
   };
 
   // ---------- persistence ----------
-  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, dsPricelists, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, dsPricelists, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
   set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
@@ -1226,6 +1304,100 @@ class Component extends DCLogic {
     }
     this.downloadFile(this.slug(this.state.emHeading) + '.eml', eml, 'message/rfc822');
     this.toast('Downloaded .eml — open it to send');
+  };
+
+  emailSubjectLine = () => (this.state.emHeading || this.state.emEyebrow || this.brand().name).replace(/[\r\n]+/g, ' ').trim();
+  splitEmails = (value) => String(value || '').split(/[,\n;]/).map(v => v.trim()).filter(Boolean);
+  isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+  uniqueEmails = (values) => {
+    const seen = new Set();
+    return values.filter((email) => {
+      const key = String(email || '').trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+  selectedEmailCandidates = () => {
+    const d = this.state;
+    const accounts = [d.selectedStatementCustomer, d.selectedBillingCustomer, d.selectedShipCustomer].filter(Boolean);
+    return this.uniqueEmails(accounts.map(account => this.findCustomer(account)?.email).filter(Boolean));
+  };
+  loadEmailSendData = async () => {
+    try {
+      const [defaults, contacts] = await Promise.all([
+        this.docApi('/api/docstudio/email/defaults').catch(() => ({})),
+        this.docApi('/api/docstudio/email/contacts').catch(() => ({ contacts: [] }))
+      ]);
+      this.setState({
+        emailFromLabel: defaults.from || this.state.emailFromLabel,
+        emailDefaultReplyTo: defaults.replyTo || this.state.emailDefaultReplyTo,
+        emailReplyTo: this.state.emailReplyTo || defaults.replyTo || this.brand().email,
+        emailContacts: Array.isArray(contacts.contacts) ? contacts.contacts : []
+      });
+    } catch (e) {}
+  };
+  openEmailSend = async () => {
+    this.syncActive();
+    if (!this.state.emailDefaultReplyTo || !(this.state.emailContacts || []).length) await this.loadEmailSendData();
+    const selected = this.selectedEmailCandidates();
+    this.setState((s) => ({
+      emailSendOpen: true,
+      emailContactsOpen: false,
+      emailSendError: '',
+      emailTo: s.emailTo || selected.join(', '),
+      emailReplyTo: s.emailReplyTo || s.emailDefaultReplyTo || this.brand().email,
+      emailSubject: s.emailSubject || this.emailSubjectLine()
+    }));
+  };
+  closeEmailSend = () => this.setState({ emailSendOpen: false, emailSendError: '', emailSending: false });
+  toggleEmailContacts = () => this.setState(s => ({ emailContactsOpen: !s.emailContactsOpen }));
+  showEmailCc = () => this.setState({ emailCcOpen: true });
+  showEmailBcc = () => this.setState({ emailBccOpen: true });
+  setEmailTo = (e) => this.setState({ emailTo: e.target.value, emailSendError: '' });
+  setEmailCc = (e) => this.setState({ emailCc: e.target.value, emailSendError: '' });
+  setEmailBcc = (e) => this.setState({ emailBcc: e.target.value, emailSendError: '' });
+  setEmailReplyTo = (e) => this.setState({ emailReplyTo: e.target.value, emailSendError: '' });
+  setEmailSubject = (e) => this.setState({ emailSubject: e.target.value, emailSendError: '' });
+  toggleEmailContact = (email) => {
+    const target = String(email || '').trim();
+    if (!target) return;
+    this.setState((s) => {
+      const current = this.splitEmails(s.emailTo);
+      const exists = current.some(v => v.toLowerCase() === target.toLowerCase());
+      const next = exists ? current.filter(v => v.toLowerCase() !== target.toLowerCase()) : [...current, target];
+      return { emailTo: next.join(', '), emailSendError: '' };
+    });
+  };
+  sendEmailNow = async () => {
+    if (this.state.emailSending) return;
+    const to = this.uniqueEmails(this.splitEmails(this.state.emailTo));
+    const cc = this.uniqueEmails(this.splitEmails(this.state.emailCc));
+    const bcc = this.uniqueEmails(this.splitEmails(this.state.emailBcc));
+    const replyTo = String(this.state.emailReplyTo || '').trim();
+    const all = [...to, ...cc, ...bcc, replyTo].filter(Boolean);
+    const invalid = all.find(v => !this.isValidEmail(v));
+    if (!to.length) return this.setState({ emailSendError: 'Add at least one recipient.' });
+    if (invalid) return this.setState({ emailSendError: 'Check this email address: ' + invalid });
+    if (!String(this.state.emailSubject || '').trim()) return this.setState({ emailSendError: 'Add a subject line.' });
+    this.setState({ emailSending: true, emailSendError: '' });
+    try {
+      await this.docApi('/api/docstudio/email/send', {
+        method: 'POST',
+        body: {
+          to,
+          cc,
+          bcc,
+          replyTo,
+          subject: this.state.emailSubject,
+          html: this.emailDocHtml()
+        }
+      });
+      this.setState({ emailSending: false, emailSendOpen: false, emailTo: '', emailCc: '', emailBcc: '', emailSendError: '' });
+      this.toast('Email queued for sending');
+    } catch (err) {
+      this.setState({ emailSending: false, emailSendError: err && err.message ? err.message : 'Email could not be sent.' });
+    }
   };
 
   // ---------- letter: Word / Google Docs export ----------
@@ -3228,6 +3400,20 @@ class Component extends DCLogic {
       .slice()
       .sort((a, b) => this.customerLabel(a).localeCompare(this.customerLabel(b)))
       .map(c => ({ account: c.account || '', label: this.customerLabel(c) }));
+    const selectedEmailSet = new Set(this.splitEmails(d.emailTo).map(v => v.toLowerCase()));
+    const emailContactOptions = (d.emailContacts || [])
+      .filter(c => c && c.email)
+      .slice()
+      .sort((a, b) => String(a.name || a.email || '').localeCompare(String(b.name || b.email || '')))
+      .map(c => ({
+        name: c.name || c.email,
+        email: c.email,
+        checked: selectedEmailSet.has(String(c.email).toLowerCase()),
+        toggle: () => this.toggleEmailContact(c.email)
+      }));
+    const emailSendPreviewNode = React.createElement('div', { style: { display:'flex', justifyContent:'center', alignItems:'flex-start' } },
+      React.createElement('div', { style: { width:'640px', maxWidth:'100%', background:'#F4F2ED', boxShadow:'0 12px 44px -18px rgba(11,30,53,.38)' }, dangerouslySetInnerHTML: { __html: this.buildEmail() } })
+    );
     const savedPricelistOptions = (d.dsPricelists || [])
       .slice()
       .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
@@ -3298,6 +3484,19 @@ class Component extends DCLogic {
       previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'pricelist' ? 'Price list preview' : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
       copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'pricelist' ? 'Print price list' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
       copyNow: this.copyNow, printLetter: this.printLetter,
+      openEmailSend: this.openEmailSend,
+      emailSendOpen: d.emailSendOpen, closeEmailSend: this.closeEmailSend,
+      emailFromLabel: d.emailFromLabel || 'Classic Visions <support@classicvisions.net>',
+      emailReplyTo: d.emailReplyTo || '', emailTo: d.emailTo || '', emailCc: d.emailCc || '', emailBcc: d.emailBcc || '', emailSubject: d.emailSubject || this.emailSubjectLine(),
+      setEmailReplyTo: this.setEmailReplyTo, setEmailTo: this.setEmailTo, setEmailCc: this.setEmailCc, setEmailBcc: this.setEmailBcc, setEmailSubject: this.setEmailSubject,
+      emailContactsOpen: d.emailContactsOpen, toggleEmailContacts: this.toggleEmailContacts, emailContactOptions, noEmailContacts: emailContactOptions.length === 0,
+      emailCcOpen: d.emailCcOpen, emailBccOpen: d.emailBccOpen, showEmailCc: this.showEmailCc, showEmailBcc: this.showEmailBcc,
+      emailCcBtnStyle: `height:30px;padding:0 13px;border:1px solid ${d.emailCcOpen ? '#0B1E35' : '#d9d7cf'};border-radius:8px;background:${d.emailCcOpen ? '#0B1E35' : '#fff'};color:${d.emailCcOpen ? '#fff' : '#0B1E35'};font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer`,
+      emailBccBtnStyle: `height:30px;padding:0 13px;border:1px solid ${d.emailBccOpen ? '#0B1E35' : '#d9d7cf'};border-radius:8px;background:${d.emailBccOpen ? '#0B1E35' : '#fff'};color:${d.emailBccOpen ? '#fff' : '#0B1E35'};font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer`,
+      emailSendPreviewNode,
+      emailSending: d.emailSending, emailSendError: d.emailSendError || '', sendEmailNow: this.sendEmailNow,
+      emailSendButtonLabel: d.emailSending ? 'Sending...' : 'Send Email',
+      emailSendButtonOpacity: d.emailSending ? '.65' : '1',
       showFileActions: ['email', 'letter', 'signature', 'social', 'pricelist', 'shiplabel', 'statement'].includes(tab),
       fileSaveState: d.fileSaveState || '',
       saveActiveFile: this.saveActiveFile, renameActiveFile: this.renameActiveFile, shareActiveFile: this.shareActiveFile, deleteActiveFile: this.deleteActiveFile,

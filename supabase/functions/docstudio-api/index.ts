@@ -6,6 +6,7 @@
 // { users:[] } { shares:[] } { ok:true }.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSmtpConfig } from "../_shared/email/smtp.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,43 @@ const safeParse = (s: string) => {
     return {};
   }
 };
+
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const asEmailList = (v: unknown, max = 100) => {
+  const raw = Array.isArray(v) ? v : String(v ?? "").split(/[,\n;]/);
+  const seen = new Set<string>();
+  const emails: string[] = [];
+  for (const item of raw) {
+    const email = String(item ?? "").trim();
+    const key = email.toLowerCase();
+    if (!email || seen.has(key)) continue;
+    if (!emailRegex.test(email)) throw new Error(`Invalid email address: ${email}`);
+    seen.add(key);
+    emails.push(email);
+    if (emails.length > max) throw new Error(`Too many recipients; limit is ${max}`);
+  }
+  return emails;
+};
+
+const stripHtml = (html: string) => html
+  .replace(/<style[\s\S]*?<\/style>/gi, " ")
+  .replace(/<script[\s\S]*?<\/script>/gi, " ")
+  .replace(/<[^>]+>/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+// deno-lint-ignore no-explicit-any
+const contactRows = (rows: any[] | null | undefined, source: string) =>
+  (rows ?? [])
+    .map((row) => ({
+      id: `${source}:${row.id ?? row.account_number ?? row.email}`,
+      name: String(row.name || row.customer_name || row.email || "").trim(),
+      email: String(row.email || "").trim(),
+      account: row.account_number || row.account || "",
+      phone: row.phone || "",
+      source,
+    }))
+    .filter((row) => row.email && emailRegex.test(row.email));
 
 // deno-lint-ignore no-explicit-any
 function publicFile(row: any, detail = false) {
@@ -179,6 +217,107 @@ serve(async (req) => {
       })));
     }
     if (route[0] === "pricelists") return json([]);
+
+    if (route[0] === "email" && route[1] === "defaults" && method === "GET") {
+      const smtpConfig = getSmtpConfig();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email,full_name,display_name")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const replyTo = text(profile?.email || userData.user?.email, 320) ?? "";
+      const displayName = text(profile?.full_name || profile?.display_name || userData.user?.user_metadata?.full_name, 120);
+      return json({
+        from: smtpConfig?.from ?? "Classic Visions <support@classicvisions.net>",
+        replyTo,
+        displayName,
+      });
+    }
+
+    if (route[0] === "email" && route[1] === "contacts" && method === "GET") {
+      const [customerResult, contactResult] = await Promise.allSettled([
+        supabase
+          .from("customers")
+          .select("name,account_number,email,phone")
+          .not("email", "is", null)
+          .neq("email", "")
+          .order("name")
+          .limit(500),
+        supabase
+          .from("contacts")
+          .select("id,name,email,phone")
+          .not("email", "is", null)
+          .neq("email", "")
+          .order("name")
+          .limit(500),
+      ]);
+      const customers = customerResult.status === "fulfilled" && !customerResult.value.error
+        ? contactRows(customerResult.value.data, "customer")
+        : [];
+      const contacts = contactResult.status === "fulfilled" && !contactResult.value.error
+        ? contactRows(contactResult.value.data, "contact")
+        : [];
+      const byEmail = new Map<string, unknown>();
+      for (const row of [...customers, ...contacts]) {
+        const key = row.email.toLowerCase();
+        if (!byEmail.has(key)) byEmail.set(key, row);
+      }
+      return json({ contacts: Array.from(byEmail.values()) });
+    }
+
+    if (route[0] === "email" && route[1] === "send" && method === "POST") {
+      const to = asEmailList(body.to, 100);
+      const cc = asEmailList(body.cc, 100);
+      const bcc = asEmailList(body.bcc, 100);
+      const replyTo = text(body.replyTo, 320);
+      if (!to.length) return json({ error: "At least one recipient is required" }, 400);
+      if (replyTo && !emailRegex.test(replyTo)) return json({ error: `Invalid reply-to address: ${replyTo}` }, 400);
+
+      const subject = text(body.subject, 240);
+      const html = String(body.html || "").trim();
+      if (!subject) return json({ error: "Subject is required" }, 400);
+      if (!html) return json({ error: "Email body is required" }, 400);
+
+      const smtpConfig = getSmtpConfig();
+      if (!smtpConfig) return json({ error: "Email service is not configured" }, 500);
+
+      const recipientJobs = [
+        ...to.map((email) => ({ email, header: "to" })),
+        ...cc.map((email) => ({ email, header: "cc" })),
+        ...bcc.map((email) => ({ email, header: "bcc" })),
+      ];
+      const messageIds: string[] = [];
+      for (const recipient of recipientJobs) {
+        const messageId = crypto.randomUUID();
+        messageIds.push(messageId);
+        await supabase.from("email_send_log").insert({
+          message_id: messageId,
+          template_name: `docstudio-email-${recipient.header}`,
+          recipient_email: recipient.email,
+          status: "pending",
+        });
+
+        const { error: enqueueError } = await supabase.rpc("enqueue_email", {
+          queue_name: "transactional_emails",
+          payload: {
+            message_id: messageId,
+            to: recipient.email,
+            from: smtpConfig.from,
+            subject,
+            html,
+            text: stripHtml(html),
+            ...(replyTo ? { reply_to: replyTo } : {}),
+            purpose: "transactional",
+            label: `docstudio-email-${recipient.header}`,
+            idempotency_key: messageId,
+            queued_by: userId,
+            queued_at: new Date().toISOString(),
+          },
+        });
+        if (enqueueError) throw enqueueError;
+      }
+      return json({ ok: true, messageIds });
+    }
 
     // Statement populate for the studio's Statement tab: id is the Innovations
     // statement id; data comes from the synced statements / statement_lines /
