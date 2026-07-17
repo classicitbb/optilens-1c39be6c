@@ -107,6 +107,13 @@ Deno.serve(async (req) => {
     }, corsHeaders)
   }
 
+  // Cheap format check before we do any DB work or rendering. Catches typos
+  // early with a clear 400 instead of failing deeper in the pipeline.
+  const EMAIL_FORMAT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!EMAIL_FORMAT_RE.test(effectiveRecipient)) {
+    return jsonResponse(400, { error: 'recipientEmail is not a valid email address' }, corsHeaders)
+  }
+
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -231,24 +238,52 @@ Deno.serve(async (req) => {
     return jsonResponse(200, { success: false, reason: 'email_suppressed' }, corsHeaders)
   }
 
-  // 4. Render React Email template to HTML and plain text
+  // 4. Render React Email template to HTML and plain text.
+  // A template throws when required templateData fields are missing/malformed
+  // (e.g. reading a property off undefined). Without this guard that was an
+  // unhandled exception — no email_send_log row, no structured response, just
+  // a bare 500 from the runtime. Wrapping it means a bad payload is diagnosable
+  // the same way every other validation failure is.
   const renderData = {
     ...templateData,
     unsubscribeUrl: `https://classicvisions.net/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
   }
-  const html = await renderAsync(
-    React.createElement(template.component, renderData)
-  )
-  const plainText = await renderAsync(
-    React.createElement(template.component, renderData),
-    { plainText: true }
-  )
-
-  // Resolve subject — supports static string or dynamic function
-  const resolvedSubject =
-    typeof template.subject === 'function'
-      ? template.subject(templateData)
-      : template.subject
+  let html: string
+  let plainText: string
+  let resolvedSubject: string
+  try {
+    html = await renderAsync(
+      React.createElement(template.component, renderData)
+    )
+    plainText = await renderAsync(
+      React.createElement(template.component, renderData),
+      { plainText: true }
+    )
+    // Resolve subject — supports static string or dynamic function
+    resolvedSubject =
+      typeof template.subject === 'function'
+        ? template.subject(templateData)
+        : template.subject
+  } catch (renderError) {
+    const renderErrorMsg = renderError instanceof Error ? renderError.message : String(renderError)
+    console.error('Template render failed', {
+      templateName,
+      effectiveRecipient,
+      messageId,
+      error: renderErrorMsg,
+    })
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'failed',
+      error_message: `Template render failed: ${renderErrorMsg}`.slice(0, 1000),
+    })
+    return jsonResponse(400, {
+      error: `Failed to render template '${templateName}' — check templateData fields`,
+      details: renderErrorMsg,
+    }, corsHeaders)
+  }
 
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
