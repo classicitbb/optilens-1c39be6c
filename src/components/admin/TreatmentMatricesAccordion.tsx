@@ -905,23 +905,23 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">
-            Price Matrix <span className="font-normal text-muted-foreground text-xs">— Shared Editor for Matrix &amp; List Formats</span>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-[220px]">
+          <h2 className="text-sm font-semibold text-foreground leading-tight">
+            Price Matrix <span className="font-normal text-muted-foreground text-[11px]">- Shared Matrix/List Editor</span>
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Click <Search className="inline h-3 w-3" /> to link a lens. Green <CheckCircle className="inline h-3 w-3 text-emerald-500" /> = in Price List. Red dot = pending sync.
-          </p>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold">
+            {showUSD ? "USD" : "BBD"}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
           {isAdmin && (
             <>
               <Button
                 size="icon"
                 variant="outline"
-                className="h-8 w-8"
+                className="h-7 w-7"
                 onClick={() => setStructureLocked((current) => !current)}
                 title={structureLocked ? "Unlock structure editing" : "Lock structure editing"}
                 aria-label={structureLocked ? "Unlock structure editing" : "Lock structure editing"}
@@ -930,14 +930,14 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
               </Button>
               {showStructureControls && (
                 <>
-                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setNameDialog({ mode: "create-group", title: "Add Grouping", value: "" })}>
+                  <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 px-2" onClick={() => setNameDialog({ mode: "create-group", title: "Add Grouping", value: "" })}>
                     <Plus className="h-3.5 w-3.5" />
-                    Add Grouping
+                    Add Group
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive"
+                    className="h-7 text-[11px] gap-1 px-2 text-destructive hover:text-destructive"
                     onClick={() => setResetConfirmOpen(true)}
                     disabled={resetting || !allocations.length}
                     title="Clear every linked cell in this pricelist version"
@@ -949,14 +949,14 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
               )}
             </>
           )}
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => toast({ title: "Deltas recalculated", description: "All delta rows updated." })}>
+          <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 px-2" onClick={() => toast({ title: "Deltas recalculated", description: "All delta rows updated." })}>
             <RefreshCw className="h-3.5 w-3.5" />
-            Recalculate All Deltas
+            Deltas
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className={cn("h-8 text-xs gap-1.5", supplierScopeMode !== "all" && "border-amber-400 text-amber-700")}
+            className={cn("h-7 text-[11px] gap-1 px-2", supplierScopeMode !== "all" && "border-amber-400 text-amber-700")}
             onClick={() => setScopeDialogOpen(true)}
             title="Which suppliers count toward this run's anchor/floor pricing — separate from lenses.excluded_from_anchor, applies only here"
           >
@@ -966,7 +966,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           <Button
             size="sm"
             variant="outline"
-            className="h-8 text-xs gap-1.5"
+            className="h-7 text-[11px] gap-1 px-2"
             onClick={computeAutoPricePlan}
             disabled={autoPriceComputing || autoPriceApplying}
             title="Classify the live lens catalog and fill empty matrix cells with anchor-priced lenses"
@@ -977,7 +977,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           <Button
             size="sm"
             variant="outline"
-            className="h-8 text-xs gap-1.5"
+            className="h-7 text-[11px] gap-1 px-2"
             onClick={computeSave}
             disabled={saveComputing || saveApplying || !allocations.length}
             title="Commit this matrix's current prices to the master pricelist (pricelist_lines) — what effective_price() actually reads"
@@ -988,7 +988,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           <Button
             size="sm"
             variant="outline"
-            className="h-8 text-xs gap-1.5"
+            className="h-7 text-[11px] gap-1 px-2"
             onClick={() => setCustomerPickerOpen(true)}
             disabled={forkComputing || forkApplying || !allocations.length}
             title="Fork this matrix's prices to one customer — only the cells that differ from the master price get saved"
@@ -997,10 +997,6 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
             Save As New
           </Button>
         </div>
-      </div>
-
-      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">
-        Displaying: {showUSD ? "USD" : "BBD"}
       </div>
 
       {structure.map((grouping, groupingIndex) => {
@@ -1048,7 +1044,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                       <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setNameDialog({ mode: "rename-group", title: "Rename Grouping", value: grouping.name, groupingId: grouping.id })} title="Rename grouping">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setNameDialog({ mode: "create-category", title: `Add Category (All Groups) to ${grouping.name}`, value: "", groupingId: grouping.id, groupingKey: grouping.key })}>
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setNameDialog({ mode: "create-category", title: `Add Category (All Groups) to ${grouping.name}`, value: "", groupingId: grouping.id, groupingKey: grouping.key })}>
                         <Plus className="h-3.5 w-3.5" />
                         Add Category (All Groups)
                       </Button>

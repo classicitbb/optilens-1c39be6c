@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   usePricelistVersions,
@@ -40,6 +40,8 @@ import {
   Eye } from
 "lucide-react";
 import { format } from "date-fns";
+
+const VERSION_SELECTOR_AUTO_COLLAPSE_MS = 60_000;
 
 interface VersionSelectorPanelProps {
   pageTitle: string;
@@ -89,6 +91,9 @@ const VersionSelectorPanel = ({
   const [formatType, setFormatType] = useState<string>("list");
   const [masterMarkupPct, setMasterMarkupPct] = useState("0");
   const [masterDiscountPct, setMasterDiscountPct] = useState("0");
+  const selectorPanelRef = useRef<HTMLDivElement | null>(null);
+  const autoCollapseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const lastScrollYRef = useRef(0);
 
   const SECTION_TYPES = ["RX Lens Prices", "Stock Lens Prices", "Supplies Prices"] as const;
   const [childSections, setChildSections] = useState<Record<string, {markup: string;discount: string;}>>({
@@ -100,6 +105,67 @@ const VersionSelectorPanel = ({
   const activeVersion =
   versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
   const resolvedVersionId = activeVersion?.id ?? null;
+
+  const clearAutoCollapseTimer = useCallback(() => {
+    if (autoCollapseTimerRef.current) {
+      window.clearTimeout(autoCollapseTimerRef.current);
+      autoCollapseTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleAutoCollapse = useCallback(() => {
+    clearAutoCollapseTimer();
+    if (selectorCollapsed || dialogOpen) return;
+    autoCollapseTimerRef.current = window.setTimeout(() => {
+      setSelectorCollapsed(true);
+    }, VERSION_SELECTOR_AUTO_COLLAPSE_MS);
+  }, [clearAutoCollapseTimer, dialogOpen, selectorCollapsed]);
+
+  useEffect(() => {
+    if (selectorCollapsed || dialogOpen) {
+      clearAutoCollapseTimer();
+      return;
+    }
+
+    const selectorPanel = selectorPanelRef.current;
+    if (!selectorPanel) return;
+
+    scheduleAutoCollapse();
+    const activityEvents = ["pointerdown", "keydown", "focusin"] as const;
+    activityEvents.forEach((eventName) => {
+      selectorPanel.addEventListener(eventName, scheduleAutoCollapse);
+    });
+
+    return () => {
+      clearAutoCollapseTimer();
+      activityEvents.forEach((eventName) => {
+        selectorPanel.removeEventListener(eventName, scheduleAutoCollapse);
+      });
+    };
+  }, [clearAutoCollapseTimer, dialogOpen, scheduleAutoCollapse, selectorCollapsed]);
+
+  useEffect(() => {
+    if (selectorCollapsed || dialogOpen) return;
+
+    lastScrollYRef.current = window.scrollY;
+    const collapseOnWheelDown = (event: WheelEvent) => {
+      if (event.deltaY > 4) setSelectorCollapsed(true);
+    };
+    const collapseOnScrollDown = () => {
+      const nextScrollY = window.scrollY;
+      if (nextScrollY > lastScrollYRef.current + 8) {
+        setSelectorCollapsed(true);
+      }
+      lastScrollYRef.current = nextScrollY;
+    };
+
+    window.addEventListener("wheel", collapseOnWheelDown, { passive: true });
+    window.addEventListener("scroll", collapseOnScrollDown, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", collapseOnWheelDown);
+      window.removeEventListener("scroll", collapseOnScrollDown);
+    };
+  }, [dialogOpen, selectorCollapsed]);
 
   // Auto-select first version if none selected
   if (!selectedVersionId && versions && versions.length > 0 && !isLoading) {
@@ -308,7 +374,7 @@ const VersionSelectorPanel = ({
       </div>
 
       {/* Version Selector */}
-      <div className="border border-border overflow-hidden">
+      <div ref={selectorPanelRef} className="border border-border overflow-hidden">
         <button
           className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/50 transition-colors bg-muted/30"
           onClick={() => setSelectorCollapsed((c) => !c)}>
@@ -430,17 +496,16 @@ const VersionSelectorPanel = ({
 
       {/* Editing context banner */}
       {activeVersion &&
-      <div className="border space-y-0 bg-primary/5 border-primary/20">
-          {/* Top row: version info + currency toggle */}
-          <div className="flex items-center gap-3 px-4 py-2.5">
-            <div className="flex-1 space-y-0.5">
-              <p className="text-xs font-semibold text-foreground">
+      <div className="border bg-primary/5 border-primary/20 px-3 py-2 no-print">
+          <div className="flex items-center gap-x-3 gap-y-2 flex-wrap">
+            <div className="min-w-[220px] flex-1">
+              <p className="text-[11px] font-semibold text-foreground leading-tight">
                 You are editing:{" "}
                 <span className="text-primary">{activeVersion.name}</span>
               </p>
-              <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-3 text-[9px] text-muted-foreground leading-tight mt-0.5">
                 <span className="flex items-center gap-1">
-                  <CalendarDays className="h-3 w-3" />
+                  <CalendarDays className="h-2.5 w-2.5" />
                   Created{" "}
                   {activeVersion.created_at ?
                 format(new Date(activeVersion.created_at), "dd MMM yyyy 'at' HH:mm") :
@@ -449,7 +514,7 @@ const VersionSelectorPanel = ({
                 {activeVersion.updated_at &&
               activeVersion.updated_at !== activeVersion.created_at &&
               <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <Clock className="h-2.5 w-2.5" />
                       Last saved{" "}
                       {format(
                   new Date(activeVersion.updated_at),
@@ -459,8 +524,14 @@ const VersionSelectorPanel = ({
               }
               </div>
             </div>
+            {(exportBar || saveBar) &&
+              <div className="flex items-center gap-2 flex-wrap flex-[2_1_520px] justify-end">
+                {exportBar && <div className="min-w-0">{exportBar}</div>}
+                {saveBar && <div className="shrink-0">{saveBar}</div>}
+              </div>
+            }
             {/* BBD/USD toggle */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 ml-auto">
               <span className={`text-[10px] font-medium ${showUSD ? "text-muted-foreground" : "text-primary"}`}>
                 BBD
               </span>
@@ -473,13 +544,6 @@ const VersionSelectorPanel = ({
               </span>
             </div>
           </div>
-          {/* Export + Save bar slot */}
-          {(exportBar || saveBar) &&
-        <div className="flex items-center justify-between gap-3 flex-wrap px-4 pb-3 border-t border-border/40 pt-2.5 no-print">
-              <div className="flex-1">{exportBar}</div>
-              {saveBar && <div className="shrink-0">{saveBar}</div>}
-            </div>
-        }
         </div>
       }
 

@@ -678,15 +678,15 @@ ${addonsHtml}
     logExport("PDF", "List");
   };
 
-  const btnBase = "h-7 text-[11px] gap-1 px-2.5 font-medium";
+  const btnBase = "h-6 text-[10px] gap-1 px-2 font-medium";
   const showMatrix = catalogType === "rx";
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap no-print">
+    <div className="flex items-center gap-1 flex-wrap no-print">
       {/* Show Margins toggle (internal only) */}
       {canEdit && (
-        <div className="flex items-center gap-1.5 mr-2">
-          <span className="text-[10px] font-medium text-muted-foreground">Show Margins</span>
+        <div className="flex items-center gap-1 mr-1.5">
+          <span className="text-[9px] font-medium text-muted-foreground">Margins</span>
           <Switch
             checked={showMargins}
             onCheckedChange={setShowMargins}
@@ -698,7 +698,7 @@ ${addonsHtml}
       {/* Matrix exports — only for RX */}
       {showMatrix && (
         <>
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pr-0.5">Matrix:</span>
+          <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide pr-0.5">Matrix</span>
           <Button size="sm" className={btnBase} style={{ background: "#1e4db7", color: "white" }} onClick={exportMatrixPDF}>
             <FileText className="h-3 w-3" /> PDF
           </Button>
@@ -711,12 +711,12 @@ ${addonsHtml}
           <Button variant="outline" size="sm" className={btnBase} onClick={exportMatrixHTML}>
             <Globe className="h-3 w-3" /> HTML
           </Button>
-          <div className="w-px h-4 bg-border mx-1" />
+          <div className="w-px h-4 bg-border mx-0.5" />
         </>
       )}
 
       {/* List exports */}
-      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide pr-0.5">List:</span>
+      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide pr-0.5">List</span>
       <Button size="sm" className={btnBase} style={{ background: "#1e4db7", color: "white" }} onClick={exportListPDF}>
         <FileText className="h-3 w-3" /> PDF
       </Button>
