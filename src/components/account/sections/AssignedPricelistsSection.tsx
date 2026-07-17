@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
@@ -51,6 +52,9 @@ const AssignedPricelistsSection = () => {
   const assignedPricelistId = identity?.assignedPricelistId ?? null;
   const hasPricelist = typeof assignedPricelistId === "number";
   const [pricesHidden, setPricesHidden] = useState(true);
+  const [showUSD, setShowUSD] = useState(false);
+  const currency = showUSD ? "USD" : "BBD";
+  const displayMoney = (bbd: number) => money(Number(bbd) * (showUSD ? 0.5 : 1));
 
   const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
 
@@ -156,32 +160,57 @@ const AssignedPricelistsSection = () => {
   const updatedAt = pricelistDetails?.updated_at ?? null;
   const hasAnyPrices = rows.length > 0 || addonRows.length > 0 || stockRows.length > 0 || supplyRows.length > 0;
 
-  const renderSectionTables = (sections: Map<string, CatalogRow[]>) => (
-    <div className="space-y-4">
-      {[...sections.entries()].map(([section, sectionRows]) => (
-        <div key={section} className="overflow-x-auto rounded-md border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ background: "#1e4db7" }}>
-                <th className="px-4 py-2 text-left font-bold uppercase tracking-wide text-white">{section}</th>
-                <th className="w-32 px-3 py-2 text-right font-bold uppercase tracking-wide text-white">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sectionRows.map((row, index) => (
-                <tr key={`${section}-${index}`} className="border-b last:border-b-0">
-                  <td className="px-4 py-2 font-medium text-foreground">{row.display_description}</td>
-                  <td className="px-3 py-2 text-right font-semibold text-foreground">
-                    <span className={cn(pricesHidden && "select-none blur-sm")}>{money(Number(row.bbd_price))}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ))}
-    </div>
+  const accordionTriggerClass =
+    "rounded-md px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-white";
+
+  const countBadge = (count: number, noun: string) => (
+    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal">
+      {count} {noun}{count === 1 ? "" : "s"}
+    </span>
   );
+
+  const renderAccordionSections = (sections: Map<string, CatalogRow[]>) => {
+    const sectionKeys = [...sections.keys()];
+    return (
+      <Accordion type="multiple" defaultValue={sectionKeys.slice(0, 1)} className="w-full space-y-2">
+        {sectionKeys.map((section) => {
+          const sectionRows = sections.get(section) ?? [];
+          return (
+            <AccordionItem key={section} value={section} className="border-b-0">
+              <AccordionTrigger className={accordionTriggerClass} style={{ background: "#1e4db7" }}>
+                <span className="flex items-center gap-2">
+                  {section}
+                  {countBadge(sectionRows.length, "item")}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pb-0">
+                <div className="overflow-x-auto rounded-b-md border border-t-0">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Description</th>
+                        <th className="w-32 px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">{currency} Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sectionRows.map((row, index) => (
+                        <tr key={`${section}-${index}`} className="border-b last:border-b-0">
+                          <td className="px-4 py-2 font-medium text-foreground">{row.display_description}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-foreground">
+                            <span className={cn(pricesHidden && "select-none blur-sm")}>{displayMoney(row.bbd_price)}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    );
+  };
 
   const renderCatalogTab = (
     title: string,
@@ -211,7 +240,7 @@ const AssignedPricelistsSection = () => {
         ) : sections.size === 0 ? (
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         ) : (
-          renderSectionTables(sections)
+          renderAccordionSections(sections)
         )}
       </CardContent>
     </Card>
@@ -226,25 +255,34 @@ const AssignedPricelistsSection = () => {
             Your assigned wholesale pricing{updatedAt ? ` · updated ${new Date(updatedAt).toLocaleDateString()}` : ""}.
           </p>
         </div>
-        {hasAnyPrices && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => setPricesHidden((current) => !current)}
-          >
-            {pricesHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-            {pricesHidden ? "Show prices" : "Hide prices"}
-          </Button>
-        )}
       </header>
 
       <Tabs defaultValue="rx" className="w-full">
-        <TabsList className="mb-4 flex h-auto w-full flex-wrap justify-start gap-1">
-          <TabsTrigger value="rx">RX Lens Prices + Add-ons</TabsTrigger>
-          <TabsTrigger value="stock">Stock Lenses</TabsTrigger>
-          <TabsTrigger value="supplies">Supplies</TabsTrigger>
-        </TabsList>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <TabsList className="flex h-auto flex-wrap justify-start gap-1">
+            <TabsTrigger value="rx">RX Lens Prices + Add-ons</TabsTrigger>
+            <TabsTrigger value="stock">Stock Lenses</TabsTrigger>
+            <TabsTrigger value="supplies">Supplies</TabsTrigger>
+          </TabsList>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className={cn("text-xs font-medium", showUSD ? "text-muted-foreground" : "text-primary")}>BBD</span>
+              <Switch checked={showUSD} onCheckedChange={setShowUSD} aria-label="Toggle currency" />
+              <span className={cn("text-xs font-medium", showUSD ? "text-primary" : "text-muted-foreground")}>USD</span>
+            </div>
+            {hasAnyPrices && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setPricesHidden((current) => !current)}
+              >
+                {pricesHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                {pricesHidden ? "Show prices" : "Hide prices"}
+              </Button>
+            )}
+          </div>
+        </div>
 
         <TabsContent value="rx">
           <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
@@ -269,20 +307,23 @@ const AssignedPricelistsSection = () => {
               ) : (
                 <div className="space-y-6">
                 {groupings.length > 0 && (
-                <Accordion type="multiple" defaultValue={[groupings[0].grouping.key]} className="w-full">
+                <Accordion type="multiple" defaultValue={[groupings[0].grouping.key]} className="w-full space-y-2">
                   {groupings.map(({ grouping, visibleCols, activeCategories }) => (
-                    <AccordionItem key={grouping.id} value={grouping.key}>
-                      <AccordionTrigger className="text-base font-semibold uppercase tracking-wide">
-                        {grouping.name}
+                    <AccordionItem key={grouping.id} value={grouping.key} className="border-b-0">
+                      <AccordionTrigger className={accordionTriggerClass} style={{ background: "#1e4db7" }}>
+                        <span className="flex items-center gap-2">
+                          {grouping.name}
+                          {countBadge(activeCategories.length, "design")}
+                        </span>
                       </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="overflow-x-auto rounded-md border">
+                      <AccordionContent className="pb-0">
+                        <div className="overflow-x-auto rounded-b-md border border-t-0">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr style={{ background: "#1e4db7" }}>
-                                <th className="px-4 py-2 text-left font-bold uppercase tracking-wide text-white">Lens Design</th>
+                              <tr className="border-b bg-muted/50">
+                                <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lens Design</th>
                                 {visibleCols.map((column) => (
-                                  <th key={column.key} className="px-3 py-2 text-center font-bold uppercase tracking-wide text-white">
+                                  <th key={column.key} className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                     {column.key}
                                   </th>
                                 ))}
@@ -297,7 +338,7 @@ const AssignedPricelistsSection = () => {
                                     return (
                                       <td key={column.key} className="px-3 py-2 text-right font-semibold text-foreground">
                                         {price != null ? (
-                                          <span className={cn(pricesHidden && "select-none blur-sm")}>{money(price)}</span>
+                                          <span className={cn(pricesHidden && "select-none blur-sm")}>{displayMoney(price)}</span>
                                         ) : (
                                           "—"
                                         )}
@@ -320,7 +361,7 @@ const AssignedPricelistsSection = () => {
                     <h3 className="text-base font-semibold uppercase tracking-wide text-foreground">
                       Add-ons, Extras &amp; Coatings
                     </h3>
-                    {renderSectionTables(addonsBySection)}
+                    {renderAccordionSections(addonsBySection)}
                   </div>
                 )}
                 </div>
