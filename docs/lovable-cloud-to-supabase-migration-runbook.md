@@ -39,6 +39,10 @@ npx supabase link --project-ref dzsalnvmlvjoatryhqfz
 
 ## Schema migration
 
+For a full source/target table and column inventory before import, use
+[supabase-database-replication-plan.md](supabase-database-replication-plan.md)
+and [scripts/supabase_schema_inventory.sql](../scripts/supabase_schema_inventory.sql).
+
 Preferred path from this repo:
 
 ```bash

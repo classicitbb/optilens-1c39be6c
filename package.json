@@ -26,6 +26,8 @@
     "supabase:functions:deploy": "node scripts/deploy_supabase_functions.mjs",
     "supabase:functions:deploy:dry": "node scripts/deploy_supabase_functions.mjs --dry-run",
     "supabase:auth:import": "node scripts/import_supabase_auth_users.mjs",
+    "supabase:inventory:compare": "node scripts/compare_supabase_inventory.mjs",
+    "supabase:inventory:render": "node scripts/render_supabase_inventory.mjs",
     "test:headers": "vitest run --coverage=false src/tests/integration/securityHeaders.integration.test.ts",
     "test:e2e": "vitest run --coverage=false src/tests/e2e",
     "test:integration": "vitest run --coverage=false src/tests/integration",

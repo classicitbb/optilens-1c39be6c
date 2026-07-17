@@ -29,10 +29,10 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = false
   [functions.helpdesk-followup]
     verify_jwt = false
-    schedule = "*/15 * * * *"
+    # Schedule separately with Supabase Cron / pg_cron: */15 * * * *
   [functions.process-email-queue]
     verify_jwt = true
-    schedule = "*/10 * * * *"
+    # Schedule separately with Supabase Cron / pg_cron: */10 * * * *
   [functions.customer-onboarding]
     verify_jwt = true
   [functions.api-v1]
