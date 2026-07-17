@@ -39,26 +39,31 @@ relevant to your work area — do not load everything upfront.
 ## Environment
 
 - Install dependencies with `npm ci` when `package-lock.json` exists
-- Use the repo's pinned `npm@10` toolchain from `package.json`
+- Use the repo's supported runtime matrix: Node `20.x` or `22.x`, npm `10.x`
+- Default to `nvm use` (`.nvmrc` currently pins Node `22`) before install/build commands
+- Respect the preinstall runtime guard in `scripts/check-runtime.mjs`; fix Node/npm version drift before changing app code
 - When dependency fixes are required, keep npm as the package manager and update
   `package.json`/`package-lock.json` together through npm commands.
+- If npm emits the deprecated `http-proxy` env warning in container/CI environments, prefer `./scripts/npm-clean.sh <npm-args>`
 - Do not switch package managers
 - Assume the repo must work from a clean checkout
 
 ## Validation
 
-- Run `npm run qa:pr-checks` (or `npm run ci:pr-checks`) when your change can affect lockfile policy, doc symmetry, release-ledger state, Vercel headers, or wiki build-version validation
+- Run `npm run qa:pr-checks` (or `npm run ci:pr-checks`) when your change can affect lockfile policy, doc symmetry, release-ledger state, Vercel headers, wiki build-version validation, or product-cost RLS audit coverage
 - Run `npm run lint`
 - Run `npm run test -- --runInBand`
 - Run `npm run build`
 - Run `npm run qa:vercel-headers` and `npm run test:headers` when touching `security/http-header-policy.json`, `vercel.json`, or the header sync scripts/tests
 - Run `npm run qa:smoke` when touching admin routing, legacy redirects, or runtime error logging wiring
+- Run `npm run security:product-cost-rls-audit` when touching product-cost RLS migrations or the audit script; include service-role credentials before shared-environment database-security applies
 
 ## Rules
 
 - Fix dependency and environment issues before changing app code
 - Do not bypass failing checks by removing scripts
 - If `qa:pr-checks` fails on release-ledger drift, run `npm run release-ledger:sync`, review the generated changes, then rerun the checks
+- If `qa:wiki-build-version` fails on Windows path handling, inspect `scripts/validate_wiki_build_versions.mjs` and keep `fileURLToPath(import.meta.url)`-based path resolution intact
 - Report exact failing command and root cause
 
 # Repository agent rules
