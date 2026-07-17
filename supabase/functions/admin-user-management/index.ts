@@ -223,7 +223,13 @@ Deno.serve(async (req) => {
       const { error } = await adminClient.auth.admin.updateUserById(userId, {
         password,
       });
-      if (error) throw error;
+      if (error) {
+        const msg = error.message ?? "";
+        if (/weak|pwned|compromised|easy to guess/i.test(msg)) {
+          return jsonResponse(req, 400, { error: msg || "Password is too weak. Please choose a stronger password." });
+        }
+        throw error;
+      }
       return jsonResponse(req, 200, { success: true });
     }
 
