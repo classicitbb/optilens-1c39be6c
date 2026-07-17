@@ -139,7 +139,7 @@ BEGIN
   FROM public.pricelist_catalog_rows r
   LEFT JOIN public.pricelist_line_overrides plo
     ON plo.reference_type = r.row_type
-   AND plo.reference_id = r.item_id
+   AND plo.reference_id = r.item_id::text
    AND plo.child_section_id = v_child_section_id
   WHERE r.pricelist_version_id = v_pricelist_version_id
     AND r.catalog_type = 'rx'
@@ -222,7 +222,7 @@ BEGIN
   FROM public.pricelist_catalog_rows r
   LEFT JOIN public.pricelist_line_overrides plo
     ON plo.reference_type = r.row_type
-   AND plo.reference_id = r.item_id
+   AND plo.reference_id = r.item_id::text
    AND plo.child_section_id = v_child_section_id
   WHERE r.pricelist_version_id = v_pricelist_version_id
     AND r.catalog_type = p_catalog_type
