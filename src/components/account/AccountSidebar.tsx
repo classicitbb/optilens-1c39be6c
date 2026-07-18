@@ -32,8 +32,7 @@ const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
     }
 
     if (item.to === "/profile/statements") {
-      const enabled = canAccessFeature("statements");
-      return { ...item, disabled: !enabled, badge: !enabled ? approvalBadge : undefined };
+      return { ...item, disabled: !canAccessFeature("statements"), badge: !canAccessFeature("statements") ? approvalBadge : undefined };
     }
 
     return item;

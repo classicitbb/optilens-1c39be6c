@@ -15,6 +15,7 @@ const HelpdeskTicketDetailSection = lazy(() => import("@/components/account/sect
 const AssignedPricelistsSection = lazy(() => import("@/components/account/sections/AssignedPricelistsSection"));
 const CartDraftsSection = lazy(() => import("@/components/account/sections/CartDraftsSection"));
 const StatementsSection = lazy(() => import("@/components/account/sections/StatementsSection"));
+const RxDraftSection = lazy(() => import("@/components/account/sections/RxDraftSection"));
 
 const PortalRoutes = () => {
   return (
@@ -36,6 +37,7 @@ const PortalRoutes = () => {
         <Route path="helpdesk/:ticketId" element={<PortalFeatureGate feature="helpdesk"><HelpdeskTicketDetailSection /></PortalFeatureGate>} />
         <Route path="pricelists" element={<PortalFeatureGate feature="pricelists"><AssignedPricelistsSection /></PortalFeatureGate>} />
         <Route path="drafts" element={<CartDraftsSection />} />
+        <Route path="rx-drafts/:draftId" element={<RxDraftSection />} />
         <Route path="statements" element={<PortalFeatureGate feature="statements"><StatementsSection /></PortalFeatureGate>} />
       </Route>
       <Route path="*" element={<Navigate to="/profile" replace />} />

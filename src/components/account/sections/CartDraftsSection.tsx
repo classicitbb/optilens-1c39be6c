@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { FileText, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ const CartDraftsSection = () => {
         <p className="text-sm text-muted-foreground">Snapshots of carts you saved for later.</p>
       </div>
 
-      {isLoading ? (
+      {isLoading || rxDraftsLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -126,6 +126,25 @@ const CartDraftsSection = () => {
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="pt-4">
+        <h2 className="text-lg font-semibold text-foreground">Rx order drafts</h2>
+        <p className="text-sm text-muted-foreground">Controlled lens recommendations saved before final LabLink submission.</p>
+      </div>
+      {rxDrafts.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+          No Rx drafts yet. <Link to="/lens-assistant?audience=professional" className="font-medium text-primary hover:underline">Start the lens assistant</Link>.
+        </div>
+      ) : (
+        <ul className="divide-y rounded-lg border bg-card">
+          {rxDrafts.map((draft) => (
+            <li key={draft.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div><div className="flex items-center gap-2"><span className="font-medium">{draft.name}</span><Badge variant="secondary" className="capitalize">{draft.status.replace(/_/g, " ")}</Badge></div><p className="mt-1 text-xs text-muted-foreground">Saved {formatDate(draft.updated_at)} · Not submitted to the lab</p></div>
+              <Button asChild variant="outline" size="sm"><Link to={`/profile/rx-drafts/${draft.id}`}>Open draft</Link></Button>
             </li>
           ))}
         </ul>
