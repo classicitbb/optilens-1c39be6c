@@ -19,6 +19,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, details?: AuthSignupDetails) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithMagicLink: (email: string, redirectTo: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -139,6 +140,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return { error };
   }, []);
 
+  const signInWithMagicLink = useCallback(async (email: string, redirectTo: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
+    return { error };
+  }, []);
+
   const signOut = useCallback(async () => {
     // Local scope: only end this browser's session. The supabase-js default
     // (global) revokes every session for the user, which silently killed
@@ -152,8 +163,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     loading,
     signUp,
     signIn,
+    signInWithMagicLink,
     signOut,
-  }), [user, session, loading, signUp, signIn, signOut]);
+  }), [user, session, loading, signUp, signIn, signInWithMagicLink, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

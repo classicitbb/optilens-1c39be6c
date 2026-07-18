@@ -111,13 +111,13 @@ describe("TreatmentMatricesAccordion", () => {
     renderAccordion({ versionId: 1, showUSD: false, fxRate: 1 });
 
     expect(screen.getByRole("button", { name: /unlock structure editing/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /add grouping/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add group/i })).not.toBeInTheDocument();
     expect(screen.queryByTitle("Move grouping up")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /unlock structure editing/i }));
 
     expect(screen.getByRole("button", { name: /lock structure editing/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /add grouping/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /add group/i })).toBeInTheDocument();
     expect(screen.getAllByTitle("Move grouping up").length).toBeGreaterThan(0);
   });
 
@@ -129,7 +129,7 @@ describe("TreatmentMatricesAccordion", () => {
     renderAccordion({ versionId: 1, showUSD: false, fxRate: 1 });
 
     expect(screen.queryByRole("button", { name: /unlock structure editing/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /add grouping/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add group/i })).not.toBeInTheDocument();
     expect(screen.queryByTitle("Move grouping up")).not.toBeInTheDocument();
   });
 });

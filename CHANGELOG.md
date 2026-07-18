@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-18 — Integration Status Recovery and Dependency Refresh
+
+### Release Notes
+- Administrators can recheck the payment gateway and clear a stale error only after a successful zero-impact credential test.
+- Innovations sync status can be refreshed on demand; duplicate account-number links disappear from the warning once the underlying records are resolved.
+
+### Technical Changelog
+- Refreshed the npm dependency set and lockfile; TypeScript remains on 6.x because the current `typescript-eslint` peer range does not support 7.x.
+- Added a privileged payment-gateway test-result RPC that records the test time and status without exposing gateway credentials.
+
 ## 2026-07-16 — Portal Statements and Live Order Status
 
 ### Release Notes

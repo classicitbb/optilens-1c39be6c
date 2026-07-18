@@ -107,24 +107,44 @@ export default function IntegrationsPage() {
       // Reachability test: ask the edge function to build a signed (zero-impact)
       // form. This proves StoreID + SharedSecret resolve and the hash computes,
       // without charging a card.
-      const { data, error } = await supabase.functions.invoke("scotia-payment", {
-        body: {
-          action: "prepare",
-          chargetotal: 1,
-          responseSuccessURL: `${window.location.origin}/checkout`,
-          responseFailURL: `${window.location.origin}/checkout`,
-          hostURI: `${window.location.origin}/checkout`,
-        },
-      });
-      if (error) throw new Error(error.message);
-      if (!data?.formParams?.hashExtended) {
-        throw new Error((data as { error?: string })?.error || "Gateway did not return a signed form.");
+      let passed = false;
+      let testError: Error | null = null;
+
+      try {
+        const { data, error } = await supabase.functions.invoke("scotia-payment", {
+          body: {
+            action: "prepare",
+            chargetotal: 1,
+            responseSuccessURL: `${window.location.origin}/checkout`,
+            responseFailURL: `${window.location.origin}/checkout`,
+            hostURI: `${window.location.origin}/checkout`,
+          },
+        });
+        if (error) throw new Error(error.message);
+        if (!data?.formParams?.hashExtended) {
+          throw new Error((data as { error?: string })?.error || "Gateway did not return a signed form.");
+        }
+        passed = true;
+      } catch (error) {
+        testError = error instanceof Error ? error : new Error(String(error));
+      }
+
+      const { error: statusError } = await supabase.rpc("record_payment_gateway_test" as never, {
+        p_success: passed,
+      } as never);
+      if (statusError) throw new Error(`Configuration test completed, but its status could not be recorded: ${statusError.message}`);
+      if (testError) {
+        throw testError;
       }
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
+      qc.invalidateQueries({ queryKey: ["payment-gateway-status"] });
       toast({ title: "Configuration valid", description: "Credentials resolved and the request hash computed successfully." });
     },
     onError: (error: any) => {
+      qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
+      qc.invalidateQueries({ queryKey: ["payment-gateway-status"] });
       toast({ title: "Test failed", description: error.message, variant: "destructive" });
     },
   });
@@ -262,7 +282,7 @@ export default function IntegrationsPage() {
               disabled={testMutation.isPending}
             >
               {testMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlugZap className="mr-2 h-4 w-4" />}
-              Test configuration
+              {currentStatus === "error" ? "Recheck & clear error" : "Test configuration"}
             </Button>
           </div>
         </CardContent>

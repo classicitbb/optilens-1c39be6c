@@ -19,6 +19,16 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // eslint-plugin-react-hooks v7 enables React Compiler diagnostics that
+      // flag established patterns across the app. Keep them visible while
+      // migrating incrementally instead of turning the dependency update into
+      // a repo-wide behavioral rewrite.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/static-components": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
+      "react-hooks/immutability": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "warn",
@@ -26,6 +36,7 @@ export default tseslint.config(
       "@typescript-eslint/no-require-imports": "warn",
       "prefer-const": "warn",
       "no-useless-escape": "warn",
+      "no-useless-assignment": "warn",
       "no-restricted-syntax": [
         "error",
         {

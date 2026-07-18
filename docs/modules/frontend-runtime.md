@@ -2,6 +2,11 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-07-18 — Integration status recovery
+
+- `IntegrationsPage` persists the outcome of its zero-impact Scotia credential/hash test through `record_payment_gateway_test`; a successful test clears a stale error badge and a failed test records an error timestamp.
+- `InnovationsSyncStatusCard` has an on-demand status recheck. It does not mutate customer links: duplicate account-number warnings remain visible until the underlying source data is corrected, then disappear on refresh.
+
 ## 2026-07-16 — Portal statements and local live-data access
 
 - `AccountSidebar` uses `canAccessFeature("statements")`, which keeps the sidebar and the canonical `/profile/statements` feature gate aligned. A staff role is not required for an approved customer unless an explicit feature override disables statements.

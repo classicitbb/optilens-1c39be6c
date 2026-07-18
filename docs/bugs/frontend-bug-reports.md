@@ -2,6 +2,11 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-18
+- Area: Admin → Settings → Integrations
+- Impact: gateway errors could remain visible after a configuration was repaired because the test operation did not persist its outcome; Innovations duplicate warnings had no manual refresh path.
+- Resolution: gateway tests now record their success/failure state and time through an admin-only RPC, and the Innovations card provides a non-destructive on-demand recheck. Duplicate warnings clear only when the backing duplicate view is empty.
+
 ## 2026-07-16
 - Area: customer portal Statements navigation and My Orders live panels
 - Impact: an approved customer could still see Statements locked because the sidebar required a staff role, and local public-site testing on port 8081 showed generic Edge Function failures in both live order-status panels.
