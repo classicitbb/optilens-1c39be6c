@@ -1,16 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-16T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-18T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Approved customer accounts can open Statements; only an explicit statements-feature disablement keeps the link locked.",
-    "The local portal server at `http://localhost:8081` can call the live-data gateway, so the live order and delivery panels no longer fail with the generic Edge Function transport message during local public-site testing."
+    "Administrators can recheck the payment gateway and clear a stale error only after a successful zero-impact credential test.",
+    "Innovations sync status can be refreshed on demand; duplicate account-number links disappear from the warning once the underlying records are resolved."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Portal Statements and Live Order Status."
+      "notes": "Updated as part of Integration Status Recovery and Dependency Refresh."
     }
   ],
   "migrationNotes": [

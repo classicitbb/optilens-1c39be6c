@@ -159,4 +159,23 @@ describe("Auth page onboarding flow", () => {
       expect(screen.getByText("Store Page")).toBeInTheDocument();
     });
   });
+
+  it("advances from email to password and signs in with Enter", async () => {
+    renderAuth("/auth?mode=signin&redirect=%2Fstore");
+
+    const email = screen.getByLabelText("Email");
+    const password = screen.getByLabelText("Password");
+    fireEvent.change(email, { target: { value: "existing@example.com" } });
+    fireEvent.keyDown(email, { key: "Enter" });
+
+    expect(password).toHaveFocus();
+
+    fireEvent.change(password, { target: { value: "secret12" } });
+    fireEvent.keyDown(password, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(mocks.signIn).toHaveBeenCalledWith("existing@example.com", "secret12");
+      expect(screen.getByText("Store Page")).toBeInTheDocument();
+    });
+  });
 });
