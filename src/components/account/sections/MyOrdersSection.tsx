@@ -104,6 +104,7 @@ const isSafeTrackingUrl = (value?: string | null) => {
 const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
   const trackingUrl = isSafeTrackingUrl(delivery.tracking_url);
   const shipmentItems = delivery.orders ?? [];
+  const shipmentRowCount = shipmentItems.length;
   const isOpen = !delivery.closed_at;
 
   return (
@@ -114,7 +115,7 @@ const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
             <span className="font-medium text-foreground">Shipment #{liveDeliveryId(delivery)}</span>
             <Badge variant="outline">{isOpen ? "Open" : "Closed"}</Badge>
             <span className="text-sm text-muted-foreground">{delivery.shipping_method_name || "Delivery method pending"}</span>
-            <span className="text-sm text-muted-foreground">{delivery.item_count ?? shipmentItems.length} item{(delivery.item_count ?? shipmentItems.length) === 1 ? "" : "s"}</span>
+            <span className="text-sm text-muted-foreground">{shipmentRowCount} item{shipmentRowCount === 1 ? "" : "s"}</span>
             {delivery.tracking_number ? (
               trackingUrl ? (
                 <a
