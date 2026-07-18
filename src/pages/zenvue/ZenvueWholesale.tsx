@@ -73,7 +73,7 @@ const ZenvueWholesale = () => {
     const result = inquirySchema.safeParse(form);
     if (!result.success) {
       const errors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         if (err.path[0]) errors[String(err.path[0])] = err.message;
       });
       setValidationErrors(errors);
