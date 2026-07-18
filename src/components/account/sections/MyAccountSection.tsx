@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AtSign, Building2, CheckCircle2, IdCard, KeyRound, LogOut, Phone, Save, Shield, User } from "lucide-react";
+import { AtSign, Building2, Check, CheckCircle2, IdCard, KeyRound, LogOut, Pencil, Phone, Save, Shield, User, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +27,8 @@ import { type ProfileFormValues, profileSchema } from "@/features/portal/profile
 import { getMissingProfileRequirements } from "@/features/portal/profileCompletion";
 import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
   admin: { bg: "hsl(0 72% 51% / 0.12)", color: "hsl(0 72% 51%)" },
   operator: { bg: "hsl(215 65% 50% / 0.12)", color: "hsl(215 65% 50%)" },
@@ -42,9 +44,17 @@ const MyAccountSection = () => {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [resettingPw, setResettingPw] = useState(false);
   const [searchParams] = useSearchParams();
   const { addresses } = useCustomerAddresses(emulation?.userId);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [changingEmail, setChangingEmail] = useState(false);
+  const [reauthSent, setReauthSent] = useState(false);
+  const [sendingReauthCode, setSendingReauthCode] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -125,27 +135,92 @@ const MyAccountSection = () => {
     toast({ title: "Success", description: "Profile updated successfully" });
   };
 
-  const handleChangePassword = async () => {
-    if (!user?.email) return;
+  const handleStartEditEmail = () => {
+    setNewEmail(user?.email || "");
+    setEditingEmail(true);
+  };
 
-    setResettingPw(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+  const handleCancelEditEmail = () => {
+    setEditingEmail(false);
+    setNewEmail("");
+  };
+
+  const handleSaveEmail = async () => {
+    const trimmed = newEmail.trim();
+    if (!EMAIL_REGEX.test(trimmed)) {
+      toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
+      return;
+    }
+
+    setChangingEmail(true);
+    const { error } = await supabase.auth.updateUser({ email: trimmed });
+    setChangingEmail(false);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    setEditingEmail(false);
+    setNewEmail("");
+    toast({
+      title: "Confirmation sent",
+      description: "Check your inbox to confirm the change — your email won't update until you do.",
     });
-    setResettingPw(false);
+  };
+
+  const handleSendReauthCode = async () => {
+    if (emulation) return;
+    setSendingReauthCode(true);
+    const { error } = await supabase.auth.reauthenticate();
+    setSendingReauthCode(false);
 
     if (error) {
       toast({
         title: "Error",
         description: error.message.includes("security purposes")
-          ? "Please wait about a minute before requesting another reset email."
+          ? "Please wait about a minute before requesting another code."
           : error.message,
         variant: "destructive",
       });
       return;
     }
 
-    toast({ title: "Email sent", description: "Check your inbox for a password reset link." });
+    setReauthSent(true);
+    toast({ title: "Code sent", description: "Check your inbox for a verification code." });
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!verificationCode.trim()) {
+      toast({ title: "Enter the code", description: "Please enter the verification code from your email.", variant: "destructive" });
+      return;
+    }
+    if (newPassword.trim().length < 6) {
+      toast({ title: "Password too short", description: "Must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    if (newPassword.trim() !== confirmNewPassword.trim()) {
+      toast({ title: "Passwords don't match", description: "Please confirm your new password.", variant: "destructive" });
+      return;
+    }
+
+    setUpdatingPassword(true);
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword.trim(),
+      nonce: verificationCode.trim(),
+    });
+    setUpdatingPassword(false);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    setReauthSent(false);
+    setVerificationCode("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    toast({ title: "Password updated", description: "Your password has been changed." });
   };
 
   if (loading) {
@@ -206,9 +281,9 @@ const MyAccountSection = () => {
               </Link>
             </Button>
           ) : null}
-          <Button variant="outline" size="sm" onClick={handleChangePassword} disabled={resettingPw}>
+          <Button variant="outline" size="sm" onClick={handleSendReauthCode} disabled={sendingReauthCode || !!emulation}>
             <KeyRound className="mr-2 h-4 w-4" />
-            {resettingPw ? "Sending..." : "Reset password"}
+            {sendingReauthCode ? "Sending..." : "Change password"}
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={() => { void signOut(); }}>
             <LogOut className="mr-2 h-4 w-4" />
@@ -232,10 +307,59 @@ const MyAccountSection = () => {
               </div>
               <dl className="grid gap-3 text-sm">
                 <div className="flex items-center gap-3">
-                  <AtSign className="h-4 w-4 text-muted-foreground" />
-                  <div className="min-w-0">
+                  <AtSign className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
                     <dt className="text-xs text-muted-foreground">Email</dt>
-                    <dd className="truncate font-medium text-foreground">{user?.email || "—"}</dd>
+                    {editingEmail ? (
+                      <dd className="mt-1 flex items-center gap-1.5">
+                        <Input
+                          type="email"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          className="h-7 text-sm"
+                          autoFocus
+                          disabled={changingEmail}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={handleSaveEmail}
+                          disabled={changingEmail}
+                          aria-label="Save email"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={handleCancelEditEmail}
+                          disabled={changingEmail}
+                          aria-label="Cancel"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </dd>
+                    ) : (
+                      <dd className="flex items-center gap-1.5 truncate font-medium text-foreground">
+                        <span className="truncate">{user?.email || "—"}</span>
+                        {emulation ? null : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 shrink-0"
+                            onClick={handleStartEditEmail}
+                            aria-label="Edit email"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </dd>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -285,6 +409,64 @@ const MyAccountSection = () => {
               </div>
             </CardContent>
           </Card>
+
+          {reauthSent ? (
+            <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Update password</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter the verification code we emailed you, along with your new password.
+                </p>
+                <div className="grid gap-2">
+                  <Input
+                    placeholder="Verification code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    disabled={updatingPassword}
+                  />
+                  <Input
+                    type="password"
+                    placeholder="New password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    disabled={updatingPassword}
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    disabled={updatingPassword}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={handleUpdatePassword} disabled={updatingPassword}>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    {updatingPassword ? "Updating…" : "Update Password"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={updatingPassword}
+                    onClick={() => {
+                      setReauthSent(false);
+                      setVerificationCode("");
+                      setNewPassword("");
+                      setConfirmNewPassword("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button variant="link" size="sm" onClick={handleSendReauthCode} disabled={sendingReauthCode}>
+                    {sendingReauthCode ? "Resending…" : "Resend code"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {missingRequirements.length ? (
             <Card className="border-amber-400/50 bg-amber-50/40 shadow-sm dark:bg-amber-950/20">

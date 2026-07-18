@@ -51,7 +51,7 @@ const intentOptions: Array<{ value: AuthIntent; label: string; description: stri
 ];
 
 const Auth = () => {
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp, signInWithMagicLink } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -59,6 +59,9 @@ const Auth = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [successState, setSuccessState] = useState<SuccessState | null>(null);
   const [leadSignalSent, setLeadSignalSent] = useState(false);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
+  const [magicLinkMode, setMagicLinkMode] = useState(false);
+  const [sendingMagicLink, setSendingMagicLink] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
   const flowState = useMemo(() => readAuthFlowState(new URLSearchParams(location.search)), [location.search]);
@@ -140,12 +143,15 @@ const Auth = () => {
       valid = false;
     }
 
-    if (!values.password.trim()) {
-      form.setError("password", { message: "Password is required" });
-      valid = false;
-    } else if (values.password.trim().length < 6) {
-      form.setError("password", { message: "Must be at least 6 characters" });
-      valid = false;
+    const skipPassword = mode === "signin" && magicLinkMode;
+    if (!skipPassword) {
+      if (!values.password.trim()) {
+        form.setError("password", { message: "Password is required" });
+        valid = false;
+      } else if (values.password.trim().length < 6) {
+        form.setError("password", { message: "Must be at least 6 characters" });
+        valid = false;
+      }
     }
 
     if (mode === "signup") {
@@ -269,6 +275,24 @@ const Auth = () => {
 
   const handleContinueFromDetails = async (values: AuthFormData) => {
     if (!validateDetails()) return;
+
+    if (mode === "signin" && magicLinkMode) {
+      const email = values.email.trim();
+      setSendingMagicLink(true);
+      try {
+        const { error } = await signInWithMagicLink(email, `${window.location.origin}${redirect}`);
+        if (error) {
+          toast({ title: "Couldn't send link", description: error.message, variant: "destructive" });
+          return;
+        }
+        toast({ title: "Check your inbox", description: `We sent a sign-in link to ${email}.` });
+      } catch {
+        toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+      } finally {
+        setSendingMagicLink(false);
+      }
+      return;
+    }
 
     if (mode === "signin") {
       setIsSubmitting(true);
@@ -430,38 +454,78 @@ const Auth = () => {
               </button>
             </div>
           ) : currentStep === "success" ? (
-            <div className="mt-5 space-y-4">
-              <div className="rounded-xl border border-success/30 bg-success/10 p-4">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-success">Onboarding Complete</p>
-                    <h3 className="mt-1 text-base font-semibold">
-                      {successState?.fullName ? `${successState.fullName}, you’re all set.` : "You’re all set."}
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {successAudience === "professional"
-                        ? "Your trade account is active — start browsing the catalog or place an order."
-                        : "Explore lens guidance and retailer help below."}
-                      {successIntent === "products" ? " Your product interest is noted for follow-up." : ""}
-                    </p>
+            !user ? (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-xl border border-accent/30 bg-accent/10 p-4">
+                  <div className="flex items-start gap-2">
+                    <Mail className="mt-0.5 h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-accent">Confirm your email</p>
+                      <h3 className="mt-1 text-base font-semibold">Almost there — check your inbox.</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {successState?.email
+                          ? `We sent a confirmation link to ${successState.email}. Click it to activate your account.`
+                          : "We sent a confirmation link to your email. Click it to activate your account."}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid gap-2">
-                {successActions.map((action) => (
-                  <Button key={action.label} variant={action.variant} size="sm" asChild>
-                    <Link to={action.to}>{action.label}</Link>
-                  </Button>
-                ))}
-                {successState?.redirect && successState.redirect !== "/" ? (
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to={successState.redirect}>Continue to your requested page</Link>
-                  </Button>
-                ) : null}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={resendingConfirmation || !successState?.email}
+                  onClick={async () => {
+                    if (!successState?.email) return;
+                    setResendingConfirmation(true);
+                    try {
+                      const { error } = await supabase.auth.resend({ type: "signup", email: successState.email });
+                      if (error) throw error;
+                      toast({ title: "Email resent", description: `Check ${successState.email} again.` });
+                    } catch {
+                      toast({ title: "Error", description: "Failed to resend confirmation email.", variant: "destructive" });
+                    } finally {
+                      setResendingConfirmation(false);
+                    }
+                  }}
+                >
+                  {resendingConfirmation ? "Sending…" : "Resend confirmation email"}
+                </Button>
               </div>
-            </div>
+            ) : (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-xl border border-success/30 bg-success/10 p-4">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-success">Onboarding Complete</p>
+                      <h3 className="mt-1 text-base font-semibold">
+                        {successState?.fullName ? `${successState.fullName}, you’re all set.` : "You’re all set."}
+                      </h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {successAudience === "professional"
+                          ? "Your trade account is active — start browsing the catalog or place an order."
+                          : "Explore lens guidance and retailer help below."}
+                        {successIntent === "products" ? " Your product interest is noted for follow-up." : ""}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  {successActions.map((action) => (
+                    <Button key={action.label} variant={action.variant} size="sm" asChild>
+                      <Link to={action.to}>{action.label}</Link>
+                    </Button>
+                  ))}
+                  {successState?.redirect && successState.redirect !== "/" ? (
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to={successState.redirect}>Continue to your requested page</Link>
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            )
           ) : (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleContinueFromDetails)} className={`mt-5 ${isReturningVisitor ? "space-y-5" : "space-y-3"}`} noValidate>
@@ -605,6 +669,7 @@ const Auth = () => {
                     )}
                   />
 
+                  {mode === "signin" && magicLinkMode ? null : (
                   <FormField
                     control={form.control}
                     name="password"
@@ -672,6 +737,7 @@ const Auth = () => {
                       </FormItem>
                     )}
                   />
+                  )}
                 </div>
 
                 {mode === "signup" && currentStep === "intent" ? (
@@ -704,17 +770,31 @@ const Auth = () => {
                   type={mode === "signup" && currentStep === "intent" ? "button" : "submit"}
                   size="default"
                   className={`w-full ${isReturningVisitor ? "h-11 rounded-xl shadow-md shadow-primary/20" : ""}`}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || sendingMagicLink}
                   onClick={mode === "signup" && currentStep === "intent" ? handleCreateAccount : undefined}
                 >
-                  {isSubmitting
-                    ? "Please wait…"
-                    : mode === "signin"
-                      ? "Sign In"
-                      : currentStep === "intent"
-                        ? "Create Account"
-                        : "Continue"}
+                  {mode === "signin" && magicLinkMode
+                    ? sendingMagicLink
+                      ? "Sending…"
+                      : "Email me a sign-in link"
+                    : isSubmitting
+                      ? "Please wait…"
+                      : mode === "signin"
+                        ? "Sign In"
+                        : currentStep === "intent"
+                          ? "Create Account"
+                          : "Continue"}
                 </Button>
+
+                {mode === "signin" ? (
+                  <button
+                    type="button"
+                    className="block text-center text-xs font-medium text-primary underline-offset-4 hover:underline"
+                    onClick={() => setMagicLinkMode((value) => !value)}
+                  >
+                    {magicLinkMode ? "Use password instead" : "Sign in with a magic link instead"}
+                  </button>
+                ) : null}
 
               </form>
             </Form>
