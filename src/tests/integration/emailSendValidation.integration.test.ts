@@ -22,8 +22,7 @@ describe("send-transactional-email request validation and failure visibility", (
     expect(source).toMatch(/jsonResponse\(400,\s*\{\s*error:\s*`Failed to render template/);
     // The render step must be wrapped so a bad payload can't produce an
     // unhandled exception with no email_send_log row.
-    const renderTryIndex = source.indexOf("try {\n    html = await renderAsync");
-    expect(renderTryIndex).toBeGreaterThan(-1);
+    expect(source).toMatch(/try\s*\{\s*html = await renderAsync/);
   });
 
   it("documents the endpoint contract in a co-located README", () => {

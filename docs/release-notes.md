@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-18 — Integration Status Recovery and Dependency Refresh
+
+### Release Notes
+- Administrators can recheck the payment gateway and clear a stale error only after a successful zero-impact credential test.
+- Innovations sync status can be refreshed on demand; duplicate account-number links disappear from the warning once the underlying records are resolved.
+
 ## 2026-07-16 — Portal Statements and Live Order Status
 
 ### Release Notes

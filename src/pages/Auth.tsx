@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ArrowRight, Building2, CheckCircle2, ChevronLeft, Eye, EyeOff, FileBadge, Globe, Lock, Mail, Phone, Stethoscope, User } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +62,7 @@ const Auth = () => {
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [magicLinkMode, setMagicLinkMode] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
   const flowState = useMemo(() => readAuthFlowState(new URLSearchParams(location.search)), [location.search]);
   const mode = flowState.mode;
@@ -648,7 +649,19 @@ const Auth = () => {
                         <div className="relative">
                           <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                           <FormControl>
-                            <Input {...field} type="email" autoComplete="email" spellCheck={false} placeholder="you@example.com" className={`pl-9 ${isReturningVisitor ? "h-11 rounded-xl bg-background/80" : ""}`} />
+                            <Input
+                              {...field}
+                              type="email"
+                              autoComplete="email"
+                              spellCheck={false}
+                              placeholder="you@example.com"
+                              className={`pl-9 ${isReturningVisitor ? "h-11 rounded-xl bg-background/80" : ""}`}
+                              onKeyDown={(event) => {
+                                if (mode !== "signin" || event.key !== "Enter") return;
+                                event.preventDefault();
+                                passwordInputRef.current?.focus();
+                              }}
+                            />
                           </FormControl>
                         </div>
                         <FormMessage />
@@ -662,9 +675,40 @@ const Auth = () => {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex items-center justify-between gap-3">
-                          <FormLabel className={isReturningVisitor ? "text-sm font-medium" : undefined}>Password</FormLabel>
+                        <FormLabel className={isReturningVisitor ? "text-sm font-medium" : undefined}>Password</FormLabel>
+                        <div className="relative">
+                          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                          <FormControl>
+                            <Input
+                              {...field}
+                              ref={(element) => {
+                                field.ref(element);
+                                passwordInputRef.current = element;
+                              }}
+                              type={mode === "signin" && isPasswordVisible ? "text" : "password"}
+                              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                              placeholder={mode === "signin" ? "Your password" : "Min. 6 characters"}
+                              className={`pl-9 ${isReturningVisitor ? "h-11 rounded-xl bg-background/80 pr-11" : ""}`}
+                              onKeyDown={(event) => {
+                                if (mode !== "signin" || event.key !== "Enter") return;
+                                event.preventDefault();
+                                void form.handleSubmit(handleContinueFromDetails)();
+                              }}
+                            />
+                          </FormControl>
                           {mode === "signin" ? (
+                            <button
+                              type="button"
+                              className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                              onClick={() => setIsPasswordVisible((visible) => !visible)}
+                            >
+                              {isPasswordVisible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                            </button>
+                          ) : null}
+                        </div>
+                        {mode === "signin" ? (
+                          <div className="flex justify-end">
                             <button
                               type="button"
                               className="text-xs font-medium text-primary underline-offset-4 hover:underline"
@@ -687,30 +731,8 @@ const Auth = () => {
                             >
                               Forgot password?
                             </button>
-                          ) : null}
-                        </div>
-                        <div className="relative">
-                          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type={mode === "signin" && isPasswordVisible ? "text" : "password"}
-                              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                              placeholder={mode === "signin" ? "Your password" : "Min. 6 characters"}
-                              className={`pl-9 ${isReturningVisitor ? "h-11 rounded-xl bg-background/80 pr-11" : ""}`}
-                            />
-                          </FormControl>
-                          {mode === "signin" ? (
-                            <button
-                              type="button"
-                              className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                              onClick={() => setIsPasswordVisible((visible) => !visible)}
-                            >
-                              {isPasswordVisible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-                            </button>
-                          ) : null}
-                        </div>
+                          </div>
+                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}

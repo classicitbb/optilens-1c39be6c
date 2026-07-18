@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Database, Loader2, PlugZap } from "lucide-react";
+import { CheckCircle2, Database, Loader2, PlugZap, RefreshCw } from "lucide-react";
 
 // Live status for the outbound Innovations → cloud sync (OptiLens Local pushes;
 // this card reads what landed). Source of truth: public.innovations_sync_runs +
@@ -44,7 +44,7 @@ export default function InnovationsSyncStatusCard() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isRefetching, error, refetch } = useQuery({
     queryKey: ["innovations-sync-status"],
     refetchInterval: 90000,
     refetchIntervalInBackground: false,
@@ -98,6 +98,21 @@ export default function InnovationsSyncStatusCard() {
   const live = !!latestWrite && Date.now() - new Date(latestWrite.started_at).getTime() < RECENT_MS;
   const lastAny = data?.runs[0];
 
+  const recheckStatus = async () => {
+    const result = await refetch();
+    if (result.error) {
+      toast({ title: "Could not refresh status", description: result.error.message, variant: "destructive" });
+      return;
+    }
+    const duplicateCount = result.data?.accountNumberDuplicates.length ?? 0;
+    toast({
+      title: "Integration status refreshed",
+      description: duplicateCount
+        ? `${duplicateCount} duplicate account-number link${duplicateCount === 1 ? " remains" : "s remain"} for review.`
+        : "No duplicate account-number links remain.",
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -116,6 +131,15 @@ export default function InnovationsSyncStatusCard() {
             >
               {live ? "Live" : data?.runs.length ? "Idle" : "Awaiting first sync"}
             </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void recheckStatus()}
+              disabled={isRefetching}
+            >
+              <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} />
+              Recheck status
+            </Button>
             <Button
               size="sm"
               onClick={() => requestSync.mutate()}
@@ -136,8 +160,12 @@ export default function InnovationsSyncStatusCard() {
             <Loader2 className="h-4 w-4 animate-spin" /> Loading status…
           </div>
         ) : error ? (
-          <div className="text-amber-700">
-            Could not read sync status. Apply the <code>innovations_sync_v1</code> migration if this persists.
+          <div className="flex flex-wrap items-center justify-between gap-2 text-amber-700">
+            <span>Could not read sync status. Apply the <code>innovations_sync_v1</code> migration if this persists.</span>
+            <Button variant="outline" size="sm" onClick={() => void recheckStatus()} disabled={isRefetching}>
+              {isRefetching && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+              Retry
+            </Button>
           </div>
         ) : (
           <>

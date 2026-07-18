@@ -2,6 +2,11 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-18 — Integration status checks
+
+- If the payment gateway badge shows Error after credentials were corrected, open Admin → Settings → Integrations and select **Recheck & clear error**. The test creates no charge; it only verifies credential resolution and request-hash generation.
+- For an Innovations duplicate account-number warning, correct the customer linkage in the source/admin workflow and then select **Recheck status**. Do not clear the warning without resolving the duplicate records.
+
 ## 2026-07-16 — Statements and live status access
 
 - An approved customer should see Statements as an active account-navigation link. If it remains locked, review that customer's Statements feature override in the portal administration screen.

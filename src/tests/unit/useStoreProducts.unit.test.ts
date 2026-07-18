@@ -71,6 +71,7 @@ describe("fetchStoreProducts", () => {
           unit: "box",
           quantity_per_unit: 100,
           image_url: null,
+          show_on_website: true,
         },
       ],
       error: null,

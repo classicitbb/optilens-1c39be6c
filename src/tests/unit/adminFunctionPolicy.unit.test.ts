@@ -132,4 +132,36 @@ describe("admin function policy", () => {
       })
     ).toThrow("customerId must be a positive integer");
   });
+
+  it("validates optional contact identifiers for customer account creation", () => {
+    const contactId = "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
+
+    expect(
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "invite-user",
+        payload: { email: "customer@example.com", contactId },
+      }),
+    ).toEqual({
+      action: "invite-user",
+      email: "customer@example.com",
+      contactId,
+    });
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "invite-user",
+        payload: { email: "customer@example.com", contactId: "not-a-uuid" },
+      }),
+    ).toThrow("contactId must be a valid contact id");
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "invite-user",
+        payload: { email: "customer@example.com", contactId: 42 },
+      }),
+    ).toThrow("contactId must be a string");
+  });
 });
