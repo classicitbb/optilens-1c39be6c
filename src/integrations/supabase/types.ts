@@ -8830,6 +8830,26 @@ export type Database = {
         }
         Returns: string
       }
+      portal_assigned_pricelist_addons: {
+        Args: never
+        Returns: {
+          bbd_price: number
+          display_description: string
+          row_type: string
+          section: string
+          sort_order: number
+        }[]
+      }
+      portal_assigned_pricelist_catalog: {
+        Args: { p_catalog_type: string }
+        Returns: {
+          bbd_price: number
+          display_description: string
+          row_type: string
+          section: string
+          sort_order: number
+        }[]
+      }
       portal_assigned_pricelist_matrix: {
         Args: never
         Returns: {
