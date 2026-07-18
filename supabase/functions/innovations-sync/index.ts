@@ -207,8 +207,22 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-13.1-order-activity";
+const VERSION = "2026-07-18.1-fill-empty-contact-customer-fields";
 const MAX_RECORDS_PER_REQUEST = 1000;
+
+const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
+
+// Innovations is authoritative for its immutable identifiers, but CRM users
+// own the actual contact/customer details after they have been filled in.
+// An inbound sync may fill a blank value; it must not replace a non-blank one.
+const patchEmptyFields = (
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+  sourceIdentityKeys: string[],
+) => Object.entries(incoming).reduce<Record<string, unknown>>((patch, [key, value]) => {
+  if (sourceIdentityKeys.includes(key) || (isBlank(existing[key]) && !isBlank(value))) patch[key] = value;
+  return patch;
+}, {});
 
 // Customers get individual resolution instead of a blind onConflict(innovations_customer_id)
 // upsert. Reason: a website signup can pre-create a customers row (company contact +
@@ -223,15 +237,16 @@ async function upsertCustomerRow(
 ): Promise<{ error: { message: string } | null }> {
   const { data: byInnovationsId, error: lookupErr } = await supabase
     .from("customers")
-    .select("id")
+    .select("*")
     .eq("innovations_customer_id", row.innovations_customer_id as any)
     .maybeSingle();
   if (lookupErr) return { error: lookupErr };
 
   if (byInnovationsId) {
+    const patch = patchEmptyFields(byInnovationsId as Record<string, unknown>, row, ["innovations_customer_id"]);
     return await supabase
       .from("customers")
-      .update(row)
+      .update(patch)
       .eq("id", (byInnovationsId as any).id);
   }
 
@@ -244,16 +259,51 @@ async function upsertCustomerRow(
       ? accountMatches.find((match: any) => match && match.innovations_customer_id == null)
       : null;
     if (byAccountNumber) {
-      // Adopt the pre-created (e.g. website signup) row: fill in the immutable
-      // Innovations id and refresh the rest of the mapped fields.
+      // Adopt the pre-created (e.g. website signup) row. Keep the CRM's
+      // populated values and fill only its gaps while adding the immutable
+      // Innovations id.
+      const { data: existing, error: existingErr } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", (byAccountNumber as any).id)
+        .maybeSingle();
+      if (existingErr) return { error: existingErr };
+      const patch = patchEmptyFields((existing ?? {}) as Record<string, unknown>, row, ["innovations_customer_id"]);
       return await supabase
         .from("customers")
-        .update(row)
+        .update(patch)
         .eq("id", (byAccountNumber as any).id);
     }
   }
 
   return await supabase.from("customers").insert(row);
+}
+
+async function upsertContactRow(
+  supabase: ReturnType<typeof createClient>,
+  row: Record<string, unknown>,
+): Promise<{ error: { message: string } | null }> {
+  const { data: existing, error: lookupErr } = await supabase
+    .from("contacts")
+    .select("*")
+    .eq("innovations_contact_id", row.innovations_contact_id as any)
+    .maybeSingle();
+  if (lookupErr) return { error: lookupErr };
+
+  if (existing) {
+    const patch = patchEmptyFields(existing as Record<string, unknown>, row, ["innovations_contact_id", "innovations_parent_customer_id"]);
+    return await supabase.from("contacts").update(patch).eq("id", (existing as any).id);
+  }
+
+  let { error } = await supabase.from("contacts").insert(row);
+  // CRM keeps a unique-name constraint, while ERP contact names can repeat.
+  // Preserve the prior receiver behavior for a genuinely new contact.
+  if (error && /contacts_name_key|unique/i.test(error.message || "") && row.name) {
+    ({ error } = await supabase
+      .from("contacts")
+      .insert({ ...row, name: `${row.name} (#${row.innovations_contact_id})` }));
+  }
+  return { error };
 }
 
 // Statements/balances arrive keyed only by innovations_customer_id — resolve
@@ -513,11 +563,14 @@ Deno.serve(async (req: Request) => {
   let failed = invalid.length;
   const errors: string[] = invalid.slice(0, 5).map((x) => `record ${x.index}: ${x.error}`);
 
-  if (!dryRun && mapped.length && entity === "customers") {
-    // Individual resolution per row — see upsertCustomerRow for why this can't
-    // be a blind onConflict batch upsert.
+  if (!dryRun && mapped.length && (entity === "customers" || entity === "contacts")) {
+    // Customer and contact rows resolve individually. Customers may need to
+    // adopt a pre-existing website row; both entities preserve populated CRM
+    // fields and only let Innovations fill gaps.
     for (const row of mapped) {
-      const { error: rowErr } = await upsertCustomerRow(supabase, row);
+      const { error: rowErr } = entity === "customers"
+        ? await upsertCustomerRow(supabase, row)
+        : await upsertContactRow(supabase, row);
       if (rowErr) {
         failed++;
         if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);

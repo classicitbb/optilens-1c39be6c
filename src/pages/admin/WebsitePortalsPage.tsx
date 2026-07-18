@@ -212,7 +212,6 @@ const WebsitePortalsPage = () => {
         (supabase as any)
           .from("customers")
           .select("id,name,email,phone,account_number,assigned_pricelist_id,innovations_customer_id,contact_id")
-          .not("innovations_customer_id", "is", null)
           .order("name"),
       ]);
       if (error) throw error;
@@ -250,7 +249,11 @@ const WebsitePortalsPage = () => {
 
       const customerRoleAccounts = users.filter((entry) => {
         const profile = profileMap.get(entry.user_id);
-        return entry.role === "customer" || typeof profile?.crm_customer_id === "number";
+        // Include unassigned logins as portal candidates. An admin can link a
+        // newly created or signed-up user to a customer from this screen;
+        // staff-only roles remain out of the customer operations surface.
+        const isStaffRole = entry.role === "admin" || entry.role === "operator" || entry.role === "viewer";
+        return !isStaffRole || typeof profile?.crm_customer_id === "number";
       });
       const customerUserIds = customerRoleAccounts.map((entry) => entry.user_id);
 
@@ -373,6 +376,14 @@ const WebsitePortalsPage = () => {
         .includes(q);
     });
   }, [customersQuery.data, search]);
+
+  // The portal list is intentionally centred on ERP-backed accounts. Keep the
+  // same source available at the approval decision so an admin can link a
+  // signed-up or manually-created login before approving its portal access.
+  const erpCustomers = useMemo(
+    () => (customersQuery.data ?? []).filter((account) => typeof account.crmCustomerId === "number"),
+    [customersQuery.data],
+  );
 
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null;
   const selectedCustomer = selectedAccount?.portalUser ?? null;
@@ -535,6 +546,7 @@ const WebsitePortalsPage = () => {
     mutationFn: async (approved: boolean) => {
       if (!selectedCustomer) throw new Error("Select a customer first.");
       if (approved && !selectedCustomer.crmCustomerId) throw new Error("Link this portal account to an ERP customer before approving access.");
+      if (approved && !selectedCustomer.email.trim()) throw new Error("Add an email address before approving portal access.");
       const { error } = await (supabase as any)
         .from("profiles")
         .upsert({
@@ -555,6 +567,31 @@ const WebsitePortalsPage = () => {
     onError: (error: any) => toast({ title: "Approval failed", description: error.message || "Failed to update portal approval.", variant: "destructive" }),
   });
 
+  const linkPortalToErpCustomer = useMutation({
+    mutationFn: async (customerId: number) => {
+      if (!selectedCustomer) throw new Error("Select a portal login first.");
+      const customer = erpCustomers.find((account) => account.crmCustomerId === customerId);
+      if (!customer) throw new Error("The selected ERP customer is no longer available.");
+
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .upsert({ user_id: selectedCustomer.userId, crm_customer_id: customerId }, { onConflict: "user_id" });
+      if (error) throw error;
+
+      const { error: syncError } = await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: selectedCustomer.userId });
+      if (syncError) throw syncError;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] }),
+        queryClient.invalidateQueries({ queryKey: ["website-portals-customer-detail"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
+      ]);
+      toast({ title: "ERP customer linked", description: "The login can now be approved for portal access when its email is available." });
+    },
+    onError: (error: any) => toast({ title: "Customer link failed", description: error.message || "Unable to link this portal login to the ERP customer.", variant: "destructive" }),
+  });
+
   const updateCustomerProfile = useMutation({
     mutationFn: async (payload: { full_name: string; phone: string; organization_name: string }) => {
       if (!selectedCustomer) throw new Error("Select a customer first.");
@@ -568,10 +605,18 @@ const WebsitePortalsPage = () => {
         }, { onConflict: "user_id" });
       if (error) throw error;
       if (selectedCustomer.crmContactId) {
+        const { data: contact, error: contactLookupError } = await (supabase as any)
+          .from("contacts")
+          .select("name,phone,business_name")
+          .eq("id", selectedCustomer.crmContactId)
+          .maybeSingle();
+        if (contactLookupError) throw contactLookupError;
         const contactPatch: Record<string, string | null> = {};
-        if (payload.full_name.trim()) contactPatch.name = payload.full_name.trim();
-        if (payload.phone.trim()) contactPatch.phone = payload.phone.trim();
-        if (payload.organization_name.trim()) contactPatch.business_name = payload.organization_name.trim();
+        // A profile may supply missing CRM information, but it must never
+        // overwrite an existing contact value (especially an ERP-synced one).
+        if (payload.full_name.trim() && !String(contact?.name ?? "").trim()) contactPatch.name = payload.full_name.trim();
+        if (payload.phone.trim() && !String(contact?.phone ?? "").trim()) contactPatch.phone = payload.phone.trim();
+        if (payload.organization_name.trim() && !String(contact?.business_name ?? "").trim()) contactPatch.business_name = payload.organization_name.trim();
         if (Object.keys(contactPatch).length) {
           const { error: contactError } = await (supabase as any)
             .from("contacts")
@@ -1092,7 +1137,7 @@ const WebsitePortalsPage = () => {
                                   <p className="mt-1 text-xs text-muted-foreground">
                                     {detailQuery.data.portalAccessApprovedOverride
                                       ? `Approved${detailQuery.data.portalAccessApprovedAt ? ` ${formatDateTime(detailQuery.data.portalAccessApprovedAt)}` : ""}.`
-                                      : "Use this when the ERP customer is valid but the customer has not finished every profile field."}
+                                      : "Link the ERP customer, confirm an email, then approve access even when profile cleanup is still pending."}
                                   </p>
                                 </div>
                                 <Button
@@ -1100,7 +1145,7 @@ const WebsitePortalsPage = () => {
                                   size="sm"
                                   variant={detailQuery.data.portalAccessApprovedOverride ? "outline" : "default"}
                                   onClick={() => setPortalApproval.mutate(!detailQuery.data.portalAccessApprovedOverride)}
-                                  disabled={setPortalApproval.isPending || !detailQuery.data.crmCustomerId}
+                                  disabled={setPortalApproval.isPending || !detailQuery.data.crmCustomerId || !detailQuery.data.email.trim()}
                                 >
                                   {setPortalApproval.isPending
                                     ? "Saving..."
@@ -1109,8 +1154,31 @@ const WebsitePortalsPage = () => {
                                       : "Approve portal access"}
                                 </Button>
                               </div>
-                              {!detailQuery.data.crmCustomerId ? (
-                                <p className="mt-2 text-xs text-amber-700">Link this portal account to an ERP customer before approving access.</p>
+                              <div className="mt-3 space-y-2">
+                                <Label htmlFor="portal-erp-customer">ERP customer</Label>
+                                <Select
+                                  value={detailQuery.data.crmCustomerId ? String(detailQuery.data.crmCustomerId) : undefined}
+                                  onValueChange={(value) => linkPortalToErpCustomer.mutate(Number(value))}
+                                  disabled={linkPortalToErpCustomer.isPending || customersQuery.isLoading}
+                                >
+                                  <SelectTrigger id="portal-erp-customer"><SelectValue placeholder="Select the customer or company to link" /></SelectTrigger>
+                                  <SelectContent>
+                                    {erpCustomers.map((account) => (
+                                      <SelectItem key={account.crmCustomerId} value={String(account.crmCustomerId)}>
+                                        {account.fullName || "Unnamed ERP customer"}{account.accountNumber ? ` · ${account.accountNumber}` : ""}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">This is the account whose prices, statements, and portal information the user can view.</p>
+                              </div>
+                              {!detailQuery.data.crmCustomerId ? <p className="mt-2 text-xs text-amber-700">Missing ERP customer link — choose the customer above, or create/link it in Contacts.</p> : null}
+                              {!detailQuery.data.email.trim() ? <p className="mt-2 text-xs text-amber-700">Missing email — add it in User Management or the linked contact before approving access.</p> : null}
+                              {!detailQuery.data.crmContactId ? (
+                                <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground">
+                                  <span>No CRM contact is linked yet. Link or create one to keep the person record complete.</span>
+                                  <Button type="button" size="sm" variant="link" className="h-auto p-0" onClick={() => navigate("/admin/contacts")}>Open Contacts</Button>
+                                </div>
                               ) : null}
                               <p className="mt-2 text-xs text-muted-foreground">
                                 Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Owner/CEO/Buyer tag required"}.
@@ -1276,9 +1344,20 @@ const WebsitePortalsPage = () => {
                         <Input value={profileDraft.organization_name} onChange={(event) => setProfileDraft((prev) => ({ ...prev, organization_name: event.target.value }))} />
                       </div>
                       <div className="space-y-2">
-                        <Label>Account number</Label>
-                        <Input value={detailQuery.data.accountNumber || "Not linked"} disabled readOnly />
-                        <p className="text-xs text-muted-foreground">Read-only here — edit it from the Operations tab or the linked company's contact record.</p>
+                        <Label>Innovations account number override</Label>
+                        <div className="flex items-center gap-2">
+                          <Input value={accountNumberDraft} onChange={(event) => setAccountNumberDraft(event.target.value)} placeholder="e.g. RETAIL" disabled={!detailQuery.data.crmCustomerId} />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateAccountNumber.mutate(accountNumberDraft)}
+                            disabled={updateAccountNumber.isPending || !detailQuery.data.crmCustomerId || normalizeAccountNumberInput(accountNumberDraft) === normalizeAccountNumberInput(detailQuery.data.accountNumber)}
+                          >
+                            {updateAccountNumber.isPending ? "Saving…" : "Save"}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Use this manual override only to correct the company’s ERP account link. Link an ERP customer in Operations first; the account number is unique and drives Innovations statements.</p>
                       </div>
                       <Button
                         onClick={() => updateCustomerProfile.mutate(profileDraft)}
