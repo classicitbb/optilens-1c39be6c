@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { getPortalEmulation, onPortalEmulationChange } from "@/lib/portalEmulation";
 
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
-export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "statements";
+export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "live-order-status" | "statements";
 
 export type PaymentTerms = "credit" | "cash" | "standard";
 
@@ -21,6 +23,7 @@ export interface PortalIdentity {
   organizationName: string | null;
   customerName: string | null;
   paymentTerms: PaymentTerms;
+  canAccessStatements: boolean;
   featureOverrides: Partial<Record<PortalFeature, boolean>>;
 }
 
@@ -29,6 +32,7 @@ const featureTitles: Record<PortalFeature, string> = {
   helpdesk: "Helpdesk",
   pricelists: "Pricelists",
   "private-orders": "Private orders",
+  "live-order-status": "Live order status",
   statements: "Statements",
 };
 
@@ -50,13 +54,19 @@ const normalizeIdentity = (
   paymentTerms: (row.payment_terms === "credit_approved" ? "credit"
                : row.payment_terms === "cash_only"       ? "cash"
                : "standard") as PaymentTerms,
+  canAccessStatements: row.can_access_statements === true,
   featureOverrides,
 });
 
 export const canAccessPortalFeature = (identity: PortalIdentity | null, feature: PortalFeature) => {
   if (!identity) return false;
   const override = identity.featureOverrides?.[feature];
-  if (typeof override === "boolean") return override;
+  if (override === false) return false;
+  if (feature === "statements") {
+    return identity.portalAccessStatus === "approved_customer" && identity.canAccessStatements;
+  }
+  if (override === true) return true;
+  if (feature === "live-order-status") return false;
   if (feature === "private-orders") return identity.portalAccessStatus === "approved_customer";
   return identity.portalAccessStatus === "approved_customer";
 };
@@ -76,6 +86,13 @@ export const getPortalFeatureBlockedReason = (identity: PortalIdentity | null, f
     return {
       title: `${title} is currently disabled`,
       description: "Your account team has temporarily disabled this workflow for your portal.",
+    };
+  }
+
+  if (feature === "statements" && identity.portalAccessStatus === "approved_customer" && !identity.canAccessStatements) {
+    return {
+      title: "Statements require billing authorization",
+      description: "Statements are available to contacts tagged Owner, CEO, or Buyer by your account team.",
     };
   }
 
@@ -115,22 +132,81 @@ export const getPortalFeatureBlockedReason = (identity: PortalIdentity | null, f
   }
 };
 
+/**
+ * Read-only identity for an emulated portal account: built from the same
+ * tables the admin portals screen reads, deliberately NOT via the
+ * sync_customer_portal_identity RPC (which creates/mutates rows for the
+ * caller). Staff-only — RLS on profiles/customers enforces it server-side.
+ */
+const fetchEmulatedIdentity = async (targetUserId: string): Promise<PortalIdentity | null> => {
+  const { data: profile, error: profileError } = await (supabase as any)
+    .from("profiles")
+    .select("id,user_id,full_name,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) return null;
+
+  const [{ data: customer }, { data: overrides }, { data: canAccessStatements }] = await Promise.all([
+    typeof profile.crm_customer_id === "number"
+      ? (supabase as any)
+          .from("customers")
+          .select("name,account_number,assigned_pricelist_id")
+          .eq("id", profile.crm_customer_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    (supabase as any)
+      .from("customer_portal_feature_overrides")
+      .select("feature_key,enabled")
+      .eq("user_id", targetUserId),
+    (supabase.rpc as any)("can_access_customer_statement", { p_user_id: targetUserId }),
+  ]);
+
+  const overrideMap = ((overrides ?? []) as Array<{ feature_key: PortalFeature; enabled: boolean }>).reduce(
+    (accumulator, row) => ({ ...accumulator, [row.feature_key]: row.enabled }),
+    {} as Partial<Record<PortalFeature, boolean>>,
+  );
+
+  return normalizeIdentity(
+    {
+      profile_id: profile.id,
+      portal_access_status: profile.portal_access_status,
+      portal_access_note: profile.portal_access_note,
+      email_verified: true,
+      profile_completed: true,
+      crm_contact_id: profile.crm_contact_id,
+      crm_customer_id: profile.crm_customer_id,
+      account_number: customer?.account_number ?? null,
+      assigned_pricelist_id: customer?.assigned_pricelist_id ?? null,
+      organization_name: profile.organization_name,
+      customer_name: customer?.name ?? profile.full_name ?? null,
+      can_access_statements: canAccessStatements === true,
+    },
+    overrideMap,
+  );
+};
+
 export const usePortalIdentity = () => {
   const { user } = useAuth();
   const { canEdit: isStaff } = useUserRole();
 
+  const [emulation, setEmulation] = useState(() => getPortalEmulation());
+  useEffect(() => onPortalEmulationChange(() => setEmulation(getPortalEmulation())), []);
+  const activeEmulation = isStaff && emulation ? emulation : null;
+
   const query = useQuery({
-    queryKey: ["portal-identity", user?.id],
+    queryKey: ["portal-identity", user?.id, activeEmulation?.userId ?? "self"],
     enabled: !!user,
     queryFn: async () => {
       if (!user) return null;
+      if (activeEmulation) return fetchEmulatedIdentity(activeEmulation.userId);
       const { data, error } = await (supabase.rpc as any)("sync_customer_portal_identity", {
         p_user_id: user.id,
       });
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
 
-      const [{ data: accountNumber, error: accountNumberError }, { data: overrides, error: overridesError }] = await Promise.all([
+      const [{ data: accountNumber, error: accountNumberError }, { data: overrides, error: overridesError }, { data: canAccessStatements, error: statementsError }] = await Promise.all([
         typeof row?.crm_customer_id === "number"
           ? (supabase.rpc as any)("get_portal_erp_account_number")
           : Promise.resolve({ data: null, error: null }),
@@ -138,17 +214,19 @@ export const usePortalIdentity = () => {
           .from("customer_portal_feature_overrides")
           .select("feature_key,enabled")
           .eq("user_id", user.id),
+        (supabase.rpc as any)("can_access_customer_statement", { p_user_id: user.id }),
       ]);
 
       if (accountNumberError) throw accountNumberError;
       if (overridesError) throw overridesError;
+      if (statementsError) throw statementsError;
 
       const overrideMap = ((overrides ?? []) as Array<{ feature_key: PortalFeature; enabled: boolean }>).reduce(
         (accumulator, row) => ({ ...accumulator, [row.feature_key]: row.enabled }),
         {} as Partial<Record<PortalFeature, boolean>>,
       );
 
-      return row ? normalizeIdentity({ ...row, account_number: accountNumber }, overrideMap) : null;
+      return row ? normalizeIdentity({ ...row, account_number: accountNumber, can_access_statements: canAccessStatements }, overrideMap) : null;
     },
   });
 
@@ -156,6 +234,13 @@ export const usePortalIdentity = () => {
     ...query,
     identity: query.data ?? null,
     isStaff,
+    emulation: activeEmulation,
+    /**
+     * The user id every portal data surface should query by: the emulated
+     * account's during admin emulation, otherwise the signed-in user's.
+     * RLS admin-read policies enforce who may actually see foreign rows.
+     */
+    effectiveUserId: activeEmulation?.userId ?? user?.id ?? null,
     canAccessFeature: (feature: PortalFeature) =>
       isStaff || canAccessPortalFeature(query.data ?? null, feature),
   };

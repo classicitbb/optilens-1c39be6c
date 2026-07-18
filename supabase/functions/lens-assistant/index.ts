@@ -39,10 +39,14 @@ serve(async (req) => {
   if (originBlocked) return originBlocked;
 
   try {
+    // Public chatbot on /store — attempt authentication but allow anonymous
+    // callers (browser sends the anon key, which resolves to no user).
     const authContext = await requireAuthenticatedUser(req, corsHeaders);
     if (authContext instanceof Response) {
-      return authContext;
+      // Anonymous visitor — continue without a user context.
     }
+
+
 
     const { messages } = await req.json();
 

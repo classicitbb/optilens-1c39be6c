@@ -74,9 +74,11 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
       .select("product_type, product_id, active_variants"),
   ]);
 
-  const lensRows = readRows<any>(lensRes, { optional: true });
-  const supplyRows = readRows<any>(supplyRes, { optional: true });
-  const addonRows = readRows<any>(addonRes, { optional: true });
+  // The public store lists ONLY items explicitly published via the admin
+  // Website Store toggle (show_on_website) — never the whole catalog.
+  const lensRows = readRows<any>(lensRes, { optional: true }).filter((row: any) => row.show_on_website === true);
+  const supplyRows = readRows<any>(supplyRes, { optional: true }).filter((row: any) => row.show_on_website === true);
+  const addonRows = readRows<any>(addonRes, { optional: true }).filter((row: any) => row.show_on_website === true);
   const mediaRows = readRows<any>(mediaRes, { optional: true });
   const overrideRows = readRows<any>(overrideRes, { optional: true });
   const variantSummaryRows = readRows<any>(variantSummaryRes, { optional: true });

@@ -29,6 +29,7 @@ import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrders } from "@/hooks/useOrders";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { useCustomerAddresses, toProfileAddress } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
 import { supabase } from "@/integrations/supabase/client";
@@ -229,6 +230,7 @@ const OrderSummarySidebar = ({
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const checkoutFeature = useWebsiteFeature("store_checkout", false);
   const { items, totalPrice, clearCart, loading: cartLoading } = useCartContext();
   const { user } = useAuth();
   const { createOrder, settleScotiaPayment } = useOrders();
@@ -469,6 +471,39 @@ const CheckoutPage = () => {
 
   // ── Step labels ──
   const stepLabel = step < 4 ? "Continue" : "Place order";
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // STORE LOCKDOWN — checkout stays closed until the store_checkout feature
+  // flag is switched on (admin → Website → Feature Board). Browsing and carts
+  // keep working; only order placement is gated.
+  // ─────────────────────────────────────────────────────────────────────────
+  if (!checkoutFeature.isLoading && !checkoutFeature.enabled && !isComplete) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center px-4 pb-16 pt-24">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-soft">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <Lock className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <h1 className="mb-2 text-2xl text-foreground">Online ordering opens soon</h1>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+              The store is in preview — your cart is saved, but checkout isn&apos;t open yet.
+              Need something now? Send us a message and we&apos;ll take care of your order personally.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button variant="default" asChild>
+                <Link to="/profile/helpdesk">Message us</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/store">Back to store</Link>
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // CONFIRMATION SCREEN

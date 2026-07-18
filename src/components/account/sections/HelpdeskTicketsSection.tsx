@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 const HelpdeskTicketsSection = () => {
-  const { identity } = usePortalIdentity();
+  const { identity, emulation, effectiveUserId } = usePortalIdentity();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -20,7 +20,7 @@ const HelpdeskTicketsSection = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const { data: tickets = [] } = useQuery({
-    queryKey: ["customer-helpdesk", user?.id, identity?.crmContactId],
+    queryKey: ["customer-helpdesk", effectiveUserId, identity?.crmContactId],
     enabled: !!user,
     queryFn: async () => {
       let query = (supabase as any)
@@ -32,7 +32,7 @@ const HelpdeskTicketsSection = () => {
       if (identity?.crmContactId) {
         query = query.eq("partner_contact_id", identity.crmContactId);
       } else {
-        query = query.eq("owner_user_id", user.id);
+        query = query.eq("owner_user_id", effectiveUserId ?? user.id);
       }
 
       const { data, error } = await query;
@@ -76,7 +76,7 @@ const HelpdeskTicketsSection = () => {
         <div className="space-y-3 rounded-lg border p-4">
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ticket title" />
           <Textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe your issue." />
-          <Button onClick={createTicket} disabled={!title.trim()}>
+          <Button onClick={createTicket} disabled={!title.trim() || !!emulation} title={emulation ? "Ticket creation is disabled while emulating a customer" : undefined}>
             <Plus className="mr-2 h-4 w-4" />
             Create ticket
           </Button>

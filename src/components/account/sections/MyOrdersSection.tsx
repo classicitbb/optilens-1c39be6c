@@ -164,24 +164,28 @@ const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
 };
 
 const MyOrdersSection = () => {
-  const { orders, loading } = useOrders();
-  const { canAccessFeature, identity } = usePortalIdentity();
+  const { canAccessFeature, identity, emulation } = usePortalIdentity();
+  const { orders, loading } = useOrders(emulation?.userId);
   const canSeePrivateOrders = canAccessFeature("private-orders");
+  const canSeeLiveOrderStatus = canAccessFeature("live-order-status");
+  // Under admin emulation the gateway must fetch the emulated customer's data,
+  // not the admin's; staff-only override honored server-side.
+  const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
   const [innovationsSearch, setInnovationsSearch] = useState("");
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
-    enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
-    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal }),
+    enabled: canSeeLiveOrderStatus && typeof identity?.crmCustomerId === "number",
+    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal, websiteCustomerId }),
     staleTime: 30_000,
     retry: 1,
   });
   const deliveriesQuery = useQuery({
     queryKey: ["live-optilens-deliveries", identity?.crmCustomerId],
-    enabled: canSeePrivateOrders && typeof identity?.crmCustomerId === "number",
+    enabled: canSeeLiveOrderStatus && typeof identity?.crmCustomerId === "number",
     queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>(
       "optilens.customer_deliveries",
-      { include_open: true, closed_since: format(subDays(new Date(), 30), "yyyy-MM-dd") },
-      { signal },
+      { include_open: true, closed_since: format(subDays(new Date(), 45), "yyyy-MM-dd") },
+      { signal, websiteCustomerId },
     ),
     staleTime: 30_000,
     retry: 1,
@@ -211,22 +215,22 @@ const MyOrdersSection = () => {
         <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
         <nav className="flex flex-wrap gap-2 pt-1" aria-label="Jump to order sections">
           {pendingOrders.length ? <a href="#pending-orders"><Badge className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingOrders.length}</Badge></a> : null}
-          {canSeePrivateOrders ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</Badge></a> : null}
-          {canSeePrivateOrders ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {liveDeliveries.length}</Badge></a> : null}
+          {canSeeLiveOrderStatus ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</Badge></a> : null}
+          {canSeeLiveOrderStatus ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {liveDeliveries.length}</Badge></a> : null}
         </nav>
         {!canSeePrivateOrders ? (
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
         ) : null}
       </header>
 
-      {canSeePrivateOrders ? (
+      {canSeeLiveOrderStatus ? (
         <section className="space-y-3" aria-labelledby="innovations-orders-heading">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 id="innovations-orders-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <Package className="h-5 w-5" /> Innovations order status
+                <Package className="h-5 w-5" /> Order status
               </h3>
-              <p className="text-sm text-muted-foreground">Active lab work and valid shipments made today for your LMS account.</p>
+              <p className="text-sm text-muted-foreground">Active lab work and valid shipments made today for your account.</p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <div className="relative sm:w-64">
@@ -236,7 +240,7 @@ const MyOrdersSection = () => {
                   value={innovationsSearch}
                   onChange={(event) => setInnovationsSearch(event.target.value)}
                   placeholder="Search patient or Rx #"
-                  aria-label="Search Innovations orders by patient name or Rx number"
+                  aria-label="Search lab orders by patient name or Rx number"
                   className="pl-9"
                 />
               </div>
@@ -256,9 +260,9 @@ const MyOrdersSection = () => {
           ) : innovationsOrdersQuery.isLoading ? (
             <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : (innovationsOrdersQuery.data?.orders.length ?? 0) === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active Innovations orders were found for this account.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders were found for this account.</CardContent></Card>
           ) : filteredInnovationsOrders.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active Innovations orders match that patient name or Rx number.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders match that patient name or Rx number.</CardContent></Card>
           ) : (
             <Card>
               <CardContent className="overflow-x-auto p-0">
@@ -287,31 +291,31 @@ const MyOrdersSection = () => {
           )}
           {innovationsOrdersQuery.data?.retrieved_at ? (
             <p className="text-xs text-muted-foreground" role="status">
-              Live response received {format(new Date(innovationsOrdersQuery.data.retrieved_at), "PPP 'at' p")}.
+              Response received {format(new Date(innovationsOrdersQuery.data.retrieved_at), "PPP 'at' p")}.
             </p>
           ) : null}
         </section>
       ) : null}
 
-      {canSeePrivateOrders ? (
+      {canSeeLiveOrderStatus ? (
         <section className="space-y-3" aria-labelledby="live-deliveries-heading">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 id="live-deliveries-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <Truck className="h-5 w-5" /> Live delivery status
+                <Truck className="h-5 w-5" /> Delivery status
               </h3>
-              <p className="text-sm text-muted-foreground">Fetched from OptiLens Local only when this page is opened.</p>
+              <p className="text-sm text-muted-foreground">Fetched from your account data.</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => deliveriesQuery.refetch()} disabled={deliveriesQuery.isFetching}>
               {deliveriesQuery.isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Refresh live status
+              Refresh status
             </Button>
           </div>
 
           {deliveriesQuery.isError ? (
             <Alert variant="destructive" role="alert">
               <AlertDescription>
-                {deliveriesQuery.error instanceof Error ? deliveriesQuery.error.message : "Live delivery status is temporarily unavailable."}
+                {deliveriesQuery.error instanceof Error ? deliveriesQuery.error.message : "Delivery status is temporarily unavailable."}
               </AlertDescription>
             </Alert>
           ) : deliveriesQuery.isLoading ? (
@@ -320,13 +324,13 @@ const MyOrdersSection = () => {
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No open shipments or recently closed deliveries were found.</CardContent></Card>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 30 days.</p>
+              <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>
               {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} />)}
             </div>
           )}
           {deliveriesQuery.data?.retrieved_at ? (
             <p className="text-xs text-muted-foreground" role="status">
-              Live response received {format(new Date(deliveriesQuery.data.retrieved_at), "PPP 'at' p")}.
+              Response received {format(new Date(deliveriesQuery.data.retrieved_at), "PPP 'at' p")}.
             </p>
           ) : null}
         </section>

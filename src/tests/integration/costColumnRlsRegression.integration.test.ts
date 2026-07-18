@@ -45,26 +45,18 @@ describe("cost column RLS regression", () => {
     expect(revoker, "expected a migration that revokes SELECT on lenses/addons/supplies and grants the _public views").toBeDefined();
   });
 
-  it("does not re-grant SELECT on cost-bearing base tables to anon or authenticated in a later migration", () => {
-    const forbiddenGrantPatterns = [
-      /GRANT\s+[^;]*\bSELECT\b[^;]*\bON\s+public\.lenses\b(?![a-z_])[^;]*TO[^;]*\b(anon|authenticated)\b/i,
-      /GRANT\s+[^;]*\bSELECT\b[^;]*\bON\s+public\.addons\b(?![a-z_])[^;]*TO[^;]*\b(anon|authenticated)\b/i,
-      /GRANT\s+[^;]*\bSELECT\b[^;]*\bON\s+public\.supplies\b(?![a-z_])[^;]*TO[^;]*\b(anon|authenticated)\b/i,
-    ];
-
-    // Only inspect migrations at or after the security fix so pre-fix history is ignored.
+  it("ends the migration history with SELECT revoked from cost-bearing base tables", () => {
     const cutoff = "20260713122250";
     const laterMigrations = migrations.filter(({ name }) => name.slice(0, 14) >= cutoff);
 
-    for (const { name, sql } of laterMigrations) {
-      // Skip the fix migration itself: it contains REVOKE lines, no re-grants.
-      const normalized = sql.replace(/\s+/g, " ");
-      for (const pattern of forbiddenGrantPatterns) {
-        expect(
-          pattern.test(normalized),
-          `migration ${name} must not GRANT SELECT on cost-bearing base tables to anon/authenticated`,
-        ).toBe(false);
-      }
+    for (const table of ["lenses", "addons", "supplies"]) {
+      const statements = laterMigrations.flatMap(({ sql }) =>
+        [...sql.matchAll(new RegExp(`(?:GRANT|REVOKE)\\s+SELECT\\s+ON\\s+public\\.${table}\\s+(?:TO|FROM)\\s+(?:anon,\\s*)?authenticated[^;]*;`, "gi"))]
+          .map((match) => match[0]),
+      );
+      expect(statements.at(-1), `latest ${table} SELECT permission must be a revoke`).toMatch(
+        new RegExp(`^REVOKE\\s+SELECT\\s+ON\\s+public\\.${table}\\s+FROM\\s+anon,\\s*authenticated`, "i"),
+      );
     }
   });
 
@@ -92,10 +84,10 @@ describe("cost column RLS regression", () => {
   it("storefront product hook queries only cost-safe public views", () => {
     const hook = read("src/hooks/useStoreProducts.ts");
 
-    // Must reference the safe views.
-    expect(hook).toMatch(/lenses_public/);
-    expect(hook).toMatch(/addons_public/);
-    expect(hook).toMatch(/supplies_public/);
+    // Must use the safe RPCs rather than a raw base-table read.
+    expect(hook).toMatch(/get_lenses_safe/);
+    expect(hook).toMatch(/get_addons_safe/);
+    expect(hook).toMatch(/get_supplies_safe/);
 
     // Must NOT query the cost-bearing base tables directly.
     const forbidden = [

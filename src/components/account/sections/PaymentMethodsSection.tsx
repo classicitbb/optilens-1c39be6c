@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useCustomerPaymentMethods, type CustomerPaymentMethod, type SaveCustomerPaymentMethodInput } from "@/hooks/useCustomerPaymentMethods";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const emptyDraft = (): SaveCustomerPaymentMethodInput => ({
   cardholderName: "",
@@ -38,7 +39,8 @@ const PaymentMethodsSection = ({
   description = "Store tokenized demo cards for fast checkout. No full card number or CVV is stored.",
 }: PaymentMethodsSectionProps) => {
   const { toast } = useToast();
-  const { paymentMethods, isLoading, savePaymentMethod, archivePaymentMethod } = useCustomerPaymentMethods(targetUserId);
+  const { emulation } = usePortalIdentity();
+  const { paymentMethods, isLoading, savePaymentMethod, archivePaymentMethod } = useCustomerPaymentMethods(targetUserId ?? emulation?.userId);
   const [draft, setDraft] = useState<SaveCustomerPaymentMethodInput>(emptyDraft());
   const [editingId, setEditingId] = useState<string | null>(null);
 

@@ -18,9 +18,9 @@ const PublicRoutes = lazy(() => import("@/routes/public/PublicRoutes"));
 const PortalRoutes = lazy(() => import("@/routes/portal/PortalRoutes"));
 const OpsRoutes = lazy(() => import("@/routes/ops/OpsRoutes"));
 const AdminRoutes = lazy(() => import("@/routes/admin/AdminRoutes"));
-const MoonshotRoutes = lazy(() => import("@/routes/moonshot/MoonshotRoutes"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const OAuthConsent = lazy(() => import("@/pages/OAuthConsent"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Store = lazy(() => import("@/pages/Store"));
 const StoreProductPage = lazy(() => import("@/pages/StoreProductPage"));
@@ -96,19 +96,18 @@ const App = () => (
               <Suspense fallback={<RouteLoadingFallback />}>
                 <Routes>
                   <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />
-                  <Route path="/admin/moonshot/*" element={<AdminProtectedRoute><MoonshotRoutes /></AdminProtectedRoute>} />
                   <Route path="/admin/*" element={<AdminProtectedRoute><AdminRoutes /></AdminProtectedRoute>} />
 
                   <Route element={<CustomerShell />}>
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                     <Route path="/unsubscribe" element={<Unsubscribe />} />
                     <Route path="/store" element={<Store />} />
                     <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/profile/*" element={<PortalRoutes />} />
-                    <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
                     <Route path="/portal" element={<Navigate to="/profile" replace />} />
                     <Route path="/*" element={<PublicRoutes />} />
                   </Route>

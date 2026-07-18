@@ -260,8 +260,8 @@ const BREADCRUMB_NAV_TARGETS = new Set<string>([
 "/store",
 "/knowledge",
 "/profile",
-"/orders",
-"/lenses",
+"/profile/orders",
+"/lenses/lens-types",
 "/coatings",
 "/patients",
 "/professionals",
@@ -697,7 +697,7 @@ const Header = () => {
 
                       <div className="space-y-1">
                         <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
-                          <Link to="/orders" {...labLinkNavigationProps} className="flex items-center gap-3">
+                          <Link to="/profile/orders" {...labLinkNavigationProps} className="flex items-center gap-3">
                             <Package className="h-4.5 w-4.5 text-foreground/80" />
                             <span className="text-sm font-medium">Orders</span>
                           </Link>

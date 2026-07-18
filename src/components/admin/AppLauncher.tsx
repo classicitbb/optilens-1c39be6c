@@ -16,9 +16,9 @@ const APP_COLORS: Record<string, string> = {
   crm: "hsl(280 60% 55%)",
   helpdesk: "hsl(38 92% 50%)",
   website: "hsl(200 60% 50%)",
+  docstudio: "hsl(250 55% 58%)",
   knowledge: "hsl(140 50% 45%)",
   settings: "hsl(215 15% 50%)",
-  moonshot: "hsl(168 76% 42%)",
 };
 
 const LAUNCH_PAD_APP = {

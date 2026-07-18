@@ -2,6 +2,23 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-18 — Integration status checks
+
+- If the payment gateway badge shows Error after credentials were corrected, open Admin → Settings → Integrations and select **Recheck & clear error**. The test creates no charge; it only verifies credential resolution and request-hash generation.
+- For an Innovations duplicate account-number warning, correct the customer linkage in the source/admin workflow and then select **Recheck status**. Do not clear the warning without resolving the duplicate records.
+
+## 2026-07-16 — Statements and live status access
+
+- An approved customer should see Statements as an active account-navigation link. If it remains locked, review that customer's Statements feature override in the portal administration screen.
+- If My Orders shows “Failed to send a request to the Edge Function” during local testing at `http://localhost:8081`, confirm the deployed Edge Functions include the latest CORS release. This is a browser request-origin issue, not an order-data result.
+
+## 2026-07-14 — Website Portals
+
+- Admin → Website now opens Website Portals. Website page content management remains at Admin → Website → Content.
+- Select a customer account to open its Contacts edit modal without leaving Website Portals. Use Details for the signup email and contact details, and Account Settings for the Innovations account number.
+- A missing website email after this release indicates an incomplete signup/profile synchronization issue, not a portal display-only field. Confirm the profile email in the customer contact flow.
+- A normal click opens Portal Settings in the shared dialog. Right-click a customer row for Edit contact, Edit portal, Emulate, or Create login; unavailable actions are disabled until the customer is linked or has a website login.
+
 ## 2026-07-13 — Specialty Lenses
 
 - Find Endless Pilot Progressive and OmniLux NAL under Lenses → Lifestyle Lenses → Specialty Lenses.

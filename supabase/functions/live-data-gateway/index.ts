@@ -7,7 +7,7 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-11.4";
+const VERSION = "2026-07-16.1";
 const REQUEST_TTL_MS = 30_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
@@ -16,8 +16,8 @@ const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:writ
 const OPERATIONS = {
   "innovations.customer_account": { source: "innovations", feature: "statements" },
   "innovations.customer_statement": { source: "innovations", feature: "statements" },
-  "innovations.customer_orders": { source: "innovations", feature: "private-orders" },
-  "optilens.customer_deliveries": { source: "optilens", feature: "private-orders" },
+  "innovations.customer_orders": { source: "innovations", feature: "live-order-status" },
+  "optilens.customer_deliveries": { source: "optilens", feature: "live-order-status" },
 } as const;
 
 type Operation = keyof typeof OPERATIONS;
@@ -370,7 +370,59 @@ function offlineLiveDataResponse(operation: Operation, customer: CustomerMapping
     };
   }
 
+  if (operation === "innovations.customer_statement") {
+    return { ...base, statement: null, lines: [] };
+  }
+
   return null;
+}
+
+function isFallbackableSourceFailure(code: unknown, message: unknown) {
+  const normalizedCode = typeof code === "string" ? code.toUpperCase() : "";
+  const normalizedMessage = typeof message === "string" ? message.toLowerCase() : "";
+  return (
+    normalizedCode === "ELOGIN" ||
+    normalizedCode === "ETIMEOUT" ||
+    normalizedCode === "ESOCKET" ||
+    normalizedCode === "ECONNRESET" ||
+    normalizedCode === "SOURCE_ERROR" ||
+    normalizedMessage.includes("login failed") ||
+    normalizedMessage.includes("password of the account has expired") ||
+    normalizedMessage.includes("timed out") ||
+    normalizedMessage.includes("connection")
+  );
+}
+
+function customerFromRequestRow(row: { website_customer_id?: unknown; target?: unknown }): CustomerMapping {
+  const target = isObject(row.target) ? row.target : {};
+  return {
+    id: integer(row.website_customer_id) ?? 0,
+    account_number: typeof target.account_number === "string" && target.account_number.trim()
+      ? target.account_number.trim()
+      : null,
+    innovations_customer_id: integer(target.innovations_customer_id),
+  };
+}
+
+async function fallbackForFailedRequest(
+  supabase: SupabaseClient,
+  operation: Operation,
+  row: { website_customer_id?: unknown; target?: unknown; arguments?: unknown; error_code?: unknown; error_message?: unknown },
+) {
+  const customer = customerFromRequestRow(row);
+  const argumentsBody = isObject(row.arguments) ? row.arguments : {};
+  const cached = await cachedLiveDataResponse(supabase, operation, customer, argumentsBody);
+  const fallback = cached
+    ? { ...cached, fallback: true, source_status: "cached" }
+    : offlineLiveDataResponse(operation, customer);
+  if (!fallback) return null;
+  return {
+    ...fallback,
+    source_error: {
+      code: typeof row.error_code === "string" ? row.error_code : "source_error",
+      message: typeof row.error_message === "string" ? row.error_message : "The private source request failed.",
+    },
+  };
 }
 
 async function clientContext(req: Request) {
@@ -378,7 +430,7 @@ async function clientContext(req: Request) {
   if (auth instanceof Response) return { response: auth };
 
   const { data: roles } = await auth.supabaseAdminClient.from("user_roles").select("role").eq("user_id", auth.user.id);
-  const isStaff = (roles ?? []).some((row: { role: string }) => ["admin", "editor", "author"].includes(row.role));
+  const isStaff = (roles ?? []).some((row: { role: string }) => ["admin", "operator"].includes(row.role));
 
   let profile: PortalProfile | null = null;
   if (!isStaff) {
@@ -423,7 +475,11 @@ async function handleClientRequest(req: Request, body: JsonObject) {
 
   const requestedCustomerId = isStaff ? integer(body.website_customer_id) : null;
   const websiteCustomerId = requestedCustomerId ?? integer(profile?.crm_customer_id);
-  if (!websiteCustomerId) return json(req, { error: "No approved customer account is linked to this user." }, 403);
+  if (!websiteCustomerId) {
+    const offline = offlineLiveDataResponse(operation, { id: 0, account_number: null, innovations_customer_id: null } as CustomerMapping);
+    if (offline) return json(req, { ...offline, source_status: "unlinked", error: "No approved customer account is linked to this user." }, 200);
+    return json(req, { error: "No approved customer account is linked to this user." }, 403);
+  }
 
   if (!isStaff) {
     const { data: override } = await auth.supabaseAdminClient
@@ -432,8 +488,20 @@ async function handleClientRequest(req: Request, body: JsonObject) {
       .eq("user_id", auth.user.id)
       .eq("feature_key", config.feature)
       .maybeSingle();
-    if (override?.enabled === false || (override?.enabled !== true && profile?.portal_access_status !== "approved_customer")) {
+    const requiresExplicitOverride = config.feature === "live-order-status";
+    if (override?.enabled === false || (override?.enabled !== true && (requiresExplicitOverride || profile?.portal_access_status !== "approved_customer"))) {
       return json(req, { error: "This live-data feature is not enabled for the customer account." }, 403);
+    }
+
+    if (config.feature === "statements") {
+      const { data: canAccessStatement, error: statementAccessError } = await auth.supabaseAdminClient
+        .rpc("can_access_customer_statement", { p_user_id: auth.user.id });
+      if (statementAccessError) {
+        return json(req, { error: "Could not verify statement access.", detail: statementAccessError.message }, 500);
+      }
+      if (canAccessStatement !== true) {
+        return json(req, { error: "Statements are available only to contacts tagged Owner, CEO, or Buyer." }, 403);
+      }
     }
   }
 
@@ -511,7 +579,7 @@ async function handleClientStatus(req: Request, body: JsonObject) {
 
   const { data: row, error } = await auth.supabaseAdminClient
     .from("live_data_gateway_requests")
-    .select("id,status,operation,response_payload,error_code,error_message,requested_at,completed_at,expires_at")
+    .select("id,status,operation,website_customer_id,target,arguments,response_payload,error_code,error_message,requested_at,completed_at,expires_at")
     .eq("id", requestId)
     .eq("requested_by", auth.user.id)
     .maybeSingle();
@@ -526,7 +594,23 @@ async function handleClientStatus(req: Request, body: JsonObject) {
       data: row.response_payload,
     });
   }
-  if (row.status === "failed") return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 502);
+  if (row.status === "failed") {
+    const operation = typeof row.operation === "string" && row.operation in OPERATIONS ? row.operation as Operation : null;
+    if (operation && isFallbackableSourceFailure(row.error_code, row.error_message)) {
+      const fallback = await fallbackForFailedRequest(auth.supabaseAdminClient, operation, row);
+      if (fallback) {
+        await auth.supabaseAdminClient.from("live_data_gateway_requests").update({ consumed_at: new Date().toISOString() }).eq("id", row.id);
+        return json(req, {
+          request_id: row.id,
+          status: "completed",
+          operation,
+          retrieved_at: row.completed_at ?? new Date().toISOString(),
+          data: fallback,
+        });
+      }
+    }
+    return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 200);
+  }
   if (row.status === "expired") return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 504);
   return json(req, { request_id: row.id, status: row.status, expires_at: row.expires_at, poll_after_ms: 500 }, 202);
 }

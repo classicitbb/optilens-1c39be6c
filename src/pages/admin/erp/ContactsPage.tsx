@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, type Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -304,7 +304,21 @@ const FILTER_LABELS: Record<FilterMode, string> = {
   erp_accounts: "ERP accounts",
 };
 
-const ContactsPage = () => {
+type ContactsPageProps = {
+  /** Renders the existing Contacts editor as an overlay without changing routes. */
+  embeddedContactId?: string | null;
+  embeddedInitialTab?: "details" | "account-settings" | "portal-settings" | "notes";
+  /** Portal operations for this contact, supplied by Website Portals. */
+  embeddedPortalSettings?: ReactNode;
+  onEmbeddedClose?: () => void;
+};
+
+const ContactsPage = ({
+  embeddedContactId = null,
+  embeddedInitialTab = "details",
+  embeddedPortalSettings,
+  onEmbeddedClose,
+}: ContactsPageProps) => {
   const { data: contactsData, isLoading } = useContacts();
   const contacts = contactsData ?? EMPTY_CONTACTS;
 
@@ -345,7 +359,11 @@ const ContactsPage = () => {
   const [countryFilter, setCountryFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
-  const [editTab, setEditTab] = useState<"details" | "account-settings" | "notes">("details");
+  const [editTab, setEditTab] = useState<"details" | "account-settings" | "portal-settings" | "notes">("details");
+  // The portals page clears its account query parameter as the embedded dialog
+  // closes. Do not treat that parent URL update as a request to reopen the
+  // same embedded contact before the parent unmounts this editor.
+  const openedEmbeddedContactRef = useRef<string | null>(null);
   const [initialParentId, setInitialParentId] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
@@ -456,16 +474,19 @@ const ContactsPage = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    const contactId = searchParams.get("contact");
+    if (embeddedContactId && openedEmbeddedContactRef.current === embeddedContactId) return;
+
+    const contactId = embeddedContactId ?? searchParams.get("contact");
     if (!contactId) return;
     const contact = contacts.find((entry) => entry.id === contactId);
     if (!contact) return;
+    if (embeddedContactId) openedEmbeddedContactRef.current = embeddedContactId;
     setEditContact(contact);
-    setEditTab(searchParams.get("tab") === "account-settings" ? "account-settings" : "details");
+    setEditTab(embeddedContactId ? embeddedInitialTab : searchParams.get("tab") === "account-settings" ? "account-settings" : "details");
     setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
     setBusinessCardFile(null);
-  }, [contacts, searchParams]);
+  }, [contacts, embeddedContactId, embeddedInitialTab, searchParams]);
 
   const { data: opportunities = [] } = useQuery({
     queryKey: ["contact-opportunity-links"],
@@ -822,7 +843,8 @@ const ContactsPage = () => {
     stopDictation();
     setEditContact(null);
     setEditTab("details");
-  }, [stopDictation]);
+    onEmbeddedClose?.();
+  }, [onEmbeddedClose, stopDictation]);
 
   const companies = contacts.filter((c) => c.is_company);
   const linkedCompany = useMemo(
@@ -1751,7 +1773,7 @@ const ContactsPage = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col gap-4 overflow-hidden">
+    <div className={embeddedContactId ? "hidden" : "h-[calc(100vh-120px)] flex flex-col gap-4 overflow-hidden"}>
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
@@ -2091,9 +2113,9 @@ const ContactsPage = () => {
                 <Tabs
                   value={editTab}
                   onValueChange={(value) => {
-                    const nextTab = value as "details" | "account-settings" | "notes";
+                    const nextTab = value as "details" | "account-settings" | "portal-settings" | "notes";
                     setEditTab(nextTab);
-                    if (searchParams.has("contact")) {
+                    if (!embeddedContactId && searchParams.has("contact")) {
                       const nextParams = new URLSearchParams(searchParams);
                       nextParams.set("tab", nextTab);
                       setSearchParams(nextParams, { replace: true });
@@ -2104,6 +2126,7 @@ const ContactsPage = () => {
                   <TabsList className="px-4 pt-2 pb-0 h-auto bg-transparent justify-start gap-2 shrink-0">
                     <TabsTrigger value="details" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Details</TabsTrigger>
                     <TabsTrigger value="account-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Account Settings</TabsTrigger>
+                    {embeddedPortalSettings ? <TabsTrigger value="portal-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Portal Settings</TabsTrigger> : null}
                     <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
                   </TabsList>
 
@@ -2503,6 +2526,12 @@ const ContactsPage = () => {
                       </div>
                     </div>
                   </TabsContent>
+
+                  {embeddedPortalSettings ? (
+                    <TabsContent value="portal-settings" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                      {embeddedPortalSettings}
+                    </TabsContent>
+                  ) : null}
 
                   <TabsContent value="notes" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">

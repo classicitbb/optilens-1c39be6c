@@ -11,8 +11,24 @@ type GatewayEnvelope<T> = {
   status: "pending" | "claimed" | "completed" | "failed" | "expired";
   data?: T;
   error?: string;
+  code?: string;
   poll_after_ms?: number;
 };
+
+type GatewayErrorPayload = {
+  error?: string;
+  code?: string;
+  status?: string;
+};
+
+function friendlyGatewayMessage(payload: GatewayErrorPayload | null, fallback: string) {
+  const code = payload?.code?.toUpperCase();
+  const error = payload?.error ?? fallback;
+  if (code === "ELOGIN" || /password of the account has expired|login failed/i.test(error)) {
+    return "Live billing data is temporarily unavailable while the private data connector is being reauthorized.";
+  }
+  return error;
+}
 
 function isGatewayEnvelope<T>(value: GatewayEnvelope<T> | T): value is GatewayEnvelope<T> {
   return !!value && typeof value === "object" && "request_id" in value;
@@ -36,8 +52,8 @@ async function invokeGateway<T>(body: Record<string, unknown>): Promise<GatewayE
     let message = error.message || "Live-data gateway request failed.";
     const context = (error as { context?: unknown }).context;
     if (context instanceof Response) {
-      const payload = await context.clone().json().catch(() => null) as { error?: string } | null;
-      if (payload?.error) message = payload.error;
+      const payload = await context.clone().json().catch(() => null) as GatewayErrorPayload | null;
+      message = friendlyGatewayMessage(payload, message);
     } else if (context && typeof context === "object" && "error" in context) {
       const contextError = (context as { error?: unknown }).error;
       if (typeof contextError === "string" && contextError.trim()) message = contextError;
@@ -70,7 +86,7 @@ export async function requestLiveData<T>(
     if (!isGatewayEnvelope(status)) return status as T;
     if (status.status === "completed") return status.data as T;
     if (status.status === "failed" || status.status === "expired") {
-      throw new Error(status.error || "The private live-data source did not answer.");
+      throw new Error(friendlyGatewayMessage(status, "The private live-data source did not answer."));
     }
   }
   throw new Error("The private live-data source did not answer within 32 seconds.");

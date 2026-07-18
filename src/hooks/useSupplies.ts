@@ -62,6 +62,36 @@ export interface SupplyFormData {
   stk_wspl: boolean;
 }
 
+const SUPPLIES_SELECT_QUERY = "*, supplier:suppliers!supplies_supplier_id_fkey(id, name), brand:brands!supplies_brand_id_fkey(id, name)";
+
+const toSupplyFormData = (supply: Supply): SupplyFormData => ({
+  name: supply.name,
+  category: supply.category,
+  description: supply.description,
+  sku: supply.sku,
+  base_price: supply.base_price,
+  sell_price: supply.sell_price,
+  unit: supply.unit,
+  quantity_per_unit: supply.quantity_per_unit,
+  is_active: supply.is_active,
+  show_on_website: supply.show_on_website,
+  image_url: supply.image_url,
+  notes: supply.notes,
+  supplier_id: supply.supplier_id,
+  brand_id: supply.brand_id,
+  preferred: supply.preferred,
+  stocked: supply.stocked,
+  show_in_pricelist: supply.show_in_pricelist,
+  bin: supply.bin,
+  detail: supply.detail,
+  currency: supply.currency,
+  bb_item: supply.bb_item,
+  duty_added: supply.duty_added,
+  vat_paid: supply.vat_paid,
+  labour_added: supply.labour_added,
+  stk_wspl: supply.stk_wspl,
+});
+
 export const useSupplies = () => {
   const queryClient = useQueryClient();
 
@@ -74,7 +104,7 @@ export const useSupplies = () => {
       if (!safeRows || (safeRows as any[]).length === 0) return [];
       const safeMap = new Map((safeRows as any[]).map((r: any) => [r.id, r.base_price]));
       const { data, error } = await (supabase.from("supplies") as any)
-        .select("*, supplier:suppliers(id, name), brand:brands(id, name)")
+        .select(SUPPLIES_SELECT_QUERY)
         .order("name");
       if (error) throw error;
       return (data as any[]).map((s) => ({
@@ -130,8 +160,7 @@ export const useSupplies = () => {
 
   const duplicateMutation = useMutation({
     mutationFn: async (supply: Supply) => {
-      const { id, created_at, updated_at, supplier_name, brand_name, ...rest } = supply;
-      const newSupply = { ...rest, name: `${supply.name} (Copy)` };
+      const newSupply = { ...toSupplyFormData(supply), name: `${supply.name} (Copy)` };
       const { data, error } = await (supabase.from("supplies") as any).insert(newSupply as any).select("id").single();
       if (error) throw error;
       return data;

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BellRing,
   CreditCard,
   ExternalLink,
+  Eye,
   LifeBuoy,
   Mail,
   Package,
@@ -15,6 +16,7 @@ import {
   UserRound,
   WalletCards,
 } from "lucide-react";
+import { startPortalEmulation } from "@/lib/portalEmulation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,12 +32,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrders } from "@/hooks/useOrders";
 import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
+import ContactsPage from "@/pages/admin/erp/ContactsPage";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
 import { Separator } from "@/components/ui/separator";
 import { ToastAction } from "@/components/ui/toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 import {
   AccountNumberAssignmentError,
   assignCustomerAccountNumber,
@@ -52,6 +56,9 @@ interface PortalCustomerListItem {
   organizationName: string;
   portalAccessStatus: string;
   portalAccessNote: string;
+  portalAccessApprovedOverride: boolean;
+  portalAccessApprovedAt: string | null;
+  portalAccessApprovedNote: string | null;
   crmContactId: string | null;
   crmCustomerId: number | null;
   assignedPricelistId: number | null;
@@ -63,6 +70,7 @@ interface PortalCustomerListItem {
 interface PortalCustomerDetail extends PortalCustomerListItem {
   featureOverrides: Record<string, boolean>;
   accountNumber: string | null;
+  canAccessStatements: boolean;
   cartItems: Array<{
     id: string;
     product_name: string;
@@ -120,7 +128,25 @@ interface PortalAccountRecord {
   isErpCustomer: boolean;
 }
 
-const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "statements"] as const;
+const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements"] as const;
+
+const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
+  quotes: "Quotes",
+  helpdesk: "Helpdesk",
+  pricelists: "Pricelists",
+  "private-orders": "Private orders",
+  "live-order-status": "Live order status",
+  statements: "Statements",
+};
+
+const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
+  quotes: "Explicit override for quote requests.",
+  helpdesk: "Explicit override for helpdesk access.",
+  pricelists: "Explicit override for assigned pricelist viewing.",
+  "private-orders": "Approved customer access for private/manual order history.",
+  "live-order-status": "Opt-in only while live lab and delivery status is being finished.",
+  statements: "Owner/CEO/Buyer tag required; disabled override can still block it.",
+};
 
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "—");
@@ -139,10 +165,11 @@ const WebsitePortalsPage = () => {
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [search, setSearch] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
-  // Keep a stable account selection in the URL. Older customer links remain readable.
-  const selectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
-  const setSelectedAccountId = (id: string | null) =>
-    setSearchParams(id ? { account: id } : {}, { replace: true });
+  // Older deep links still open the requested account, but ordinary row clicks
+  // keep their selection in component state and do not change the page URL.
+  const legacySelectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(() => legacySelectedAccountId);
+  const dismissedLegacyAccountRef = useRef<string | null>(null);
   const [cutoffHours, setCutoffHours] = useState("24");
   const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
   const [accountNumberDraft, setAccountNumberDraft] = useState("");
@@ -150,7 +177,25 @@ const WebsitePortalsPage = () => {
   const [provisioningEmail, setProvisioningEmail] = useState("");
   const [provisioningName, setProvisioningName] = useState("");
   const [provisioningPassword, setProvisioningPassword] = useState("");
-  const [accountDialogOpen, setAccountDialogOpen] = useState(() => searchParams.has("account") || searchParams.has("customer"));
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [contactEditor, setContactEditor] = useState<{ contactId: string; initialTab: "details" | "account-settings" | "portal-settings" } | null>(null);
+
+  useEffect(() => {
+    if (!legacySelectedAccountId) {
+      dismissedLegacyAccountRef.current = null;
+      return;
+    }
+    if (dismissedLegacyAccountRef.current === legacySelectedAccountId) return;
+    setSelectedAccountId(legacySelectedAccountId);
+  }, [legacySelectedAccountId]);
+
+  const clearSelectedAccount = () => {
+    if (legacySelectedAccountId) {
+      dismissedLegacyAccountRef.current = legacySelectedAccountId;
+      setSearchParams({}, { replace: true });
+    }
+    setSelectedAccountId(null);
+  };
 
   const customersQuery = useQuery({
     queryKey: ["website-portals-customers"],
@@ -160,7 +205,7 @@ const WebsitePortalsPage = () => {
         portalUserIds.length
           ? (supabase as any)
               .from("profiles")
-              .select("id,user_id,full_name,phone,organization_name,portal_access_status,portal_access_note,crm_contact_id,crm_customer_id")
+              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,portal_access_approved_override,portal_access_approved_at,portal_access_approved_note,crm_contact_id,crm_customer_id")
               .in("user_id", portalUserIds)
               .order("updated_at", { ascending: false })
           : Promise.resolve({ data: [], error: null }),
@@ -244,12 +289,17 @@ const WebsitePortalsPage = () => {
           const portalUser = {
             userId: entry.user_id,
             profileId: profile?.id ? String(profile.id) : `pending:${entry.user_id}`,
-            email: entry.email ?? "",
+            // profiles.email is maintained from auth.users at signup. It remains
+            // available even when the admin-only user-list endpoint is offline.
+            email: String(profile?.email || entry.email || ""),
             fullName: String(profile?.full_name ?? entry.display_name ?? ""),
             phone: String(profile?.phone ?? ""),
             organizationName: String(profile?.organization_name ?? ""),
             portalAccessStatus: String(profile?.portal_access_status ?? "pending_profile"),
             portalAccessNote: String(profile?.portal_access_note ?? "Profile not completed yet."),
+            portalAccessApprovedOverride: profile?.portal_access_approved_override === true,
+            portalAccessApprovedAt: typeof profile?.portal_access_approved_at === "string" ? profile.portal_access_approved_at : null,
+            portalAccessApprovedNote: typeof profile?.portal_access_approved_note === "string" ? profile.portal_access_approved_note : null,
             crmContactId: typeof profile?.crm_contact_id === "string" ? profile.crm_contact_id : null,
             crmCustomerId: typeof profile?.crm_customer_id === "number" ? profile.crm_customer_id : null,
             assignedPricelistId: null,
@@ -327,6 +377,17 @@ const WebsitePortalsPage = () => {
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null;
   const selectedCustomer = selectedAccount?.portalUser ?? null;
 
+  // Retain support for legacy links that identify a portal account in the URL.
+  // Normal row clicks open the contact editor directly without route navigation.
+  useEffect(() => {
+    if (!selectedAccountId || !selectedAccount || contactEditor) return;
+    if (selectedAccount.crmContactId) {
+      openContactEditor(selectedAccount.crmContactId, "portal-settings");
+      return;
+    }
+    setAccountDialogOpen(true);
+  }, [contactEditor, selectedAccount, selectedAccountId]);
+
   const detailQuery = useQuery({
     queryKey: ["website-portals-customer-detail", selectedCustomer?.userId],
     enabled: !!selectedCustomer,
@@ -337,7 +398,7 @@ const WebsitePortalsPage = () => {
         p_user_id: selectedCustomer.userId,
       });
 
-      const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }] = await Promise.all([
+      const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }, { data: canAccessStatements, error: statementsAccessError }] = await Promise.all([
         (supabase as any)
           .from("customer_portal_feature_overrides")
           .select("feature_key,enabled")
@@ -379,6 +440,7 @@ const WebsitePortalsPage = () => {
               .eq("id", selectedCustomer.crmCustomerId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
+        (supabase.rpc as any)("can_access_customer_statement", { p_user_id: selectedCustomer.userId }),
       ]);
 
       if (featureError) throw featureError;
@@ -388,6 +450,7 @@ const WebsitePortalsPage = () => {
       if (quotesError) throw quotesError;
       if (ticketsError) throw ticketsError;
       if (customerError) throw customerError;
+      if (statementsAccessError) throw statementsAccessError;
 
       const featureOverrides = ((featureRows ?? []) as Array<{ feature_key: string; enabled: boolean }>).reduce<Record<string, boolean>>(
         (accumulator, row) => ({ ...accumulator, [row.feature_key]: row.enabled }),
@@ -397,6 +460,7 @@ const WebsitePortalsPage = () => {
       return {
         ...selectedCustomer,
         featureOverrides,
+        canAccessStatements: canAccessStatements === true,
         assignedPricelistId: typeof (customerRow as any)?.assigned_pricelist_id === "number" ? (customerRow as any).assigned_pricelist_id : null,
         accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : null,
         cartItems: (cartRows ?? []) as PortalCustomerDetail["cartItems"],
@@ -467,6 +531,30 @@ const WebsitePortalsPage = () => {
     },
   });
 
+  const setPortalApproval = useMutation({
+    mutationFn: async (approved: boolean) => {
+      if (!selectedCustomer) throw new Error("Select a customer first.");
+      if (approved && !selectedCustomer.crmCustomerId) throw new Error("Link this portal account to an ERP customer before approving access.");
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .upsert({
+          user_id: selectedCustomer.userId,
+          portal_access_approved_override: approved,
+          portal_access_approved_by: approved ? user?.id ?? null : null,
+          portal_access_approved_at: approved ? new Date().toISOString() : null,
+          portal_access_approved_note: approved ? "Approved by Classic Visions for portal access before profile completion." : null,
+        }, { onConflict: "user_id" });
+      if (error) throw error;
+      await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: selectedCustomer.userId });
+    },
+    onSuccess: async () => {
+      await detailQuery.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] });
+      toast({ title: "Portal approval updated", description: "The account access state has been resynced." });
+    },
+    onError: (error: any) => toast({ title: "Approval failed", description: error.message || "Failed to update portal approval.", variant: "destructive" }),
+  });
+
   const updateCustomerProfile = useMutation({
     mutationFn: async (payload: { full_name: string; phone: string; organization_name: string }) => {
       if (!selectedCustomer) throw new Error("Select a customer first.");
@@ -480,15 +568,17 @@ const WebsitePortalsPage = () => {
         }, { onConflict: "user_id" });
       if (error) throw error;
       if (selectedCustomer.crmContactId) {
-        const { error: contactError } = await (supabase as any)
-          .from("contacts")
-          .update({
-            name: payload.full_name.trim(),
-            phone: payload.phone.trim(),
-            business_name: payload.organization_name.trim() || null,
-          })
-          .eq("id", selectedCustomer.crmContactId);
-        if (contactError) throw contactError;
+        const contactPatch: Record<string, string | null> = {};
+        if (payload.full_name.trim()) contactPatch.name = payload.full_name.trim();
+        if (payload.phone.trim()) contactPatch.phone = payload.phone.trim();
+        if (payload.organization_name.trim()) contactPatch.business_name = payload.organization_name.trim();
+        if (Object.keys(contactPatch).length) {
+          const { error: contactError } = await (supabase as any)
+            .from("contacts")
+            .update(contactPatch)
+            .eq("id", selectedCustomer.crmContactId);
+          if (contactError) throw contactError;
+        }
       }
       await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: selectedCustomer.userId });
     },
@@ -615,17 +705,23 @@ const WebsitePortalsPage = () => {
         await inviteUser.mutateAsync({
           email: provisioningEmail,
           customerId: selectedAccount.crmCustomerId,
+          contactId: selectedAccount.crmContactId ?? undefined,
           displayName: provisioningName,
         });
         toast({ title: "Invite sent", description: `The existing customer invitation email was sent to ${provisioningEmail}.` });
       } else {
-        await createUser.mutateAsync({
+        const result = await createUser.mutateAsync({
           email: provisioningEmail,
           password: provisioningPassword,
           displayName: provisioningName,
           customerId: selectedAccount.crmCustomerId,
+          contactId: selectedAccount.crmContactId ?? undefined,
         });
-        toast({ title: "Customer account created", description: "The login is linked to this approved ERP customer." });
+        if ((result as any)?.alreadyExisted) {
+          toast({ title: "Existing login linked", description: `An account for ${provisioningEmail} already existed and has been linked to this customer. The submitted password was ignored — send a reset if they need one.` });
+        } else {
+          toast({ title: "Customer account created", description: "The login is linked to this approved ERP customer." });
+        }
       }
       setProvisioningMode(null);
       await queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] });
@@ -634,25 +730,108 @@ const WebsitePortalsPage = () => {
     }
   };
 
-  const openErpAccount = (customerId: number | null, contactId: string | null) => {
-    if (!customerId) return;
-    const params = new URLSearchParams({ erpCustomer: String(customerId), tab: "account-settings" });
-    if (contactId) params.set("contact", contactId);
-    navigate(`/admin/contacts?${params.toString()}`);
+  const openContactEditor = (contactId: string, initialTab: "details" | "account-settings" | "portal-settings" = "details") => {
+    setContactEditor({ contactId, initialTab });
+  };
+
+  const openPortalContactEditor = (account: PortalAccountRecord, initialTab: "details" | "account-settings" | "portal-settings") => {
+    setSelectedAccountId(account.id);
+    if (account.crmContactId) openContactEditor(account.crmContactId, initialTab);
   };
 
   const openPortalContact = (account: PortalAccountRecord) => {
-    if (account.crmCustomerId && account.crmContactId) {
-      openErpAccount(account.crmCustomerId, account.crmContactId);
+    // Keep the selected portal identity available so its profile-to-contact
+    // synchronization completes before the shared editor is shown.
+    if (account.crmContactId) {
+      openPortalContactEditor(account, "portal-settings");
       return;
     }
     setSelectedAccountId(account.id);
     setAccountDialogOpen(true);
   };
 
+  const emulatePortalAccount = (account: PortalAccountRecord) => {
+    if (!account.portalUser) return;
+    startPortalEmulation({ userId: account.portalUser.userId, label: account.fullName || account.email || "customer" });
+    navigate("/profile");
+  };
+
+  const createPortalLogin = (account: PortalAccountRecord) => {
+    if (!account.crmCustomerId) {
+      toast({ title: "Customer approval required", description: "Approve or link this customer before creating a website login.", variant: "destructive" });
+      return;
+    }
+    setSelectedAccountId(account.id);
+    setProvisioningMode("create");
+    setProvisioningEmail(account.email);
+    setProvisioningName(account.fullName);
+    setProvisioningPassword("");
+  };
+
+  const portalSettings = !selectedAccount ? null : !selectedCustomer ? (
+    <Card className="shadow-none hover:shadow-none">
+      <CardHeader>
+        <CardTitle>Portal access</CardTitle>
+        <CardDescription>This approved customer has no website login yet. Create one when portal access is needed.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button onClick={() => createPortalLogin(selectedAccount)} disabled={!selectedAccount.email}>
+          <UserPlus className="mr-2 h-4 w-4" />Create login
+        </Button>
+      </CardContent>
+    </Card>
+  ) : !detailQuery.data ? (
+    <Card className="shadow-none hover:shadow-none"><CardContent className="py-10 text-sm text-muted-foreground">Loading portal settings…</CardContent></Card>
+  ) : (
+    <Tabs defaultValue="operations" className="space-y-4">
+      <TabsList className="flex w-full flex-wrap justify-start gap-2">
+        <TabsTrigger value="operations">Operations</TabsTrigger>
+        <TabsTrigger value="orders">Orders</TabsTrigger>
+        <TabsTrigger value="addresses">Addresses</TabsTrigger>
+        <TabsTrigger value="payments">Payments</TabsTrigger>
+        <TabsTrigger value="support">Support</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="operations" className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="shadow-none hover:shadow-none">
+            <CardHeader><CardTitle className="text-base">Feature access</CardTitle><CardDescription>Overrides become available for the linked website account.</CardDescription></CardHeader>
+            <CardContent className="space-y-2">
+              {FEATURE_KEYS.map((feature) => {
+                const enabled = detailQuery.data.featureOverrides[feature];
+                return <Button key={feature} type="button" variant={enabled ? "default" : "outline"} className="w-full justify-between" onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}>
+                  {FEATURE_LABELS[feature]}<span className="text-xs">{enabled ? "Enabled" : "Default"}</span>
+                </Button>;
+              })}
+            </CardContent>
+          </Card>
+          <Card className="shadow-none hover:shadow-none">
+            <CardHeader><CardTitle className="text-base">Account actions</CardTitle><CardDescription>Customer identity is edited on Details and Account Settings.</CardDescription></CardHeader>
+            <CardContent className="space-y-3">
+              <Button variant="outline" className="w-full justify-start" onClick={async () => { try { await resetPassword.mutateAsync(detailQuery.data.email); toast({ title: "Reset sent", description: "Password reset email has been sent." }); } catch (error: any) { toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" }); } }} disabled={!detailQuery.data.email || resetPassword.isPending}>
+                <Mail className="mr-2 h-4 w-4" />{resetPassword.isPending ? "Sending reset…" : "Send password reset"}
+              </Button>
+              <div className="space-y-2"><Label>Assigned pricelist</Label><Select value={detailQuery.data.assignedPricelistId ? String(detailQuery.data.assignedPricelistId) : "none"} onValueChange={(value) => assignPricelist.mutate(value === "none" ? null : Number(value))}><SelectTrigger><SelectValue placeholder="Select a pricelist" /></SelectTrigger><SelectContent><SelectItem value="none">No assigned pricelist</SelectItem>{pricelistVersions.map((version) => <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Innovations account number</Label><div className="flex gap-2"><Input value={accountNumberDraft} onChange={(event) => setAccountNumberDraft(event.target.value)} placeholder="e.g. RETAIL" disabled={!detailQuery.data.crmCustomerId} /><Button size="sm" variant="outline" onClick={() => updateAccountNumber.mutate(accountNumberDraft)} disabled={updateAccountNumber.isPending || !detailQuery.data.crmCustomerId || normalizeAccountNumberInput(accountNumberDraft) === normalizeAccountNumberInput(detailQuery.data.accountNumber)}>{updateAccountNumber.isPending ? "Saving…" : "Save"}</Button></div></div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Current cart</CardTitle><CardDescription>{detailQuery.data.cartItems.length} item(s) in progress.</CardDescription></CardHeader><CardContent className="space-y-2">{detailQuery.data.cartItems.length ? detailQuery.data.cartItems.map((item) => <div key={item.id} className="flex justify-between rounded border px-3 py-2 text-sm"><span>{item.product_name} × {item.quantity}</span><span>{formatMoney(item.product_price * item.quantity)}</span></div>) : <p className="text-sm text-muted-foreground">No active cart items.</p>}<Button className="w-full" onClick={() => placeOnBehalfOrder.mutate()} disabled={placeOnBehalfOrder.isPending || !detailQuery.data.cartItems.length}><ShoppingCart className="mr-2 h-4 w-4" />{placeOnBehalfOrder.isPending ? "Placing order…" : "Place order on behalf"}</Button></CardContent></Card>
+          <Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Abandoned carts</CardTitle><CardDescription>{detailQuery.data.abandonedAlerts.filter((alert) => alert.status === "open").length} open alert(s).</CardDescription></CardHeader><CardContent className="space-y-2">{detailQuery.data.abandonedAlerts.length ? detailQuery.data.abandonedAlerts.map((alert) => <div key={alert.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm"><span>{alert.total_items} item(s) · {formatMoney(alert.total_amount)}</span>{alert.status === "open" ? <Button size="sm" variant="outline" onClick={() => resolveAlert.mutate(alert.id)} disabled={resolveAlert.isPending}>Resolve</Button> : <Badge variant="secondary">Resolved</Badge>}</div>) : <p className="text-sm text-muted-foreground">No abandoned cart alerts.</p>}</CardContent></Card>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="orders"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Orders and payments</CardTitle></CardHeader><CardContent className="space-y-2">{ordersLoading ? <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" /> : orders.length ? orders.map((order) => <div key={order.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm"><span>#{order.id.slice(0, 8).toUpperCase()} · {order.status}</span><Badge variant="outline">{formatMoney(order.totalAmount)}</Badge></div>) : <p className="text-sm text-muted-foreground">No orders on file.</p>}</CardContent></Card></TabsContent>
+      <TabsContent value="addresses"><AddressBookSection targetUserId={selectedCustomer.userId} title="Customer addresses" description="Update saved checkout addresses." /></TabsContent>
+      <TabsContent value="payments"><PaymentMethodsSection targetUserId={selectedCustomer.userId} title="Saved payment methods" description="Manage saved payment methods for this customer." /></TabsContent>
+      <TabsContent value="support"><div className="grid gap-4 xl:grid-cols-3"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Helpdesk tickets</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => <div key={ticket.id} className="rounded border p-2 text-sm"><p className="font-medium">{ticket.ticket_number}</p><p className="text-muted-foreground">{ticket.title}</p></div>) : <p className="text-sm text-muted-foreground">No linked tickets.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Submitted forms</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.inquiries.length ? detailQuery.data.inquiries.map((inquiry) => <div key={inquiry.id} className="rounded border p-2 text-sm"><p className="font-medium">{inquiry.inquiry_type}</p><p className="line-clamp-2 text-muted-foreground">{inquiry.message || "No message"}</p></div>) : <p className="text-sm text-muted-foreground">No form submissions.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Quote requests</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.quotes.length ? detailQuery.data.quotes.map((quote) => <div key={quote.id} className="rounded border p-2 text-sm"><p className="font-medium">{quote.quote_number}</p><p className="text-muted-foreground">{formatMoney(quote.grand_total)} · {quote.status}</p></div>) : <p className="text-sm text-muted-foreground">No quote requests.</p>}</CardContent></Card></div></TabsContent>
+    </Tabs>
+  );
+
   const handleAccountDialogOpenChange = (open: boolean) => {
     setAccountDialogOpen(open);
-    if (!open) setSelectedAccountId(null);
+    if (!open) clearSelectedAccount();
   };
 
 
@@ -701,8 +880,9 @@ const WebsitePortalsPage = () => {
                   {accounts.map((account) => {
                     const user = account.portalUser;
                     return (
+                      <ContextMenu key={account.id}>
+                      <ContextMenuTrigger asChild>
                       <tr
-                        key={account.id}
                         onClick={() => openPortalContact(account)}
                         className={`cursor-pointer border-b align-top transition-colors ${selectedAccountId === account.id ? "bg-[hsl(var(--admin-accent)/0.08)]" : "hover:bg-muted/60"}`}
                       >
@@ -724,7 +904,20 @@ const WebsitePortalsPage = () => {
                           {account.isErpCustomer ? <span>{account.accountNumber || "ERP customer"}</span> : "—"}
                         </td>
                         <td className="px-4 py-3">
-                          {user ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Not created</Badge>}
+                          {user ? (
+                            <span className="flex items-center gap-2">
+                              <Badge variant="outline">Active</Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[11px]"
+                                title="View the customer portal as this account (no login needed)"
+                                onClick={(event) => { event.stopPropagation(); emulatePortalAccount(account); }}
+                              >
+                                <Eye className="mr-1 h-3 w-3" /> Emulate
+                              </Button>
+                            </span>
+                          ) : <Badge variant="secondary">Not created</Badge>}
                         </td>
                         <td className="px-4 py-3">
                           {user ? (
@@ -735,6 +928,15 @@ const WebsitePortalsPage = () => {
                           ) : account.isErpCustomer ? <Badge variant="outline">Approved</Badge> : <Badge variant="secondary">Needs review</Badge>}
                         </td>
                       </tr>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onSelect={() => account.crmContactId && openPortalContactEditor(account, "details")} disabled={!account.crmContactId}>Edit contact</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser}>Emulate</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser}>Create login</ContextMenuItem>
+                      </ContextMenuContent>
+                      </ContextMenu>
                     );
                   })}
                   {!accounts.length ? <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
@@ -777,7 +979,7 @@ const WebsitePortalsPage = () => {
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button onClick={() => openProvisioning("create")} disabled={!selectedAccount.email}><UserPlus className="mr-2 h-4 w-4" />Create login</Button>
                     <Button variant="outline" onClick={() => openProvisioning("invite")} disabled={!selectedAccount.email}><Mail className="mr-2 h-4 w-4" />Send invite</Button>
-                  <Button variant="ghost" onClick={() => openErpAccount(selectedAccount.crmCustomerId, selectedAccount.crmContactId)}>Edit account &amp; contact</Button>
+                  {selectedAccount.crmContactId ? <Button variant="ghost" onClick={() => openContactEditor(selectedAccount.crmContactId)}>Edit account &amp; contact</Button> : null}
                   </div>
                   {!selectedAccount.email ? <p className="mt-3 text-xs text-amber-700">Add an email address in the ERP contact before creating or inviting this account.</p> : null}
                 </div>
@@ -798,6 +1000,7 @@ const WebsitePortalsPage = () => {
                       <Badge variant="outline">{detailQuery.data.portalAccessStatus.replace(/_/g, " ")}</Badge>
                       <Badge variant={selectedCustomer?.presenceStatus === "online" ? "default" : "secondary"}>{selectedCustomer?.presenceStatus ?? "offline"}</Badge>
                       {detailQuery.data.crmCustomerId ? <Badge variant="outline">Approved customer</Badge> : <Badge variant="secondary">Pending approval</Badge>}
+                      {detailQuery.data.canAccessStatements ? <Badge variant="outline">Statements allowed</Badge> : <Badge variant="secondary">Statements gated</Badge>}
                     </div>
                   </div>
                 </CardHeader>
@@ -866,8 +1069,8 @@ const WebsitePortalsPage = () => {
                                   onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}
                                 >
                                   <span>
-                                    <span className="block text-sm font-medium capitalize text-foreground">{feature.replace(/-/g, " ")}</span>
-                                    <span className="block text-xs text-muted-foreground">Explicit override for this portal workflow.</span>
+                                    <span className="block text-sm font-medium text-foreground">{FEATURE_LABELS[feature]}</span>
+                                    <span className="block text-xs text-muted-foreground">{FEATURE_DESCRIPTIONS[feature]}</span>
                                   </span>
                                   <span className="text-xs font-semibold text-primary">{enabled ? "Enabled" : "Default"}</span>
                                 </button>
@@ -882,6 +1085,37 @@ const WebsitePortalsPage = () => {
                             <p className="text-xs text-muted-foreground">High-trust actions are logged through auth or order/payment records.</p>
                           </div>
                           <div className="space-y-3">
+                            <div className="rounded-lg border p-3">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">Portal access approval</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {detailQuery.data.portalAccessApprovedOverride
+                                      ? `Approved${detailQuery.data.portalAccessApprovedAt ? ` ${formatDateTime(detailQuery.data.portalAccessApprovedAt)}` : ""}.`
+                                      : "Use this when the ERP customer is valid but the customer has not finished every profile field."}
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={detailQuery.data.portalAccessApprovedOverride ? "outline" : "default"}
+                                  onClick={() => setPortalApproval.mutate(!detailQuery.data.portalAccessApprovedOverride)}
+                                  disabled={setPortalApproval.isPending || !detailQuery.data.crmCustomerId}
+                                >
+                                  {setPortalApproval.isPending
+                                    ? "Saving..."
+                                    : detailQuery.data.portalAccessApprovedOverride
+                                      ? "Remove approval"
+                                      : "Approve portal access"}
+                                </Button>
+                              </div>
+                              {!detailQuery.data.crmCustomerId ? (
+                                <p className="mt-2 text-xs text-amber-700">Link this portal account to an ERP customer before approving access.</p>
+                              ) : null}
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Owner/CEO/Buyer tag required"}.
+                              </p>
+                            </div>
                             <Button variant="outline" className="w-full justify-start" onClick={async () => { try { await resetPassword.mutateAsync(detailQuery.data.email); toast({ title: "Reset sent", description: "Password reset email has been sent." }); } catch (error: any) { toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" }); } }} disabled={!detailQuery.data.email || resetPassword.isPending}>
                               <Mail className="mr-2 h-4 w-4" />
                               {resetPassword.isPending ? "Sending reset…" : "Send password reset"}
@@ -1013,6 +1247,22 @@ const WebsitePortalsPage = () => {
                       <CardDescription>Keep customer account identity complete and synchronized.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      <div className="rounded-lg border p-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">Portal access</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Approval lets this login use portal workflows even if profile cleanup is still pending. Statements still require an Owner, CEO, or Buyer tag.
+                            </p>
+                          </div>
+                          <Badge variant={detailQuery.data.portalAccessApprovedOverride ? "default" : "secondary"}>
+                            {detailQuery.data.portalAccessApprovedOverride ? "Override approved" : "No override"}
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Owner/CEO/Buyer tag required"}.
+                        </p>
+                      </div>
                       <div className="space-y-2">
                         <Label>Full name</Label>
                         <Input value={profileDraft.full_name} onChange={(event) => setProfileDraft((prev) => ({ ...prev, full_name: event.target.value }))} />
@@ -1032,7 +1282,7 @@ const WebsitePortalsPage = () => {
                       </div>
                       <Button
                         onClick={() => updateCustomerProfile.mutate(profileDraft)}
-                        disabled={updateCustomerProfile.isPending || !profileDraft.full_name.trim() || !profileDraft.phone.trim() || !profileDraft.organization_name.trim()}
+                        disabled={updateCustomerProfile.isPending}
                       >
                         Save & resync profile
                       </Button>
@@ -1141,6 +1391,18 @@ const WebsitePortalsPage = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {contactEditor ? (
+        <ContactsPage
+          embeddedContactId={contactEditor.contactId}
+          embeddedInitialTab={contactEditor.initialTab}
+          embeddedPortalSettings={portalSettings}
+          onEmbeddedClose={() => {
+            setContactEditor(null);
+            clearSelectedAccount();
+          }}
+        />
+      ) : null}
 
       <Dialog open={provisioningMode !== null} onOpenChange={(open) => !open && setProvisioningMode(null)}>
         <DialogContent className="sm:max-w-md">

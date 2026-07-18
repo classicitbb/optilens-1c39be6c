@@ -41,7 +41,6 @@ export const FEATURES = [
   "integrations",
   "parameters",
   "history",
-  "moonshot",
   "runtime-errors",
 ] as const;
 
@@ -63,8 +62,6 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   // Sales
   "/admin/sales/proposals": "catalog-publisher",
   "/admin/sales/quotations": "quotations",
-  "/admin/sales/web-orders": "orders",
-  "/admin/sales/rx-orders": "orders",
   // Contacts
   "/admin/contacts": "contacts",
   "/admin/contacts/config/tags": "contacts",
@@ -87,28 +84,14 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/helpdesk/teams": "helpdesk-teams",
   "/admin/helpdesk/stages": "helpdesk",
   "/admin/helpdesk/config": "helpdesk",
-  "/admin/helpdesk/sla": "helpdesk-sla",
   // Website
   "/admin/website/content": "content",
-  "/admin/website/features": "website",
   "/admin/website/portals": "website",
   "/admin/website/store": "website",
+  "/admin/docs/studio": "website",
+  "/admin/website/features": "website",
   // Knowledge
   "/admin/knowledge/wiki": "wiki",
-  // Moonshot
-  "/admin/moonshot": "moonshot",
-  "/admin/moonshot/dashboard": "moonshot",
-  "/admin/moonshot/workspace": "moonshot",
-  "/admin/moonshot/meetings": "moonshot",
-  "/admin/moonshot/scorecards": "moonshot",
-  "/admin/moonshot/rocks": "moonshot",
-  "/admin/moonshot/todos": "moonshot",
-  "/admin/moonshot/issues": "moonshot",
-  "/admin/moonshot/business-plan": "moonshot",
-  "/admin/moonshot/tools": "moonshot",
-  "/admin/moonshot/users": "moonshot",
-  "/admin/moonshot/resources": "moonshot",
-  "/admin/moonshot/settings": "moonshot",
   // Settings
   "/admin/settings/company": "parameters",
   "/admin/settings/users": "users",

@@ -332,6 +332,7 @@ const CompanionAssistant = () => {
     openDetachedWindow,
     formState,
   } = useCompanionAssistant();
+  const isProfileRoute = location.pathname.startsWith("/profile");
 
   // Track whether the user dismissed the nudge ("Not now") — collapse to icon-only bubble
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -442,6 +443,8 @@ const CompanionAssistant = () => {
       </div>
     </div>
   );
+
+  if (isProfileRoute && !isDetachedRoute) return null;
 
   return (
     <>

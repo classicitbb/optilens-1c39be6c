@@ -88,7 +88,7 @@ const RxLensPricesPage = () => {
 
   // Matrix tab save bar
   const matrixSaveBar = (
-    <div className="flex items-center justify-between gap-3 flex-wrap no-print">
+    <div className="flex items-center justify-between gap-2 flex-wrap no-print">
       <div className="flex items-center gap-1">
         {hasPending && (
           <span className="flex items-center gap-1.5 text-xs text-destructive">
@@ -99,7 +99,7 @@ const RxLensPricesPage = () => {
       </div>
       <Button
         size="sm"
-        className="h-8 text-xs gap-1.5 font-semibold"
+        className="h-7 text-[11px] gap-1.5 font-semibold px-2.5"
         variant={hasPending ? "default" : "outline"}
         style={hasPending ? { background: "hsl(215 65% 50%)", color: "white" } : undefined}
         onClick={handleSaveAll}
@@ -128,12 +128,12 @@ const RxLensPricesPage = () => {
       ) : undefined}
     >
       {resolvedId && activeVersion && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {/* Tabs: Price Matrix | List Catalog */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="h-8">
-              <TabsTrigger value="matrix" className="text-xs h-7">Price Matrix Editor</TabsTrigger>
-              <TabsTrigger value="catalog" className="text-xs h-7 relative">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-2">
+            <TabsList className="h-7">
+              <TabsTrigger value="matrix" className="text-[11px] h-6 px-2.5">Price Matrix Editor</TabsTrigger>
+              <TabsTrigger value="catalog" className="text-[11px] h-6 px-2.5 relative">
                 Price List Editor
                 {hasPending && (
                   <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive ring-1 ring-background" />
@@ -141,7 +141,7 @@ const RxLensPricesPage = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="matrix" className="space-y-3 mt-2">
+            <TabsContent value="matrix" className="space-y-2 mt-1">
               <TreatmentMatricesAccordion
                 versionId={resolvedId}
                 showUSD={showUSD}
@@ -150,7 +150,7 @@ const RxLensPricesPage = () => {
               />
             </TabsContent>
 
-            <TabsContent value="catalog" className="mt-2">
+            <TabsContent value="catalog" className="mt-1">
               <ListCatalogTab
                 pageName="RX Lens Prices"
                 fxRate={fxRate}

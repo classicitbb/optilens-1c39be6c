@@ -30,19 +30,22 @@ const stripDbFields = (item: CartItem) => ({
   quantity: item.quantity,
 });
 
-export const useCartDrafts = () => {
+export const useCartDrafts = (targetUserId?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // Admin portal emulation passes the emulated account's id; RLS decides who
+  // may actually read foreign drafts.
+  const effectiveUserId = targetUserId ?? user?.id ?? null;
 
   const query = useQuery({
-    queryKey: [...QUERY_KEY, user?.id],
-    enabled: !!user,
+    queryKey: [...QUERY_KEY, effectiveUserId],
+    enabled: !!user && !!effectiveUserId,
     queryFn: async () => {
-      if (!user) return [] as CartDraftRow[];
+      if (!effectiveUserId) return [] as CartDraftRow[];
       const { data, error } = await (supabase as any)
         .from("cart_drafts")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", effectiveUserId)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as CartDraftRow[];

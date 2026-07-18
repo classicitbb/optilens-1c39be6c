@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Calculator, CheckCircle2, Info, Loader2 } from "lucide-react";
 import MarginBadge from "./MarginBadge";
 
 const OVERRIDE_REASONS = [
@@ -48,6 +49,13 @@ interface LineOverrideDialogProps {
   currentPrice: number | null;
   /** Configurable margin floor percentage (default 20) */
   marginFloor?: number;
+  context?: {
+    cellLabel?: string;
+    sourceLabel?: string;
+    inclusionMode?: "auto" | "manual" | "list";
+    supplierLabel?: string | null;
+    notes?: string[];
+  };
 }
 
 const LineOverrideDialog = ({
@@ -61,6 +69,7 @@ const LineOverrideDialog = ({
   cost,
   currentPrice,
   marginFloor = 20,
+  context,
 }: LineOverrideDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -102,10 +111,29 @@ const LineOverrideDialog = ({
   }, [open, versionId, sectionType, referenceType, referenceId, currentPrice]);
 
   const parsedPrice = parseFloat(overridePrice) || null;
+  const currentMargin =
+    currentPrice && cost && cost > 0
+      ? ((currentPrice - cost) / currentPrice) * 100
+      : null;
   const margin =
     parsedPrice && cost && cost > 0
       ? ((parsedPrice - cost) / parsedPrice) * 100
       : null;
+  const priceDelta = parsedPrice != null && currentPrice != null ? parsedPrice - currentPrice : null;
+  const floorPasses = margin == null || margin >= marginFloor;
+  const isMatrixAllocation = referenceType === "matrix_allocation";
+  const contextNotes = context?.notes?.length
+    ? context.notes
+    : isMatrixAllocation
+      ? [
+          "Auto Price can fill empty cells from active, approved, positive-cost lens rows that classify into this grouping, category, and material.",
+          "Manual lens selection remains available from the matrix search control and is not changed by a price override.",
+          "Manual price overrides save only this cell's sell price; they do not relink the lens or remove the auto-pricing path.",
+        ]
+      : [
+          "The list editor keeps its linked item selection and uses this dialog only for line-level price overrides.",
+          "Manual price overrides do not change the underlying catalog item cost or default sell price.",
+        ];
 
   const handleSave = async () => {
     if (!versionId || parsedPrice == null) return;
@@ -185,14 +213,88 @@ const LineOverrideDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm font-semibold">
             Line Price Override
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <p className="text-xs text-muted-foreground truncate">{itemName}</p>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-foreground truncate">{itemName}</p>
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Badge variant="outline" className="rounded px-1.5 py-0 text-[10px]">
+                {isMatrixAllocation ? "Matrix cell" : "List line"}
+              </Badge>
+              {context?.cellLabel && <span>{context.cellLabel}</span>}
+              {context?.supplierLabel && <span>Supplier: {context.supplierLabel}</span>}
+              {context?.sourceLabel && <span>Source: {context.sourceLabel}</span>}
+            </div>
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-3">
+            <div className="rounded-md border border-border bg-muted/20 px-3 py-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                <Info className="h-3 w-3 text-primary" />
+                Inclusion
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {context?.inclusionMode === "manual"
+                  ? "Linked manually from the matrix."
+                  : context?.inclusionMode === "list"
+                    ? "Linked from the list editor."
+                    : isMatrixAllocation
+                      ? "Eligible for Auto Price, but still manually editable."
+                      : "Line-level catalog item."}
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-muted/20 px-3 py-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                <Calculator className="h-3 w-3 text-primary" />
+                Current basis
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Cost {cost != null ? `$${cost.toFixed(2)}` : "not available"}; current margin {currentMargin != null ? `${currentMargin.toFixed(1)}%` : "not available"}.
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-muted/20 px-3 py-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                {floorPasses ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <AlertTriangle className="h-3 w-3 text-red-600" />}
+                Floor check
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {margin != null
+                  ? `${margin.toFixed(1)}% margin vs ${marginFloor}% floor`
+                  : `Floor is ${marginFloor}%; enter a price to evaluate.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-md border border-border overflow-hidden">
+            <div className="bg-muted/50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Pricing walkthrough
+            </div>
+            <div className="divide-y divide-border text-xs">
+              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="text-muted-foreground">Cost basis</span>
+                <span className="font-mono text-foreground">{cost != null ? `$${cost.toFixed(2)} BBD` : "Unavailable"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="text-muted-foreground">Current price</span>
+                <span className="font-mono text-foreground">{currentPrice != null ? `$${currentPrice.toFixed(2)} BBD` : "Unavailable"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="text-muted-foreground">Override price</span>
+                <span className="font-mono font-semibold text-foreground">{parsedPrice != null ? `$${parsedPrice.toFixed(2)} BBD` : "Not set"}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="text-muted-foreground">Change from current</span>
+                <span className={priceDelta != null && priceDelta < 0 ? "font-mono text-red-600" : "font-mono text-emerald-600"}>
+                  {priceDelta != null ? `${priceDelta >= 0 ? "+" : "-"}$${Math.abs(priceDelta).toFixed(2)}` : "Unavailable"}
+                </span>
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -241,6 +343,20 @@ const LineOverrideDialog = ({
             </div>
           </div>
 
+          <div className="rounded-md border border-border bg-muted/10 px-3 py-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Inclusion logic
+            </div>
+            <ul className="mt-2 space-y-1.5">
+              {contextNotes.map((note) => (
+                <li key={note} className="flex gap-2 text-[11px] text-muted-foreground">
+                  <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />
+                  <span>{note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <div>
             <label className="text-[11px] font-medium mb-1 block text-muted-foreground">
               Reason
@@ -274,6 +390,13 @@ const LineOverrideDialog = ({
               </span>
             </div>
           )}
+
+          <div className="rounded-md border border-amber-300/60 bg-amber-50/70 px-3 py-2 text-[11px] text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-200">
+            <div className="font-semibold uppercase tracking-wide">Business basis</div>
+            <p className="mt-1">
+              Standard matrix pricing is designed to cover the most expensive available approved supplier at the configured floor margin. A manual override is allowed, but below-floor overrides require a reason so the pricing decision is visible later.
+            </p>
+          </div>
         </div>
         <DialogFooter className="gap-2">
           {existingId && (

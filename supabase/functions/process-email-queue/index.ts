@@ -134,6 +134,12 @@ Deno.serve(async (req) => {
   }
 
   let totalProcessed = 0
+  // Read/DB errors that aren't tied to one message (queue read failures,
+  // retry-counter lookups) don't have anywhere to log to per-message, so
+  // they were previously only visible in raw function logs. Collect them
+  // here and surface them in the response so a caller/monitor can tell the
+  // difference between "nothing to do" and "the run partially failed".
+  const runErrors: Array<{ queue: string; stage: string; message: string }> = []
 
   // 2. Process auth_emails first (priority), then transactional_emails
   for (const queue of ['auth_emails', 'transactional_emails']) {
@@ -144,7 +150,9 @@ Deno.serve(async (req) => {
     })
 
     if (readError) {
-      console.error('Failed to read email batch', { queue, error: readError })
+      const readErrorMsg = readError instanceof Error ? readError.message : String(readError)
+      console.error('Failed to read email batch', { queue, error: readErrorMsg })
+      runErrors.push({ queue, stage: 'read_email_batch', message: readErrorMsg })
       continue
     }
 
@@ -173,10 +181,12 @@ Deno.serve(async (req) => {
         .eq('status', 'failed')
 
       if (failedRowsError) {
+        const failedRowsErrorMsg = failedRowsError instanceof Error ? failedRowsError.message : String(failedRowsError)
         console.error('Failed to load failed-attempt counters', {
           queue,
-          error: failedRowsError,
+          error: failedRowsErrorMsg,
         })
+        runErrors.push({ queue, stage: 'load_failed_attempt_counters', message: failedRowsErrorMsg })
       } else {
         for (const row of failedRows ?? []) {
           const messageId = row?.message_id
@@ -254,6 +264,7 @@ Deno.serve(async (req) => {
             run_id: payload.run_id,
             to: payload.to,
             from: payload.from,
+            reply_to: payload.reply_to,
             sender_domain: payload.sender_domain,
             subject: payload.subject,
             html: payload.html,
@@ -319,7 +330,7 @@ Deno.serve(async (req) => {
 
           // Stop processing — remaining messages stay in queue (VT expires, retried next cycle)
           return new Response(
-            JSON.stringify({ processed: totalProcessed, stopped: 'rate_limited' }),
+            JSON.stringify({ processed: totalProcessed, stopped: 'rate_limited', errors: runErrors }),
             { headers: { 'Content-Type': 'application/json' } }
           )
         }
@@ -329,7 +340,7 @@ Deno.serve(async (req) => {
         if (isForbidden(error)) {
           await moveToDlq(supabase, queue, msg, errorMsg.slice(0, 1000))
           return new Response(
-            JSON.stringify({ processed: totalProcessed, stopped: 'forbidden' }),
+            JSON.stringify({ processed: totalProcessed, stopped: 'forbidden', errors: runErrors }),
             { headers: { 'Content-Type': 'application/json' } }
           )
         }
@@ -356,8 +367,24 @@ Deno.serve(async (req) => {
     }
   }
 
+  // A run with read/DB errors still processed what it could, but it did not
+  // fully do its job — surface that as a non-200 so uptime/monitoring on this
+  // function's own response (not just its logs) can catch it, instead of a
+  // silent 200 that hides a broken queue read or counter lookup.
+  if (runErrors.length > 0) {
+    console.error('process-email-queue run completed with errors', {
+      processed: totalProcessed,
+      errorCount: runErrors.length,
+      errors: runErrors,
+    })
+    return new Response(
+      JSON.stringify({ processed: totalProcessed, errors: runErrors }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
   return new Response(
-    JSON.stringify({ processed: totalProcessed }),
+    JSON.stringify({ processed: totalProcessed, errors: [] }),
     { headers: { 'Content-Type': 'application/json' } }
   )
 })

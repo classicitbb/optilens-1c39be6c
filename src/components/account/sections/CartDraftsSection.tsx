@@ -16,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useCartDrafts, type CartDraftRow } from "@/hooks/useCartDrafts";
 import { useCartContext } from "@/contexts/CartContext";
-import { useRxDrafts } from "@/features/lens-assistant/api";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const formatMoney = (n: number) => `$${Number(n ?? 0).toFixed(2)}`;
 const formatDate = (s: string) => new Date(s).toLocaleString();
@@ -24,8 +24,8 @@ const formatDate = (s: string) => new Date(s).toLocaleString();
 const CartDraftsSection = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { drafts, isLoading, deleteDraft } = useCartDrafts();
-  const { data: rxDrafts = [], isLoading: rxDraftsLoading } = useRxDrafts();
+  const { emulation } = usePortalIdentity();
+  const { drafts, isLoading, deleteDraft } = useCartDrafts(emulation?.userId);
   const { addToCart } = useCartContext();
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CartDraftRow | null>(null);

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { EMPTY_ADDRESS, ProfileAddress } from "@/lib/profileData";
 import { useCustomerAddresses, type CustomerAddress, type SaveCustomerAddressInput } from "@/hooks/useCustomerAddresses";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const emptyDraft = (): SaveCustomerAddressInput => ({
   label: "",
@@ -104,7 +105,8 @@ const AddressBookSection = ({
   description = "Save up to 2 reusable addresses for premium checkout. Choose default shipping and billing destinations.",
 }: AddressBookSectionProps) => {
   const { toast } = useToast();
-  const { addresses, isLoading, saveAddress, removeAddress } = useCustomerAddresses(targetUserId);
+  const { emulation } = usePortalIdentity();
+  const { addresses, isLoading, saveAddress, removeAddress } = useCustomerAddresses(targetUserId ?? emulation?.userId);
   const [draft, setDraft] = useState<SaveCustomerAddressInput>(emptyDraft());
   const [editingId, setEditingId] = useState<string | null>(null);
 

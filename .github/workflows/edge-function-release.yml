@@ -1,0 +1,82 @@
+name: Edge Function Deploy and Health
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "supabase/config.toml"
+      - "scripts/edge_functions_smoke.mjs"
+      - ".github/workflows/edge-function-release.yml"
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edge-functions-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-all:
+    name: Redeploy all edge functions
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Deploy every function in source control
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_REF"
+          find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name '_*' -printf '%f\n' | sort | while read -r function_name; do
+            supabase functions deploy "$function_name" --project-ref "$SUPABASE_PROJECT_REF"
+          done
+
+  release-preflight:
+    name: Full edge-function preflight
+    needs: deploy-all
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run readiness smoke suite and record its result
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EDGE_HEALTH_SOURCE: deployment
+        run: npm run qa:edge-smoke
+
+  release-healthy:
+    name: Release healthy
+    needs: release-preflight
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All edge-function readiness probes passed; release marked healthy."
+
+  continuous-health-monitor:
+    name: Continuous edge-function health monitor
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run readiness smoke suite and record its result
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EDGE_HEALTH_SOURCE: scheduled
+        run: npm run qa:edge-smoke

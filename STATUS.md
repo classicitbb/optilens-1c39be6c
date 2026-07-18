@@ -10,6 +10,7 @@ Last updated: 2026-07-10
 
 ## Active work
 
+- **Classic Visions MCP deployment** — Codex is registered against the streamable-HTTP endpoint and the local OAuth-protected function exposes three read-only tools. The live endpoint still returns `404 Requested function was not found`; direct deployment is blocked because the currently authenticated Supabase account returns `403` for function access.
 - **On-demand live-data gateway** — the CV Web request/response function,
   short-lived gateway migration, live Innovations statements/balances, and live
   OptiLens delivery-status UI are implemented and verified locally. The

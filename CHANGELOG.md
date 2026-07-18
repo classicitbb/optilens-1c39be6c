@@ -4,6 +4,37 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-18 — Integration Status Recovery and Dependency Refresh
+
+### Release Notes
+- Administrators can recheck the payment gateway and clear a stale error only after a successful zero-impact credential test.
+- Innovations sync status can be refreshed on demand; duplicate account-number links disappear from the warning once the underlying records are resolved.
+
+### Technical Changelog
+- Refreshed the npm dependency set and lockfile; TypeScript remains on 6.x because the current `typescript-eslint` peer range does not support 7.x.
+- Added a privileged payment-gateway test-result RPC that records the test time and status without exposing gateway credentials.
+
+## 2026-07-16 — Portal Statements and Live Order Status
+
+### Release Notes
+- Approved customers can now open Statements without needing a staff role.
+- Local portal testing on port 8081 can reach the live-data gateway, restoring live order and delivery status requests.
+
+### Technical Changelog
+- The account sidebar now uses the shared `statements` feature decision, and regression tests cover both enabled and disabled access.
+- The shared Edge Function CORS policy explicitly permits the local Vite origin used by the portal test server.
+
+## 2026-07-14 — Website Portal Contact Editing
+
+### Release Notes
+- `/admin/website` now opens Website Portals first.
+- Selecting a portal account opens the existing Contacts editor in place, rather than navigating away to Contacts.
+
+### Technical Changelog
+- Website Portals now uses the signup-synchronized `profiles.email` value and reuses the Contacts edit dialog for linked customer contacts.
+- Recorded the Customer Contact as the canonical editable surface for CRM, Innovations linkage, and optional portal access.
+- Customer rows now open the shared dialog on Portal Settings; their right-click menu provides Edit contact, Edit portal, Emulate, and Create login actions.
+
 ## 2026-07-13 — Specialty Lenses
 
 ### Release Notes

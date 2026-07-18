@@ -127,6 +127,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
             foreignKeyName: "activities_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
@@ -649,6 +656,137 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      cadence_enrollments: {
+        Row: {
+          cadence_id: string
+          completed_at: string | null
+          contact_id: string
+          current_step: number
+          enrolled_at: string
+          id: string
+          next_step_due_at: string | null
+          status: string
+        }
+        Insert: {
+          cadence_id: string
+          completed_at?: string | null
+          contact_id: string
+          current_step?: number
+          enrolled_at?: string
+          id?: string
+          next_step_due_at?: string | null
+          status?: string
+        }
+        Update: {
+          cadence_id?: string
+          completed_at?: string | null
+          contact_id?: string
+          current_step?: number
+          enrolled_at?: string
+          id?: string
+          next_step_due_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadence_enrollments_cadence_id_fkey"
+            columns: ["cadence_id"]
+            isOneToOne: false
+            referencedRelation: "cadences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cadence_enrollments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cadence_enrollments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
+      cadence_steps: {
+        Row: {
+          body_template: string | null
+          cadence_id: string
+          channel: string
+          delay_days: number
+          id: string
+          step_order: number
+          subject: string | null
+        }
+        Insert: {
+          body_template?: string | null
+          cadence_id: string
+          channel: string
+          delay_days?: number
+          id?: string
+          step_order: number
+          subject?: string | null
+        }
+        Update: {
+          body_template?: string | null
+          cadence_id?: string
+          channel?: string
+          delay_days?: number
+          id?: string
+          step_order?: number
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadence_steps_cadence_id_fkey"
+            columns: ["cadence_id"]
+            isOneToOne: false
+            referencedRelation: "cadences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cadences: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          pipeline: string
+          target_stage: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          pipeline: string
+          target_stage?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          pipeline?: string
+          target_stage?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadences_pipeline_fkey"
+            columns: ["pipeline"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["key"]
+          },
+        ]
       }
       cart_drafts: {
         Row: {
@@ -1246,6 +1384,13 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contact_sync_dead_letters_local_contact_id_fkey"
+            columns: ["local_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
         ]
       }
       contact_sync_manual_review_queue: {
@@ -1309,6 +1454,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_sync_manual_review_queue_local_contact_id_fkey"
+            columns: ["local_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
           },
         ]
       }
@@ -1406,6 +1558,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contact_tag_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
             foreignKeyName: "contact_tag_links_tag_id_fkey"
             columns: ["tag_id"]
             isOneToOne: false
@@ -1471,11 +1630,15 @@ export type Database = {
           lead_source: string
           linked_customer_id: number | null
           name: string
+          next_action_at: string | null
           notes: string | null
           parent_id: string | null
           phone: string | null
+          pipeline: string | null
           pipeline_stage: string
           salesperson: string | null
+          stage: string | null
+          stage_entered_at: string | null
           state: string | null
           status: string
           street: string | null
@@ -1515,11 +1678,15 @@ export type Database = {
           lead_source?: string
           linked_customer_id?: number | null
           name: string
+          next_action_at?: string | null
           notes?: string | null
           parent_id?: string | null
           phone?: string | null
+          pipeline?: string | null
           pipeline_stage?: string
           salesperson?: string | null
+          stage?: string | null
+          stage_entered_at?: string | null
           state?: string | null
           status?: string
           street?: string | null
@@ -1559,11 +1726,15 @@ export type Database = {
           lead_source?: string
           linked_customer_id?: number | null
           name?: string
+          next_action_at?: string | null
           notes?: string | null
           parent_id?: string | null
           phone?: string | null
+          pipeline?: string | null
           pipeline_stage?: string
           salesperson?: string | null
+          stage?: string | null
+          stage_entered_at?: string | null
           state?: string | null
           status?: string
           street?: string | null
@@ -1603,7 +1774,42 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "contacts_pipeline_fkey"
+            columns: ["pipeline"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["key"]
+          },
         ]
+      }
+      crm_pipelines: {
+        Row: {
+          created_at: string
+          is_active: boolean
+          key: string
+          label: string
+        }
+        Insert: {
+          created_at?: string
+          is_active?: boolean
+          key: string
+          label: string
+        }
+        Update: {
+          created_at?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+        }
+        Relationships: []
       }
       customer_addresses: {
         Row: {
@@ -1881,7 +2087,217 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
         ]
+      }
+      docstudio_billing_documents: {
+        Row: {
+          autosave_content: Json | null
+          autosave_rendered_html: string | null
+          autosave_totals: Json | null
+          billing_number: string | null
+          content: Json
+          created_at: string
+          customer_account: string | null
+          customer_company: string | null
+          customer_name: string | null
+          deleted_at: string | null
+          document_name: string
+          document_type: string
+          id: string
+          latest_autosave_at: string | null
+          owner_user_id: string
+          paper_size: string
+          rendered_html: string
+          status: string
+          totals: Json
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          autosave_content?: Json | null
+          autosave_rendered_html?: string | null
+          autosave_totals?: Json | null
+          billing_number?: string | null
+          content?: Json
+          created_at?: string
+          customer_account?: string | null
+          customer_company?: string | null
+          customer_name?: string | null
+          deleted_at?: string | null
+          document_name: string
+          document_type: string
+          id?: string
+          latest_autosave_at?: string | null
+          owner_user_id: string
+          paper_size?: string
+          rendered_html?: string
+          status?: string
+          totals?: Json
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          autosave_content?: Json | null
+          autosave_rendered_html?: string | null
+          autosave_totals?: Json | null
+          billing_number?: string | null
+          content?: Json
+          created_at?: string
+          customer_account?: string | null
+          customer_company?: string | null
+          customer_name?: string | null
+          deleted_at?: string | null
+          document_name?: string
+          document_type?: string
+          id?: string
+          latest_autosave_at?: string | null
+          owner_user_id?: string
+          paper_size?: string
+          rendered_html?: string
+          status?: string
+          totals?: Json
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      docstudio_files: {
+        Row: {
+          autosave_content: Json | null
+          autosave_rendered_html: string | null
+          content: Json
+          created_at: string
+          customer_account: string | null
+          customer_name: string | null
+          deleted_at: string | null
+          file_name: string
+          file_type: string
+          id: string
+          latest_autosave_at: string | null
+          metadata: Json
+          owner_user_id: string
+          rendered_html: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          autosave_content?: Json | null
+          autosave_rendered_html?: string | null
+          content?: Json
+          created_at?: string
+          customer_account?: string | null
+          customer_name?: string | null
+          deleted_at?: string | null
+          file_name: string
+          file_type: string
+          id?: string
+          latest_autosave_at?: string | null
+          metadata?: Json
+          owner_user_id: string
+          rendered_html?: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          autosave_content?: Json | null
+          autosave_rendered_html?: string | null
+          content?: Json
+          created_at?: string
+          customer_account?: string | null
+          customer_name?: string | null
+          deleted_at?: string | null
+          file_name?: string
+          file_type?: string
+          id?: string
+          latest_autosave_at?: string | null
+          metadata?: Json
+          owner_user_id?: string
+          rendered_html?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      edge_function_health: {
+        Row: {
+          checked_at: string
+          consecutive_failures: number
+          function_name: string
+          is_healthy: boolean
+          last_error: string | null
+          last_failure_at: string | null
+          last_healthy_at: string | null
+          last_run_id: string | null
+        }
+        Insert: {
+          checked_at: string
+          consecutive_failures?: number
+          function_name: string
+          is_healthy: boolean
+          last_error?: string | null
+          last_failure_at?: string | null
+          last_healthy_at?: string | null
+          last_run_id?: string | null
+        }
+        Update: {
+          checked_at?: string
+          consecutive_failures?: number
+          function_name?: string
+          is_healthy?: boolean
+          last_error?: string | null
+          last_failure_at?: string | null
+          last_healthy_at?: string | null
+          last_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edge_function_health_last_run_id_fkey"
+            columns: ["last_run_id"]
+            isOneToOne: false
+            referencedRelation: "edge_function_health_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      edge_function_health_runs: {
+        Row: {
+          checks: Json
+          created_at: string
+          failed_count: number
+          function_count: number
+          id: string
+          is_healthy: boolean
+          release_sha: string | null
+          source: string
+        }
+        Insert: {
+          checks?: Json
+          created_at?: string
+          failed_count?: number
+          function_count?: number
+          id?: string
+          is_healthy: boolean
+          release_sha?: string | null
+          source: string
+        }
+        Update: {
+          checks?: Json
+          created_at?: string
+          failed_count?: number
+          function_count?: number
+          id?: string
+          is_healthy?: boolean
+          release_sha?: string | null
+          source?: string
+        }
+        Relationships: []
       }
       email_send_log: {
         Row: {
@@ -2787,6 +3203,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "helpdesk_tickets_partner_contact_id_fkey"
+            columns: ["partner_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
             foreignKeyName: "helpdesk_tickets_stage_id_fkey"
             columns: ["stage_id"]
             isOneToOne: false
@@ -3400,6 +3823,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "integration_sync_errors_local_identifier_fkey"
+            columns: ["local_identifier"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
             foreignKeyName: "integration_sync_errors_sync_job_id_fkey"
             columns: ["sync_job_id"]
             isOneToOne: false
@@ -3576,6 +4006,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_audits_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
           },
         ]
       }
@@ -3836,6 +4273,10 @@ export type Database = {
           created_at: string
           cyl_max: number
           cyl_min: number
+          excluded_at: string | null
+          excluded_by: string | null
+          excluded_from_anchor: boolean
+          excluded_reason: string | null
           finishtype_id: string | null
           full_lab: boolean
           id: string
@@ -3865,6 +4306,10 @@ export type Database = {
           created_at?: string
           cyl_max: number
           cyl_min: number
+          excluded_at?: string | null
+          excluded_by?: string | null
+          excluded_from_anchor?: boolean
+          excluded_reason?: string | null
           finishtype_id?: string | null
           full_lab?: boolean
           id?: string
@@ -3894,6 +4339,10 @@ export type Database = {
           created_at?: string
           cyl_max?: number
           cyl_min?: number
+          excluded_at?: string | null
+          excluded_by?: string | null
+          excluded_from_anchor?: boolean
+          excluded_reason?: string | null
           finishtype_id?: string | null
           full_lab?: boolean
           id?: string
@@ -4291,6 +4740,13 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
         ]
       }
       opportunities: {
@@ -4349,6 +4805,61 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
+      order_activity: {
+        Row: {
+          avg_gap_days: number | null
+          contact_id: string | null
+          innovations_customer_id: number
+          last_order_date: string | null
+          orders_last_30_days: number
+          orders_last_7_days: number
+          orders_last_90_days: number
+          synced_at: string
+        }
+        Insert: {
+          avg_gap_days?: number | null
+          contact_id?: string | null
+          innovations_customer_id: number
+          last_order_date?: string | null
+          orders_last_30_days?: number
+          orders_last_7_days?: number
+          orders_last_90_days?: number
+          synced_at?: string
+        }
+        Update: {
+          avg_gap_days?: number | null
+          contact_id?: string | null
+          innovations_customer_id?: number
+          last_order_date?: string | null
+          orders_last_30_days?: number
+          orders_last_7_days?: number
+          orders_last_90_days?: number
+          synced_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_activity_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_activity_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
           },
         ]
       }
@@ -4659,6 +5170,76 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_outbox: {
+        Row: {
+          approved_at: string | null
+          attachments: Json
+          body: string | null
+          channel: string
+          contact_id: string
+          created_at: string
+          enrollment_id: string | null
+          error: string | null
+          generated_by: string
+          id: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          attachments?: Json
+          body?: string | null
+          channel: string
+          contact_id: string
+          created_at?: string
+          enrollment_id?: string | null
+          error?: string | null
+          generated_by?: string
+          id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          attachments?: Json
+          body?: string | null
+          channel?: string
+          contact_id?: string
+          created_at?: string
+          enrollment_id?: string | null
+          error?: string | null
+          generated_by?: string
+          id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_outbox_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_outbox_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "outreach_outbox_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "cadence_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_catalog: {
         Row: {
           id: string
@@ -4851,6 +5432,60 @@ export type Database = {
           },
         ]
       }
+      pricelist_lines: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          custom_price: number
+          id: string
+          item_ref: string
+          pricelist_id: string
+          reason: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_price: number
+          id?: string
+          item_ref: string
+          pricelist_id: string
+          reason?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          custom_price?: number
+          id?: string
+          item_ref?: string
+          pricelist_id?: string
+          reason?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelist_lines_item_ref_fkey"
+            columns: ["item_ref"]
+            isOneToOne: false
+            referencedRelation: "pricing_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricelist_lines_pricelist_id_fkey"
+            columns: ["pricelist_id"]
+            isOneToOne: false
+            referencedRelation: "pricelists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricelist_notes: {
         Row: {
           content: string | null
@@ -4952,6 +5587,84 @@ export type Database = {
         }
         Relationships: []
       }
+      pricelists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: number | null
+          id: string
+          kind: string
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: number | null
+          id?: string
+          kind: string
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: number | null
+          id?: string
+          kind?: string
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          after: Json | null
+          at: string
+          before: Json | null
+          entity: string
+          entity_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          entity: string
+          entity_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          entity?: string
+          entity_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       pricing_input_rows: {
         Row: {
           batch_id: string
@@ -5009,6 +5722,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pricing_items: {
+        Row: {
+          created_at: string
+          id: string
+          material: string
+          tier: string
+          treatment: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material: string
+          tier: string
+          treatment: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material?: string
+          tier?: string
+          treatment?: string
+        }
+        Relationships: []
       }
       pricing_settings: {
         Row: {
@@ -5262,6 +5999,10 @@ export type Database = {
           id: string
           organization_name: string | null
           phone: string | null
+          portal_access_approved_at: string | null
+          portal_access_approved_by: string | null
+          portal_access_approved_note: string | null
+          portal_access_approved_override: boolean
           portal_access_note: string | null
           portal_access_status: string | null
           profile_completed_at: string | null
@@ -5283,6 +6024,10 @@ export type Database = {
           id?: string
           organization_name?: string | null
           phone?: string | null
+          portal_access_approved_at?: string | null
+          portal_access_approved_by?: string | null
+          portal_access_approved_note?: string | null
+          portal_access_approved_override?: boolean
           portal_access_note?: string | null
           portal_access_status?: string | null
           profile_completed_at?: string | null
@@ -5304,6 +6049,10 @@ export type Database = {
           id?: string
           organization_name?: string | null
           phone?: string | null
+          portal_access_approved_at?: string | null
+          portal_access_approved_by?: string | null
+          portal_access_approved_note?: string | null
+          portal_access_approved_override?: boolean
           portal_access_note?: string | null
           portal_access_status?: string | null
           profile_completed_at?: string | null
@@ -7018,6 +7767,33 @@ export type Database = {
           },
         ]
       }
+      website_features: {
+        Row: {
+          description: string | null
+          enabled: boolean
+          key: string
+          label: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean
+          key: string
+          label: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean
+          key?: string
+          label?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wholesale_inquiries: {
         Row: {
           business_name: string
@@ -7238,6 +8014,28 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_order_health: {
+        Row: {
+          avg_gap_days: number | null
+          contact_id: string | null
+          health: string | null
+          last_order_date: string | null
+          name: string | null
+          orders_last_30_days: number | null
+          pipeline: string | null
+          quiet_days: number | null
+          stage: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_pipeline_fkey"
+            columns: ["pipeline"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       customer_payment_profile_public: {
         Row: {
           account_number: string | null
@@ -7334,6 +8132,39 @@ export type Database = {
             columns: ["mftype_id"]
             isOneToOne: false
             referencedRelation: "mftypes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricelist_variance: {
+        Row: {
+          custom_price: number | null
+          customer_id: number | null
+          delta: number | null
+          item_ref: string | null
+          master_price: number | null
+          pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricelist_lines_item_ref_fkey"
+            columns: ["item_ref"]
+            isOneToOne: false
+            referencedRelation: "pricing_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -7724,8 +8555,24 @@ export type Database = {
           status: string
         }[]
       }
+      audit_product_cost_rls: {
+        Args: never
+        Returns: {
+          issue: string
+          object_name: string
+          object_type: string
+        }[]
+      }
+      bulk_toggle_anchor_exclusion: {
+        Args: { p_excluded: boolean; p_lens_ids: string[]; p_reason?: string }
+        Returns: number
+      }
       can_access_customer_portal_feature: {
         Args: { p_feature_key?: string; p_user_id?: string }
+        Returns: boolean
+      }
+      can_access_customer_statement: {
+        Args: { p_user_id?: string }
         Returns: boolean
       }
       cancel_integration_sync_job: {
@@ -7754,6 +8601,20 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      effective_price: {
+        Args: { p_customer_id: number; p_item_ref: string }
+        Returns: number
+      }
+      effective_prices_for_customer: {
+        Args: { p_customer_id: number }
+        Returns: {
+          item_ref: string
+          material: string
+          price: number
+          tier: string
+          treatment: string
+        }[]
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
@@ -7975,6 +8836,16 @@ export type Database = {
         }
         Returns: string
       }
+      portal_assigned_pricelist_matrix: {
+        Args: never
+        Returns: {
+          allocated_price_bbd: number
+          category: string
+          material_index: string
+          treatment_type: string
+        }[]
+      }
+      portal_assigned_pricelist_updated_at: { Args: never; Returns: string }
       publish_lens_recommendation_rule_set: {
         Args: { p_rule_set_id: string }
         Returns: undefined
@@ -7992,9 +8863,35 @@ export type Database = {
         }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
+      record_edge_function_health: {
+        Args: { p_checks: Json; p_release_sha: string; p_source: string }
+        Returns: string
+      }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       resolve_contact_customer_links: { Args: never; Returns: number }
+      revert_account_to_master: {
+        Args: { p_customer_id: number }
+        Returns: undefined
+      }
+      revert_line_to_master: {
+        Args: { p_customer_id: number; p_item_ref: string }
+        Returns: undefined
+      }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
+      set_custom_price: {
+        Args: {
+          p_customer_id: number
+          p_item_ref: string
+          p_price: number
+          p_reason?: string
+          p_source?: string
+        }
+        Returns: undefined
+      }
+      set_master_price: {
+        Args: { p_item_ref: string; p_price: number }
+        Returns: undefined
+      }
       sync_customer_portal_identity: {
         Args: { p_user_id?: string }
         Returns: {
@@ -8012,6 +8909,10 @@ export type Database = {
         }[]
       }
       timeout_stale_integration_sync_jobs: { Args: never; Returns: number }
+      toggle_anchor_exclusion: {
+        Args: { p_excluded: boolean; p_lens_id: string; p_reason?: string }
+        Returns: undefined
+      }
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
         Returns: string

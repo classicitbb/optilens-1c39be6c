@@ -2,6 +2,24 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-07-18 — Integration status recovery
+
+- `IntegrationsPage` persists the outcome of its zero-impact Scotia credential/hash test through `record_payment_gateway_test`; a successful test clears a stale error badge and a failed test records an error timestamp.
+- `InnovationsSyncStatusCard` has an on-demand status recheck. It does not mutate customer links: duplicate account-number warnings remain visible until the underlying source data is corrected, then disappear on refresh.
+
+## 2026-07-16 — Portal statements and local live-data access
+
+- `AccountSidebar` uses `canAccessFeature("statements")`, which keeps the sidebar and the canonical `/profile/statements` feature gate aligned. A staff role is not required for an approved customer unless an explicit feature override disables statements.
+- The shared Edge Function CORS policy allows the local Vite origins on port 8081. This is needed because the portal browser client sends authenticated `live-data-gateway` requests directly to Supabase; a rejected preflight appears to the UI as a generic Edge Function transport failure.
+- `AccountSidebar.test.tsx` covers enabled and disabled Statements navigation, while `liveDataGatewayCors.integration.test.ts` guards the port-8081 CORS allowlist.
+
+## 2026-07-14 — Website Portals and Contacts
+
+- `/admin/website` is a redirect to `/admin/website/portals`; Website Content remains available at its explicit route.
+- `WebsitePortalsPage` prefers `profiles.email`, which is synchronized from the signup identity, before using the optional admin user-list email.
+- The Contacts editor supports an embedded mode so Website Portals can open the same editor overlay for a linked CRM contact without route navigation. Customer Contact is the canonical editable record; Website Portals remains an activity/access surface.
+- The embedded editor now has a Portal Settings tab containing operations, orders, addresses, payments, and support. Normal row clicks choose that tab; row context-menu actions select Details, Portal Settings, emulation, or login creation deliberately.
+
 ## 2026-07-13 — Specialty Lenses public page
 
 - Canonical public route: `/lenses/specialty`; it is registered in `src/routes/public/PublicRoutes.tsx` and `src/config/routeRegistry.ts`, with coverage in `src/tests/integration/publicRouteAccessibility.integration.test.ts`.

@@ -1,4 +1,4 @@
-project_id = "xstmeirxhfbiyayrrsob"
+project_id = "dzsalnvmlvjoatryhqfz"
 
 [functions]
   [functions.admin-user-management]
@@ -18,7 +18,7 @@ project_id = "xstmeirxhfbiyayrrsob"
   [functions.send-transactional-email]
     verify_jwt = true
   [functions.preview-transactional-email]
-    verify_jwt = false
+    verify_jwt = true
   [functions.handle-email-unsubscribe]
     verify_jwt = false
   [functions.handle-email-suppression]
@@ -29,10 +29,10 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = false
   [functions.helpdesk-followup]
     verify_jwt = false
-    schedule = "*/15 * * * *"
+    # Schedule separately with Supabase Cron / pg_cron: */15 * * * *
   [functions.process-email-queue]
     verify_jwt = true
-    schedule = "*/10 * * * *"
+    # Schedule separately with Supabase Cron / pg_cron: */10 * * * *
   [functions.customer-onboarding]
     verify_jwt = true
   [functions.api-v1]
@@ -44,6 +44,10 @@ project_id = "xstmeirxhfbiyayrrsob"
   # On-demand CV Web -> office gateway. Browser requests authenticate in code;
   # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
   [functions.live-data-gateway]
+    verify_jwt = false
+  # The MCP runtime performs its own OAuth 2.1 bearer validation and must be
+  # allowed to return the protocol's WWW-Authenticate discovery challenge.
+  [functions.mcp]
     verify_jwt = false
   # Scotia eCom+ (IPG Connect) hosted-payment helper. Public preflight/CORS is
   # handled in code; the buyer's browser calls "prepare". Set verify_jwt=true

@@ -1,7 +1,21 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, screen } from "@testing-library/react";
 import { render } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import TreatmentMatricesAccordion from "@/components/admin/TreatmentMatricesAccordion";
+
+// CustomerPickerModal (Save As New, BS1-05 task 7) calls useQuery directly
+// (unlike every other hook in this component, which is mocked below) — it
+// needs a real QueryClientProvider in the tree even though its query is
+// gated by enabled:false until the modal opens.
+const renderAccordion = (props: React.ComponentProps<typeof TreatmentMatricesAccordion>) => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <TreatmentMatricesAccordion {...props} />
+    </QueryClientProvider>
+  );
+};
 
 const mockUseAdminRole = vi.fn();
 const mockToast = vi.fn();
@@ -94,16 +108,16 @@ describe("TreatmentMatricesAccordion", () => {
       isAdmin: true,
     });
 
-    render(<TreatmentMatricesAccordion versionId={1} showUSD={false} fxRate={1} />);
+    renderAccordion({ versionId: 1, showUSD: false, fxRate: 1 });
 
     expect(screen.getByRole("button", { name: /unlock structure editing/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /add grouping/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add group/i })).not.toBeInTheDocument();
     expect(screen.queryByTitle("Move grouping up")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /unlock structure editing/i }));
 
     expect(screen.getByRole("button", { name: /lock structure editing/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /add grouping/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /add group/i })).toBeInTheDocument();
     expect(screen.getAllByTitle("Move grouping up").length).toBeGreaterThan(0);
   });
 
@@ -112,10 +126,10 @@ describe("TreatmentMatricesAccordion", () => {
       isAdmin: false,
     });
 
-    render(<TreatmentMatricesAccordion versionId={1} showUSD={false} fxRate={1} />);
+    renderAccordion({ versionId: 1, showUSD: false, fxRate: 1 });
 
     expect(screen.queryByRole("button", { name: /unlock structure editing/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /add grouping/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add group/i })).not.toBeInTheDocument();
     expect(screen.queryByTitle("Move grouping up")).not.toBeInTheDocument();
   });
 });
