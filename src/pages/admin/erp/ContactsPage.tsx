@@ -14,8 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToastAction } from "@/components/ui/toast";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink } from "lucide-react";
+import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink, BookOpenCheck, UserPlus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AccessDeploymentAssistantDialog } from "@/components/admin/AccessDeploymentAssistantDialog";
+import { AccessDeploymentTrainingDialog, hasCompletedAccessDeploymentTraining } from "@/components/admin/AccessDeploymentTrainingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -385,6 +387,13 @@ const ContactsPage = ({
   const [isImportPreviewOpen, setIsImportPreviewOpen] = useState(false);
   const [importPreviewRows, setImportPreviewRows] = useState<ImportPreviewRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [isAccessDeploymentOpen, setIsAccessDeploymentOpen] = useState(false);
+  const [isAccessTrainingOpen, setIsAccessTrainingOpen] = useState(false);
+  const [showAccessTrainingNudge, setShowAccessTrainingNudge] = useState(false);
+
+  useEffect(() => {
+    setShowAccessTrainingNudge(!hasCompletedAccessDeploymentTraining());
+  }, []);
 
   const { data: importedCustomers = [], isLoading: isLoadingImportedCustomers } = useQuery({
     queryKey: ["erp-imported-customers"],
@@ -1780,6 +1789,12 @@ const ContactsPage = ({
           <AdminPageHeader icon={Building2} title="Contacts" />
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => setIsAccessTrainingOpen(true)}>
+            <BookOpenCheck className="h-3.5 w-3.5" /> Access training
+          </Button>
+          <Button size="sm" className="h-8 text-xs gap-1" style={{ background: "hsl(215 65% 27%)", color: "white" }} onClick={() => setIsAccessDeploymentOpen(true)}>
+            <UserPlus className="h-3.5 w-3.5" /> Deploy access
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Import CSV" onClick={importCsv} disabled={isImporting}>
               <Upload className="h-4 w-4" />
             </Button>
@@ -1821,6 +1836,13 @@ const ContactsPage = ({
           </DropdownMenu>
         </div>
       </div>
+
+      {showAccessTrainingNudge ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+          <div><span className="font-medium">New to access deployment?</span> Practise safe scenarios first, then use the assistant to deploy a real contact.</div>
+          <div className="flex items-center gap-2"><Button size="sm" variant="outline" className="border-sky-300 bg-white" onClick={() => setIsAccessTrainingOpen(true)}>Start training</Button><Button size="sm" variant="ghost" className="text-sky-900" onClick={() => setShowAccessTrainingNudge(false)}>Dismiss</Button></div>
+        </div>
+      ) : null}
 
       {/* Filter bar */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -2654,6 +2676,22 @@ const ContactsPage = ({
           })()}
         </DialogContent>
       </Dialog>
+      <AccessDeploymentAssistantDialog
+        contacts={contacts}
+        open={isAccessDeploymentOpen}
+        onOpenChange={setIsAccessDeploymentOpen}
+        onEditContact={openEdit}
+        onOpenTraining={() => setIsAccessTrainingOpen(true)}
+        onCreateContact={({ name, email }) => {
+          openNew(false);
+          setEditContact((current) => current ? { ...current, name, email } : current);
+        }}
+      />
+      <AccessDeploymentTrainingDialog
+        open={isAccessTrainingOpen}
+        onOpenChange={setIsAccessTrainingOpen}
+        onTrainingComplete={() => setShowAccessTrainingNudge(false)}
+      />
       <AlertDialog open={bulkAction !== null} onOpenChange={(open) => !open && setBulkAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-19
+- Area: Admin → Contacts → Deploy access
+- Impact: customer and staff access could require switching between Contacts, Users, and Website Portals, making it easy to miss an email, select the wrong account, or auto-link an existing sign-in without an explicit decision.
+- Resolution: added a single Contacts-first deployment assistant with explicit account/login/role choices, verification and statement-tag guidance, contact-only no-match intake, safe training scenarios, and a context-preserving operations follow-up template.
+- Follow-up: preserve the explicit-link confirmation whenever access provisioning changes; new exception patterns should become training prompts or Wiki guidance rather than extra manual navigation.
+
 ## 2026-07-18
 - Area: Admin → Settings → Integrations
 - Impact: gateway errors could remain visible after a configuration was repaired because the test operation did not persist its outcome; Innovations duplicate warnings had no manual refresh path.

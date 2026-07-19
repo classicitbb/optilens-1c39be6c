@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-19 — Contacts Access Deployment Assistant
+
+### Release Notes
+- Admins can open **Deploy access** from Contacts to provision customer portal or internal staff access without navigating among Contacts, Users, and Website Portals.
+- The flow searches by person, email, or account number; it never silently chooses a customer or links an existing login.
+- **Access training** provides first-use sandbox scenarios, exception guidance, and an operations follow-up template.
+
 ## 2026-07-18 — Integration Status Recovery and Dependency Refresh
 
 ### Release Notes

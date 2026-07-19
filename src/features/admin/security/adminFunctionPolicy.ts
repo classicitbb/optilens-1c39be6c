@@ -5,6 +5,7 @@ export const ADMIN_FUNCTION_ACTIONS = [
   "reset-password",
   "invite-user",
   "create-user",
+  "link-customer-portal-account",
 ] as const;
 
 export type AdminFunctionAction = (typeof ADMIN_FUNCTION_ACTIONS)[number];
@@ -72,6 +73,14 @@ const assertContactId = (value: unknown) => {
   return contactId;
 };
 
+const assertUserId = (value: unknown) => {
+  const userId = assertString(value, "userId");
+  if (!UUID_RE.test(userId)) {
+    throw new AdminActionPolicyError("userId must be a valid user id.");
+  }
+  return userId;
+};
+
 export interface AdminActionValidationInput {
   actorRole: AppRole | null;
   action: string;
@@ -117,6 +126,22 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
         displayName,
         ...(customerId !== undefined ? { customerId } : {}),
         ...(contactId !== undefined ? { contactId } : {}),
+      };
+      }
+    case "link-customer-portal-account":
+      {
+      const customerId = assertCustomerId(payload.customerId);
+      const contactId = assertContactId(payload.contactId);
+      const displayName = assertDisplayName(payload.displayName);
+      if (!customerId) {
+        throw new AdminActionPolicyError("customerId is required when linking a portal account.");
+      }
+      return {
+        action: "link-customer-portal-account" as const,
+        userId: assertUserId(payload.userId),
+        customerId,
+        ...(contactId !== undefined ? { contactId } : {}),
+        ...(displayName !== undefined ? { displayName } : {}),
       };
       }
   }

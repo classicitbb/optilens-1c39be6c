@@ -11,6 +11,7 @@ export interface AdminUser {
   role: AppRole | null;
   role_id: string | null;
   created_at: string | null;
+  email_confirmed_at: string | null;
 }
 
 export const useAdminUsers = () => {
@@ -29,9 +30,9 @@ export const useAdminUsers = () => {
       if (pErr) throw pErr;
       if (rErr) throw rErr;
 
-      let authUsers: { id: string; email: string; created_at: string }[] = [];
+      let authUsers: { id: string; email: string; created_at: string; email_confirmed_at: string | null }[] = [];
       try {
-        const data = await callAdminUserManagement<{ id: string; email: string; created_at: string }[]>(
+        const data = await callAdminUserManagement<{ id: string; email: string; created_at: string; email_confirmed_at: string | null }[]>(
           validateAdminFunctionRequest({ actorRole: role, action: "list-users" })
         );
         if (Array.isArray(data)) authUsers = data;
@@ -59,6 +60,7 @@ export const useAdminUsers = () => {
           role: (role?.role as AppRole) ?? null,
           role_id: role?.id ?? null,
           created_at: auth?.created_at ?? null,
+          email_confirmed_at: auth?.email_confirmed_at ?? null,
         } satisfies AdminUser;
       }).sort((left, right) => {
         const leftLabel = (left.display_name || left.email || left.user_id).toLowerCase();
@@ -105,7 +107,7 @@ export const useAdminUsers = () => {
 
   const inviteUser = useMutation({
     mutationFn: async ({ email, customerId, contactId, displayName }: { email: string; customerId?: number; contactId?: string; displayName?: string }) => {
-      await callAdminUserManagement(
+      return callAdminUserManagement<{ success: boolean; alreadyExisted?: boolean; userId?: string }>(
         validateAdminFunctionRequest({ actorRole: role, action: "invite-user", payload: { email, customerId, contactId, displayName } })
       );
     },
@@ -121,5 +123,14 @@ export const useAdminUsers = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
-  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser };
+  const linkCustomerPortalAccount = useMutation({
+    mutationFn: async ({ userId, customerId, contactId, displayName }: { userId: string; customerId: number; contactId?: string; displayName?: string }) => {
+      await callAdminUserManagement(
+        validateAdminFunctionRequest({ actorRole: role, action: "link-customer-portal-account", payload: { userId, customerId, contactId, displayName } })
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
+  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser, linkCustomerPortalAccount };
 };

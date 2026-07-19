@@ -115,6 +115,21 @@ describe("admin function policy", () => {
     });
   });
 
+  it("requires an explicit existing-login link to name both records", () => {
+    const userId = "6a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
+    const contactId = "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
+    expect(validateAdminFunctionRequest({
+      actorRole: "admin",
+      action: "link-customer-portal-account",
+      payload: { userId, customerId: 42, contactId, displayName: "Customer Contact" },
+    })).toEqual({ action: "link-customer-portal-account", userId, customerId: 42, contactId, displayName: "Customer Contact" });
+    expect(() => validateAdminFunctionRequest({
+      actorRole: "admin",
+      action: "link-customer-portal-account",
+      payload: { userId, customerId: 0 },
+    })).toThrow("customerId must be a positive integer");
+  });
+
   it("rejects an invalid ERP customer identifier", () => {
     expect(() =>
       validateAdminFunctionRequest({

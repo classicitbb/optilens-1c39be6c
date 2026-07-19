@@ -1,16 +1,17 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-18T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-19T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Administrators can recheck the payment gateway and clear a stale error only after a successful zero-impact credential test.",
-    "Innovations sync status can be refreshed on demand; duplicate account-number links disappear from the warning once the underlying records are resolved."
+    "Admins can open **Deploy access** from Contacts to provision customer portal or internal staff access without navigating among Contacts, Users, and Website Portals.",
+    "The flow searches by person, email, or account number; it never silently chooses a customer or links an existing login.",
+    "**Access training** provides first-use sandbox scenarios, exception guidance, and an operations follow-up template."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Integration Status Recovery and Dependency Refresh."
+      "notes": "Updated as part of Contacts Access Deployment Assistant."
     }
   ],
   "migrationNotes": [

@@ -145,6 +145,7 @@ const allowedActions = new Set([
   "set-password",
   "invite-user",
   "create-user",
+  "link-customer-portal-account",
 ]);
 
 Deno.serve(async (req) => {
@@ -191,6 +192,7 @@ Deno.serve(async (req) => {
         id: u.id,
         email: u.email,
         created_at: u.created_at,
+        email_confirmed_at: u.email_confirmed_at,
       }));
       return jsonResponse(req, 200, result);
     }
@@ -281,7 +283,7 @@ Deno.serve(async (req) => {
         await triggerCustomerOnboarding(req, inviteData.user.id, email, displayName);
       }
 
-      return jsonResponse(req, 200, { success: true });
+      return jsonResponse(req, 200, { success: true, userId: inviteData?.user?.id });
     }
 
     if (action === "create-user") {
@@ -340,6 +342,18 @@ Deno.serve(async (req) => {
       }
 
       return jsonResponse(req, 200, { success: true, userId: newUser?.user?.id });
+    }
+
+    if (action === "link-customer-portal-account") {
+      const { userId, customerId, contactId, displayName } = body;
+      if (!userId || !Number.isInteger(customerId) || customerId <= 0) {
+        return jsonResponse(req, 400, { error: "userId and a valid customerId are required" });
+      }
+      const { data: existing, error: lookupError } = await adminClient.auth.admin.getUserById(userId);
+      if (lookupError) throw lookupError;
+      if (!existing?.user) return jsonResponse(req, 404, { error: "The selected login no longer exists" });
+      await linkCustomerPortalAccount(adminClient, userId, customerId, displayName, contactId);
+      return jsonResponse(req, 200, { success: true });
     }
 
     return jsonResponse(req, 400, { error: "Unhandled action" });

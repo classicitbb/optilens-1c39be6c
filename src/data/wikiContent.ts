@@ -1465,6 +1465,39 @@ The Users page manages all user accounts with role assignments and access contro
 - Customer users must always be tied to a customer record to ensure they only see their assigned pricelists`,
       },
       {
+        id: "access-deployment-training-guide",
+        title: "Access Deployment Training",
+        content: `## Start in Contacts
+
+Use **Deploy access** in Contacts to set up a customer portal login or an internal staff user. The assistant starts with a search by person, email, or Innovations account number, then shows the contact, customer account, and any existing login it found.
+
+It never chooses an account or silently links a login. Select the right records before deployment.
+
+## Customer portal access
+
+1. Select the customer contact.
+2. Choose **Customer portal** and select the primary customer account.
+3. If a login already uses the contact email, choose **Link this login** or **Leave unchanged**.
+4. If no login exists, send an invite or set a temporary password.
+5. Approve portal access only after checking the customer link and email.
+
+An unverified login can be prepared and linked, but access unlocks only after the person verifies their email. Statement access also requires an Owner, CEO, or Buyer tag.
+
+## Internal staff access
+
+Choose **Internal staff**, then explicitly select Admin, Operator, or Viewer. The assistant does not suggest a role because this is a business decision.
+
+## Exceptions and safe escalation
+
+Add a missing email in the contact before creating a login. When more than one account is found, choose the primary account yourself. If a contact and customer account are incompatible, correct the link first; do not force it.
+
+Use **Access training** for sandbox practice and its Operations follow-up template. The template keeps the search, records found, missing decision, and attempted action together so another operator can resolve the case without repeating the investigation.
+
+## Sync protection
+
+Innovations sync can fill empty CRM fields. It must not overwrite a populated CRM contact field. Review the contact record when a synced value is missing or conflicts with an edited value.`,
+      },
+      {
         id: "roles-permissions-guide",
         title: "Roles and Permissions",
         content: `## Overview

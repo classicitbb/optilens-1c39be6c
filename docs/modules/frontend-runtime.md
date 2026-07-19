@@ -2,6 +2,12 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-07-19 — Contacts access deployment
+
+- `ContactsPage` exposes the Contacts-first **Deploy access** dialog and first-use training nudge. The assistant searches CRM contacts and ERP customer accounts, deliberately surfaces account ambiguity, and routes no-match cases to contact-only creation.
+- `AccessDeploymentAssistantDialog` can link a chosen existing login, send an invite, set a temporary password, assign an explicitly selected internal role, and optionally approve portal access after the customer link is confirmed.
+- `admin-user-management` now returns login verification state and supports the explicit `link-customer-portal-account` action. The client request policy requires an admin, UUID-shaped user/contact IDs, and a positive customer ID.
+
 ## 2026-07-18 — Integration status recovery
 
 - `IntegrationsPage` persists the outcome of its zero-impact Scotia credential/hash test through `record_payment_gateway_test`; a successful test clears a stale error badge and a failed test records an error timestamp.

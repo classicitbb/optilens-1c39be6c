@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-19 — Contacts Access Deployment Assistant
+
+### Release Notes
+- Contacts now provides one guided entry point for customer portal access and internal staff access, with safe sandbox training available before a live deployment.
+- The assistant finds contacts, customer accounts, and existing logins, then asks for only the account, login, and role decisions that require human confirmation.
+
+### Technical Changelog
+- Added a protected explicit existing-login/customer-link action, verified-email context, and a contacts-first workflow for invite, temporary-password, and role-assignment deployment.
+- Published contextual Wiki guidance and an operations follow-up template for missing data, conflicting links, and failed deployments.
+
 ## 2026-07-18 — Integration Status Recovery and Dependency Refresh
 
 ### Release Notes
