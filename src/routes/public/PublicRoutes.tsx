@@ -13,6 +13,7 @@ const BlogPostPage = lazy(() => import("@/pages/BlogPostPage"));
 const CompanionAssistantWindowPage = lazy(() => import("@/pages/assistant/CompanionAssistantWindowPage"));
 const OpticalRetailWebsitesPage = lazy(() => import("@/pages/OpticalRetailWebsitesPage"));
 const RxLabServicesPage = lazy(() => import("@/pages/RxLabServicesPage"));
+const LensAssistantPage = lazy(() => import("@/pages/LensAssistantPage"));
 const LabLinkEmbedPage = lazy(() => import("@/pages/LabLinkEmbedPage"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
@@ -87,6 +88,7 @@ const PublicRoutes = () => (
     <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
     <Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
+    <Route path="lens-assistant" element={<LensAssistantPage />} />
     <Route
       path="rx-order"
       element={

@@ -5,6 +5,7 @@ import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { usePublicKnowledge } from "@/hooks/useContentArticles";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { fetchCustomerCommandCenter } from "@/features/portal/customerCommandCenter";
 import { resolveUserFullName } from "@/lib/profileData";
 import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
@@ -49,14 +50,14 @@ const getStarterActions = (pathname: string): AssistantQuickAction[] =>
   pathname.startsWith("/profile")
     ? [
         { type: "query", label: "Find a retailer", query: "Help me find a retailer in the Caribbean.", profile: "retailer_help" },
-        { type: "query", label: "Compare lenses", query: "Help me compare lens options for different routines." },
+        { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=professional" },
         { type: "web_search", label: "Search the web", query: "Latest trends in progressive lens technology" },
         { type: "form", label: "Get support", profile: "portal_support" },
         { type: "link", label: "Track an order", href: "/profile/orders" },
       ]
     : [
         { type: "query", label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" },
-        { type: "query", label: "Compare lenses", query: "Help me compare Classic Visions lens options." },
+        { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=patient" },
         { type: "web_search", label: "Search the web", query: "Best lens coatings for digital screen use" },
         { type: "form", label: "Get support", profile: "customer_support" },
         { type: "link", label: "Contact us", href: "/#contact" },
@@ -369,6 +370,66 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       return;
     }
 
+    const normalizedPortalQuery = trimmedQuery.toLowerCase();
+    const asksForPrivateAccountData = Boolean(user) && /\b(my|account|order|job|balance|statement|invoice|draft|pricelist|price|support|warranty|remake|purchase order|patient)\b/.test(normalizedPortalQuery);
+    if (asksForPrivateAccountData) {
+      setIsSubmitting(true);
+      try {
+        const account = await fetchCustomerCommandCenter();
+        let text = "I can help with the customer information currently available to this signed-in account.";
+        let quickActions: AssistantQuickAction[] = [];
+
+        if (/patient|purchase order|\bpo\b|job number|lablink job/.test(normalizedPortalQuery)) {
+          text = "I cannot search Innovations or LabLink jobs by patient name, purchase order, or job number yet. That read-only job feed is not connected to the website. Use LabLink tracking for the current source of truth, or create a support request with the reference you have.";
+          quickActions = [
+            { type: "link", label: "Open LabLink tracking", href: "/rx-job-status" },
+            { type: "form", label: "Prepare support request", profile: "portal_support" },
+          ];
+        } else if (/balance|statement|invoice/.test(normalizedPortalQuery)) {
+          const balance = Number(account.balance?.current_balance ?? account.latestStatement?.closing_balance ?? 0);
+          text = `Your latest available account balance is BBD $${balance.toFixed(2)}. ${account.latestStatement ? "A statement is available in your account." : "No statement is currently available from the connected source."}`;
+          quickActions = [
+            { type: "link", label: "View statements", href: "/profile/statements" },
+            { type: "form", label: "Ask accounts for help", profile: "portal_support" },
+          ];
+        } else if (/draft|reorder|repeat/.test(normalizedPortalQuery)) {
+          text = `You have ${account.drafts.length} saved draft${account.drafts.length === 1 ? "" : "s"}. Rx drafts are not submitted orders until you complete the final step in LabLink.`;
+          quickActions = [
+            { type: "link", label: "Open saved drafts", href: "/profile/drafts" },
+            { type: "link", label: "Start lens assistant", href: "/lens-assistant?audience=professional" },
+          ];
+        } else if (/pricelist|price/.test(normalizedPortalQuery)) {
+          text = account.pricelist
+            ? `Your assigned customer pricelist is ${account.pricelist.name}. Product prices are shown only when that pricelist contains an approved matching row.`
+            : "No customer pricelist is assigned to this account yet, so I will not invent or substitute a price.";
+          quickActions = [
+            { type: "link", label: "View assigned pricing", href: "/profile/pricelists" },
+            { type: "link", label: "Find a lens", href: "/lens-assistant?audience=professional" },
+          ];
+        } else if (/support|warranty|remake/.test(normalizedPortalQuery)) {
+          text = `You have ${account.tickets.filter((ticket) => !ticket.closedAt).length} open support request${account.tickets.filter((ticket) => !ticket.closedAt).length === 1 ? "" : "s"}. I can prepare a new request, but I will ask for confirmation before it is submitted.`;
+          quickActions = [
+            { type: "link", label: "Open helpdesk", href: "/profile/helpdesk" },
+            { type: "form", label: "Prepare support request", profile: "portal_support" },
+          ];
+        } else {
+          const activeOrders = account.orders.filter((order) => ["draft", "pending", "pending_payment", "confirmed", "processing", "shipped"].includes(order.status));
+          text = `You have ${activeOrders.length} website order${activeOrders.length === 1 ? "" : "s"} in progress. LabLink Rx jobs are not included in that count, and I cannot invent an ETA that the source does not provide.`;
+          quickActions = [
+            { type: "link", label: "View website orders", href: "/profile/orders" },
+            { type: "link", label: "Open LabLink tracking", href: "/rx-job-status" },
+          ];
+        }
+
+        lastQueryRef.current = trimmedQuery;
+        negativeFeedbackRef.current = false;
+        setMessages((current) => [...current, { id: createId("assistant"), role: "assistant", kind: "text", text, quickActions }]);
+        return;
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+
     const conversation = messages
       .filter((message): message is Extract<AssistantMessage, { kind: "text" | "user" }> => message.kind === "text" || message.kind === "user")
       .slice(-5)
@@ -425,7 +486,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [corpus, messages, pathname]);
+  }, [corpus, messages, pathname, user]);
 
   const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile) => {
     await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile);
