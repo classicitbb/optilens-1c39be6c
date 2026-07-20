@@ -8565,6 +8565,10 @@ export type Database = {
         Args: { p_feature_key?: string; p_user_id?: string }
         Returns: boolean
       }
+      can_access_customer_pricing: {
+        Args: { p_user_id?: string }
+        Returns: boolean
+      }
       can_access_customer_statement: {
         Args: { p_user_id?: string }
         Returns: boolean
@@ -8848,6 +8852,13 @@ export type Database = {
           row_type: string
           section: string
           sort_order: number
+        }[]
+      }
+      portal_assigned_pricelist_details: {
+        Args: { p_customer_id?: number }
+        Returns: {
+          name: string
+          updated_at: string
         }[]
       }
       portal_assigned_pricelist_matrix: {
