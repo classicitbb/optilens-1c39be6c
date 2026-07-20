@@ -27,5 +27,7 @@ CREATE POLICY "Editors can manage website features"
 INSERT INTO public.website_features (key, label, description, enabled, notes) VALUES
   ('store_checkout', 'Store checkout', 'Allow customers to place web store orders. Off = browse-only storefront with ordering locked.', false, 'Locked until the store launch is approved.'),
   ('rx_order_form', 'Rx order form', 'Customer-facing Rx ordering with live price-as-you-type. Planned: reachable from pricelist rows ("Order this lens").', false, 'Design pending — see docs/CUSTOMER_EXPERIENCE_PLAN.md'),
-  ('pricelist_portal_publishing', 'Pricelist portal publishing', 'Publish customer pricelists to their portal with expiring access.', false, 'Blocked on master->custom pricelist fork model.')
+  ('pricelist_portal_publishing', 'Pricelist portal publishing', 'Publish customer pricelists to their portal with expiring access.', false, 'Blocked on master->custom pricelist fork model.'),
+  ('lens_assistant_public', 'Lens Assistant - public', 'Allow non-admin users to open the Lens Assistant from the portal and direct route.', false, 'Keep off until the customer-facing flow is approved.'),
+  ('lens_assistant_admin', 'Lens Assistant - admin', 'Allow admins to preview and test Lens Assistant while public access is disabled.', true, 'Admin-only preview flag for the profile command-center branch.')
 ON CONFLICT (key) DO NOTHING;

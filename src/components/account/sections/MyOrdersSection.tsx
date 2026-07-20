@@ -172,11 +172,12 @@ const MyOrdersSection = () => {
   // Under admin emulation the gateway must fetch the emulated customer's data,
   // not the admin's; staff-only override honored server-side.
   const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
+  const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null };
   const [innovationsSearch, setInnovationsSearch] = useState("");
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
     enabled: canSeeLiveOrderStatus && typeof identity?.crmCustomerId === "number",
-    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal, websiteCustomerId }),
+    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal, websiteCustomerId, localFallbackTarget }),
     staleTime: 30_000,
     retry: 1,
   });
@@ -186,7 +187,7 @@ const MyOrdersSection = () => {
     queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>(
       "optilens.customer_deliveries",
       { include_open: true, closed_since: format(subDays(new Date(), 45), "yyyy-MM-dd") },
-      { signal, websiteCustomerId },
+      { signal, websiteCustomerId, localFallbackTarget },
     ),
     staleTime: 30_000,
     retry: 1,

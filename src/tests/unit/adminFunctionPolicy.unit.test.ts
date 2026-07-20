@@ -128,6 +128,16 @@ describe("admin function policy", () => {
       action: "link-customer-portal-account",
       payload: { userId, customerId: 0 },
     })).toThrow("customerId must be a positive integer");
+    expect(() => validateAdminFunctionRequest({
+      actorRole: "admin",
+      action: "link-customer-portal-account",
+      payload: { userId },
+    })).toThrow("customerId is required when linking a portal account");
+    expect(() => validateAdminFunctionRequest({
+      actorRole: "admin",
+      action: "link-customer-portal-account",
+      payload: { userId: "not-a-user-id", customerId: 42 },
+    })).toThrow("userId must be a valid user id");
   });
 
   it("rejects an invalid ERP customer identifier", () => {

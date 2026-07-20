@@ -329,6 +329,9 @@ const StatementsSection = () => {
   const crmCustomerId = identity?.crmCustomerId ?? null;
   // Under admin emulation the gateway must serve the emulated customer's data.
   const websiteCustomerId = emulation && typeof crmCustomerId === "number" ? crmCustomerId : undefined;
+  const localFallbackTarget = {
+    accountNumber: identity?.accountNumber ?? null,
+  };
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
@@ -339,7 +342,7 @@ const StatementsSection = () => {
   const liveAccountQuery = useQuery({
     queryKey: ["live-innovations-customer-account", crmCustomerId],
     enabled: typeof crmCustomerId === "number",
-    queryFn: ({ signal }) => requestLiveData<LiveAccountResponse>("innovations.customer_account", {}, { signal, websiteCustomerId }),
+    queryFn: ({ signal }) => requestLiveData<LiveAccountResponse>("innovations.customer_account", {}, { signal, websiteCustomerId, localFallbackTarget }),
     staleTime: 30_000,
     retry: 1,
   });
@@ -360,7 +363,7 @@ const StatementsSection = () => {
     queryFn: ({ signal }) => requestLiveData<LiveStatementResponse>(
       "innovations.customer_statement",
       { statement_id: Number(activeStatementId) },
-      { signal, websiteCustomerId },
+      { signal, websiteCustomerId, localFallbackTarget },
     ),
     staleTime: 30_000,
     retry: 1,
