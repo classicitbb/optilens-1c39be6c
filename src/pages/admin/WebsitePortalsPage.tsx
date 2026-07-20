@@ -118,6 +118,7 @@ interface PortalCustomerDetail extends PortalCustomerListItem {
 interface PortalAccountRecord {
   id: string;
   portalUser: PortalCustomerListItem | null;
+  linkedPortalUsers: PortalCustomerListItem[];
   crmCustomerId: number | null;
   crmContactId: string | null;
   accountNumber: string | null;
@@ -126,6 +127,15 @@ interface PortalAccountRecord {
   phone: string;
   organizationName: string;
   isErpCustomer: boolean;
+}
+
+interface ContactLookupRow {
+  id: string;
+  email: string | null;
+  phone: string | null;
+  linked_customer_id: number | null;
+  parent_id: string | null;
+  innovations_parent_customer_id: number | null;
 }
 
 const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements"] as const;
@@ -219,26 +229,76 @@ const WebsitePortalsPage = () => {
 
       const erpCustomerRows = (erpCustomers ?? []) as Array<Record<string, any>>;
       const erpCustomerIds = erpCustomerRows.map((customer) => Number(customer.id)).filter(Number.isFinite);
+      const innovationsCustomerIds = erpCustomerRows
+        .map((customer) => Number(customer.innovations_customer_id))
+        .filter(Number.isFinite);
       const directContactIds = erpCustomerRows
         .map((customer) => typeof customer.contact_id === "string" ? customer.contact_id : null)
         .filter((id): id is string => !!id);
-      const [{ data: directContactRows, error: directContactError }, { data: resolvedContactRows, error: resolvedContactError }] = await Promise.all([
+      const [
+        { data: directContactRows, error: directContactError },
+        { data: linkedCustomerContactRows, error: linkedCustomerContactError },
+        { data: innovationsParentContactRows, error: innovationsParentContactError },
+        { data: parentContactRows, error: parentContactError },
+      ] = await Promise.all([
         directContactIds.length
           ? (supabase as any).from("contacts").select("id,email,phone").in("id", directContactIds)
           : Promise.resolve({ data: [], error: null }),
         erpCustomerIds.length
-          ? (supabase as any).from("contacts").select("id,email,phone,linked_customer_id").in("linked_customer_id", erpCustomerIds)
+          ? (supabase as any).from("contacts").select("id,email,phone,linked_customer_id,parent_id,innovations_parent_customer_id").in("linked_customer_id", erpCustomerIds)
+          : Promise.resolve({ data: [], error: null }),
+        innovationsCustomerIds.length
+          ? (supabase as any).from("contacts").select("id,email,phone,linked_customer_id,parent_id,innovations_parent_customer_id").in("innovations_parent_customer_id", innovationsCustomerIds)
+          : Promise.resolve({ data: [], error: null }),
+        directContactIds.length
+          ? (supabase as any).from("contacts").select("id,email,phone,linked_customer_id,parent_id,innovations_parent_customer_id").in("parent_id", directContactIds)
           : Promise.resolve({ data: [], error: null }),
       ]);
       if (directContactError) throw directContactError;
-      if (resolvedContactError) throw resolvedContactError;
+      if (linkedCustomerContactError) throw linkedCustomerContactError;
+      if (innovationsParentContactError) throw innovationsParentContactError;
+      if (parentContactError) throw parentContactError;
 
       const directContactById = new Map(((directContactRows ?? []) as Array<Record<string, any>>).map((contact) => [String(contact.id), contact]));
-      const resolvedContactByCustomerId = new Map(
-        ((resolvedContactRows ?? []) as Array<Record<string, any>>)
-          .filter((contact) => typeof contact.linked_customer_id === "number")
-          .map((contact) => [Number(contact.linked_customer_id), contact]),
-      );
+      const customerIdByInnovationsId = new Map<number, number>();
+      const customerIdByContactId = new Map<string, number>();
+      const customerIdByParentContactId = new Map<string, number>();
+      for (const erpCustomer of erpCustomerRows) {
+        const customerId = Number(erpCustomer.id);
+        if (typeof erpCustomer.contact_id === "string") {
+          customerIdByContactId.set(erpCustomer.contact_id, customerId);
+          customerIdByParentContactId.set(erpCustomer.contact_id, customerId);
+        }
+        const innovationsCustomerId = Number(erpCustomer.innovations_customer_id);
+        if (Number.isFinite(innovationsCustomerId)) customerIdByInnovationsId.set(innovationsCustomerId, customerId);
+      }
+      const resolvedContactById = new Map<string, ContactLookupRow>();
+      for (const contact of [
+        ...((linkedCustomerContactRows ?? []) as ContactLookupRow[]),
+        ...((innovationsParentContactRows ?? []) as ContactLookupRow[]),
+        ...((parentContactRows ?? []) as ContactLookupRow[]),
+      ]) {
+        if (typeof contact.id === "string") resolvedContactById.set(contact.id, contact);
+      }
+      const resolveCustomerIdForContact = (contact: ContactLookupRow) => {
+        if (typeof contact.linked_customer_id === "number" && erpCustomerIds.includes(contact.linked_customer_id)) return contact.linked_customer_id;
+        if (typeof contact.innovations_parent_customer_id === "number") {
+          const customerId = customerIdByInnovationsId.get(contact.innovations_parent_customer_id);
+          if (typeof customerId === "number") return customerId;
+        }
+        if (typeof contact.parent_id === "string") {
+          const customerId = customerIdByParentContactId.get(contact.parent_id);
+          if (typeof customerId === "number") return customerId;
+        }
+        return null;
+      };
+      const resolvedContacts = Array.from(resolvedContactById.values())
+        .map((contact) => ({ contact, customerId: resolveCustomerIdForContact(contact) }))
+        .filter((entry): entry is { contact: ContactLookupRow; customerId: number } => typeof entry.customerId === "number");
+      const resolvedContactByCustomerId = new Map(resolvedContacts.map(({ contact, customerId }) => [customerId, contact]));
+      for (const contact of resolvedContacts) {
+        if (typeof contact.contact.id === "string") customerIdByContactId.set(contact.contact.id, contact.customerId);
+      }
 
       const profileMap = new Map(
         ((data ?? []) as Record<string, any>[]).map((row) => [
@@ -313,6 +373,7 @@ const WebsitePortalsPage = () => {
           return {
             id: `user:${entry.user_id}`,
             portalUser,
+            linkedPortalUsers: [],
             crmCustomerId: portalUser.crmCustomerId,
             crmContactId: portalUser.crmContactId,
             accountNumber: null,
@@ -329,6 +390,22 @@ const WebsitePortalsPage = () => {
       for (const account of portalAccounts) {
         if (account.crmCustomerId) accountByCustomerId.set(account.crmCustomerId, account);
       }
+      const linkedPortalUsersByCustomerId = new Map<number, PortalCustomerListItem[]>();
+      for (const account of portalAccounts) {
+        const portalUser = account.portalUser;
+        if (!portalUser) continue;
+        const relatedCustomerIds = new Set<number>();
+        if (typeof portalUser.crmCustomerId === "number") relatedCustomerIds.add(portalUser.crmCustomerId);
+        if (portalUser.crmContactId) {
+          const contactCustomerId = customerIdByContactId.get(portalUser.crmContactId);
+          if (typeof contactCustomerId === "number") relatedCustomerIds.add(contactCustomerId);
+        }
+        for (const customerId of relatedCustomerIds) {
+          const list = linkedPortalUsersByCustomerId.get(customerId) ?? [];
+          if (!list.some((entry) => entry.userId === portalUser.userId)) list.push(portalUser);
+          linkedPortalUsersByCustomerId.set(customerId, list);
+        }
+      }
 
       for (const erpCustomer of erpCustomerRows) {
         const customerId = Number(erpCustomer.id);
@@ -339,6 +416,7 @@ const WebsitePortalsPage = () => {
         const contactId = typeof linkedContact?.id === "string" ? linkedContact.id : directContactId;
         const existing = accountByCustomerId.get(customerId);
         if (existing) {
+          existing.linkedPortalUsers = linkedPortalUsersByCustomerId.get(customerId) ?? [];
           existing.accountNumber = typeof erpCustomer.account_number === "string" ? erpCustomer.account_number : null;
           existing.isErpCustomer = true;
           existing.crmContactId ||= contactId;
@@ -350,6 +428,7 @@ const WebsitePortalsPage = () => {
         portalAccounts.push({
           id: `erp:${customerId}`,
           portalUser: null,
+          linkedPortalUsers: linkedPortalUsersByCustomerId.get(customerId) ?? [],
           crmCustomerId: customerId,
           crmContactId: contactId,
           accountNumber: typeof erpCustomer.account_number === "string" ? erpCustomer.account_number : null,
@@ -386,7 +465,7 @@ const WebsitePortalsPage = () => {
   );
 
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null;
-  const selectedCustomer = selectedAccount?.portalUser ?? null;
+  const selectedCustomer = selectedAccount?.portalUser ?? (selectedAccount?.linkedPortalUsers.length === 1 ? selectedAccount.linkedPortalUsers[0] : null) ?? null;
 
   // Retain support for legacy links that identify a portal account in the URL.
   // Normal row clicks open the contact editor directly without route navigation.
@@ -400,14 +479,20 @@ const WebsitePortalsPage = () => {
   }, [contactEditor, selectedAccount, selectedAccountId]);
 
   const detailQuery = useQuery({
-    queryKey: ["website-portals-customer-detail", selectedCustomer?.userId],
+    queryKey: ["website-portals-customer-detail", selectedCustomer?.userId, selectedAccount?.crmCustomerId, selectedAccount?.accountNumber],
     enabled: !!selectedCustomer,
     queryFn: async () => {
       if (!selectedCustomer) return null;
 
-      await (supabase.rpc as any)("sync_customer_portal_identity", {
+      const { data: syncedIdentity, error: syncError } = await (supabase.rpc as any)("sync_customer_portal_identity", {
         p_user_id: selectedCustomer.userId,
       });
+      if (syncError) throw syncError;
+      const syncedRow = (Array.isArray(syncedIdentity) ? syncedIdentity[0] : syncedIdentity) as Record<string, any> | null;
+      const syncedCustomerId = typeof syncedRow?.crm_customer_id === "number" ? syncedRow.crm_customer_id : selectedCustomer.crmCustomerId ?? selectedAccount?.crmCustomerId ?? null;
+      const syncedContactId = typeof syncedRow?.crm_contact_id === "string" ? syncedRow.crm_contact_id : selectedCustomer.crmContactId;
+      const syncedPortalAccessStatus = typeof syncedRow?.portal_access_status === "string" ? syncedRow.portal_access_status : selectedCustomer.portalAccessStatus;
+      const syncedPortalAccessNote = typeof syncedRow?.portal_access_note === "string" ? syncedRow.portal_access_note : selectedCustomer.portalAccessNote;
 
       const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }, { data: canAccessStatements, error: statementsAccessError }] = await Promise.all([
         (supabase as any)
@@ -436,19 +521,19 @@ const WebsitePortalsPage = () => {
           .eq("contact_email", selectedCustomer.email)
           .order("created_at", { ascending: false })
           .limit(20),
-        selectedCustomer.crmContactId
+        syncedContactId
           ? (supabase as any)
               .from("helpdesk_tickets")
               .select("id,ticket_number,title,source_channel,created_at")
-              .eq("partner_contact_id", selectedCustomer.crmContactId)
+              .eq("partner_contact_id", syncedContactId)
               .order("created_at", { ascending: false })
               .limit(20)
           : Promise.resolve({ data: [], error: null }),
-        selectedCustomer.crmCustomerId
+        syncedCustomerId
           ? (supabase as any)
               .from("customers")
               .select("assigned_pricelist_id,account_number")
-              .eq("id", selectedCustomer.crmCustomerId)
+              .eq("id", syncedCustomerId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
         (supabase.rpc as any)("can_access_customer_statement", { p_user_id: selectedCustomer.userId }),
@@ -470,10 +555,14 @@ const WebsitePortalsPage = () => {
 
       return {
         ...selectedCustomer,
+        crmCustomerId: syncedCustomerId,
+        crmContactId: syncedContactId,
+        portalAccessStatus: syncedPortalAccessStatus,
+        portalAccessNote: syncedPortalAccessNote,
         featureOverrides,
         canAccessStatements: canAccessStatements === true,
         assignedPricelistId: typeof (customerRow as any)?.assigned_pricelist_id === "number" ? (customerRow as any).assigned_pricelist_id : null,
-        accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : null,
+        accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : selectedAccount?.accountNumber ?? null,
         cartItems: (cartRows ?? []) as PortalCustomerDetail["cartItems"],
         abandonedAlerts: (alerts ?? []) as PortalCustomerDetail["abandonedAlerts"],
         inquiries: (inquiries ?? []) as PortalCustomerDetail["inquiries"],
@@ -813,7 +902,36 @@ const WebsitePortalsPage = () => {
     setProvisioningPassword("");
   };
 
-  const portalSettings = !selectedAccount ? null : !selectedCustomer ? (
+  const portalSettings = !selectedAccount ? null : !selectedCustomer && selectedAccount.linkedPortalUsers.length > 0 ? (
+    <Card className="shadow-none hover:shadow-none">
+      <CardHeader>
+        <CardTitle>Company portal access</CardTitle>
+        <CardDescription>
+          This company account is accessed by linked person logins. Review each person's portal access before creating another login.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {selectedAccount.linkedPortalUsers.map((portalUser) => (
+          <div key={portalUser.userId} className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">{portalUser.fullName || portalUser.email}</p>
+              <p className="text-xs text-muted-foreground">{portalUser.email}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Badge variant={portalUser.crmCustomerId ? "default" : "secondary"}>
+                  {portalUser.crmCustomerId ? "Approved customer" : portalUser.portalAccessStatus.replace(/_/g, " ")}
+                </Badge>
+                <Badge variant="outline">{portalUser.presenceStatus}</Badge>
+                {portalUser.crmContactId ? <Badge variant="outline">Contact linked</Badge> : null}
+              </div>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setSelectedAccountId(`user:${portalUser.userId}`)}>
+              Review access
+            </Button>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  ) : !selectedCustomer ? (
     <Card className="shadow-none hover:shadow-none">
       <CardHeader>
         <CardTitle>Portal access</CardTitle>
@@ -935,6 +1053,7 @@ const WebsitePortalsPage = () => {
                 <tbody>
                   {accounts.map((account) => {
                     const user = account.portalUser;
+                    const linkedLoginCount = account.linkedPortalUsers.length;
                     return (
                       <ContextMenu key={account.id}>
                       <ContextMenuTrigger asChild>
@@ -973,6 +1092,8 @@ const WebsitePortalsPage = () => {
                                 <Eye className="mr-1 h-3 w-3" /> Emulate
                               </Button>
                             </span>
+                          ) : linkedLoginCount > 0 ? (
+                            <Badge variant="outline">{linkedLoginCount} linked</Badge>
                           ) : <Badge variant="secondary">Not created</Badge>}
                         </td>
                         <td className="px-4 py-3">
@@ -981,7 +1102,7 @@ const WebsitePortalsPage = () => {
                               <Badge variant={user.crmCustomerId ? "default" : "secondary"}>{user.crmCustomerId ? "Approved" : user.portalAccessStatus.replace(/_/g, " ")}</Badge>
                               {user.cartStatus === "abandoned" ? <Badge className="ml-1" variant="destructive">Cart alert</Badge> : null}
                             </span>
-                          ) : account.isErpCustomer ? <Badge variant="outline">Approved</Badge> : <Badge variant="secondary">Needs review</Badge>}
+                          ) : linkedLoginCount > 0 ? <Badge variant="outline">Company access</Badge> : account.isErpCustomer ? <Badge variant="outline">Approved</Badge> : <Badge variant="secondary">Needs review</Badge>}
                         </td>
                       </tr>
                       </ContextMenuTrigger>
@@ -990,7 +1111,7 @@ const WebsitePortalsPage = () => {
                         <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
                         <ContextMenuSeparator />
                         <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser}>Emulate</ContextMenuItem>
-                        <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser}>Create login</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser || linkedLoginCount > 0}>Create login</ContextMenuItem>
                       </ContextMenuContent>
                       </ContextMenu>
                     );
@@ -1010,6 +1131,40 @@ const WebsitePortalsPage = () => {
             <Card className="shadow-none hover:shadow-none">
               <CardContent className="flex min-h-[320px] items-center justify-center text-sm text-muted-foreground">
                 Select an account to review its ERP relationship, login readiness, and portal activity.
+              </CardContent>
+            </Card>
+          ) : !selectedCustomer && selectedAccount.linkedPortalUsers.length > 0 ? (
+            <Card className="min-h-[320px] shadow-none hover:shadow-none">
+              <CardHeader>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{selectedAccount.fullName || "ERP customer"}</CardTitle>
+                    <CardDescription>
+                      This company account is accessed by linked person logins. Open a person to review their portal access and allowed workflows.
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline">{selectedAccount.linkedPortalUsers.length} linked login(s)</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {selectedAccount.linkedPortalUsers.map((portalUser) => (
+                  <div key={portalUser.userId} className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{portalUser.fullName || portalUser.email}</p>
+                      <p className="text-xs text-muted-foreground">{portalUser.email}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Badge variant={portalUser.crmCustomerId ? "default" : "secondary"}>
+                          {portalUser.crmCustomerId ? "Approved customer" : portalUser.portalAccessStatus.replace(/_/g, " ")}
+                        </Badge>
+                        <Badge variant="outline">{portalUser.presenceStatus}</Badge>
+                        {portalUser.crmContactId ? <Badge variant="outline">Contact linked</Badge> : null}
+                      </div>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setSelectedAccountId(`user:${portalUser.userId}`)}>
+                      Review access
+                    </Button>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           ) : !selectedCustomer ? (
