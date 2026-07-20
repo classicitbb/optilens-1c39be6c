@@ -77,6 +77,16 @@ type ImportedCustomer = {
   updated_at: string | null;
 };
 
+type CustomerAccountRecord = {
+  id: number;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  account_number: string | null;
+  innovations_customer_id: number | null;
+  contact_id: string | null;
+};
+
 type SpeechRecognitionErrorCode = "aborted" | "audio-capture" | "bad-grammar" | "language-not-supported" | "network" | "no-speech" | "not-allowed" | "phrases-not-supported" | "service-not-allowed";
 
 type BrowserSpeechRecognition = {
@@ -436,7 +446,7 @@ const ContactsPage = ({
         .eq("contact_id", editContact.id as any)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
+      return data as CustomerAccountRecord | null;
     },
     enabled: !!editContact?.id,
   });
@@ -449,7 +459,7 @@ const ContactsPage = ({
         .eq("id", editContact.linked_customer_id as any)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
+      return data as CustomerAccountRecord | null;
     },
     enabled: typeof editContact?.linked_customer_id === "number",
   });
@@ -462,12 +472,16 @@ const ContactsPage = ({
         .eq("contact_id", editContact.parent_id as any)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
+      return data as CustomerAccountRecord | null;
     },
     enabled: !!editContact?.parent_id,
   });
-  const accountSettingsCustomer = linkedCustomerRecord ?? linkedErpAccount ?? parentCompanyCustomerRecord ?? null;
-  const accountSettingsIsInherited = !linkedCustomerRecord && (!!linkedErpAccount || !!parentCompanyCustomerRecord);
+  const inheritedAccountSettingsCustomer = linkedErpAccount ?? parentCompanyCustomerRecord ?? null;
+  const accountSettingsCustomer = editContact?.is_company
+    ? linkedCustomerRecord ?? inheritedAccountSettingsCustomer
+    : inheritedAccountSettingsCustomer ?? linkedCustomerRecord;
+  const accountSettingsUsesLinkedCompany = !editContact?.is_company && !!inheritedAccountSettingsCustomer;
+  const canEditAccountSettingsNumber = !!editContact && (editContact.is_company ? !!editContact.is_customer : !!editContact.id);
   const { data: linkedPortalProfile } = useQuery({
     queryKey: ["contact-linked-portal-profile", editContact?.id, accountSettingsCustomer?.id],
     queryFn: async () => {
@@ -1525,7 +1539,7 @@ const ContactsPage = ({
       return;
     }
 
-    const nextParentId = editContact.parent_id ?? null;
+    let nextParentId = editContact.parent_id ?? null;
     try {
       // If new contact, insert and get id back
       let contactId = editContact.id;
@@ -1575,7 +1589,7 @@ const ContactsPage = ({
       // Auto-create/sync customer record when is_customer is true. Also keeps
       // account_number in sync — this is the sole key that links a website
       // customer's account to their Innovations ERP account and statements.
-      if (editContact.is_customer && contactId) {
+      if (editContact.is_customer && editContact.is_company && contactId) {
         const normalizedAccountNumber = normalizeAccountNumberInput(accountNumber) || null;
         // Check if customer already linked
         const { data: existing } = await (supabase.from("customers") as any)
@@ -1600,6 +1614,49 @@ const ContactsPage = ({
         }
         if (customerId && normalizedAccountNumber !== (linkedCustomerRecord?.account_number ?? null)) {
           await assignCustomerAccountNumber(customerId, normalizedAccountNumber);
+        }
+      }
+
+      if (!editContact.is_company && contactId) {
+        const normalizedAccountNumber = normalizeAccountNumberInput(accountNumber);
+        const currentAccountNumber = normalizeAccountNumberInput(accountSettingsCustomer?.account_number);
+        if (normalizedAccountNumber && normalizedAccountNumber !== currentAccountNumber) {
+          const { data: matches, error: matchError } = await (supabase.from("customers") as any)
+            .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+            .eq("account_number", normalizedAccountNumber as any)
+            .limit(2);
+          if (matchError) throw matchError;
+
+          const targetCustomer = (matches?.[0] ?? null) as CustomerAccountRecord | null;
+          if (!targetCustomer) {
+            throw new Error(`${normalizedAccountNumber} is not an existing Innovations account number.`);
+          }
+
+          const targetContact = targetCustomer.contact_id
+            ? contacts.find((contact) => contact.id === targetCustomer.contact_id)
+            : null;
+          if (targetContact && !targetContact.is_company) {
+            throw new Error(`${normalizedAccountNumber} is linked to a person contact. Choose a company customer account.`);
+          }
+
+          const updatePayload: Record<string, unknown> = {
+            linked_customer_id: targetCustomer.id,
+            innovations_parent_customer_id: targetCustomer.innovations_customer_id ?? editContact.innovations_parent_customer_id ?? null,
+          };
+
+          if (targetContact && targetContact.id !== contactId) {
+            const targetParentValidation = canAssignParent(editContact, targetContact.id);
+            if (!targetParentValidation.ok) {
+              throw new Error(targetParentValidation.message ?? "This company link cannot be assigned.");
+            }
+            updatePayload.parent_id = targetContact.id;
+            nextParentId = targetContact.id;
+          }
+
+          const { error: linkError } = await (supabase.from("contacts") as any)
+            .update(updatePayload)
+            .eq("id", contactId as any);
+          if (linkError) throw linkError;
         }
       }
 
@@ -2407,7 +2464,7 @@ const ContactsPage = ({
                               )}
                             </p>
                             <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
-                              Auto-linked from Innovations sync. Read-only.
+                              Resolved from the company link or Innovations sync.
                             </p>
                           </div>
                         )}
@@ -2490,10 +2547,16 @@ const ContactsPage = ({
                             <div className="mt-4 space-y-3">
                               <div className="grid gap-3 sm:grid-cols-2">
                                 <div className="rounded-lg bg-muted/40 p-3">
-                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Innovations account</p>
+                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                    {accountSettingsUsesLinkedCompany ? "Linked company account" : "Innovations account"}
+                                  </p>
                                   <p className="mt-1 text-sm font-medium">{accountSettingsCustomer.name || editContact.name || "Unnamed account"}</p>
                                   <p className="mt-0.5 text-xs text-muted-foreground">
-                                    {accountSettingsCustomer.innovations_customer_id ? `Innovations ID ${accountSettingsCustomer.innovations_customer_id}` : "Innovations sync pending"}
+                                    {accountSettingsCustomer.account_number
+                                      ? `Account ${accountSettingsCustomer.account_number}`
+                                      : accountSettingsCustomer.innovations_customer_id
+                                        ? `Innovations ID ${accountSettingsCustomer.innovations_customer_id}`
+                                        : "Innovations sync pending"}
                                   </p>
                                 </div>
                                 <div className="rounded-lg bg-muted/40 p-3">
@@ -2503,7 +2566,7 @@ const ContactsPage = ({
                                 </div>
                               </div>
                               <div className="space-y-1.5">
-                                <Label htmlFor="account-settings-account-number" className="text-xs">Account number</Label>
+                                <Label htmlFor="account-settings-account-number" className="text-xs">Innovations account number</Label>
                                 <Input
                                   id="account-settings-account-number"
                                   name="account_number"
@@ -2512,14 +2575,16 @@ const ContactsPage = ({
                                   placeholder="e.g. RETAIL"
                                   value={accountNumber}
                                   onChange={(event) => setAccountNumber(event.target.value)}
-                                  disabled={accountSettingsIsInherited || !editContact.is_company || !editContact.is_customer}
+                                  disabled={!canEditAccountSettingsNumber}
                                 />
                                 <p className="text-[11px] text-muted-foreground">
-                                  {accountSettingsIsInherited
-                                    ? "Inherited from the linked company. Edit the company account to change it."
+                                  {!canEditAccountSettingsNumber
+                                    ? "Save the contact before linking an Innovations account."
+                                    : accountSettingsUsesLinkedCompany
+                                      ? "This person inherits company access from the linked company. Type another account number to link them to a different company."
                                     : editContact.is_company && editContact.is_customer
                                       ? "The only field that links this contact to Innovations and online statements."
-                                      : "Enable Customer and Company on Details to create or edit an ERP account link."}
+                                      : "Enable Customer on Details to create or edit a company ERP account link."}
                                 </p>
                               </div>
                               <div className="flex flex-wrap gap-2">
@@ -2542,8 +2607,30 @@ const ContactsPage = ({
                               </div>
                             </div>
                           ) : (
-                            <div className="mt-4 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-                              Save this contact as a customer to create the Innovations account link. A website login can be added later or invited from Website Portals.
+                            <div className="mt-4 space-y-3">
+                              {!editContact.is_company ? (
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="account-settings-account-number-empty" className="text-xs">Innovations account number</Label>
+                                  <Input
+                                    id="account-settings-account-number-empty"
+                                    name="account_number"
+                                    autoComplete="off"
+                                    className="h-8 text-xs"
+                                    placeholder="e.g. RETAIL"
+                                    value={accountNumber}
+                                    onChange={(event) => setAccountNumber(event.target.value)}
+                                    disabled={!canEditAccountSettingsNumber}
+                                  />
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Type a company account number to link this person to that company account.
+                                  </p>
+                                </div>
+                              ) : null}
+                              <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                                {editContact.is_company
+                                  ? "Save this contact as a customer to create the Innovations account link. A website login can be added later or invited from Website Portals."
+                                  : "No company account is linked yet. A website login can be added later or invited from Website Portals."}
+                              </div>
                             </div>
                           )}
                         </div>
