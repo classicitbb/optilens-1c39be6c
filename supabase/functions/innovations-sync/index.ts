@@ -16,6 +16,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
+import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -384,6 +385,17 @@ async function enqueueStatementReadyEmail(
       .eq("email", recipient.toLowerCase())
       .maybeSingle();
     if (suppressed) return;
+
+    if (await isAutoNotificationsDisabled(supabase, recipient)) {
+      await supabase.from("email_send_log").insert({
+        message_id: crypto.randomUUID(),
+        template_name: "statement-ready",
+        recipient_email: recipient,
+        status: "suppressed",
+        error_message: "Auto notifications disabled for this account",
+      });
+      return;
+    }
 
     const template = TEMPLATES["statement-ready"];
     if (!template) return;

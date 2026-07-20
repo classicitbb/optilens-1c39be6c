@@ -4,7 +4,7 @@ import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { z } from "npm:zod@3.25.76";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
-import { getOrCreateUnsubscribeToken, getSmtpConfig, sendViaSMTP } from "../_shared/email/smtp.ts";
+import { getOrCreateUnsubscribeToken, getSmtpConfig, isAutoNotificationsDisabled, sendViaSMTP } from "../_shared/email/smtp.ts";
 import { template as notificationTemplate } from "../_shared/transactional-email-templates/contact-inquiry-notification.tsx";
 import { template as confirmationTemplate } from "../_shared/transactional-email-templates/inquiry-confirmation.tsx";
 
@@ -261,6 +261,19 @@ Deno.serve(async (req) => {
 
     const submittedAt = new Date(insertedInquiry.created_at).toUTCString();
 
+    // Only gates the customer-facing confirmation — the admin notification
+    // always goes out regardless of the submitter's portal notification setting.
+    const confirmationDisabled = await isAutoNotificationsDisabled(supabase, payload.email);
+    if (confirmationDisabled) {
+      await supabase.from("email_send_log").insert({
+        message_id: crypto.randomUUID(),
+        template_name: "inquiry-confirmation",
+        recipient_email: payload.email,
+        status: "suppressed",
+        error_message: "Auto notifications disabled for this account",
+      });
+    }
+
     // Send both emails immediately via SMTP (your own mail server)
     if (smtpConfig) {
       const notificationHtml = await renderAsync(React.createElement(notificationTemplate.component, {
@@ -294,14 +307,16 @@ Deno.serve(async (req) => {
           smtpConfig,
         ).catch((err) => console.error("SMTP admin notification failed", { error: String(err) })),
 
-        sendViaSMTP(
-          {
-            to: payload.email,
-            subject: `We received your message — ${SITE_NAME}`,
-            html: confirmationHtml,
-          },
-          smtpConfig,
-        ).catch((err) => console.error("SMTP customer confirmation failed", { error: String(err) })),
+        ...(confirmationDisabled ? [] : [
+          sendViaSMTP(
+            {
+              to: payload.email,
+              subject: `We received your message — ${SITE_NAME}`,
+              html: confirmationHtml,
+            },
+            smtpConfig,
+          ).catch((err) => console.error("SMTP customer confirmation failed", { error: String(err) })),
+        ]),
       ]);
     }
 
@@ -384,18 +399,20 @@ Deno.serve(async (req) => {
           `contact-inquiry-${insertedInquiry.id}`,
           payload.email,
         ),
-        enqueueRenderedEmail(
-          "inquiry-confirmation",
-          payload.email,
-          confirmationTemplate,
-          {
-            name: payload.name,
-            inquiryType: payload.inquiryType,
-            message: payload.message,
-            siteUrl: "https://classicvisions.net",
-          },
-          `inquiry-confirm-${insertedInquiry.id}`,
-        ),
+        ...(confirmationDisabled ? [] : [
+          enqueueRenderedEmail(
+            "inquiry-confirmation",
+            payload.email,
+            confirmationTemplate,
+            {
+              name: payload.name,
+              inquiryType: payload.inquiryType,
+              message: payload.message,
+              siteUrl: "https://classicvisions.net",
+            },
+            `inquiry-confirm-${insertedInquiry.id}`,
+          ),
+        ]),
       ]);
     } catch (queueErr) {
       console.error("Email queue enqueue failed (non-fatal)", {

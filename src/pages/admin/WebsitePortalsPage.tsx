@@ -848,6 +848,17 @@ const WebsitePortalsPage = () => {
                   {FEATURE_LABELS[feature]}<span className="text-xs">{enabled ? "Enabled" : "Default"}</span>
                 </Button>;
               })}
+              <div className="border-t pt-2">
+                {(() => {
+                  const autoNotificationsEnabled = detailQuery.data.featureOverrides["auto-notifications"] !== false;
+                  return (
+                    <Button type="button" variant={autoNotificationsEnabled ? "default" : "outline"} className="w-full justify-between" onClick={() => upsertFeatureOverride.mutate({ featureKey: "auto-notifications", enabled: !autoNotificationsEnabled })}>
+                      Auto notifications<span className="text-xs">{autoNotificationsEnabled ? "Enabled" : "Disabled"}</span>
+                    </Button>
+                  );
+                })()}
+                <p className="mt-1 text-xs text-muted-foreground">Order confirmations, welcome emails, statements, and inquiry replies sent to this address. Turn off for a private test or troubleshooting account.</p>
+              </div>
             </CardContent>
           </Card>
           <Card className="shadow-none hover:shadow-none">
@@ -1121,6 +1132,22 @@ const WebsitePortalsPage = () => {
                                 </button>
                               );
                             })}
+                            {(() => {
+                              const autoNotificationsEnabled = detailQuery.data.featureOverrides["auto-notifications"] !== false;
+                              return (
+                                <button
+                                  type="button"
+                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${autoNotificationsEnabled ? "border-primary bg-primary/5" : "border-border"}`}
+                                  onClick={() => upsertFeatureOverride.mutate({ featureKey: "auto-notifications", enabled: !autoNotificationsEnabled })}
+                                >
+                                  <span>
+                                    <span className="block text-sm font-medium text-foreground">Auto notifications</span>
+                                    <span className="block text-xs text-muted-foreground">Order confirmations, welcome emails, statements, and inquiry replies. Turn off for a private test or troubleshooting account.</span>
+                                  </span>
+                                  <span className="text-xs font-semibold text-primary">{autoNotificationsEnabled ? "Enabled" : "Disabled"}</span>
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
 

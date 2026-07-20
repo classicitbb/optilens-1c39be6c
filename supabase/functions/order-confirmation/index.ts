@@ -2,6 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
 import { requireAuthenticatedUser, requireUserRole } from '../_shared/http/auth.ts'
+import { isAutoNotificationsDisabled } from '../_shared/email/smtp.ts'
 import { template } from '../_shared/transactional-email-templates/order-confirmation.tsx'
 
 const SITE_NAME = 'Classic Visions'
@@ -135,6 +136,17 @@ Deno.serve(async (req) => {
 
   if (existingSent) {
     return jsonResponse({ success: true, skipped: 'already_sent' }, 200, corsHeaders)
+  }
+
+  if (await isAutoNotificationsDisabled(supabase, recipientEmail)) {
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: 'order-confirmation',
+      recipient_email: recipientEmail,
+      status: 'suppressed',
+      error_message: 'Auto notifications disabled for this account',
+    })
+    return jsonResponse({ success: false, reason: 'auto_notifications_disabled' }, 200, corsHeaders)
   }
 
   const { data: items, error: itemsError } = await supabase

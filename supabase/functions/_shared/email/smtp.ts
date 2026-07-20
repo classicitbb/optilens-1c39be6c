@@ -81,6 +81,35 @@ export async function getOrCreateUnsubscribeToken(
   return (stored?.token as string) ?? token;
 }
 
+// Per-portal-user override, set from Website Portals > Operations > Feature
+// access (feature_key: "auto-notifications"). Absent row means notifications
+// are on by default; an explicit enabled:false row is how admins silence a
+// test/troubleshooting account without touching the global suppression list.
+// Matched by email since most auto-notification senders only have the
+// recipient address on hand, not the portal user id.
+export async function isAutoNotificationsDisabled(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  email: string,
+): Promise<boolean> {
+  const normalized = email.toLowerCase();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (!profile?.user_id) return false;
+
+  const { data: override } = await supabase
+    .from("customer_portal_feature_overrides")
+    .select("enabled")
+    .eq("user_id", profile.user_id)
+    .eq("feature_key", "auto-notifications")
+    .maybeSingle();
+
+  return override?.enabled === false;
+}
+
 export async function sendViaSMTP(
   opts: SmtpMailOptions,
   config: SmtpConfig,

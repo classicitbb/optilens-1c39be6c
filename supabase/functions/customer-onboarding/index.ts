@@ -21,7 +21,7 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
 import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
-import { getOrCreateUnsubscribeToken } from '../_shared/email/smtp.ts'
+import { getOrCreateUnsubscribeToken, isAutoNotificationsDisabled } from '../_shared/email/smtp.ts'
 import { template as welcomeTemplate } from '../_shared/transactional-email-templates/welcome-pricelist.tsx'
 
 const SITE_NAME = 'Classic Visions'
@@ -135,6 +135,23 @@ Deno.serve(async (req) => {
   }
 
   // ── 3. Enqueue welcome email ────────────────────────────────────────────────
+  if (await isAutoNotificationsDisabled(supabase, email)) {
+    await supabase.from('email_send_log').insert({
+      message_id: generateMessageId(),
+      template_name: 'welcome-pricelist',
+      recipient_email: email,
+      status: 'suppressed',
+      error_message: 'Auto notifications disabled for this account',
+    })
+    return jsonResponse(200, {
+      success: true,
+      pricelistAssigned: !!defaultVersion,
+      pricelistVersionId: defaultVersion?.id ?? null,
+      emailQueued: false,
+      reason: 'auto_notifications_disabled',
+    }, corsHeaders)
+  }
+
   const loginUrl = `${SITE_URL}/login`
   const customerName = displayName ?? email.split('@')[0]
 
