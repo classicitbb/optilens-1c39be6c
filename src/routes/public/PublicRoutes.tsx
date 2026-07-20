@@ -5,6 +5,9 @@ import {
   LABLINK_PORTAL_URL,
   LABLINK_TRACKING_URL,
 } from "@/config/externalLinks";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 
 const Index = lazy(() => import("@/pages/Index"));
 const VizionizeCleanerPage = lazy(() => import("@/pages/VizionizeCleanerPage"));
@@ -79,6 +82,18 @@ const ContactHashRedirect = () => {
   return null;
 };
 
+const LensAssistantRouteGate = () => {
+  const { user } = useAuth();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
+  const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
+
+  if ((user && roleLoading) || publicLensAssistant.isLoading || adminLensAssistant.isLoading) return null;
+
+  const enabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
+  return enabled ? <LensAssistantPage /> : <Navigate to={user ? "/profile" : "/"} replace />;
+};
+
 const PublicRoutes = () => (
   <Routes>
     <Route index element={<Index />} />
@@ -88,7 +103,7 @@ const PublicRoutes = () => (
     <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
     <Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
-    <Route path="lens-assistant" element={<LensAssistantPage />} />
+    <Route path="lens-assistant" element={<LensAssistantRouteGate />} />
     <Route
       path="rx-order"
       element={

@@ -12,6 +12,8 @@ import { ACCOUNT_NAV_ITEMS } from "@/components/account/accountNav";
 import { useLocation } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useSupportAvailability } from "@/hooks/useSupportAvailability";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { capitalizeDisplayName } from "@/lib/profileData";
 
 interface AccountTopBarProps {
@@ -23,6 +25,9 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const location = useLocation();
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
+  const { isAdmin } = useUserRole();
+  const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
+  const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
@@ -32,11 +37,15 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   // Close the mobile sheet whenever the user navigates to a new page
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
+  const lensAssistantEnabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
   const visibleItems = ACCOUNT_NAV_ITEMS.filter((item) => {
     if (item.to === "/profile/quotes") return canAccessFeature("quotes");
     if (item.to === "/profile/helpdesk") return canAccessFeature("helpdesk");
     if (item.to === "/profile/pricelists") return canAccessFeature("pricelists");
     return true;
+  }).map((item) => {
+    if (item.to.startsWith("/lens-assistant")) return { ...item, disabled: !lensAssistantEnabled };
+    return item;
   });
 
   return (
