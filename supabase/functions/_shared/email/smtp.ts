@@ -39,6 +39,48 @@ export function getSmtpConfig(): SmtpConfig | null {
   return { from };
 }
 
+function generateUnsubscribeToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// The Lovable email API rejects any purpose:"transactional" send that lacks
+// an unsubscribe_token ("missing_unsubscribe"), so every enqueue path needs
+// one — one token per recipient, reused across sends until it's used.
+export async function getOrCreateUnsubscribeToken(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  email: string,
+): Promise<string> {
+  const normalized = email.toLowerCase();
+  const { data: existing } = await supabase
+    .from("email_unsubscribe_tokens")
+    .select("token, used_at")
+    .eq("email", normalized)
+    .maybeSingle();
+
+  if (existing && !existing.used_at) return existing.token as string;
+
+  const token = generateUnsubscribeToken();
+  await supabase
+    .from("email_unsubscribe_tokens")
+    .upsert(
+      { token, email: normalized },
+      { onConflict: "email", ignoreDuplicates: true },
+    );
+
+  const { data: stored } = await supabase
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+
+  return (stored?.token as string) ?? token;
+}
+
 export async function sendViaSMTP(
   opts: SmtpMailOptions,
   config: SmtpConfig,
@@ -54,6 +96,7 @@ export async function sendViaSMTP(
   });
 
   const messageId = crypto.randomUUID();
+  const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, opts.to);
 
   // Audit log — append-only pending row
   await supabase.from("email_send_log").insert({
@@ -76,6 +119,7 @@ export async function sendViaSMTP(
       purpose: "transactional",
       label: "raw",
       idempotency_key: messageId,
+      unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
     },
   });

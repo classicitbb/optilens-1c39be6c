@@ -4,7 +4,7 @@ import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { z } from "npm:zod@3.25.76";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
-import { getSmtpConfig, sendViaSMTP } from "../_shared/email/smtp.ts";
+import { getOrCreateUnsubscribeToken, getSmtpConfig, sendViaSMTP } from "../_shared/email/smtp.ts";
 import { template as notificationTemplate } from "../_shared/transactional-email-templates/contact-inquiry-notification.tsx";
 import { template as confirmationTemplate } from "../_shared/transactional-email-templates/inquiry-confirmation.tsx";
 
@@ -15,44 +15,6 @@ const corsPolicy = createCorsPolicy({
 
 const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
 const SITE_NAME = "Classic Visions";
-
-function generateToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function getOrCreateUnsubscribeToken(
-  supabase: ReturnType<typeof createClient>,
-  email: string,
-): Promise<string> {
-  const normalized = email.toLowerCase();
-  const { data: existing } = await supabase
-    .from("email_unsubscribe_tokens")
-    .select("token, used_at")
-    .eq("email", normalized)
-    .maybeSingle();
-
-  if (existing && !existing.used_at) return existing.token as string;
-
-  const token = generateToken();
-  await supabase
-    .from("email_unsubscribe_tokens")
-    .upsert(
-      { token, email: normalized },
-      { onConflict: "email", ignoreDuplicates: true },
-    );
-
-  const { data: stored } = await supabase
-    .from("email_unsubscribe_tokens")
-    .select("token")
-    .eq("email", normalized)
-    .maybeSingle();
-
-  return (stored?.token as string) ?? token;
-}
 
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;

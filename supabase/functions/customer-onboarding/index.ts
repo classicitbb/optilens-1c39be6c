@@ -21,6 +21,7 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
 import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
+import { getOrCreateUnsubscribeToken } from '../_shared/email/smtp.ts'
 import { template as welcomeTemplate } from '../_shared/transactional-email-templates/welcome-pricelist.tsx'
 
 const SITE_NAME = 'Classic Visions'
@@ -144,11 +145,17 @@ Deno.serve(async (req) => {
     loginUrl,
   }
 
+  const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, email)
+  const renderData = {
+    ...templateData,
+    unsubscribeUrl: `${SITE_URL}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
+  }
+
   let html: string
   let text: string
   try {
-    html = await renderAsync(React.createElement(welcomeTemplate.component, templateData))
-    text = await renderAsync(React.createElement(welcomeTemplate.component, templateData), { plainText: true })
+    html = await renderAsync(React.createElement(welcomeTemplate.component, renderData))
+    text = await renderAsync(React.createElement(welcomeTemplate.component, renderData), { plainText: true })
   } catch (renderErr) {
     console.error('customer-onboarding: failed to render welcome email', renderErr)
     return jsonResponse(500, { error: 'Failed to render email' }, corsHeaders)
@@ -181,6 +188,7 @@ Deno.serve(async (req) => {
       purpose: 'transactional',
       label: 'welcome-pricelist',
       idempotency_key: `welcome-pricelist-${userId}`,
+      unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
     },
   })

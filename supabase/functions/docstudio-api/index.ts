@@ -6,7 +6,7 @@
 // { users:[] } { shares:[] } { ok:true }.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getSmtpConfig } from "../_shared/email/smtp.ts";
+import { getOrCreateUnsubscribeToken, getSmtpConfig } from "../_shared/email/smtp.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -290,6 +290,7 @@ serve(async (req) => {
       for (const recipient of recipientJobs) {
         const messageId = crypto.randomUUID();
         messageIds.push(messageId);
+        const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient.email);
         await supabase.from("email_send_log").insert({
           message_id: messageId,
           template_name: `docstudio-email-${recipient.header}`,
@@ -310,6 +311,7 @@ serve(async (req) => {
             purpose: "transactional",
             label: `docstudio-email-${recipient.header}`,
             idempotency_key: messageId,
+            unsubscribe_token: unsubscribeToken,
             queued_by: userId,
             queued_at: new Date().toISOString(),
           },
@@ -379,7 +381,18 @@ serve(async (req) => {
           message = "Most recent attempt was suppressed (recipient previously unsubscribed or bounced).";
         } else {
           status = "degraded";
-          message = `The most recent send attempt ${latest.status === "dlq" ? "failed permanently (moved to dead-letter queue)" : latest.status}${latest.error_message ? `: ${latest.error_message}` : "."}`;
+          // The DLQ row's own error_message is usually just "Max retries
+          // exceeded" — the process-email-queue dispatcher logs the *real*
+          // send error on the individual 'failed' rows that preceded it
+          // (same message_id). Surface that instead so this actually says
+          // why sends aren't going out (bad domain, bad API key, etc.),
+          // not just that they gave up retrying.
+          const isGenericRetryReason = latest.status === "dlq" && /max retries/i.test(latest.error_message ?? "");
+          const underlyingFailure = isGenericRetryReason
+            ? list.find((r) => r.message_id === latest.message_id && r.status === "failed" && r.error_message)
+            : null;
+          const reason = underlyingFailure?.error_message ?? latest.error_message;
+          message = `The most recent send attempt ${latest.status === "dlq" ? "failed permanently (moved to dead-letter queue)" : latest.status}${reason ? `: ${reason}` : "."}`;
         }
       }
 

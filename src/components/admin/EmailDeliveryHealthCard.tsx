@@ -137,16 +137,20 @@ export default function EmailDeliveryHealthCard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.recent.slice(0, 8).map((row) => (
-                      <tr key={`${row.message_id ?? row.created_at}-${row.recipient_email}`} className="border-t">
-                        <td className="px-3 py-2 whitespace-nowrap">{fmt(row.created_at)}</td>
-                        <td className="px-3 py-2">{row.recipient_email}</td>
-                        <td className="px-3 py-2">{row.template_name}</td>
-                        <td className={`px-3 py-2 capitalize ${["failed", "dlq", "bounced", "complained"].includes(row.status) ? "text-red-600 font-semibold" : row.status === "sent" ? "text-emerald-700" : ""}`}>
-                          {row.status}
-                        </td>
-                      </tr>
-                    ))}
+                    {data.recent.slice(0, 8).map((row) => {
+                      const isError = ["failed", "dlq", "bounced", "complained"].includes(row.status);
+                      return (
+                        <tr key={`${row.message_id ?? row.created_at}-${row.recipient_email}-${row.status}-${row.created_at}`} className="border-t align-top">
+                          <td className="px-3 py-2 whitespace-nowrap">{fmt(row.created_at)}</td>
+                          <td className="px-3 py-2">{row.recipient_email}</td>
+                          <td className="px-3 py-2">{row.template_name}</td>
+                          <td className={`px-3 py-2 ${isError ? "text-red-600" : row.status === "sent" ? "text-emerald-700" : ""}`}>
+                            <span className="font-semibold capitalize">{row.status}</span>
+                            {isError && row.error_message && <span className="mt-0.5 block font-normal text-[11px] text-red-500">{row.error_message}</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
