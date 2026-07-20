@@ -71,6 +71,7 @@ interface PortalCustomerDetail extends PortalCustomerListItem {
   featureOverrides: Record<string, boolean>;
   accountNumber: string | null;
   canAccessStatements: boolean;
+  canAccessPricing: boolean;
   cartItems: Array<{
     id: string;
     product_name: string;
@@ -152,10 +153,10 @@ const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
 const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   quotes: "Explicit override for quote requests.",
   helpdesk: "Explicit override for helpdesk access.",
-  pricelists: "Explicit override for assigned pricelist viewing.",
+  pricelists: "Requires Approved Access to Pricing or CEO tag; disabled override can still block it.",
   "private-orders": "Approved customer access for private/manual order history.",
   "live-order-status": "Opt-in only while live lab and delivery status is being finished.",
-  statements: "Owner/CEO/Buyer tag required; disabled override can still block it.",
+  statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
 };
 
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
@@ -494,7 +495,7 @@ const WebsitePortalsPage = () => {
       const syncedPortalAccessStatus = typeof syncedRow?.portal_access_status === "string" ? syncedRow.portal_access_status : selectedCustomer.portalAccessStatus;
       const syncedPortalAccessNote = typeof syncedRow?.portal_access_note === "string" ? syncedRow.portal_access_note : selectedCustomer.portalAccessNote;
 
-      const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }, { data: canAccessStatements, error: statementsAccessError }] = await Promise.all([
+      const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }, { data: canAccessPricing, error: pricingAccessError }, { data: canAccessStatements, error: statementsAccessError }] = await Promise.all([
         (supabase as any)
           .from("customer_portal_feature_overrides")
           .select("feature_key,enabled")
@@ -536,6 +537,7 @@ const WebsitePortalsPage = () => {
               .eq("id", syncedCustomerId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
+        (supabase.rpc as any)("can_access_customer_pricing", { p_user_id: selectedCustomer.userId }),
         (supabase.rpc as any)("can_access_customer_statement", { p_user_id: selectedCustomer.userId }),
       ]);
 
@@ -546,6 +548,7 @@ const WebsitePortalsPage = () => {
       if (quotesError) throw quotesError;
       if (ticketsError) throw ticketsError;
       if (customerError) throw customerError;
+      if (pricingAccessError) throw pricingAccessError;
       if (statementsAccessError) throw statementsAccessError;
 
       const featureOverrides = ((featureRows ?? []) as Array<{ feature_key: string; enabled: boolean }>).reduce<Record<string, boolean>>(
@@ -560,6 +563,7 @@ const WebsitePortalsPage = () => {
         portalAccessStatus: syncedPortalAccessStatus,
         portalAccessNote: syncedPortalAccessNote,
         featureOverrides,
+        canAccessPricing: canAccessPricing === true,
         canAccessStatements: canAccessStatements === true,
         assignedPricelistId: typeof (customerRow as any)?.assigned_pricelist_id === "number" ? (customerRow as any).assigned_pricelist_id : null,
         accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : selectedAccount?.accountNumber ?? null,
@@ -1211,6 +1215,7 @@ const WebsitePortalsPage = () => {
                       <Badge variant="outline">{detailQuery.data.portalAccessStatus.replace(/_/g, " ")}</Badge>
                       <Badge variant={selectedCustomer?.presenceStatus === "online" ? "default" : "secondary"}>{selectedCustomer?.presenceStatus ?? "offline"}</Badge>
                       {detailQuery.data.crmCustomerId ? <Badge variant="outline">Approved customer</Badge> : <Badge variant="secondary">Pending approval</Badge>}
+                      {detailQuery.data.canAccessPricing ? <Badge variant="outline">Pricing allowed</Badge> : <Badge variant="secondary">Pricing gated</Badge>}
                       {detailQuery.data.canAccessStatements ? <Badge variant="outline">Statements allowed</Badge> : <Badge variant="secondary">Statements gated</Badge>}
                     </div>
                   </div>
@@ -1363,7 +1368,10 @@ const WebsitePortalsPage = () => {
                                 </div>
                               ) : null}
                               <p className="mt-2 text-xs text-muted-foreground">
-                                Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Owner/CEO/Buyer tag required"}.
+                                Pricing allowed: {detailQuery.data.canAccessPricing ? "Yes" : "Approved Access to Pricing or CEO tag required"}.
+                              </p>
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Approved Access to Statement or CEO tag required"}.
                               </p>
                             </div>
                             <Button variant="outline" className="w-full justify-start" onClick={async () => { try { await resetPassword.mutateAsync(detailQuery.data.email); toast({ title: "Reset sent", description: "Password reset email has been sent." }); } catch (error: any) { toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" }); } }} disabled={!detailQuery.data.email || resetPassword.isPending}>
@@ -1502,7 +1510,7 @@ const WebsitePortalsPage = () => {
                           <div>
                             <p className="text-sm font-medium text-foreground">Portal access</p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              Approval lets this login use portal workflows even if profile cleanup is still pending. Statements still require an Owner, CEO, or Buyer tag.
+                              Approval lets this login use portal workflows even if profile cleanup is still pending. Pricing and statements still require the matching access tag, unless the contact is tagged CEO.
                             </p>
                           </div>
                           <Badge variant={detailQuery.data.portalAccessApprovedOverride ? "default" : "secondary"}>
@@ -1510,7 +1518,10 @@ const WebsitePortalsPage = () => {
                           </Badge>
                         </div>
                         <p className="mt-2 text-xs text-muted-foreground">
-                          Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Owner/CEO/Buyer tag required"}.
+                          Pricing allowed: {detailQuery.data.canAccessPricing ? "Yes" : "Approved Access to Pricing or CEO tag required"}.
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Approved Access to Statement or CEO tag required"}.
                         </p>
                       </div>
                       <div className="space-y-2">

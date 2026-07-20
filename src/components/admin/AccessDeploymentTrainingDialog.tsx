@@ -71,7 +71,7 @@ const scenarios: TrainingScenario[] = [
     title: "Feature and statement access",
     situation: "The person needs account access, but not every portal feature is appropriate.",
     prompt: "Which portal features should be enabled for this person?",
-    resolution: "Choose features individually. Statements still require an Owner, CEO, or Buyer tag; a feature choice cannot bypass that rule.",
+    resolution: "Choose features individually. Pricing requires Approved Access to Pricing, and statements require Approved Access to Statement. CEO grants both.",
     outcome: "Access is specific, explainable, and safe to audit.",
   },
 ];

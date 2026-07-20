@@ -194,10 +194,10 @@ const AssignedPricelistsSection = () => {
   const hasAnyPrices = rows.length > 0 || addonRows.length > 0 || stockRows.length > 0 || supplyRows.length > 0;
 
   const accordionTriggerClass =
-    "rounded-md px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-white";
+    "rounded-md bg-muted-foreground px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-white";
 
   const countBadge = (count: number, noun: string) => (
-    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal">
+    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-white">
       {count} {noun}{count === 1 ? "" : "s"}
     </span>
   );
@@ -210,7 +210,7 @@ const AssignedPricelistsSection = () => {
           const sectionRows = sections.get(section) ?? [];
           return (
             <AccordionItem key={section} value={section} className="border-b-0">
-              <AccordionTrigger className={accordionTriggerClass} style={{ background: "#1e4db7" }}>
+              <AccordionTrigger className={accordionTriggerClass}>
                 <span className="flex items-center gap-2">
                   {section}
                   {countBadge(sectionRows.length, "item")}
@@ -347,7 +347,7 @@ const AssignedPricelistsSection = () => {
                 <Accordion type="multiple" defaultValue={[groupings[0].grouping.key]} className="w-full space-y-2">
                   {groupings.map(({ grouping, visibleCols, activeCategories }) => (
                     <AccordionItem key={grouping.id} value={grouping.key} className="border-b-0">
-                      <AccordionTrigger className={accordionTriggerClass} style={{ background: "#1e4db7" }}>
+                      <AccordionTrigger className={accordionTriggerClass}>
                         <span className="flex items-center gap-2">
                           {grouping.name}
                           {countBadge(activeCategories.length, "design")}
