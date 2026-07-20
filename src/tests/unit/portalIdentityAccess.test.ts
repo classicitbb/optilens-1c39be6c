@@ -14,6 +14,7 @@ const identity = (overrides: Partial<PortalIdentity> = {}): PortalIdentity => ({
   organizationName: "Zenix Optical",
   customerName: "Zenix Optical",
   paymentTerms: "standard",
+  canAccessPricing: false,
   canAccessStatements: false,
   featureOverrides: {},
   ...overrides,
@@ -24,7 +25,12 @@ describe("canAccessPortalFeature", () => {
     const approved = identity({ profileCompleted: false });
 
     expect(canAccessPortalFeature(approved, "private-orders")).toBe(true);
-    expect(canAccessPortalFeature(approved, "pricelists")).toBe(true);
+    expect(canAccessPortalFeature(approved, "pricelists")).toBe(false);
+  });
+
+  it("allows assigned pricelists only for approved contacts with pricing access", () => {
+    expect(canAccessPortalFeature(identity({ canAccessPricing: false }), "pricelists")).toBe(false);
+    expect(canAccessPortalFeature(identity({ canAccessPricing: true }), "pricelists")).toBe(true);
   });
 
   it("keeps live order status opt-in while the workflow is unfinished", () => {

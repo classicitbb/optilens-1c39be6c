@@ -500,7 +500,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
         return json(req, { error: "Could not verify statement access.", detail: statementAccessError.message }, 500);
       }
       if (canAccessStatement !== true) {
-        return json(req, { error: "Statements are available only to contacts tagged Owner, CEO, or Buyer." }, 403);
+        return json(req, { error: "Statements are available only to contacts tagged Approved Access to Statement or CEO." }, 403);
       }
     }
   }

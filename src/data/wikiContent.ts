@@ -1481,7 +1481,7 @@ It never chooses an account or silently links a login. Select the right records 
 4. If no login exists, send an invite or set a temporary password.
 5. Approve portal access only after checking the customer link and email.
 
-An unverified login can be prepared and linked, but access unlocks only after the person verifies their email. Statement access also requires an Owner, CEO, or Buyer tag.
+An unverified login can be prepared and linked, but access unlocks only after the person verifies their email. Assigned pricelist access also requires the Approved Access to Pricing tag, and statement access requires the Approved Access to Statement tag. CEO grants both.
 
 ## Internal staff access
 

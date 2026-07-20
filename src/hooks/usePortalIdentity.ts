@@ -23,6 +23,7 @@ export interface PortalIdentity {
   organizationName: string | null;
   customerName: string | null;
   paymentTerms: PaymentTerms;
+  canAccessPricing: boolean;
   canAccessStatements: boolean;
   featureOverrides: Partial<Record<PortalFeature, boolean>>;
 }
@@ -54,6 +55,7 @@ const normalizeIdentity = (
   paymentTerms: (row.payment_terms === "credit_approved" ? "credit"
                : row.payment_terms === "cash_only"       ? "cash"
                : "standard") as PaymentTerms,
+  canAccessPricing: row.can_access_pricing === true,
   canAccessStatements: row.can_access_statements === true,
   featureOverrides,
 });
@@ -64,6 +66,9 @@ export const canAccessPortalFeature = (identity: PortalIdentity | null, feature:
   if (override === false) return false;
   if (feature === "statements") {
     return identity.portalAccessStatus === "approved_customer" && identity.canAccessStatements;
+  }
+  if (feature === "pricelists") {
+    return identity.portalAccessStatus === "approved_customer" && identity.canAccessPricing;
   }
   if (override === true) return true;
   if (feature === "live-order-status") return false;
@@ -92,7 +97,14 @@ export const getPortalFeatureBlockedReason = (identity: PortalIdentity | null, f
   if (feature === "statements" && identity.portalAccessStatus === "approved_customer" && !identity.canAccessStatements) {
     return {
       title: "Statements require billing authorization",
-      description: "Statements are available to contacts tagged Owner, CEO, or Buyer by your account team.",
+      description: "Statements are available to contacts tagged Approved Access to Statement. CEO also grants statement access.",
+    };
+  }
+
+  if (feature === "pricelists" && identity.portalAccessStatus === "approved_customer" && !identity.canAccessPricing) {
+    return {
+      title: "Pricelists require pricing authorization",
+      description: "Assigned pricelists are available to contacts tagged Approved Access to Pricing. CEO also grants pricing access.",
     };
   }
 
@@ -147,7 +159,7 @@ const fetchEmulatedIdentity = async (targetUserId: string): Promise<PortalIdenti
   if (profileError) throw profileError;
   if (!profile) return null;
 
-  const [{ data: customer }, { data: overrides }, { data: canAccessStatements }] = await Promise.all([
+  const [{ data: customer }, { data: overrides }, { data: canAccessPricing }, { data: canAccessStatements }] = await Promise.all([
     typeof profile.crm_customer_id === "number"
       ? (supabase as any)
           .from("customers")
@@ -159,6 +171,7 @@ const fetchEmulatedIdentity = async (targetUserId: string): Promise<PortalIdenti
       .from("customer_portal_feature_overrides")
       .select("feature_key,enabled")
       .eq("user_id", targetUserId),
+    (supabase.rpc as any)("can_access_customer_pricing", { p_user_id: targetUserId }),
     (supabase.rpc as any)("can_access_customer_statement", { p_user_id: targetUserId }),
   ]);
 
@@ -180,6 +193,7 @@ const fetchEmulatedIdentity = async (targetUserId: string): Promise<PortalIdenti
       assigned_pricelist_id: customer?.assigned_pricelist_id ?? null,
       organization_name: profile.organization_name,
       customer_name: customer?.name ?? profile.full_name ?? null,
+      can_access_pricing: canAccessPricing === true,
       can_access_statements: canAccessStatements === true,
     },
     overrideMap,
@@ -206,7 +220,7 @@ export const usePortalIdentity = () => {
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
 
-      const [{ data: accountNumber, error: accountNumberError }, { data: overrides, error: overridesError }, { data: canAccessStatements, error: statementsError }] = await Promise.all([
+      const [{ data: accountNumber, error: accountNumberError }, { data: overrides, error: overridesError }, { data: canAccessPricing, error: pricingError }, { data: canAccessStatements, error: statementsError }] = await Promise.all([
         typeof row?.crm_customer_id === "number"
           ? (supabase.rpc as any)("get_portal_erp_account_number")
           : Promise.resolve({ data: null, error: null }),
@@ -214,11 +228,13 @@ export const usePortalIdentity = () => {
           .from("customer_portal_feature_overrides")
           .select("feature_key,enabled")
           .eq("user_id", user.id),
+        (supabase.rpc as any)("can_access_customer_pricing", { p_user_id: user.id }),
         (supabase.rpc as any)("can_access_customer_statement", { p_user_id: user.id }),
       ]);
 
       if (accountNumberError) throw accountNumberError;
       if (overridesError) throw overridesError;
+      if (pricingError) throw pricingError;
       if (statementsError) throw statementsError;
 
       const overrideMap = ((overrides ?? []) as Array<{ feature_key: PortalFeature; enabled: boolean }>).reduce(
@@ -226,7 +242,7 @@ export const usePortalIdentity = () => {
         {} as Partial<Record<PortalFeature, boolean>>,
       );
 
-      return row ? normalizeIdentity({ ...row, account_number: accountNumber, can_access_statements: canAccessStatements }, overrideMap) : null;
+      return row ? normalizeIdentity({ ...row, account_number: accountNumber, can_access_pricing: canAccessPricing, can_access_statements: canAccessStatements }, overrideMap) : null;
     },
   });
 
