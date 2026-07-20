@@ -168,7 +168,7 @@ export default function EmailPreviewsPage() {
   });
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:p-6">
+    <div className="flex min-h-full flex-col gap-4 p-4 lg:p-6">
       <AdminPageHeader icon={Mail} title="Email Previews">
         <Badge variant="outline" className="gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />{EMAIL_TEMPLATES.length} active templates</Badge>
       </AdminPageHeader>
@@ -177,7 +177,7 @@ export default function EmailPreviewsPage() {
 
       <EmailDeliveryHealthCard />
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(260px,1fr)_minmax(0,2fr)]">
+      <div className="grid min-h-0 flex-1 gap-4 lg:min-h-[480px] lg:grid-cols-[minmax(260px,1fr)_minmax(0,2fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
           <div className="border-b px-4 py-3">
             <h2 className="text-sm font-semibold">Email templates</h2>
