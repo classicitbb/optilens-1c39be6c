@@ -319,6 +319,82 @@ serve(async (req) => {
       return json({ ok: true, messageIds });
     }
 
+    // Delivery health for the Studio's email tool (and the admin Email
+    // Previews page, which surfaces the same signal). Answers "is
+    // support@classicvisions.net actually sending?" from the shared
+    // email_send_log audit trail — the same table every sender (Doc Studio,
+    // contact-inquiry, transactional templates) writes to.
+    if (route[0] === "email" && route[1] === "health" && method === "GET") {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: rows, error: logError } = await supabase
+        .from("email_send_log")
+        .select("message_id,template_name,recipient_email,status,error_message,created_at")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (logError) throw logError;
+
+      const { data: state } = await supabase
+        .from("email_send_state")
+        .select("retry_after_until")
+        .maybeSingle();
+
+      const list = rows ?? [];
+      const now = Date.now();
+      const dayAgo = now - 24 * 60 * 60 * 1000;
+      const counts24h = { sent: 0, pending: 0, failed: 0, dlq: 0, bounced: 0, complained: 0, suppressed: 0 };
+      for (const row of list) {
+        if (new Date(row.created_at).getTime() < dayAgo) continue;
+        if (row.status in counts24h) counts24h[row.status as keyof typeof counts24h]++;
+      }
+
+      const lastSent = list.find((r) => r.status === "sent") ?? null;
+      const latest = list[0] ?? null;
+      const rateLimitedUntil =
+        state?.retry_after_until && new Date(state.retry_after_until).getTime() > now
+          ? state.retry_after_until
+          : null;
+
+      let status: "healthy" | "degraded" | "blocked" | "no_data" = "no_data";
+      let message = "No outbound email activity recorded in the last 7 days. Send a test email to check the pipeline.";
+
+      if (rateLimitedUntil) {
+        status = "blocked";
+        message = `Sending is paused by the provider's rate limit until ${new Date(rateLimitedUntil).toLocaleString()}.`;
+      } else if (latest) {
+        const latestAgeMs = now - new Date(latest.created_at).getTime();
+        if (latest.status === "sent") {
+          status = "healthy";
+          message = `Last email sent successfully to ${latest.recipient_email}.`;
+        } else if (latest.status === "pending" && latestAgeMs > 5 * 60 * 1000) {
+          status = "degraded";
+          message = "The most recent email has been stuck pending for over 5 minutes — the queue processor may not be running.";
+        } else if (latest.status === "pending") {
+          status = lastSent ? "healthy" : "no_data";
+          message = lastSent
+            ? `Most recent email is still processing; last confirmed send succeeded (${new Date(lastSent.created_at).toLocaleString()}).`
+            : "Most recent email is still processing.";
+        } else if (latest.status === "suppressed") {
+          status = lastSent ? "healthy" : "no_data";
+          message = "Most recent attempt was suppressed (recipient previously unsubscribed or bounced).";
+        } else {
+          status = "degraded";
+          message = `The most recent send attempt ${latest.status === "dlq" ? "failed permanently (moved to dead-letter queue)" : latest.status}${latest.error_message ? `: ${latest.error_message}` : "."}`;
+        }
+      }
+
+      return json({
+        status,
+        message,
+        sender: getSmtpConfig()?.from ?? "Classic Visions <support@classicvisions.net>",
+        lastSentAt: lastSent?.created_at ?? null,
+        latestAttempt: latest,
+        counts24h,
+        rateLimitedUntil,
+        recent: list.slice(0, 15),
+      });
+    }
+
     // Statement populate for the studio's Statement tab: id is the Innovations
     // statement id; data comes from the synced statements / statement_lines /
     // customers tables. Fields the cloud can't derive stay empty — the studio

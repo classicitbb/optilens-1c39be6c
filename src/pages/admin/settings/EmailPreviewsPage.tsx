@@ -1,10 +1,15 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, ChevronRight, FileCode2, Mail, Send, ShieldCheck } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { CheckCircle2, ChevronRight, FileCode2, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import EmailDeliveryHealthCard from "@/components/admin/EmailDeliveryHealthCard";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 type EmailGroup = "Authentication" | "Application";
@@ -45,17 +50,122 @@ const groups: EmailGroup[] = ["Authentication", "Application"];
 
 const personalize = (value: string, name: string, email: string) => value.replaceAll("{{name}}", name).replaceAll("{{email}}", email);
 
+const SITE_URL = "https://classicvisions.net";
+
+// Application-group templates are registered with the send-transactional-email
+// function (supabase/functions/_shared/transactional-email-templates/registry.ts)
+// and can be test-sent for real. Authentication-group templates are rendered
+// by Supabase Auth itself on real signup/invite/recovery events — there's no
+// safe way to fire one standalone without creating real auth side effects, so
+// those stay preview-only here.
+const buildTestTemplateData = (id: string, sampleName: string, sampleEmail: string): Record<string, unknown> => {
+  const now = new Date();
+  switch (id) {
+    case "order-confirmation":
+      return {
+        customerName: sampleName,
+        orderId: "TEST-000001",
+        orderDate: now.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }),
+        items: [
+          { product_name: "Progressive Lens 1.67", quantity: 2, product_price: 89.99 },
+          { product_name: "Anti-Reflective Coating", quantity: 2, product_price: 25 },
+        ],
+        totalAmount: 229.98,
+        shippingAddress: "123 Optical Lane, Cape Town, 8001",
+        siteUrl: SITE_URL,
+      };
+    case "welcome":
+      return { customerName: sampleName, siteUrl: SITE_URL };
+    case "welcome-pricelist":
+      return { customerName: sampleName, pricelistName: "Test Pricelist", siteUrl: SITE_URL, loginUrl: `${SITE_URL}/login` };
+    case "abandoned-cart":
+      return {
+        customerName: sampleName,
+        totalItems: 3,
+        totalAmount: 254.97,
+        cartSnapshot: [
+          { product_name: "Progressive Lens 1.67", quantity: 2, product_price: 89.99 },
+          { product_name: "Blue Light Filter", quantity: 1, product_price: 74.99 },
+        ],
+        siteUrl: SITE_URL,
+      };
+    case "admin-error-notification":
+      return {
+        errorCount: 1,
+        errors: [{ title: "[TEST SEND] Sample error", source: "Email Previews admin tool", detail: "This is a test notification — not a real error.", route: "/admin/settings/email-previews", timestamp: now.toISOString() }],
+        siteUrl: SITE_URL,
+        reportedAt: now.toISOString(),
+      };
+    case "contact-inquiry-notification":
+      return {
+        inquiryType: "contact",
+        name: sampleName,
+        email: sampleEmail,
+        phone: "+1 555 123 4567",
+        businessName: "Test Business",
+        message: "This is a test message sent from the Email Previews admin tool to verify delivery.",
+        pageSlug: "/contact",
+        sourceChannel: "website",
+        submittedAt: now.toISOString(),
+      };
+    case "inquiry-confirmation":
+      return {
+        name: sampleName,
+        inquiryType: "website-design-lead",
+        message: "This is a test send from the Email Previews admin tool to verify delivery.",
+        siteUrl: SITE_URL,
+      };
+    case "statement-ready":
+      return {
+        customerName: sampleName,
+        accountNumber: "TEST",
+        periodStart: new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10),
+        periodEnd: new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10),
+        closingBalance: 4320.5,
+        dueDate: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10),
+        siteUrl: SITE_URL,
+      };
+    default:
+      return {};
+  }
+};
+
 export default function EmailPreviewsPage() {
+  const { toast } = useToast();
   const [selectedId, setSelectedId] = useState(EMAIL_TEMPLATES[0].id);
   const [sampleName, setSampleName] = useState("Jane Doe");
   const [sampleEmail, setSampleEmail] = useState("jane@example.com");
   const [subject, setSubject] = useState(EMAIL_TEMPLATES[0].subject);
   const selected = useMemo(() => EMAIL_TEMPLATES.find((template) => template.id === selectedId) ?? EMAIL_TEMPLATES[0], [selectedId]);
+  const canSendTest = selected.group === "Application";
 
   const selectTemplate = (template: EmailTemplate) => {
     setSelectedId(template.id);
     setSubject(template.subject);
   };
+
+  const sendTestEmail = useMutation({
+    mutationFn: async () => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(sampleEmail)) throw new Error("Enter a valid sample recipient email address first.");
+      const { data, error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: selected.id,
+          recipientEmail: sampleEmail,
+          templateData: buildTestTemplateData(selected.id, sampleName, sampleEmail),
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.success === false) throw new Error(data?.reason === "email_suppressed" ? `${sampleEmail} is on the suppression list (unsubscribed or bounced previously).` : "Send failed.");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Test email queued", description: `"${selected.title}" was queued for delivery to ${sampleEmail}. Check the delivery status below in a few seconds.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could not send test email", description: error.message, variant: "destructive" });
+    },
+  });
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:p-6">
@@ -64,6 +174,8 @@ export default function EmailPreviewsPage() {
       </AdminPageHeader>
 
       <p className="-mt-2 text-sm text-muted-foreground">Review the authentication and application emails currently wired into the sending pipeline. Sample values only affect this preview.</p>
+
+      <EmailDeliveryHealthCard />
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(260px,1fr)_minmax(0,2fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
@@ -104,6 +216,24 @@ export default function EmailPreviewsPage() {
             <div className="space-y-1.5"><Label htmlFor="preview-name" className="text-xs">Sample customer name</Label><Input id="preview-name" value={sampleName} onChange={(event) => setSampleName(event.target.value)} className="h-8 text-sm" /></div>
             <div className="space-y-1.5"><Label htmlFor="preview-email" className="text-xs">Sample recipient</Label><Input id="preview-email" type="email" value={sampleEmail} onChange={(event) => setSampleEmail(event.target.value)} className="h-8 text-sm" /></div>
             <div className="space-y-1.5 sm:col-span-2 xl:col-span-1"><Label htmlFor="preview-subject" className="text-xs">Subject preview</Label><Input id="preview-subject" value={subject} onChange={(event) => setSubject(event.target.value)} className="h-8 text-sm" /></div>
+            <div className="flex items-end sm:col-span-2 xl:col-span-3">
+              {canSendTest ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" onClick={() => sendTestEmail.mutate()} disabled={sendTestEmail.isPending}>
+                    {sendTestEmail.isPending ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-2 h-3.5 w-3.5" />}
+                    Send test email
+                  </Button>
+                  <p className="text-xs text-muted-foreground">Sends a real email to the sample recipient above through the live pipeline.</p>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Button size="sm" variant="outline" disabled>
+                    <Send className="mr-2 h-3.5 w-3.5" />Send test email
+                  </Button>
+                  <span>Authentication emails are sent by Supabase Auth on real signup/invite/recovery events — there's no way to test-send one without those side effects.</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <ScrollArea className="min-h-0 flex-1 bg-slate-100 p-4 dark:bg-slate-950/40">
