@@ -19,6 +19,7 @@
     "security:product-cost-rls-audit": "node scripts/audit_product_cost_rls.mjs",
     "qa:smoke": "node scripts/admin_smoke_and_error_checks.mjs",
     "qa:edge-smoke": "node scripts/edge_functions_smoke.mjs",
+    "qa:email-pipeline-smoke": "node scripts/email_pipeline_smoke.mjs",
     "qa:email-previews": "node scripts/check_email_preview_health.mjs",
     "security:audit": "node scripts/audit-policy.mjs",
     "release-ledger:sync": "node scripts/sync_release_ledger.mjs",

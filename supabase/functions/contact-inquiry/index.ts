@@ -1,12 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import * as React from "npm:react@18.3.1";
-import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { z } from "npm:zod@3.25.76";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
-import { getOrCreateUnsubscribeToken, getSmtpConfig, isAutoNotificationsDisabled, sendViaSMTP } from "../_shared/email/smtp.ts";
-import { template as notificationTemplate } from "../_shared/transactional-email-templates/contact-inquiry-notification.tsx";
-import { template as confirmationTemplate } from "../_shared/transactional-email-templates/inquiry-confirmation.tsx";
+import { getOrCreateUnsubscribeToken, getSmtpConfig, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -259,8 +255,6 @@ Deno.serve(async (req) => {
       console.error("Helpdesk ticket creation failed (non-fatal):", ticketCreateErr);
     }
 
-    const submittedAt = new Date(insertedInquiry.created_at).toUTCString();
-
     // Only gates the customer-facing confirmation — the admin notification
     // always goes out regardless of the submitter's portal notification setting.
     const confirmationDisabled = await isAutoNotificationsDisabled(supabase, payload.email);
@@ -274,53 +268,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send both emails immediately via SMTP (your own mail server)
-    if (smtpConfig) {
-      const notificationHtml = await renderAsync(React.createElement(notificationTemplate.component, {
-        inquiryType: payload.inquiryType,
-        name: payload.name,
-        email: payload.email,
-        phone: payload.phone || "",
-        businessName: payload.businessName || "",
-        message: payload.message,
-        pageSlug: payload.pageSlug,
-        sourceChannel: payload.sourceChannel,
-        submittedAt,
-        notes: payload.notes || "",
-      }));
-      const confirmationHtml = await renderAsync(React.createElement(confirmationTemplate.component, {
-        name: payload.name,
-        inquiryType: payload.inquiryType,
-        message: payload.message,
-        siteUrl: "https://classicvisions.net",
-      }));
-      await Promise.allSettled([
-        sendViaSMTP(
-          {
-            to: resolvedRecipient,
-            replyTo: payload.email,
-            subject: payload.inquiryType === "website-design-lead"
-              ? `Website design quote request from ${payload.name} — ${SITE_NAME}`
-              : `New Inquiry from ${payload.name} — ${SITE_NAME}`,
-            html: notificationHtml,
-          },
-          smtpConfig,
-        ).catch((err) => console.error("SMTP admin notification failed", { error: String(err) })),
-
-        ...(confirmationDisabled ? [] : [
-          sendViaSMTP(
-            {
-              to: payload.email,
-              subject: `We received your message — ${SITE_NAME}`,
-              html: confirmationHtml,
-            },
-            smtpConfig,
-          ).catch((err) => console.error("SMTP customer confirmation failed", { error: String(err) })),
-        ]),
-      ]);
-    }
-
-    // Enqueue for audit trail and as backup if SMTP was not yet configured
+    // Enqueue both emails through the transactional queue. This is the sole
+    // send path — an earlier "send immediately via SMTP" path was removed
+    // because sendViaSMTP() itself just enqueues into the same
+    // transactional_emails queue (see _shared/email/smtp.ts), so running
+    // both meant every submission sent two copies of each email, and the
+    // direct-send copy rendered without the unsubscribe link this path adds.
     try {
       const { renderAsync } = await import("npm:@react-email/components@0.0.22");
       const React = await import("npm:react@18.3.1");

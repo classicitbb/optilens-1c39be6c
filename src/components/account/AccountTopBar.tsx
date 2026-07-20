@@ -12,6 +12,7 @@ import { ACCOUNT_NAV_ITEMS } from "@/components/account/accountNav";
 import { useLocation } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useSupportAvailability } from "@/hooks/useSupportAvailability";
+import { capitalizeDisplayName } from "@/lib/profileData";
 
 interface AccountTopBarProps {
   displayName: string;
@@ -26,6 +27,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
   const activeTheme = theme ?? "system";
+  const formattedDisplayName = capitalizeDisplayName(displayName, "Customer");
 
   // Close the mobile sheet whenever the user navigates to a new page
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
@@ -123,13 +125,13 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                 />
               </Button>
               <span className="max-w-28 truncate text-sm font-medium text-foreground">
-                {displayName}
+                {formattedDisplayName}
               </span>
               <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 rounded-full" asChild>
                 <Link to="/profile/account">
                   <Avatar className="h-7 w-7">
                     <AvatarFallback className="text-[10px] uppercase">
-                      {displayName.slice(0, 2)}
+                      {formattedDisplayName.slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
                 </Link>
@@ -146,10 +148,10 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
             <SheetTitle className="flex items-center gap-3 text-left">
               <Avatar className="h-8 w-8 shrink-0">
                 <AvatarFallback className="text-xs uppercase">
-                  {displayName.slice(0, 2)}
+                  {formattedDisplayName.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              <span className="truncate text-sm font-semibold">{displayName}</span>
+              <span className="truncate text-sm font-semibold">{formattedDisplayName}</span>
             </SheetTitle>
           </SheetHeader>
 

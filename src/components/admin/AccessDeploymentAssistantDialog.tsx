@@ -13,15 +13,9 @@ import { type AppRole, useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { hasCompletedAccessDeploymentTraining } from "@/components/admin/AccessDeploymentTrainingDialog";
+import { resolveCompatibleCustomerAccounts, type AccessDeploymentCustomerOption } from "@/lib/accessDeployment";
 
-type CustomerOption = {
-  id: number;
-  name: string;
-  account_number: string | null;
-  email: string | null;
-  contact_id: string | null;
-  innovations_customer_id: number | null;
-};
+type CustomerOption = AccessDeploymentCustomerOption;
 
 type DeploymentKind = "portal" | "staff";
 type ProvisioningMethod = "link" | "invite" | "password" | null;
@@ -82,8 +76,7 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
     return customers.filter((customer) => [customer.name, customer.email, customer.account_number].some((value) => normalize(value).includes(term))).slice(0, 8);
   }, [customers, query]);
   const contactCustomers = useMemo(() => {
-    if (!selectedContact) return [];
-    return customers.filter((customer) => customer.contact_id === selectedContact.id || customer.id === selectedContact.linked_customer_id || (selectedContact.innovations_parent_customer_id && customer.innovations_customer_id === selectedContact.innovations_parent_customer_id));
+    return resolveCompatibleCustomerAccounts(selectedContact, customers);
   }, [customers, selectedContact]);
   const email = selectedContact?.email?.trim() ?? "";
   const existingLogin = useMemo(() => users.find((user) => normalize(user.email) === normalize(email)), [email, users]);

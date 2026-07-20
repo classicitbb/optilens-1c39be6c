@@ -453,8 +453,21 @@ const ContactsPage = ({
     },
     enabled: typeof editContact?.linked_customer_id === "number",
   });
-  const accountSettingsCustomer = linkedCustomerRecord ?? linkedErpAccount ?? null;
-  const accountSettingsIsInherited = !linkedCustomerRecord && !!linkedErpAccount;
+  const { data: parentCompanyCustomerRecord } = useQuery({
+    queryKey: ["contact-parent-company-customer-record", editContact?.parent_id],
+    queryFn: async () => {
+      if (!editContact?.parent_id) return null;
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+        .eq("contact_id", editContact.parent_id as any)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
+    },
+    enabled: !!editContact?.parent_id,
+  });
+  const accountSettingsCustomer = linkedCustomerRecord ?? linkedErpAccount ?? parentCompanyCustomerRecord ?? null;
+  const accountSettingsIsInherited = !linkedCustomerRecord && (!!linkedErpAccount || !!parentCompanyCustomerRecord);
   const { data: linkedPortalProfile } = useQuery({
     queryKey: ["contact-linked-portal-profile", editContact?.id, accountSettingsCustomer?.id],
     queryFn: async () => {
@@ -2479,7 +2492,9 @@ const ContactsPage = ({
                                 <div className="rounded-lg bg-muted/40 p-3">
                                   <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Innovations account</p>
                                   <p className="mt-1 text-sm font-medium">{accountSettingsCustomer.name || editContact.name || "Unnamed account"}</p>
-                                  <p className="mt-0.5 text-xs text-muted-foreground">ID {accountSettingsCustomer.innovations_customer_id ?? "Pending sync"}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">
+                                    {accountSettingsCustomer.innovations_customer_id ? `Innovations ID ${accountSettingsCustomer.innovations_customer_id}` : "Innovations sync pending"}
+                                  </p>
                                 </div>
                                 <div className="rounded-lg bg-muted/40 p-3">
                                   <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website portal</p>

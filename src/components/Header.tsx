@@ -17,9 +17,11 @@ import { CartSheet } from "@/components/CartSheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
+import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { createAuthHref } from "@/lib/authFlow";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type MegaMenuLink = {
   label: string;
@@ -437,6 +439,16 @@ const THEME_OPTIONS = [
   { value: "light", label: "Light", icon: Sun },
 ] as const;
 
+type HeaderProfileRow = { display_name: string | null; full_name: string | null; avatar_url: string | null };
+
+type HeaderProfileQuery = {
+  select: (columns: string) => {
+    eq: (column: string, value: string) => {
+      maybeSingle: () => Promise<{ data: HeaderProfileRow | null; error: { message: string } | null }>;
+    };
+  };
+};
+
 const getAccountInitials = (name: string, email: string) => {
   const source = name || email;
   const parts = source
@@ -461,9 +473,23 @@ const Header = () => {
   const showRequestInMenu = !!user && !roleLoading && !role && bannerDismissed;
   const { theme, resolvedTheme, setTheme } = useTheme();
   const activeTheme = theme ?? "system";
-  const activeUserName = resolveUserFullName(user) || user?.email?.split("@")[0] || "Account";
+  const { data: profile } = useQuery({
+    queryKey: ["header-profile-name", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await (supabase.from("profiles") as unknown as HeaderProfileQuery)
+        .select("display_name, full_name, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+  const activeUserName = capitalizeDisplayName(profile?.display_name || profile?.full_name || resolveUserFullName(user) || user?.email?.split("@")[0], "Account");
   const activeUserEmail = user?.email?.trim() || "";
-  const activeUserAvatar = resolveUserAvatar(user);
+  const activeUserAvatar = profile?.avatar_url || resolveUserAvatar(user);
   const activeUserInitials = getAccountInitials(activeUserName, activeUserEmail);
   const resolvedThemeValue = activeTheme === "system" ? resolvedTheme ?? "system" : activeTheme;
   const { data: storeProducts = [] } = useStoreProducts();

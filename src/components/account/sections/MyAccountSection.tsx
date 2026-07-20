@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
-import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
+import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import { type ProfileFormValues, profileSchema } from "@/features/portal/profileSchema";
 import { getMissingProfileRequirements } from "@/features/portal/profileCompletion";
 import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
@@ -244,7 +244,7 @@ const MyAccountSection = () => {
   const phone = form.watch("phone");
   const organizationName = form.watch("organization_name");
   const displayName = form.watch("display_name");
-  const profileName = fullName || displayName || "Your profile";
+  const profileName = capitalizeDisplayName(fullName || displayName, "Your profile");
   const initials = profileName
     .split(/\s+/)
     .filter(Boolean)

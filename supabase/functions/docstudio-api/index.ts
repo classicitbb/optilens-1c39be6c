@@ -10,7 +10,7 @@ import { getOrCreateUnsubscribeToken, getSmtpConfig } from "../_shared/email/smt
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
@@ -175,14 +175,6 @@ serve(async (req) => {
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
-  // Authenticate the admin from the bridge's bearer token.
-  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const { data: userData, error: authErr } = await supabase.auth.getUser(token);
-  const userId = userData?.user?.id;
-  if (authErr || !userId) return json({ error: "Not authorized" }, 401);
-  const { data: isAdmin } = await supabase.rpc("has_edit_role", { _user_id: userId });
-  if (!isAdmin) return json({ error: "Not authorized" }, 403);
-
   const url = new URL(req.url);
   const parts = url.pathname.split("/").filter(Boolean);
   const base = parts.indexOf("docstudio-api");
@@ -190,6 +182,31 @@ serve(async (req) => {
   // Older bridge builds forwarded the full /api/docstudio/... path — accept both.
   if (route[0] === "docstudio") route.shift();
   const method = req.method;
+
+  // The health probe is read-only and carries no customer data beyond email
+  // addresses/subjects already visible in the admin UI, so CI/monitoring can
+  // use a scoped API key (docstudio:health) instead of an admin user session
+  // — the same api_keys/verify_api_key mechanism live-data-gateway uses for
+  // machine-to-machine calls. Every other route still requires the admin JWT.
+  const isHealthProbe = route[0] === "email" && route[1] === "health" && method === "GET";
+  const apiKey = req.headers.get("x-api-key");
+  let healthProbeAuthorized = false;
+  if (isHealthProbe && apiKey) {
+    const { data: keyRows } = await supabase.rpc("verify_api_key", { p_token: apiKey });
+    const key = Array.isArray(keyRows) ? keyRows[0] : keyRows;
+    const scopes: string[] = Array.isArray(key?.scopes) ? key.scopes : [];
+    healthProbeAuthorized = scopes.includes("docstudio:health");
+  }
+
+  if (!healthProbeAuthorized) {
+    // Authenticate the admin from the bridge's bearer token.
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: userData, error: authErr } = await supabase.auth.getUser(token);
+    const userId = userData?.user?.id;
+    if (authErr || !userId) return json({ error: "Not authorized" }, 401);
+    const { data: isAdmin } = await supabase.rpc("has_edit_role", { _user_id: userId });
+    if (!isAdmin) return json({ error: "Not authorized" }, 403);
+  }
   // deno-lint-ignore no-explicit-any
   const body: any = method === "POST" || method === "PUT" ? await req.json().catch(() => ({})) : {};
 

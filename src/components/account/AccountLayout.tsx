@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { stopPortalEmulation } from "@/lib/portalEmulation";
+import { capitalizeDisplayName } from "@/lib/profileData";
 
 const getDisplayName = (email?: string | null) => {
   if (!email) return "Customer";
   const [name] = email.split("@");
-  return name || "Customer";
+  return capitalizeDisplayName(name, "Customer");
 };
 
 const EmulationBanner = () => {
@@ -43,7 +44,7 @@ const AccountLayout = () => {
   const { emulation } = usePortalIdentity();
   usePresenceHeartbeat("customer");
 
-  const displayName = emulation ? emulation.label : getDisplayName(user?.email);
+  const displayName = emulation ? capitalizeDisplayName(emulation.label, "Customer") : getDisplayName(user?.email);
 
   return (
     <div className="h-dvh overflow-y-auto bg-background">

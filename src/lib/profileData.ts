@@ -66,6 +66,14 @@ export const resolveUserFullName = (user: User | null) => {
   ).trim();
 };
 
+export const capitalizeDisplayName = (value: string | null | undefined, fallback = "") => {
+  const trimmed = (value ?? "").trim();
+  const source = trimmed || fallback.trim();
+  if (!source) return "";
+
+  return source.charAt(0).toUpperCase() + source.slice(1);
+};
+
 export const resolveUserAvatar = (user: User | null) => {
   const metadata = user?.user_metadata ?? {};
   return (
