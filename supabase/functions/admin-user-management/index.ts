@@ -373,7 +373,12 @@ Deno.serve(async (req) => {
 
     return jsonResponse(req, 400, { error: "Unhandled action" });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Internal error";
-    return jsonResponse(req, 500, { error: message });
+    console.error("admin-user-management: unhandled error", err);
+    const message = err instanceof Error
+      ? err.message
+      : typeof err === "string"
+      ? err
+      : (() => { try { return JSON.stringify(err); } catch { return "Internal error"; } })();
+    return jsonResponse(req, 500, { error: message || "Internal error" });
   }
 });
