@@ -140,6 +140,21 @@ describe("admin function policy", () => {
     })).toThrow("userId must be a valid user id");
   });
 
+  it("requires a valid target user id for portal emulation", () => {
+    const userId = "6a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
+    expect(validateAdminFunctionRequest({
+      actorRole: "admin",
+      action: "emulate-portal-user",
+      payload: { userId },
+    })).toEqual({ action: "emulate-portal-user", userId });
+
+    expect(() => validateAdminFunctionRequest({
+      actorRole: "admin",
+      action: "emulate-portal-user",
+      payload: { userId: "not-a-user-id" },
+    })).toThrow("userId must be a valid user id");
+  });
+
   it("rejects an invalid ERP customer identifier", () => {
     expect(() =>
       validateAdminFunctionRequest({

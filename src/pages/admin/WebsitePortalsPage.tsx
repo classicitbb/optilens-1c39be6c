@@ -16,7 +16,7 @@ import {
   UserRound,
   WalletCards,
 } from "lucide-react";
-import { startPortalEmulation } from "@/lib/portalEmulation";
+import { clearStoredPortalAdminSession, startPortalEmulation, stopPortalEmulation } from "@/lib/portalEmulation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -173,7 +173,7 @@ const WebsitePortalsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { users, resetPassword, inviteUser, createUser, isLoading: usersLoading } = useAdminUsers();
+  const { users, resetPassword, inviteUser, createUser, emulatePortalUser, isLoading: usersLoading } = useAdminUsers();
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [search, setSearch] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -893,10 +893,37 @@ const WebsitePortalsPage = () => {
     setAccountDialogOpen(true);
   };
 
-  const emulatePortalAccount = (account: PortalAccountRecord) => {
+  const emulatePortalAccount = async (account: PortalAccountRecord) => {
     if (!account.portalUser) return;
-    startPortalEmulation({ userId: account.portalUser.userId, label: account.fullName || account.email || "customer" });
-    navigate("/profile");
+    const label = account.fullName || account.email || "customer";
+    try {
+      const {
+        data: { session: adminSession },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!adminSession) throw new Error("No active admin session. Please sign in again.");
+
+      const token = await emulatePortalUser.mutateAsync(account.portalUser.userId);
+      startPortalEmulation({ userId: account.portalUser.userId, label, mode: "signed-in-as" }, adminSession);
+
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token.tokenHash,
+        type: token.verificationType ?? "magiclink",
+      });
+      if (error) throw error;
+
+      queryClient.clear();
+      navigate("/profile", { replace: true });
+    } catch (error) {
+      stopPortalEmulation();
+      clearStoredPortalAdminSession();
+      toast({
+        title: "Could not sign in as customer",
+        description: error instanceof Error ? error.message : "The emulation session could not be started.",
+        variant: "destructive",
+      });
+    }
   };
 
   const createPortalLogin = (account: PortalAccountRecord) => {
@@ -1095,10 +1122,11 @@ const WebsitePortalsPage = () => {
                                 size="sm"
                                 variant="ghost"
                                 className="h-6 px-2 text-[11px]"
-                                title="View the customer portal as this account (no login needed)"
+                                title="Sign in as this customer portal account"
+                                disabled={emulatePortalUser.isPending}
                                 onClick={(event) => { event.stopPropagation(); emulatePortalAccount(account); }}
                               >
-                                <Eye className="mr-1 h-3 w-3" /> Emulate
+                                <Eye className="mr-1 h-3 w-3" /> {emulatePortalUser.isPending ? "Signing in…" : "Emulate"}
                               </Button>
                             </span>
                           ) : linkedLoginCount > 0 ? (
@@ -1119,7 +1147,7 @@ const WebsitePortalsPage = () => {
                         <ContextMenuItem onSelect={() => account.crmContactId && openPortalContactEditor(account, "details")} disabled={!account.crmContactId}>Edit contact</ContextMenuItem>
                         <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
                         <ContextMenuSeparator />
-                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser}>Emulate</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
                         <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser || linkedLoginCount > 0}>Create login</ContextMenuItem>
                       </ContextMenuContent>
                       </ContextMenu>
