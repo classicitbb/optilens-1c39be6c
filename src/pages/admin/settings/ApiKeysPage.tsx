@@ -22,6 +22,15 @@ const ALL_SCOPES = [
   "balances:write",
   "statements:read",
   "statements:write",
+  // Machine-to-machine calls that skip the admin-JWT gate on one narrow,
+  // low-risk route within an otherwise-privileged function. See
+  // docstudio-api/index.ts and customer-onboarding/index.ts for the checks.
+  "docstudio:health",
+  "customer-onboarding:smoke",
+  // live-data-gateway's scope — already checked in
+  // live-data-gateway/index.ts but was missing here, so keys with it could
+  // only be minted outside this UI (direct RPC call).
+  "gateway:agent",
 ];
 
 type ApiKey = {
