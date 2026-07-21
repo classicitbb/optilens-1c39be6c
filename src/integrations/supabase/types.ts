@@ -5986,9 +5986,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           avatar_url: string | null
           billing_address: Json | null
           bio: string | null
+          claimed_account_number: string | null
           created_at: string
           crm_contact_id: string | null
           crm_customer_id: number | null
@@ -6011,9 +6014,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           avatar_url?: string | null
           billing_address?: Json | null
           bio?: string | null
+          claimed_account_number?: string | null
           created_at?: string
           crm_contact_id?: string | null
           crm_customer_id?: number | null
@@ -6036,9 +6042,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           avatar_url?: string | null
           billing_address?: Json | null
           bio?: string | null
+          claimed_account_number?: string | null
           created_at?: string
           crm_contact_id?: string | null
           crm_customer_id?: number | null
