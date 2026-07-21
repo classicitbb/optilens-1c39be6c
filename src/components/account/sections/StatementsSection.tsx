@@ -22,6 +22,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowUpDown, ArrowUpRight, Loader2, Printer, ReceiptText, X } from "lucide-react";
 import { COMPANY_CONTACT } from "@/config/companyContact";
 import { requestLiveData } from "@/lib/liveDataGateway";
+import InquireButton from "@/components/account/InquireButton";
 
 // Live Innovations data is fetched on demand through the private OptiLens
 // gateway. Payment routing remains a narrow CV-owned portal configuration.
@@ -555,10 +556,26 @@ const StatementsSection = () => {
           </div>
           {activeStatement ? (
             <div className="space-y-3">
-              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                <span><strong>Statement ID:</strong> {activeStatement.id}</span>
-                <span><strong>Volume Discount:</strong> {money(activeStatement.volume_discount)}</span>
-                <span><strong>Due Date:</strong> {fmtDate(activeStatement.due_date)}</span>
+              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm">
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                  <span><strong>Statement ID:</strong> {activeStatement.id}</span>
+                  <span><strong>Volume Discount:</strong> {money(activeStatement.volume_discount)}</span>
+                  <span><strong>Due Date:</strong> {fmtDate(activeStatement.due_date)}</span>
+                </div>
+                <InquireButton
+                  label="Ask about this statement"
+                  title={`Inquiry about Statement ${activeStatement.id}`}
+                  description={[
+                    `Statement ID: ${activeStatement.id}`,
+                    `Account #: ${activeStatement.account_number ?? paymentProfile?.account_number ?? "—"}`,
+                    `Statement date: ${fmtDate(activeStatement.statement_date)}`,
+                    `Period: ${periodLabel(activeStatement)}`,
+                    `Due date: ${fmtDate(activeStatement.due_date)}`,
+                    `Closing balance: $${money(activeStatement.closing_balance)}`,
+                    "",
+                    "Question: ",
+                  ].join("\n")}
+                />
               </div>
               <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-sm">
@@ -601,10 +618,12 @@ const StatementsSection = () => {
                   <th className="px-4 py-3 text-left text-foreground dark:text-slate-50"><SortHeader column="payment_method" label="Payment Method" /></th>
                   <th className="px-4 py-3 text-left text-foreground dark:text-slate-50"><SortHeader column="reference" label="Reference" /></th>
                   <th className="px-4 py-3 text-right text-foreground dark:text-slate-50"><SortHeader column="amount" label="Amount" /></th>
+                  <th className="px-4 py-3 text-right text-foreground dark:text-slate-50">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedLines.map((line) => {
+                  const patientLabel = line.patient?.trim() || "patient";
                   return (
                     <tr key={line.id ?? lineDetail(line)} className="border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30">
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.order_type_name || "—"}</td>
@@ -615,12 +634,31 @@ const StatementsSection = () => {
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.payment_method || "—"}</td>
                       <td className="px-4 py-3 font-medium text-foreground dark:text-slate-50">{lineDetail(line)}</td>
                       <td className="px-4 py-3 text-right font-medium text-foreground dark:text-slate-50">${money(line.amount)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <InquireButton
+                          label="Ask about this line"
+                          title={`Inquiry about ${patientLabel} on Statement ${activeStatement?.id ?? line.statement_id ?? "—"}`}
+                          description={[
+                            `Statement ID: ${activeStatement?.id ?? line.statement_id ?? "—"}`,
+                            `Order type: ${line.order_type_name || "—"}`,
+                            `Posting date: ${fmtDate(line.post_date)}`,
+                            `Invoice ID: ${line.invoice_id ?? "—"}`,
+                            `Order ID: ${line.order_id ?? "—"}`,
+                            `Patient: ${line.patient || "—"}`,
+                            `Payment method: ${line.payment_method || "—"}`,
+                            `Reference: ${lineDetail(line)}`,
+                            `Amount: $${money(line.amount)}`,
+                            "",
+                            "Question: ",
+                          ].join("\n")}
+                        />
+                      </td>
                     </tr>
                   );
                 })}
                 {sortedLines.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">No line-item detail has been synced for this statement yet.</td>
+                    <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">No line-item detail has been synced for this statement yet.</td>
                   </tr>
                 )}
 
