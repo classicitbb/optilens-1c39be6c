@@ -161,6 +161,7 @@ const allowedActions = new Set([
   "invite-user",
   "create-user",
   "link-customer-portal-account",
+  "emulate-portal-user",
 ]);
 
 Deno.serve(async (req) => {
@@ -369,6 +370,63 @@ Deno.serve(async (req) => {
       if (!existing?.user) return jsonResponse(req, 404, { error: "The selected login no longer exists" });
       await linkCustomerPortalAccount(adminClient, userId, customerId, displayName, contactId);
       return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "emulate-portal-user") {
+      const { userId } = body;
+      if (!userId) {
+        return jsonResponse(req, 400, { error: "userId is required" });
+      }
+      if (userId === authContext.user.id) {
+        return jsonResponse(req, 400, { error: "Choose a customer portal login to emulate." });
+      }
+
+      const { data: existing, error: lookupError } = await adminClient.auth.admin.getUserById(userId);
+      if (lookupError) throw lookupError;
+      const targetUser = existing?.user;
+      if (!targetUser?.email) {
+        return jsonResponse(req, 404, { error: "The selected portal login no longer exists." });
+      }
+
+      const { data: targetRoles, error: targetRolesError } = await (adminClient.from("user_roles") as any)
+        .select("role")
+        .eq("user_id", userId);
+      if (targetRolesError) throw targetRolesError;
+      const roles = (targetRoles ?? [])
+        .map((entry: { role?: string | null }) => entry.role)
+        .filter((role: unknown): role is string => typeof role === "string");
+      if (roles.some((role) => role === "admin" || role === "operator" || role === "viewer")) {
+        return jsonResponse(req, 403, { error: "Privileged staff accounts cannot be emulated from Website Portals." });
+      }
+
+      const { data: profile, error: profileError } = await (adminClient.from("profiles") as any)
+        .select("id,user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile) {
+        return jsonResponse(req, 404, { error: "The selected login does not have a portal profile." });
+      }
+
+      const { data: linkData, error } = await adminClient.auth.admin.generateLink({
+        type: "magiclink",
+        email: targetUser.email,
+      });
+      if (error) throw error;
+
+      const tokenHash = linkData?.properties?.hashed_token;
+      const verificationType = linkData?.properties?.verification_type ?? "magiclink";
+      if (!tokenHash) {
+        throw new Error("Supabase did not return an emulation token.");
+      }
+
+      return jsonResponse(req, 200, {
+        success: true,
+        userId,
+        email: targetUser.email,
+        tokenHash,
+        verificationType,
+      });
     }
 
     return jsonResponse(req, 400, { error: "Unhandled action" });

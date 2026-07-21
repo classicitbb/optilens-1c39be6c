@@ -6,6 +6,7 @@ export const ADMIN_FUNCTION_ACTIONS = [
   "invite-user",
   "create-user",
   "link-customer-portal-account",
+  "emulate-portal-user",
 ] as const;
 
 export type AdminFunctionAction = (typeof ADMIN_FUNCTION_ACTIONS)[number];
@@ -144,5 +145,10 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
         ...(displayName !== undefined ? { displayName } : {}),
       };
       }
+    case "emulate-portal-user":
+      return {
+        action: "emulate-portal-user" as const,
+        userId: assertUserId(payload.userId),
+      };
   }
 };

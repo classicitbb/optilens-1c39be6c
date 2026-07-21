@@ -206,7 +206,9 @@ export const usePortalIdentity = () => {
 
   const [emulation, setEmulation] = useState(() => getPortalEmulation());
   useEffect(() => onPortalEmulationChange(() => setEmulation(getPortalEmulation())), []);
-  const activeEmulation = isStaff && emulation ? emulation : null;
+  const signedInAsEmulation =
+    emulation?.mode === "signed-in-as" && user?.id === emulation.userId ? emulation : null;
+  const activeEmulation = isStaff && emulation && emulation.mode !== "signed-in-as" ? emulation : null;
 
   const query = useQuery({
     queryKey: ["portal-identity", user?.id, activeEmulation?.userId ?? "self"],
@@ -251,6 +253,7 @@ export const usePortalIdentity = () => {
     identity: query.data ?? null,
     isStaff,
     emulation: activeEmulation,
+    portalSessionEmulation: signedInAsEmulation,
     /**
      * The user id every portal data surface should query by: the emulated
      * account's during admin emulation, otherwise the signed-in user's.

@@ -132,5 +132,19 @@ export const useAdminUsers = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
-  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser, linkCustomerPortalAccount };
+  const emulatePortalUser = useMutation({
+    mutationFn: async (userId: string) => {
+      return callAdminUserManagement<{
+        success: boolean;
+        userId: string;
+        email: string;
+        tokenHash: string;
+        verificationType: "magiclink" | "email";
+      }>(
+        validateAdminFunctionRequest({ actorRole: role, action: "emulate-portal-user", payload: { userId } })
+      );
+    },
+  });
+
+  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser, linkCustomerPortalAccount, emulatePortalUser };
 };
