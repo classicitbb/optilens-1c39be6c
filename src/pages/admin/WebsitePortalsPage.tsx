@@ -45,6 +45,7 @@ import {
   assignCustomerAccountNumber,
   normalizeAccountNumberInput,
 } from "@/lib/accountNumberAssignment";
+import { describePortalFeatureOverrideError } from "@/lib/portalFeatureOverrideErrors";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 
 interface PortalCustomerListItem {
@@ -593,7 +594,11 @@ const WebsitePortalsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["portal-identity", selectedCustomer?.userId] });
       toast({ title: "Portal access updated", description: "Feature override has been saved." });
     },
-    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to update portal feature.", variant: "destructive" }),
+    onError: (error: any, variables) => toast({
+      title: "Portal feature update blocked",
+      description: describePortalFeatureOverrideError(error, variables.featureKey),
+      variant: "destructive",
+    }),
   });
 
   const assignPricelist = useMutation({

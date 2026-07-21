@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Link2, Mail, Search, ShieldAlert, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,6 +39,7 @@ const roleLabels: Record<Exclude<AppRole, "customer">, string> = {
 
 export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, onCreateContact, onEditContact, onOpenTraining }: AccessDeploymentAssistantDialogProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { isAdmin } = useUserRole();
   const { users, isLoading: usersLoading, inviteUser, createUser, assignRole, linkCustomerPortalAccount } = useAdminUsers();
   const [query, setQuery] = useState("");
@@ -135,6 +136,12 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
           const { error: syncError } = await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: userId });
           if (syncError) throw syncError;
         }
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["contacts"] }),
+          queryClient.invalidateQueries({ queryKey: ["contacts-by-parent"] }),
+          queryClient.invalidateQueries({ queryKey: ["contact-linked-portal-profile"] }),
+          queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] }),
+        ]);
         setSuccess(method === "link" ? "Existing login linked to the selected customer." : method === "invite" ? "Invitation sent and linked to the selected customer." : "Portal login created and linked to the selected customer.");
       } else {
         if (method === "link") {
