@@ -488,8 +488,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
       .eq("user_id", auth.user.id)
       .eq("feature_key", config.feature)
       .maybeSingle();
-    const requiresExplicitOverride = config.feature === "live-order-status";
-    if (override?.enabled === false || (override?.enabled !== true && (requiresExplicitOverride || profile?.portal_access_status !== "approved_customer"))) {
+    if (override?.enabled === false || (override?.enabled !== true && profile?.portal_access_status !== "approved_customer")) {
       return json(req, { error: "This live-data feature is not enabled for the customer account." }, 403);
     }
 

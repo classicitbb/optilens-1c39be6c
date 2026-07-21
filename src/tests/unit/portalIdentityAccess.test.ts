@@ -33,9 +33,10 @@ describe("canAccessPortalFeature", () => {
     expect(canAccessPortalFeature(identity({ canAccessPricing: true }), "pricelists")).toBe(true);
   });
 
-  it("keeps live order status opt-in while the workflow is unfinished", () => {
-    expect(canAccessPortalFeature(identity(), "live-order-status")).toBe(false);
-    expect(canAccessPortalFeature(identity({ featureOverrides: { "live-order-status": true } }), "live-order-status")).toBe(true);
+  it("allows live order status for any approved customer, like private orders", () => {
+    expect(canAccessPortalFeature(identity(), "live-order-status")).toBe(true);
+    expect(canAccessPortalFeature(identity({ portalAccessStatus: "pending_approval" }), "live-order-status")).toBe(false);
+    expect(canAccessPortalFeature(identity({ featureOverrides: { "live-order-status": false } }), "live-order-status")).toBe(false);
   });
 
   it("keeps statements locked for approved contacts without billing tags", () => {

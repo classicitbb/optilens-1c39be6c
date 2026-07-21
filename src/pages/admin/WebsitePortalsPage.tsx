@@ -156,7 +156,7 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   helpdesk: "Explicit override for helpdesk access.",
   pricelists: "Requires Approved Access to Pricing or CEO tag; disabled override can still block it.",
   "private-orders": "Approved customer access for private/manual order history.",
-  "live-order-status": "Opt-in only while live lab and delivery status is being finished.",
+  "live-order-status": "Approved customer access for live lab and delivery status.",
   statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
 };
 

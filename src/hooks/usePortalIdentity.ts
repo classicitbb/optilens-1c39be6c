@@ -71,7 +71,6 @@ export const canAccessPortalFeature = (identity: PortalIdentity | null, feature:
     return identity.portalAccessStatus === "approved_customer" && identity.canAccessPricing;
   }
   if (override === true) return true;
-  if (feature === "live-order-status") return false;
   if (feature === "private-orders") return identity.portalAccessStatus === "approved_customer";
   return identity.portalAccessStatus === "approved_customer";
 };
