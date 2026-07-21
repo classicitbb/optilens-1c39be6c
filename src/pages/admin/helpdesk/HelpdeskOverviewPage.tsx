@@ -18,6 +18,7 @@ import { normalizeHelpdeskPriorityLabel } from "@/features/admin/helpdesk/utils/
 import { useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
+import { useUnstagedTicketAlerts } from "@/features/admin/helpdesk/hooks/useUnstagedTicketAlerts";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ interface OverviewTicket {
   updated_at: string;
   closed_at: string | null;
   deadline: string | null;
+  first_response_at: string | null;
   stage: {id: string;name: string;sequence: number;is_closed: boolean;is_folded: boolean;} | null;
   team: {id: string;name: string;} | null;
   partner_contact: {id: string;name: string;email: string | null;phone: string | null;} | null;
@@ -401,7 +403,6 @@ const HelpdeskOverviewPage = () => {
   const [editTicket, setEditTicket] = useState<OverviewTicket | null>(null);
   const [activeNow, setActiveNow] = useState(() => new Date());
   const navigate = useNavigate();
-  const handleOpenTicket = useCallback((t: OverviewTicket) => navigate(`/admin/helpdesk/tickets/${t.id}`, { state: { returnTo: "/admin/helpdesk/overview" } }), [navigate]);
 
   const updateStage = useUpdateHelpdeskTicketStage();
   const createTicket = useCreateHelpdeskTicket();
@@ -412,7 +413,7 @@ const HelpdeskOverviewPage = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any).
       from("helpdesk_tickets").
-      select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,email,phone)").
+      select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,first_response_at,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,email,phone)").
       order("created_at", { ascending: false }).
       limit(500);
       if (error) throw error;
@@ -422,6 +423,12 @@ const HelpdeskOverviewPage = () => {
     refetchIntervalInBackground: false,
     staleTime: 60000,
   });
+
+  const { alertingTicketIds, markTicketOpened } = useUnstagedTicketAlerts(tickets);
+  const handleOpenTicket = useCallback((t: OverviewTicket) => {
+    markTicketOpened(t.id);
+    navigate(`/admin/helpdesk/tickets/${t.id}`, { state: { returnTo: "/admin/helpdesk/overview" } });
+  }, [navigate, markTicketOpened]);
 
   const ticketIds = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);
   const { data: creatorEvents = [] } = useQuery({
@@ -661,9 +668,9 @@ const HelpdeskOverviewPage = () => {
           <p className="text-sm text-muted-foreground">Loading tickets…</p>
         </div> :
       viewMode === "kanban" ?
-      <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCreatorName={getCreatorName} onDrop={canEdit ? handleDrop : undefined} onEdit={handleOpenTicket} canCreate={canEdit} isCreating={createTicket.isPending} onCreateInStage={handleCreateInStage} teams={teams} priorities={priorities} ticketTypes={ticketTypes} /> :
+      <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCreatorName={getCreatorName} onDrop={canEdit ? handleDrop : undefined} onEdit={handleOpenTicket} canCreate={canEdit} isCreating={createTicket.isPending} onCreateInStage={handleCreateInStage} teams={teams} priorities={priorities} ticketTypes={ticketTypes} alertingTicketIds={alertingTicketIds} /> :
 
-      <ListView columns={stageColumns} getOwnerName={getOwnerName} stages={stages} canEdit={canEdit} onStageChange={handleListStageChange} onEdit={handleOpenTicket} />
+      <ListView columns={stageColumns} getOwnerName={getOwnerName} stages={stages} canEdit={canEdit} onStageChange={handleListStageChange} onEdit={handleOpenTicket} alertingTicketIds={alertingTicketIds} />
       }
 
       {/* Edit dialog */}
@@ -685,6 +692,7 @@ const KanbanView = ({
   teams,
   priorities,
   ticketTypes,
+  alertingTicketIds,
 }: {
   columns: StageColumn[];
   getOwnerName: (t: OverviewTicket) => string | null;
@@ -697,6 +705,7 @@ const KanbanView = ({
   teams: { id: string; name: string }[];
   priorities: PriorityOption[];
   ticketTypes: { id: string; name: string }[];
+  alertingTicketIds?: Set<string>;
 }) => {
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
@@ -754,6 +763,7 @@ const KanbanView = ({
       <div className="flex w-max gap-3 p-4 min-h-0 h-full">
         {columns.map((col) => {
           const isCollapsed = collapsedCols.has(col.id);
+          const columnHasAlert = col.id === "__unstaged" && col.tickets.some((t) => alertingTicketIds?.has(t.id));
 
           return (
             <div
@@ -761,7 +771,8 @@ const KanbanView = ({
               className={cn(
                 "flex flex-col shrink-0 rounded-lg transition-colors",
                 isCollapsed ? "min-w-[56px] max-w-[56px]" : "min-w-[125vw] max-w-[125vw] sm:min-w-[320px] sm:max-w-[420px] sm:flex-1",
-                dragOverCol === col.id && "bg-primary/5 ring-2 ring-primary/30"
+                dragOverCol === col.id && "bg-primary/5 ring-2 ring-primary/30",
+                columnHasAlert && "animate-unstaged-column-flash"
               )}
               onDragOver={onDrop ? (e) => handleDragOver(e, col.id) : undefined}
               onDragLeave={onDrop ? handleDragLeave : undefined}
@@ -832,6 +843,7 @@ const KanbanView = ({
                     <div className="space-y-2 px-3 pb-4">
                       {col.tickets.map((ticket) => {
                         const owner = getOwnerName(ticket);
+                        const isAlerting = alertingTicketIds?.has(ticket.id) ?? false;
                         return (
                           <div
                             key={ticket.id}
@@ -841,7 +853,8 @@ const KanbanView = ({
                             className={cn(
                               "min-w-0 rounded-lg border border-border bg-card p-3 space-y-2 shadow-sm hover:shadow-md transition-shadow group",
                               onDrop && "cursor-grab active:cursor-grabbing",
-                              onEdit && "cursor-pointer"
+                              onEdit && "cursor-pointer",
+                              isAlerting && "animate-unstaged-ticket-flash"
                             )}>
                             {/* Title row */}
                             <div className="flex min-w-0 items-start justify-between gap-2">
@@ -912,15 +925,15 @@ const ListView = ({
   stages,
   canEdit,
   onStageChange,
-  onEdit
+  onEdit,
+  alertingTicketIds
 
 
 
 
 
 
-
-}: {columns: StageColumn[];getOwnerName: (t: OverviewTicket) => string | null;stages: {id: string;name: string;is_closed?: boolean;is_folded?: boolean;}[];canEdit: boolean;onStageChange: (ticketId: string, stageId: string) => void;onEdit?: (t: OverviewTicket) => void;}) =>
+}: {columns: StageColumn[];getOwnerName: (t: OverviewTicket) => string | null;stages: {id: string;name: string;is_closed?: boolean;is_folded?: boolean;}[];canEdit: boolean;onStageChange: (ticketId: string, stageId: string) => void;onEdit?: (t: OverviewTicket) => void;alertingTicketIds?: Set<string>;}) =>
 <ScrollArea className="flex-1">
     <div className="p-4 space-y-4">
       {columns.map((col) =>
@@ -949,8 +962,9 @@ const ListView = ({
               <tbody>
                 {col.tickets.map((ticket) => {
             const owner = getOwnerName(ticket);
+            const isAlerting = alertingTicketIds?.has(ticket.id) ?? false;
             return (
-              <tr key={ticket.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+              <tr key={ticket.id} className={cn("border-b border-border/50 hover:bg-muted/30 transition-colors", isAlerting && "animate-unstaged-row-flash")}>
                       <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{ticket.ticket_number}</td>
                       <td className="py-2 px-2"><PriorityStars priority={ticket.priority} /></td>
                       <td className="py-2 px-2 font-medium text-foreground">{ticket.title}</td>

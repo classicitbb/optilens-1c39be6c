@@ -76,6 +76,7 @@ type LiveInnovationsOrder = {
   rx_number: string | null;
   patient: string | null;
   received_at: string | null;
+  promise_date?: string | null;
   status_name: string | null;
 };
 
@@ -297,6 +298,7 @@ const MyOrdersSection = () => {
                         <TableHead>Rx Number</TableHead>
                         <TableHead>Patient</TableHead>
                         <TableHead>Received</TableHead>
+                        <TableHead>Promise Date</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -306,6 +308,7 @@ const MyOrdersSection = () => {
                         <TableCell>{order.rx_number ?? "—"}</TableCell>
                         <TableCell>{order.patient ?? "—"}</TableCell>
                         <TableCell>{formatLiveDate(order.received_at)}</TableCell>
+                        <TableCell>{formatLiveDate(order.promise_date ?? null)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Badge variant="outline">{order.status_name ?? "—"}</Badge>
@@ -316,6 +319,7 @@ const MyOrdersSection = () => {
                                 `Rx Number: ${order.rx_number ?? "—"}`,
                                 `Patient: ${order.patient ?? "—"}`,
                                 `Received: ${formatLiveDate(order.received_at)}`,
+                                `Promise Date: ${formatLiveDate(order.promise_date ?? null)}`,
                                 `Status: ${order.status_name ?? "—"}`,
                                 "",
                                 "Question: ",

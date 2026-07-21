@@ -18,6 +18,7 @@ import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCrea
 import { useAssignHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useAssignHelpdeskTicket";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
 import { useArchiveHelpdeskTicket, useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
+import { useUnstagedTicketAlerts } from "@/features/admin/helpdesk/hooks/useUnstagedTicketAlerts";
 import { normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normalization";
 import { supabase } from "@/integrations/supabase/client";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
@@ -158,6 +159,8 @@ const HelpdeskTicketsPage = () => {
   const updateStage = useUpdateHelpdeskTicketStage();
   const archiveTicket = useArchiveHelpdeskTicket();
   const updateTicket = useUpdateHelpdeskTicket();
+
+  const { alertingTicketIds, markTicketOpened } = useUnstagedTicketAlerts(ticketQuery.data ?? []);
 
   const stageMap = useMemo(() => new Map(stages.map((s) => [s.id, s.name])), [stages]);
   const closedStage = useMemo(() => stages.find(s => s.is_closed), [stages]);
@@ -427,12 +430,14 @@ const HelpdeskTicketsPage = () => {
                   {ticketQuery.data?.map((ticket) => {
                     const slaStatus = normalizeSlaBadgeStatus({ deadline: ticket.deadline, closedAt: ticket.closed_at });
                     const prioColor = getPrioColor(ticket.priority);
+                    const isAlerting = alertingTicketIds.has(ticket.id);
                     return (
                       <TableRow
                         key={ticket.id}
-                        className="cursor-pointer hover:bg-muted/40"
+                        className={cn("cursor-pointer hover:bg-muted/40", isAlerting && "animate-unstaged-row-flash")}
                         onClick={(e) => {
                           if ((e.target as HTMLElement).closest('[data-no-row-click]')) return;
+                          markTicketOpened(ticket.id);
                           navigate(`/admin/helpdesk/tickets/${ticket.id}`, { state: { returnTo: "/admin/helpdesk/tickets" } });
                         }}
                         style={{ borderLeft: `3px solid ${prioColor}` }}
