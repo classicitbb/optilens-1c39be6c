@@ -50,22 +50,22 @@ describe("AccountSidebar", () => {
     expect(screen.getByRole("link", { name: "Statements" })).toHaveAttribute("href", "/profile/statements");
   });
 
-  it("keeps statements locked when the feature is disabled", () => {
+  it("hides statements entirely when the feature is disabled", () => {
     mocks.statementsEnabled = false;
     mocks.isAdmin = false;
     renderSidebar();
 
     expect(screen.queryByRole("link", { name: "Statements" })).not.toBeInTheDocument();
-    expect(screen.getByText("Statements").parentElement).toHaveTextContent("Approval");
+    expect(screen.queryByText("Statements")).not.toBeInTheDocument();
   });
 
-  it("keeps Lens Assistant disabled for customers until the public flag is enabled", () => {
+  it("hides Lens Assistant entirely for customers until the public flag is enabled", () => {
     mocks.isAdmin = false;
     mocks.lensAssistantPublic = false;
     renderSidebar();
 
     expect(screen.queryByRole("link", { name: "Lens Assistant" })).not.toBeInTheDocument();
-    expect(screen.getByText("Lens Assistant").parentElement).toHaveTextContent("Feature");
+    expect(screen.queryByText("Lens Assistant")).not.toBeInTheDocument();
   });
 
   it("lets admins open Lens Assistant when the admin flag is enabled", () => {

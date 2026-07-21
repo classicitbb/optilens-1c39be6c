@@ -639,6 +639,21 @@ const WebsitePortalsPage = () => {
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to clear override.", variant: "destructive" }),
   });
 
+  // Feature overrides are tri-state (unset/true/false), but a two-state toggle
+  // that only ever upserts true/false can never express "unset" — the button
+  // showed "Default" for both a genuinely unset row and an explicit
+  // enabled=false row, so staff had no reliable way to tell an override was
+  // disabled, and every click just flipped straight back to enabled=true.
+  // Cycle unset -> enabled -> disabled -> unset (via clearFeatureOverride) so
+  // "Disabled" is its own visible, sticky state.
+  const cycleFeatureOverride = (feature: string, current: boolean | undefined) => {
+    if (current === undefined) upsertFeatureOverride.mutate({ featureKey: feature, enabled: true });
+    else if (current === true) upsertFeatureOverride.mutate({ featureKey: feature, enabled: false });
+    else clearFeatureOverride.mutate(feature);
+  };
+  const featureOverrideStateLabel = (current: boolean | undefined) =>
+    current === undefined ? "Default" : current ? "Enabled" : "Disabled";
+
   // A disabled override silently wins over an access-granting tag (see
   // can_access_customer_portal_feature): if it's false, the feature stays
   // blocked no matter what canAccessPricing/canAccessStatements say.
@@ -1137,9 +1152,15 @@ const WebsitePortalsPage = () => {
                 </div>
               ) : null}
               {FEATURE_KEYS.map((feature) => {
-                const enabled = detailQuery.data.featureOverrides[feature];
-                return <Button key={feature} type="button" variant={enabled ? "default" : "outline"} className="w-full justify-between" onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}>
-                  {FEATURE_LABELS[feature]}<span className="text-xs">{enabled ? "Enabled" : "Default"}</span>
+                const current = detailQuery.data.featureOverrides[feature];
+                return <Button
+                  key={feature}
+                  type="button"
+                  variant={current === true ? "default" : current === false ? "destructive" : "outline"}
+                  className="w-full justify-between"
+                  onClick={() => cycleFeatureOverride(feature, current)}
+                >
+                  {FEATURE_LABELS[feature]}<span className="text-xs">{featureOverrideStateLabel(current)}</span>
                 </Button>;
               })}
               <div className="border-t pt-2">
@@ -1481,19 +1502,25 @@ const WebsitePortalsPage = () => {
                           <p className="text-sm font-semibold text-foreground">Feature access overrides</p>
                           <div className="space-y-2">
                             {FEATURE_KEYS.map((feature) => {
-                              const enabled = detailQuery.data.featureOverrides[feature];
+                              const current = detailQuery.data.featureOverrides[feature];
+                              const stateClassName = current === true
+                                ? "border-primary bg-primary/5"
+                                : current === false
+                                  ? "border-destructive bg-destructive/5"
+                                  : "border-border";
+                              const labelClassName = current === false ? "text-destructive" : "text-primary";
                               return (
                                 <button
                                   key={feature}
                                   type="button"
-                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${enabled ? "border-primary bg-primary/5" : "border-border"}`}
-                                  onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}
+                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${stateClassName}`}
+                                  onClick={() => cycleFeatureOverride(feature, current)}
                                 >
                                   <span>
                                     <span className="block text-sm font-medium text-foreground">{FEATURE_LABELS[feature]}</span>
                                     <span className="block text-xs text-muted-foreground">{FEATURE_DESCRIPTIONS[feature]}</span>
                                   </span>
-                                  <span className="text-xs font-semibold text-primary">{enabled ? "Enabled" : "Default"}</span>
+                                  <span className={`text-xs font-semibold ${labelClassName}`}>{featureOverrideStateLabel(current)}</span>
                                 </button>
                               );
                             })}
