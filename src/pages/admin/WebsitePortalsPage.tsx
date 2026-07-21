@@ -34,6 +34,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
 import ContactsPage from "@/pages/admin/erp/ContactsPage";
+import { PortalApprovalsQueue } from "@/components/admin/PortalApprovalsQueue";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
@@ -73,6 +74,9 @@ interface PortalCustomerListItem {
 interface PortalCustomerDetail extends PortalCustomerListItem {
   featureOverrides: Record<string, boolean>;
   accountNumber: string | null;
+  // Company contact linked to this customer account — where an account-wide
+  // access tag should live so every person at the account inherits it.
+  companyContactId: string | null;
   canAccessStatements: boolean;
   canAccessPricing: boolean;
   cartItems: Array<{
@@ -547,7 +551,7 @@ const WebsitePortalsPage = () => {
         syncedCustomerId
           ? (supabase as any)
               .from("customers")
-              .select("assigned_pricelist_id,account_number")
+              .select("assigned_pricelist_id,account_number,contact_id")
               .eq("id", syncedCustomerId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
@@ -581,6 +585,7 @@ const WebsitePortalsPage = () => {
         canAccessStatements: canAccessStatements === true,
         assignedPricelistId: typeof (customerRow as any)?.assigned_pricelist_id === "number" ? (customerRow as any).assigned_pricelist_id : null,
         accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : selectedAccount?.accountNumber ?? null,
+        companyContactId: typeof (customerRow as any)?.contact_id === "string" ? (customerRow as any).contact_id : null,
         cartItems: (cartRows ?? []) as PortalCustomerDetail["cartItems"],
         abandonedAlerts: (alerts ?? []) as PortalCustomerDetail["abandonedAlerts"],
         inquiries: (inquiries ?? []) as PortalCustomerDetail["inquiries"],
@@ -930,6 +935,39 @@ const WebsitePortalsPage = () => {
     setContactEditor({ contactId, initialTab });
   };
 
+  // Tag-gated feature line for Portal Settings. When access is gated, offers two
+  // deep-links whose blast radius is explicit: tag the company (everyone at the
+  // account inherits it) or the person (only them). Tagging happens in the
+  // contact editor — this only routes the admin to the right contact.
+  const renderSensitiveAccessLine = (feature: "pricelists" | "statements") => {
+    const detail = detailQuery.data;
+    if (!detail) return null;
+    const allowed = feature === "pricelists" ? detail.canAccessPricing : detail.canAccessStatements;
+    const label = feature === "pricelists" ? "Pricing" : "Statements";
+    const tagLabel = feature === "pricelists" ? "Approved Access to Pricing or CEO tag" : "Approved Access to Statement or CEO tag";
+    const companyName = selectedAccount?.fullName?.trim() || "this account";
+    const personName = detail.fullName?.trim() || "this person";
+    return (
+      <div className="mt-2 text-xs text-muted-foreground">
+        <p>{label} allowed: {allowed ? "Yes" : `${tagLabel} required.`}</p>
+        {!allowed ? (
+          <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            {detail.companyContactId ? (
+              <button type="button" className="text-primary underline underline-offset-2" onClick={() => openContactEditor(detail.companyContactId!, "details")}>
+                Grant to everyone at {companyName} →
+              </button>
+            ) : null}
+            {detail.crmContactId ? (
+              <button type="button" className="text-primary underline underline-offset-2" onClick={() => openContactEditor(detail.crmContactId!, "details")}>
+                Grant to {personName} only →
+              </button>
+            ) : null}
+          </p>
+        ) : null}
+      </div>
+    );
+  };
+
   const openPortalContactEditor = (account: PortalAccountRecord, initialTab: "details" | "account-settings" | "portal-settings") => {
     setSelectedAccountId(account.id);
     if (account.crmContactId) openContactEditor(account.crmContactId, initialTab);
@@ -1160,6 +1198,8 @@ const WebsitePortalsPage = () => {
           </div>
         </AdminPageHeader>
       </div>
+
+      <PortalApprovalsQueue onReviewContact={openContactEditor} />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <Card className="flex min-h-0 flex-1 flex-col overflow-hidden shadow-none hover:shadow-none">
@@ -1532,12 +1572,8 @@ const WebsitePortalsPage = () => {
                                   <Button type="button" size="sm" variant="link" className="h-auto p-0" onClick={() => navigate("/admin/contacts")}>Open Contacts</Button>
                                 </div>
                               ) : null}
-                              <p className="mt-2 text-xs text-muted-foreground">
-                                Pricing allowed: {detailQuery.data.canAccessPricing ? "Yes" : "Approved Access to Pricing or CEO tag required"}.
-                              </p>
-                              <p className="mt-2 text-xs text-muted-foreground">
-                                Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Approved Access to Statement or CEO tag required"}.
-                              </p>
+                              {renderSensitiveAccessLine("pricelists")}
+                              {renderSensitiveAccessLine("statements")}
                             </div>
                             <Button variant="outline" className="w-full justify-start" onClick={async () => { try { await resetPassword.mutateAsync(detailQuery.data.email); toast({ title: "Reset sent", description: "Password reset email has been sent." }); } catch (error: any) { toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" }); } }} disabled={!detailQuery.data.email || resetPassword.isPending}>
                               <Mail className="mr-2 h-4 w-4" />
@@ -1682,12 +1718,8 @@ const WebsitePortalsPage = () => {
                             {detailQuery.data.portalAccessApprovedOverride ? "Override approved" : "No override"}
                           </Badge>
                         </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Pricing allowed: {detailQuery.data.canAccessPricing ? "Yes" : "Approved Access to Pricing or CEO tag required"}.
-                        </p>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Statements allowed: {detailQuery.data.canAccessStatements ? "Yes" : "Approved Access to Statement or CEO tag required"}.
-                        </p>
+                        {renderSensitiveAccessLine("pricelists")}
+                        {renderSensitiveAccessLine("statements")}
                       </div>
                       <div className="space-y-2">
                         <Label>Full name</Label>

@@ -84,10 +84,13 @@ describe("MyAccountSection", () => {
     expect(mocks.signOut).toHaveBeenCalledOnce();
   });
 
-  it("uses ACC# when no ERP account is linked", async () => {
+  it("offers an optional account-number claim input when no ERP account is linked", async () => {
     mocks.accountNumber = null;
     renderSection();
 
-    expect(await screen.findByText("ACC#")).toBeInTheDocument();
+    // The read-only ERP number is replaced by an optional claim field that
+    // speeds up admin approval but never grants access on its own.
+    expect(await screen.findByPlaceholderText("Account # from your invoice (optional)")).toBeInTheDocument();
+    expect(screen.getByText(/speed up approval/i)).toBeInTheDocument();
   });
 });

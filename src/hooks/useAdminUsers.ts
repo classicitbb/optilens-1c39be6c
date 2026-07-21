@@ -132,6 +132,33 @@ export const useAdminUsers = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
+  const confirmPortalStaff = useMutation({
+    mutationFn: async ({ userId, customerId }: { userId: string; customerId: number }) => {
+      await callAdminUserManagement(
+        validateAdminFunctionRequest({ actorRole: role, action: "confirm-portal-staff", payload: { userId, customerId } })
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
+  const archivePortalProfile = useMutation({
+    mutationFn: async ({ userId, archived }: { userId: string; archived: boolean }) => {
+      await callAdminUserManagement(
+        validateAdminFunctionRequest({ actorRole: role, action: "archive-portal-profile", payload: { userId, archived } })
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
+  const setLoginDisabled = useMutation({
+    mutationFn: async ({ userId, disabled }: { userId: string; disabled: boolean }) => {
+      await callAdminUserManagement(
+        validateAdminFunctionRequest({ actorRole: role, action: "set-login-disabled", payload: { userId, disabled } })
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
   const emulatePortalUser = useMutation({
     mutationFn: async (userId: string) => {
       return callAdminUserManagement<{
@@ -146,5 +173,5 @@ export const useAdminUsers = () => {
     },
   });
 
-  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser, linkCustomerPortalAccount, emulatePortalUser };
+  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser, linkCustomerPortalAccount, confirmPortalStaff, archivePortalProfile, setLoginDisabled, emulatePortalUser };
 };

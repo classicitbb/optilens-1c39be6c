@@ -62,6 +62,11 @@ const MyAccountSection = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  // Optional account-number the customer types before approval. It is a claim
+  // that speeds up admin review — it never grants access on its own.
+  const [claimDraft, setClaimDraft] = useState("");
+  const [savedClaim, setSavedClaim] = useState("");
+  const [savingClaim, setSavingClaim] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -85,12 +90,16 @@ const MyAccountSection = () => {
           phone: data.phone || "",
           organization_name: data.organization_name || "",
         });
+        setClaimDraft(data.claimed_account_number || "");
+        setSavedClaim(data.claimed_account_number || "");
       } else {
         form.reset({
           full_name: emulation ? "" : resolveUserFullName(user),
           phone: "",
           organization_name: "",
         });
+        setClaimDraft("");
+        setSavedClaim("");
       }
       setLoading(false);
     };
@@ -135,6 +144,30 @@ const MyAccountSection = () => {
     await queryClient.invalidateQueries({ queryKey: ["portal-identity", user.id] });
     toast({ title: "Success", description: successDescription });
     return true;
+  };
+
+  const handleSaveClaim = async () => {
+    if (!user || emulation) return;
+    const trimmed = claimDraft.trim().toUpperCase();
+    if (trimmed.length > 60) {
+      toast({ title: "Account number is too long", description: "Enter the account number exactly as it appears on your invoice.", variant: "destructive" });
+      return;
+    }
+    setSavingClaim(true);
+    const { error } = await (supabase.from("profiles") as any)
+      .upsert({ user_id: user.id, claimed_account_number: trimmed || null }, { onConflict: "user_id" });
+    setSavingClaim(false);
+    if (error) {
+      toast({ title: "Error", description: "Could not save the account number.", variant: "destructive" });
+      return;
+    }
+    setClaimDraft(trimmed);
+    setSavedClaim(trimmed);
+    await queryClient.invalidateQueries({ queryKey: ["portal-identity", user.id] });
+    toast({
+      title: trimmed ? "Account number saved" : "Account number cleared",
+      description: trimmed ? "Our team will confirm and link your account." : undefined,
+    });
   };
 
   const handleStartEditProfileField = (field: InlineProfileField) => {
@@ -558,9 +591,40 @@ const MyAccountSection = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   <IdCard className="h-4 w-4 text-muted-foreground" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <dt className="text-xs text-muted-foreground">ERP account</dt>
-                    <dd className="truncate font-mono font-medium text-foreground">{identity?.accountNumber || "ACC#"}</dd>
+                    {identity?.accountNumber ? (
+                      <dd className="truncate font-mono font-medium text-foreground">{identity.accountNumber}</dd>
+                    ) : emulation ? (
+                      <dd className="truncate font-medium text-muted-foreground">Not linked yet</dd>
+                    ) : (
+                      <dd className="mt-1 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            name="claimed_account_number"
+                            value={claimDraft}
+                            onChange={(e) => setClaimDraft(e.target.value)}
+                            placeholder="Account # from your invoice (optional)"
+                            className="h-7 font-mono text-sm"
+                            disabled={savingClaim}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0"
+                            onClick={handleSaveClaim}
+                            disabled={savingClaim || claimDraft.trim().toUpperCase() === savedClaim}
+                            aria-label="Save account number"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Already a customer? Enter your account number to speed up approval. Our team confirms it before it's linked.
+                        </p>
+                      </dd>
+                    )}
                   </div>
                 </div>
               </dl>

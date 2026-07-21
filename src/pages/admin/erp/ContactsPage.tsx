@@ -574,6 +574,8 @@ const ContactsPage = ({
   const [importPreviewRows, setImportPreviewRows] = useState<ImportPreviewRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [isAccessDeploymentOpen, setIsAccessDeploymentOpen] = useState(false);
+  // When set, Deploy Access opens locked to this customer for adding a person.
+  const [accessDeploymentLockedCustomerId, setAccessDeploymentLockedCustomerId] = useState<number | null>(null);
   const [isAccessTrainingOpen, setIsAccessTrainingOpen] = useState(false);
   const [showAccessTrainingNudge, setShowAccessTrainingNudge] = useState(false);
 
@@ -2662,6 +2664,18 @@ const ContactsPage = ({
                                   <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                                   View Account
                                 </Button>
+                                {editContact.is_company && accountSettingsCustomer ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-xs"
+                                    onClick={() => { setAccessDeploymentLockedCustomerId(accountSettingsCustomer.id); setIsAccessDeploymentOpen(true); }}
+                                  >
+                                    <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                                    Add another person here
+                                  </Button>
+                                ) : null}
                                 {linkedCompany ? (
                                   <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => openEdit(linkedCompany)}>
                                     Edit Linked Company
@@ -2844,7 +2858,8 @@ const ContactsPage = ({
       <AccessDeploymentAssistantDialog
         contacts={contacts}
         open={isAccessDeploymentOpen}
-        onOpenChange={setIsAccessDeploymentOpen}
+        onOpenChange={(open) => { setIsAccessDeploymentOpen(open); if (!open) setAccessDeploymentLockedCustomerId(null); }}
+        lockedCustomerId={accessDeploymentLockedCustomerId}
         onEditContact={openEdit}
         onOpenTraining={() => setIsAccessTrainingOpen(true)}
         onCreateContact={({ name, email }) => {

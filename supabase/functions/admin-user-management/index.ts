@@ -162,7 +162,24 @@ const allowedActions = new Set([
   "create-user",
   "link-customer-portal-account",
   "emulate-portal-user",
+  "confirm-portal-staff",
+  "archive-portal-profile",
+  "set-login-disabled",
 ]);
+
+/** True if the login holds any staff role (admin/operator/viewer). */
+async function loginHasStaffRole(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await (adminClient.from("user_roles") as any)
+    .select("role")
+    .eq("user_id", userId);
+  if (error) throw error;
+  return ((data ?? []) as Array<{ role?: string | null }>).some(
+    (entry) => entry.role === "admin" || entry.role === "operator" || entry.role === "viewer",
+  );
+}
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
@@ -369,6 +386,90 @@ Deno.serve(async (req) => {
       if (lookupError) throw lookupError;
       if (!existing?.user) return jsonResponse(req, 404, { error: "The selected login no longer exists" });
       await linkCustomerPortalAccount(adminClient, userId, customerId, displayName, contactId);
+      return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "confirm-portal-staff") {
+      const { userId, customerId } = body;
+      if (!userId || !Number.isInteger(customerId) || customerId <= 0) {
+        return jsonResponse(req, 400, { error: "userId and a valid customerId are required" });
+      }
+
+      const { data: profile, error: profileError } = await (adminClient.from("profiles") as any)
+        .select("user_id,crm_contact_id,archived_at")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile) return jsonResponse(req, 404, { error: "That signup profile no longer exists." });
+      if (profile.archived_at) {
+        return jsonResponse(req, 400, { error: "This profile is archived. Un-archive it before confirming." });
+      }
+
+      const { data: customer, error: customerError } = await (adminClient.from("customers") as any)
+        .select("id,account_number")
+        .eq("id", customerId)
+        .maybeSingle();
+      if (customerError) throw customerError;
+      if (!customer) return jsonResponse(req, 404, { error: "The selected customer account no longer exists." });
+
+      // Link the person contact created at signup under the company account,
+      // set crm_customer_id, and grant the customer role.
+      await linkCustomerPortalAccount(adminClient, userId, customerId, undefined, profile.crm_contact_id ?? undefined);
+
+      // Record the deliberate approval and consume the claim so this leaves
+      // the approvals queue. sensitive-feature access still comes from tags.
+      const accountLabel = customer.account_number
+        ? `account ${customer.account_number}`
+        : `customer #${customer.id}`;
+      const { error: approveError } = await (adminClient.from("profiles") as any)
+        .update({
+          portal_access_approved_override: true,
+          portal_access_approved_at: new Date().toISOString(),
+          portal_access_approved_by: authContext.user.id,
+          portal_access_approved_note: `Confirmed as staff at ${accountLabel} from the approvals queue.`,
+          claimed_account_number: null,
+        })
+        .eq("user_id", userId);
+      if (approveError) throw approveError;
+
+      // Re-resolve identity so the status flips to approved_customer at once.
+      const { error: syncError } = await (adminClient.rpc as any)("sync_customer_portal_identity", { p_user_id: userId });
+      if (syncError) throw syncError;
+
+      return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "archive-portal-profile") {
+      const { userId, archived } = body;
+      if (!userId || typeof archived !== "boolean") {
+        return jsonResponse(req, 400, { error: "userId and archived (boolean) are required" });
+      }
+      const { error } = await (adminClient.from("profiles") as any)
+        .update({
+          archived_at: archived ? new Date().toISOString() : null,
+          archived_by: archived ? authContext.user.id : null,
+        })
+        .eq("user_id", userId);
+      if (error) throw error;
+      return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "set-login-disabled") {
+      const { userId, disabled } = body;
+      if (!userId || typeof disabled !== "boolean") {
+        return jsonResponse(req, 400, { error: "userId and disabled (boolean) are required" });
+      }
+      if (userId === authContext.user.id) {
+        return jsonResponse(req, 400, { error: "You cannot disable your own login." });
+      }
+      if (await loginHasStaffRole(adminClient, userId)) {
+        return jsonResponse(req, 403, { error: "Staff logins cannot be disabled from Website Portals." });
+      }
+      // ban_duration bans (disables) the login; "none" lifts the ban.
+      const { error } = await adminClient.auth.admin.updateUserById(userId, {
+        ban_duration: disabled ? "876000h" : "none",
+      });
+      if (error) throw error;
       return jsonResponse(req, 200, { success: true });
     }
 

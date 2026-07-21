@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Link2, Mail, Search, ShieldAlert, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,13 @@ type AccessDeploymentAssistantDialogProps = {
   onCreateContact: (initial: { name: string; email: string }) => void;
   onEditContact: (contact: Contact) => void;
   onOpenTraining: () => void;
+  /**
+   * When set, the dialog opens locked to this customer account for adding
+   * another person (portal kind, customer pre-chosen and not editable). Used
+   * by the "Add another person here" shortcut so onboarding extra staff at an
+   * existing account only needs name + email.
+   */
+  lockedCustomerId?: number | null;
 };
 
 const normalize = (value: string | null | undefined) => value?.trim().toLowerCase() ?? "";
@@ -38,7 +45,7 @@ const roleLabels: Record<Exclude<AppRole, "customer">, string> = {
   viewer: "Viewer — read-only",
 };
 
-export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, onCreateContact, onEditContact, onOpenTraining }: AccessDeploymentAssistantDialogProps) {
+export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, onCreateContact, onEditContact, onOpenTraining, lockedCustomerId = null }: AccessDeploymentAssistantDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useUserRole();
@@ -67,6 +74,19 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
       return (data ?? []) as CustomerOption[];
     },
   });
+
+  const lockedCustomer = useMemo(
+    () => (lockedCustomerId != null ? customers.find((customer) => customer.id === lockedCustomerId) ?? null : null),
+    [customers, lockedCustomerId],
+  );
+  // In locked mode the account is fixed: force portal kind and keep the
+  // customer pre-selected so the admin only supplies the person + sign-in.
+  useEffect(() => {
+    if (open && lockedCustomer) {
+      setKind("portal");
+      setSelectedCustomer(lockedCustomer);
+    }
+  }, [open, lockedCustomer]);
 
   const contactMatches = useMemo(() => {
     const term = normalize(query);
@@ -147,7 +167,8 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
   };
   const selectContact = (contact: Contact | null) => {
     setSelectedContact(contact);
-    setSelectedCustomer(null);
+    // Keep the locked account selected across person changes; otherwise reset.
+    setSelectedCustomer(lockedCustomer ?? null);
     setMethod(null);
     setClearConflictingOverrides(false);
     setSuccess(null);
@@ -237,8 +258,8 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
     <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" /> Deploy access</DialogTitle>
-          <DialogDescription>Search first. The assistant shows what it found and asks for only the decisions it cannot safely make.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" /> {lockedCustomer ? `Add a person at ${lockedCustomer.name}` : "Deploy access"}</DialogTitle>
+          <DialogDescription>{lockedCustomer ? `The account is fixed${lockedCustomer.account_number ? ` (${lockedCustomer.account_number})` : ""}. Find or create the person and choose how they sign in.` : "Search first. The assistant shows what it found and asks for only the decisions it cannot safely make."}</DialogDescription>
         </DialogHeader>
         {success ? (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
@@ -263,8 +284,8 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
 
             {selectedContact ? <section className="space-y-3 rounded-lg border p-3"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{selectedContact.name}</p><p className="text-xs text-muted-foreground">{email || "No email on this contact"}</p></div><Button variant="ghost" size="sm" onClick={() => selectContact(null)}>Change</Button></div>
               {!email ? <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-950"><div className="flex gap-2 font-medium"><ShieldAlert className="h-4 w-4" /> An email is needed before a login can be created.</div><Button variant="link" className="h-auto p-0 text-amber-950" onClick={() => { onEditContact(selectedContact); close(false); }}>Add the email in this contact</Button></div> : <>
-                <div className="space-y-2"><Label>2. What access should they have?</Label><div className="flex gap-2"><Button variant={kind === "portal" ? "default" : "outline"} onClick={() => { setKind("portal"); setMethod(null); }}>Customer portal</Button><Button variant={kind === "staff" ? "default" : "outline"} onClick={() => { setKind("staff"); setMethod(null); }}>Internal staff</Button></div></div>
-                {kind === "portal" ? <div className="space-y-2"><Label>3. Which account should this person access?</Label>{contactCustomers.length > 1 ? <p className="text-xs text-amber-700">More than one linked account was found. Choose the primary account; the assistant will not choose for you.</p> : null}<Select value={selectedCustomer?.id?.toString() ?? ""} onValueChange={(value) => selectCustomer(customers.find((customer) => customer.id === Number(value))!)}><SelectTrigger><SelectValue placeholder={customersLoading ? "Loading accounts…" : "Choose a customer account"} /></SelectTrigger><SelectContent>{(contactCustomers.length ? contactCustomers : customerMatches).map((customer) => <SelectItem key={customer.id} value={String(customer.id)}>{customer.name} {customer.account_number ? `(${customer.account_number})` : ""}</SelectItem>)}</SelectContent></Select>{!selectedCustomer && !contactCustomers.length ? <p className="text-xs text-amber-700">No compatible customer link was found. Select a customer from the search results above, or link the contact to a customer before deploying portal access.</p> : null}</div> : <div className="space-y-2"><Label htmlFor="staff-role">3. Choose the internal role</Label><Select value={staffRole} onValueChange={(value) => setStaffRole(value as Exclude<AppRole, "customer">)}><SelectTrigger id="staff-role"><SelectValue /></SelectTrigger><SelectContent>{(Object.keys(roleLabels) as Array<Exclude<AppRole, "customer">>).map((role) => <SelectItem key={role} value={role}>{roleLabels[role]}</SelectItem>)}</SelectContent></Select></div>}
+                {lockedCustomer ? null : <div className="space-y-2"><Label>2. What access should they have?</Label><div className="flex gap-2"><Button variant={kind === "portal" ? "default" : "outline"} onClick={() => { setKind("portal"); setMethod(null); }}>Customer portal</Button><Button variant={kind === "staff" ? "default" : "outline"} onClick={() => { setKind("staff"); setMethod(null); }}>Internal staff</Button></div></div>}
+                {kind === "portal" ? (lockedCustomer ? <div className="space-y-1"><Label>Account</Label><div className="rounded-md border bg-muted/40 p-2 text-sm"><span className="font-medium">{lockedCustomer.name}</span>{lockedCustomer.account_number ? <span className="text-muted-foreground"> ({lockedCustomer.account_number})</span> : null}<span className="ml-2 text-xs text-muted-foreground">— fixed for this shortcut</span></div></div> : <div className="space-y-2"><Label>3. Which account should this person access?</Label>{contactCustomers.length > 1 ? <p className="text-xs text-amber-700">More than one linked account was found. Choose the primary account; the assistant will not choose for you.</p> : null}<Select value={selectedCustomer?.id?.toString() ?? ""} onValueChange={(value) => selectCustomer(customers.find((customer) => customer.id === Number(value))!)}><SelectTrigger><SelectValue placeholder={customersLoading ? "Loading accounts…" : "Choose a customer account"} /></SelectTrigger><SelectContent>{(contactCustomers.length ? contactCustomers : customerMatches).map((customer) => <SelectItem key={customer.id} value={String(customer.id)}>{customer.name} {customer.account_number ? `(${customer.account_number})` : ""}</SelectItem>)}</SelectContent></Select>{!selectedCustomer && !contactCustomers.length ? <p className="text-xs text-amber-700">No compatible customer link was found. Select a customer from the search results above, or link the contact to a customer before deploying portal access.</p> : null}</div>) : <div className="space-y-2"><Label htmlFor="staff-role">3. Choose the internal role</Label><Select value={staffRole} onValueChange={(value) => setStaffRole(value as Exclude<AppRole, "customer">)}><SelectTrigger id="staff-role"><SelectValue /></SelectTrigger><SelectContent>{(Object.keys(roleLabels) as Array<Exclude<AppRole, "customer">>).map((role) => <SelectItem key={role} value={role}>{roleLabels[role]}</SelectItem>)}</SelectContent></Select></div>}
                 {(kind === "staff" || selectedCustomer) ? <div className="space-y-2"><Label>4. How should they sign in?</Label>{usersLoading ? <p className="text-sm text-muted-foreground">Checking for an existing login…</p> : existingLogin ? <div className="rounded-md border p-3 text-sm"><p className="font-medium">An existing login uses this email.</p><p className="mt-1 text-muted-foreground">{existingLogin.email_confirmed_at ? "The email is verified." : "This person has not verified their email. Access will unlock after verification."}</p><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant={method === "link" ? "default" : "outline"} onClick={() => setMethod("link")}><Link2 className="mr-1 h-3.5 w-3.5" />{kind === "portal" ? "Link this login" : "Use this login"}</Button><Button size="sm" variant="ghost" onClick={() => { setMethod(null); toast({ title: "Login left unchanged", description: "No records were linked or changed." }); }}>Leave unchanged</Button></div></div> : <div className="flex flex-wrap gap-2"><Button size="sm" variant={method === "invite" ? "default" : "outline"} onClick={() => setMethod("invite")}><Mail className="mr-1 h-3.5 w-3.5" />Send invite</Button><Button size="sm" variant={method === "password" ? "default" : "outline"} onClick={() => setMethod("password")}>Set temporary password</Button>{method === "password" ? <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 12 characters" className="max-w-xs" /> : null}</div>}</div> : null}
                 {kind === "portal" && selectedCustomer && featureConflicts.length > 0 ? (
                   <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">

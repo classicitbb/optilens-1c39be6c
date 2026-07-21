@@ -7,6 +7,9 @@ export const ADMIN_FUNCTION_ACTIONS = [
   "create-user",
   "link-customer-portal-account",
   "emulate-portal-user",
+  "confirm-portal-staff",
+  "archive-portal-profile",
+  "set-login-disabled",
 ] as const;
 
 export type AdminFunctionAction = (typeof ADMIN_FUNCTION_ACTIONS)[number];
@@ -82,6 +85,21 @@ const assertUserId = (value: unknown) => {
   return userId;
 };
 
+const assertBoolean = (value: unknown, field: string) => {
+  if (typeof value !== "boolean") {
+    throw new AdminActionPolicyError(`${field} must be a boolean.`);
+  }
+  return value;
+};
+
+const assertRequiredCustomerId = (value: unknown) => {
+  const customerId = assertCustomerId(value);
+  if (customerId === undefined) {
+    throw new AdminActionPolicyError("customerId is required.");
+  }
+  return customerId;
+};
+
 export interface AdminActionValidationInput {
   actorRole: AppRole | null;
   action: string;
@@ -149,6 +167,24 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
       return {
         action: "emulate-portal-user" as const,
         userId: assertUserId(payload.userId),
+      };
+    case "confirm-portal-staff":
+      return {
+        action: "confirm-portal-staff" as const,
+        userId: assertUserId(payload.userId),
+        customerId: assertRequiredCustomerId(payload.customerId),
+      };
+    case "archive-portal-profile":
+      return {
+        action: "archive-portal-profile" as const,
+        userId: assertUserId(payload.userId),
+        archived: assertBoolean(payload.archived, "archived"),
+      };
+    case "set-login-disabled":
+      return {
+        action: "set-login-disabled" as const,
+        userId: assertUserId(payload.userId),
+        disabled: assertBoolean(payload.disabled, "disabled"),
       };
   }
 };
