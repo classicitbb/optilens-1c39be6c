@@ -32,7 +32,7 @@ const date = (value: string | null | undefined) => value ? new Date(value).toLoc
 
 const Profile = () => {
   const { user } = useAuth();
-  const { identity, isLoading: identityLoading } = usePortalIdentity();
+  const { identity, isLoading: identityLoading, canAccessFeature } = usePortalIdentity();
   const { openAssistant } = useCompanionAssistant();
   const commandCenterQuery = useQuery({
     queryKey: ["customer-command-center", user?.id],
@@ -40,6 +40,8 @@ const Profile = () => {
     queryFn: fetchCustomerCommandCenter,
   });
   const data = commandCenterQuery.data;
+  const canViewStatements = canAccessFeature("statements");
+  const canViewPricelists = canAccessFeature("pricelists");
 
   const activeOrders = useMemo(() => (data?.orders ?? []).filter((order) => ACTIVE_STATUSES.has(order.status)), [data?.orders]);
   const recentOrders = useMemo(() => (data?.orders ?? []).filter((order) => !ACTIVE_STATUSES.has(order.status)).slice(0, 4), [data?.orders]);
@@ -51,7 +53,7 @@ const Profile = () => {
     accessStatus !== "approved_customer" ? "Complete account setup or wait for customer approval." : null,
     activeOrders.length ? `${activeOrders.length} website order${activeOrders.length === 1 ? "" : "s"} still in progress.` : null,
     openTickets.length ? `${openTickets.length} open support request${openTickets.length === 1 ? "" : "s"}.` : null,
-    currentBalance > 0 ? `Account balance: BBD $${money(currentBalance)}.` : null,
+    canViewStatements && currentBalance > 0 ? `Account balance: BBD $${money(currentBalance)}.` : null,
   ].filter(Boolean) as string[];
 
   if (commandCenterQuery.isLoading || identityLoading) {
@@ -71,7 +73,7 @@ const Profile = () => {
         <SummaryCard icon={AlertCircle} label="Needs attention" value={String(needsAttention.length)} detail={needsAttention[0] || "Nothing urgent"} tone="amber" />
         <SummaryCard icon={PackageCheck} label="Active website orders" value={String(activeOrders.length)} detail="LabLink jobs remain in LabLink tracking" tone="teal" />
         <SummaryCard icon={FileText} label="Saved drafts" value={String(data?.drafts.length ?? 0)} detail="Cart and controlled Rx drafts" />
-        <SummaryCard icon={CircleDollarSign} label="Current balance" value={`$${money(currentBalance)}`} detail="BBD · from the latest available account data" />
+        {canViewStatements ? <SummaryCard icon={CircleDollarSign} label="Current balance" value={`$${money(currentBalance)}`} detail="BBD · from the latest available account data" /> : null}
       </section>
 
       {accessStatus !== "approved_customer" ? (
@@ -86,12 +88,17 @@ const Profile = () => {
           <Button asChild variant="outline" className="w-full"><Link to="/rx-job-status">Open LabLink job tracking <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
         </CardContent></Card>
 
-        <Card><CardHeader><CardTitle>Account & pricing</CardTitle><CardDescription>Customer-scoped information only.</CardDescription></CardHeader><CardContent className="space-y-4 text-sm">
-          <InfoRow label="Assigned pricelist" value={data?.pricelist?.name || "Not assigned"} icon={BadgeDollarSign} />
-          <InfoRow label="Latest statement" value={date(String(data?.latestStatement?.period_end ?? ""))} icon={FileText} />
-          <InfoRow label="Open support requests" value={String(openTickets.length)} icon={LifeBuoy} />
-          <div className="grid gap-2 pt-2"><Button asChild variant="outline"><Link to="/profile/pricelists">View pricing</Link></Button><Button asChild variant="outline"><Link to="/profile/statements">View statements</Link></Button></div>
-        </CardContent></Card>
+        {canViewPricelists || canViewStatements ? (
+          <Card><CardHeader><CardTitle>Account & pricing</CardTitle><CardDescription>Customer-scoped information only.</CardDescription></CardHeader><CardContent className="space-y-4 text-sm">
+            {canViewPricelists ? <InfoRow label="Assigned pricelist" value={data?.pricelist?.name || "Not assigned"} icon={BadgeDollarSign} /> : null}
+            {canViewStatements ? <InfoRow label="Latest statement" value={date(String(data?.latestStatement?.period_end ?? ""))} icon={FileText} /> : null}
+            <InfoRow label="Open support requests" value={String(openTickets.length)} icon={LifeBuoy} />
+            <div className="grid gap-2 pt-2">
+              {canViewPricelists ? <Button asChild variant="outline"><Link to="/profile/pricelists">View pricing</Link></Button> : null}
+              {canViewStatements ? <Button asChild variant="outline"><Link to="/profile/statements">View statements</Link></Button> : null}
+            </div>
+          </CardContent></Card>
+        ) : null}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
