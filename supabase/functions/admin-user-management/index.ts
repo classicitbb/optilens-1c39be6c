@@ -86,7 +86,7 @@ async function linkCustomerPortalAccount(
   let resolvedContactId = customer.contact_id ?? null;
   if (contactId) {
     const { data: contact, error: contactError } = await (adminClient.from("contacts") as any)
-      .select("id,parent_id,linked_customer_id,innovations_parent_customer_id")
+      .select("id,parent_id,is_company,linked_customer_id,innovations_parent_customer_id")
       .eq("id", contactId)
       .maybeSingle();
     if (contactError) throw contactError;
@@ -98,19 +98,34 @@ async function linkCustomerPortalAccount(
       contact.linked_customer_id === customer.id ||
       (customer.innovations_customer_id && contact.innovations_parent_customer_id === customer.innovations_customer_id);
 
-    if (!belongsDirectly && contact.parent_id) {
-      const { data: parent, error: parentError } = await (adminClient.from("contacts") as any)
-        .select("id,linked_customer_id,innovations_parent_customer_id")
-        .eq("id", contact.parent_id)
-        .maybeSingle();
-      if (parentError) throw parentError;
-      const parentBelongs =
-        parent?.id === customer.contact_id ||
-        parent?.linked_customer_id === customer.id ||
-        (customer.innovations_customer_id && parent?.innovations_parent_customer_id === customer.innovations_customer_id);
-      if (!parentBelongs) throw new Error("The selected contact is not linked to this ERP customer.");
-    } else if (!belongsDirectly) {
-      throw new Error("The selected contact is not linked to this ERP customer.");
+    const contactUpdates: Record<string, unknown> = {};
+    if (contact.is_company) {
+      if (!belongsDirectly) {
+        throw new Error("The selected company contact is not linked to this ERP customer.");
+      }
+    } else {
+      contactUpdates.linked_customer_id = customer.id;
+      if (customer.innovations_customer_id) {
+        contactUpdates.innovations_parent_customer_id = customer.innovations_customer_id;
+      }
+      if (customer.contact_id && contact.parent_id !== customer.contact_id && customer.contact_id !== contact.id) {
+        const { data: companyContact, error: companyContactError } = await (adminClient.from("contacts") as any)
+          .select("id,is_company")
+          .eq("id", customer.contact_id)
+          .maybeSingle();
+        if (companyContactError) throw companyContactError;
+        if (!companyContact?.is_company) {
+          throw new Error("The selected ERP customer is not linked to a company contact.");
+        }
+        contactUpdates.parent_id = customer.contact_id;
+      }
+    }
+
+    if (Object.keys(contactUpdates).length > 0) {
+      const { error: contactUpdateError } = await (adminClient.from("contacts") as any)
+        .update(contactUpdates)
+        .eq("id", contact.id);
+      if (contactUpdateError) throw contactUpdateError;
     }
 
     resolvedContactId = contact.id;

@@ -55,6 +55,16 @@ describe("resolveCompatibleCustomerAccounts", () => {
     expect(resolveCompatibleCustomerAccounts(linkedPerson, customers)).toEqual([customers[0]]);
   });
 
+  it("includes the ERP account from a person contact's direct customer link", () => {
+    const linkedPerson = contact({ linked_customer_id: 3 });
+    const customers = [
+      { id: 3, name: "Wade's Optical", account_number: "WADE", email: null, contact_id: "company-1", innovations_customer_id: null },
+      { id: 9, name: "Other Optical", account_number: "OTHER", email: null, contact_id: "company-9", innovations_customer_id: null },
+    ];
+
+    expect(resolveCompatibleCustomerAccounts(linkedPerson, customers)).toEqual([customers[0]]);
+  });
+
   it("deduplicates accounts that match by more than one link", () => {
     const linkedPerson = contact({ parent_id: "company-1", linked_customer_id: 3 });
     const customers = [

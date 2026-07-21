@@ -488,7 +488,8 @@ const ContactsPage = ({
       const query = (supabase.from("profiles") as any)
         .select("id,user_id,full_name,organization_name,portal_access_status,crm_contact_id,crm_customer_id")
         .limit(1);
-      if (editContact?.id) query.eq("crm_contact_id", editContact.id);
+      if (editContact?.is_company && accountSettingsCustomer?.id) query.eq("crm_customer_id", accountSettingsCustomer.id);
+      else if (editContact?.id) query.eq("crm_contact_id", editContact.id);
       else if (accountSettingsCustomer?.id) query.eq("crm_customer_id", accountSettingsCustomer.id);
       else return null;
       const { data, error } = await query.maybeSingle();
