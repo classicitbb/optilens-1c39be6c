@@ -1,19 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * Shared "needs attention" alerting for unstaged helpdesk tickets, used by both the
- * Overview board and the Tickets list so opening a ticket in either place is remembered
+ * Shared "needs attention" alerting for helpdesk tickets, used by both the Overview
+ * board and the Tickets list so opening a ticket in either place is remembered
  * everywhere, and only one alert loop / chime runs regardless of how many pages are open.
+ *
+ * A ticket alerts (flashes + chimes) while either is true:
+ *  - it's unstaged and hasn't been opened AND replied to yet
+ *  - its deadline has passed and it hasn't been closed yet
  */
 
 interface AlertableTicket {
   id: string;
   stage_id: string | null;
   first_response_at?: string | null;
+  deadline?: string | null;
+  closed_at?: string | null;
 }
 
 const OPENED_TICKETS_STORAGE_KEY = "helpdesk-unstaged-opened-ticket-ids";
 const CHIME_INTERVAL_MS = 6000;
+const OVERDUE_CHECK_INTERVAL_MS = 30000;
 
 const loadOpenedTicketIds = (): Set<string> => {
   try {
@@ -60,7 +67,7 @@ export const playAlertJingle = () => {
   }
 };
 
-export const useUnstagedTicketAlerts = (tickets: AlertableTicket[]) => {
+export const useHelpdeskTicketAlerts = (tickets: AlertableTicket[]) => {
   const [openedTicketIds, setOpenedTicketIds] = useState<Set<string>>(() => loadOpenedTicketIds());
 
   const markTicketOpened = useCallback((ticketId: string) => {
@@ -73,14 +80,24 @@ export const useUnstagedTicketAlerts = (tickets: AlertableTicket[]) => {
     });
   }, []);
 
-  // Unstaged tickets keep flashing + chiming until they've been opened AND replied to.
+  // Ticks so a ticket starts alerting the moment its deadline passes, without needing a refetch.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), OVERDUE_CHECK_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const alertingTicketIds = useMemo(() => {
     const ids = new Set<string>();
     tickets.forEach((t) => {
-      if (!t.stage_id && (!openedTicketIds.has(t.id) || !t.first_response_at)) ids.add(t.id);
+      // Unstaged tickets keep flashing + chiming until they've been opened AND replied to.
+      const isUnstagedAlert = !t.stage_id && (!openedTicketIds.has(t.id) || !t.first_response_at);
+      // Overdue tickets flash regardless of stage/response, until closed.
+      const isOverdueAlert = !!t.deadline && !t.closed_at && new Date(t.deadline).getTime() <= now;
+      if (isUnstagedAlert || isOverdueAlert) ids.add(t.id);
     });
     return ids;
-  }, [tickets, openedTicketIds]);
+  }, [tickets, openedTicketIds, now]);
 
   const seenAlertIds = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -89,7 +106,7 @@ export const useUnstagedTicketAlerts = (tickets: AlertableTicket[]) => {
     seenAlertIds.current = new Set(alertingTicketIds);
   }, [alertingTicketIds]);
 
-  // Keep chiming, on a short loop, until every unstaged ticket has been opened and replied to.
+  // Keep chiming, on a short loop, until every alerting ticket has been resolved.
   const hasActiveAlerts = alertingTicketIds.size > 0;
   useEffect(() => {
     if (!hasActiveAlerts) return;

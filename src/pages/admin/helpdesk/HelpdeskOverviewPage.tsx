@@ -18,7 +18,7 @@ import { normalizeHelpdeskPriorityLabel } from "@/features/admin/helpdesk/utils/
 import { useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
-import { useUnstagedTicketAlerts } from "@/features/admin/helpdesk/hooks/useUnstagedTicketAlerts";
+import { useHelpdeskTicketAlerts } from "@/features/admin/helpdesk/hooks/useHelpdeskTicketAlerts";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -424,7 +424,7 @@ const HelpdeskOverviewPage = () => {
     staleTime: 60000,
   });
 
-  const { alertingTicketIds, markTicketOpened } = useUnstagedTicketAlerts(tickets);
+  const { alertingTicketIds, markTicketOpened } = useHelpdeskTicketAlerts(tickets);
   const handleOpenTicket = useCallback((t: OverviewTicket) => {
     markTicketOpened(t.id);
     navigate(`/admin/helpdesk/tickets/${t.id}`, { state: { returnTo: "/admin/helpdesk/overview" } });

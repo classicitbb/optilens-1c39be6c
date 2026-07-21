@@ -18,7 +18,7 @@ import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCrea
 import { useAssignHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useAssignHelpdeskTicket";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
 import { useArchiveHelpdeskTicket, useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
-import { useUnstagedTicketAlerts } from "@/features/admin/helpdesk/hooks/useUnstagedTicketAlerts";
+import { useHelpdeskTicketAlerts } from "@/features/admin/helpdesk/hooks/useHelpdeskTicketAlerts";
 import { normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normalization";
 import { supabase } from "@/integrations/supabase/client";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
@@ -160,7 +160,7 @@ const HelpdeskTicketsPage = () => {
   const archiveTicket = useArchiveHelpdeskTicket();
   const updateTicket = useUpdateHelpdeskTicket();
 
-  const { alertingTicketIds, markTicketOpened } = useUnstagedTicketAlerts(ticketQuery.data ?? []);
+  const { alertingTicketIds, markTicketOpened } = useHelpdeskTicketAlerts(ticketQuery.data ?? []);
 
   const stageMap = useMemo(() => new Map(stages.map((s) => [s.id, s.name])), [stages]);
   const closedStage = useMemo(() => stages.find(s => s.is_closed), [stages]);

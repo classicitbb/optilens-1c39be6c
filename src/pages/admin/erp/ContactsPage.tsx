@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, type Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -325,6 +325,175 @@ type ContactsPageProps = {
   onEmbeddedClose?: () => void;
 };
 
+type ImportedCustomerRowProps = {
+  customer: ImportedCustomer;
+  linkedContact: Contact | null;
+  onOpenLinked: (customer: ImportedCustomer) => void;
+  onCreateContact: (customer: ImportedCustomer) => void;
+};
+
+// Memoized so a row only re-renders when its own data changes, not on every
+// keystroke or dialog-state change elsewhere in this page.
+const ImportedCustomerRow = memo(function ImportedCustomerRow({ customer, linkedContact, onOpenLinked, onCreateContact }: ImportedCustomerRowProps) {
+  return (
+    <TableRow>
+      <TableCell className="font-medium text-xs">
+        <div className="flex flex-col gap-1">
+          <span>{customer.name}</span>
+          <span className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Customer #{customer.id}</span>
+        </div>
+      </TableCell>
+      <TableCell className="text-xs">
+        <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}>
+          {customer.account_number || "No account #"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-xs">{customer.email || "—"}</TableCell>
+      <TableCell className="text-xs">{customer.phone || "—"}</TableCell>
+      <TableCell className="text-xs">{customer.country_code || "—"}</TableCell>
+      <TableCell className="text-xs">
+        {customer.contact_id ? (
+          <span>
+            {linkedContact?.name ?? "Linked contact"}
+            {linkedContact?.is_archived && <span style={{ color: "hsl(215 15% 55%)" }}> (archived)</span>}
+          </span>
+        ) : (
+          <span style={{ color: "hsl(215 15% 55%)" }}>Not visible in Contacts yet</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        {customer.contact_id ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => onOpenLinked(customer)}
+          >
+            Open contact
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => onCreateContact(customer)}
+          >
+            Create contact
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+});
+
+type ContactRowProps = {
+  contact: Contact;
+  isSelected: boolean;
+  isDuplicate: boolean;
+  linkedCustomer: { id: number; name: string; account_number: string | null } | undefined;
+  opportunityCount: number;
+  hasPriceProfile: boolean;
+  onToggleSelect: (contactId: string, checked: boolean) => void;
+  onOpen: (contact: Contact) => void;
+  onOpenCrm: (contact: Contact, event: React.MouseEvent) => void;
+  onOpenPricing: (contact: Contact, event: React.MouseEvent) => void;
+};
+
+// Memoized so a row only re-renders when its own data changes, not on every
+// keystroke or dialog-state change elsewhere in this page.
+const ContactRow = memo(function ContactRow({
+  contact: c,
+  isSelected,
+  isDuplicate,
+  linkedCustomer,
+  opportunityCount,
+  hasPriceProfile,
+  onToggleSelect,
+  onOpen,
+  onOpenCrm,
+  onOpenPricing,
+}: ContactRowProps) {
+  return (
+    <TableRow className="cursor-pointer" onClick={() => onOpen(c)}>
+      <TableCell className="w-10" onClick={(event) => event.stopPropagation()}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onToggleSelect(c.id, checked === true)}
+          aria-label={`Select ${c.name}`}
+        />
+      </TableCell>
+      <TableCell className="font-medium text-xs">
+        <div className="flex items-center gap-1.5">
+          <span>{c.name}</span>
+          {isDuplicate && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">Duplicate</Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Badge
+            className="text-[10px] px-1.5 py-0 h-5 border-0"
+            style={{
+              background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
+              color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
+            }}
+          >
+            {c.is_company ? "Company" : "Person"}
+          </Badge>
+          {c.is_customer && (
+            <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
+              Customer
+            </Badge>
+          )}
+          {linkedCustomer && (
+            <Badge
+              className="text-[10px] px-1.5 py-0 h-5 border-0"
+              style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}
+              title={`Linked to Innovations account: ${linkedCustomer.name}`}
+            >
+              ERP: {linkedCustomer.account_number || linkedCustomer.name}
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-xs">{c.email}</TableCell>
+      <TableCell className="text-xs">{c.phone}</TableCell>
+      <TableCell className="text-xs">{c.salesperson}</TableCell>
+      <TableCell className="text-xs">{c.city}</TableCell>
+      <TableCell className="text-xs">{c.country_code}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-1">
+          {opportunityCount > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[10px]"
+              onClick={(e) => onOpenCrm(c, e)}
+            >
+              <Kanban className="h-3 w-3 mr-1" /> CRM ({opportunityCount})
+            </Button>
+          )}
+          {hasPriceProfile && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[10px]"
+              onClick={(e) => onOpenPricing(c, e)}
+            >
+              <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
+            </Button>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 const ContactsPage = ({
   embeddedContactId = null,
   embeddedInitialTab = "details",
@@ -370,6 +539,13 @@ const ContactsPage = ({
   const [groupBy, setGroupBy] = useState<GroupByMode>("none");
   const [countryFilter, setCountryFilter] = useState("all");
   const [search, setSearch] = useState("");
+  // Debounced so typing doesn't re-filter and re-render the full contacts
+  // table (hundreds of rows) on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedSearch(search), 200);
+    return () => window.clearTimeout(handle);
+  }, [search]);
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
   const [editTab, setEditTab] = useState<"details" | "account-settings" | "portal-settings" | "notes">("details");
   // The portals page clears its account query parameter as the embedded dialog
@@ -623,8 +799,8 @@ const ContactsPage = ({
     if (filter === "persons") list = list.filter((c) => !c.is_company);
     if (filter === "customers") list = list.filter((c) => c.is_customer);
     if (countryFilter !== "all") list = list.filter((c) => c.country_code === countryFilter);
-    if (search) {
-      const s = search.toLowerCase();
+    if (debouncedSearch) {
+      const s = debouncedSearch.toLowerCase();
       list = list.filter(
         (c) =>
           c.name.toLowerCase().includes(s) ||
@@ -634,10 +810,10 @@ const ContactsPage = ({
       );
     }
     return list;
-  }, [contacts, countryFilter, filter, search, showArchived]);
+  }, [contacts, countryFilter, filter, debouncedSearch, showArchived]);
 
   const filteredImportedCustomers = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     return importedCustomers.filter((customer) => {
       if (countryFilter !== "all" && customer.country_code !== countryFilter) return false;
       if (!q) return true;
@@ -655,7 +831,7 @@ const ContactsPage = ({
         .toLowerCase()
         .includes(q);
     });
-  }, [countryFilter, importedCustomers, search]);
+  }, [countryFilter, importedCustomers, debouncedSearch]);
 
   const groupedByCountry = useMemo(() => {
     if (groupBy !== "country") return [] as { countryCode: string; contacts: Contact[] }[];
@@ -935,12 +1111,12 @@ const ContactsPage = ({
     return pricingProfileByName.get(key) ?? null;
   };
 
-  const openCrmForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
+  const openCrmForContact = useCallback((contact: Partial<Contact>, event?: React.MouseEvent) => {
     event?.stopPropagation();
     navigate("/admin/crm/pipeline", { state: { contactId: contact.id, contactName: contact.name } });
-  };
+  }, [navigate]);
 
-  const openPricingForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
+  const openPricingForContact = useCallback((contact: Partial<Contact>, event?: React.MouseEvent) => {
     event?.stopPropagation();
     const pricingSheetId = getAssignedPriceProfileId(contact);
     if (!pricingSheetId) {
@@ -948,7 +1124,7 @@ const ContactsPage = ({
       return;
     }
     navigate("/admin/pricing/catalog", { state: { pricingSheetId, contactName: contact.name } });
-  };
+  }, [pricingProfileByName, navigate, toast]);
 
   const getStoragePathFromPublicUrl = (url?: string | null) => {
     if (!url) return null;
@@ -1082,9 +1258,9 @@ const ContactsPage = ({
 
   const isAllVisibleSelected = filtered.length > 0 && filtered.every((contact) => selectedContactIds.includes(contact.id));
 
-  const toggleContactSelection = (contactId: string, checked: boolean) => {
+  const toggleContactSelection = useCallback((contactId: string, checked: boolean) => {
     setSelectedContactIds((prev) => checked ? [...prev, contactId] : prev.filter((id) => id !== contactId));
-  };
+  }, []);
 
   const toggleSelectAllVisible = (checked: boolean) => {
     if (!checked) {
@@ -1098,138 +1274,20 @@ const ContactsPage = ({
     });
   };
 
-  const renderImportedCustomerRow = (customer: ImportedCustomer) => {
-    const linkedContact = customer.contact_id ? contacts.find((entry) => entry.id === customer.contact_id) : null;
-    return (
-      <TableRow key={customer.id}>
-        <TableCell className="font-medium text-xs">
-          <div className="flex flex-col gap-1">
-            <span>{customer.name}</span>
-            <span className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Customer #{customer.id}</span>
-          </div>
-        </TableCell>
-        <TableCell className="text-xs">
-          <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}>
-            {customer.account_number || "No account #"}
-          </Badge>
-        </TableCell>
-        <TableCell className="text-xs">{customer.innovations_customer_id ?? "—"}</TableCell>
-        <TableCell className="text-xs">{customer.email || "—"}</TableCell>
-        <TableCell className="text-xs">{customer.phone || "—"}</TableCell>
-        <TableCell className="text-xs">{customer.country_code || "—"}</TableCell>
-        <TableCell className="text-xs">
-          {customer.contact_id ? (
-            <span>
-              {linkedContact?.name ?? "Linked contact"}
-              {linkedContact?.is_archived && <span style={{ color: "hsl(215 15% 55%)" }}> (archived)</span>}
-            </span>
-          ) : (
-            <span style={{ color: "hsl(215 15% 55%)" }}>Not visible in Contacts yet</span>
-          )}
-        </TableCell>
-        <TableCell className="text-right">
-          {customer.contact_id ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[10px]"
-              onClick={() => openLinkedImportedCustomerContact(customer)}
-            >
-              Open contact
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[10px]"
-              onClick={() => createContactFromImportedCustomer(customer)}
-            >
-              Create contact
-            </Button>
-          )}
-        </TableCell>
-      </TableRow>
-    );
-  };
-
   const renderContactRow = (c: Contact) => (
-    <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
-      <TableCell className="w-10" onClick={(event) => event.stopPropagation()}>
-        <Checkbox
-          checked={selectedContactIds.includes(c.id)}
-          onCheckedChange={(checked) => toggleContactSelection(c.id, checked === true)}
-          aria-label={`Select ${c.name}`}
-        />
-      </TableCell>
-      <TableCell className="font-medium text-xs">
-        <div className="flex items-center gap-1.5">
-          <span>{c.name}</span>
-          {(duplicateKeyCounts.get(getDuplicateKey(c)) ?? 0) > 1 && (
-            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">Duplicate</Badge>
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-1">
-          <Badge
-            className="text-[10px] px-1.5 py-0 h-5 border-0"
-            style={{
-              background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
-              color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
-            }}
-          >
-            {c.is_company ? "Company" : "Person"}
-          </Badge>
-          {c.is_customer && (
-            <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
-              Customer
-            </Badge>
-          )}
-          {c.linked_customer_id && linkedCustomersById[c.linked_customer_id] && (
-            <Badge
-              className="text-[10px] px-1.5 py-0 h-5 border-0"
-              style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}
-              title={`Linked to Innovations account: ${linkedCustomersById[c.linked_customer_id].name}`}
-            >
-              ERP: {linkedCustomersById[c.linked_customer_id].account_number || linkedCustomersById[c.linked_customer_id].name}
-            </Badge>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-xs">{c.email}</TableCell>
-      <TableCell className="text-xs">{c.phone}</TableCell>
-      <TableCell className="text-xs">{c.salesperson}</TableCell>
-      <TableCell className="text-xs">{c.city}</TableCell>
-      <TableCell className="text-xs">{c.country_code}</TableCell>
-      <TableCell className="text-right">
-        <div className="flex justify-end gap-1">
-          {getOpportunityCount(c.id) > 0 && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[10px]"
-              onClick={(e) => openCrmForContact(c, e)}
-            >
-              <Kanban className="h-3 w-3 mr-1" /> CRM ({getOpportunityCount(c.id)})
-            </Button>
-          )}
-          {getAssignedPriceProfileId(c) && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[10px]"
-              onClick={(e) => openPricingForContact(c, e)}
-            >
-              <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
-            </Button>
-          )}
-        </div>
-      </TableCell>
-    </TableRow>
+    <ContactRow
+      key={c.id}
+      contact={c}
+      isSelected={selectedContactIds.includes(c.id)}
+      isDuplicate={(duplicateKeyCounts.get(getDuplicateKey(c)) ?? 0) > 1}
+      linkedCustomer={c.linked_customer_id ? linkedCustomersById[c.linked_customer_id] : undefined}
+      opportunityCount={getOpportunityCount(c.id)}
+      hasPriceProfile={!!getAssignedPriceProfileId(c)}
+      onToggleSelect={toggleContactSelection}
+      onOpen={openEdit}
+      onOpenCrm={openCrmForContact}
+      onOpenPricing={openPricingForContact}
+    />
   );
 
   const normalizeImportedCountry = (value: string) => {
@@ -1747,7 +1805,7 @@ const ContactsPage = ({
     }
   };
 
-  const openEdit = (contact: Contact) => {
+  const openEdit = useCallback((contact: Contact) => {
     stopDictation();
     setEditContact(contact);
     setEditTab("details");
@@ -1757,7 +1815,7 @@ const ContactsPage = ({
     if (businessCardInputRef.current) {
       businessCardInputRef.current.value = "";
     }
-  };
+  }, [stopDictation]);
 
   const openNew = (isCompany: boolean) => {
     stopDictation();
@@ -1771,7 +1829,7 @@ const ContactsPage = ({
     }
   };
 
-  const openLinkedImportedCustomerContact = (customer: ImportedCustomer) => {
+  const openLinkedImportedCustomerContact = useCallback((customer: ImportedCustomer) => {
     if (!customer.contact_id) return;
     const contact = contacts.find((entry) => entry.id === customer.contact_id);
     if (!contact) {
@@ -1783,9 +1841,9 @@ const ContactsPage = ({
       return;
     }
     openEdit(contact);
-  };
+  }, [contacts, toast, openEdit]);
 
-  const createContactFromImportedCustomer = async (customer: ImportedCustomer) => {
+  const createContactFromImportedCustomer = useCallback(async (customer: ImportedCustomer) => {
     if (customer.contact_id) {
       openLinkedImportedCustomerContact(customer);
       return;
@@ -1803,7 +1861,6 @@ const ContactsPage = ({
           notes: [
             "Created from imported Innovations customer.",
             customer.account_number ? `Account: ${customer.account_number}` : "",
-            customer.innovations_customer_id ? `Innovations Customer ID: ${customer.innovations_customer_id}` : "",
             customer.address ? `Address: ${customer.address}` : "",
           ].filter(Boolean).join("\n"),
           is_customer: true,
@@ -1829,7 +1886,7 @@ const ContactsPage = ({
     } catch (error: any) {
       toast({ title: "Could not create contact", description: error.message ?? "Please try again.", variant: "destructive" });
     }
-  };
+  }, [openLinkedImportedCustomerContact, qc, toast, openEdit]);
 
   useEffect(() => {
     if (!editContact?.id) return;
@@ -1996,7 +2053,6 @@ const ContactsPage = ({
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Account #</TableHead>
-                <TableHead>Innovations ID</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Country</TableHead>
@@ -2027,18 +2083,26 @@ const ContactsPage = ({
             {isErpAccountsMode ? (
               isLoadingImportedCustomers ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  <TableCell colSpan={7} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                     Loading imported ERP accounts...
                   </TableCell>
                 </TableRow>
               ) : filteredImportedCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  <TableCell colSpan={7} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                     No imported ERP accounts match the current search.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredImportedCustomers.map((customer) => renderImportedCustomerRow(customer))
+                filteredImportedCustomers.map((customer) => (
+                  <ImportedCustomerRow
+                    key={customer.id}
+                    customer={customer}
+                    linkedContact={customer.contact_id ? contacts.find((entry) => entry.id === customer.contact_id) ?? null : null}
+                    onOpenLinked={openLinkedImportedCustomerContact}
+                    onCreateContact={createContactFromImportedCustomer}
+                  />
+                ))
               )
             ) : isLoading ? (
               <TableRow>
@@ -2555,9 +2619,7 @@ const ContactsPage = ({
                                   <p className="mt-0.5 text-xs text-muted-foreground">
                                     {accountSettingsCustomer.account_number
                                       ? `Account ${accountSettingsCustomer.account_number}`
-                                      : accountSettingsCustomer.innovations_customer_id
-                                        ? `Innovations ID ${accountSettingsCustomer.innovations_customer_id}`
-                                        : "Innovations sync pending"}
+                                      : "No account number assigned yet"}
                                   </p>
                                 </div>
                                 <div className="rounded-lg bg-muted/40 p-3">
@@ -2638,7 +2700,7 @@ const ContactsPage = ({
                         <div className="rounded-xl border p-4" style={{ borderColor: "hsl(var(--border))" }}>
                           <h3 className="text-sm font-semibold">Connectivity</h3>
                           <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-                            <div><span className="text-muted-foreground">Innovations</span><p className="font-medium">{accountSettingsCustomer?.innovations_customer_id ? "Synced" : "Pending"}</p></div>
+                            <div><span className="text-muted-foreground">Account #</span><p className="font-medium">{accountSettingsCustomer?.account_number ? "Linked" : "Not linked"}</p></div>
                             <div><span className="text-muted-foreground">CRM contact</span><p className="font-medium">{editContact.id ? "Linked" : "Unsaved"}</p></div>
                             <div><span className="text-muted-foreground">Website</span><p className="font-medium">{linkedPortalProfile ? "Linked" : "Not linked"}</p></div>
                           </div>

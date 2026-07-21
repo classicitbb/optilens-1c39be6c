@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { hasCompletedAccessDeploymentTraining } from "@/components/admin/AccessDeploymentTrainingDialog";
 import { resolveCompatibleCustomerAccounts, type AccessDeploymentCustomerOption } from "@/lib/accessDeployment";
+import { detectFeatureOverrideConflicts, tagsGrantFeatureAccess } from "@/lib/portalFeatureConflicts";
 
 type CustomerOption = AccessDeploymentCustomerOption;
 
@@ -50,6 +51,7 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
   const [password, setPassword] = useState("");
   const [staffRole, setStaffRole] = useState<Exclude<AppRole, "customer">>("operator");
   const [approvePortal, setApprovePortal] = useState(false);
+  const [clearConflictingOverrides, setClearConflictingOverrides] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [deploymentError, setDeploymentError] = useState<string | null>(null);
@@ -69,7 +71,13 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
   const contactMatches = useMemo(() => {
     const term = normalize(query);
     if (term.length < 2) return [];
-    return contacts.filter((contact) => [contact.name, contact.email, contact.phone, contact.business_name].some((value) => normalize(value).includes(term))).slice(0, 8);
+    // A login always belongs to a person, never to a company contact — search
+    // by company name still works because a person's business_name carries
+    // their employer's name.
+    return contacts
+      .filter((contact) => !contact.is_company)
+      .filter((contact) => [contact.name, contact.email, contact.phone, contact.business_name].some((value) => normalize(value).includes(term)))
+      .slice(0, 8);
   }, [contacts, query]);
   const customerMatches = useMemo(() => {
     const term = normalize(query);
@@ -83,8 +91,55 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
   const existingLogin = useMemo(() => users.find((user) => normalize(user.email) === normalize(email)), [email, users]);
   const canDeploy = Boolean(selectedContact && method && (kind === "staff" || selectedCustomer) && (method !== "password" || password.length >= 12));
 
+  // Tag-based access (see can_access_customer_pricing/can_access_customer_statement)
+  // checked independently of portal_access_status, since this dialog runs
+  // before that status is set to approved_customer. Mirrors those RPCs: the
+  // granting tag can live on the person contact, its parent company contact,
+  // or the company contact directly linked to the selected customer account.
+  const tagLookupContactIds = useMemo(
+    () => Array.from(new Set([selectedContact?.id, selectedContact?.parent_id, selectedCustomer?.contact_id].filter((id): id is string => !!id))),
+    [selectedContact?.id, selectedContact?.parent_id, selectedCustomer?.contact_id],
+  );
+  const { data: contactTagNames = [] } = useQuery({
+    queryKey: ["access-deployment-contact-tags", tagLookupContactIds],
+    enabled: tagLookupContactIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("contact_tag_links") as any)
+        .select("contact_tags(name)")
+        .in("contact_id", tagLookupContactIds);
+      if (error) throw error;
+      return ((data ?? []) as any[])
+        .map((row) => row.contact_tags?.name as string | undefined)
+        .filter((name): name is string => !!name);
+    },
+  });
+  // A pre-existing login (the "link" path) may already carry a disabled
+  // feature override from an earlier deployment. That override silently
+  // blocks the feature even if this contact is now tagged for it.
+  const { data: existingLoginFeatureOverrides = {} } = useQuery({
+    queryKey: ["access-deployment-feature-overrides", existingLogin?.user_id],
+    enabled: !!existingLogin?.user_id,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("customer_portal_feature_overrides") as any)
+        .select("feature_key,enabled")
+        .eq("user_id", existingLogin!.user_id);
+      if (error) throw error;
+      const map: Record<string, boolean> = {};
+      for (const row of (data ?? []) as any[]) map[row.feature_key] = row.enabled;
+      return map;
+    },
+  });
+  const featureConflicts = useMemo(
+    () =>
+      detectFeatureOverrideConflicts(existingLoginFeatureOverrides, {
+        pricelists: tagsGrantFeatureAccess(contactTagNames, "pricelists"),
+        statements: tagsGrantFeatureAccess(contactTagNames, "statements"),
+      }),
+    [existingLoginFeatureOverrides, contactTagNames],
+  );
+
   const reset = () => {
-    setQuery(""); setSelectedContact(null); setSelectedCustomer(null); setKind("portal"); setMethod(null); setPassword(""); setStaffRole("operator"); setApprovePortal(false); setSuccess(null); setDeploymentError(null);
+    setQuery(""); setSelectedContact(null); setSelectedCustomer(null); setKind("portal"); setMethod(null); setPassword(""); setStaffRole("operator"); setApprovePortal(false); setClearConflictingOverrides(false); setSuccess(null); setDeploymentError(null);
   };
   const close = (nextOpen: boolean) => {
     if (!nextOpen) reset();
@@ -94,6 +149,7 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
     setSelectedContact(contact);
     setSelectedCustomer(null);
     setMethod(null);
+    setClearConflictingOverrides(false);
     setSuccess(null);
     setDeploymentError(null);
   };
@@ -125,6 +181,13 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
           const result = await createUser.mutateAsync({ email, password, customerId: selectedCustomer.id, contactId: selectedContact.id, displayName: selectedContact.name });
           userId = result.userId;
         }
+        if (clearConflictingOverrides && featureConflicts.length > 0 && userId) {
+          const { error: clearError } = await (supabase.from("customer_portal_feature_overrides") as any)
+            .delete()
+            .eq("user_id", userId)
+            .in("feature_key", featureConflicts.map((conflict) => conflict.featureKey));
+          if (clearError) throw clearError;
+        }
         if (approvePortal && userId) {
           const { error } = await (supabase as any).from("profiles").upsert({
             user_id: userId,
@@ -141,6 +204,7 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
           queryClient.invalidateQueries({ queryKey: ["contacts-by-parent"] }),
           queryClient.invalidateQueries({ queryKey: ["contact-linked-portal-profile"] }),
           queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] }),
+          queryClient.invalidateQueries({ queryKey: ["access-deployment-feature-overrides"] }),
         ]);
         setSuccess(method === "link" ? "Existing login linked to the selected customer." : method === "invite" ? "Invitation sent and linked to the selected customer." : "Portal login created and linked to the selected customer.");
       } else {
@@ -202,6 +266,22 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
                 <div className="space-y-2"><Label>2. What access should they have?</Label><div className="flex gap-2"><Button variant={kind === "portal" ? "default" : "outline"} onClick={() => { setKind("portal"); setMethod(null); }}>Customer portal</Button><Button variant={kind === "staff" ? "default" : "outline"} onClick={() => { setKind("staff"); setMethod(null); }}>Internal staff</Button></div></div>
                 {kind === "portal" ? <div className="space-y-2"><Label>3. Which account should this person access?</Label>{contactCustomers.length > 1 ? <p className="text-xs text-amber-700">More than one linked account was found. Choose the primary account; the assistant will not choose for you.</p> : null}<Select value={selectedCustomer?.id?.toString() ?? ""} onValueChange={(value) => selectCustomer(customers.find((customer) => customer.id === Number(value))!)}><SelectTrigger><SelectValue placeholder={customersLoading ? "Loading accounts…" : "Choose a customer account"} /></SelectTrigger><SelectContent>{(contactCustomers.length ? contactCustomers : customerMatches).map((customer) => <SelectItem key={customer.id} value={String(customer.id)}>{customer.name} {customer.account_number ? `(${customer.account_number})` : ""}</SelectItem>)}</SelectContent></Select>{!selectedCustomer && !contactCustomers.length ? <p className="text-xs text-amber-700">No compatible customer link was found. Select a customer from the search results above, or link the contact to a customer before deploying portal access.</p> : null}</div> : <div className="space-y-2"><Label htmlFor="staff-role">3. Choose the internal role</Label><Select value={staffRole} onValueChange={(value) => setStaffRole(value as Exclude<AppRole, "customer">)}><SelectTrigger id="staff-role"><SelectValue /></SelectTrigger><SelectContent>{(Object.keys(roleLabels) as Array<Exclude<AppRole, "customer">>).map((role) => <SelectItem key={role} value={role}>{roleLabels[role]}</SelectItem>)}</SelectContent></Select></div>}
                 {(kind === "staff" || selectedCustomer) ? <div className="space-y-2"><Label>4. How should they sign in?</Label>{usersLoading ? <p className="text-sm text-muted-foreground">Checking for an existing login…</p> : existingLogin ? <div className="rounded-md border p-3 text-sm"><p className="font-medium">An existing login uses this email.</p><p className="mt-1 text-muted-foreground">{existingLogin.email_confirmed_at ? "The email is verified." : "This person has not verified their email. Access will unlock after verification."}</p><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant={method === "link" ? "default" : "outline"} onClick={() => setMethod("link")}><Link2 className="mr-1 h-3.5 w-3.5" />{kind === "portal" ? "Link this login" : "Use this login"}</Button><Button size="sm" variant="ghost" onClick={() => { setMethod(null); toast({ title: "Login left unchanged", description: "No records were linked or changed." }); }}>Leave unchanged</Button></div></div> : <div className="flex flex-wrap gap-2"><Button size="sm" variant={method === "invite" ? "default" : "outline"} onClick={() => setMethod("invite")}><Mail className="mr-1 h-3.5 w-3.5" />Send invite</Button><Button size="sm" variant={method === "password" ? "default" : "outline"} onClick={() => setMethod("password")}>Set temporary password</Button>{method === "password" ? <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 12 characters" className="max-w-xs" /> : null}</div>}</div> : null}
+                {kind === "portal" && selectedCustomer && featureConflicts.length > 0 ? (
+                  <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+                    <div className="flex gap-2 font-medium"><ShieldAlert className="h-4 w-4" /> Conflicting portal settings found</div>
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-amber-900">
+                      {featureConflicts.map((conflict) => (
+                        <li key={conflict.featureKey}>
+                          {selectedContact.name} is tagged for {conflict.requiredTagLabel}, but this login already has {conflict.label} explicitly turned off in Portal Settings. That override will keep blocking {conflict.label} even after you approve access here.
+                        </li>
+                      ))}
+                    </ul>
+                    <label className="mt-2 flex items-start gap-2">
+                      <Checkbox checked={clearConflictingOverrides} onCheckedChange={(checked) => setClearConflictingOverrides(checked === true)} />
+                      <span>Clear the conflicting override(s) now, so the tag takes effect.</span>
+                    </label>
+                  </div>
+                ) : null}
                 {kind === "portal" && selectedCustomer && method ? <label className="flex items-start gap-2 rounded-md bg-muted p-3 text-sm"><Checkbox checked={approvePortal} onCheckedChange={(checked) => setApprovePortal(checked === true)} /><span><span className="font-medium">Approve portal access now</span><span className="block text-muted-foreground">Use this only after confirming the customer and contact link. Pricing and statement access still require the matching access tag, unless the contact is tagged CEO.</span></span></label> : null}
               </>}
             </section> : null}

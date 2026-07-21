@@ -10,6 +10,7 @@ import {
   Mail,
   Package,
   Search,
+  ShieldAlert,
   ShieldCheck,
   ShoppingCart,
   UserPlus,
@@ -46,6 +47,7 @@ import {
   normalizeAccountNumberInput,
 } from "@/lib/accountNumberAssignment";
 import { describePortalFeatureOverrideError } from "@/lib/portalFeatureOverrideErrors";
+import { detectFeatureOverrideConflicts } from "@/lib/portalFeatureConflicts";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 
 interface PortalCustomerListItem {
@@ -129,12 +131,16 @@ interface PortalAccountRecord {
   phone: string;
   organizationName: string;
   isErpCustomer: boolean;
+  // null when no contact is linked yet (unknown); true/false once one is.
+  // A login must always belong to a person, never a company contact.
+  isCompanyContact: boolean | null;
 }
 
 interface ContactLookupRow {
   id: string;
   email: string | null;
   phone: string | null;
+  is_company: boolean;
   linked_customer_id: number | null;
   parent_id: string | null;
   innovations_parent_customer_id: number | null;
@@ -244,16 +250,16 @@ const WebsitePortalsPage = () => {
         { data: parentContactRows, error: parentContactError },
       ] = await Promise.all([
         directContactIds.length
-          ? (supabase as any).from("contacts").select("id,email,phone").in("id", directContactIds)
+          ? (supabase as any).from("contacts").select("id,email,phone,is_company").in("id", directContactIds)
           : Promise.resolve({ data: [], error: null }),
         erpCustomerIds.length
-          ? (supabase as any).from("contacts").select("id,email,phone,linked_customer_id,parent_id,innovations_parent_customer_id").in("linked_customer_id", erpCustomerIds)
+          ? (supabase as any).from("contacts").select("id,email,phone,is_company,linked_customer_id,parent_id,innovations_parent_customer_id").in("linked_customer_id", erpCustomerIds)
           : Promise.resolve({ data: [], error: null }),
         innovationsCustomerIds.length
-          ? (supabase as any).from("contacts").select("id,email,phone,linked_customer_id,parent_id,innovations_parent_customer_id").in("innovations_parent_customer_id", innovationsCustomerIds)
+          ? (supabase as any).from("contacts").select("id,email,phone,is_company,linked_customer_id,parent_id,innovations_parent_customer_id").in("innovations_parent_customer_id", innovationsCustomerIds)
           : Promise.resolve({ data: [], error: null }),
         directContactIds.length
-          ? (supabase as any).from("contacts").select("id,email,phone,linked_customer_id,parent_id,innovations_parent_customer_id").in("parent_id", directContactIds)
+          ? (supabase as any).from("contacts").select("id,email,phone,is_company,linked_customer_id,parent_id,innovations_parent_customer_id").in("parent_id", directContactIds)
           : Promise.resolve({ data: [], error: null }),
       ]);
       if (directContactError) throw directContactError;
@@ -384,6 +390,8 @@ const WebsitePortalsPage = () => {
             phone: portalUser.phone,
             organizationName: portalUser.organizationName,
             isErpCustomer: false,
+            // An existing login is, by construction, a person's login.
+            isCompanyContact: false,
           };
         })
         .sort((a, b) => (a.fullName || a.email).localeCompare(b.fullName || b.email));
@@ -416,11 +424,15 @@ const WebsitePortalsPage = () => {
         const contactEmail = typeof linkedContact?.email === "string" ? linkedContact.email : "";
         const contactPhone = typeof linkedContact?.phone === "string" ? linkedContact.phone : "";
         const contactId = typeof linkedContact?.id === "string" ? linkedContact.id : directContactId;
+        // null (unknown) when no contact is linked yet — that's still not
+        // "known to be a person," so login creation stays gated until one is.
+        const isCompanyContact = linkedContact ? linkedContact.is_company === true : null;
         const existing = accountByCustomerId.get(customerId);
         if (existing) {
           existing.linkedPortalUsers = linkedPortalUsersByCustomerId.get(customerId) ?? [];
           existing.accountNumber = typeof erpCustomer.account_number === "string" ? erpCustomer.account_number : null;
           existing.isErpCustomer = true;
+          existing.isCompanyContact = isCompanyContact;
           existing.crmContactId ||= contactId;
           existing.fullName ||= String(erpCustomer.name ?? "");
           existing.email ||= String(contactEmail || erpCustomer.email || "");
@@ -437,6 +449,7 @@ const WebsitePortalsPage = () => {
           fullName: String(erpCustomer.name ?? "ERP customer"),
           email: String(contactEmail || erpCustomer.email || ""),
           phone: String(contactPhone || erpCustomer.phone || ""),
+          isCompanyContact,
           organizationName: "",
           isErpCustomer: true,
         });
@@ -600,6 +613,37 @@ const WebsitePortalsPage = () => {
       variant: "destructive",
     }),
   });
+
+  // Removes a disabled override entirely (rather than flipping it to
+  // enabled=true) so the underlying tag-based check governs access again.
+  const clearFeatureOverride = useMutation({
+    mutationFn: async (featureKey: string) => {
+      if (!selectedCustomer) throw new Error("Select a customer first.");
+      const { error } = await (supabase as any)
+        .from("customer_portal_feature_overrides")
+        .delete()
+        .eq("user_id", selectedCustomer.userId)
+        .eq("feature_key", featureKey);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await detailQuery.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["portal-identity", selectedCustomer?.userId] });
+      toast({ title: "Override cleared", description: "The conflicting override was removed." });
+    },
+    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to clear override.", variant: "destructive" }),
+  });
+
+  // A disabled override silently wins over an access-granting tag (see
+  // can_access_customer_portal_feature): if it's false, the feature stays
+  // blocked no matter what canAccessPricing/canAccessStatements say.
+  const featureConflicts = useMemo(() => {
+    if (!detailQuery.data) return [];
+    return detectFeatureOverrideConflicts(detailQuery.data.featureOverrides, {
+      pricelists: detailQuery.data.canAccessPricing,
+      statements: detailQuery.data.canAccessStatements,
+    });
+  }, [detailQuery.data]);
 
   const assignPricelist = useMutation({
     mutationFn: async (pricelistId: number | null) => {
@@ -834,6 +878,15 @@ const WebsitePortalsPage = () => {
 
   const openProvisioning = (mode: "create" | "invite") => {
     if (!selectedAccount?.crmCustomerId) return;
+    // A login always belongs to a person, never a company contact.
+    if (selectedAccount.isCompanyContact !== false) {
+      toast({
+        title: "A login belongs to a person, not a company",
+        description: "Add or link a person contact under this company before creating or inviting a login.",
+        variant: "destructive",
+      });
+      return;
+    }
     setAccountDialogOpen(false);
     setProvisioningMode(mode);
     setProvisioningEmail(selectedAccount.email);
@@ -931,6 +984,17 @@ const WebsitePortalsPage = () => {
       toast({ title: "Customer approval required", description: "Approve or link this customer before creating a website login.", variant: "destructive" });
       return;
     }
+    if (account.isCompanyContact !== false) {
+      toast({
+        title: "A login belongs to a person, not a company",
+        description: account.isCompanyContact
+          ? "This account resolves to a company contact. Add or link a person contact under that company first, then create their login."
+          : "This account has no linked contact yet. Link or create a person contact before creating a login.",
+        variant: "destructive",
+      });
+      if (account.crmContactId) openContactEditor(account.crmContactId, "details");
+      return;
+    }
     setSelectedAccountId(account.id);
     setProvisioningMode("create");
     setProvisioningEmail(account.email);
@@ -967,6 +1031,22 @@ const WebsitePortalsPage = () => {
         ))}
       </CardContent>
     </Card>
+  ) : !selectedCustomer && selectedAccount.isCompanyContact !== false ? (
+    <Card className="shadow-none hover:shadow-none">
+      <CardHeader>
+        <CardTitle>Company account — no person contact yet</CardTitle>
+        <CardDescription>
+          A login always belongs to a person, never to a company. {selectedAccount.isCompanyContact
+            ? "This account resolves to a company contact."
+            : "This account has no linked contact yet."} Add or link a person contact under this company, then create their login.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="outline" onClick={() => selectedAccount.crmContactId && openContactEditor(selectedAccount.crmContactId, "details")} disabled={!selectedAccount.crmContactId}>
+          <UserPlus className="mr-2 h-4 w-4" />Open company contact
+        </Button>
+      </CardContent>
+    </Card>
   ) : !selectedCustomer ? (
     <Card className="shadow-none hover:shadow-none">
       <CardHeader>
@@ -996,6 +1076,28 @@ const WebsitePortalsPage = () => {
           <Card className="shadow-none hover:shadow-none">
             <CardHeader><CardTitle className="text-base">Feature access</CardTitle><CardDescription>Overrides become available for the linked website account.</CardDescription></CardHeader>
             <CardContent className="space-y-2">
+              {featureConflicts.length > 0 ? (
+                <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+                  <div className="flex gap-2 font-medium"><ShieldAlert className="h-4 w-4" /> Conflicting portal settings</div>
+                  <ul className="mt-1 list-disc space-y-2 pl-5 text-amber-900">
+                    {featureConflicts.map((conflict) => (
+                      <li key={conflict.featureKey}>
+                        <span>This contact is tagged for {conflict.requiredTagLabel}, but {conflict.label} is explicitly turned off below, which still blocks it despite the tag.</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="mt-1 h-7 border-amber-400 bg-white text-xs"
+                          onClick={() => clearFeatureOverride.mutate(conflict.featureKey)}
+                          disabled={clearFeatureOverride.isPending}
+                        >
+                          Clear conflicting override
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {FEATURE_KEYS.map((feature) => {
                 const enabled = detailQuery.data.featureOverrides[feature];
                 return <Button key={feature} type="button" variant={enabled ? "default" : "outline"} className="w-full justify-between" onClick={() => upsertFeatureOverride.mutate({ featureKey: feature, enabled: !enabled })}>
@@ -1148,7 +1250,7 @@ const WebsitePortalsPage = () => {
                         <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
                         <ContextMenuSeparator />
                         <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
-                        <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser || linkedLoginCount > 0}>Create login</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser || linkedLoginCount > 0 || account.isCompanyContact !== false}>Create login</ContextMenuItem>
                       </ContextMenuContent>
                       </ContextMenu>
                     );
@@ -1202,6 +1304,36 @@ const WebsitePortalsPage = () => {
                     </Button>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          ) : !selectedCustomer && selectedAccount.isCompanyContact !== false ? (
+            <Card className="min-h-[320px] shadow-none hover:shadow-none">
+              <CardHeader>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{selectedAccount.fullName || "ERP customer"}</CardTitle>
+                    <CardDescription>
+                      A login always belongs to a person, never to a company. {selectedAccount.isCompanyContact
+                        ? "This account resolves to a company contact."
+                        : "This account has no linked contact yet."} Add or link a person contact under this company, then create their login.
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline">ERP approved</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border p-3"><p className="text-xs uppercase text-muted-foreground">Email</p><p className="mt-1 text-sm font-medium">{selectedAccount.email || "Missing"}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs uppercase text-muted-foreground">Phone</p><p className="mt-1 text-sm font-medium">{selectedAccount.phone || "Missing"}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs uppercase text-muted-foreground">Account number</p><p className="mt-1 text-sm font-medium">{selectedAccount.accountNumber || "Not linked"}</p></div>
+                </div>
+                <div className="rounded-xl border border-dashed p-4">
+                  <p className="font-medium text-foreground">Add a person contact</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Open this company's contact record to add or link the person who should receive portal access.</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => selectedAccount.crmContactId && openContactEditor(selectedAccount.crmContactId)} disabled={!selectedAccount.crmContactId}>Open company contact</Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ) : !selectedCustomer ? (
