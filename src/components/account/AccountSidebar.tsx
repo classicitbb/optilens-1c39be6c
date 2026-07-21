@@ -1,6 +1,4 @@
-import { LockKeyhole } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
+import SidebarNavList from "@/components/shared/SidebarNavList";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
@@ -10,20 +8,6 @@ interface AccountSidebarProps {
   pathname: string;
 }
 
-const approvalBadge = (
-  <Badge variant="secondary" className="ml-auto gap-1 text-[10px]">
-    <LockKeyhole className="h-3 w-3" />
-    Approval
-  </Badge>
-);
-
-const featureBadge = (
-  <Badge variant="secondary" className="ml-auto gap-1 text-[10px]">
-    <LockKeyhole className="h-3 w-3" />
-    Feature
-  </Badge>
-);
-
 const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
   const { canAccessFeature } = usePortalIdentity();
   const { isAdmin } = useUserRole();
@@ -31,29 +15,13 @@ const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
   const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
   const lensAssistantEnabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
 
-  const items = ACCOUNT_NAV_ITEMS.map((item) => {
-    if (item.to.startsWith("/lens-assistant")) {
-      return { ...item, disabled: !lensAssistantEnabled, badge: !lensAssistantEnabled ? featureBadge : undefined };
-    }
-
-    if (item.to === "/profile/quotes") {
-      return { ...item, disabled: !canAccessFeature("quotes"), badge: !canAccessFeature("quotes") ? approvalBadge : undefined };
-    }
-
-    if (item.to === "/profile/helpdesk") {
-      return { ...item, disabled: !canAccessFeature("helpdesk"), badge: !canAccessFeature("helpdesk") ? approvalBadge : undefined };
-    }
-
-    if (item.to === "/profile/pricelists") {
-      return { ...item, disabled: !canAccessFeature("pricelists"), badge: !canAccessFeature("pricelists") ? approvalBadge : undefined };
-    }
-
-    if (item.to === "/profile/statements") {
-      const enabled = canAccessFeature("statements");
-      return { ...item, disabled: !enabled, badge: !enabled ? approvalBadge : undefined };
-    }
-
-    return item;
+  const items = ACCOUNT_NAV_ITEMS.filter((item) => {
+    if (item.to.startsWith("/lens-assistant")) return lensAssistantEnabled;
+    if (item.to === "/profile/quotes") return canAccessFeature("quotes");
+    if (item.to === "/profile/helpdesk") return canAccessFeature("helpdesk");
+    if (item.to === "/profile/pricelists") return canAccessFeature("pricelists");
+    if (item.to === "/profile/statements") return canAccessFeature("statements");
+    return true;
   });
 
   return (

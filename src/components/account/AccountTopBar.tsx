@@ -39,13 +39,12 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
 
   const lensAssistantEnabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
   const visibleItems = ACCOUNT_NAV_ITEMS.filter((item) => {
+    if (item.to.startsWith("/lens-assistant")) return lensAssistantEnabled;
     if (item.to === "/profile/quotes") return canAccessFeature("quotes");
     if (item.to === "/profile/helpdesk") return canAccessFeature("helpdesk");
     if (item.to === "/profile/pricelists") return canAccessFeature("pricelists");
+    if (item.to === "/profile/statements") return canAccessFeature("statements");
     return true;
-  }).map((item) => {
-    if (item.to.startsWith("/lens-assistant")) return { ...item, disabled: !lensAssistantEnabled };
-    return item;
   });
 
   return (
