@@ -146,7 +146,8 @@ export const useUpdateOpportunityStage = () => {
           activity_type: stageTaskMap[stage],
           status: "open",
           due_at: dueAt.toISOString(),
-          payload: { stage, source: "stage_transition", opportunityTitle: opp.title },
+          type: "note",
+          content: `Auto-created on stage change to "${stage}" for ${opp.title}.`,
         } as any);
       if (activityErr) throw activityErr;
 

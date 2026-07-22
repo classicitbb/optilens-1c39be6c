@@ -71,7 +71,8 @@ const materializeStep = async (contactId: string, enrollmentId: string, step: Ca
       contact_id: contactId,
       status: "open",
       due_at: due.toISOString(),
-      payload: { channel: step.channel, enrollment_id: enrollmentId },
+      type: step.channel === "call" ? "call" : "meeting",
+      content: `Cadence enrollment ${enrollmentId}, channel: ${step.channel}.`,
     });
     if (error) throw error;
   }

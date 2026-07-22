@@ -136,6 +136,9 @@ export const useRunLeadSequence = () => {
       }
 
       const now = Date.now();
+      // activities.type is constrained to whatsapp/email/call/note/meeting/quote;
+      // sequence channels outside that set (e.g. instagram_dm) fall back to "note".
+      const allowedActivityTypes = new Set(["whatsapp", "email", "call", "note", "meeting", "quote"]);
       for (const contactId of contactIds) {
         for (const step of DEFAULT_SEQUENCE) {
           const dueAt = new Date(now + step.delayHours * 60 * 60 * 1000).toISOString();
@@ -145,7 +148,8 @@ export const useRunLeadSequence = () => {
               activity_type: `Sequence step ${step.step}: ${step.channel}`,
               status: "open",
               due_at: dueAt,
-              payload: { prompt: step.prompt, channel: step.channel, sequence: "default-5-step" },
+              type: allowedActivityTypes.has(step.channel) ? step.channel : "note",
+              content: `${step.prompt} (channel: ${step.channel}, sequence: default-5-step)`,
             } as any);
           if (activityErr) throw activityErr;
         }
