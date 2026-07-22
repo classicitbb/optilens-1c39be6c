@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, Check, X, Lock, Mail, Eye } from "lucide-react";
+import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, Check, X, Lock, Mail, Eye, Copy } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { format } from "date-fns";
 import {
@@ -49,12 +50,15 @@ const UsersPage = () => {
   // Invite dialog
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteSendEmail, setInviteSendEmail] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
 
   // Create user dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [createName, setCreateName] = useState("");
+  const [createSendWelcomeEmail, setCreateSendWelcomeEmail] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -157,11 +161,11 @@ const UsersPage = () => {
       <div className="flex items-center justify-between">
         <AdminPageHeader icon={Shield} title="User Management" />
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setInviteEmail(""); setInviteOpen(true); }}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setInviteEmail(""); setInviteSendEmail(false); setInviteLink(null); setInviteOpen(true); }}>
             <Mail className="h-3.5 w-3.5" />
             Invite
           </Button>
-          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setCreateEmail(""); setCreatePassword(""); setCreateName(""); setCreateOpen(true); }}>
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setCreateEmail(""); setCreatePassword(""); setCreateName(""); setCreateSendWelcomeEmail(false); setCreateOpen(true); }}>
             <UserPlus className="h-3.5 w-3.5" />
             Add User
           </Button>
@@ -357,7 +361,7 @@ const UsersPage = () => {
       </Dialog>
 
       {/* Invite User Dialog */}
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+      <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) setInviteLink(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold flex items-center gap-2">
@@ -365,37 +369,79 @@ const UsersPage = () => {
               Invite User by Email
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-xs text-[hsl(var(--admin-muted-fg))]">
-              Send an invitation email. The user will receive a link to set their password and sign in.
-            </p>
-            <Input
-              type="email"
-              placeholder="user@example.com"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              className="h-8 text-xs"
-              autoFocus
-            />
-          </div>
+          {inviteLink ? (
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-[hsl(var(--admin-muted-fg))]">
+                Account created for <strong>{inviteEmail}</strong>. No email was sent — copy this link and share it with them yourself.
+              </p>
+              <div className="flex items-center gap-1.5">
+                <Input readOnly value={inviteLink} className="h-8 text-xs" onFocus={(e) => e.currentTarget.select()} />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(inviteLink);
+                    toast({ title: "Link copied" });
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-[hsl(var(--admin-muted-fg))]">
+                Create the account now. By default no email is sent — you'll get a link to share with the user yourself.
+              </p>
+              <Input
+                type="email"
+                placeholder="user@example.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="h-8 text-xs"
+                autoFocus
+              />
+              <label className="flex items-center gap-2 text-xs text-[hsl(var(--admin-muted-fg))] cursor-pointer">
+                <Checkbox checked={inviteSendEmail} onCheckedChange={(v) => setInviteSendEmail(v === true)} />
+                Email the invite link to this address now
+              </label>
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setInviteOpen(false)}>Cancel</Button>
-            <Button
-              size="sm"
-              className="h-7 text-xs"
-              disabled={inviteUser.isPending || !inviteEmail.includes("@")}
-              onClick={async () => {
-                try {
-                  await inviteUser.mutateAsync({ email: inviteEmail });
-                  toast({ title: "Invitation sent", description: `Invite email sent to ${inviteEmail}.` });
-                  setInviteOpen(false);
-                } catch {
-                  toast({ title: "Error", description: "Failed to send invitation.", variant: "destructive" });
-                }
-              }}
-            >
-              {inviteUser.isPending ? "Sending…" : "Send Invite"}
-            </Button>
+            {inviteLink ? (
+              <Button size="sm" className="h-7 text-xs" onClick={() => setInviteOpen(false)}>Done</Button>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={inviteUser.isPending || !inviteEmail.includes("@")}
+                  onClick={async () => {
+                    try {
+                      const result = await inviteUser.mutateAsync({ email: inviteEmail, sendEmail: inviteSendEmail });
+                      if (result.alreadyExisted) {
+                        toast({ title: "Account linked", description: `${inviteEmail} already had a login — it's now linked.` });
+                        setInviteOpen(false);
+                      } else if (inviteSendEmail) {
+                        toast({ title: "Invitation sent", description: `Invite email sent to ${inviteEmail}.` });
+                        setInviteOpen(false);
+                      } else if (result.actionLink) {
+                        setInviteLink(result.actionLink);
+                      } else {
+                        toast({ title: "Account created", description: `Account created for ${inviteEmail}.` });
+                        setInviteOpen(false);
+                      }
+                    } catch {
+                      toast({ title: "Error", description: "Failed to invite user.", variant: "destructive" });
+                    }
+                  }}
+                >
+                  {inviteUser.isPending ? "Working…" : inviteSendEmail ? "Send Invite" : "Create Invite Link"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -435,6 +481,10 @@ const UsersPage = () => {
               onChange={(e) => setCreatePassword(e.target.value)}
               className="h-8 text-xs"
             />
+            <label className="flex items-center gap-2 text-xs text-[hsl(var(--admin-muted-fg))] cursor-pointer">
+              <Checkbox checked={createSendWelcomeEmail} onCheckedChange={(v) => setCreateSendWelcomeEmail(v === true)} />
+              Send the welcome email to this address now
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setCreateOpen(false)}>Cancel</Button>
@@ -444,7 +494,7 @@ const UsersPage = () => {
               disabled={createUser.isPending || !createEmail.includes("@") || createPassword.length < 12}
               onClick={async () => {
                 try {
-                  await createUser.mutateAsync({ email: createEmail, password: createPassword, displayName: createName || undefined });
+                  await createUser.mutateAsync({ email: createEmail, password: createPassword, displayName: createName || undefined, sendWelcomeEmail: createSendWelcomeEmail });
                   toast({ title: "User created", description: `Account created for ${createEmail}.` });
                   setCreateOpen(false);
                 } catch (err) {

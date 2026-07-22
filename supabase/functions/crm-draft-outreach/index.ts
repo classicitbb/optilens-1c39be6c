@@ -2,9 +2,8 @@
 // outreach_outbox as status 'draft' for human review (see docs/CRM_BUILD_PLAN.md).
 // The human always approves/sends — this only prepares the missive.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
-import { requireAuthenticatedUser } from "../_shared/http/auth.ts";
+import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -37,16 +36,18 @@ serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
-    const auth = await requireAuthenticatedUser(req, corsHeaders);
+    const auth = await requirePrivilegedAccess(req, corsHeaders, {
+      allowedRoles: ["admin", "operator"],
+      sourceFunction: "crm-draft-outreach",
+    });
     if (auth instanceof Response) return auth;
 
     const { contact_id, step_id, enrollment_id } = await req.json();
     if (!contact_id || !step_id) return json({ error: "contact_id and step_id are required" }, 400);
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
+    // This client intentionally bypasses RLS to assemble an internal CRM
+    // draft, but only after requirePrivilegedAccess has verified staff role.
+    const supabase = auth.supabaseAdminClient;
 
     const { data: contact, error: cErr } = await supabase
       .from("contacts")
