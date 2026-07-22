@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requireAuthenticatedUser } from "../_shared/http/auth.ts";
+import { checkRateLimit, getClientIp } from "../_shared/http/rateLimit.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -37,6 +38,14 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req, corsPolicy);
   const originBlocked = rejectDisallowedOrigin(req, corsPolicy);
   if (originBlocked) return originBlocked;
+
+  // Keep the public lens helper available while bounding anonymous AI spend.
+  // The per-hour key is separate so both windows are enforced per client IP.
+  const ip = getClientIp(req);
+  const perMinute = checkRateLimit(ip, corsHeaders, 6, 60_000);
+  if (perMinute) return perMinute;
+  const perHour = checkRateLimit(`hour:${ip}`, corsHeaders, 60, 60 * 60_000);
+  if (perHour) return perHour;
 
   try {
     // Public chatbot on /store — attempt authentication but allow anonymous

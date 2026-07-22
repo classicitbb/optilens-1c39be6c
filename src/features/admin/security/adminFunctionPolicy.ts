@@ -92,6 +92,11 @@ const assertBoolean = (value: unknown, field: string) => {
   return value;
 };
 
+const assertOptionalBoolean = (value: unknown, field: string) => {
+  if (value == null) return undefined;
+  return assertBoolean(value, field);
+};
+
 const assertRequiredCustomerId = (value: unknown) => {
   const customerId = assertCustomerId(value);
   if (customerId === undefined) {
@@ -125,12 +130,16 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
       const customerId = assertCustomerId(payload.customerId);
       const contactId = assertContactId(payload.contactId);
       const displayName = assertDisplayName(payload.displayName);
+      // Defaults to false — an admin invite/link action doesn't email the
+      // customer unless explicitly requested.
+      const sendEmail = assertOptionalBoolean(payload.sendEmail, "sendEmail");
       return {
         action: "invite-user" as const,
         email: assertEmail(payload.email),
         ...(customerId !== undefined ? { customerId } : {}),
         ...(contactId !== undefined ? { contactId } : {}),
         ...(displayName !== undefined ? { displayName } : {}),
+        ...(sendEmail !== undefined ? { sendEmail } : {}),
       };
       }
     case "create-user":
@@ -138,6 +147,8 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
       const customerId = assertCustomerId(payload.customerId);
       const contactId = assertContactId(payload.contactId);
       const displayName = assertDisplayName(payload.displayName);
+      // Defaults to false — see invite-user.
+      const sendWelcomeEmail = assertOptionalBoolean(payload.sendWelcomeEmail, "sendWelcomeEmail");
       return {
         action: "create-user" as const,
         email: assertEmail(payload.email),
@@ -145,6 +156,7 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
         displayName,
         ...(customerId !== undefined ? { customerId } : {}),
         ...(contactId !== undefined ? { contactId } : {}),
+        ...(sendWelcomeEmail !== undefined ? { sendWelcomeEmail } : {}),
       };
       }
     case "link-customer-portal-account":

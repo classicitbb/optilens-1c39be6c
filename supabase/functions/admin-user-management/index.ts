@@ -4,14 +4,18 @@ import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
 /**
  * Fires the customer-onboarding function for a newly created user.
- * This assigns the default template pricelist and sends the welcome email.
+ * This assigns the default template pricelist and, when sendWelcomeEmail is
+ * true, sends the welcome email. Defaults to suppressing the email — an
+ * admin creating/inviting/linking a portal account from Website Portals is
+ * configuring the account, not necessarily telling the customer it's ready.
  * Failures are logged but do NOT block the primary create/invite response.
  */
 async function triggerCustomerOnboarding(
   req: Request,
   userId: string,
   email: string,
-  displayName?: string,
+  displayName: string | undefined,
+  sendWelcomeEmail: boolean,
 ): Promise<void> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -30,7 +34,7 @@ async function triggerCustomerOnboarding(
         "x-admin-auth-token": req.headers.get("x-admin-auth-token") ?? "",
         "Origin": req.headers.get("Origin") ?? "",
       },
-      body: JSON.stringify({ userId, email, displayName }),
+      body: JSON.stringify({ userId, email, displayName, suppressEmail: !sendWelcomeEmail }),
     });
 
     if (!resp.ok) {
@@ -269,7 +273,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "invite-user") {
-      const { email, customerId, displayName, contactId } = body;
+      const { email, customerId, displayName, contactId, sendEmail } = body;
+      const wantsEmail = sendEmail === true;
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
@@ -284,43 +289,73 @@ Deno.serve(async (req) => {
         if (customerError) throw customerError;
         if (!customer) return jsonResponse(req, 404, { error: "The selected ERP customer no longer exists" });
       }
-      const { data: inviteData, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-        redirectTo: getPasswordRedirectTo(req),
-      });
-      if (error) {
-        const msg = error.message ?? "";
-        if (/already been registered|already registered|already exists/i.test(msg)) {
-          // User already exists — link them to the customer (if provided) and send a recovery email
-          const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-          const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
-          if (!existing) {
-            return jsonResponse(req, 409, { error: "A user with this email already exists." });
+
+      // Default (sendEmail !== true): create the login silently via
+      // generateLink, which — unlike inviteUserByEmail — never dispatches an
+      // email. The admin gets the action link back to share manually. Only
+      // when the admin explicitly opts in do we use inviteUserByEmail, which
+      // fires Supabase's own invite email through auth-email-hook.
+      let newUserId: string | undefined;
+      let actionLink: string | undefined;
+
+      if (wantsEmail) {
+        const { data: inviteData, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+          redirectTo: getPasswordRedirectTo(req),
+        });
+        if (error) {
+          const msg = error.message ?? "";
+          if (/already been registered|already registered|already exists/i.test(msg)) {
+            const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+            const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+            if (!existing) {
+              return jsonResponse(req, 409, { error: "A user with this email already exists." });
+            }
+            await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
+            await adminClient.auth.admin.generateLink({
+              type: "recovery",
+              email,
+              options: { redirectTo: getPasswordRedirectTo(req) },
+            });
+            return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
           }
-          await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
-          await adminClient.auth.admin.generateLink({
-            type: "recovery",
-            email,
-            options: { redirectTo: getPasswordRedirectTo(req) },
-          });
-          return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
+          throw error;
         }
-        throw error;
+        newUserId = inviteData?.user?.id;
+      } else {
+        const { data: linkData, error } = await adminClient.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: { redirectTo: getPasswordRedirectTo(req) },
+        });
+        if (error) {
+          const msg = error.message ?? "";
+          if (/already been registered|already registered|already exists/i.test(msg)) {
+            const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+            const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+            if (!existing) {
+              return jsonResponse(req, 409, { error: "A user with this email already exists." });
+            }
+            await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
+            return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
+          }
+          throw error;
+        }
+        newUserId = linkData?.user?.id;
+        actionLink = linkData?.properties?.action_link;
       }
 
-      if (inviteData?.user?.id) {
-        await linkCustomerPortalAccount(adminClient, inviteData.user.id, customerId, displayName, contactId);
+      if (newUserId) {
+        await linkCustomerPortalAccount(adminClient, newUserId, customerId, displayName, contactId);
+        // Assign default pricelist; only send the welcome email if the admin
+        // opted in to emailing this customer.
+        await triggerCustomerOnboarding(req, newUserId, email, displayName, wantsEmail);
       }
 
-      // Trigger onboarding: assign default pricelist + send welcome email
-      if (inviteData?.user?.id) {
-        await triggerCustomerOnboarding(req, inviteData.user.id, email, displayName);
-      }
-
-      return jsonResponse(req, 200, { success: true, userId: inviteData?.user?.id });
+      return jsonResponse(req, 200, { success: true, userId: newUserId, ...(actionLink ? { actionLink } : {}) });
     }
 
     if (action === "create-user") {
-      const { email, password, displayName, customerId, contactId } = body;
+      const { email, password, displayName, customerId, contactId, sendWelcomeEmail } = body;
       if (!email || !password) {
         return jsonResponse(req, 400, { error: "Email and password are required" });
       }
@@ -369,9 +404,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Trigger onboarding: assign default pricelist + send welcome email
+      // Assign default pricelist; only send the welcome email if the admin
+      // opted in to emailing this customer.
       if (newUser?.user?.id) {
-        await triggerCustomerOnboarding(req, newUser.user.id, email, displayName);
+        await triggerCustomerOnboarding(req, newUser.user.id, email, displayName, sendWelcomeEmail === true);
       }
 
       return jsonResponse(req, 200, { success: true, userId: newUser?.user?.id });
