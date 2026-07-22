@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-22 — Staff Public Networking Cards
+
+### Release Notes
+- Staff can publish a shareable digital business card at `/connect/:slug` with selected email, WhatsApp, phone, skills, and links.
+- Event sharing is one tap from the staff profile home screen through **Share my card**, which displays the public-card QR code.
+- Administrators can preview or configure a staff member's card directly from Admin → Settings → Users using the QR and ID-card row actions.
+
 ## 2026-07-19 — Contacts Access Deployment Assistant
 
 ### Release Notes

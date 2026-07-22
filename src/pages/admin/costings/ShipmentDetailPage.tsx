@@ -23,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeChargeRowTotal, computeInsuranceFreightCharge, formatMoney } from "@/lib/importCostings";
 
@@ -252,7 +252,7 @@ const ShipmentDetailPage = () => {
   const isLensShipment = LENS_CODES.includes(shipment?.type ?? "");
 
   const totals = useMemo(() => {
-    if (!shipment) return { exchangeRate: 1, fobBbd: 0, invoiceBbd: 0, amountTotal: 0, vatTotal: 0, dutyTotal: 0, totalChargesBbd: 0, totalLandedBbd: 0, totalLandedUsd: 0, charityAllocationBbd: 0, totalShipmentCostBbd: 0, multiplier: 0 };
+    if (!shipment) return { exchangeRate: 1, fobBbd: 0, invoiceBbd: 0, amountTotal: 0, vatTotal: 0, dutyTotal: 0, chargeSubtotalExcludingVatBbd: 0, totalChargesIncludingVatBbd: 0, totalLandedBbd: 0, totalLandedUsd: 0, charityAllocationBbd: 0, totalShipmentCostBbd: 0, multiplier: 0 };
     return computeShipmentTotals(shipment, charges, settings);
   }, [shipment, charges, settings]);
 
@@ -468,7 +468,14 @@ const ShipmentDetailPage = () => {
           </Select>
         </Field>
         <Field label="Exchange Rate (BBD per 1 FX) *">
-          <NumericInput value={shipment.exchange_rate} onChange={(v) => updateField("exchange_rate", v)} disabled={!editable} className="h-8 text-xs text-right" />
+          <div
+            className="flex h-8 items-center justify-between rounded-md border border-input bg-muted/50 px-3 text-xs"
+            title="This fixed rate is controlled in Pricing Settings."
+            aria-label="Fixed exchange rate from Pricing Settings"
+          >
+            <span className="font-mono tabular-nums">{totals.exchangeRate.toFixed(4)}</span>
+            <span className="flex items-center gap-1 text-muted-foreground"><Lock className="h-3 w-3" /> Fixed</span>
+          </div>
         </Field>
         <Field label={`FOB (${shipment.currency}) *`}>
           <NumericInput value={shipment.fob_foreign} onChange={(v) => updateField("fob_foreign", v)} disabled={!editable} className="h-8 text-xs text-right" />
@@ -501,10 +508,10 @@ const ShipmentDetailPage = () => {
           <ComputedField label="10% of Ins. & Frt. to Charity">
             <div className="space-y-0.5 text-center">
               <div className="text-sm font-mono font-semibold text-foreground">{fmt(totals.charityAllocationBbd)}</div>
-              <div className="text-[10px] text-muted-foreground">{fmt(totals.charityAllocationBbd)} + {fmt(totals.totalChargesBbd)} = {fmt(totals.totalShipmentCostBbd)}</div>
+              <div className="text-[10px] text-muted-foreground">{fmt(totals.charityAllocationBbd)} + {fmt(totals.chargeSubtotalExcludingVatBbd)} = {fmt(totals.totalShipmentCostBbd)}</div>
             </div>
           </ComputedField>
-          <ComputedField label="Total Charges (BBD)" value={fmt(totals.totalChargesBbd)} />
+          <ComputedField label="Charges excl. VAT (BBD)" value={fmt(totals.chargeSubtotalExcludingVatBbd)} />
           <ComputedField label="Total Landed (BBD)" value={fmt(totals.totalLandedBbd)} />
           <ComputedField label="Multiplier" value={totals.multiplier.toFixed(4)} />
         </div>
@@ -589,7 +596,7 @@ const ShipmentDetailPage = () => {
                       <TableCell className="py-2 text-right font-mono">{fmt(totals.dutyTotal)}</TableCell>
                       <TableCell className="py-2" />
                       <TableCell className="py-2 text-[11px] text-muted-foreground">Insurance &amp; Freight: <span className="font-mono text-foreground">{fmt(insuranceFreightAmount)}</span></TableCell>
-                      <TableCell className="py-2 text-right"><AlignedMoney value={totals.totalChargesBbd} /></TableCell>
+                      <TableCell className="py-2 text-right"><AlignedMoney value={totals.totalChargesIncludingVatBbd} /></TableCell>
                       {editable && <TableCell className="py-2" />}
                     </TableRow>
                   )}
@@ -603,9 +610,10 @@ const ShipmentDetailPage = () => {
               <div>
                 {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addCharge}><Plus className="h-3 w-3" /> Add Charge</Button>}
               </div>
-              <div className="text-right">
-                <div className="text-[11px] font-medium text-muted-foreground">Total Charges (BBD)</div>
-                <AlignedMoney value={totals.totalChargesBbd} className="text-sm font-semibold text-foreground" />
+              <div className="space-y-1 text-right">
+                <ChargeTotal label="Charges subtotal (excl. VAT)" value={totals.chargeSubtotalExcludingVatBbd} />
+                <ChargeTotal label="Total VAT" value={totals.vatTotal} />
+                <ChargeTotal label="VAT-inclusive charges" value={totals.totalChargesIncludingVatBbd} emphasize />
               </div>
             </div>
           </TabsContent>
@@ -720,7 +728,7 @@ const ShipmentDetailPage = () => {
             <p className="text-xs text-muted-foreground">Export data for this shipment as CSV files.</p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => {
-                const { fobBbd, invoiceBbd, totalChargesBbd, totalLandedBbd, multiplier } = totals;
+                const { fobBbd, invoiceBbd, totalLandedBbd, multiplier } = totals;
                 exportCSV([{
                   invoice_number: shipment.invoice_number, type: shipment.type, supplier_id: shipment.supplier_id,
                   commodity: shipment.commodity, po_ref: shipment.po_ref, date_ordered: shipment.date_ordered,
@@ -728,7 +736,7 @@ const ShipmentDetailPage = () => {
                   currency: shipment.currency, exchange_rate: shipment.exchange_rate,
                   fob_foreign: shipment.fob_foreign, freight_provider: shipment.freight_provider ?? "dhl", fob_bbd: fobBbd.toFixed(2),
                   invoice_total_foreign: shipment.invoice_total_foreign, invoice_total_bbd: invoiceBbd.toFixed(2),
-                  total_charges_bbd: totalChargesBbd.toFixed(2), charity_allocation_bbd: totals.charityAllocationBbd.toFixed(2), total_shipment_cost_bbd: totals.totalShipmentCostBbd.toFixed(2), total_landed_bbd: totalLandedBbd.toFixed(2),
+                  charges_subtotal_excluding_vat_bbd: totals.chargeSubtotalExcludingVatBbd.toFixed(2), total_vat_bbd: totals.vatTotal.toFixed(2), total_charges_including_vat_bbd: totals.totalChargesIncludingVatBbd.toFixed(2), charity_allocation_bbd: totals.charityAllocationBbd.toFixed(2), total_shipment_cost_bbd: totals.totalShipmentCostBbd.toFixed(2), total_landed_bbd: totalLandedBbd.toFixed(2),
                   multiplier: multiplier.toFixed(4), status: shipment.status, version: shipment.version,
                 }], `shipment-${shipment.invoice_number}.csv`);
               }}><Download className="h-3 w-3" /> Shipment</Button>
@@ -776,6 +784,13 @@ const ComputedField = ({ label, value, children }: { label: string; value?: stri
   <div className="text-center">
     <div className="text-[10px] text-muted-foreground">{label}</div>
     {children ?? <div className="text-sm font-mono font-semibold text-foreground">{value}</div>}
+  </div>
+);
+
+const ChargeTotal = ({ label, value, emphasize = false }: { label: string; value: number; emphasize?: boolean }) => (
+  <div className="flex min-w-[245px] items-baseline justify-end gap-3 text-xs">
+    <span className={cn("text-muted-foreground", emphasize && "font-medium text-foreground")}>{label}</span>
+    <AlignedMoney value={value} className={cn(emphasize && "text-sm font-semibold text-foreground")} />
   </div>
 );
 

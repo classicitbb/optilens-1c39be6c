@@ -2,6 +2,13 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-22 — Staff networking cards
+
+- For a trade show or networking event, staff open their profile home screen and select **Share my card**. The QR code opens their public card without requiring the recipient to sign in.
+- Recipients can use **Save contact** on the public card to download a `.vcf` contact file, or tap an email/WhatsApp button to start contact directly.
+- Administrators can configure or inspect a card at Admin → Settings → Users: use the ID-card icon to edit, and the QR icon to preview. A card must be published before its QR code should be shared.
+- If a card must stop being public, switch off **Publish this card** and save; the public route immediately becomes unavailable.
+
 ## 2026-07-19 — Contacts access deployment
 
 - Start in Admin → Contacts → **Deploy access**. Search by person, email, or account number, then choose the contact and the primary customer account; the assistant will not make either choice silently.

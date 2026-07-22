@@ -16,6 +16,7 @@ const AssignedPricelistsSection = lazy(() => import("@/components/account/sectio
 const CartDraftsSection = lazy(() => import("@/components/account/sections/CartDraftsSection"));
 const StatementsSection = lazy(() => import("@/components/account/sections/StatementsSection"));
 const RxDraftSection = lazy(() => import("@/components/account/sections/RxDraftSection"));
+const NetworkingCardPage = lazy(() => import("@/pages/NetworkingCardPage"));
 
 const PortalRoutes = () => {
   return (
@@ -39,6 +40,7 @@ const PortalRoutes = () => {
         <Route path="drafts" element={<CartDraftsSection />} />
         <Route path="rx-drafts/:draftId" element={<RxDraftSection />} />
         <Route path="statements" element={<PortalFeatureGate feature="statements"><StatementsSection /></PortalFeatureGate>} />
+        <Route path="networking-card" element={<NetworkingCardPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/profile" replace />} />
     </Routes>

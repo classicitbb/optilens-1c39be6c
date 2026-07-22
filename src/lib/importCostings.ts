@@ -46,13 +46,17 @@ export const computeChargeTotals = (charges: ShipmentChargeLike[]) => {
   const amountTotal = charges.reduce((sum, charge) => sum + (charge.amount_bbd || 0), 0);
   const vatTotal = charges.reduce((sum, charge) => sum + (charge.vat_bbd || 0), 0);
   const dutyTotal = charges.reduce((sum, charge) => sum + (charge.duty_bbd || 0), 0);
-  const totalChargesBbd = charges.reduce((sum, charge) => sum + computeChargeRowTotal(charge), 0);
+  // Duty is part of the landed charge base, but VAT is kept separate so it is
+  // visible in reports without inflating landed cost or the line-item multiplier.
+  const chargeSubtotalExcludingVatBbd = amountTotal + dutyTotal;
+  const totalChargesIncludingVatBbd = chargeSubtotalExcludingVatBbd + vatTotal;
 
   return {
     amountTotal,
     vatTotal,
     dutyTotal,
-    totalChargesBbd,
+    chargeSubtotalExcludingVatBbd,
+    totalChargesIncludingVatBbd,
   };
 };
 
@@ -86,10 +90,18 @@ export const computeShipmentDerivedTotals = (
   const invoiceForeign = shipment.invoice_total_foreign || 0;
   const fobBbd = fobForeign * exchangeRate;
   const invoiceBbd = invoiceForeign * exchangeRate;
-  const { amountTotal, vatTotal, dutyTotal, totalChargesBbd } = computeChargeTotals(charges);
-  const totalLandedBbd = invoiceBbd + totalChargesBbd;
+  const {
+    amountTotal,
+    vatTotal,
+    dutyTotal,
+    chargeSubtotalExcludingVatBbd,
+    totalChargesIncludingVatBbd,
+  } = computeChargeTotals(charges);
   const charityAllocationBbd = computeCharityAllocation(charges, shipment.freight_provider ?? "dhl");
-  const totalShipmentCostBbd = totalChargesBbd + charityAllocationBbd;
+  // VAT is reported separately and is not allocated into landed product cost.
+  // The DHL charity contribution is a real landed cost and must be allocated.
+  const totalShipmentCostBbd = chargeSubtotalExcludingVatBbd + charityAllocationBbd;
+  const totalLandedBbd = invoiceBbd + totalShipmentCostBbd;
   const multiplier = fobForeign > 0 ? totalLandedBbd / fobForeign : 0;
   const totalLandedUsd = exchangeRate > 0 ? totalLandedBbd / exchangeRate : 0;
 
@@ -100,7 +112,8 @@ export const computeShipmentDerivedTotals = (
     amountTotal,
     vatTotal,
     dutyTotal,
-    totalChargesBbd,
+    chargeSubtotalExcludingVatBbd,
+    totalChargesIncludingVatBbd,
     totalLandedBbd,
     totalLandedUsd,
     charityAllocationBbd,

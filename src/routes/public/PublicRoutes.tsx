@@ -71,6 +71,7 @@ const ZenvueDarkun = lazy(() => import("@/pages/zenvue/ZenvueDarkun"));
 const ZenvueCompare = lazy(() => import("@/pages/zenvue/ZenvueCompare"));
 const ZenvueWholesale = lazy(() => import("@/pages/zenvue/ZenvueWholesale"));
 const PhotochromicGuidePage = lazy(() => import("@/pages/photochromic/PhotochromicGuidePage"));
+const ConnectCardPage = lazy(() => import("@/pages/ConnectCardPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const toRelativePath = (path: string) => path.replace(/^\//, "");
@@ -101,6 +102,7 @@ const PublicRoutes = () => (
     <Route path="blog" element={<BlogHubPage />} />
     <Route path="blog/:slug" element={<BlogPostPage />} />
     <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
+    <Route path="connect/:slug" element={<ConnectCardPage />} />
     <Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
     <Route path="lens-assistant" element={<LensAssistantRouteGate />} />

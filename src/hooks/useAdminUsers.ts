@@ -8,6 +8,10 @@ export interface AdminUser {
   user_id: string;
   email: string;
   display_name: string | null;
+  full_name: string | null;
+  phone: string | null;
+  organization_name: string | null;
+  avatar_url: string | null;
   role: AppRole | null;
   role_id: string | null;
   created_at: string | null;
@@ -23,7 +27,7 @@ export const useAdminUsers = () => {
     queryFn: async () => {
       const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
         (supabase.from("profiles") as any)
-          .select("user_id, display_name"),
+          .select("user_id, display_name, full_name, email, phone, organization_name, avatar_url"),
         (supabase.from("user_roles") as any)
           .select("id, user_id, role"),
       ]);
@@ -55,8 +59,12 @@ export const useAdminUsers = () => {
         const auth = authMap.get(userId);
         return {
           user_id: userId,
-          email: auth?.email ?? "",
+          email: auth?.email ?? profile?.email ?? "",
           display_name: profile?.display_name ?? null,
+          full_name: profile?.full_name ?? null,
+          phone: profile?.phone ?? null,
+          organization_name: profile?.organization_name ?? null,
+          avatar_url: profile?.avatar_url ?? null,
           role: (role?.role as AppRole) ?? null,
           role_id: role?.id ?? null,
           created_at: auth?.created_at ?? null,

@@ -37,6 +37,16 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers the canonical staff networking-card route", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.staff-card" && route.path === "/connect/:slug" && route.status === "active"),
+    ).toBeTruthy();
+
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+    expect(source).toContain('<Route path="connect/:slug" element={<ConnectCardPage />} />');
+  });
+
   it("registers /blog and /blog/:slug in the public route registry", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.blog" && route.path === "/blog" && route.status === "active"),

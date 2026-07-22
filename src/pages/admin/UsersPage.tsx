@@ -10,13 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, Check, X, Lock, Mail, Eye, Copy } from "lucide-react";
+import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, Check, X, Lock, Mail, Eye, Copy, IdCard, QrCode } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { format } from "date-fns";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import CustomerPricingPanel from "@/components/admin/CustomerPricingPanel";
+import { StaffPublicCardEditorDialog } from "@/features/staff-cards/components/StaffPublicCardEditorDialog";
+import { StaffPublicCardPreviewDialog } from "@/features/staff-cards/components/StaffPublicCardPreviewDialog";
+import { isStaffRole } from "@/features/staff-cards/staffPublicCards";
 
 const ROLES: AppRole[] = ["admin", "operator", "viewer", "customer"];
 
@@ -36,6 +39,8 @@ const UsersPage = () => {
   const [search, setSearch] = useState("");
   
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [networkingEditorUser, setNetworkingEditorUser] = useState<AdminUser | null>(null);
+  const [networkingPreviewUser, setNetworkingPreviewUser] = useState<AdminUser | null>(null);
 
   // Inline name editing
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -290,6 +295,16 @@ const UsersPage = () => {
                         <Button variant="ghost" size="icon" className="h-7 w-7" title={user.role ? "Change role" : "Assign role"} onClick={() => { setSelectedRole(user.role ?? "viewer"); setEditingUser(user.user_id); }}>
                           {user.role ? <Edit2 className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
                         </Button>
+                        {isStaffRole(user.role) && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Preview networking card" onClick={() => setNetworkingPreviewUser(user)}>
+                              <QrCode className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit public networking card" onClick={() => setNetworkingEditorUser(user)}>
+                              <IdCard className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
                         {user.role === "customer" && (
                           <Button variant="ghost" size="icon" title="Manage pricelists" onClick={() => setSelectedCustomer(selectedCustomer === user.user_id ? null : user.user_id)} className={`h-7 w-7 ${selectedCustomer === user.user_id ? "text-[hsl(var(--admin-accent))]" : ""}`}>
                             <Shield className="h-3.5 w-3.5" />
@@ -323,6 +338,22 @@ const UsersPage = () => {
           </tbody>
         </table>
       </div>
+
+      {networkingEditorUser ? (
+        <StaffPublicCardEditorDialog
+          open
+          onOpenChange={(open) => { if (!open) setNetworkingEditorUser(null); }}
+          userId={networkingEditorUser.user_id}
+          defaults={{
+            display_name: networkingEditorUser.full_name || networkingEditorUser.display_name || networkingEditorUser.email.split("@")[0],
+            organization_name: networkingEditorUser.organization_name || "Classic Visions",
+            email: networkingEditorUser.email,
+            phone: networkingEditorUser.phone,
+            avatar_url: networkingEditorUser.avatar_url,
+          }}
+        />
+      ) : null}
+      {networkingPreviewUser ? <StaffPublicCardPreviewDialog open onOpenChange={(open) => { if (!open) setNetworkingPreviewUser(null); }} userId={networkingPreviewUser.user_id} /> : null}
 
       {/* Set Password Dialog */}
       <Dialog open={!!pwDialogUser} onOpenChange={() => setPwDialogUser(null)}>

@@ -4,6 +4,17 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-22 — Staff Public Networking Cards
+
+### Release Notes
+- Staff can create an opt-in public networking card with email, WhatsApp, skills, and a one-tap downloadable contact card.
+- A staff member's profile home screen now has **Share my card**, opening a large event-ready QR code.
+- Admin → Settings → Users has QR-preview and ID-card actions for every admin, operator, or viewer.
+
+### Technical Changelog
+- Added the RLS-protected `staff_public_cards` read model, public `/connect/:slug` route, vCard generation, and QR rendering.
+- Kept public-card data separate from private portal/CRM profile fields; unpublished cards remain non-public.
+
 ## 2026-07-19 — Contacts Access Deployment Assistant
 
 ### Release Notes

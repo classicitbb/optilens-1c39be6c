@@ -1,17 +1,17 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-19T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-22T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Admins can open **Deploy access** from Contacts to provision customer portal or internal staff access without navigating among Contacts, Users, and Website Portals.",
-    "The flow searches by person, email, or account number; it never silently chooses a customer or links an existing login.",
-    "**Access training** provides first-use sandbox scenarios, exception guidance, and an operations follow-up template."
+    "Staff can publish a shareable digital business card at `/connect/:slug` with selected email, WhatsApp, phone, skills, and links.",
+    "Event sharing is one tap from the staff profile home screen through **Share my card**, which displays the public-card QR code.",
+    "Administrators can preview or configure a staff member's card directly from Admin → Settings → Users using the QR and ID-card row actions."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "connect/:slug",
       "impact": "medium",
-      "notes": "Updated as part of Contacts Access Deployment Assistant."
+      "notes": "Updated as part of Staff Public Networking Cards."
     }
   ],
   "migrationNotes": [

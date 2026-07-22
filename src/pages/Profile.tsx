@@ -14,6 +14,7 @@ import {
   Loader2,
   PackageCheck,
   RefreshCw,
+  QrCode,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -25,6 +26,8 @@ import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantCo
 import { fetchCustomerCommandCenter } from "@/features/portal/customerCommandCenter";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { requestLiveData } from "@/lib/liveDataGateway";
+import { useUserRole } from "@/hooks/useUserRole";
+import { isStaffRole } from "@/features/staff-cards/staffPublicCards";
 
 const ACTIVE_STATUSES = new Set(["draft", "pending", "pending_payment", "confirmed", "processing", "shipped"]);
 
@@ -40,6 +43,7 @@ const Profile = () => {
   const { user } = useAuth();
   const { identity, isLoading: identityLoading, canAccessFeature, emulation } = usePortalIdentity();
   const { openAssistant } = useCompanionAssistant();
+  const { role } = useUserRole();
   const commandCenterQuery = useQuery({
     queryKey: ["customer-command-center", user?.id],
     enabled: Boolean(user),
@@ -84,7 +88,7 @@ const Profile = () => {
       <section className="overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0b1e35,#125a69)] p-6 text-white shadow-medium sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#efb53a]">Customer command centre</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Welcome, {displayName}</h1><p className="mt-3 max-w-2xl text-white/70">Your website orders, Rx drafts, pricing, statements and support are brought together here.</p></div>
-          <div className="flex flex-wrap gap-2"><Button asChild className="bg-[#efb53a] text-[#0b1e35] hover:bg-[#f5c55b]"><Link to="/lens-assistant?mode=order&audience=professional"><ClipboardCheck className="mr-2 h-4 w-4" />Start an Rx order</Link></Button><Button variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white" onClick={() => openAssistant({ query: "Show me what needs attention in my account.", autoSubmit: true, profile: "portal_support" })}><Sparkles className="mr-2 h-4 w-4" />Ask Classic</Button></div>
+          <div className="flex flex-wrap gap-2"><Button asChild className="bg-[#efb53a] text-[#0b1e35] hover:bg-[#f5c55b]"><Link to="/lens-assistant?mode=order&audience=professional"><ClipboardCheck className="mr-2 h-4 w-4" />Start an Rx order</Link></Button>{isStaffRole(role) ? <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/networking-card"><QrCode className="mr-2 h-4 w-4" />Share my card</Link></Button> : null}<Button variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white" onClick={() => openAssistant({ query: "Show me what needs attention in my account.", autoSubmit: true, profile: "portal_support" })}><Sparkles className="mr-2 h-4 w-4" />Ask Classic</Button></div>
         </div>
       </section>
 

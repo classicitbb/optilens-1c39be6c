@@ -90,6 +90,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.settings.email-previews", path: "/admin/settings/email-previews", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.settings.edge-functions", path: "/admin/settings/edge-functions", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "public.photochromic", path: "/photochromic", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
+  { id: "public.staff-card", path: "/connect/:slug", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-site", status: "active" },
   { id: "public.zenvue.home", path: "/zenvue", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
   { id: "public.zenvue.brilliance", path: "/zenvue/brilliance", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
   { id: "public.zenvue.single-vision", path: "/zenvue/single-vision", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },

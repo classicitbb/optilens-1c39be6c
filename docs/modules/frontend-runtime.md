@@ -2,6 +2,13 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-07-22 — Staff public networking cards
+
+- Canonical public route: `/connect/:slug`, registered in both `PublicRoutes.tsx` and `routeRegistry.ts`. Only explicitly published cards can be returned to anonymous visitors.
+- `staff_public_cards` is a separate public projection; do not read `profiles` directly from the public page because it also contains portal and CRM linkage fields.
+- Staff open `/profile/networking-card` from the **Share my card** action on the profile home screen. The page provides an event-sized QR code, native share/copy actions, and self-service editing.
+- Admin → Settings → Users exposes QR-preview and ID-card editor actions for internal staff roles. The shared editor preserves the same card shape and publish controls for self-service and admin configuration.
+
 ## 2026-07-19 — Contacts access deployment
 
 - `ContactsPage` exposes the Contacts-first **Deploy access** dialog and first-use training nudge. The assistant searches CRM contacts and ERP customer accounts, deliberately surfaces account ambiguity, and routes no-match cases to contact-only creation.

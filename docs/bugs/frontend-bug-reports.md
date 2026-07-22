@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-22
+- Area: staff networking and public contact sharing
+- Impact: staff had no safe, event-ready way to share a digital business card, QR code, or one-click contact details; exposing the existing portal profile would also risk leaking private account/CRM fields.
+- Resolution: added a separate opt-in public-card model and `/connect/:slug` surface, with publish control, email/WhatsApp actions, vCard download, profile-home QR sharing, and admin User-row preview/editor actions.
+- Follow-up: keep public fields in `staff_public_cards` only. Do not add private portal fields or CRM identifiers to its public renderer or anonymous select policy.
+
 ## 2026-07-19
 - Area: Admin → Contacts → Deploy access
 - Impact: customer and staff access could require switching between Contacts, Users, and Website Portals, making it easy to miss an email, select the wrong account, or auto-link an existing sign-in without an explicit decision.
