@@ -20,10 +20,13 @@ ALTER TABLE public.customer_payment_methods
 ALTER TABLE public.order_payments
   DROP CONSTRAINT IF EXISTS order_payments_provider_check;
 
--- (No prior provider CHECK existed; add one now that documents valid values.)
+-- Includes 'google_pay' and 'manual' (written by the checkout RPCs since
+-- migration 20260321153000). NOT VALID → enforced for new rows only, so
+-- legacy rows with other provider values never block this migration.
 ALTER TABLE public.order_payments
   ADD CONSTRAINT order_payments_provider_check
-  CHECK (provider IN ('demo', 'scotia', 'stripe', 'firstpay', 'bimpay', 'on_account'));
+  CHECK (provider IN ('demo', 'scotia', 'stripe', 'firstpay', 'bimpay', 'on_account', 'google_pay', 'manual'))
+  NOT VALID;
 
 -- 3. Gateway reconciliation fields (all nullable → safe to add to live data).
 --    * gateway_oid              → the `oid` we send and the gateway echoes back
