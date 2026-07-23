@@ -226,7 +226,7 @@ export const useShipmentLines = (shipmentId: string | null) => {
 export const computeShipmentTotals = (
   shipment: Pick<Shipment, "currency" | "exchange_rate" | "fob_foreign" | "invoice_total_foreign" | "freight_provider">,
   charges: ShipmentCharge[],
-  settings?: { fx_rates?: Record<string, number> | null } | null
+  settings?: { import_costing_fx_rates?: Record<string, number> | null } | null
 ) => computeShipmentDerivedTotals(shipment, charges, settings);
 
 export const computeLineCosts = (

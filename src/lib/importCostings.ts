@@ -12,7 +12,7 @@ export type ShipmentChargeLike = {
 };
 
 export type PricingSettingsRateSource = {
-  fx_rates?: Record<string, number> | null;
+  import_costing_fx_rates?: Record<string, number> | null;
 };
 
 export const formatMoney = (value: number) =>
@@ -26,7 +26,7 @@ export const resolveShipmentExchangeRate = (
   settings?: PricingSettingsRateSource | null
 ) => {
   const currency = shipment.currency ?? "USD";
-  const settingsRate = settings?.fx_rates?.[currency];
+  const settingsRate = settings?.import_costing_fx_rates?.[currency];
   if (typeof settingsRate === "number" && Number.isFinite(settingsRate) && settingsRate > 0) {
     return settingsRate;
   }

@@ -5763,6 +5763,7 @@ export type Database = {
           freight_method: string
           fx_rates: Json
           fx_risk_buffer: number
+          import_costing_fx_rates: Json
           id: string
           insurance_percent: number
           inventory_holding: number
@@ -5795,6 +5796,7 @@ export type Database = {
           freight_method?: string
           fx_rates?: Json
           fx_risk_buffer?: number
+          import_costing_fx_rates?: Json
           id?: string
           insurance_percent?: number
           inventory_holding?: number
@@ -5827,6 +5829,7 @@ export type Database = {
           freight_method?: string
           fx_rates?: Json
           fx_risk_buffer?: number
+          import_costing_fx_rates?: Json
           id?: string
           insurance_percent?: number
           inventory_holding?: number

@@ -470,8 +470,8 @@ const ShipmentDetailPage = () => {
         <Field label="Exchange Rate (BBD per 1 FX) *">
           <div
             className="flex h-8 items-center justify-between rounded-md border border-input bg-muted/50 px-3 text-xs"
-            title="This fixed rate is controlled in Pricing Settings."
-            aria-label="Fixed exchange rate from Pricing Settings"
+            title="This fixed rate is controlled in Import Costing FX Rates."
+            aria-label="Fixed exchange rate from Import Costing FX Rates"
           >
             <span className="font-mono tabular-nums">{totals.exchangeRate.toFixed(4)}</span>
             <span className="flex items-center gap-1 text-muted-foreground"><Lock className="h-3 w-3" /> Fixed</span>

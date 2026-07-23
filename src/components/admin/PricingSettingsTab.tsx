@@ -20,6 +20,7 @@ const DEFAULTS: FormData = {
   label: null,
   base_currency: "BBD",
   fx_rates: { USD: 2, BBD: 1 },
+  import_costing_fx_rates: { USD: 2, BBD: 1 },
   fx_risk_buffer: 0.02,
   vat_rate: 0.175,
   duty_rates: { lenses: 0.20, frames: 0.30, supplies: 0.20, addons: 0.15 },
@@ -62,7 +63,13 @@ const PricingSettingsTab = () => {
   useEffect(() => {
     if (viewedVersion) {
       const { id, created_at, created_by, version, is_active, ...rest } = viewedVersion;
-      setForm(rest);
+      setForm({
+        ...DEFAULTS,
+        ...rest,
+        // Keeps the settings screen usable until the accompanying migration is
+        // present in every environment.
+        import_costing_fx_rates: rest.import_costing_fx_rates ?? rest.fx_rates ?? DEFAULTS.import_costing_fx_rates,
+      });
     }
   }, [viewedVersion?.version, versions.length]);
 
@@ -520,6 +527,12 @@ const PricingSettingsTab = () => {
       {/* Import Costing segment */}
       <h2 className="text-sm font-semibold text-foreground pt-2">Import Costing</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <Section title="Import Costing FX Rates">
+          <p className="text-[10px] text-muted-foreground">
+            Fixed BBD per 1 foreign currency. Used only by shipment landed costs, allocations, and costing reports.
+          </p>
+          <JsonGrid label="" data={form.import_costing_fx_rates} fieldKey="import_costing_fx_rates" disabled={disabled} />
+        </Section>
         <ChargeTypesWidget disabled={disabled} />
         <ShipmentTypesWidget disabled={disabled} />
       </div>

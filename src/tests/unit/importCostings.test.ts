@@ -20,6 +20,17 @@ const charges = [
 ];
 
 describe("import costing totals", () => {
+  it("uses the dedicated import-costing FX rate instead of the product-pricing rate", () => {
+    const settings = {
+      fx_rates: { USD: 2.15 },
+      import_costing_fx_rates: { USD: 2 },
+    };
+    const totals = computeShipmentDerivedTotals(shipment, [], settings);
+
+    expect(totals.exchangeRate).toBe(2);
+    expect(totals.invoiceBbd).toBeCloseTo(1990.28, 6);
+  });
+
   it("separates VAT while allocating charity and non-VAT charges into landed cost", () => {
     const totals = computeShipmentDerivedTotals(shipment, charges);
 
