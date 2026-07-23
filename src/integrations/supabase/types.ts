@@ -84,7 +84,8 @@ export type Database = {
       activities: {
         Row: {
           activity_type: string | null
-          contact_id: string
+          completed_at: string | null
+          contact_id: string | null
           content: string | null
           created_at: string | null
           created_by: string | null
@@ -96,7 +97,8 @@ export type Database = {
         }
         Insert: {
           activity_type?: string | null
-          contact_id: string
+          completed_at?: string | null
+          contact_id?: string | null
           content?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -104,11 +106,12 @@ export type Database = {
           id?: string
           opportunity_id?: string | null
           status?: string | null
-          type: string
+          type?: string
         }
         Update: {
           activity_type?: string | null
-          contact_id?: string
+          completed_at?: string | null
+          contact_id?: string | null
           content?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5766,8 +5769,8 @@ export type Database = {
           freight_method: string
           fx_rates: Json
           fx_risk_buffer: number
-          import_costing_fx_rates: Json
           id: string
+          import_costing_fx_rates: Json
           insurance_percent: number
           inventory_holding: number
           is_active: boolean
@@ -5799,8 +5802,8 @@ export type Database = {
           freight_method?: string
           fx_rates?: Json
           fx_risk_buffer?: number
-          import_costing_fx_rates?: Json
           id?: string
+          import_costing_fx_rates?: Json
           insurance_percent?: number
           inventory_holding?: number
           is_active?: boolean
@@ -5832,8 +5835,8 @@ export type Database = {
           freight_method?: string
           fx_rates?: Json
           fx_risk_buffer?: number
-          import_costing_fx_rates?: Json
           id?: string
+          import_costing_fx_rates?: Json
           insurance_percent?: number
           inventory_holding?: number
           is_active?: boolean
@@ -7004,6 +7007,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      staff_public_cards: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          is_published: boolean
+          linkedin_url: string | null
+          organization_name: string | null
+          phone: string | null
+          skills: string[]
+          slug: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+          whatsapp_phone: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          is_published?: boolean
+          linkedin_url?: string | null
+          organization_name?: string | null
+          phone?: string | null
+          skills?: string[]
+          slug: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+          whatsapp_phone?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          is_published?: boolean
+          linkedin_url?: string | null
+          organization_name?: string | null
+          phone?: string | null
+          skills?: string[]
+          slug?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+          whatsapp_phone?: string | null
+        }
+        Relationships: []
       }
       statement_lines: {
         Row: {
@@ -8721,6 +8781,13 @@ export type Database = {
         }[]
       }
       get_portal_erp_account_number: { Args: never; Returns: string }
+      get_portal_erp_order_lookup: {
+        Args: never
+        Returns: {
+          account_number: string
+          portal_orders_use_bill_to_account: boolean
+        }[]
+      }
       get_quote_lines_safe: {
         Args: { p_quote_id: string }
         Returns: {
@@ -8801,6 +8868,13 @@ export type Database = {
           configured: boolean
           provider: string
           updated_at: string
+        }[]
+      }
+      list_staff_names: {
+        Args: never
+        Returns: {
+          name: string
+          user_id: string
         }[]
       }
       log_integration_event: {
