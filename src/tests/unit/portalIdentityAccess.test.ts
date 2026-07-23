@@ -16,6 +16,7 @@ const identity = (overrides: Partial<PortalIdentity> = {}): PortalIdentity => ({
   paymentTerms: "standard",
   canAccessPricing: false,
   canAccessStatements: false,
+  ordersUseBillToAccount: false,
   featureOverrides: {},
   ...overrides,
 });
