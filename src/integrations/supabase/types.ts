@@ -2025,6 +2025,7 @@ export type Database = {
           pay_by_eft: boolean | null
           phone: string | null
           pipeline_stage: string | null
+          portal_orders_use_bill_to_account: boolean
           type: string | null
           updated_at: string | null
         }
@@ -2047,6 +2048,7 @@ export type Database = {
           pay_by_eft?: boolean | null
           phone?: string | null
           pipeline_stage?: string | null
+          portal_orders_use_bill_to_account?: boolean
           type?: string | null
           updated_at?: string | null
         }
@@ -2069,6 +2071,7 @@ export type Database = {
           pay_by_eft?: boolean | null
           phone?: string | null
           pipeline_stage?: string | null
+          portal_orders_use_bill_to_account?: boolean
           type?: string | null
           updated_at?: string | null
         }

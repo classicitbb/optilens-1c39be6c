@@ -24,6 +24,7 @@ type GatewayErrorPayload = {
 type LocalGatewayTarget = {
   accountNumber?: string | null;
   innovationsCustomerId?: number | null;
+  ordersUseBillToAccount?: boolean;
 };
 
 type RequestLiveDataOptions = {
@@ -123,6 +124,7 @@ async function requestLocalLiveData<T>(
     target: {
       ...(accountNumber ? { account_number: accountNumber } : {}),
       ...(target.innovationsCustomerId ? { innovations_customer_id: target.innovationsCustomerId } : {}),
+      ...(operation === "innovations.customer_orders" && target.ordersUseBillToAccount ? { order_lookup: "bill_to" } : {}),
     },
   });
   const headers = { "Content-Type": "application/json" };

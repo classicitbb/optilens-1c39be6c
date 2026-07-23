@@ -85,6 +85,7 @@ type CustomerAccountRecord = {
   account_number: string | null;
   innovations_customer_id: number | null;
   contact_id: string | null;
+  portal_orders_use_bill_to_account: boolean;
 };
 
 type SpeechRecognitionErrorCode = "aborted" | "audio-capture" | "bad-grammar" | "language-not-supported" | "network" | "no-speech" | "not-allowed" | "phrases-not-supported" | "service-not-allowed";
@@ -620,7 +621,7 @@ const ContactsPage = ({
     queryFn: async () => {
       if (!editContact?.id) return null;
       const { data, error } = await (supabase.from("customers") as any)
-        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id,portal_orders_use_bill_to_account")
         .eq("contact_id", editContact.id as any)
         .maybeSingle();
       if (error) throw error;
@@ -633,7 +634,7 @@ const ContactsPage = ({
     queryFn: async () => {
       if (typeof editContact?.linked_customer_id !== "number") return null;
       const { data, error } = await (supabase.from("customers") as any)
-        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id,portal_orders_use_bill_to_account")
         .eq("id", editContact.linked_customer_id as any)
         .maybeSingle();
       if (error) throw error;
@@ -646,7 +647,7 @@ const ContactsPage = ({
     queryFn: async () => {
       if (!editContact?.parent_id) return null;
       const { data, error } = await (supabase.from("customers") as any)
-        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id,portal_orders_use_bill_to_account")
         .eq("contact_id", editContact.parent_id as any)
         .maybeSingle();
       if (error) throw error;
@@ -677,9 +678,11 @@ const ContactsPage = ({
     enabled: !!editContact?.id || !!accountSettingsCustomer?.id,
   });
   const [accountNumber, setAccountNumber] = useState("");
+  const [ordersUseBillToAccount, setOrdersUseBillToAccount] = useState(false);
   useEffect(() => {
     setAccountNumber(accountSettingsCustomer?.account_number ?? "");
-  }, [accountSettingsCustomer?.id, accountSettingsCustomer?.account_number, editContact?.id]);
+    setOrdersUseBillToAccount(linkedCustomerRecord?.portal_orders_use_bill_to_account ?? false);
+  }, [accountSettingsCustomer?.id, accountSettingsCustomer?.account_number, editContact?.id, linkedCustomerRecord?.portal_orders_use_bill_to_account]);
 
   useEffect(() => {
     const erpCustomerId = searchParams.get("erpCustomer");
@@ -1676,6 +1679,12 @@ const ContactsPage = ({
         if (customerId && normalizedAccountNumber !== (linkedCustomerRecord?.account_number ?? null)) {
           await assignCustomerAccountNumber(customerId, normalizedAccountNumber);
         }
+        if (customerId && ordersUseBillToAccount !== (linkedCustomerRecord?.portal_orders_use_bill_to_account ?? false)) {
+          const { error: orderLookupError } = await (supabase.from("customers") as any)
+            .update({ portal_orders_use_bill_to_account: ordersUseBillToAccount })
+            .eq("id", customerId);
+          if (orderLookupError) throw orderLookupError;
+        }
       }
 
       if (!editContact.is_company && contactId) {
@@ -2632,19 +2641,34 @@ const ContactsPage = ({
                               </div>
                               <div className="space-y-1.5">
                                 <Label htmlFor="account-settings-account-number" className="text-xs">Innovations account number</Label>
-                                <Input
-                                  id="account-settings-account-number"
-                                  name="account_number"
-                                  autoComplete="off"
-                                  className="h-8 text-xs"
-                                  placeholder="e.g. RETAIL"
-                                  value={accountNumber}
-                                  onChange={(event) => setAccountNumber(event.target.value)}
-                                  disabled={!canEditAccountSettingsNumber}
-                                />
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <Input
+                                    id="account-settings-account-number"
+                                    name="account_number"
+                                    autoComplete="off"
+                                    className="h-8 min-w-0 flex-1 text-xs"
+                                    placeholder="e.g. RETAIL"
+                                    value={accountNumber}
+                                    onChange={(event) => setAccountNumber(event.target.value)}
+                                    disabled={!canEditAccountSettingsNumber}
+                                  />
+                                  {editContact.is_company && linkedCustomerRecord ? (
+                                    <div className="flex h-8 items-center gap-2 rounded-md border px-2.5" style={{ borderColor: "hsl(var(--border))" }}>
+                                      <Switch
+                                        id="account-settings-bill-to-orders"
+                                        checked={ordersUseBillToAccount}
+                                        onCheckedChange={setOrdersUseBillToAccount}
+                                        disabled={!canEditAccountSettingsNumber}
+                                      />
+                                      <Label htmlFor="account-settings-bill-to-orders" className="cursor-pointer text-xs font-medium">Bill To account</Label>
+                                    </div>
+                                  ) : null}
+                                </div>
                                 <p className="text-[11px] text-muted-foreground">
                                   {!canEditAccountSettingsNumber
                                     ? "Save the contact before linking an Innovations account."
+                                    : editContact.is_company && linkedCustomerRecord && ordersUseBillToAccount
+                                      ? "Portal order status includes every order billed to this account, including orders shipped to its branches. Statements remain separately permission-gated."
                                     : accountSettingsUsesLinkedCompany
                                       ? "This person inherits company access from the linked company. Type another account number to link them to a different company."
                                     : editContact.is_company && editContact.is_customer

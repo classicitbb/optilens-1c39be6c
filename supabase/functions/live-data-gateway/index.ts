@@ -27,6 +27,7 @@ type CustomerMapping = {
   id: number;
   account_number: string | null;
   innovations_customer_id: number | null;
+  portal_orders_use_bill_to_account: boolean;
 };
 
 type PortalProfile = {
@@ -227,7 +228,7 @@ async function customerById(supabase: SupabaseClient, id: number | null) {
   if (!id) return null;
   const { data } = await supabase
     .from("customers")
-    .select("id,account_number,innovations_customer_id")
+    .select("id,account_number,innovations_customer_id,portal_orders_use_bill_to_account")
     .eq("id", id)
     .maybeSingle();
   return data as CustomerMapping | null;
@@ -237,7 +238,7 @@ async function customerByInnovationsId(supabase: SupabaseClient, innovationsCust
   if (!innovationsCustomerId) return null;
   const { data } = await supabase
     .from("customers")
-    .select("id,account_number,innovations_customer_id")
+    .select("id,account_number,innovations_customer_id,portal_orders_use_bill_to_account")
     .eq("innovations_customer_id", innovationsCustomerId)
     .order("updated_at", { ascending: false, nullsFirst: false })
     .limit(1)
@@ -249,7 +250,7 @@ async function customerByContactId(supabase: SupabaseClient, contactId: string |
   if (!contactId) return null;
   const { data } = await supabase
     .from("customers")
-    .select("id,account_number,innovations_customer_id")
+    .select("id,account_number,innovations_customer_id,portal_orders_use_bill_to_account")
     .eq("contact_id", contactId)
     .order("updated_at", { ascending: false, nullsFirst: false })
     .limit(1)
@@ -401,6 +402,7 @@ function customerFromRequestRow(row: { website_customer_id?: unknown; target?: u
       ? target.account_number.trim()
       : null,
     innovations_customer_id: integer(target.innovations_customer_id),
+    portal_orders_use_bill_to_account: target.order_lookup === "bill_to",
   };
 }
 
@@ -476,7 +478,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
   const requestedCustomerId = isStaff ? integer(body.website_customer_id) : null;
   const websiteCustomerId = requestedCustomerId ?? integer(profile?.crm_customer_id);
   if (!websiteCustomerId) {
-    const offline = offlineLiveDataResponse(operation, { id: 0, account_number: null, innovations_customer_id: null } as CustomerMapping);
+    const offline = offlineLiveDataResponse(operation, { id: 0, account_number: null, innovations_customer_id: null, portal_orders_use_bill_to_account: false } as CustomerMapping);
     if (offline) return json(req, { ...offline, source_status: "unlinked", error: "No approved customer account is linked to this user." }, 200);
     return json(req, { error: "No approved customer account is linked to this user." }, 403);
   }
@@ -506,7 +508,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
 
   const { data: customer, error: customerError } = await auth.supabaseAdminClient
     .from("customers")
-    .select("id,account_number,innovations_customer_id")
+    .select("id,account_number,innovations_customer_id,portal_orders_use_bill_to_account")
     .eq("id", websiteCustomerId)
     .maybeSingle();
   if (customerError || !customer) return json(req, { error: "Customer account mapping was not found." }, 404);
@@ -557,6 +559,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
         website_customer_id: resolvedWebsiteCustomerId,
         innovations_customer_id: resolvedCustomer.innovations_customer_id ?? null,
         account_number: resolvedCustomer.account_number ?? null,
+        ...(operation === "innovations.customer_orders" && resolvedCustomer.portal_orders_use_bill_to_account ? { order_lookup: "bill_to" } : {}),
       },
       arguments: argumentsBody,
       expires_at: new Date(now + REQUEST_TTL_MS).toISOString(),

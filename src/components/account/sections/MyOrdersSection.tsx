@@ -196,7 +196,7 @@ const MyOrdersSection = () => {
   // Under admin emulation the gateway must fetch the emulated customer's data,
   // not the admin's; staff-only override honored server-side.
   const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
-  const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null };
+  const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null, ordersUseBillToAccount: identity?.ordersUseBillToAccount ?? false };
   const [innovationsSearch, setInnovationsSearch] = useState("");
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],

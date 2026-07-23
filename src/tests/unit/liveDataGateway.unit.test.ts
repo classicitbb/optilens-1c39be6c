@@ -28,7 +28,7 @@ describe("requestLiveData", () => {
     await expect(requestLiveData(
       "innovations.customer_orders",
       {},
-      { localFallbackTarget: { accountNumber: "RETAIL" } },
+      { localFallbackTarget: { accountNumber: "RETAIL", ordersUseBillToAccount: true } },
     )).resolves.toEqual({ orders: [], retrieved_at: "2026-07-20T00:00:00.000Z" });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -38,7 +38,7 @@ describe("requestLiveData", () => {
         body: JSON.stringify({
           operation: "innovations.customer_orders",
           arguments: {},
-          target: { account_number: "RETAIL" },
+          target: { account_number: "RETAIL", order_lookup: "bill_to" },
         }),
       }),
     );
