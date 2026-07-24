@@ -15,7 +15,7 @@ const BuildCustomPackageButton = ({ source, context, className }: Props) => {
     <Button
       className={className}
       onClick={() => {
-        navigate("/admin/sales/proposals", {
+        navigate("/admin/crm/proposals", {
           state: {
             ...context,
             source,

@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-24
+- Area: Admin application navigation
+- Impact: proposals, quotations, and web orders were split across a standalone Sales app even though their ownership belongs to CRM and Website.
+- Resolution: removed Sales from the launcher and route shell; proposals now open under CRM, while quotations and website orders open under Website. Internal editor, print-preview, notification, permission, and help links now use the new canonical destinations.
+- Follow-up: keep new links in CRM or Website only; do not restore `/admin/sales/**` or `/admin/orders` routes.
+
 ## 2026-07-22
 - Area: staff networking and public contact sharing
 - Impact: staff had no safe, event-ready way to share a digital business card, QR code, or one-click contact details; exposing the existing portal profile would also risk leaking private account/CRM fields.

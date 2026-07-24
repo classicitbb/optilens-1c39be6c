@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-24 — Sales app consolidation
+
+- The Apps launcher no longer has Sales. Open CRM → Proposals for proposal work.
+- Open Website → Quotations for quotes and their print previews, and Website → Orders for public-store order fulfilment.
+- Old `/admin/sales/**` and `/admin/orders` addresses are intentionally unavailable; use the destination app links above.
+
 ## 2026-07-22 — Staff networking cards
 
 - For a trade show or networking event, staff open their profile home screen and select **Share my card**. The QR code opens their public card without requiring the recipient to sign in.

@@ -1,17 +1,21 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-22T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-24T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Staff can publish a shareable digital business card at `/connect/:slug` with selected email, WhatsApp, phone, skills, and links.",
-    "Event sharing is one tap from the staff profile home screen through **Share my card**, which displays the public-card QR code.",
-    "Administrators can preview or configure a staff member's card directly from Admin → Settings → Users using the QR and ID-card row actions."
+    "The standalone Sales app has been closed and removed from the launcher.",
+    "Admins now manage proposals from CRM and quotations plus website orders from Website."
   ],
   "moduleImpact": [
     {
-      "module": "connect/:slug",
+      "module": "admin/crm",
       "impact": "medium",
-      "notes": "Updated as part of Staff Public Networking Cards."
+      "notes": "Updated as part of Sales App Consolidation."
+    },
+    {
+      "module": "admin/website",
+      "impact": "medium",
+      "notes": "Updated as part of Sales App Consolidation."
     }
   ],
   "migrationNotes": [

@@ -38,6 +38,7 @@ describe("requestLiveData", () => {
         body: JSON.stringify({
           operation: "innovations.customer_orders",
           arguments: {},
+          source_backend: "mirror",
           target: { account_number: "RETAIL", order_lookup: "bill_to" },
         }),
       }),

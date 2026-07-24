@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ import { AlertCircle, ArrowUpDown, ArrowUpRight, CheckCircle2, CreditCard, Loade
 import { COMPANY_CONTACT } from "@/config/companyContact";
 import { requestLiveData } from "@/lib/liveDataGateway";
 import InquireButton from "@/components/account/InquireButton";
+import { StatementPrintDocument } from "@/components/account/sections/StatementPrintDocument";
 
 // Live Innovations data is fetched on demand through the private OptiLens
 // gateway. Payment routing remains a narrow CV-owned portal configuration.
@@ -347,6 +348,7 @@ const StatementsSection = () => {
   const [payAmount, setPayAmount] = useState("");
   const [scotiaError, setScotiaError] = useState<string | null>(null);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
+  const statementPrintRef = useRef<HTMLDivElement>(null);
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -381,6 +383,22 @@ const StatementsSection = () => {
     retry: 1,
   });
   const rawLines = useMemo(() => linesQuery.data?.lines ?? [], [linesQuery.data?.lines]);
+
+  const printStatement = () => {
+    const statementDocument = statementPrintRef.current;
+    if (!statementDocument) return;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Statement ${activeStatementId ?? ""}</title></head><body>${statementDocument.innerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onafterprint = () => printWindow.close();
+    window.setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
 
 
   const paymentProfileQuery = useQuery({
@@ -875,7 +893,7 @@ const StatementsSection = () => {
           <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b bg-white p-4 dark:bg-slate-950 dark:border-slate-700">
             <DialogTitle className="dark:text-slate-50">Statement Preview</DialogTitle>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => window.print()} className="dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+              <Button variant="outline" size="sm" onClick={printStatement} className="dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
@@ -886,14 +904,14 @@ const StatementsSection = () => {
           </div>
 
           <div className="p-4" style={{ background: "#d0d5dc", minHeight: "600px" }}>
-            {activeStatement && (
-              <StatementTemplate
+            {activeStatement && <div ref={statementPrintRef}>
+              <StatementPrintDocument
                 statement={activeStatement}
                 lines={sortedLines}
                 customerName={identity?.customerName ?? paymentProfile?.name ?? null}
                 accountNumber={activeStatement.account_number ?? paymentProfile?.account_number ?? null}
               />
-            )}
+            </div>}
           </div>
         </DialogContent>
       </Dialog>

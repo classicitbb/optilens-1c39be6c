@@ -59,9 +59,6 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/pricing/costings": "costings",
   "/admin/pricing/costings/reports": "costings",
   "/admin/pricing/publisher": "catalog-publisher",
-  // Sales
-  "/admin/sales/proposals": "catalog-publisher",
-  "/admin/sales/quotations": "quotations",
   // Contacts
   "/admin/contacts": "contacts",
   "/admin/contacts/config/tags": "contacts",
@@ -77,6 +74,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/crm": "crm",
   "/admin/crm/dashboard": "crm",
   "/admin/crm/pipeline": "crm",
+  "/admin/crm/proposals": "catalog-publisher",
   "/admin/crm/activities": "crm",
   // Helpdesk
   "/admin/helpdesk": "helpdesk",
@@ -88,6 +86,8 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/website/content": "content",
   "/admin/website/portals": "website",
   "/admin/website/store": "website",
+  "/admin/website/quotations": "quotations",
+  "/admin/website/orders": "orders",
   "/admin/docs/studio": "website",
   "/admin/website/features": "website",
   // Knowledge

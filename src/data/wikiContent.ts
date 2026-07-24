@@ -1,7 +1,6 @@
 import {
   BookOpen,
   DollarSign,
-  ShoppingCart,
   Users,
   Search,
   Target,
@@ -59,7 +58,7 @@ Every feature is accessible through the App Launcher, which organises the platfo
 
 The platform uses a consistent navigation model across all applications.
 
-- Open the App Launcher from the top bar to switch between business applications such as Pricing, Sales, CRM, Leads, Helpdesk, Website, Knowledge, and Settings
+- Open the App Launcher from the top bar to switch between business applications such as Pricing, CRM, Leads, Helpdesk, Website, Knowledge, and Settings
 - Each application has a dedicated sidebar with links to its individual pages
 - The Help panel is available on every page and displays articles relevant to the current view
 - The Global Search bar in the top navigation allows you to find records, articles, and pages across the entire platform
@@ -97,11 +96,13 @@ The operations console is split into admin domains with one canonical route per 
 - **Imports** supports bulk data loads for pricing domains
 - **Pricing Settings** defines global pricing parameters and defaults
 
-## Sales application
+## CRM application
 
-- **Proposals** builds consultative proposal documents
-- **Quotations** handles formal quote creation/editing
-- **Quotation Print Preview** provides print-ready output for signed or shared quotes
+- **Proposals** builds consultative proposal documents linked to customer opportunities
+
+## Website application
+
+- **Quotations** handles formal quote creation, editing, and print preview
 - **Web Orders** processes orders submitted through the public website store
 - **RX Orders** handles prescription lens orders submitted via the RX order form
 
@@ -506,9 +507,9 @@ Use proposals when the customer needs educational context, competitive compariso
     ],
   },
   {
-    id: "sales-app",
-    icon: ShoppingCart,
-    title: "Sales App",
+    id: "website-commerce",
+    icon: Globe,
+    title: "Website Commerce",
     articles: [
       {
         id: "quotations-lifecycle",

@@ -121,6 +121,10 @@ async function requestLocalLiveData<T>(
   const body = JSON.stringify({
     operation,
     arguments: args,
+    // The direct endpoint exists only for a browser running the local CV Web
+    // build. Keep that test path on the Zen-synchronised Innovations mirror,
+    // rather than accidentally falling through to the vendor MSSQL source.
+    source_backend: "mirror",
     target: {
       ...(accountNumber ? { account_number: accountNumber } : {}),
       ...(target.innovationsCustomerId ? { innovations_customer_id: target.innovationsCustomerId } : {}),

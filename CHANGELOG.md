@@ -4,6 +4,14 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-24 — Sales App Consolidation
+
+### Release Notes
+- Closed the standalone Sales app. Proposals now live in CRM; quotations and website orders now live in Website.
+
+### Technical Changelog
+- Replaced Sales routes with canonical `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders` routes, updated navigation and permissions, and added regression coverage that prevents the Sales app or routes from returning.
+
 ## 2026-07-22 — Staff Public Networking Cards
 
 ### Release Notes

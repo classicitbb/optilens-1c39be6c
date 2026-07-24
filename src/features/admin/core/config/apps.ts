@@ -1,5 +1,5 @@
 import {
-  DollarSign, ShoppingCart, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
+  DollarSign, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
   Package, Eye, Layers, BoxSelect, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
   ListChecks,
   FileEdit,
@@ -45,19 +45,6 @@ export const ADMIN_APPS = {
       { label: 'Pricing Settings', route: '/admin/pricing/settings', icon: SlidersHorizontal },
     ] satisfies SidebarItem[],
   },
-  sales: {
-    key: 'sales' as const,
-    title: 'Sales',
-    icon: ShoppingCart,
-    baseRoute: '/admin/sales',
-    defaultRoute: '/admin/sales/quotations',
-    featurePrefix: 'sales',
-    sidebarItems: [
-      { label: 'Orders', route: '/admin/orders', icon: Package },
-      { label: 'Quotations', route: '/admin/sales/quotations', icon: FileEdit },
-      { label: 'Proposals', route: '/admin/sales/proposals', icon: FileEdit },
-    ] satisfies SidebarItem[],
-  },
   contacts: {
     key: 'contacts' as const,
     title: 'Contacts',
@@ -97,6 +84,7 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Dashboard', route: '/admin/crm/dashboard', icon: LayoutDashboard },
       { label: 'Pipeline', route: '/admin/crm/pipeline', icon: Kanban },
+      { label: 'Proposals', route: '/admin/crm/proposals', icon: FileEdit },
       { label: 'Outbox', route: '/admin/crm/outbox', icon: Inbox },
       { label: 'Activities', route: '/admin/crm/activities', icon: CalendarCheck },
     ] satisfies SidebarItem[],
@@ -124,6 +112,8 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Website Portals', route: '/admin/website/portals', icon: UserCircle },
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
+      { label: 'Quotations', route: '/admin/website/quotations', icon: FileEdit },
+      { label: 'Orders', route: '/admin/website/orders', icon: Package },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
       { label: 'Feature Board', route: '/admin/website/features', icon: SlidersHorizontal },
     ] satisfies SidebarItem[],

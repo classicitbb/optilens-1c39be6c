@@ -648,7 +648,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
     onUpdateQuote({ status: "Accepted" });
     pdfRef.current?.triggerPrint();
     setTimeout(() => {
-      navigate("/admin/sales/quotations");
+      navigate("/admin/website/quotations");
     }, 1200);
   };
 
@@ -1045,7 +1045,7 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
                   onClick={() => {
                     saveHeader();
                     saveFrameData();
-                    navigate(`/admin/sales/quotations/${quote.id}/print-preview`);
+                    navigate(`/admin/website/quotations/${quote.id}/print-preview`);
                   }}
                 >
                   <FileSearch className="h-3.5 w-3.5" />

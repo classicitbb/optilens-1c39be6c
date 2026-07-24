@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-24 — Sales App Consolidation
+
+### Release Notes
+- The standalone Sales app has been closed and removed from the launcher.
+- Admins now manage proposals from CRM and quotations plus website orders from Website.
+
 ## 2026-07-22 — Staff Public Networking Cards
 
 ### Release Notes

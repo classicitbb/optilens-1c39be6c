@@ -34,7 +34,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       message: "You still have a draft quotation pending review or send.",
       createdAt: latestDraftQuote.updated_at,
       severity: "warning",
-      href: "/admin/sales/quotations",
+      href: "/admin/website/quotations",
     });
   }
 

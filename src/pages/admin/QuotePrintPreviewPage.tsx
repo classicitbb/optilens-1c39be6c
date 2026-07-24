@@ -128,7 +128,7 @@ const QuotePrintPreviewPage = () => {
           <p className="text-xs text-muted-foreground">{quote.quote_number} · {quote.customer_name || "Untitled quote"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(`/admin/sales/quotations/${quote.id}`)}>
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(`/admin/website/quotations/${quote.id}`)}>
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Editor
           </Button>
@@ -139,7 +139,7 @@ const QuotePrintPreviewPage = () => {
           <Button size="sm" className="h-8 text-xs" onClick={() => pdfRef.current?.triggerPrint()}>
             Print / Save as PDF
           </Button>
-          <Button variant="secondary" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate("/admin/sales/quotations")}> 
+          <Button variant="secondary" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate("/admin/website/quotations")}>
             <X className="h-3.5 w-3.5" />
             Close
           </Button>

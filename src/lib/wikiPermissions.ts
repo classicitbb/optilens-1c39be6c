@@ -32,7 +32,7 @@ const WIKI_CATEGORY_FEATURE_OVERRIDES: Record<string, Feature> = {
   "release-ledger": "wiki",
   "getting-started": "wiki",
   "pricing-app": "catalog",
-  "sales-app": "quotations",
+  "website-commerce": "website",
   "contacts-app": "contacts",
   "leads-app": "crm",
   "crm-app": "crm",
