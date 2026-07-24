@@ -95,6 +95,7 @@ export type Database = {
           provider: string
           statement_id: string | null
           status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -109,7 +110,8 @@ export type Database = {
           id?: string
           provider?: string
           statement_id?: string | null
-          status: string
+          status?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -125,6 +127,7 @@ export type Database = {
           provider?: string
           statement_id?: string | null
           status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -8805,6 +8808,16 @@ export type Database = {
         Args: { p_expires_at?: string; p_name: string; p_scopes: string[] }
         Returns: Json
       }
+      create_pending_statement_payment: {
+        Args: {
+          p_account_number?: string
+          p_actor_user_id?: string
+          p_amount: number
+          p_crm_customer_id?: number
+          p_statement_id?: string
+        }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -9161,14 +9174,7 @@ export type Database = {
         Returns: string
       }
       settle_statement_payment: {
-        Args: {
-          p_account_number?: string
-          p_actor_user_id?: string
-          p_amount: number
-          p_crm_customer_id?: number
-          p_gateway?: Json
-          p_statement_id?: string
-        }
+        Args: { p_gateway?: Json; p_payment_id: string }
         Returns: string
       }
       sync_customer_portal_identity: {
