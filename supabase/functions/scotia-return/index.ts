@@ -26,6 +26,7 @@ import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/co
 
 const CHECKOUT_RETURN_PATH = "/checkout";
 const STATEMENT_RETURN_PATH = "/profile/statements";
+const ORDER_COMPLETE_PATH = (orderId: string) => `/order/${orderId}`;
 
 function redirect(path: string, params: Record<string, string>): Response {
   const url = new URL(path, siteOrigin());
