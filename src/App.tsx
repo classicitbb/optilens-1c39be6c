@@ -108,6 +108,7 @@ const App = () => (
                     <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/order/:orderId" element={<OrderCompletePage />} />
                     <Route path="/profile/*" element={<PortalRoutes />} />
                     <Route path="/portal" element={<Navigate to="/profile" replace />} />
                     <Route path="/*" element={<PublicRoutes />} />
