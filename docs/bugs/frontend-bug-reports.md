@@ -3,6 +3,12 @@
 Track frontend regressions and customer-facing issues.
 
 ## 2026-07-24
+- Area: Admin → Settings → Integrations / DHL Express
+- Impact: there was no secure place to configure DHL Express credentials for tracking and landed-cost work; adding credentials to a browser client would expose the Basic Auth pair and storing DHL estimate responses would violate its service terms.
+- Resolution: added an admin-only configuration card, encrypted credential storage, and a JWT-protected server endpoint limited to on-demand configuration testing, shipment tracking, and landed-cost requests. Estimate data is returned only for the immediate request and is not persisted.
+- Follow-up: do not connect arbitrary customer tracking numbers to the DHL endpoint. First establish a server-side, customer-scoped shipment ownership mapping.
+
+## 2026-07-24
 - Area: Admin application navigation
 - Impact: proposals, quotations, and web orders were split across a standalone Sales app even though their ownership belongs to CRM and Website.
 - Resolution: removed Sales from the launcher and route shell; proposals now open under CRM, while quotations and website orders open under Website. Internal editor, print-preview, notification, permission, and help links now use the new canonical destinations.

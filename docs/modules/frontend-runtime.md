@@ -8,6 +8,12 @@ Operational notes and change context for code in `src/**`.
 - Canonical admin routes are `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders`; quotation editor, print-preview, notification, breadcrumb, and permission links use these destinations.
 - `adminSalesClosure.integration.test.ts` prevents the removed Sales and standalone orders routes from being reintroduced.
 
+## 2026-07-24 — DHL Express MyDHL integration
+
+- `IntegrationsPage` configures the DHL Express account number, environment, and Basic Auth credential pair. Credentials are write-only in the browser and encrypted in `dhl_express_secrets`.
+- The JWT-protected `dhl-express` Edge Function is admin-only and permits exactly three actions: a read-only configuration test, one shipment tracking lookup, and one landed-cost estimate. Landed-cost request and response data are deliberately not persisted.
+- Customer My Orders continues to use the existing customer-scoped live-delivery feed. Do not route an arbitrary portal tracking number into `dhl-express` until the server can prove that it belongs to the signed-in customer's delivery.
+
 ## 2026-07-22 — Staff public networking cards
 
 - Canonical public route: `/connect/:slug`, registered in both `PublicRoutes.tsx` and `routeRegistry.ts`. Only explicitly published cards can be returned to anonymous visitors.

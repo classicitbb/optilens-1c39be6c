@@ -7,6 +7,7 @@ Summarized release outcomes for each major date-stamped update.
 ### Release Notes
 - The standalone Sales app has been closed and removed from the launcher.
 - Admins now manage proposals from CRM and quotations plus website orders from Website.
+- Admins can now save and test DHL Express MyDHL credentials for on-demand tracking and landed-cost estimates. No shipment, label, or pickup is created by this integration.
 
 ## 2026-07-22 — Staff Public Networking Cards
 

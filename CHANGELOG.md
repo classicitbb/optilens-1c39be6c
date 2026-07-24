@@ -8,9 +8,11 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 
 ### Release Notes
 - Closed the standalone Sales app. Proposals now live in CRM; quotations and website orders now live in Website.
+- Admin → Settings → Integrations now includes secure DHL Express MyDHL configuration for on-demand shipment tracking and landed-cost estimates.
 
 ### Technical Changelog
 - Replaced Sales routes with canonical `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders` routes, updated navigation and permissions, and added regression coverage that prevents the Sales app or routes from returning.
+- DHL Basic Auth credentials are encrypted at rest and resolved only by an admin-protected Edge Function; DHL tracking and landed-cost results are not stored.
 
 ## 2026-07-22 — Staff Public Networking Cards
 

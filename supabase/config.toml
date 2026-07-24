@@ -66,3 +66,7 @@ project_id = "dzsalnvmlvjoatryhqfz"
   # Authenticity is proved by recomputing the response hash before settling.
   [functions.scotia-notify]
     verify_jwt = false
+  # DHL credentials are tested only by an authenticated admin; all carrier
+  # operations remain server-side so Basic Auth can never reach the browser.
+  [functions.dhl-express]
+    verify_jwt = true

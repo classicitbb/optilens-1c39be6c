@@ -8,6 +8,12 @@ Support-facing notes for the frontend runtime.
 - Open Website → Quotations for quotes and their print previews, and Website → Orders for public-store order fulfilment.
 - Old `/admin/sales/**` and `/admin/orders` addresses are intentionally unavailable; use the destination app links above.
 
+## 2026-07-24 — DHL Express integration
+
+- Open Admin → Settings → Integrations to save the DHL Express account number plus the MyDHL API username and password supplied by DHL. The password cannot be viewed after saving; enter both credential fields to rotate them.
+- Use **Test configuration** before enabling the service. The test sends only DHL's read-only reference-data request; it does not create a shipment, label, pickup, or quote. DHL's test environment allows 500 service calls per day.
+- Tracking and landed-cost requests are server-side, on-demand admin operations. The customer Delivery Status panel stays on its existing customer-scoped source until DHL tracking can be safely matched to the customer's delivery record.
+
 ## 2026-07-22 — Staff networking cards
 
 - For a trade show or networking event, staff open their profile home screen and select **Share my card**. The QR code opens their public card without requiring the recipient to sign in.
