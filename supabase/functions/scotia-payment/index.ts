@@ -53,6 +53,10 @@ const prepareSchema = z.object({
   // Where the gateway sends the buyer back (must be your own HTTPS URLs).
   responseSuccessURL: z.string().url(),
   responseFailURL: z.string().url(),
+  // Server-to-server webhook target (Fiserv posts outcome directly here,
+  // independent of the buyer's browser return). Optional — the caller can
+  // omit it and this function will derive the default scotia-notify URL.
+  notificationURL: z.string().url().optional(),
   // The page hosting the iframe — REQUIRED for IFRAME mode (manual page 13).
   hostURI: z.string().url().optional(),
   // Your internal order reference for support/reconciliation (oid).
