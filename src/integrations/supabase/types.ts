@@ -81,6 +81,54 @@ export type Database = {
           },
         ]
       }
+      account_payments: {
+        Row: {
+          account_number: string | null
+          amount: number
+          created_at: string
+          crm_customer_id: number | null
+          currency: string
+          gateway_fail_rc: string | null
+          gateway_oid: string | null
+          gateway_response_code: string | null
+          id: string
+          provider: string
+          statement_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          account_number?: string | null
+          amount: number
+          created_at?: string
+          crm_customer_id?: number | null
+          currency?: string
+          gateway_fail_rc?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
+          id?: string
+          provider?: string
+          statement_id?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          account_number?: string | null
+          amount?: number
+          created_at?: string
+          crm_customer_id?: number | null
+          currency?: string
+          gateway_fail_rc?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
+          id?: string
+          provider?: string
+          statement_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           activity_type: string | null
@@ -5030,6 +5078,10 @@ export type Database = {
           card_brand: string | null
           card_last4: string | null
           created_at: string
+          gateway_fail_rc: string | null
+          gateway_hosteddataid: string | null
+          gateway_oid: string | null
+          gateway_response_code: string | null
           id: string
           metadata: Json
           order_id: string
@@ -5045,6 +5097,10 @@ export type Database = {
           card_brand?: string | null
           card_last4?: string | null
           created_at?: string
+          gateway_fail_rc?: string | null
+          gateway_hosteddataid?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
           id?: string
           metadata?: Json
           order_id: string
@@ -5060,6 +5116,10 @@ export type Database = {
           card_brand?: string | null
           card_last4?: string | null
           created_at?: string
+          gateway_fail_rc?: string | null
+          gateway_hosteddataid?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
           id?: string
           metadata?: Json
           order_id?: string
@@ -5245,6 +5305,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_gateway_secrets: {
+        Row: {
+          encrypted_secret: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          encrypted_secret: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          encrypted_secret?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_gateway_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "payment_gateway_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_gateway_settings: {
+        Row: {
+          created_at: string
+          currency: string
+          enabled: boolean
+          environment: string
+          has_secret: boolean
+          id: string
+          last_tested_at: string | null
+          provider: string
+          status: string
+          store_id: string | null
+          tenant_key: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          enabled?: boolean
+          environment?: string
+          has_secret?: boolean
+          id?: string
+          last_tested_at?: string | null
+          provider?: string
+          status?: string
+          store_id?: string | null
+          tenant_key?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          enabled?: boolean
+          environment?: string
+          has_secret?: boolean
+          id?: string
+          last_tested_at?: string | null
+          provider?: string
+          status?: string
+          store_id?: string | null
+          tenant_key?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       price_catalog: {
         Row: {
@@ -8817,6 +8951,17 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_scotia_credentials: {
+        Args: never
+        Returns: {
+          currency: string
+          enabled: boolean
+          environment: string
+          shared_secret: string
+          store_id: string
+          timezone: string
+        }[]
+      }
       get_supplies_safe: {
         Args: never
         Returns: {
@@ -8905,6 +9050,7 @@ export type Database = {
         Args: { p_account_number: string }
         Returns: string
       }
+      payment_secret_encryption_key: { Args: never; Returns: string }
       place_customer_order: {
         Args: {
           p_actor_user_id?: string
@@ -8981,6 +9127,10 @@ export type Database = {
         Args: { p_checks: Json; p_release_sha: string; p_source: string }
         Returns: string
       }
+      record_payment_gateway_test: {
+        Args: { p_actor_user_id?: string; p_success: boolean }
+        Returns: undefined
+      }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       resolve_contact_customer_links: { Args: never; Returns: number }
       revert_account_to_master: {
@@ -9005,6 +9155,21 @@ export type Database = {
       set_master_price: {
         Args: { p_item_ref: string; p_price: number }
         Returns: undefined
+      }
+      settle_scotia_payment: {
+        Args: { p_actor_user_id?: string; p_gateway?: Json; p_order_id: string }
+        Returns: string
+      }
+      settle_statement_payment: {
+        Args: {
+          p_account_number?: string
+          p_actor_user_id?: string
+          p_amount: number
+          p_crm_customer_id?: number
+          p_gateway?: Json
+          p_statement_id?: string
+        }
+        Returns: string
       }
       sync_customer_portal_identity: {
         Args: { p_user_id?: string }
@@ -9114,6 +9279,18 @@ export type Database = {
           p_tenant_key?: string
         }
         Returns: undefined
+      }
+      upsert_payment_gateway_settings: {
+        Args: {
+          p_actor_user_id?: string
+          p_currency?: string
+          p_enabled?: boolean
+          p_environment?: string
+          p_shared_secret?: string
+          p_store_id: string
+          p_timezone?: string
+        }
+        Returns: string
       }
       upsert_presence_heartbeat: {
         Args: { p_role_scope?: string; p_status?: string }
