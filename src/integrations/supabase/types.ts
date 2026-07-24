@@ -2153,6 +2153,77 @@ export type Database = {
           },
         ]
       }
+      dhl_express_secrets: {
+        Row: {
+          encrypted_password: string
+          encrypted_username: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          encrypted_password: string
+          encrypted_username: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          encrypted_password?: string
+          encrypted_username?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dhl_express_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "dhl_express_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dhl_express_settings: {
+        Row: {
+          account_number: string | null
+          created_at: string
+          enabled: boolean
+          environment: string
+          has_credentials: boolean
+          id: string
+          last_error: string | null
+          last_tested_at: string | null
+          status: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          created_at?: string
+          enabled?: boolean
+          environment?: string
+          has_credentials?: boolean
+          id?: string
+          last_error?: string | null
+          last_tested_at?: string | null
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          created_at?: string
+          enabled?: boolean
+          environment?: string
+          has_credentials?: boolean
+          id?: string
+          last_error?: string | null
+          last_tested_at?: string | null
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       docstudio_billing_documents: {
         Row: {
           autosave_content: Json | null
@@ -8893,6 +8964,16 @@ export type Database = {
         }[]
       }
       get_customer_command_center: { Args: never; Returns: Json }
+      get_dhl_express_credentials: {
+        Args: never
+        Returns: {
+          account_number: string
+          api_password: string
+          api_username: string
+          enabled: boolean
+          environment: string
+        }[]
+      }
       get_integration_connection_secret: {
         Args: { p_connection_id: string }
         Returns: string
@@ -9150,6 +9231,14 @@ export type Database = {
         }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
+      record_dhl_express_test: {
+        Args: {
+          p_actor_user_id?: string
+          p_error_message?: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
       record_edge_function_health: {
         Args: { p_checks: Json; p_release_sha: string; p_source: string }
         Returns: string
@@ -9223,6 +9312,17 @@ export type Database = {
       update_api_key_scopes: {
         Args: { p_id: string; p_scopes: string[] }
         Returns: undefined
+      }
+      upsert_dhl_express_settings: {
+        Args: {
+          p_account_number: string
+          p_actor_user_id?: string
+          p_api_password?: string
+          p_api_username?: string
+          p_enabled?: boolean
+          p_environment?: string
+        }
+        Returns: string
       }
       upsert_integration_connection:
         | {
