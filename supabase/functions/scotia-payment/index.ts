@@ -21,7 +21,6 @@
 //   SCOTIA_CURRENCY        ISO numeric, e.g. "840" USD (default "840")
 // ============================================================
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { z } from "npm:zod@3.25.76";
 import {
   createCorsPolicy,
@@ -33,64 +32,17 @@ import {
   ALWAYS_HASH_ALGORITHM,
   DEFAULT_CHECKOUT_OPTION,
   GATEWAY_URLS,
+  classifyScotiaResponse,
   computeExtendedHash,
-  isApproved,
-  isSoftDecline,
-  validateResponseHash,
-  type ScotiaEnv,
 } from "../_shared/scotia/ipgConnect.ts";
+// Config resolution (StoreID/SharedSecret lookup) is shared with scotia-return
+// so both functions resolve credentials identically. See _shared/scotia/config.ts.
+import { getScotiaConfig as getConfig } from "../_shared/scotia/config.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
   allowMethods: "POST, OPTIONS",
 });
-
-interface ScotiaConfig {
-  storeId: string;
-  sharedSecret: string;
-  env: ScotiaEnv;
-  timezone: string;
-  currency: string;
-}
-
-const supabaseAdmin = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-);
-
-/**
- * Resolve credentials. Primary source is the admin-managed secret store
- * (get_scotia_credentials, service-role only, decrypts server-side). Falls back
- * to environment variables so the function still works before the store is
- * populated (or in local/dev).
- */
-async function getConfig(): Promise<ScotiaConfig> {
-  const envCfg: ScotiaConfig = {
-    storeId: Deno.env.get("SCOTIA_STORE_ID") ?? "",
-    sharedSecret: Deno.env.get("SCOTIA_SHARED_SECRET") ?? "",
-    env: (Deno.env.get("SCOTIA_ENV") ?? "test") as ScotiaEnv,
-    timezone: Deno.env.get("SCOTIA_TIMEZONE") ?? "America/Barbados",
-    currency: Deno.env.get("SCOTIA_CURRENCY") ?? "840", // 840 = USD
-  };
-
-  try {
-    const { data, error } = await supabaseAdmin.rpc("get_scotia_credentials");
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!error && row?.store_id && row?.shared_secret) {
-      return {
-        storeId: row.store_id,
-        sharedSecret: row.shared_secret,
-        env: (row.environment ?? envCfg.env) as ScotiaEnv,
-        timezone: row.timezone ?? envCfg.timezone,
-        currency: row.currency ?? envCfg.currency,
-      };
-    }
-  } catch (_err) {
-    // Secret store unavailable → fall back to env config below.
-  }
-
-  return envCfg;
-}
 
 // ── Request schemas ────────────────────────────────────────────────────────
 const prepareSchema = z.object({
@@ -176,20 +128,15 @@ Deno.serve(async (req) => {
 
   try {
     if (parsed.action === "validate") {
-      const result = await validateResponseHash(parsed.response, cfg.sharedSecret);
-      const code = parsed.response.fail_rc
-        ? "" // internal error path
-        : (parsed.response.approval_code ?? "").split(":")[1] ?? ""; // "N:51:05-…" → "51"
-      const associationCode = (parsed.response.processor_response_code
-        ?? parsed.response.approval_code ?? "").split(":").pop()?.slice(0, 2) ?? "";
+      const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret);
       return json({
-        hashValid: result.valid,
-        approved: isApproved(associationCode),
-        softDecline: isSoftDecline(associationCode),
-        associationResponseCode: associationCode,
-        failRc: parsed.response.fail_rc ?? null,
-        oid: parsed.response.oid ?? null,
-        hosteddataid: parsed.response.hosteddataid ?? null, // present when a token was created
+        hashValid: result.hashValid,
+        approved: result.approved,
+        softDecline: result.softDecline,
+        associationResponseCode: result.associationResponseCode,
+        failRc: result.failRc,
+        oid: result.oid,
+        hosteddataid: result.hosteddataid, // present when a token was created
       }, 200, req);
     }
 

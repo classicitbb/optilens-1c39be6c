@@ -56,3 +56,9 @@ project_id = "dzsalnvmlvjoatryhqfz"
   # before production so only authenticated checkout sessions can request a hash.
   [functions.scotia-payment]
     verify_jwt = false
+  # Scotia eCom+ redirect-back endpoint. MUST stay verify_jwt=false — Fiserv's
+  # hosted page POSTs the buyer's browser back here directly (no Supabase
+  # session, no Authorization header at all). Authenticity comes entirely from
+  # the response hash, verified in code before anything is settled.
+  [functions.scotia-return]
+    verify_jwt = false

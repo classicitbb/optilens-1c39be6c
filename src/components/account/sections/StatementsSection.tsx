@@ -1,12 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isScotiaEnabled, type ScotiaValidationResult } from "@/lib/payments/scotiaConnect";
-import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
+import { isScotiaEnabled, prepareScotiaPayment, redirectToScotiaPayment, SCOTIA_RETURN_URL } from "@/lib/payments/scotiaConnect";
 import {
   Dialog,
   DialogContent,
@@ -338,9 +338,12 @@ const StatementsSection = () => {
   };
 
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  // Card payment (Scotia eCom+) flow inside the modal.
-  const [cardStep, setCardStep] = useState<"idle" | "paying" | "success" | "declined">("idle");
+  // Card payment (Scotia eCom+, redirect mode): "paying" only covers the
+  // brief create-intent + prepare round trip before the browser leaves this
+  // page entirely for Scotia's hosted page.
+  const [cardStep, setCardStep] = useState<"idle" | "paying">("idle");
   const [payAmount, setPayAmount] = useState("");
   const [scotiaError, setScotiaError] = useState<string | null>(null);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
@@ -465,44 +468,47 @@ const StatementsSection = () => {
     setPaymentModalOpen(true);
   };
 
-  const handleStatementCardResult = async (
-    result: ScotiaValidationResult,
-    raw: Record<string, string>,
-  ) => {
-    const approved = result.hashValid && result.approved;
+  // Redirect-mode statement payment: create a pending intent (while we still
+  // have an authenticated session), then send the whole browser to Scotia's
+  // hosted page. Scotia's own hosted page won't embed cross-origin, so this
+  // can't stay inline in the modal — the buyer leaves /profile/statements and
+  // comes back via scotia-return with a ?scotia= result flag (handled by the
+  // returning-from-Scotia effect below).
+  const handleStatementCheckout = async () => {
+    setScotiaError(null);
+    setCardStep("paying");
     try {
-      // Record the (already server-validated) outcome for reconciliation.
-      await (supabase.rpc as any)("settle_statement_payment", {
+      const { data: paymentId, error } = await (supabase.rpc as any)("create_pending_statement_payment", {
         p_amount: parsedPayAmount,
         p_statement_id: activeStatementId,
         p_crm_customer_id: typeof crmCustomerId === "number" ? crmCustomerId : null,
         p_account_number: paymentProfile?.account_number ?? balance?.account_number ?? null,
-        p_gateway: {
-          approved,
-          oid: result.oid,
-          association_response_code: result.associationResponseCode,
-          fail_rc: result.failRc,
-          currency: raw.currency ?? null,
-        },
       });
-    } catch {
-      // Recording is best-effort; the gateway outcome still stands.
-    }
-    if (approved) {
-      setCardStep("success");
-      setScotiaError(null);
-      queryClient.invalidateQueries({ queryKey: ["live-innovations-customer-account"] });
-    } else {
-      setCardStep("declined");
-      setScotiaError(
-        !result.hashValid
-          ? "We could not verify the gateway response. Please contact us before retrying."
-          : result.softDecline
-            ? "Your card was declined, but this can be temporary. Please try again or use a different card."
-            : "Your card was declined. Please use a different card or contact your bank.",
-      );
+      if (error || !paymentId) throw new Error(error?.message || "Could not start payment.");
+
+      const prepared = await prepareScotiaPayment({
+        chargetotal: parsedPayAmount,
+        responseSuccessURL: SCOTIA_RETURN_URL,
+        responseFailURL: SCOTIA_RETURN_URL,
+        orderId: `STMT-${paymentId}`,
+      });
+      redirectToScotiaPayment(prepared);
+      // No further code runs — the page is navigating away.
+    } catch (err) {
+      setScotiaError(err instanceof Error ? err.message : "Could not start payment. Please try again.");
+      setCardStep("idle");
     }
   };
+
+  // ── Returning from Scotia (full-page redirect back via scotia-return) ──
+  const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "error" | null;
+
+  useEffect(() => {
+    if (scotiaReturn === "success") {
+      queryClient.invalidateQueries({ queryKey: ["live-innovations-customer-account"] });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scotiaReturn]);
 
   if (!crmCustomerId) {
     return (
@@ -548,6 +554,31 @@ const StatementsSection = () => {
         <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
         <p className="text-sm text-muted-foreground">Live Innovations balance and statements, fetched only when you open this page.</p>
       </header>
+
+      {/* Returning from Scotia (redirect mode) */}
+      {scotiaReturn === "success" && (
+        <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+          <AlertDescription className="text-emerald-900 dark:text-emerald-300">
+            Payment received — thank you. It will appear on your account shortly.
+          </AlertDescription>
+        </Alert>
+      )}
+      {(scotiaReturn === "declined" || scotiaReturn === "error") && (
+        <Alert variant="destructive" role="alert">
+          <AlertCircle className="h-4 w-4" aria-hidden="true" />
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>
+              {scotiaReturn === "declined"
+                ? "Your card was declined. No payment was made."
+                : "We couldn't confirm your payment. No payment was made."}
+            </span>
+            <Button variant="outline" size="sm" onClick={openPaymentModal}>
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Balance and Controls */}
       <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
@@ -739,9 +770,7 @@ const StatementsSection = () => {
           }
         }}
       >
-        <DialogContent
-          className={`w-full ${cardStep === "paying" ? "max-w-lg" : "max-w-sm"} rounded-lg bg-white dark:bg-slate-950 dark:border-slate-700`}
-        >
+        <DialogContent className="w-full max-w-sm rounded-lg bg-white dark:bg-slate-950 dark:border-slate-700">
           <DialogHeader>
             <DialogTitle className="dark:text-slate-50">Pay your balance</DialogTitle>
             <DialogDescription className="dark:text-slate-400">
@@ -749,51 +778,10 @@ const StatementsSection = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {/* ── Card payment (Scotia eCom+) ── */}
-          {cardPaymentsEnabled && cardStep === "success" ? (
-            <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-              <AlertDescription className="text-emerald-900 dark:text-emerald-300">
-                Payment of ${money(parsedPayAmount)} received — thank you. It will appear on your
-                account shortly.
-              </AlertDescription>
-            </Alert>
-          ) : cardPaymentsEnabled && cardStep === "paying" ? (
+          {/* ── Card payment (Scotia eCom+, redirect mode) ── */}
+          {cardPaymentsEnabled ? (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Paying <strong className="text-foreground">${money(parsedPayAmount)}</strong>
-                {activeStatementId ? ` toward statement #${activeStatementId}` : ""}.
-              </p>
               {scotiaError && (
-                <Alert variant="destructive" role="alert">
-                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
-                  <AlertDescription>{scotiaError}</AlertDescription>
-                </Alert>
-              )}
-              <ScotiaPaymentFrame
-                payment={{
-                  chargetotal: parsedPayAmount,
-                  responseSuccessURL: `${window.location.origin}/account`,
-                  responseFailURL: `${window.location.origin}/account`,
-                  orderId: activeStatementId ? `STMT-${activeStatementId}` : undefined,
-                }}
-                onResult={handleStatementCardResult}
-                onError={(message) => {
-                  setScotiaError(message);
-                  setCardStep("idle");
-                }}
-              />
-              <Button
-                variant="ghost"
-                className="w-full h-9 text-xs"
-                onClick={() => setCardStep("idle")}
-              >
-                Change amount
-              </Button>
-            </div>
-          ) : cardPaymentsEnabled ? (
-            <div className="space-y-3">
-              {cardStep === "declined" && scotiaError && (
                 <Alert variant="destructive" role="alert">
                   <AlertCircle className="h-4 w-4" aria-hidden="true" />
                   <AlertDescription>{scotiaError}</AlertDescription>
@@ -812,23 +800,32 @@ const StatementsSection = () => {
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
                   className="h-10"
+                  disabled={cardStep === "paying"}
                 />
               </div>
               <Button
                 className="w-full h-10 gap-2"
-                disabled={!payAmountValid}
-                onClick={() => {
-                  setScotiaError(null);
-                  setCardStep("paying");
-                }}
+                disabled={!payAmountValid || cardStep === "paying"}
+                onClick={handleStatementCheckout}
               >
-                <CreditCard className="h-4 w-4" aria-hidden="true" />
-                Pay ${payAmountValid ? money(parsedPayAmount) : "0.00"} by card
+                {cardStep === "paying" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <CreditCard className="h-4 w-4" aria-hidden="true" />
+                )}
+                {cardStep === "paying"
+                  ? "Redirecting to Scotiabank…"
+                  : `Pay ${payAmountValid ? `$${money(parsedPayAmount)}` : "$0.00"} by card`}
               </Button>
+              {cardStep !== "paying" && (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  You'll enter your card on Scotiabank's secure page, then return here automatically.
+                </p>
+              )}
             </div>
           ) : null}
 
-          {cardStep === "paying" || cardStep === "success" ? null : paymentProfile?.pay_by_eft && bankPortal?.portal_url ? (
+          {cardStep === "paying" ? null : paymentProfile?.pay_by_eft && bankPortal?.portal_url ? (
             <>
               <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-900/20">
                 <AlertDescription className="text-blue-900 dark:text-blue-300">

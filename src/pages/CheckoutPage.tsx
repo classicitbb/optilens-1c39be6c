@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   AlertCircle,
   ArrowLeft,
@@ -40,8 +40,12 @@ import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import SecurityTrustBar from "@/components/checkout/SecurityTrustBar";
 import { COUNTRY_OPTIONS, getStateOptionsByCountry } from "@/lib/locationOptions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { isScotiaEnabled, type ScotiaValidationResult } from "@/lib/payments/scotiaConnect";
-import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
+import {
+  isScotiaEnabled,
+  prepareScotiaPayment,
+  redirectToScotiaPayment,
+  SCOTIA_RETURN_URL,
+} from "@/lib/payments/scotiaConnect";
 
 // Scotia eCom+ embedded gateway. Off unless VITE_SCOTIA_ENABLED=true — the
 // existing offline methods + on-account always remain available as fallback.
@@ -230,10 +234,11 @@ const OrderSummarySidebar = ({
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const checkoutFeature = useWebsiteFeature("store_checkout", false);
   const { items, totalPrice, clearCart, loading: cartLoading } = useCartContext();
   const { user } = useAuth();
-  const { createOrder, settleScotiaPayment } = useOrders();
+  const { createOrder } = useOrders();
   const { identity, isLoading: identityLoading } = usePortalIdentity();
   const { addresses, defaultShipping, defaultBilling, isLoading: addressesLoading } = useCustomerAddresses();
   const { defaultPaymentMethod, paymentMethods, isLoading: paymentMethodsLoading } = useCustomerPaymentMethods();
@@ -268,26 +273,16 @@ const CheckoutPage = () => {
   const [selectedScotiaToken, setSelectedScotiaToken] = useState<string | null>(null);
   const [scotiaError, setScotiaError] = useState<string | null>(null);
 
-  const handleScotiaResult = async (
-    result: ScotiaValidationResult,
-    raw: Record<string, string>,
-  ) => {
-    if (!result.hashValid) {
-      setScotiaError("Payment response could not be verified. Please try again.");
-      return;
-    }
-    if (!result.approved) {
-      setScotiaError(
-        result.softDecline
-          ? "Your bank declined the payment but a retry may succeed."
-          : "Your bank declined the payment. Please use a different card or payment method.",
-      );
-      return;
-    }
-
+  // Redirect-mode Scotia checkout: create the order first (pending — no
+  // payment captured yet), then send the buyer's whole browser to Scotia's
+  // hosted page. Nothing runs after redirectToScotiaPayment(); the gateway
+  // POSTs the buyer back to scotia-return, which settles the order via
+  // service role and 302s back here with a `?scotia=` result flag (handled
+  // by the returning-from-Scotia effect below).
+  const handleScotiaCheckout = async () => {
+    setScotiaError(null);
     setIsProcessing(true);
     try {
-      // 1. Record the order (payment already approved at the gateway).
       const order = await createOrder(items, totalPrice, {
         ...formData,
         checkoutMethod: "scotia_ecom",
@@ -298,29 +293,52 @@ const CheckoutPage = () => {
         email: formData.email.trim(),
       });
       if (!order) {
-        setScotiaError("Payment approved, but we couldn't record your order. Please contact support.");
+        setScotiaError("We couldn't start your order. Please try again.");
+        setIsProcessing(false);
         return;
       }
 
-      // 2. Settle: persist gateway result + (optionally) the saved card token.
-      const last4 = (raw.cardnumber ?? "").replace(/\D/g, "").slice(-4);
-      await settleScotiaPayment(order.id, {
-        approved: true,
-        oid: result.oid ?? raw.oid ?? null,
-        association_response_code: result.associationResponseCode || null,
-        fail_rc: result.failRc,
-        hosteddataid: result.hosteddataid ?? raw.hosteddataid ?? null,
-        card_brand: raw.ccbrand ?? raw.paymentMethod ?? null,
-        card_last4: last4 || null,
-        cardholder_name: raw.bname ?? formData.cardholderName ?? null,
-        expiry_month: raw.expmonth ? Number(raw.expmonth) : null,
-        expiry_year: raw.expyear ? Number(raw.expyear) : null,
-        save_token: saveScotiaCard,
+      const prepared = await prepareScotiaPayment({
+        chargetotal: totalPrice + (shippingCost ?? 0),
+        responseSuccessURL: SCOTIA_RETURN_URL,
+        responseFailURL: SCOTIA_RETURN_URL,
+        orderId: order.id,
+        hosteddataid: selectedScotiaToken ?? undefined,
+        assignToken: selectedScotiaToken === null ? saveScotiaCard : undefined,
       });
+      redirectToScotiaPayment(prepared);
+      // No further code runs — the page is navigating away.
+    } catch (err) {
+      setScotiaError(err instanceof Error ? err.message : "Could not start payment. Please try again.");
+      setIsProcessing(false);
+    }
+  };
 
-      setIsComplete(true);
-      await clearCart();
-    } finally {
+  // ── Returning from Scotia (full-page redirect back via scotia-return) ──
+  const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "error" | null;
+  const scotiaReturnOrderId = searchParams.get("order");
+
+  const retryScotiaOrder = async () => {
+    if (!scotiaReturnOrderId) return;
+    setScotiaError(null);
+    setIsProcessing(true);
+    try {
+      const { data: order, error } = await (supabase as any)
+        .from("orders")
+        .select("id,total_amount")
+        .eq("id", scotiaReturnOrderId)
+        .single();
+      if (error || !order) throw new Error("We couldn't find that order to retry.");
+
+      const prepared = await prepareScotiaPayment({
+        chargetotal: Number(order.total_amount),
+        responseSuccessURL: SCOTIA_RETURN_URL,
+        responseFailURL: SCOTIA_RETURN_URL,
+        orderId: order.id,
+      });
+      redirectToScotiaPayment(prepared);
+    } catch (err) {
+      setScotiaError(err instanceof Error ? err.message : "Could not retry payment. Please contact support.");
       setIsProcessing(false);
     }
   };
@@ -341,10 +359,13 @@ const CheckoutPage = () => {
       return;
     }
     // Wait for the cart to finish loading before deciding to bounce back.
-    if (!cartLoading && !isComplete && items.length === 0) {
+    // scotiaReturn: the cart was already cleared server-side when the order
+    // was created (before the redirect to Scotia), so an empty cart here is
+    // expected — don't bounce the buyer away from their result screen.
+    if (!cartLoading && !isComplete && !scotiaReturn && items.length === 0) {
       navigate("/cart", { replace: true });
     }
-  }, [items.length, navigate, user, isComplete, cartLoading]);
+  }, [items.length, navigate, user, isComplete, scotiaReturn, cartLoading]);
 
   // ── Load profile ──
   useEffect(() => {
@@ -432,6 +453,7 @@ const CheckoutPage = () => {
     }
     setFieldErrors({});
     if (step < 4) setStep((step + 1) as Step);
+    else if (payWithScotia) handleScotiaCheckout();
     else handlePlaceOrder();
   };
 
@@ -470,7 +492,7 @@ const CheckoutPage = () => {
   };
 
   // ── Step labels ──
-  const stepLabel = step < 4 ? "Continue" : "Place order";
+  const stepLabel = step < 4 ? "Continue" : payWithScotia ? "Continue to Scotiabank" : "Place order";
 
   // ─────────────────────────────────────────────────────────────────────────
   // STORE LOCKDOWN — checkout stays closed until the store_checkout feature
@@ -497,6 +519,88 @@ const CheckoutPage = () => {
               </Button>
               <Button variant="outline" asChild>
                 <Link to="/store">Back to store</Link>
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RETURNING FROM SCOTIA — the buyer's browser left this page entirely to
+  // pay at test.ipg-online.com and has just been redirected back by
+  // scotia-return with a ?scotia= result flag.
+  // ─────────────────────────────────────────────────────────────────────────
+  if (scotiaReturn === "success") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center px-4 pb-16 pt-24">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-soft">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-secondary/10">
+              <CheckCircle className="h-9 w-9 text-secondary" aria-hidden="true" />
+            </div>
+            <h1 className="mb-2 text-2xl text-foreground">Payment received</h1>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+              Your card payment was approved and your order is confirmed. You'll receive an email
+              confirmation shortly.
+            </p>
+            {scotiaReturnOrderId && (
+              <div className="mb-6 rounded-lg bg-muted/60 px-4 py-3">
+                <p className="font-mono text-xs text-muted-foreground">Order reference</p>
+                <p className="mt-0.5 break-all font-mono text-sm font-semibold text-secondary">
+                  {scotiaReturnOrderId}
+                </p>
+              </div>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <Button variant="default" asChild>
+                <Link to="/profile/orders">View my orders</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/store">Continue shopping</Link>
+              </Button>
+            </div>
+            <SecurityTrustBar compact className="mt-6 justify-center" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (scotiaReturn === "declined" || scotiaReturn === "error") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center px-4 pb-16 pt-24">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-soft">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+              <AlertCircle className="h-9 w-9 text-destructive" aria-hidden="true" />
+            </div>
+            <h1 className="mb-2 text-2xl text-foreground">
+              {scotiaReturn === "declined" ? "Payment declined" : "Something went wrong"}
+            </h1>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+              {scotiaReturn === "declined"
+                ? "Your bank declined the card. Your order is still reserved — you can retry the payment or contact us for help."
+                : "We couldn't confirm your payment. Your order is still reserved — please retry or contact us."}
+            </p>
+            {scotiaError && (
+              <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-left text-xs text-destructive" role="alert">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{scotiaError}</span>
+              </div>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              {scotiaReturnOrderId && (
+                <Button variant="default" onClick={retryScotiaOrder} disabled={isProcessing} className="gap-1.5">
+                  {isProcessing && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                  Retry payment
+                </Button>
+              )}
+              <Button variant="outline" asChild>
+                <Link to="/profile/helpdesk">Contact us</Link>
               </Button>
             </div>
           </div>
@@ -1041,7 +1145,10 @@ const CheckoutPage = () => {
                     })}
                   </div>
 
-                  {/* Embedded Scotia gateway — buyer pays without leaving the page. */}
+                  {/* Scotia eCom+ — redirect mode. Scotia's hosted page won't
+                      embed cross-origin, so payment happens after leaving this
+                      page (via "Continue to Scotiabank" on the Review step),
+                      not inline here. */}
                   {SCOTIA_ENABLED && payWithScotia && (
                     <div className="mt-4">
                       {scotiaError && (
@@ -1099,19 +1206,14 @@ const CheckoutPage = () => {
                         </label>
                       )}
 
-                      <ScotiaPaymentFrame
-                        key={selectedScotiaToken ?? "new-card"}
-                        payment={{
-                          chargetotal: totalPrice + (shippingCost ?? 0),
-                          responseSuccessURL: `${window.location.origin}/checkout`,
-                          responseFailURL: `${window.location.origin}/checkout`,
-                          orderId: poNumber || undefined,
-                          hosteddataid: selectedScotiaToken ?? undefined,
-                          assignToken: selectedScotiaToken === null ? saveScotiaCard : undefined,
-                        }}
-                        onResult={handleScotiaResult}
-                        onError={(message) => setScotiaError(message)}
-                      />
+                      <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground">
+                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+                        <span>
+                          {selectedScotiaToken
+                            ? "Continue to review — you'll confirm with your card's CVV on Scotiabank's secure page."
+                            : "Continue to review — you'll enter your card details on Scotiabank's secure page, then return here automatically."}
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -1200,7 +1302,14 @@ const CheckoutPage = () => {
                       {
                         label: "Payment",
                         goTo: 3 as Step,
-                        content: (
+                        content: payWithScotia ? (
+                          <>
+                            <p className="text-sm text-foreground">Credit / Debit card (Scotiabank)</p>
+                            <p className="text-xs text-muted-foreground">
+                              You'll be redirected to Scotiabank to complete payment securely.
+                            </p>
+                          </>
+                        ) : (
                           <>
                             <p className="text-sm text-foreground">
                               {formData.checkoutMethod === "on_account"
