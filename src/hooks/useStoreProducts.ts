@@ -30,7 +30,11 @@ export const getStableStoreProductCartId = (product: Pick<StoreProduct, "id" | "
     hash = Math.imul(hash, 16777619);
   }
 
-  return Math.abs(hash >>> 0);
+  // cart_items.product_id is a Postgres int4 (max 2147483647). `hash >>> 0`
+  // yields a full unsigned 32-bit value (up to 4294967295), which overflows
+  // int4 for roughly half of all inputs and causes the insert to fail
+  // silently for those products. Fold into the positive int4 range instead.
+  return (hash >>> 0) % 2147483647;
 };
 
 export const resolveStoreProductFromCartRef = (

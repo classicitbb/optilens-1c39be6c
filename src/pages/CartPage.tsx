@@ -11,6 +11,7 @@ import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import SaveDraftDialog from "@/components/cart/SaveDraftDialog";
+import QuantityInput from "@/components/cart/QuantityInput";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 import { cn } from "@/lib/utils";
 
@@ -157,7 +158,7 @@ const CartPage = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-mono text-sm text-foreground">
+                          <span className="tabular-nums text-sm text-foreground">
                             ${item.product_price.toFixed(2)}
                           </span>
                         </td>
@@ -171,9 +172,11 @@ const CartPage = () => {
                             >
                               <Minus className="h-3 w-3" />
                             </button>
-                            <span className="w-8 text-center font-mono text-sm font-semibold text-foreground">
-                              {item.quantity}
-                            </span>
+                            <QuantityInput
+                              quantity={item.quantity}
+                              onCommit={(q) => updateQuantity(item.id, q)}
+                              aria-label={`Quantity for ${item.product_name}`}
+                            />
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
@@ -185,7 +188,7 @@ const CartPage = () => {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <span className="font-mono text-sm font-semibold text-foreground">
+                          <span className="tabular-nums text-sm font-semibold text-foreground">
                             ${lineTotal.toFixed(2)}
                           </span>
                         </td>
@@ -252,7 +255,7 @@ const CartPage = () => {
                     {item.product_name}
                     <span className="ml-1 text-muted-foreground">× {item.quantity}</span>
                   </span>
-                  <span className="shrink-0 font-mono font-semibold text-foreground">
+                  <span className="shrink-0 tabular-nums font-semibold text-foreground">
                     ${(item.product_price * item.quantity).toFixed(2)}
                   </span>
                 </div>
@@ -264,11 +267,11 @@ const CartPage = () => {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
-                <span className="font-mono">${totalPrice.toFixed(2)}</span>
+                <span className="tabular-nums">${totalPrice.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Shipping</span>
-                <span className="font-mono text-muted-foreground/70">TBD at checkout</span>
+                <span className="text-muted-foreground/70">TBD at checkout</span>
               </div>
             </div>
 
@@ -276,7 +279,7 @@ const CartPage = () => {
 
             <div className="flex items-baseline justify-between">
               <span className="font-semibold text-foreground">Estimated total</span>
-              <span className="font-mono text-lg font-bold text-foreground">
+              <span className="tabular-nums text-lg font-bold text-foreground">
                 ${totalPrice.toFixed(2)}
                 <span className="ml-1 font-mono text-[9px] font-normal uppercase tracking-wider text-muted-foreground">
                   USD

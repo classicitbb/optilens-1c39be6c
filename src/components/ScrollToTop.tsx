@@ -1,8 +1,15 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
+import { recordNonProfilePath } from "@/lib/lastExternalPath";
 
 const ScrollToTop = () => {
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, search } = useLocation();
+
+  useEffect(() => {
+    if (!pathname.startsWith("/profile")) {
+      recordNonProfilePath(pathname + search);
+    }
+  }, [pathname, search]);
 
   useEffect(() => {
     // If the URL has a hash, let the browser handle scrolling to the anchor

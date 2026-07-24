@@ -13,6 +13,7 @@ import { useCartContext } from "@/contexts/CartContext";
 import { Separator } from "@/components/ui/separator";
 import { Link, useNavigate } from "react-router";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
+import QuantityInput from "@/components/cart/QuantityInput";
 
 interface CartSheetProps {
   className?: string;
@@ -112,9 +113,12 @@ export const CartSheet = ({
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-8 text-center font-medium">
-                        {item.quantity}
-                      </span>
+                      <QuantityInput
+                        quantity={item.quantity}
+                        onCommit={(q) => updateQuantity(item.id, q)}
+                        className="font-medium"
+                        aria-label={`Quantity for ${item.product_name}`}
+                      />
                       <Button
                         variant="outline"
                         size="icon"

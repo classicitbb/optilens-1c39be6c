@@ -15,6 +15,7 @@ import { useSupportAvailability } from "@/hooks/useSupportAvailability";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { capitalizeDisplayName } from "@/lib/profileData";
+import { getLastNonProfilePath } from "@/lib/lastExternalPath";
 
 interface AccountTopBarProps {
   displayName: string;
@@ -31,6 +32,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
+  const [backToWebsitePath] = useState(getLastNonProfilePath);
   const activeTheme = theme ?? "system";
   const formattedDisplayName = capitalizeDisplayName(displayName, "Customer");
 
@@ -54,7 +56,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
           {/* Left: back to website */}
           <div className="min-w-0">
             <Button variant="ghost" asChild className="h-7 max-w-full gap-1.5 px-2 text-xs sm:text-sm">
-              <Link to="/">
+              <Link to={backToWebsitePath}>
                 <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Website</span>
               </Link>
