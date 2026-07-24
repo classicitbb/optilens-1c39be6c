@@ -68,7 +68,10 @@ Deno.serve(async (req) => {
     const result = await classifyScotiaResponse(response, cfg.sharedSecret);
 
     if (!result.hashValid) {
-      console.error("scotia-return: response hash did not validate", { oid });
+      // debugHash is safe to log: HMAC digests, not the shared secret, and
+      // response_hash already travels in plaintext from Fiserv. Temporary —
+      // remove once the mismatch is diagnosed.
+      console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash });
       return redirect(returnPath, { scotia: "error" });
     }
 

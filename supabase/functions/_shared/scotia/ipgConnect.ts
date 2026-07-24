@@ -164,6 +164,14 @@ export interface ScotiaResponseClassification {
   hosteddataid: string | null;
   chargetotal: string | null;
   currency: string | null;
+  /** Diagnostics only — safe to log: HMAC digests, not the shared secret
+   * itself, and response_hash already travels in plaintext over the wire. */
+  debugHash?: {
+    expected: string;
+    received: string;
+    inputFields: { approval_code: string; chargetotal: string; currency: string; txndatetime: string; storename: string };
+    sharedSecretLength: number;
+  };
 }
 
 /**
@@ -176,7 +184,7 @@ export async function classifyScotiaResponse(
   response: Record<string, string>,
   sharedSecret: string,
 ): Promise<ScotiaResponseClassification> {
-  const { valid } = await validateResponseHash(response, sharedSecret);
+  const { valid, expected, received } = await validateResponseHash(response, sharedSecret);
   const associationCode = (response.processor_response_code
     ?? response.approval_code ?? "").split(":").pop()?.slice(0, 2) ?? "";
   return {
@@ -189,5 +197,19 @@ export async function classifyScotiaResponse(
     hosteddataid: response.hosteddataid ?? null,
     chargetotal: response.chargetotal ?? null,
     currency: response.currency ?? null,
+    // Only populated when the hash didn't validate — cheap to compute either
+    // way, but no need to carry it around on the (common) success path.
+    debugHash: valid ? undefined : {
+      expected,
+      received,
+      inputFields: {
+        approval_code: response.approval_code ?? "",
+        chargetotal: response.chargetotal ?? "",
+        currency: response.currency ?? "",
+        txndatetime: response.txndatetime ?? "",
+        storename: response.storename ?? "",
+      },
+      sharedSecretLength: sharedSecret.length,
+    },
   };
 }

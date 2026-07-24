@@ -600,7 +600,24 @@ const CheckoutPage = () => {
                 </Button>
               )}
               <Button variant="outline" asChild>
-                <Link to="/profile/helpdesk">Contact us</Link>
+                <Link
+                  to="/profile/helpdesk"
+                  state={{
+                    prefillTitle: `Card payment not confirmed${scotiaReturnOrderId ? ` — order ${scotiaReturnOrderId}` : ""}`,
+                    prefillDescription: [
+                      "I tried to pay for an order online by card and the payment could not be confirmed.",
+                      scotiaReturnOrderId ? `Order reference: ${scotiaReturnOrderId}` : null,
+                      formData.fullName ? `Name: ${formData.fullName}` : null,
+                      (formData.email || user?.email) ? `Email: ${formData.email || user?.email}` : null,
+                      "",
+                      "Please help me confirm whether this payment went through and complete my order.",
+                    ]
+                      .filter(Boolean)
+                      .join("\n"),
+                  }}
+                >
+                  Contact us
+                </Link>
               </Button>
             </div>
           </div>
